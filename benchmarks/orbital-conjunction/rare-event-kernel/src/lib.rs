@@ -39,10 +39,10 @@ pub use residual::{
     affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
 };
-pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 
 pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
@@ -122,7 +122,9 @@ impl fmt::Display for KernelError {
             Self::InvalidCoverageBudget => "coverage traversal cell budget must be nonzero",
             Self::CoverageChartOutsideDomain => "coverage chart box lies outside the search cube",
             Self::EmptyEventUnion => "residual-mass event union must contain at least one component",
-            Self::InvalidPolynomial => "trajectory polynomial must contain at least one coefficient per axis",
+            Self::InvalidPolynomial => {
+                "trajectory polynomial must contain at least one coefficient per axis"
+            }
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
