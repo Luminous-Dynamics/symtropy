@@ -219,12 +219,16 @@ impl AggregationCompositionProjectionReport {
                 evidence_id: event.evidence_id.clone(),
                 voided: false,
             });
-            batch.mutations.push(match event.action {
-                MembershipAction::Add => CompositionMutation::Add {
+            batch.mutations.push(match (event.action, projected.provenance.is_revision_tombstone) {
+                (MembershipAction::Add, _) => CompositionMutation::Add {
                     parent_module_id: event.parent_module_id.clone(),
                     child_module_id: event.child_module_id.clone(),
                 },
-                MembershipAction::Delete => CompositionMutation::Delete {
+                (MembershipAction::Delete, true) => CompositionMutation::RetractIfPresent {
+                    parent_module_id: event.parent_module_id.clone(),
+                    child_module_id: event.child_module_id.clone(),
+                },
+                (MembershipAction::Delete, false) => CompositionMutation::Delete {
                     parent_module_id: event.parent_module_id.clone(),
                     child_module_id: event.child_module_id.clone(),
                 },
