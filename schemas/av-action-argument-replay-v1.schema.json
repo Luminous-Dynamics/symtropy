@@ -336,7 +336,8 @@
         "parameter_manifest_sha256", "parent_transcript_head_sha256",
         "status", "result_tick", "delivered_frames", "delivered_roi",
         "delivered_output_resolution", "delivered_crop_policy_sha256",
-        "delivered_preprocessing_sha256", "delivered_audio", "delivered_feedback",
+        "delivered_preprocessing_sha256", "delivered_audio",
+        "delivered_audio_transform_sha256", "delivered_feedback",
         "actual_resource_digest_sha256", "result_event_sha256"
       ],
       "properties": {
@@ -378,6 +379,12 @@
           "oneOf": [
             {"type": "null"},
             {"$ref": "#/$defs/deliveredAudioRange"}
+          ]
+        },
+        "delivered_audio_transform_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/sha256"}
           ]
         },
         "delivered_feedback": {
