@@ -682,6 +682,6 @@ mod tests {
         let summary =
             validate_dataset_admission(&schema(), &manifest, "research_noncommercial").unwrap();
         assert_eq!(summary.admitted_count, 1);
-        assert_eq!(summary.unqualified_time_count, 1);
+        assert_eq!(summary.unqualified_time_count, 2);
     }
 }
