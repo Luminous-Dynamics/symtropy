@@ -311,7 +311,10 @@ pub fn validate_trace_bundle(bundle: &TraceBundle) -> TraceValidation {
         || !nonempty(&header.model_revision)
         || !nonempty(&header.fault_profile_revision)
         || !nonempty(&header.oracle_revision)
-        || header.parent_bundle_id.as_ref().is_some_and(|id| !nonempty(id))
+        || header
+            .parent_bundle_id
+            .as_ref()
+            .is_some_and(|id| !nonempty(id))
     {
         return TraceValidation::Hold(TraceHoldReason::MissingHeaderIdentity);
     }
@@ -373,7 +376,10 @@ fn remove_chunk_with_descendants(
         .collect()
 }
 
-fn keep_chunk_with_ancestors(events: &[TraceEvent], initial_keep_ids: &BTreeSet<String>) -> Vec<TraceEvent> {
+fn keep_chunk_with_ancestors(
+    events: &[TraceEvent],
+    initial_keep_ids: &BTreeSet<String>,
+) -> Vec<TraceEvent> {
     let mut keep = initial_keep_ids.clone();
     loop {
         let mut changed = false;
@@ -493,7 +499,14 @@ pub fn minimize_trace<O: ReplayOracle>(
             if candidate.len() == current.len() {
                 continue;
             }
-            match preserves_target(&candidate, &target, &bundle.header, oracle, &mut calls, max_oracle_calls) {
+            match preserves_target(
+                &candidate,
+                &target,
+                &bundle.header,
+                oracle,
+                &mut calls,
+                max_oracle_calls,
+            ) {
                 Some(true) => {
                     current = candidate;
                     granularity = granularity.saturating_sub(1).max(2);
@@ -582,7 +595,9 @@ pub fn minimize_trace<O: ReplayOracle>(
     minimized.events = current;
 
     if validate_trace_bundle(&minimized) != TraceValidation::Valid {
-        return Err(MinimizationError::InvalidBundle(TraceHoldReason::MissingFailureWitness));
+        return Err(MinimizationError::InvalidBundle(
+            TraceHoldReason::MissingFailureWitness,
+        ));
     }
 
     Ok(MinimizationResult {
@@ -627,7 +642,9 @@ mod tests {
                 .find(|event| event.kind == TraceEventKind::OldCommandApplied);
             match (fence, late_apply) {
                 (Some(fence_index), Some(apply))
-                    if events.iter().position(|event| event.event_id == apply.event_id)
+                    if events
+                        .iter()
+                        .position(|event| event.event_id == apply.event_id)
                         .is_some_and(|apply_index| apply_index > fence_index) =>
                 {
                     ReplayOutcome::Failure(FailureSignature {
@@ -673,18 +690,16 @@ mod tests {
         [value; 32]
     }
 
-    fn event(
-        id: &str,
-        sequence: u64,
-        kind: TraceEventKind,
-        predecessors: &[&str],
-    ) -> TraceEvent {
+    fn event(id: &str, sequence: u64, kind: TraceEventKind, predecessors: &[&str]) -> TraceEvent {
         TraceEvent {
             event_id: id.to_owned(),
             logical_sequence: sequence,
             kind,
             actor_id: "robot-runtime".to_owned(),
-            predecessor_event_ids: predecessors.iter().map(|value| (*value).to_owned()).collect(),
+            predecessor_event_ids: predecessors
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
             input_commitment: commitment(1),
             configuration_commitment: commitment(2),
         }
@@ -708,11 +723,31 @@ mod tests {
             events: vec![
                 event("boot", 1, TraceEventKind::ProcessStarted, &[]),
                 event("old-command", 2, TraceEventKind::CommandQueued, &["boot"]),
-                event("controller-fence", 3, TraceEventKind::ControllerQueueFenced, &["boot"]),
-                event("downstream-fence", 4, TraceEventKind::DownstreamGraphFenced, &["controller-fence"]),
-                event("late-old-apply", 5, TraceEventKind::OldCommandApplied, &["old-command", "downstream-fence"]),
+                event(
+                    "controller-fence",
+                    3,
+                    TraceEventKind::ControllerQueueFenced,
+                    &["boot"],
+                ),
+                event(
+                    "downstream-fence",
+                    4,
+                    TraceEventKind::DownstreamGraphFenced,
+                    &["controller-fence"],
+                ),
+                event(
+                    "late-old-apply",
+                    5,
+                    TraceEventKind::OldCommandApplied,
+                    &["old-command", "downstream-fence"],
+                ),
                 event("telemetry", 6, TraceEventKind::TelemetryCaptured, &["boot"]),
-                event("trace-flush", 7, TraceEventKind::TraceFlushed, &["telemetry"]),
+                event(
+                    "trace-flush",
+                    7,
+                    TraceEventKind::TraceFlushed,
+                    &["telemetry"],
+                ),
                 event("metrics", 8, TraceEventKind::Other, &["boot"]),
             ],
             artifacts: vec![TraceArtifact {
@@ -732,7 +767,12 @@ mod tests {
         assert!(result.report.one_minimal);
         assert!(!result.report.budget_exhausted);
         assert_eq!(
-            result.bundle.events.last().expect("witness retained").event_id,
+            result
+                .bundle
+                .events
+                .last()
+                .expect("witness retained")
+                .event_id,
             "late-old-apply"
         );
     }
@@ -742,9 +782,21 @@ mod tests {
         let events = bundle().events;
         let remove = BTreeSet::from(["downstream-fence".to_owned()]);
         let candidate = remove_chunk_with_descendants(&events, &remove);
-        assert!(!candidate.iter().any(|event| event.event_id == "downstream-fence"));
-        assert!(!candidate.iter().any(|event| event.event_id == "late-old-apply"));
-        assert!(candidate.iter().any(|event| event.event_id == "old-command"));
+        assert!(
+            !candidate
+                .iter()
+                .any(|event| event.event_id == "downstream-fence")
+        );
+        assert!(
+            !candidate
+                .iter()
+                .any(|event| event.event_id == "late-old-apply")
+        );
+        assert!(
+            candidate
+                .iter()
+                .any(|event| event.event_id == "old-command")
+        );
     }
 
     #[test]
@@ -752,7 +804,10 @@ mod tests {
         let events = bundle().events;
         let keep = BTreeSet::from(["late-old-apply".to_owned()]);
         let candidate = keep_chunk_with_ancestors(&events, &keep);
-        let ids: BTreeSet<&str> = candidate.iter().map(|event| event.event_id.as_str()).collect();
+        let ids: BTreeSet<&str> = candidate
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect();
         assert_eq!(
             ids,
             BTreeSet::from([
@@ -944,8 +999,14 @@ mod tests {
             result.bundle.header.parent_bundle_id.as_deref(),
             Some(original.header.bundle_id.as_str())
         );
-        assert_eq!(result.bundle.header.target_failure, original.header.target_failure);
-        assert_eq!(result.bundle.header.initial_state_commitment, original.header.initial_state_commitment);
+        assert_eq!(
+            result.bundle.header.target_failure,
+            original.header.target_failure
+        );
+        assert_eq!(
+            result.bundle.header.initial_state_commitment,
+            original.header.initial_state_commitment
+        );
     }
 
     struct AlternatingOracle {
