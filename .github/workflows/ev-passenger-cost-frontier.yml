@@ -506,6 +506,11 @@ jobs:
             and ([.architecture_results[] | select(.architecture_id == "two_aircraft_shared_qualified_pool") | .effective_charging_channels] == [3])
             and ([.architecture_results[] | select(.architecture_id == "direct_charge_single_pack") | .aircraft_wait_seconds > 0] == [true])
             and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .completed_sorties] | length) == 1
+            and ([(.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .steady_state_cycle_capacity_upper_bound_per_hour - 4.4444444444) | fabs] | all(.[]; . < 0.0001))
+            and ([(.architecture_results[] | select(.architecture_id == "fixed_dock4_grid_constrained") | .steady_state_cycle_capacity_upper_bound_per_hour - 2.2222222222) | fabs] | all(.[]; . < 0.0001))
+            and ([(.architecture_results[] | select(.architecture_id == "two_aircraft_shared_qualified_pool") | .steady_state_cycle_capacity_upper_bound_per_hour - 6.6666666667) | fabs] | all(.[]; . < 0.0001))
+            and all(.architecture_results[]; .completed_cycles_per_hour <= (.steady_state_cycle_capacity_upper_bound_per_hour + .initial_inventory_capacity_allowance_per_hour + 0.000000001))
+            and all(.architecture_results[]; .finite_horizon_excess_over_steady_state_upper_bound_per_hour >= 0)
             and all(.architecture_results[]; .claim_ceiling | length > 0)
           ' sustainable-mobility-service-capacity-report.json
           cat sustainable-mobility-service-capacity-report.json
