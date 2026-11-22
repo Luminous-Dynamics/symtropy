@@ -122,4 +122,19 @@ The synthetic fixture demonstrates: available → reserved (confirmed), an insta
 
 Schema: `schemas/battery_pack_state_journal_v0_1.schema.json`; fixture: `fixtures/battery_pack_state_journal_v0_1.json`; CLI: `src/bin/battery_pack_journal_screen.rs`.
 
+## Exclusive resource occupancy screen (#6700)
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_resource_occupancy_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
+```
+
+The validator checks time-indexed **exclusive** occupancy of serialized packs, aircraft, carrier slots, swap bays, chargers/channels, racks, technicians and mobile service units. Intervals are half-open `[start,end)`: adjacent operations are allowed; true overlap on the same resource kind + ID is rejected. Every interval needs unique occupancy/idempotency IDs, owner/operation identifiers, exact resource/configuration binding, and evidence observed no later than the schedule decision time whose validity covers the whole reservation interval.
+
+The synthetic fixture contains four reservations across three resources. A pack and its aircraft may be occupied simultaneously because they are distinct resource identities; two swap-bay intervals are contiguous and share a boundary without overlap. The report sorts occupancy deterministically by resource kind, ID, start/end and occupancy ID.
+
+Schema: `schemas/battery_resource_occupancy_v0_1.schema.json`; fixture: `fixtures/battery_resource_occupancy_v0_1.json`; CLI: `src/bin/battery_resource_occupancy_screen.rs`.
+
 **Deliberate scope limit:** this is a static exact assignment and evidence gate, not a multi-period charging/rack queue optimizer, mobile battery-service routing model, degradation model, thermal battery model or aircraft dispatch authorizer. Those are the next layers in #6674. Synthetic fixture passes validate accounting/algorithm semantics only and do not establish real battery capability, flight safety or operational release.
