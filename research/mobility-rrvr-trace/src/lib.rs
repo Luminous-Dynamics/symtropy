@@ -131,6 +131,7 @@ pub enum TraceHoldReason {
     DuplicateArtifact,
     OracleRevisionMismatch,
     ReplayBudgetTooSmall,
+    ReplayBudgetTooLarge,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -168,8 +169,9 @@ pub struct MinimizationReport {
     pub minimized_event_count: usize,
     pub removed_event_count: usize,
     pub oracle_calls: usize,
-    /// True only after every single-event causal removal was replayed and
-    /// rejected as a preservation of the exact target failure.
+    /// True only after every single-event causal removal was checked and
+    /// rejected as a preservation of the exact target failure. Structurally
+    /// invalid removals are rejected before invoking the replay oracle.
     pub one_minimal: bool,
     /// True when the oracle-call budget prevented completing minimization or
     /// its final one-minimality check.
@@ -208,7 +210,7 @@ fn validate_events(
 
     let mut seen = BTreeSet::new();
     let mut prior_sequence = None;
-    for event in events {
+    for (event_position, event) in events.iter().enumerate() {
         if !nonempty(&event.event_id) || !nonempty(&event.actor_id) {
             return Err(TraceHoldReason::InvalidEventIdentity);
         }
@@ -232,7 +234,7 @@ fn validate_events(
             let Some(predecessor_index) = event_index(events, predecessor_id) else {
                 return Err(TraceHoldReason::MissingPredecessor);
             };
-            if predecessor_index >= event_index(events, &event.event_id).unwrap_or(usize::MAX) {
+            if predecessor_index >= event_position {
                 return Err(TraceHoldReason::ForwardDependency);
             }
         }
@@ -259,6 +261,7 @@ pub fn validate_trace_bundle(bundle: &TraceBundle) -> TraceValidation {
         || !nonempty(&header.model_revision)
         || !nonempty(&header.fault_profile_revision)
         || !nonempty(&header.oracle_revision)
+        || header.parent_bundle_id.as_ref().is_some_and(|id| !nonempty(id))
     {
         return TraceValidation::Hold(TraceHoldReason::MissingHeaderIdentity);
     }
@@ -389,11 +392,8 @@ pub fn minimize_trace<O: ReplayOracle>(
     oracle: &O,
     max_oracle_calls: usize,
 ) -> Result<MinimizationResult, MinimizationError> {
-    if validate_trace_bundle(bundle) != TraceValidation::Valid {
-        return Err(MinimizationError::InvalidBundle(match validate_trace_bundle(bundle) {
-            TraceValidation::Hold(reason) => reason,
-            TraceValidation::Valid => unreachable!(),
-        }));
+    if let TraceValidation::Hold(reason) = validate_trace_bundle(bundle) {
+        return Err(MinimizationError::InvalidBundle(reason));
     }
     if oracle.revision() != bundle.header.oracle_revision {
         return Err(MinimizationError::OracleRevisionMismatch);
@@ -401,6 +401,11 @@ pub fn minimize_trace<O: ReplayOracle>(
     if max_oracle_calls == 0 {
         return Err(MinimizationError::InvalidBundle(
             TraceHoldReason::ReplayBudgetTooSmall,
+        ));
+    }
+    if max_oracle_calls > MAX_MINIMIZER_CALLS {
+        return Err(MinimizationError::InvalidBundle(
+            TraceHoldReason::ReplayBudgetTooLarge,
         ));
     }
 
@@ -548,11 +553,13 @@ pub fn minimize_trace<O: ReplayOracle>(
 mod tests {
     use super::*;
 
-    const TARGET: FailureSignature = FailureSignature {
-        property_id: "DownstreamFenceClosesPendingCommand".to_owned(),
-        violation_class: "old_command_executes_after_fence".to_owned(),
-        witness_event_id: "late-old-apply".to_owned(),
-    };
+    fn target_failure() -> FailureSignature {
+        FailureSignature {
+            property_id: "DownstreamFenceClosesPendingCommand".to_owned(),
+            violation_class: "old_command_executes_after_fence".to_owned(),
+            witness_event_id: "late-old-apply".to_owned(),
+        }
+    }
 
     struct LateExecutionOracle;
 
@@ -574,8 +581,8 @@ mod tests {
                         .is_some_and(|apply_index| apply_index > fence_index) =>
                 {
                     ReplayOutcome::Failure(FailureSignature {
-                        property_id: TARGET.property_id.clone(),
-                        violation_class: TARGET.violation_class.clone(),
+                        property_id: target_failure().property_id,
+                        violation_class: target_failure().violation_class,
                         witness_event_id: apply.event_id.clone(),
                     })
                 }
@@ -589,6 +596,22 @@ mod tests {
     impl ReplayOracle for DifferentFailureOracle {
         fn revision(&self) -> &str {
             "different-failure-oracle-v1"
+        }
+
+        fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
+            ReplayOutcome::Failure(FailureSignature {
+                property_id: "DifferentProperty".to_owned(),
+                violation_class: "different_violation".to_owned(),
+                witness_event_id: "late-old-apply".to_owned(),
+            })
+        }
+    }
+
+    struct WrongSignatureSameRevisionOracle;
+
+    impl ReplayOracle for WrongSignatureSameRevisionOracle {
+        fn revision(&self) -> &str {
+            "late-execution-oracle-v1"
         }
 
         fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
@@ -634,7 +657,7 @@ mod tests {
                 oracle_revision: "late-execution-oracle-v1".to_owned(),
                 replay_seed: 42,
                 initial_state_commitment: commitment(3),
-                target_failure: TARGET.clone(),
+                target_failure: target_failure(),
             },
             events: vec![
                 event("boot", 1, TraceEventKind::ProcessStarted, &[]),
@@ -657,7 +680,7 @@ mod tests {
     #[test]
     fn exact_target_failure_is_preserved_while_irrelevant_events_are_removed() {
         let result = minimize_trace(&bundle(), &LateExecutionOracle, 500).expect("minimize");
-        assert_eq!(result.report.preserved_failure, TARGET);
+        assert_eq!(result.report.preserved_failure, target_failure());
         assert_eq!(result.report.minimized_event_count, 5);
         assert_eq!(result.report.removed_event_count, 3);
         assert!(result.report.one_minimal);
@@ -699,8 +722,8 @@ mod tests {
     #[test]
     fn a_different_failure_signature_is_not_accepted_as_preservation() {
         assert_eq!(
-            minimize_trace(&bundle(), &DifferentFailureOracle, 500),
-            Err(MinimizationError::OracleRevisionMismatch)
+            minimize_trace(&bundle(), &WrongSignatureSameRevisionOracle, 500),
+            Err(MinimizationError::BaselineDoesNotReproduce)
         );
     }
 
