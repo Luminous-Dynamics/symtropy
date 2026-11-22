@@ -8,6 +8,7 @@ on:
       - "schemas/workload-v1.schema.json"
       - "schemas/submission-v1.schema.json"
       - "schemas/truth-v1.schema.json"
+      - "schemas/counterfactual-evidence-suite-v1.schema.json"
       - "research/av-evidence-certificate-v0/**"
 
 permissions:
@@ -22,5 +23,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Validate evidence certificate schemas
+        run: |
+          python3 -m json.tool schemas/workload-v1.schema.json > /dev/null
+          python3 -m json.tool schemas/truth-v1.schema.json > /dev/null
+          python3 -m json.tool schemas/submission-v1.schema.json > /dev/null
+          python3 -m json.tool schemas/counterfactual-evidence-suite-v1.schema.json > /dev/null
       - name: Run evidence certificate evaluator tests
         run: python3 -m unittest discover -s tools/av-evidence-certificate -p "test_*.py" -v
