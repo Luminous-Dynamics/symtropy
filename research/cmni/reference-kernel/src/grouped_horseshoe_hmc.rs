@@ -411,16 +411,16 @@ fn evaluate_state(
     fixed_coefficient_scale: f64,
     prior: GlobalScalePrior,
 ) -> Result<GroupedRawScaleHorseshoePosterior, ModelError> {
-    model.evaluate(
-        &state.coefficients,
-        &state.log_local_scales,
-        &state.log_global_scales,
-        coefficient_groups,
-        &state.log_experiment_scales,
-        experiment_groups,
+    model.evaluate(PreparedGroupedHorseshoeEvaluation {
+        coefficients: &state.coefficients,
+        log_local_scales: &state.log_local_scales,
+        log_global_scales: &state.log_global_scales,
+        global_scale_index_by_coefficient: coefficient_groups,
+        log_experiment_scales: &state.log_experiment_scales,
+        experiment_scale_index_by_observation: experiment_groups,
         fixed_coefficient_scale,
-        prior,
-    )
+        global_scale_prior: prior,
+    })
 }
 
 fn flatten_gradient(target: &GroupedRawScaleHorseshoePosterior) -> Vec<f64> {

@@ -628,6 +628,19 @@ pub struct PreparedGroupedRawScaleHorseshoeModel {
     covariance_log_determinant: f64,
 }
 
+/// Parameter block for evaluating a prepared grouped horseshoe posterior.
+#[derive(Debug, Clone, Copy)]
+pub struct PreparedGroupedHorseshoeEvaluation<'a> {
+    pub coefficients: &'a [f64],
+    pub log_local_scales: &'a [f64],
+    pub log_global_scales: &'a [f64],
+    pub global_scale_index_by_coefficient: &'a [usize],
+    pub log_experiment_scales: &'a [f64],
+    pub experiment_scale_index_by_observation: &'a [usize],
+    pub fixed_coefficient_scale: f64,
+    pub global_scale_prior: GlobalScalePrior,
+}
+
 impl PreparedGroupedRawScaleHorseshoeModel {
     /// Number of bias coefficients represented by the prepared design matrix.
     pub fn coefficient_count(&self) -> usize {
@@ -713,15 +726,18 @@ impl PreparedGroupedRawScaleHorseshoeModel {
 
     pub fn evaluate(
         &self,
-        coefficients: &[f64],
-        log_local_scales: &[f64],
-        log_global_scales: &[f64],
-        global_scale_index_by_coefficient: &[usize],
-        log_experiment_scales: &[f64],
-        experiment_scale_index_by_observation: &[usize],
-        fixed_coefficient_scale: f64,
-        global_scale_prior: GlobalScalePrior,
+        input: PreparedGroupedHorseshoeEvaluation<'_>,
     ) -> Result<GroupedRawScaleHorseshoePosterior, ModelError> {
+        let PreparedGroupedHorseshoeEvaluation {
+            coefficients,
+            log_local_scales,
+            log_global_scales,
+            global_scale_index_by_coefficient,
+            log_experiment_scales,
+            experiment_scale_index_by_observation,
+            fixed_coefficient_scale,
+            global_scale_prior,
+        } = input;
         let n = self.observed.len();
         let p = self.design_matrix[0].len();
         let groups = log_global_scales.len();
@@ -1059,16 +1075,16 @@ mod tests {
             PreparedGroupedRawScaleHorseshoeModel::new(&observed, &baseline, &design, &covariance)
                 .expect("prepared grouped model");
         let prepared_result = prepared
-            .evaluate(
-                &coefficients,
-                &log_local,
-                &log_global,
-                &groups,
-                &log_experiment,
-                &experiment_map,
-                1.0e-2,
-                prior,
-            )
+            .evaluate(PreparedGroupedHorseshoeEvaluation {
+                coefficients: &coefficients,
+                log_local_scales: &log_local,
+                log_global_scales: &log_global,
+                global_scale_index_by_coefficient: &groups,
+                log_experiment_scales: &log_experiment,
+                experiment_scale_index_by_observation: &experiment_map,
+                fixed_coefficient_scale: 1.0e-2,
+                global_scale_prior: prior,
+            })
             .expect("prepared posterior");
         let unprepared_result =
             grouped_raw_scale_horseshoe_log_posterior(GroupedHorseshoePosteriorInput {
