@@ -564,6 +564,7 @@ mod tests {
         let mut event = evidence(1, 3, 4);
         event.verification.verified_at_ns = 80;
         event.not_before_ns = 70;
+        event.verification.not_before_ns = 70;
         assert_eq!(
             validator.validate(policy(), event, 150),
             Err(SessionEvidenceError::VerificationReceiptStale)
