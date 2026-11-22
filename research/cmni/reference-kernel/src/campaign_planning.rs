@@ -605,14 +605,8 @@ mod tests {
         // physical A/calibration-bad, physical B/calibration-bad.
         // Repeated observations are independent only after conditioning on
         // this expanded state, because both share the same latent calibration.
-        let expanded_actions = vec![
-            "choose-a".to_owned(),
-            "choose-b".to_owned(),
-        ];
-        let expanded_utilities = vec![
-            vec![1.0, -1.0, 1.0, -1.0],
-            vec![-1.0, 1.0, -1.0, 1.0],
-        ];
+        let expanded_actions = vec!["choose-a".to_owned(), "choose-b".to_owned()];
+        let expanded_utilities = vec![vec![1.0, -1.0, 1.0, -1.0], vec![-1.0, 1.0, -1.0, 1.0]];
         let shared_likelihoods = vec![
             vec![0.99, 0.01],
             vec![0.01, 0.99],
@@ -644,12 +638,8 @@ mod tests {
 
         assert!((plan.expected_net_utility - 0.395_722).abs() < 1.0e-9);
         assert_eq!(count_acquisitions_on_longest_path(&plan.root), 3);
-        assert!(
-            (expected_acquisition_count(&plan.root) - 2.0198).abs() < 1.0e-9
-        );
-        assert!(
-            (probability_of_acquisition_at_depth(&plan.root, 3) - 0.0198).abs() < 1.0e-9
-        );
+        assert!((expected_acquisition_count(&plan.root) - 2.0198).abs() < 1.0e-9);
+        assert!((probability_of_acquisition_at_depth(&plan.root, 3) - 0.0198).abs() < 1.0e-9);
     }
 
     #[test]
