@@ -1038,6 +1038,45 @@ mod tests {
     }
 
     #[test]
+    fn mixed_time_bases_reject_as_incomparable_before_interval_sort() {
+        let mut first =
+            qualified_time_binding(&SourceEventRef::new("SRC_A", "EV-A"), 1, 10, 0);
+        let second = qualified_time_binding(
+            &SourceEventRef::new("SRC_B", "EV-B"),
+            1,
+            20,
+            0,
+        );
+        first.evidence = TimeEvidence::new(
+            first.evidence.event_id().to_string(),
+            "OTHER_TIME_BASIS",
+            first.evidence.interval(),
+            super::super::temporal_order::TimeBoundKind::EstimateOnly,
+        )
+        .unwrap();
+
+        let mut box_events: Vec<BoxEventTime<'_>> = [&first, &second]
+            .into_iter()
+            .map(|binding| {
+                (
+                    binding.source_event.clone(),
+                    binding.revision,
+                    &binding.evidence,
+                    Vec::new(),
+                )
+            })
+            .collect();
+
+        assert!(matches!(
+            prove_box_interval_total_order("BOX", &mut box_events),
+            Err(QualifiedTimelineError::OrderNotProven {
+                relation: TemporalRelation::IncomparableTimeBasis,
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn interval_order_offender_is_permutation_invariant() {
         let bindings = [
             qualified_time_binding(&SourceEventRef::new("SRC", "EV-A"), 1, 10, 5),
