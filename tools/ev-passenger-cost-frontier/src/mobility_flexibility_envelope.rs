@@ -872,6 +872,114 @@ mod tests {
             .expect("frozen mobility flexibility fixture must parse")
     }
 
+    fn independent_reference_feasible(input: &MobilityFlexibilityInput) -> bool {
+        let candidate_energy_wh = input
+            .candidate_dispatch
+            .iter()
+            .map(|slot| {
+                (u64::from(slot.requested_discharge_power_w)
+                    * u64::from(input.slot_duration_seconds)
+                    + 3_599)
+                    / 3_600
+            })
+            .sum::<u64>();
+        let export_permitted = input.export_permission.as_ref().is_some_and(|permission| {
+            permission.value == Some(true)
+                && matches!(
+                    permission.evidence.evidence_class,
+                    EvidenceClass::Measured | EvidenceClass::IndependentTest
+                )
+        });
+
+        input.reserve_scenarios.iter().all(|scenario| {
+            let mut horizon_energy_budget_wh = 0_u64;
+            let mut slot_power_budget_w = vec![0_u64; usize::from(input.horizon_slots)];
+
+            for resource in &input.storage_resources {
+                let Some(reserve) = scenario
+                    .resource_reserves
+                    .iter()
+                    .find(|reserve| reserve.resource_id == resource.resource_id)
+                else {
+                    return false;
+                };
+
+                let reserved_energy_wh = reserve.mission_energy_reserve_wh
+                    + reserve.inventory_buffer_energy_wh
+                    + reserve.safety_outage_reserve_energy_wh
+                    + reserve.uncertainty_energy_allowance_wh;
+                if reserved_energy_wh > resource.available_energy_lower_bound_wh {
+                    return false;
+                }
+                horizon_energy_budget_wh +=
+                    resource.available_energy_lower_bound_wh - reserved_energy_wh;
+
+                for slot in 0..usize::from(input.horizon_slots) {
+                    let reserved_power_w = reserve.mission_power_reserve_w_by_slot[slot]
+                        + reserve.inventory_buffer_power_w_by_slot[slot]
+                        + reserve.safety_outage_power_reserve_w_by_slot[slot]
+                        + reserve.uncertainty_power_allowance_w_by_slot[slot];
+                    if reserved_power_w > resource.max_discharge_power_lower_bound_w {
+                        return false;
+                    }
+                    slot_power_budget[slot] +=
+                        u64::from(resource.max_discharge_power_lower_bound_w - reserved_power_w);
+                }
+            }
+
+            if candidate_energy_wh > horizon_energy_budget_wh {
+                return false;
+            }
+
+            input.candidate_dispatch.iter().all(|dispatch| {
+                let Some(pcc) = input.pcc_slots.iter().find(|pcc| pcc.slot == dispatch.slot) else {
+                    return false;
+                };
+                let power_available = slot_power_budget[usize::from(dispatch.slot)];
+                let net_import_w = i64::from(pcc.base_site_load_w)
+                    + i64::from(pcc.scheduled_mobility_charging_load_w)
+                    - i64::from(dispatch.requested_discharge_power_w);
+                u64::from(dispatch.requested_discharge_power_w) <= power_available
+                    && net_import_w <= i64::from(pcc.import_limit_w)
+                    && net_import_w >= -i64::from(pcc.export_limit_w)
+                    && (net_import_w >= 0 || export_permitted)
+            })
+        })
+    }
+
+    #[test]
+    fn evaluator_matches_independent_enumerator_for_625_profiles() {
+        let mut input = fixture();
+        let levels = [0_u32, 1_000, 2_000, 3_000, 4_000];
+        let mut compared = 0_usize;
+
+        for p0 in levels {
+            for p1 in levels {
+                for p2 in levels {
+                    for p3 in levels {
+                        let profile = [p0, p1, p2, p3];
+                        input.candidate_dispatch = profile
+                            .into_iter()
+                            .enumerate()
+                            .map(|(slot, requested_discharge_power_w)| CandidateDispatchSlot {
+                                slot: slot as u8,
+                                requested_discharge_power_w,
+                            })
+                            .collect();
+
+                        let expected = independent_reference_feasible(&input);
+                        let actual = evaluate_mobility_flexibility(&input)
+                            .expect("each enumerated profile has valid frozen evidence")
+                            .candidate_model_feasible;
+                        assert_eq!(actual, expected, "profile={profile:?}");
+                        compared += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(compared, 625);
+    }
+
     #[test]
     fn known_answer_is_feasible_but_proposal_only() {
         let report = evaluate_mobility_flexibility(&fixture()).expect("fixture is structurally valid");
