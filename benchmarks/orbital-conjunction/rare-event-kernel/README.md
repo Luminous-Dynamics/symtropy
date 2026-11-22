@@ -29,6 +29,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
 - Deterministic positive-weight Lebedev sphere rules with 6, 14 and 26 nodes (algebraic precision 3, 5 and 7), plus a validated nonnegative-sample integrator.
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
+- A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
 
 ## Run the isolated tests
 
@@ -43,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 108 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 10 in `lebedev.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 112 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 14 in `lebedev.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
