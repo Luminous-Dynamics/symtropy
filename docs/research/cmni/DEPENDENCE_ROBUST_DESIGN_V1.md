@@ -104,3 +104,40 @@ The present module remains a two-observation, one-parameter, two-source f64 prot
 - physical evidence receipt authentication.
 
 The next step is a multi-source PSD-constrained dependence set, with a small-instance semidefinite or vertex-enumeration oracle, followed by interval arithmetic and integration with the portfolio/QoI/campaign planner. Until then, this ranking remains exploratory and cannot independently certify a physical experiment choice.
+
+
+## 7. Acquire evidence about dependence before choosing a physics design
+
+A source-dependence interval need not be static. Sometimes the most useful next experiment is a calibration that narrows the interval enough to change the subsequent physics-design decision.
+
+The existing finite-state EVSI policy can represent this directly:
+- latent states represent plausible dependence regimes;
+- actions represent physical experiment designs;
+- state-dependent action utilities represent design value under each dependence regime;
+- the information option represents a calibration whose outcome likelihood depends on the regime;
+- EVSI measures the expected improvement in the best downstream design choice;
+- ENBS subtracts the calibration cost in explicit utility-equivalent units.
+
+The fixture `research/cmni/fixtures/dependence-calibration-before-design-choice-v1.json` gives a small exact example:
+- two equally likely dependence regimes;
+- design A utilities 0.1 and 0.8 under the two regimes;
+- design B utility 0.5 under both regimes;
+- current choice is B, with utility 0.5;
+- a qualified calibration has 90% accuracy, raises expected post-calibration utility to 0.615, and has EVSI 0.115;
+- calibration cost is 0.03, giving net benefit of sampling 0.085;
+- EVPI is 0.15, correctly bounding EVSI.
+
+The policy therefore recommends calibrating the dependence before committing to the physical design. This is synthetic finite-state decision analysis, not a real source-correlation measurement.
+
+### Research implication
+
+The robust-design and EVSI modules should eventually be coupled into an adaptive ambiguity-set controller:
+1. start with a defensible set of possible source-dependence structures;
+2. compute minimax physical-design utility over that set;
+3. enumerate possible calibration or documentation actions;
+4. estimate their expected value in reducing decision uncertainty;
+5. acquire the evidence when net value is positive and its provenance qualifies;
+6. update the dependence set only using valid calibration evidence;
+7. re-rank the physical designs and preserve the original uncertainty history.
+
+A critical safeguard is that the calibration likelihood itself can be misspecified or share a common cause with the original measurements. Its own source dependencies must be modeled and qualified; otherwise it cannot legitimately narrow the ambiguity set.
