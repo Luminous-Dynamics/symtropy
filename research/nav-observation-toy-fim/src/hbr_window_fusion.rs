@@ -475,7 +475,7 @@ pub fn fuse_hbr_window_positions_2d(
         if !normalized_sum.is_finite() || normalized_sum <= 0.0 {
             return Err(HbrWindowFusionError::ArithmeticOverflow(time_index));
         }
-        for contribution in contributions {
+        for contribution in contributions.iter_mut() {
             contribution.normalized_fusion_weight /= normalized_sum;
         }
         positions.push(HbrFusedPosition2d {
