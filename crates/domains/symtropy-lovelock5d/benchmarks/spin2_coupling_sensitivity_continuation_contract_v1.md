@@ -193,3 +193,35 @@ and, while the singular-value ordering remains unchanged,
 The off-diagonal entries \(b,c\) describe first-order mixing of the two endpoint directions; they do not enter the first derivatives of the singular values or determinant because the Einstein-limit singular values are distinct and the base map is diagonal. They must nevertheless be retained: mode mixing can be physically and numerically important, and it enters higher-order conditioning.
 
 Consequently, report the full four-entry \(J_1\), not only its determinant slope or condition-number slope. The two scalar slopes are useful independent algebraic checks on the extracted matrix, not substitutes for it.
+
+
+## 8. Coordinate-aware conditioning is mandatory
+
+The Einstein-limit values \(\det J_0=1\), singular values \((1/2,2)\), and Euclidean condition number \(4\) refer to the current published horizon-data and asymptotic-amplitude coordinates. They are correct in that convention, but the determinant magnitude and Euclidean condition number are not invariant under arbitrary nonsingular row/column rescalings.
+
+For \(\widetilde p=S p\), \(\widetilde C=R C\), the map is \(\widetilde J=RJS^{-1}\). Its rank and nullity are invariant; its raw determinant and Euclidean singular values generally are not. In fact, \(R=\operatorname{diag}(2,1/2)\), \(S=I\) turns this \(J_0\) into the identity, while \(R=\operatorname{diag}(1,4)\) gives Euclidean condition number \(16\). This changes no solution or physical branch.
+
+Accordingly, every continuation node must preserve:
+- the raw \(J\) in the fixed published basis;
+- the exact basis/projector normalization and any coupling dependence;
+- declared positive-definite domain/range metrics \(G_H,G_\infty\);
+- generalized singular values of \(G_H^{-1}J^TG_\infty J\), or an explicitly justified alternative;
+- rank/invertibility evidence separately from conditioning evidence.
+
+Do not rescale after seeing the answer. Freeze the metrics before a parameter sweep. The radial Green/Lagrange boundary concomitant may help define dual physical mode normalizations after quotienting gauge and constraint directions, but it is not automatically a positive-definite norm.
+
+For coupling-dependent basis changes \(R(\lambda),S(\lambda)\), transform the full derivative according to
+\[
+\widetilde J_1=
+R_1J_0S_0^{-1}
++R_0J_1S_0^{-1}
+-R_0J_0S_0^{-1}S_1S_0^{-1}.
+\]
+Thus \(J_1\) must always be labelled by its endpoint-coordinate transport convention.
+
+Exact-rational metamorphic replay is recorded in:
+- \`spin2_boundary_map_normalization_v1.md\`;
+- \`verify_spin2_boundary_map_normalization.py\`;
+- \`spin2_boundary_map_normalization_replay_v1.json\`.
+
+The verifier passed locally from the exact public Git blob bytes. It establishes coordinate-covariance identities only; it does not compute \(J_1\), solve a finite-coupling BVP, or establish a theorem about a physical black-hole branch.
