@@ -368,6 +368,13 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
     runtime_digest = _digest(document.get("runtime_digest_sha256"), "runtime_digest_sha256")
     sampler_id = _nonempty(document.get("sampler_id"), "sampler_id")
     sampler_digest = _digest(document.get("sampler_digest_sha256"), "sampler_digest_sha256")
+    sampling_design = document.get("sampling_design")
+    if not isinstance(sampling_design, str) or sampling_design not in {
+        "NESTED_FIXED_RATE", "INDEPENDENT_FIXED_RATE"
+    }:
+        raise MinFpsEvaluationError(
+            "sampling_design must be NESTED_FIXED_RATE or INDEPENDENT_FIXED_RATE"
+        )
 
     rates = _validate_rate_grid(document.get("fps_grid"))
     media_duration_ms = document.get("media_duration_ms")
@@ -465,11 +472,12 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
                     frame["frame_id"]: frame["timestamp_ms"]
                     for frame in parsed[right_index]["frame_manifest"]
                 }
-                if not set(lower).issubset(higher):
+                shared = set(lower) & set(higher)
+                if sampling_design == "NESTED_FIXED_RATE" and not set(lower).issubset(higher):
                     raise MinFpsEvaluationError(
                         f"{seed_id}: frame set at {rates[left_index]:g} FPS is not nested in {rates[right_index]:g} FPS"
                     )
-                if any(lower[frame_id] != higher[frame_id] for frame_id in lower):
+                if any(lower[frame_id] != higher[frame_id] for frame_id in shared):
                     raise MinFpsEvaluationError(
                         f"{seed_id}: a shared frame ID has different timestamps across FPS conditions"
                     )
@@ -494,6 +502,7 @@ def evaluate_document(document: dict[str, Any]) -> dict[str, Any]:
         "runtime_digest_sha256": runtime_digest,
         "sampler_id": sampler_id,
         "sampler_digest_sha256": sampler_digest,
+        "sampling_design": sampling_design,
         "fps_grid": rates,
         "media_duration_ms": media_duration_ms,
         "sampling_tolerance_ms": sampling_tolerance_ms,
