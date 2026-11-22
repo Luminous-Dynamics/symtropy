@@ -35,10 +35,9 @@ pub mod stats;
 pub mod trajectory;
 
 pub use lebedev::{
-    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule,
-    LebedevSphereRule, SphereQuadratureDiagnosticsConfig, SphereQuadratureNode,
-    SphereQuadratureReport, integrate_sphere_adaptive, integrate_sphere_samples,
-    lebedev_sphere_rule,
+    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
+    SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
+    integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
