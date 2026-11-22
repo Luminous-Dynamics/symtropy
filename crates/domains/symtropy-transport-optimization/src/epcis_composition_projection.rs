@@ -257,13 +257,19 @@ fn chronology_domain(
             time_basis_id,
             tick_quantum_id,
             time_evidence_id,
+            earliest_event_time_ticks,
+            latest_event_time_ticks,
         } => {
             let source = ProjectionSourceRef {
                 source_id: envelope.event.source_id.clone(),
                 source_event_id: envelope.event.source_event_id.clone(),
                 revision: envelope.revision,
             };
-            if time_basis_id.trim().is_empty() || tick_quantum_id.trim().is_empty() {
+            if time_basis_id.trim().is_empty()
+                || time_basis_id.trim() != time_basis_id
+                || tick_quantum_id.trim().is_empty()
+                || tick_quantum_id.trim() != tick_quantum_id
+            {
                 return Err(ProjectionQuarantineReason::UnqualifiedChronology(
                     "time basis or tick quantum is empty".to_string(),
                 ));
