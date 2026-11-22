@@ -121,53 +121,50 @@ pub fn assess_pre_native(input: &CompositionInput<'_>) -> CompositionAssessment 
         cross_owner_identity_matches(input.recovery, input.downstream);
 
     let disposition = match recovery {
-            RecoveryDecision::EffectPredicateObserved => {
-                CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
+        RecoveryDecision::EffectPredicateObserved => {
+            CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
+        }
+        RecoveryDecision::EffectPredicateObservedPersistenceUnresolved => {
+            CompositionDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry
+        }
+        RecoveryDecision::Hold(_) => {
+            CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld)
+        }
+        RecoveryDecision::FreshAttemptCandidate => {
+            if !cross_owner_identity_matches {
+                CompositionDisposition::Hold(
+                    match (
+                        input.recovery.logical_effect_id
+                            == input.downstream.transition.logical_effect_id,
+                        input.recovery.prior_attempt_id
+                            == input.downstream.transition.old_attempt_id,
+                        input.recovery.prior_boot_epoch_id
+                            == input.downstream.transition.old_boot_epoch_id
+                            && input.recovery.current_boot_epoch_id
+                                == input.downstream.transition.new_boot_epoch_id,
+                    ) {
+                        (false, _, _) => CompositionHold::CrossOwnerLogicalEffectMismatch,
+                        (_, false, _) => CompositionHold::CrossOwnerAttemptMismatch,
+                        (_, _, false) => CompositionHold::CrossOwnerBootEpochMismatch,
+                        _ => CompositionHold::CrossOwnerControllerEpochMismatch,
+                    },
+                )
+            } else if !matches!(
+                downstream,
+                FenceDecision::AllDeclaredLayersHaveCurrentQuiescenceEvidence { .. }
+            ) {
+                CompositionDisposition::Hold(CompositionHold::DownstreamGraphNotQualified)
+            } else if !required_claim_id_matches {
+                CompositionDisposition::Hold(CompositionHold::RequiredClaimIdMismatch)
+            } else if !claim_scope_matches {
+                CompositionDisposition::Hold(CompositionHold::ClaimScopeMismatch)
+            } else if evidence != EvidenceVerdict::Confirmed {
+                CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
+            } else {
+                CompositionDisposition::ReadyForOwnerNativeRevalidation
             }
-            RecoveryDecision::EffectPredicateObservedPersistenceUnresolved => {
-                CompositionDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry
-            }
-            RecoveryDecision::Hold(_) => {
-                CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld)
-            }
-            RecoveryDecision::EffectPredicateObservedPersistenceUnresolved => {
-                CompositionDisposition::Hold(CompositionHold::RecoveryPersistenceUnresolved)
-            }
-            RecoveryDecision::EffectPredicateObserved => {
-                CompositionDisposition::PhysicalEffectAlreadyObservedNoRetry
-            }
-            RecoveryDecision::FreshAttemptCandidate => {
-                if !cross_owner_identity_matches {
-                    CompositionDisposition::Hold(
-                        match (
-                            input.recovery.logical_effect_id == input.downstream.transition.logical_effect_id,
-                            input.recovery.prior_attempt_id == input.downstream.transition.old_attempt_id,
-                            input.recovery.prior_boot_epoch_id == input.downstream.transition.old_boot_epoch_id
-                                && input.recovery.current_boot_epoch_id
-                                    == input.downstream.transition.new_boot_epoch_id,
-                        ) {
-                            (false, _, _) => CompositionHold::CrossOwnerLogicalEffectMismatch,
-                            (_, false, _) => CompositionHold::CrossOwnerAttemptMismatch,
-                            (_, _, false) => CompositionHold::CrossOwnerBootEpochMismatch,
-                            _ => CompositionHold::CrossOwnerControllerEpochMismatch,
-                        },
-                    )
-                } else if !matches!(
-                    downstream,
-                    FenceDecision::AllDeclaredLayersHaveCurrentQuiescenceEvidence { .. }
-                ) {
-                    CompositionDisposition::Hold(CompositionHold::DownstreamGraphNotQualified)
-                } else if !required_claim_id_matches {
-                    CompositionDisposition::Hold(CompositionHold::RequiredClaimIdMismatch)
-                } else if !claim_scope_matches {
-                    CompositionDisposition::Hold(CompositionHold::ClaimScopeMismatch)
-                } else if evidence != EvidenceVerdict::Confirmed {
-                    CompositionDisposition::Hold(CompositionHold::EvidenceVerdictNotConfirmed)
-                } else {
-                    CompositionDisposition::ReadyForOwnerNativeRevalidation
-                }
-            }
-        };
+        }
+    };
 
     CompositionAssessment {
         recovery,
