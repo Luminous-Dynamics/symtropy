@@ -103,6 +103,8 @@ pub struct ExpectedClockScope {
     pub firmware_id: String,
     pub measurand_id: String,
     pub time_basis_id: String,
+    /// Unit of every timestamp and uncertainty tick, e.g. SI nanosecond.
+    pub tick_quantum_id: String,
     pub terminal_reference_id: String,
 }
 
@@ -114,6 +116,7 @@ pub struct CalibrationMeasurementResult {
     pub firmware_id: String,
     pub measurand_id: String,
     pub time_basis_id: String,
+    pub tick_quantum_id: String,
     /// First standard in the traceability chain used to calibrate this clock.
     pub reference_standard_id: String,
     /// Declared terminal reference, e.g. a national time/frequency reference.
@@ -121,8 +124,8 @@ pub struct CalibrationMeasurementResult {
     pub calibrated_at_ticks: i64,
     pub valid_from_ticks: i64,
     pub valid_until_ticks: i64,
-    /// Measured offset is retained as a claim; this module does not apply it
-    /// to event timestamps or perform UTC/TAI/UTC(ZA) conversion.
+    /// Signed clock-minus-reference offset. Positive means the device clock
+    /// reads ahead; normalized reference time = reported device time - offset.
     pub measured_offset_ticks: i64,
     /// Local comparison uncertainty excluding the separately listed
     /// traceability-link contributions. None means the bound is unknown.
@@ -143,6 +146,7 @@ pub struct TraceabilityLink {
     pub measurement_result_id: String,
     pub measurand_id: String,
     pub time_basis_id: String,
+    pub tick_quantum_id: String,
     pub measured_at_ticks: i64,
     pub valid_from_ticks: i64,
     pub valid_until_ticks: i64,
@@ -164,6 +168,7 @@ pub struct ClockUseObservation {
     pub clock_profile_id: String,
     pub firmware_id: String,
     pub time_basis_id: String,
+    pub tick_quantum_id: String,
     pub event_time_ticks: i64,
     /// Time at which the in-service state and error components were observed.
     pub observation_time_ticks: i64,
@@ -206,6 +211,7 @@ pub enum ClockAttestationReason {
     FirmwareMismatch,
     MeasurandMismatch,
     TimeBasisMismatch,
+    TimeQuantumMismatch,
     TerminalReferenceMismatch,
     CalibrationOutsideValidity,
     EmptyTraceabilityChain,
@@ -249,8 +255,12 @@ pub struct QualifiedClockCalibrationReceipt {
     firmware_id: String,
     measurand_id: String,
     time_basis_id: String,
+    tick_quantum_id: String,
     terminal_reference_id: String,
+    /// Offset-corrected event timestamp in the declared reference time basis.
     event_time_ticks: i64,
+    /// Original device-reported timestamp before signed offset correction.
+    reported_event_time_ticks: i64,
     observation_time_ticks: i64,
     synchronization_method: String,
     sync_state: ClockSyncState,
@@ -414,6 +424,7 @@ impl ClockAttestationDecision {
         let qualification = ClockQualificationRef {
             clock_id: receipt.clock_id.clone(),
             profile_id: receipt.clock_profile_id.clone(),
+            tick_quantum_id: receipt.tick_quantum_id.clone(),
             calibration_evidence_id: calibration_digest.clone(),
             synchronization_method: receipt.synchronization_method.clone(),
             sync_state: receipt.sync_state,
@@ -625,6 +636,7 @@ pub fn attest_clock_for_event(
         (&expected.firmware_id, "expected.firmware_id"),
         (&expected.measurand_id, "expected.measurand_id"),
         (&expected.time_basis_id, "expected.time_basis_id"),
+        (&expected.tick_quantum_id, "expected.tick_quantum_id"),
         (
             &expected.terminal_reference_id,
             "expected.terminal_reference_id",
@@ -664,6 +676,15 @@ pub fn attest_clock_for_event(
         || observation.time_basis_id != expected.time_basis_id
     {
         return ClockAttestationDecision::rejected(ClockAttestationReason::TimeBasisMismatch);
+    }
+    if calibration.tick_quantum_id != expected.tick_quantum_id
+        || observation.tick_quantum_id != expected.tick_quantum_id
+        || calibration
+            .traceability_links
+            .iter()
+            .any(|link| link.tick_quantum_id != expected.tick_quantum_id)
+    {
+        return ClockAttestationDecision::rejected(ClockAttestationReason::TimeQuantumMismatch);
     }
     if calibration.terminal_reference_id != expected.terminal_reference_id {
         return ClockAttestationDecision::rejected(
@@ -1058,6 +1079,7 @@ mod tests {
             firmware_id: "firmware-7.4.2".to_string(),
             measurand_id: "time-scale-difference".to_string(),
             time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             terminal_reference_id: "UTC(ZA)".to_string(),
         }
     }
@@ -1070,6 +1092,7 @@ mod tests {
             firmware_id: "firmware-7.4.2".to_string(),
             measurand_id: "time-scale-difference".to_string(),
             time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             reference_standard_id: "WORKING-STD-A".to_string(),
             terminal_reference_id: "UTC(ZA)".to_string(),
             calibrated_at_ticks: 800,
@@ -1088,6 +1111,7 @@ mod tests {
                     measurement_result_id: "trace-result-01".to_string(),
                     measurand_id: "time-scale-difference".to_string(),
                     time_basis_id: "UTC(ZA)".to_string(),
+                    tick_quantum_id: "SI_NANOSECOND".to_string(),
                     measured_at_ticks: 800,
                     valid_from_ticks: 800,
                     valid_until_ticks: 1_500,
@@ -1102,6 +1126,7 @@ mod tests {
                     measurement_result_id: "trace-result-02".to_string(),
                     measurand_id: "time-scale-difference".to_string(),
                     time_basis_id: "UTC(ZA)".to_string(),
+                    tick_quantum_id: "SI_NANOSECOND".to_string(),
                     measured_at_ticks: 800,
                     valid_from_ticks: 800,
                     valid_until_ticks: 1_500,
@@ -1123,6 +1148,7 @@ mod tests {
             clock_profile_id: "terminal-clock-profile-v2".to_string(),
             firmware_id: "firmware-7.4.2".to_string(),
             time_basis_id: "UTC(ZA)".to_string(),
+            tick_quantum_id: "SI_NANOSECOND".to_string(),
             event_time_ticks: 1_000,
             observation_time_ticks: 995,
             maximum_observation_age_ticks: Some(10),
