@@ -38,9 +38,13 @@ function emitFrontierDiagnostics(receipt,oracle) {
     const changedMetrics = actualCase.action_metrics.map(metric=>{
       const expectedMetric=expectedCase.action_metrics.find(item=>item.action_id===metric.action_id);
       if (!expectedMetric) return {action_id:metric.action_id,missing_in_oracle:true};
-      const fields=["worst_case_loss","worst_case_joint_regret","worst_case_rectangular_regret","cost"];
-      const mismatches=fields.filter(field=>JSON.stringify(metric[field])!==JSON.stringify(expectedMetric[field]));
-      return mismatches.length ? {action_id:metric.action_id,mismatched_fields:mismatches,rust:Object.fromEntries(mismatches.map(k=>[k,metric[k]])),js:Object.fromEntries(mismatches.map(k=>[k,expectedMetric[k]]))} : null;
+      const rationalFields=["worst_case_loss","worst_case_joint_regret","worst_case_rectangular_regret","rectangular_regret_excess"];
+      const mismatches=rationalFields.filter(field=>rationalCompare(metric[field],expectedMetric[field])!==0);
+      for (const key of ["reference_trials","exposure_micro_units","elapsed_millis"]) {
+        if (metric.cost[key] !== expectedMetric.cost[key]) mismatches.push("cost."+key);
+      }
+      if (metric.admissibility_receipt_id !== expectedMetric.admissibility_receipt_id) mismatches.push("admissibility_receipt_id");
+      return mismatches.length ? {action_id:metric.action_id,mismatched_fields:mismatches,rust_values:Object.fromEntries(rationalFields.filter(k=>mismatches.includes(k)).map(k=>[k,metric[k]])),oracle_values:Object.fromEntries(rationalFields.filter(k=>mismatches.includes(k)).map(k=>[k,expectedMetric[k]]))} : null;
     }).filter(Boolean);
     if (JSON.stringify(rustJoint)!==JSON.stringify(jsJoint) ||
         JSON.stringify(rustRect)!==JSON.stringify(jsRect) ||
