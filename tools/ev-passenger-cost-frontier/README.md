@@ -252,4 +252,4 @@ The frozen fixture contains two active commitments (including one unresolved tim
 
 This is a proposal-only admission calculation. It does not write to a ledger, reserve a physical resource, make a market offer, authorize dispatch or establish settlement. The upstream report references and evidence envelopes are declarative; cryptographic verification and consume-once persistence remain later integration work.
 
-The module currently includes 13 focused Rust test definitions, including a 12-profile independent capacity reference, unresolved-state reservation, terminal evidence, per-resource energy/power limits, protected mission windows, idempotency reuse and deterministic input-order replay. Runner verification is pending for the commitment branch.
+The module currently includes 16 focused Rust test definitions, including a 12-profile independent capacity reference, unresolved-state reservation, terminal evidence, per-resource energy/power limits, protected mission windows, idempotency reuse and deterministic input-order replay. Runner verification is pending for the commitment branch.
