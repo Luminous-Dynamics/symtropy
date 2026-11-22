@@ -263,7 +263,7 @@ function evaluateCase(item) {
       uniformly_optimal_across_joint_scenarios:bestCount===scenarios.length,
       joint_scenario_best_count:bestCount,
       cost:action.cost,
-      per_scenario:perScenario.map(({scenario_id,world_id,loss,joint_regret})=>({scenario_id,world_id,loss,joint_regret}))
+      per_scenario:perScenario.map(({scenario_id,world_id,loss_model_id,loss,joint_regret})=>({scenario_id,world_id,loss_model_id,loss,joint_regret}))
     };
   });
   for (const metric of metrics) {
