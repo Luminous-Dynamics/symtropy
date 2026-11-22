@@ -1,0 +1,98 @@
+name: AV Action-Space EVSI Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/av-action-space-evsi-v0
+    paths:
+      - "research/av-action-space-evsi-v0/**"
+      - "tools/av-modality-necessity-evaluator/action_space_evsi.py"
+      - "tools/av-modality-necessity-evaluator/test_action_space_evsi.py"
+      - ".github/workflows/av-action-space-evsi.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-action-space-evsi-v0/**"
+      - "tools/av-modality-necessity-evaluator/action_space_evsi.py"
+      - "tools/av-modality-necessity-evaluator/test_action_space_evsi.py"
+      - ".github/workflows/av-action-space-evsi.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-action-space-evsi-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Validate schemas and evidence-plane separation
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-action-space-evsi-v0/"
+          workload_schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          score_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          for schema in (workload_schema, submission_schema, score_schema):
+              Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/potential-outcomes-v1.json", encoding="utf-8"))
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(workload_schema).validate(workload)
+          Draft202012Validator(submission_schema).validate(submission)
+          ids = [item["episode_id"] for item in workload["episodes"]]
+          assert len(ids) == 3 and len(set(ids)) == 3
+          assert ids == [item["episode_id"] for item in truth["episodes"]]
+          assert ids == [item["episode_id"] for item in submission["predictions"]]
+          forbidden = {"potential_outcomes", "expected_gross_evsi", "lower_gross_evsi", "upper_gross_evsi"}
+          def inspect(value):
+              if isinstance(value, dict):
+                  assert not (forbidden & set(value)), "evaluator potential outcomes leaked into candidate workload"
+                  for child in value.values(): inspect(child)
+              elif isinstance(value, list):
+                  for child in value: inspect(child)
+          inspect(workload)
+          PY
+      - name: Run all-action evaluator adversarial tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_action_space_evsi.py" -v
+      - name: Score reference policy
+        run: |
+          python tools/av-modality-necessity-evaluator/action_space_evsi.py \
+            --workload research/av-action-space-evsi-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-action-space-evsi-v0/fixtures/evaluator-only/potential-outcomes-v1.json \
+            --submission research/av-action-space-evsi-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-action-space-evsi-scorecard.json
+      - name: Validate exact scorecard
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-action-space-evsi-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-action-space-evsi-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual == expected, "all-action EVSI reference scorecard mismatch"
+          assert actual["totals"]["action_space_coverage"] == 1.0
+          assert actual["totals"]["forecast_count"] == 9
+          assert actual["totals"]["missed_best_action_count"] == 0
+          assert actual["totals"]["decision_regret_total"] == 0.0
+          PY
