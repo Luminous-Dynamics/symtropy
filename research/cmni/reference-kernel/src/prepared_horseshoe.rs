@@ -89,11 +89,9 @@ impl PreparedRawScaleHorseshoeModel {
             .map(|value| value.abs())
             .fold(0.0_f64, f64::max);
         let tolerance = 1.0e-10 * scale.max(f64::MIN_POSITIVE);
-        for row in 0..observation_count {
-            for column in 0..row {
-                if (relative_covariance[row][column] - relative_covariance[column][row]).abs()
-                    > tolerance
-                {
+        for (row_index, row) in relative_covariance.iter().enumerate() {
+            for (column_index, value) in row.iter().enumerate().take(row_index) {
+                if (value - relative_covariance[column_index][row_index]).abs() > tolerance {
                     return Err(ModelError::InvalidCovariance(
                         "prepared_horseshoe_relative_covariance_must_be_symmetric",
                     ));
@@ -182,15 +180,15 @@ impl PreparedRawScaleHorseshoeModel {
         }
 
         let mut biased_prediction = vec![0.0; observation_count];
-        for row in 0..observation_count {
+        for (row, prediction) in biased_prediction.iter_mut().enumerate() {
             let delta = dot(&self.design_matrix[row], coefficients);
             if !delta.is_finite() || delta.abs() > 700.0 {
                 return Err(ModelError::InvalidParameter(
                     "horseshoe_bias_predictor_out_of_range",
                 ));
             }
-            biased_prediction[row] = self.baseline_mean[row] * delta.exp();
-            if !biased_prediction[row].is_finite() || biased_prediction[row] <= 0.0 {
+            *prediction = self.baseline_mean[row] * delta.exp();
+            if !prediction.is_finite() || *prediction <= 0.0 {
                 return Err(ModelError::InvalidParameter(
                     "horseshoe_biased_prediction_invalid",
                 ));
@@ -220,10 +218,11 @@ impl PreparedRawScaleHorseshoeModel {
             .map(|(prediction, residual)| prediction * residual)
             .collect();
         let mut coefficient_gradient = vec![0.0; coefficient_count];
-        for feature in 0..coefficient_count {
-            for row in 0..observation_count {
-                coefficient_gradient[feature] +=
-                    self.design_matrix[row][feature] * log_mean_gradient[row];
+        for (feature, gradient) in coefficient_gradient.iter_mut().enumerate() {
+            for (design_row, log_gradient) in
+                self.design_matrix.iter().zip(log_mean_gradient.iter())
+            {
+                *gradient += design_row[feature] * log_gradient;
             }
         }
 
@@ -306,8 +305,8 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_value) in lower[row].iter().enumerate().take(column) {
+                value -= lower_value * lower[column][inner];
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {

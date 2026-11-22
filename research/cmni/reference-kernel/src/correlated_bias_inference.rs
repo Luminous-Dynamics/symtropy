@@ -223,16 +223,15 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
             parameter_mean[fixed_count + *feature] +=
                 probability * fit.parameter_mean[fixed_count + local];
         }
-        for fixed in 0..fixed_count {
-            parameter_mean[fixed] += probability * fit.parameter_mean[fixed];
+        for (fixed, value) in fit.parameter_mean.iter().take(fixed_count).enumerate() {
+            parameter_mean[fixed] += probability * value;
         }
         if *probability > map_model_probability {
             map_model_probability = *probability;
             map_feature_mask = mask;
             map_parameter_mean.fill(0.0);
-            for fixed in 0..fixed_count {
-                map_parameter_mean[fixed] = fit.parameter_mean[fixed];
-            }
+            map_parameter_mean[..fixed_count]
+                .copy_from_slice(&fit.parameter_mean[..fixed_count]);
             for (local, feature) in fit.active_bias_features.iter().enumerate() {
                 map_parameter_mean[fixed_count + *feature] =
                     fit.parameter_mean[fixed_count + local];
@@ -244,11 +243,10 @@ pub fn fit_sparse_bayesian_correlated_log_bias(
     for (fit, probability) in fits.iter().zip(model_probabilities.iter()) {
         let mut full_mean = vec![0.0; parameter_count];
         let mut full_covariance = vec![vec![0.0; parameter_count]; parameter_count];
-        for fixed in 0..fixed_count {
-            full_mean[fixed] = fit.parameter_mean[fixed];
-            for other in 0..fixed_count {
-                full_covariance[fixed][other] = fit.parameter_covariance[fixed][other];
-            }
+        full_mean[..fixed_count].copy_from_slice(&fit.parameter_mean[..fixed_count]);
+        for (fixed, full_row) in full_covariance.iter_mut().take(fixed_count).enumerate() {
+            full_row[..fixed_count]
+                .copy_from_slice(&fit.parameter_covariance[fixed][..fixed_count]);
         }
         for (local, feature) in fit.active_bias_features.iter().enumerate() {
             let global = fixed_count + *feature;
@@ -342,12 +340,12 @@ fn fit_gaussian_subset(
         }
     }
     let mut prior_log_determinant = 0.0;
-    for index in 0..fixed_count {
-        hessian[index][index] += fixed_precision;
+    for (index, row) in hessian.iter_mut().take(fixed_count).enumerate() {
+        row[index] += fixed_precision;
         prior_log_determinant += 2.0 * fixed_sd.ln();
     }
-    for index in 0..active_count {
-        hessian[fixed_count + index][fixed_count + index] += bias_precision;
+    for (index, row) in hessian.iter_mut().enumerate().skip(fixed_count).take(active_count) {
+        row[index] += bias_precision;
         prior_log_determinant += 2.0 * bias_sd.ln();
     }
 
@@ -409,9 +407,9 @@ fn validate_symmetric(matrix: &[Vec<f64>]) -> Result<(), ModelError> {
         .map(|value| value.abs())
         .fold(0.0_f64, f64::max);
     let tolerance = 1.0e-10 * scale.max(f64::MIN_POSITIVE);
-    for row in 0..matrix.len() {
-        for column in 0..row {
-            if (matrix[row][column] - matrix[column][row]).abs() > tolerance {
+    for (row_index, row) in matrix.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate().take(row_index) {
+            if (value - matrix[column_index][row_index]).abs() > tolerance {
                 return Err(ModelError::InvalidCovariance(
                     "log_relative_covariance_must_be_symmetric",
                 ));
@@ -430,8 +428,8 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_value) in lower[row].iter().enumerate().take(column) {
+                value -= lower_value * lower[column][inner];
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {
@@ -488,14 +486,19 @@ fn inverse_from_cholesky(lower: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError
             inverse[row][column] = solution[row];
         }
     }
-    for row in 0..dimension {
-        for column in 0..row {
-            let value = 0.5 * (inverse[row][column] + inverse[column][row]);
-            inverse[row][column] = value;
-            inverse[column][row] = value;
-        }
-    }
-    Ok(inverse)
+    let symmetric_inverse: Vec<Vec<f64>> = inverse
+        .iter()
+        .enumerate()
+        .map(|(row_index, row)| {
+            row.iter()
+                .enumerate()
+                .map(|(column_index, value)| {
+                    0.5 * (value + inverse[column_index][row_index])
+                })
+                .collect()
+        })
+        .collect();
+    Ok(symmetric_inverse)
 }
 
 fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ModelError> {
@@ -572,7 +575,7 @@ mod tests {
     #[test]
     fn correlated_log_model_identifies_planted_bias_with_full_covariance() {
         let result = fit_sparse_bayesian_correlated_log_bias(
-            &[0.0, std::f64::consts::LN_2, 0.0, 0.6931471805599453],
+            &[0.0, std::f64::consts::LN_2, 0.0, std::f64::consts::LN_2],
             &[vec![], vec![], vec![], vec![]],
             &[vec![0.0], vec![1.0], vec![0.0], vec![1.0]],
             &[
@@ -616,7 +619,7 @@ mod tests {
     #[test]
     fn correlated_log_model_preserves_collinear_feature_ambiguity() {
         let result = fit_sparse_bayesian_correlated_log_bias(
-            &[0.0, 0.6931471805599453, 0.0, 0.6931471805599453],
+            &[0.0, std::f64::consts::LN_2, 0.0, std::f64::consts::LN_2],
             &[vec![], vec![], vec![], vec![]],
             &[
                 vec![0.0, 0.0],

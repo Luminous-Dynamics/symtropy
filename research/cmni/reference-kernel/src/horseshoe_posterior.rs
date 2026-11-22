@@ -141,11 +141,9 @@ pub fn raw_scale_horseshoe_log_posterior(
         .map(|value| value.abs())
         .fold(0.0_f64, f64::max);
     let symmetry_tolerance = 1.0e-10 * covariance_scale.max(f64::MIN_POSITIVE);
-    for row in 0..observation_count {
-        for column in 0..row {
-            if (relative_covariance[row][column] - relative_covariance[column][row]).abs()
-                > symmetry_tolerance
-            {
+    for (row_index, row) in relative_covariance.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate().take(row_index) {
+            if (value - relative_covariance[column_index][row_index]).abs() > symmetry_tolerance {
                 return Err(ModelError::InvalidCovariance(
                     "horseshoe_relative_covariance_must_be_symmetric",
                 ));
@@ -973,8 +971,8 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_value) in lower[row].iter().enumerate().take(column) {
+                value -= lower_value * lower[column][inner];
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {

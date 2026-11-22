@@ -466,8 +466,8 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError> {
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_value) in lower[row].iter().enumerate().take(column) {
+                value -= lower_value * lower[column][inner];
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {
@@ -524,14 +524,19 @@ fn inverse_from_cholesky(lower: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ModelError
             inverse[row][column] = solution[row];
         }
     }
-    for row in 0..dimension {
-        for column in 0..row {
-            let symmetric = 0.5 * (inverse[row][column] + inverse[column][row]);
-            inverse[row][column] = symmetric;
-            inverse[column][row] = symmetric;
-        }
-    }
-    Ok(inverse)
+    let symmetric_inverse: Vec<Vec<f64>> = inverse
+        .iter()
+        .enumerate()
+        .map(|(row_index, row)| {
+            row.iter()
+                .enumerate()
+                .map(|(column_index, value)| {
+                    0.5 * (value + inverse[column_index][row_index])
+                })
+                .collect()
+        })
+        .collect();
+    Ok(symmetric_inverse)
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
