@@ -328,7 +328,6 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
         components: &[DependencyComponent],
         edges: &[DependencyEdge],
         state: &mut [u8],
-        reachable: &mut [bool],
     ) -> Result<(), HoldReason> {
         if state[index] == 1 {
             return Err(HoldReason::DependencyCycle);
@@ -337,7 +336,6 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
             return Ok(());
         }
         state[index] = 1;
-        reachable[index] = true;
         let component_id = &components[index].component_id;
         for edge in edges
             .iter()
@@ -347,7 +345,7 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
                 .iter()
                 .position(|component| component.component_id == edge.depends_on_component_id)
                 .ok_or(HoldReason::UnknownDependencyEndpoint)?;
-            visit(next, components, edges, state, reachable)?;
+            visit(next, components, edges, state)?;
         }
         state[index] = 2;
         Ok(())
@@ -355,13 +353,11 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
 
     for index in 0..packet.components.len() {
         if state[index] == 0 {
-            let mut local_reachable = vec![false; packet.components.len()];
             visit(
                 index,
                 &packet.components,
                 &packet.dependency_edges,
                 &mut state,
-                &mut local_reachable,
             )?;
         }
     }
