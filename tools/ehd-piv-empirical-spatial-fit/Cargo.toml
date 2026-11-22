@@ -1,0 +1,13 @@
+[package]
+name = "ehd-piv-empirical-spatial-fit"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Cluster-weighted empirical fitting and held-out validation of spatial PIV error covariance"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+ehd-piv-conformal-functional-uq = { path = "../ehd-piv-conformal-functional-uq" }
