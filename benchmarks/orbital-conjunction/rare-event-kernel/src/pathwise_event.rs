@@ -616,7 +616,10 @@ mod tests {
             ])
             .expect("complete realization");
 
-        assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyNoContact);
+        assert_eq!(
+            result.disposition,
+            HorizonContactDisposition::DefinitelyNoContact
+        );
         assert_eq!(result.first_contact_time_bounds_seconds, None);
     }
 
