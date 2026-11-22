@@ -330,7 +330,7 @@ mod tests {
             let c = 0.5 + deterministic_sample(&mut state).abs();
             // AᵀA + epsilon*I is SPD while retaining off-diagonal coupling.
             let effective_mass = Matrix2::new(a * a + 0.05, a * b, a * b, b * b + c * c + 0.05);
-            let free_velocity = SVector::<f64, 3>::new(
+            let free_velocity = SVector::<f64, 2>::new(
                 2.0 * deterministic_sample(&mut state),
                 2.0 * deterministic_sample(&mut state),
             );
