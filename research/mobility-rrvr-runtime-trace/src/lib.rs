@@ -31,7 +31,7 @@ pub const STATE_FIELDS: [&str; 43] = [
 
 pub const MODEL_STATE_FIELD_COUNT: usize = 43;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum OwnerEvidenceDomain { ProcessEpoch, Persistence, PhysicalOutcome, ExecutionGraph, Authority }
 
 impl OwnerEvidenceDomain {
@@ -400,6 +400,7 @@ mod tests {
     }
 
     #[test] fn emits_exact_model_init_as_reflow_trace_line(){
+        assert_eq!(STATE_FIELDS.len(), MODEL_STATE_FIELD_COUNT);
         let r=recording();let line=r.to_tla_trace_ndjson().unwrap();let v:Value=serde_json::from_str(line.trim()).unwrap();
         assert_eq!(v["state"]["s"]["processStatus"],"running");
         assert_eq!(v["state"]["s"]["stage"],"unreserved");assert!(v.get("event").is_none());
