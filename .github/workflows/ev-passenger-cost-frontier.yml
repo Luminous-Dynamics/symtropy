@@ -130,6 +130,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_service_network_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_service_network_v0_1.schema.json '
             . as $fixture
             | ($schema[0]["$defs"].pack.required | sort) as $pack_required
@@ -221,6 +223,17 @@ jobs:
             and (.findings | any(. == "physical_state_reconciled:event-install-reconcile"))
           ' battery-pack-state-journal-report.json
           cat battery-pack-state-journal-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin battery_resource_occupancy_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json \
+            > battery-resource-occupancy-report.json
+          jq -e '
+            .decision_time_unix_ms == 1795219200000
+            and .interval_count == 4
+            and .resource_count == 3
+            and .half_open_interval_semantics == true
+            and (.deterministic_occupancy_order == ["pack-use", "aircraft-use", "swap-bay-use-1", "swap-bay-use-2"])
+          ' battery-resource-occupancy-report.json
+          cat battery-resource-occupancy-report.json
           cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin ev_carrier_lifecycle_screen -- \
             ev-carrier-module-factory-report.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_carrier_lifecycle_v0_1.json \
@@ -283,6 +296,9 @@ jobs:
             tools/ev-passenger-cost-frontier/src/bin/ev_carrier_module_factory_screen.rs \
             tools/ev-passenger-cost-frontier/src/battery_service_network.rs \
             tools/ev-passenger-cost-frontier/src/bin/battery_pack_journal_screen.rs \
+            tools/ev-passenger-cost-frontier/src/bin/battery_resource_occupancy_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json \
             tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json \
             tools/ev-passenger-cost-frontier/src/bin/battery_service_network_screen.rs \
@@ -303,6 +319,9 @@ jobs:
             ev-carrier-module-lifecycle-report.json
             battery-service-network-report.json
             battery-pack-state-journal-report.json
+            battery-resource-occupancy-report.json
+            tools/ev-passenger-cost-frontier/fixtures/battery_resource_occupancy_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/battery_resource_occupancy_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/battery_pack_state_journal_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/battery_pack_state_journal_v0_1.schema.json
             docs/research/BATTERY_SERVICE_NETWORK_BENCHMARK_V0_1.md
