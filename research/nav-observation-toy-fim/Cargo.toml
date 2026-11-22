@@ -34,3 +34,7 @@ path = "src/bin/integrity_evidence_demo.rs"
 [[bin]]
 name = "mission_risk_budget_demo"
 path = "src/bin/mission_risk_budget_demo.rs"
+
+[[bin]]
+name = "anytime_risk_spending_demo"
+path = "src/bin/anytime_risk_spending_demo.rs"
