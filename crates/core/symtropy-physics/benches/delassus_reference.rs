@@ -6,10 +6,10 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::{DVector, Matrix2, SVector};
 use symtropy_math::{Bivector, Point, Rotor};
 use symtropy_physics::{
-    BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits,
-    ContactWrenchImpulse, ContactWrenchRow, FrictionlessContactRow, RigidBody,
-    assemble_contact_wrench_delassus, assemble_contact_wrench_free_velocity,
-    assemble_delassus, solve_frictionless_lcp, solve_planar_friction_cone,
+    BivectorInertia, BodyHandle, ContactFrame, ContactWrenchFrictionLimits, ContactWrenchImpulse,
+    ContactWrenchRow, FrictionlessContactRow, RigidBody, assemble_contact_wrench_delassus,
+    assemble_contact_wrench_free_velocity, assemble_delassus, solve_frictionless_lcp,
+    solve_planar_friction_cone,
 };
 
 fn fixture(
@@ -66,16 +66,14 @@ fn fixture(
 }
 
 fn contact_wrench_fixture(row_count: usize) -> (Vec<RigidBody<3>>, Vec<ContactWrenchRow<3>>) {
-    let mut body_a =
-        RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+    let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
     body_a.set_rotational_inertia_operator(
         BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.5, 1.0, 0.6))
             .expect("positive ellipsoid mass properties"),
     );
     let mut body_b =
         RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.5, 1.5);
-    body_b.transform.rotation =
-        Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
+    body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
     body_b.set_rotational_inertia_operator(
         BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
             .expect("positive ellipsoid mass properties"),
@@ -143,11 +141,8 @@ fn bench_contact_wrench_free_velocity(c: &mut Criterion) {
             |bench, _| {
                 bench.iter(|| {
                     black_box(
-                        assemble_contact_wrench_free_velocity(
-                            black_box(&bodies),
-                            black_box(&rows),
-                        )
-                        .expect("valid contact-wrench free-velocity fixture"),
+                        assemble_contact_wrench_free_velocity(black_box(&bodies), black_box(&rows))
+                            .expect("valid contact-wrench free-velocity fixture"),
                     )
                 });
             },
