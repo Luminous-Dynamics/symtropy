@@ -290,9 +290,17 @@ pub fn affine_collision_residual_mass_upper_bound(
         matrix: config.matrix,
         hard_body_radius: config.hard_body_radius,
     }];
+    let charts = config
+        .covered_chart_boxes
+        .iter()
+        .map(|bounds| AffineCollisionChart {
+            component_index: 0,
+            bounds,
+        })
+        .collect::<Vec<_>>();
     affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
         components: &components,
-        covered_chart_boxes: config.covered_chart_boxes,
+        covered_charts: &charts,
         cube_radius: config.cube_radius,
         max_cells: config.max_cells,
         max_depth: config.max_depth,
