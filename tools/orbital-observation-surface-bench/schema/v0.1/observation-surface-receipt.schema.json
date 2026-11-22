@@ -84,11 +84,6 @@
         "event_id": {
           "type": "string"
         },
-        "pod_probability": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
         "detected": {
           "type": "boolean"
         },
@@ -106,6 +101,11 @@
               "type": "null"
             }
           ]
+        },
+        "conditional_classifier_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
