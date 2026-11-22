@@ -60,7 +60,7 @@ cargo test --locked --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Ca
 cargo clippy --locked --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml --all-targets -- -D warnings
 cargo run --locked --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- \
   tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json \
-  <40-lowercase-hex-source-commit> > /tmp/nde-screen-rust.json
+  1111111111111111111111111111111111111111 > /tmp/nde-screen-rust.json
 python3 tools/civil-aero-benchmark/nde-pod-screen/tests/reference_oracle.py \
   --corpus tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json \
   --rust-output /tmp/nde-screen-rust.json
