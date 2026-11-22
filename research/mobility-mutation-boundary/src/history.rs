@@ -988,4 +988,81 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn recovery_permit_id_cannot_be_replayed_for_a_later_attempt() {
+        let b1 = binding(1, 1);
+        let b2 = binding(2, 2);
+        let b3 = binding(3, 3);
+        let history = OperationHistory {
+            trace_complete: true,
+            initial_snapshot: snapshot("attempt-1", 1, 1),
+            operations: vec![
+                op(
+                    "apply-1",
+                    1,
+                    2,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-1", "attempt-1", 1, 1),
+                        now: now(20),
+                    },
+                    applied(1, &b1, ReceiptDisposition::RejectedNoEffect),
+                ),
+                op(
+                    "resolve-1",
+                    3,
+                    4,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-1".to_owned(),
+                        resolution: QualifiedOutcomeResolution::NoEffect,
+                        next_snapshot: Some(snapshot("attempt-2", 2, 2)),
+                        recovery_permit: Some(RecoveryPermitReference {
+                            permit_id: "one-shot-permit".to_owned(),
+                            failed_attempt_key: "attempt-1".to_owned(),
+                            plan_digest: [8; 32],
+                            authority_epoch: 1,
+                        }),
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
+                    },
+                ),
+                op(
+                    "apply-2",
+                    5,
+                    6,
+                    HistoryOperationKind::Apply {
+                        ticket: ticket("ticket-2", "attempt-2", 2, 2),
+                        now: now(30),
+                    },
+                    applied(2, &b2, ReceiptDisposition::RejectedNoEffect),
+                ),
+                op(
+                    "resolve-2-replayed-permit",
+                    7,
+                    8,
+                    HistoryOperationKind::ResolvePendingAction {
+                        attempt_key: "attempt-2".to_owned(),
+                        resolution: QualifiedOutcomeResolution::NoEffect,
+                        next_snapshot: Some(snapshot("attempt-3", 3, 3)),
+                        recovery_permit: Some(RecoveryPermitReference {
+                            permit_id: "one-shot-permit".to_owned(),
+                            failed_attempt_key: "attempt-2".to_owned(),
+                            plan_digest: [9; 32],
+                            authority_epoch: 2,
+                        }),
+                    },
+                    HistoryObservedResult::PendingActionResolved {
+                        disposition: ResolutionDisposition::ClearedForNewAuthoritySnapshot,
+                    },
+                ),
+            ],
+        };
+
+        assert_ne!(b1, b3);
+        assert!(matches!(
+            check_history(&history, DEFAULT_SEARCH_BUDGET),
+            HistoryCheckResult::NonLinearizable { .. }
+        ));
+    }
+
 }
