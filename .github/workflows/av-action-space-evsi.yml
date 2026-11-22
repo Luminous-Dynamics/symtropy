@@ -95,4 +95,7 @@ jobs:
           assert actual["totals"]["forecast_count"] == 9
           assert actual["totals"]["missed_best_action_count"] == 0
           assert actual["totals"]["decision_regret_total"] == 0.0
+          assert actual["totals"]["forecast_interval_alpha"] == 0.1
+          assert actual["totals"]["forecast_interval_mean_width"] == 0.266666666667
+          assert actual["totals"]["forecast_interval_winkler_score"] == 0.266666666667
           PY
