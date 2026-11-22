@@ -386,9 +386,7 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
                 let next = packet
                     .components
                     .iter()
-                    .position(|component| {
-                        component.component_id == edge.depends_on_component_id
-                    })
+                    .position(|component| component.component_id == edge.depends_on_component_id)
                     .expect("dependency endpoints were validated");
                 stack.push(next);
             }
@@ -505,9 +503,7 @@ fn maximum_independent_channel_set(channels: &[ChannelFootprint]) -> Vec<String>
 /// The result qualifies only the declared fault model and scope. It is not
 /// physical NoEffect, proof of inventory completeness, cryptographic trust, or
 /// action authority.
-pub fn assess_observer_assurance(
-    packet: &ObserverAssurancePacket,
-) -> ObserverAssuranceDecision {
+pub fn assess_observer_assurance(packet: &ObserverAssurancePacket) -> ObserverAssuranceDecision {
     if let Err(reason) = validate_packet(packet) {
         return hold(reason);
     }
@@ -539,10 +535,11 @@ pub fn assess_observer_assurance(
                 channel.valid_sample
                     && !channel.components.iter().any(|component_id| {
                         failed.contains(component_id.as_str())
-                            || find_component(&packet.components, component_id)
-                                .is_some_and(|component| {
+                            || find_component(&packet.components, component_id).is_some_and(
+                                |component| {
                                     failed_domains.contains(component.failure_domain_id.as_str())
-                                })
+                                },
+                            )
                     })
             })
             .cloned()
@@ -655,7 +652,11 @@ mod tests {
                     failed_component_ids: vec!["sensor-a".to_owned()],
                 },
             ],
-            samples: vec![sample("observer-a"), sample("observer-b"), sample("observer-c")],
+            samples: vec![
+                sample("observer-a"),
+                sample("observer-b"),
+                sample("observer-c"),
+            ],
         }
     }
 
@@ -683,9 +684,15 @@ mod tests {
     fn shared_power_dependency_is_not_independent() {
         let mut input = packet();
         input.required_independent_observers = 3;
-        input.components.push(component("shared-power", "shared-power-domain", "power"));
-        input.dependency_edges.push(edge("sensor-a", "shared-power"));
-        input.dependency_edges.push(edge("sensor-b", "shared-power"));
+        input
+            .components
+            .push(component("shared-power", "shared-power-domain", "power"));
+        input
+            .dependency_edges
+            .push(edge("sensor-a", "shared-power"));
+        input
+            .dependency_edges
+            .push(edge("sensor-b", "shared-power"));
         assert_hold(&input, HoldReason::NoSurvivingIndependentQuorum);
     }
 
@@ -693,9 +700,15 @@ mod tests {
     fn shared_clock_dependency_is_not_independent() {
         let mut input = packet();
         input.required_independent_observers = 3;
-        input.components.push(component("shared-clock", "shared-clock-domain", "clock"));
-        input.dependency_edges.push(edge("sensor-a", "shared-clock"));
-        input.dependency_edges.push(edge("sensor-b", "shared-clock"));
+        input
+            .components
+            .push(component("shared-clock", "shared-clock-domain", "clock"));
+        input
+            .dependency_edges
+            .push(edge("sensor-a", "shared-clock"));
+        input
+            .dependency_edges
+            .push(edge("sensor-b", "shared-clock"));
         assert_hold(&input, HoldReason::NoSurvivingIndependentQuorum);
     }
 
@@ -703,8 +716,7 @@ mod tests {
     fn duplicate_failure_domain_labels_reveal_hidden_common_cause() {
         let mut input = packet();
         input.required_independent_observers = 3;
-        input.components[4].failure_domain_id =
-            input.components[1].failure_domain_id.clone();
+        input.components[4].failure_domain_id = input.components[1].failure_domain_id.clone();
         assert_hold(&input, HoldReason::NoSurvivingIndependentQuorum);
     }
 
@@ -846,7 +858,9 @@ mod tests {
     #[test]
     fn unreferenced_dependency_component_holds() {
         let mut input = packet();
-        input.components.push(component("hidden-power", "hidden-domain", "power"));
+        input
+            .components
+            .push(component("hidden-power", "hidden-domain", "power"));
         assert_hold(&input, HoldReason::UnreferencedComponent);
     }
 
@@ -868,7 +882,9 @@ mod tests {
     #[test]
     fn baseline_fault_scenario_is_mandatory() {
         let mut input = packet();
-        input.scenarios.retain(|scenario| !scenario.failed_component_ids.is_empty());
+        input
+            .scenarios
+            .retain(|scenario| !scenario.failed_component_ids.is_empty());
         assert_hold(&input, HoldReason::MissingBaselineScenario);
     }
 
@@ -955,7 +971,11 @@ mod tests {
         for index in 0..MAX_OBSERVER_CHANNELS {
             let id = format!("extra-channel-{index}");
             let source = format!("extra-sensor-{index}");
-            input.components.push(component(&source, &format!("extra-domain-{index}"), "sensor"));
+            input.components.push(component(
+                &source,
+                &format!("extra-domain-{index}"),
+                "sensor",
+            ));
             input.channels.push(channel(&id, &source));
             input.samples.push(sample(&id));
         }
@@ -963,9 +983,10 @@ mod tests {
 
         let mut input = packet();
         input.components.clear();
-        input.components.extend((0..=MAX_COMPONENTS).map(|index| {
-            component(&format!("c{index}"), &format!("d{index}"), "node")
-        }));
+        input.components.extend(
+            (0..=MAX_COMPONENTS)
+                .map(|index| component(&format!("c{index}"), &format!("d{index}"), "node")),
+        );
         assert_hold(&input, HoldReason::TooManyComponents);
     }
 }
