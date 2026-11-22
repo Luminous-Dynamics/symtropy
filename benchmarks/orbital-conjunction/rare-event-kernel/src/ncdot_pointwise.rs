@@ -141,9 +141,7 @@ pub fn evaluate_ncdot_pointwise(
     }
 
     let direction_norm_squared = dot(inputs.direction, inputs.direction);
-    if !direction_norm_squared.is_finite()
-        || (direction_norm_squared - 1.0).abs() > 1.0e-10
-    {
+    if !direction_norm_squared.is_finite() || (direction_norm_squared - 1.0).abs() > 1.0e-10 {
         return Err(KernelError::InvalidSphereDirection);
     }
 
@@ -164,10 +162,8 @@ pub fn evaluate_ncdot_pointwise(
 
     let regression_times_displacement =
         matrix_vector_product(inputs.conditional_velocity_regression, displacement);
-    let conditional_mean_velocity = add(
-        inputs.mean_relative_velocity,
-        regression_times_displacement,
-    );
+    let conditional_mean_velocity =
+        add(inputs.mean_relative_velocity, regression_times_displacement);
     let nu0 = dot(inputs.direction, conditional_mean_velocity);
     if !nu0.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -181,8 +177,7 @@ pub fn evaluate_ncdot_pointwise(
     }
 
     let q2_scale = matrix_max_abs(inputs.conditional_velocity_covariance);
-    let projected_variance_tolerance =
-        SYMMETRY_TOLERANCE_FACTOR * f64::EPSILON * q2_scale;
+    let projected_variance_tolerance = SYMMETRY_TOLERANCE_FACTOR * f64::EPSILON * q2_scale;
     if projected_variance < -projected_variance_tolerance {
         return Err(KernelError::InvalidSphereDirectionVariance);
     }
@@ -221,8 +216,8 @@ pub fn evaluate_ncdot_pointwise(
         return Err(KernelError::NumericalOverflow);
     }
 
-    let inward_speed_underflowed = log_inward_speed_factor.is_finite()
-        && log_inward_speed_factor < LOG_MIN_SUBNORMAL;
+    let inward_speed_underflowed =
+        log_inward_speed_factor.is_finite() && log_inward_speed_factor < LOG_MIN_SUBNORMAL;
     let inward_speed_factor = exponentiate_nonnegative_log(log_inward_speed_factor)?;
 
     let integrand_underflowed = log_integrand.is_finite() && log_integrand < LOG_MIN_SUBNORMAL;
@@ -322,9 +317,7 @@ fn matrix_max_abs(matrix: [[f64; 3]; 3]) -> f64 {
         .fold(0.0_f64, |maximum, value| maximum.max(value.abs()))
 }
 
-fn validate_symmetric_positive_definite(
-    matrix: [[f64; 3]; 3],
-) -> Result<(), KernelError> {
+fn validate_symmetric_positive_definite(matrix: [[f64; 3]; 3]) -> Result<(), KernelError> {
     validate_symmetric(matrix)?;
 
     let l00_squared = matrix[0][0];
@@ -347,9 +340,7 @@ fn validate_symmetric_positive_definite(
     Ok(())
 }
 
-fn validate_symmetric_positive_semidefinite(
-    matrix: [[f64; 3]; 3],
-) -> Result<(), KernelError> {
+fn validate_symmetric_positive_semidefinite(matrix: [[f64; 3]; 3]) -> Result<(), KernelError> {
     validate_symmetric(matrix)?;
     let scale = matrix_max_abs(matrix);
     if scale == 0.0 {
@@ -372,12 +363,9 @@ fn validate_symmetric_positive_semidefinite(
         }
     }
 
-    let determinant = matrix[0][0]
-        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
-        - matrix[0][1]
-            * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
-        + matrix[0][2]
-            * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+    let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+        - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+        + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
     if !determinant.is_finite() || determinant < -tolerance * scale * scale {
         return Err(KernelError::InvalidConditionalVelocityCovariance);
     }
@@ -415,10 +403,7 @@ fn matrix_vector_product(matrix: [[f64; 3]; 3], vector: [f64; 3]) -> [f64; 3] {
 }
 
 fn dot(left: [f64; 3], right: [f64; 3]) -> f64 {
-    left[0].mul_add(
-        right[0],
-        left[1].mul_add(right[1], left[2] * right[2]),
-    )
+    left[0].mul_add(right[0], left[1].mul_add(right[1], left[2] * right[2]))
 }
 
 fn scale(vector: [f64; 3], factor: f64) -> [f64; 3] {
@@ -443,11 +428,7 @@ mod tests {
             hard_body_radius: 1.0,
             mean_relative_position: [0.0, 0.0, 0.0],
             mean_relative_velocity: [-2.0, 0.0, 0.0],
-            inverse_position_covariance: [
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-            ],
+            inverse_position_covariance: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             conditional_velocity_regression: [[0.0; 3]; 3],
             conditional_velocity_covariance: [[0.0; 3]; 3],
             log_position_density_normalizer: 0.0,
@@ -479,11 +460,8 @@ mod tests {
     #[test]
     fn isotropic_positive_conditional_variance_matches_high_precision_reference() {
         let mut inputs = base_inputs();
-        inputs.conditional_velocity_covariance = [
-            [4.0, 0.0, 0.0],
-            [0.0, 4.0, 0.0],
-            [0.0, 0.0, 4.0],
-        ];
+        inputs.conditional_velocity_covariance =
+            [[4.0, 0.0, 0.0], [0.0, 4.0, 0.0], [0.0, 0.0, 4.0]];
         let report = evaluate_ncdot_pointwise(inputs).expect("positive conditional variance");
         let x = -2.0 / (SQRT_2 * 2.0);
         assert!((report.standardized_inward_speed - x).abs() < 1.0e-14);
@@ -541,11 +519,7 @@ mod tests {
     fn anisotropic_rotated_position_precision_is_supported() {
         let mut inputs = base_inputs();
         inputs.direction = [0.0, 1.0, 0.0];
-        inputs.inverse_position_covariance = [
-            [2.0, 1.0, 0.0],
-            [1.0, 2.0, 0.0],
-            [0.0, 0.0, 3.0],
-        ];
+        inputs.inverse_position_covariance = [[2.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 3.0]];
         let report = evaluate_ncdot_pointwise(inputs).expect("rotated SPD precision");
         assert!((report.mahalanobis_distance_squared - 2.0).abs() < 1.0e-14);
     }
