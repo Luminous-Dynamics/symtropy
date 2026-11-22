@@ -47,6 +47,8 @@ pub enum KernelError {
     InvalidCovarianceFloorFraction,
     /// An interval has its lower endpoint greater than its upper endpoint.
     InvalidInterval,
+    /// A tail-bound radius is not strictly positive and finite.
+    InvalidRadius,
     /// A nonzero half-space normal has zero projected variance.
     ZeroProjectedVariance,
     /// A mathematically required intermediate exceeds the representable range.
@@ -71,6 +73,7 @@ impl fmt::Display for KernelError {
                 "covariance-floor fraction must be nonnegative and finite"
             }
             Self::InvalidInterval => "interval lower endpoint exceeds upper endpoint",
+            Self::InvalidRadius => "radius must be strictly positive and finite",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
@@ -250,6 +253,71 @@ pub fn standard_normal_interval_log_probability(
             Err(KernelError::NumericalOverflow)
         }
     }
+}
+
+/// Return the log probability mass of an axis-aligned box under independent
+/// standard-normal coordinates.
+///
+/// Each axis interval is evaluated with stable lower-tail / survival-tail
+/// subtraction and the log masses are summed. This is useful for probability
+/// accounting over whitened Gaussian cells. The result is a floating-point
+/// value, not an outward-rounded interval enclosure.
+pub fn standard_normal_box_log_probability(
+    lower: &[f64],
+    upper: &[f64],
+) -> Result<f64, KernelError> {
+    if lower.is_empty() || upper.is_empty() {
+        return Err(KernelError::EmptyDimension);
+    }
+    if lower.len() != upper.len() {
+        return Err(KernelError::DimensionMismatch);
+    }
+
+    let mut log_mass = 0.0;
+    for (axis_lower, axis_upper) in lower.iter().zip(upper.iter()) {
+        let axis_log_mass =
+            standard_normal_interval_log_probability(*axis_lower, *axis_upper)?;
+        if axis_log_mass == f64::NEG_INFINITY {
+            return Ok(f64::NEG_INFINITY);
+        }
+        log_mass += axis_log_mass;
+    }
+
+    if log_mass.is_finite() {
+        Ok(log_mass)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+/// Return the logarithm of the union-bound upper bound for a standard-normal
+/// vector lying outside the cube [-radius, radius]^dimension.
+///
+/// By the union bound, the outside probability is at most
+/// min(1, 2 * dimension * Phi(-radius)). This is a numerical point evaluation
+/// of a mathematical upper bound; a certified residual-mass implementation
+/// must outward-round the CDF and final arithmetic.
+pub fn standard_normal_cube_tail_log_upper_bound(
+    radius: f64,
+    dimension: usize,
+) -> Result<f64, KernelError> {
+    if dimension == 0 {
+        return Err(KernelError::EmptyDimension);
+    }
+    if !radius.is_finite() || radius <= 0.0 {
+        return Err(KernelError::InvalidRadius);
+    }
+
+    let one_axis_log_tail = log_standard_normal_cdf(-radius)?;
+    let union_log_bound = (2.0 * dimension as f64).ln() + one_axis_log_tail;
+    if !union_log_bound.is_finite() {
+        return if union_log_bound == f64::NEG_INFINITY {
+            Ok(f64::NEG_INFINITY)
+        } else {
+            Err(KernelError::NumericalOverflow)
+        };
+    }
+    Ok(union_log_bound.min(0.0))
 }
 
 fn gaussian_half_space_standardized_bound(
@@ -768,6 +836,43 @@ mod tests {
         let log_mass = standard_normal_interval_log_probability(-1.0e-10, 1.0e-10).unwrap();
         let expected = (2.0e-10 / core::f64::consts::TAU.sqrt()).ln();
         assert_close(log_mass, expected, 2.0e-15);
+    }
+
+    #[test]
+    fn standard_normal_box_mass_factorizes_in_log_space() {
+        let log_mass = standard_normal_box_log_probability(
+            &[-f64::INFINITY, -f64::INFINITY],
+            &[f64::INFINITY, f64::INFINITY],
+        )
+        .unwrap();
+        assert_close(log_mass, 0.0, 0.0);
+    }
+
+    #[test]
+    fn standard_normal_box_retains_extreme_multidimensional_tail_mass() {
+        let log_mass =
+            standard_normal_box_log_probability(&[40.0, 40.0], &[41.0, 41.0]).unwrap();
+        assert_close(log_mass, -1609.2168840275076, 4.0e-12);
+    }
+
+    #[test]
+    fn standard_normal_cube_tail_union_bound_is_capped_at_one() {
+        assert_eq!(standard_normal_cube_tail_log_upper_bound(0.01, 3).unwrap(), 0.0);
+    }
+
+    #[test]
+    fn standard_normal_cube_tail_union_bound_decreases_with_radius() {
+        let moderate = standard_normal_cube_tail_log_upper_bound(5.0, 6).unwrap();
+        let large = standard_normal_cube_tail_log_upper_bound(8.0, 6).unwrap();
+        assert!(large < moderate);
+    }
+
+    #[test]
+    fn standard_normal_box_rejects_dimension_mismatch() {
+        assert_eq!(
+            standard_normal_box_log_probability(&[-1.0, -1.0], &[1.0]),
+            Err(KernelError::DimensionMismatch)
+        );
     }
 
     #[test]
