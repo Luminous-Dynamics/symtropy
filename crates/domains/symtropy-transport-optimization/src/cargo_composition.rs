@@ -567,13 +567,11 @@ fn validate_batch_shape(batch: &CompositionEventBatch) -> Option<CompositionFail
     if batch.mutations.is_empty() {
         return Some(CompositionFailure::EmptyMutationBatch);
     }
-    let first_kind = mutation_kind(&batch.mutations[0]);
-    if batch
+    let has_disaggregate_all = batch
         .mutations
         .iter()
-        .any(|mutation| mutation_kind(mutation) != first_kind)
-        || (first_kind == 2 && batch.mutations.len() != 1)
-    {
+        .any(|mutation| matches!(mutation, CompositionMutation::DisaggregateAll { .. }));
+    if has_disaggregate_all && batch.mutations.len() != 1 {
         return Some(CompositionFailure::ConflictingMutationsWithinBatch);
     }
     let mut unique_mutations = BTreeSet::new();
@@ -610,7 +608,16 @@ fn apply_composition_batch(
 
     let mut candidate = report.active_memberships.clone();
     let mut ordered = batch.mutations.clone();
-    ordered.sort();
+    // Revision replacement must remove superseded edges before adding the
+    // latest source revision's child list. All changes still commit atomically.
+    ordered.sort_by(|left, right| {
+        let rank = |mutation: &CompositionMutation| match mutation {
+            CompositionMutation::Delete { .. } => 0_u8,
+            CompositionMutation::DisaggregateAll { .. } => 1,
+            CompositionMutation::Add { .. } => 2,
+        };
+        rank(left).cmp(&rank(right)).then_with(|| left.cmp(right))
+    });
 
     let mut disaggregation_count = 0usize;
     for mutation in &ordered {
