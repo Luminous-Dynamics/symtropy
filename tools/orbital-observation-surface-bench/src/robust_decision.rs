@@ -288,7 +288,7 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .filter_map(|action| action.world_losses.get(world_id))
             .min_by(|left, right| left.compare_exact(right))
             .ok_or_else(|| format!("no admissible loss value for world {world_id}"))?;
-        best_loss_by_world.insert(world_id.clone(), best.clone());
+        best_loss_by_world.insert(world_id.clone(), best.canonicalized());
     }
 
     let mut action_metrics = Vec::with_capacity(admitted.len());
@@ -306,7 +306,7 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 .world_losses
                 .get(world_id)
                 .ok_or_else(|| format!("action {} is missing world {world_id}", action.action_id))?
-                .clone();
+                .canonicalized();
             let best = best_loss_by_world
                 .get(world_id)
                 .ok_or_else(|| format!("no per-world optimum for {world_id}"))?;
@@ -325,13 +325,13 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .map(|item| &item.loss)
             .max_by(|left, right| left.compare_exact(right))
             .ok_or_else(|| "compatible-world set unexpectedly empty".to_owned())?
-            .clone();
+            .canonicalized();
         let worst_case_regret = per_world
             .iter()
             .map(|item| &item.regret)
             .max_by(|left, right| left.compare_exact(right))
             .ok_or_else(|| "compatible-world set unexpectedly empty".to_owned())?
-            .clone();
+            .canonicalized();
         let worst_loss_world_ids = per_world
             .iter()
             .filter(|item| item.loss.exactly_equals(&worst_case_loss))
@@ -501,6 +501,50 @@ mod tests {
         let mut corpus = fixture();
         corpus.cases[0].compatible_world_set.world_ids_sha256 = "0".repeat(64);
         assert!(evaluate(&corpus).is_err());
+    }
+
+    #[test]
+    fn rationally_equivalent_inputs_emit_canonical_output() {
+        let mut corpus = fixture();
+        let item = corpus
+            .cases
+            .iter_mut()
+            .find(|item| item.case_id == "uniform-optimum-across-worlds")
+            .expect("uniform case exists");
+        let action = item
+            .actions
+            .iter_mut()
+            .find(|action| action.action_id == "conservative")
+            .expect("conservative action exists");
+        action.world_losses.get_mut("world-a").expect("world loss exists").numerator = 2;
+        action.world_losses.get_mut("world-a").expect("world loss exists").denominator = 20;
+
+        let evaluation = evaluate(&corpus).expect("equivalent fractions remain valid");
+        let result = case(&evaluation, "uniform-optimum-across-worlds");
+        let metric = result
+            .action_metrics
+            .iter()
+            .find(|metric| metric.action_id == "conservative")
+            .expect("conservative metric exists");
+        assert_eq!(metric.per_world[0].loss.numerator, 1);
+        assert_eq!(metric.per_world[0].loss.denominator, 10);
+    }
+
+    #[test]
+    fn case_action_and_world_order_do_not_change_receipt_semantics() {
+        let corpus = fixture();
+        let mut permuted = fixture();
+        permuted.cases.reverse();
+        for item in &mut permuted.cases {
+            item.actions.reverse();
+            item.compatible_world_set.world_ids.reverse();
+        }
+        let original = evaluate(&corpus).expect("original evaluates");
+        let shuffled = evaluate(&permuted).expect("permuted evaluates");
+        assert_eq!(
+            serde_json::to_value(original).expect("serialize original"),
+            serde_json::to_value(shuffled).expect("serialize shuffled")
+        );
     }
 
     #[test]
