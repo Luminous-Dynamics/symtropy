@@ -94,9 +94,7 @@ pub fn assess_pre_native_with_observers(
                     ObserverBoundHold::NoEffectObserverQuorumNotQualified,
                 )
             } else if !downstream_observer_claim_matches {
-                ObserverBoundDisposition::Hold(
-                    ObserverBoundHold::DownstreamObserverClaimMismatch,
-                )
+                ObserverBoundDisposition::Hold(ObserverBoundHold::DownstreamObserverClaimMismatch)
             } else if !is_quorum_qualified(&downstream_observer) {
                 ObserverBoundDisposition::Hold(
                     ObserverBoundHold::DownstreamObserverQuorumNotQualified,
@@ -257,11 +255,8 @@ mod tests {
     #[test]
     fn both_claim_specific_observer_quorums_are_required_for_revalidation() {
         let base = base_ready();
-        let result = assess_pre_native_with_observers(
-            &base,
-            &no_effect_packet(),
-            &downstream_packet(),
-        );
+        let result =
+            assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream_packet());
         assert!(matches!(
             result.no_effect_observer,
             ObserverAssuranceDecision::QuorumQualifiedForDeclaredFaultModel { .. }
@@ -282,11 +277,9 @@ mod tests {
     fn shared_power_common_cause_blocks_only_the_no_effect_observer_claim() {
         let base = base_ready();
         let mut no_effect = no_effect_packet();
-        no_effect.components.push(component(
-            "shared-power",
-            "shared-power-domain",
-            "power",
-        ));
+        no_effect
+            .components
+            .push(component("shared-power", "shared-power-domain", "power"));
         no_effect
             .dependency_edges
             .push(edge("sensor-a", "shared-power"));
@@ -297,8 +290,7 @@ mod tests {
             .dependency_edges
             .push(edge("sensor-c", "shared-power"));
 
-        let result =
-            assess_pre_native_with_observers(&base, &no_effect, &downstream_packet());
+        let result = assess_pre_native_with_observers(&base, &no_effect, &downstream_packet());
         assert!(matches!(
             result.no_effect_observer,
             ObserverAssuranceDecision::Hold { .. }
@@ -309,9 +301,7 @@ mod tests {
         ));
         assert_eq!(
             result.disposition,
-            ObserverBoundDisposition::Hold(
-                ObserverBoundHold::NoEffectObserverQuorumNotQualified
-            )
+            ObserverBoundDisposition::Hold(ObserverBoundHold::NoEffectObserverQuorumNotQualified)
         );
     }
 
@@ -332,8 +322,7 @@ mod tests {
             .dependency_edges
             .push(edge("sensor-c", "shared-clock"));
 
-        let result =
-            assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream);
+        let result = assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream);
         assert!(matches!(
             result.no_effect_observer,
             ObserverAssuranceDecision::QuorumQualifiedForDeclaredFaultModel { .. }
@@ -344,9 +333,7 @@ mod tests {
         ));
         assert_eq!(
             result.disposition,
-            ObserverBoundDisposition::Hold(
-                ObserverBoundHold::DownstreamObserverQuorumNotQualified
-            )
+            ObserverBoundDisposition::Hold(ObserverBoundHold::DownstreamObserverQuorumNotQualified)
         );
     }
 
@@ -355,24 +342,18 @@ mod tests {
         let base = base_ready();
         let mut no_effect = no_effect_packet();
         no_effect.claim_scope_commitment = commitment(91);
-        let result =
-            assess_pre_native_with_observers(&base, &no_effect, &downstream_packet());
+        let result = assess_pre_native_with_observers(&base, &no_effect, &downstream_packet());
         assert_eq!(
             result.disposition,
-            ObserverBoundDisposition::Hold(
-                ObserverBoundHold::NoEffectObserverClaimMismatch
-            )
+            ObserverBoundDisposition::Hold(ObserverBoundHold::NoEffectObserverClaimMismatch)
         );
 
         let mut downstream = downstream_packet();
         downstream.claim_id = "wrong-downstream-claim".to_owned();
-        let result =
-            assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream);
+        let result = assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream);
         assert_eq!(
             result.disposition,
-            ObserverBoundDisposition::Hold(
-                ObserverBoundHold::DownstreamObserverClaimMismatch
-            )
+            ObserverBoundDisposition::Hold(ObserverBoundHold::DownstreamObserverClaimMismatch)
         );
     }
 
@@ -409,11 +390,8 @@ mod tests {
         base.recovery = RecoveryDecision::EffectPredicateObservedPersistenceUnresolved;
         base.disposition =
             CompositionDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry;
-        let result = assess_pre_native_with_observers(
-            &base,
-            &no_effect_packet(),
-            &downstream_packet(),
-        );
+        let result =
+            assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream_packet());
         assert_eq!(
             result.disposition,
             ObserverBoundDisposition::PhysicalEffectObservedPersistenceUnresolvedNoRetry
@@ -423,13 +401,9 @@ mod tests {
     #[test]
     fn a_held_base_assessment_cannot_be_released_by_observer_quorums() {
         let mut base = base_ready();
-        base.disposition =
-            CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld);
-        let result = assess_pre_native_with_observers(
-            &base,
-            &no_effect_packet(),
-            &downstream_packet(),
-        );
+        base.disposition = CompositionDisposition::Hold(CompositionHold::RecoveryAssessmentHeld);
+        let result =
+            assess_pre_native_with_observers(&base, &no_effect_packet(), &downstream_packet());
         assert_eq!(
             result.disposition,
             ObserverBoundDisposition::Hold(ObserverBoundHold::BaseCompositionNotReady)
