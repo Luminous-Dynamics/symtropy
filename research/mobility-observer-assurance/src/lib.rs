@@ -207,8 +207,11 @@ fn validate_packet(packet: &ObserverAssurancePacket) -> Result<(), HoldReason> {
     if packet.channels.is_empty() || packet.channels.len() > MAX_OBSERVER_CHANNELS {
         return Err(HoldReason::TooManyObserverChannels);
     }
-    if packet.scenarios.is_empty() || packet.scenarios.len() > MAX_FAULT_SCENARIOS {
+    if packet.scenarios.is_empty() {
         return Err(HoldReason::MissingFaultScenarios);
+    }
+    if packet.scenarios.len() > MAX_FAULT_SCENARIOS {
+        return Err(HoldReason::TooManyFaultScenarios);
     }
     if packet.required_independent_observers < 2
         || packet.required_independent_observers > packet.channels.len()
@@ -792,6 +795,10 @@ mod tests {
     #[test]
     fn wrong_calibration_scope_or_clock_invalidates_a_channel() {
         let mut input = packet();
+        input.channels[0].measurement_scope_commitment = commitment(99);
+        assert_hold(&input, HoldReason::MeasurementScopeMismatch);
+
+        let mut input = packet();
         input.required_independent_observers = 3;
         input.samples[0].calibration_commitment = commitment(99);
         assert_hold(&input, HoldReason::InsufficientValidChannels);
@@ -878,6 +885,31 @@ mod tests {
         input.scenarios[1].failed_component_ids =
             vec!["sensor-a".to_owned(), "sensor-a".to_owned()];
         assert_hold(&input, HoldReason::DuplicateFaultComponent);
+    }
+
+    #[test]
+    fn fault_scenario_count_is_bounded() {
+        let mut input = packet();
+        for index in 0..MAX_FAULT_SCENARIOS {
+            input.scenarios.push(FaultScenario {
+                scenario_id: format!("scenario-{index}"),
+                failed_component_ids: Vec::new(),
+            });
+        }
+        assert_hold(&input, HoldReason::TooManyFaultScenarios);
+    }
+
+    #[test]
+    fn dependency_graph_and_edge_count_are_bounded() {
+        let mut input = packet();
+        input.components.clear();
+        assert_hold(&input, HoldReason::EmptyDependencyGraph);
+
+        let mut input = packet();
+        input.dependency_edges.extend(
+            (0..=MAX_DEPENDENCY_EDGES).map(|_| edge("sensor-a", "power-a")),
+        );
+        assert_hold(&input, HoldReason::TooManyDependencyEdges);
     }
 
     #[test]
