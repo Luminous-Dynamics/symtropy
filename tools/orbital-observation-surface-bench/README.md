@@ -34,7 +34,21 @@ cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo
   --observations-output artifacts/observations-v0.1.json \
   > artifacts/observation-surface-receipt-v0.1.json
 node tools/orbital-observation-surface-bench/tests/reference_oracle.mjs \
+  tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json \
+  > artifacts/observation-surface-oracle-v0.1.json
+node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+  tools/orbital-observation-surface-bench/schema/v0.1/observation-surface-corpus.schema.json \
   tools/orbital-observation-surface-bench/fixtures/v0.1/observation-surface-cases.json
+node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+  tools/orbital-observation-surface-bench/schema/v0.1/observation-surface-receipt.schema.json \
+  artifacts/observation-surface-receipt-v0.1.json
+node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+  tools/orbital-observation-surface-bench/schema/v0.1/observation-stream.schema.json \
+  artifacts/observations-v0.1.json
+node tools/orbital-observation-surface-bench/tests/compare_receipts.mjs \
+  artifacts/observation-surface-receipt-v0.1.json \
+  artifacts/observation-surface-oracle-v0.1.json \
+  artifacts/observations-v0.1.json
 ~~~
 
 Each run emits two deliberately separate outputs. The source-pinned receipt includes simulation ground truth and audit counters. The `observations-v0.1.json` artifact is the estimator input: it contains only channel identifiers, configuration identifiers and the sorted timestamps that the simulated channels actually emitted. It contains no latent event IDs, miss reasons, classifier probabilities or false-positive labels. Baseline estimators must consume this observation-only artifact, never the audit-bearing receipt. Both artifacts carry the source-commit and corpus digests; the receipt binds the exact observation bytes with SHA-256.
