@@ -15,6 +15,7 @@ This crate is a protocol/validation layer. It does not schedule, select, capture
 - src/lib.rs: typed, deny-unknown-fields manifest and lifecycle validator.
 - Cargo.toml / Cargo.lock: pinned dependencies.
 - schemas/av-action-argument-replay-v1.schema.json: cross-language wire contract.
+- tools/av-evidence-gain-trajectory/evidence_gain_ledger.py and its tests: stacked #6895 receipt integration.
 
 Run from repository root:
 
@@ -72,6 +73,7 @@ Binds the expected feedback source role, feedback kind and earliest delivery tic
 3. The executor acceptance receipt binds episode, turn, request ID, action ID, manifest digest, parent transcript head, acceptance tick, expected arrival and decision deadline.
 4. The action result retains those exact identities and digest, its result tick/status, actual delivered frames/audio/feedback, actual resource digest and event digest.
 5. validate_action_lifecycle rejects any mismatch between forecast, acceptance and result.
+6. The #6895 trajectory ledger carries the selected action manifest digest and request ID in the selected-action receipt; the next turn's action-result event must repeat that exact request ID and digest. The action-argument PR also runs the #6895 Python trajectory tests on its exact head.
 
 The reserved stop action is present in the forecast but has no manifest, no request acceptance and no action-result payload.
 
@@ -98,6 +100,13 @@ The Rust unit suite covers:
 - late-vs-on-time result status;
 - failed action receipts with no fabricated observation;
 - feedback request kept separate from sensor observations.
+
+The stacked Python integration suite additionally verifies:
+- every eligible #6753 action carries a manifest digest;
+- selected action digest matches its catalogue entry and the linked scorecard receipt;
+- request ID + parameter digest flow into the next turn's action-result receipt;
+- stop has no request ID or manifest digest;
+- a changed request or result manifest digest fails closed.
 
 These are deterministic protocol checks, not proof that hardware executed an action correctly. The executor must attest actual capture and delivery; independent instrumentation must qualify resource readings.
 
