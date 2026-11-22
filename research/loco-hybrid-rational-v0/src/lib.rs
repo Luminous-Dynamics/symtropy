@@ -920,6 +920,13 @@ pub mod impact_enclosure {
 
         let lower_guard = evaluate_guard(model, lower)?;
         let upper_guard = evaluate_guard(model, upper)?;
+
+        // Classify singleton windows before the directional sign test so a
+        // non-root point receives the precise singleton-not-event disposition.
+        if lower == upper && lower_guard != zero {
+            return Err(ImpactEnclosureError::SingletonIsNotExactEvent);
+        }
+
         if lower_guard.checked_cmp(&zero)? == Ordering::Less {
             return Err(ImpactEnclosureError::LowerGuardBelowSurface);
         }
@@ -930,10 +937,6 @@ pub mod impact_enclosure {
         let derivative_upper_bound = evaluate_guard_derivative(model, lower)?;
         if derivative_upper_bound.checked_cmp(&zero)? != Ordering::Less {
             return Err(ImpactEnclosureError::NotStrictlyDownwardTransverse);
-        }
-
-        if lower == upper && lower_guard != zero {
-            return Err(ImpactEnclosureError::SingletonIsNotExactEvent);
         }
 
         Ok(VerifiedImpactEventEnclosure {
