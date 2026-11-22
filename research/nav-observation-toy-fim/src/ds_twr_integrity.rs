@@ -11,7 +11,35 @@
 
 use std::fmt;
 
-const SPEED_OF_LIGHT_MPS: f64 = 299_792_458.0;
+/// Numeric propagation-speed convention used by the pinned MILUV reference implementation.
+pub const MILUV_REFERENCE_PROPAGATION_SPEED_MPS: f64 = 299_702_547.0;
+/// Vacuum speed of light, available only when that physical convention is intended.
+pub const VACUUM_PROPAGATION_SPEED_MPS: f64 = 299_792_458.0;
+
+/// One timestamp from a processed MILUV CSV, already converted to nanoseconds
+/// and unwrapped in its own radio clock domain.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MiluvProcessedTimestampNs {
+    /// Timestamp value in nanoseconds.
+    pub value_ns: f64,
+    /// Hard absolute timestamp error bound in nanoseconds.
+    pub abs_error_bound_ns: f64,
+}
+
+/// Six DS-TWR events from the authors' processed/unwrapped MILUV representation.
+/// The initiator and responder identities are retained to prevent accidental
+/// mixing of two different ranging endpoints.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MiluvProcessedUnwrappedTimestampsNs {
+    pub initiator_id: u32,
+    pub responder_id: u32,
+    pub initiator_tx1: MiluvProcessedTimestampNs,
+    pub responder_rx1: MiluvProcessedTimestampNs,
+    pub responder_tx2: MiluvProcessedTimestampNs,
+    pub initiator_rx2: MiluvProcessedTimestampNs,
+    pub responder_tx3: MiluvProcessedTimestampNs,
+    pub initiator_rx3: MiluvProcessedTimestampNs,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DsTwrDurationInput {
@@ -27,6 +55,79 @@ pub struct DsTwrDurationInput {
     /// D = T2 - R1 in the published range equation, seconds.
     pub turnaround_term_s: f64,
     pub turnaround_abs_error_bound_s: f64,
+    /// Explicit signal propagation speed selected for this reproduction/physical model.
+    pub propagation_speed_mps: f64,
+}
+
+impl DsTwrDurationInput {
+    /// Construct the published A/B/C/D durations from processed MILUV CSV
+    /// timestamps. These inputs are already unwrapped nanoseconds: this method
+    /// deliberately performs neither device-tick conversion nor rollover repair.
+    ///
+    /// Per-duration error bounds are sums of the endpoint hard bounds. This
+    /// box bound is conservative and intentionally does not exploit correlation
+    /// from shared timestamp endpoints.
+    pub fn from_miluv_processed_unwrapped_ns(
+        timestamps: MiluvProcessedUnwrappedTimestampsNs,
+        propagation_speed_mps: f64,
+    ) -> Result<Self, DsTwrRangeError> {
+        if timestamps.initiator_id == timestamps.responder_id {
+            return Err(DsTwrRangeError::InvalidRadioIdentity);
+        }
+
+        let events = [
+            timestamps.initiator_tx1,
+            timestamps.responder_rx1,
+            timestamps.responder_tx2,
+            timestamps.initiator_rx2,
+            timestamps.responder_tx3,
+            timestamps.initiator_rx3,
+        ];
+        if !events.iter().all(|event| {
+            event.value_ns.is_finite()
+                && event.value_ns >= 0.0
+                && event.abs_error_bound_ns.is_finite()
+                && event.abs_error_bound_ns >= 0.0
+        }) {
+            return Err(DsTwrRangeError::InvalidTimestampInput);
+        }
+
+        let (a_s, a_error_s) =
+            processed_timestamp_difference_s(timestamps.initiator_rx2, timestamps.initiator_tx1)?;
+        let (b_s, b_error_s) =
+            processed_timestamp_difference_s(timestamps.initiator_rx3, timestamps.initiator_rx2)?;
+        let (c_s, c_error_s) =
+            processed_timestamp_difference_s(timestamps.responder_tx3, timestamps.responder_tx2)?;
+        let (d_s, d_error_s) =
+            processed_timestamp_difference_s(timestamps.responder_tx2, timestamps.responder_rx1)?;
+
+        Ok(Self {
+            round_trip_term_s: a_s,
+            round_trip_abs_error_bound_s: a_error_s,
+            clock_scaled_response_term_s: b_s,
+            clock_scaled_response_abs_error_bound_s: b_error_s,
+            clock_scale_reference_term_s: c_s,
+            clock_scale_reference_abs_error_bound_s: c_error_s,
+            turnaround_term_s: d_s,
+            turnaround_abs_error_bound_s: d_error_s,
+            propagation_speed_mps,
+        })
+    }
+}
+
+/// Convert a pair of already-unwrapped nanosecond timestamps into a duration
+/// and conservative endpoint-error bound in seconds.
+fn processed_timestamp_difference_s(
+    later: MiluvProcessedTimestampNs,
+    earlier: MiluvProcessedTimestampNs,
+) -> Result<(f64, f64), DsTwrRangeError> {
+    let centre_s = (later.value_ns - earlier.value_ns) * 1.0e-9;
+    let abs_error_bound_s =
+        (later.abs_error_bound_ns + earlier.abs_error_bound_ns) * 1.0e-9;
+    if !centre_s.is_finite() || !abs_error_bound_s.is_finite() {
+        return Err(DsTwrRangeError::InvalidTimestampInput);
+    }
+    Ok((centre_s, abs_error_bound_s))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -62,6 +163,9 @@ pub struct BiasCorrectedRangeInterval {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DsTwrRangeError {
     NonFiniteOrNegativeInput,
+    InvalidTimestampInput,
+    InvalidRadioIdentity,
+    InvalidPropagationSpeed,
     DurationIntervalNotStrictlyPositive(&'static str),
     NonPhysicalRangeInterval,
     InvalidNlosBiasBound,
@@ -72,6 +176,9 @@ impl fmt::Display for DsTwrRangeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteOrNegativeInput => write!(f, "DS-TWR duration centres must be finite and positive and error bounds finite and nonnegative"),
+            Self::InvalidTimestampInput => write!(f, "processed MILUV timestamps and absolute error bounds must be finite and nonnegative"),
+            Self::InvalidRadioIdentity => write!(f, "MILUV initiator and responder IDs must be different"),
+            Self::InvalidPropagationSpeed => write!(f, "propagation speed must be finite and strictly positive"),
             Self::DurationIntervalNotStrictlyPositive(name) => write!(f, "DS-TWR duration interval must remain strictly positive: {name}"),
             Self::NonPhysicalRangeInterval => write!(f, "DS-TWR time-of-flight interval contains no physically admissible nonnegative range"),
             Self::InvalidNlosBiasBound => write!(f, "positive NLOS bias interval must be finite, nonnegative and ordered"),
@@ -129,6 +236,9 @@ fn positive_interval(
 pub fn ds_twr_range_interval(
     input: DsTwrDurationInput,
 ) -> Result<DsTwrRangeInterval, DsTwrRangeError> {
+    if !input.propagation_speed_mps.is_finite() || input.propagation_speed_mps <= 0.0 {
+        return Err(DsTwrRangeError::InvalidPropagationSpeed);
+    }
     let a = positive_interval(input.round_trip_term_s, input.round_trip_abs_error_bound_s, "A=R2-T1")?;
     let b = positive_interval(input.clock_scaled_response_term_s, input.clock_scaled_response_abs_error_bound_s, "B=R3-R2")?;
     let c = positive_interval(input.clock_scale_reference_term_s, input.clock_scale_reference_abs_error_bound_s, "C=T3-T2")?;
@@ -153,7 +263,7 @@ pub fn ds_twr_range_interval(
         return Err(DsTwrRangeError::NonPhysicalRangeInterval);
     }
 
-    let scale = 0.5 * SPEED_OF_LIGHT_MPS;
+    let scale = 0.5 * input.propagation_speed_mps;
     let output = DsTwrRangeInterval {
         nominal_range_m: scale * tof_nominal,
         lower_bound_m: scale * tof_lower.max(0.0),
@@ -248,6 +358,7 @@ mod tests {
             clock_scale_reference_abs_error_bound_s: error,
             turnaround_term_s: 100.0e-9,
             turnaround_abs_error_bound_s: error,
+            propagation_speed_mps: VACUUM_PROPAGATION_SPEED_MPS,
         }
     }
 
@@ -354,6 +465,114 @@ mod tests {
         bad.clock_scale_reference_term_s = 100.0e-9;
         bad.turnaround_term_s = 100.0e-9;
         assert_eq!(ds_twr_range_interval(bad), Err(DsTwrRangeError::NonPhysicalRangeInterval));
+    }
+
+
+
+    fn processed_event(value_ns: f64, abs_error_bound_ns: f64) -> MiluvProcessedTimestampNs {
+        MiluvProcessedTimestampNs {
+            value_ns,
+            abs_error_bound_ns,
+        }
+    }
+
+    fn processed_miluv_timestamps() -> MiluvProcessedUnwrappedTimestampsNs {
+        MiluvProcessedUnwrappedTimestampsNs {
+            initiator_id: 10,
+            responder_id: 20,
+            initiator_tx1: processed_event(1_000.0, 0.25),
+            responder_rx1: processed_event(2_000.0, 0.25),
+            responder_tx2: processed_event(2_100.0, 0.25),
+            initiator_rx2: processed_event(1_300.0, 0.25),
+            responder_tx3: processed_event(2_200.0, 0.25),
+            initiator_rx3: processed_event(1_400.0, 0.25),
+        }
+    }
+
+    #[test]
+    fn processed_miluv_adapter_maps_clock_local_events_and_ns_units() {
+        let input = DsTwrDurationInput::from_miluv_processed_unwrapped_ns(
+            processed_miluv_timestamps(),
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        assert!((input.round_trip_term_s - 300.0e-9).abs() < 1.0e-18);
+        assert!((input.clock_scaled_response_term_s - 100.0e-9).abs() < 1.0e-18);
+        assert!((input.clock_scale_reference_term_s - 100.0e-9).abs() < 1.0e-18);
+        assert!((input.turnaround_term_s - 100.0e-9).abs() < 1.0e-18);
+        assert!((input.round_trip_abs_error_bound_s - 0.5e-9).abs() < 1.0e-18);
+        assert!((input.clock_scaled_response_abs_error_bound_s - 0.5e-9).abs() < 1.0e-18);
+        assert!((input.clock_scale_reference_abs_error_bound_s - 0.5e-9).abs() < 1.0e-18);
+        assert!((input.turnaround_abs_error_bound_s - 0.5e-9).abs() < 1.0e-18);
+    }
+
+    #[test]
+    fn processed_miluv_adapter_produces_reference_range_without_second_unwrap() {
+        let input = DsTwrDurationInput::from_miluv_processed_unwrapped_ns(
+            processed_miluv_timestamps(),
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        let result = ds_twr_range_interval(input).unwrap();
+        assert!((result.nominal_range_m - 29.970_254_7).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn propagation_speed_is_explicit_and_changes_only_range_scale() {
+        let mut air = input(0.0);
+        air.propagation_speed_mps = MILUV_REFERENCE_PROPAGATION_SPEED_MPS;
+        let vacuum = input(0.0);
+        let air_result = ds_twr_range_interval(air).unwrap();
+        let vacuum_result = ds_twr_range_interval(vacuum).unwrap();
+        assert!((air_result.nominal_range_m - 29.970_254_7).abs() < 1.0e-9);
+        assert!((vacuum_result.nominal_range_m - 29.979_245_8).abs() < 1.0e-9);
+        assert!(air_result.lower_bound_m < vacuum_result.lower_bound_m);
+        assert!(air_result.upper_bound_m < vacuum_result.upper_bound_m);
+    }
+
+    #[test]
+    fn invalid_propagation_speed_fails_closed() {
+        let mut bad = input(0.0);
+        bad.propagation_speed_mps = 0.0;
+        assert_eq!(ds_twr_range_interval(bad), Err(DsTwrRangeError::InvalidPropagationSpeed));
+        let mut bad = input(0.0);
+        bad.propagation_speed_mps = f64::NAN;
+        assert_eq!(ds_twr_range_interval(bad), Err(DsTwrRangeError::InvalidPropagationSpeed));
+    }
+
+    #[test]
+    fn processed_miluv_adapter_rejects_same_radio_identity() {
+        let mut timestamps = processed_miluv_timestamps();
+        timestamps.responder_id = timestamps.initiator_id;
+        assert_eq!(
+            DsTwrDurationInput::from_miluv_processed_unwrapped_ns(
+                timestamps,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidRadioIdentity)
+        );
+    }
+
+    #[test]
+    fn processed_miluv_adapter_rejects_invalid_timestamp_or_error_bound() {
+        let mut timestamps = processed_miluv_timestamps();
+        timestamps.initiator_rx2.value_ns = f64::NAN;
+        assert_eq!(
+            DsTwrDurationInput::from_miluv_processed_unwrapped_ns(
+                timestamps,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidTimestampInput)
+        );
+        let mut timestamps = processed_miluv_timestamps();
+        timestamps.responder_tx2.abs_error_bound_ns = -0.1;
+        assert_eq!(
+            DsTwrDurationInput::from_miluv_processed_unwrapped_ns(
+                timestamps,
+                MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+            ),
+            Err(DsTwrRangeError::InvalidTimestampInput)
+        );
     }
 
     #[test]
