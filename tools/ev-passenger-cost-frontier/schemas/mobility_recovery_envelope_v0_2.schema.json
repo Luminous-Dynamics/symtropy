@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/mobility_recovery_envelope_v0_2.schema.json",
+  "title": "Mobility Reserve Recovery Envelope v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "site_id",
+    "site_configuration_digest",
+    "decision_time_unix_ms",
+    "slot_duration_seconds",
+    "horizon_slots",
+    "flexibility_report_reference",
+    "site_evidence",
+    "allocation_evidence",
+    "charging_queue_evidence",
+    "site_meter_evidence",
+    "resources",
+    "charger_channels",
+    "scenarios",
+    "pcc_slots",
+    "recovery_schedule",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0"
+    },
+    "benchmark_id": {
+      "const": "MOBILITY-RESERVE-RECOVERY-001"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_configuration_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_time_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "slot_duration_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "horizon_slots": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "flexibility_report_reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "allocation_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "charging_queue_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "site_meter_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "charger_channels": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "pcc_slots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/pccSlot"
+      }
+    },
+    "recovery_schedule": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/scheduleSlot"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "configuration_digest",
+        "initial_energy_lower_bound_wh",
+        "energy_capacity_lower_bound_wh",
+        "max_charge_input_power_lower_bound_w",
+        "max_discharge_output_power_lower_bound_w",
+        "charge_efficiency_lower_bound_permille",
+        "discharge_efficiency_lower_bound_permille",
+        "initial_energy_evidence",
+        "capacity_evidence",
+        "charge_power_evidence",
+        "discharge_power_evidence",
+        "efficiency_evidence",
+        "site_connection_evidence"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_energy_lower_bound_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "energy_capacity_lower_bound_wh": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000000000
+        },
+        "max_charge_input_power_lower_bound_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "max_discharge_output_power_lower_bound_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "charge_efficiency_lower_bound_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "discharge_efficiency_lower_bound_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "initial_energy_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "capacity_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "charge_power_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "discharge_power_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "efficiency_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "site_connection_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "configuration_digest",
+        "max_input_power_lower_bound_w",
+        "compatible_resource_ids",
+        "evidence"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_input_power_lower_bound_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "compatible_resource_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "channelAvailability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "available_by_slot"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "available_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "evidence",
+        "mission_reserve_floor_wh_by_slot",
+        "inventory_reserve_floor_wh_by_slot",
+        "safety_outage_reserve_floor_wh_by_slot",
+        "uncertainty_reserve_floor_wh_by_slot",
+        "mission_energy_withdrawal_wh_by_slot",
+        "disturbance_energy_withdrawal_wh_by_slot",
+        "recovery_target_energy_wh",
+        "recovery_deadline_slot"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "mission_reserve_floor_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "inventory_reserve_floor_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "safety_outage_reserve_floor_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "uncertainty_reserve_floor_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "mission_energy_withdrawal_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "disturbance_energy_withdrawal_wh_by_slot": {
+          "$ref": "#/$defs/energyVector"
+        },
+        "recovery_target_energy_wh": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "recovery_deadline_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "evidence",
+        "resource_obligations",
+        "channel_availability"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "resource_obligations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/obligation"
+          }
+        },
+        "channel_availability": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/channelAvailability"
+          }
+        }
+      }
+    },
+    "pccSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "base_site_load_w",
+        "scheduled_mobility_charging_load_w",
+        "import_limit_w",
+        "base_load_evidence",
+        "scheduled_charging_load_evidence",
+        "evidence"
+      ],
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "base_site_load_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "scheduled_mobility_charging_load_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "import_limit_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "base_load_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "scheduled_charging_load_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "scheduleSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "slot",
+        "recovery_charge_input_power_w",
+        "grid_discharge_output_power_w",
+        "charger_channel_id",
+        "queue_evidence_reference"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "recovery_charge_input_power_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "grid_discharge_output_power_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "charger_channel_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "queue_evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "energyVector": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1000000000000
+      }
+    }
+  }
+}
