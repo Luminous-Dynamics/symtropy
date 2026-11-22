@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-evidence-certificate-submission-v1.schema.json",
+  "title": "AV Evidence Certificate Candidate Submission v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["benchmark_id", "schema_version", "episode_id", "transcript_head_sha256", "claims"],
+  "properties": {
+    "benchmark_id": {"const": "av-evidence-certificate-v0"},
+    "schema_version": {"const": 1},
+    "episode_id": {"type": "string", "minLength": 1},
+    "transcript_head_sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"},
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_id", "answer_value", "abstained", "evidence"],
+        "properties": {
+          "claim_id": {"type": "string", "minLength": 1},
+          "answer_value": {},
+          "abstained": {"type": "boolean"},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["observation_ref", "start_ms", "end_ms"],
+              "properties": {
+                "observation_ref": {"type": "string", "minLength": 1},
+                "start_ms": {"type": "number", "minimum": 0},
+                "end_ms": {"type": "number", "exclusiveMinimum": 0},
+                "frame_id": {"type": "string", "minLength": 1},
+                "bbox_xyxy": {
+                  "type": "array",
+                  "prefixItems": [
+                    {"type": "number", "minimum": 0, "maximum": 1},
+                    {"type": "number", "minimum": 0, "maximum": 1},
+                    {"type": "number", "minimum": 0, "maximum": 1},
+                    {"type": "number", "minimum": 0, "maximum": 1}
+                  ],
+                  "items": false,
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
