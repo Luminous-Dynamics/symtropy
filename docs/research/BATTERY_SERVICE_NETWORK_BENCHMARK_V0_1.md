@@ -398,11 +398,11 @@ A separate bounded exact scheduler is now implemented and tracked under [CHARGER
 
 The v0.1 scheduler searches at most four jobs, three charger channels and eight discrete time slots. It requires:
 - a pack state evidence record declaring the pack Cooling/charge-ready, with exact serial/configuration and validity at the proposed start;
-- exact charger-to-pack configuration digest compatibility and charger availability evidence across the planning horizon;
+- charger maximum power and exact supported pack configuration digests nested inside an evidence-bearing capability record, plus charger-availability evidence covering the planning horizon;
+- per-slot site grid import cap and non-charging base load nested inside evidence bound to the site/configuration and covering the complete slot;
 - release slot, exclusive deadline slot, fixed duration and requested charger input power;
 - one job per charger channel at a time;
-- per-slot aggregate charging draw no greater than site import cap minus non-charging site load;
-- grid evidence covering each scheduled time slot.
+- per-slot aggregate charging draw no greater than site import cap minus non-charging site load.
 
 Its lexicographic objective maximizes completed jobs, then minimizes aggregate waiting slots, then makespan, then deterministic ID tie-breaks. The declared grid input is reported as integer watt-seconds under the constant-power block abstraction. This is not pack-terminal energy or a measured charging profile.
 
