@@ -1,0 +1,31 @@
+name: Full-Tensor Rigid-Body Reference
+
+on:
+  push:
+    paths:
+      - "research/full-tensor-rigid-body-reference/**"
+      - ".github/workflows/full-tensor-rigid-body-reference.yml"
+  pull_request:
+    paths:
+      - "research/full-tensor-rigid-body-reference/**"
+      - ".github/workflows/full-tensor-rigid-body-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path research/full-tensor-rigid-body-reference/v0.1/Cargo.toml --all -- --check
+      - name: Tests
+        run: cargo test --manifest-path research/full-tensor-rigid-body-reference/v0.1/Cargo.toml --locked
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/full-tensor-rigid-body-reference/v0.1/Cargo.toml --all-targets --locked -- -D warnings
