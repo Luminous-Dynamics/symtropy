@@ -1034,7 +1034,7 @@ mod tests {
 
         fn replay(&self, _seed: u64, _events: &[TraceEvent]) -> ReplayOutcome {
             let call = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            if call % 2 == 0 {
+            if call.is_multiple_of(2) {
                 ReplayOutcome::Pass
             } else {
                 ReplayOutcome::InvalidTrace
