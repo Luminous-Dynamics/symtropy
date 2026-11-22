@@ -601,17 +601,28 @@ mod tests {
             },
         )
         .expect("unqualified evidence ignored");
-        assert_eq!(
-            result,
+        match result {
             FiniteDecisionRecommendation::Abstain {
-                reason: DecisionAbstentionReason::NoQualifiedPositiveValueInformation,
-                current_best_action_id: Some("hold".to_owned()),
-                current_best_action_utility: Some(0.0),
-                abstention_utility: 0.1,
-                expected_value_of_perfect_information: 0.45,
-                skipped_unqualified_options: 1,
+                reason,
+                current_best_action_id,
+                current_best_action_utility,
+                abstention_utility,
+                expected_value_of_perfect_information,
+                skipped_unqualified_options,
+            } => {
+                assert_eq!(
+                    reason,
+                    DecisionAbstentionReason::NoQualifiedPositiveValueInformation
+                );
+                // Ties are deterministic: the first declared action wins.
+                assert_eq!(current_best_action_id.as_deref(), Some("intervene"));
+                assert_eq!(current_best_action_utility, Some(0.0));
+                assert_eq!(abstention_utility, 0.1);
+                assert!((expected_value_of_perfect_information - 0.45).abs() < 1.0e-12);
+                assert_eq!(skipped_unqualified_options, 1);
             }
-        );
+            other => panic!("expected abstention, got {other:?}"),
+        }
     }
 
     #[test]
@@ -693,9 +704,11 @@ mod tests {
             &[vec![100.0, -30.0], vec![0.0, 0.0]],
             0.0,
             &[fully_informative],
-            0.0,
-            1.0,
-            0.0,
+            InformationAcquisitionPolicy {
+                remaining_budget: 0.0,
+                cost_to_utility_rate: 1.0,
+                minimum_net_benefit: 0.0,
+            },
         )
         .expect("perfect information");
         match result {
