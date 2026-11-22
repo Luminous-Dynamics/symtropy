@@ -352,6 +352,12 @@ fn conditional_reference_statistics(
     from_sorted_log_transforms(&log_transforms)
 }
 
+/// CvM-only adapter used exclusively by the v0.1 regression tests.
+#[cfg(test)]
+fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, String> {
+    Ok(conditional_reference_statistics(count, rng)?.cramer_von_mises)
+}
+
 #[derive(Debug, Clone, Copy)]
 struct TailSummary<'a> {
     method: &'a str,
