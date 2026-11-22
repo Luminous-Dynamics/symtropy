@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   exact-head:
+    if: github.event.pull_request.head.ref == 'research/av-action-argument-replay-v0'
     name: Exact-head action argument replay contract
     runs-on: ubuntu-latest
     steps:
