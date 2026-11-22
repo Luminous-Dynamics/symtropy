@@ -1,6 +1,4 @@
-use orbital_observation_surface_bench::decision_identifiability::{
-    evaluate, DecisionCorpus,
-};
+use orbital_observation_surface_bench::decision_identifiability::{DecisionCorpus, evaluate};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -17,9 +15,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn main() -> ExitCode {
     let mut arguments = env::args().skip(1);
     let Some(corpus_path) = arguments.next() else {
-        eprintln!(
-            "usage: decision-identifiability <corpus.json> --source-commit <sha>"
-        );
+        eprintln!("usage: decision-identifiability <corpus.json> --source-commit <sha>");
         return ExitCode::from(2);
     };
 
