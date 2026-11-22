@@ -1841,11 +1841,17 @@ mod tests {
 
         let mut changed_configuration = snapshot.clone();
         changed_configuration.identity.configuration_sha256 = "c".repeat(64);
-        assert_ne!(original, changed_configuration.canonical_content_bytes().unwrap());
+        assert_ne!(
+            original,
+            changed_configuration.canonical_content_bytes().unwrap()
+        );
 
         let mut changed_trajectory = snapshot;
         changed_trajectory.identity.trajectory_id.push_str("-other");
-        assert_ne!(original, changed_trajectory.canonical_content_bytes().unwrap());
+        assert_ne!(
+            original,
+            changed_trajectory.canonical_content_bytes().unwrap()
+        );
     }
 
     #[test]
