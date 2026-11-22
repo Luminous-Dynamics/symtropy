@@ -147,6 +147,9 @@ pub struct TraceabilityLink {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClockUseObservation {
     pub observation_id: String,
+    /// Exact source-event revision whose timestamp is being qualified.
+    pub source_event_id: String,
+    pub source_event_revision: u32,
     pub clock_id: String,
     pub clock_profile_id: String,
     pub firmware_id: String,
@@ -217,6 +220,8 @@ pub struct UncertaintyContribution {
 pub struct QualifiedClockCalibrationReceipt {
     pub result_id: String,
     pub observation_id: String,
+    pub source_event_id: String,
+    pub source_event_revision: u32,
     pub clock_id: String,
     pub clock_profile_id: String,
     pub firmware_id: String,
@@ -482,6 +487,7 @@ pub fn attest_clock_for_event(
         || !valid_text(&calibration.coverage_factor_lexeme)
         || !valid_text(&calibration.uncertainty_model_id)
         || !valid_text(&observation.observation_id)
+        || !valid_text(&observation.source_event_id)
     {
         return ClockAttestationDecision::unknown(
             ClockAttestationReason::MissingRequiredField("measurement provenance"),
@@ -684,6 +690,8 @@ pub fn attest_clock_for_event(
     ClockAttestationDecision::accepted(QualifiedClockCalibrationReceipt {
         result_id: calibration.result_id.clone(),
         observation_id: observation.observation_id.clone(),
+        source_event_id: observation.source_event_id.clone(),
+        source_event_revision: observation.source_event_revision,
         clock_id: calibration.clock_id.clone(),
         clock_profile_id: calibration.clock_profile_id.clone(),
         firmware_id: calibration.firmware_id.clone(),
@@ -769,7 +777,7 @@ mod tests {
         }
     }
 
-    fn calibration() -> CalibrationMeasurementResult {
+    fn calibration_fixture() -> CalibrationMeasurementResult {
         CalibrationMeasurementResult {
             result_id: "measurement-result-01".to_string(),
             clock_id: "PTP-GM-01".to_string(),
@@ -820,9 +828,11 @@ mod tests {
         }
     }
 
-    fn observation() -> ClockUseObservation {
+    fn observation_fixture() -> ClockUseObservation {
         ClockUseObservation {
             observation_id: "clock-use-1000".to_string(),
+            source_event_id: "urn:uuid:custody-event-1000".to_string(),
+            source_event_revision: 4,
             clock_id: "PTP-GM-01".to_string(),
             clock_profile_id: "terminal-clock-profile-v2".to_string(),
             firmware_id: "firmware-7.4.2".to_string(),
@@ -855,17 +865,19 @@ mod tests {
 
     #[test]
     fn valid_clock_result_and_unbroken_chain_are_accepted_for_declared_scope() {
-        let decision = evaluate(&calibration(), &observation());
+        let decision = evaluate(&calibration_fixture(), &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
         let receipt = decision.receipt.unwrap();
         assert_eq!(receipt.maximum_total_error_ticks, 24);
         assert_eq!(receipt.calibration_artifact_digests.len(), 4);
+        assert_eq!(receipt.source_event_id, "urn:uuid:custody-event-1000");
+        assert_eq!(receipt.source_event_revision, 4);
         assert_eq!(receipt.terminal_reference_id, "UTC(ZA)");
     }
 
     #[test]
     fn uncertainty_components_are_added_conservatively_without_independence() {
-        let decision = evaluate(&calibration(), &observation());
+        let decision = evaluate(&calibration_fixture(), &observation_fixture());
         let receipt = decision.receipt.unwrap();
         let ids: Vec<&str> = receipt
             .uncertainty_contributions
@@ -887,21 +899,21 @@ mod tests {
 
     #[test]
     fn explicit_zero_uncertainty_is_distinct_from_unknown() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.measurement_uncertainty_bound_ticks = Some(0);
         for link in &mut calibration.traceability_links {
             link.uncertainty_bound_ticks = Some(0);
         }
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
         assert_eq!(decision.receipt.unwrap().maximum_total_error_ticks, 9);
     }
 
     #[test]
     fn missing_measurement_uncertainty_is_unknown_not_zero() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.measurement_uncertainty_bound_ticks = None;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::Unknown);
         assert_eq!(
             decision.reason,
@@ -914,17 +926,17 @@ mod tests {
 
     #[test]
     fn missing_traceability_link_uncertainty_is_unknown() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links[0].uncertainty_bound_ticks = None;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::Unknown);
     }
 
     #[test]
     fn artifact_digest_mismatch_is_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.artifact_sha256 = "0".repeat(64);
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::Rejected);
         assert_eq!(
             decision.reason,
@@ -934,9 +946,9 @@ mod tests {
 
     #[test]
     fn invalid_signature_is_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.signature_status = VerifierStatus::Invalid;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(
             decision.reason,
             Some(ClockAttestationReason::InvalidSignature)
@@ -945,17 +957,17 @@ mod tests {
 
     #[test]
     fn unsupported_verifier_result_is_unknown() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.signature_status = VerifierStatus::Unsupported;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::Unknown);
     }
 
     #[test]
     fn revoked_calibration_artifact_is_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.revocation_status = RevocationStatus::Revoked;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(
             decision.reason,
             Some(ClockAttestationReason::RevokedArtifact)
@@ -964,12 +976,12 @@ mod tests {
 
     #[test]
     fn stale_historical_revocation_evidence_is_unknown() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration
             .artifact_evidence
             .verifier
             .revocation_evidence_valid_until_utc_seconds = 999;
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(
             decision.reason,
             Some(ClockAttestationReason::RevocationEvidenceStale)
@@ -978,173 +990,173 @@ mod tests {
 
     #[test]
     fn untrusted_anchor_and_disallowed_algorithm_are_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.trust_anchor_id = "UNTRUSTED".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::UntrustedTrustAnchor)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.signature_algorithm = "UNSUPPORTED".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::DisallowedSignatureAlgorithm)
         );
     }
 
     #[test]
     fn device_profile_and_firmware_must_match_expected_scope() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.clock_id = "OTHER-CLOCK".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::ClockIdentityMismatch)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.firmware_id = "firmware-unknown".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::FirmwareMismatch)
         );
 
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.clock_profile_id = "other-profile".to_string();
         assert_eq!(
-            evaluate(&calibration(), &observation).reason,
+            evaluate(&calibration_fixture(), &observation).reason,
             Some(ClockAttestationReason::ClockProfileMismatch)
         );
     }
 
     #[test]
     fn measurand_time_basis_and_terminal_reference_must_match() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.measurand_id = "frequency".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::MeasurandMismatch)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.time_basis_id = "GPS".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::TimeBasisMismatch)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.terminal_reference_id = "UTC".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::TerminalReferenceMismatch)
         );
     }
 
     #[test]
     fn calibration_must_cover_the_event_time() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.valid_until_ticks = 999;
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::CalibrationOutsideValidity)
         );
     }
 
     #[test]
     fn broken_or_empty_traceability_chain_never_qualifies() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links[1].calibrated_subject_id = "OTHER-STD".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::BrokenTraceabilityChain)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links.clear();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::EmptyTraceabilityChain)
         );
     }
 
     #[test]
     fn traceability_scope_and_validity_are_enforced() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links[0].time_basis_id = "GPS".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::TraceabilityScopeMismatch)
         );
 
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links[0].valid_until_ticks = 999;
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::TraceabilityOutsideValidity)
         );
     }
 
     #[test]
     fn alarmed_clock_is_rejected_and_unknown_state_abstains() {
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.sync_state = ClockSyncState::Alarmed;
         assert_eq!(
-            evaluate(&calibration(), &observation).reason,
+            evaluate(&calibration_fixture(), &observation).reason,
             Some(ClockAttestationReason::ClockAlarmed)
         );
 
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.sync_state = ClockSyncState::Unknown;
         assert_eq!(
-            evaluate(&calibration(), &observation).status,
+            evaluate(&calibration_fixture(), &observation).status,
             ClockAttestationStatus::Unknown
         );
     }
 
     #[test]
     fn locked_clock_requires_fresh_last_sync_evidence() {
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.last_sync_ticks = 900;
         observation.maximum_sync_age_ticks = Some(30);
         assert_eq!(
-            evaluate(&calibration(), &observation).reason,
+            evaluate(&calibration_fixture(), &observation).reason,
             Some(ClockAttestationReason::LockedClockSyncTooOld)
         );
     }
 
     #[test]
     fn holdover_is_accepted_only_within_an_explicit_duration_bound() {
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.sync_state = ClockSyncState::Holdover;
         observation.maximum_holdover_duration_ticks = Some(20);
         assert_eq!(
-            evaluate(&calibration(), &observation).status,
+            evaluate(&calibration_fixture(), &observation).status,
             ClockAttestationStatus::AcceptedForDeclaredScope
         );
 
         observation.maximum_holdover_duration_ticks = Some(5);
         assert_eq!(
-            evaluate(&calibration(), &observation).reason,
+            evaluate(&calibration_fixture(), &observation).reason,
             Some(ClockAttestationReason::HoldoverLimitExceeded)
         );
     }
 
     #[test]
     fn missing_operational_component_abstains() {
-        let mut observation = observation();
+        let mut observation = observation_fixture();
         observation.capture_path_error_ticks = None;
         assert_eq!(
-            evaluate(&calibration(), &observation).status,
+            evaluate(&calibration_fixture(), &observation).status,
             ClockAttestationStatus::Unknown
         );
     }
 
     #[test]
     fn uncertainty_overflow_is_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.measurement_uncertainty_bound_ticks = Some(u64::MAX);
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(decision.status, ClockAttestationStatus::Rejected);
         assert_eq!(
             decision.reason,
@@ -1154,10 +1166,10 @@ mod tests {
 
     #[test]
     fn invalid_artifact_digest_is_rejected_before_receipt_acceptance() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.artifact.sha256 = "not-a-sha256".to_string();
         calibration.artifact_evidence.verifier.artifact_sha256 = "not-a-sha256".to_string();
-        let decision = evaluate(&calibration, &observation());
+        let decision = evaluate(&calibration, &observation_fixture());
         assert_eq!(
             decision.reason,
             Some(ClockAttestationReason::InvalidArtifactDigest)
@@ -1166,33 +1178,33 @@ mod tests {
 
     #[test]
     fn verifier_and_trust_store_versions_are_pinned() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.trust_store_version = "old".to_string();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::VerifierPolicyMismatch)
         );
     }
 
     #[test]
     fn missing_document_signing_key_usage_is_rejected() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.artifact_evidence.verifier.key_usage.clear();
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::MissingDocumentSigningKeyUsage)
         );
     }
 
     #[test]
     fn every_traceability_artifact_must_be_verified() {
-        let mut calibration = calibration();
+        let mut calibration = calibration_fixture();
         calibration.traceability_links[1]
             .artifact_evidence
             .verifier
             .signature_status = VerifierStatus::Invalid;
         assert_eq!(
-            evaluate(&calibration, &observation()).reason,
+            evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::InvalidSignature)
         );
     }
