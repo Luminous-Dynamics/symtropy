@@ -81,6 +81,13 @@ pub enum D0Error {
     ConfoundedSignatures { first: usize, second: usize, absolute_correlation: f64 },
     InvalidMeasurementNoiseBound,
     InvalidDetectionThreshold,
+    InvalidRankTolerance,
+    InvalidConditionLimit,
+    NonFiniteCovariance { row: usize, column: usize },
+    AsymmetricCovariance { row: usize, column: usize },
+    NonPositiveDefiniteCovariance { pivot: usize },
+    RankDeficientSignatureBasis,
+    IllConditionedSignatureBasis { condition_proxy: f64 },
     NonFiniteDerivedValue,
 }
 
@@ -109,6 +116,27 @@ impl fmt::Display for D0Error {
             }
             Self::InvalidDetectionThreshold => {
                 write!(f, "D0 detection threshold must be finite and non-negative")
+            }
+            Self::InvalidRankTolerance => {
+                write!(f, "D0 relative rank tolerance must be finite and in (0, 1)")
+            }
+            Self::InvalidConditionLimit => {
+                write!(f, "D0 QR condition-proxy limit must be finite and greater than one")
+            }
+            Self::NonFiniteCovariance { row, column } => {
+                write!(f, "D0 covariance component ({row}, {column}) is non-finite")
+            }
+            Self::AsymmetricCovariance { row, column } => {
+                write!(f, "D0 covariance is not symmetric at ({row}, {column})")
+            }
+            Self::NonPositiveDefiniteCovariance { pivot } => {
+                write!(f, "D0 covariance is not positive definite at pivot {pivot}")
+            }
+            Self::RankDeficientSignatureBasis => {
+                write!(f, "D0 source signature basis is rank-deficient")
+            }
+            Self::IllConditionedSignatureBasis { condition_proxy } => {
+                write!(f, "D0 source signature basis exceeds QR diagonal condition proxy ({condition_proxy})")
             }
             Self::NonFiniteDerivedValue => {
                 write!(f, "D0 decomposition produced a non-finite derived value")
@@ -438,5 +466,504 @@ mod tests {
             analyse_d0_case(&input).unwrap_err(),
             D0Error::InvalidMeasurementNoiseBound
         );
+    }
+}
+
+
+// ---------------------------------------------------------------------------
+// D0-QR-001: pivoted QR attribution for correlated-but-identifiable source
+// signatures under a full 8x8 observation covariance.
+// ---------------------------------------------------------------------------
+
+pub const D0_GENERAL_SOURCE_COUNT: usize = 4;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct D0GeneralSignatures {
+    pub source_columns: [[f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct D0GeneralCaseInput {
+    pub residual: [f64; D0_VECTOR_LENGTH],
+    pub signatures: D0GeneralSignatures,
+    pub observation_covariance: [[f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH],
+    pub measurement_noise_l2_bound: f64,
+    pub minimum_detectable_amplitude: f64,
+    pub relative_rank_tolerance: f64,
+    /// Bound on max(R_kk)/min(R_kk) after column-pivoted QR; this is a
+    /// conditioning proxy, not a spectral condition number.
+    pub maximum_qr_diagonal_condition_proxy: f64,
+    pub within_validation_envelope: bool,
+    pub conservation_ledgers_pass: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct D0GeneralDecompositionReport {
+    /// Coefficients in original source order, restored after QR pivoting.
+    pub source_coefficients: [f64; D0_GENERAL_SOURCE_COUNT],
+    pub active_sources: Vec<ErrorSource>,
+    /// Residuals are in whitened coordinates; L2 is therefore a Mahalanobis norm.
+    pub reconstructed_systematic_residual_whitened: [f64; D0_VECTOR_LENGTH],
+    pub unexplained_residual_whitened: [f64; D0_VECTOR_LENGTH],
+    pub unexplained_residual_l2: f64,
+    pub qr_diagonal_condition_proxy: f64,
+    pub measurement_noise_l2_bound: f64,
+    pub within_validation_envelope: bool,
+    pub conservation_ledgers_pass: bool,
+    pub disposition: D0Disposition,
+}
+
+fn dot_eight(left: &[f64; D0_VECTOR_LENGTH], right: &[f64; D0_VECTOR_LENGTH]) -> f64 {
+    let mut value = 0.0_f64;
+    for i in 0..D0_VECTOR_LENGTH {
+        value = left[i].mul_add(right[i], value);
+    }
+    value
+}
+
+fn cholesky_covariance_8x8(
+    covariance: &[[f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH],
+) -> Result<[[f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH], D0Error> {
+    for row in 0..D0_VECTOR_LENGTH {
+        for column in 0..D0_VECTOR_LENGTH {
+            if !covariance[row][column].is_finite() {
+                return Err(D0Error::NonFiniteCovariance { row, column });
+            }
+            let scale = covariance[row][column].abs()
+                .max(covariance[column][row].abs())
+                .max(1.0);
+            if (covariance[row][column] - covariance[column][row]).abs() > 1.0e-12 * scale {
+                return Err(D0Error::AsymmetricCovariance { row, column });
+            }
+        }
+    }
+    let mut lower = [[0.0_f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH];
+    for row in 0..D0_VECTOR_LENGTH {
+        for column in 0..=row {
+            let mut value = covariance[row][column];
+            for k in 0..column {
+                value -= lower[row][k] * lower[column][k];
+            }
+            if !value.is_finite() {
+                return Err(D0Error::NonFiniteDerivedValue);
+            }
+            if row == column {
+                if value <= 0.0 {
+                    return Err(D0Error::NonPositiveDefiniteCovariance { pivot: row });
+                }
+                lower[row][column] = value.sqrt();
+            } else {
+                lower[row][column] = value / lower[column][column];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+fn forward_solve_eight(
+    lower: &[[f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH],
+    input: &[f64; D0_VECTOR_LENGTH],
+) -> Result<[f64; D0_VECTOR_LENGTH], D0Error> {
+    let mut output = [0.0_f64; D0_VECTOR_LENGTH];
+    for row in 0..D0_VECTOR_LENGTH {
+        let mut value = input[row];
+        for column in 0..row {
+            value -= lower[row][column] * output[column];
+        }
+        output[row] = value / lower[row][row];
+        if !output[row].is_finite() {
+            return Err(D0Error::NonFiniteDerivedValue);
+        }
+    }
+    Ok(output)
+}
+
+/// Modified Gram-Schmidt with column pivoting and one re-orthogonalization
+/// pass. Coefficients are solved in pivoted order and later restored.
+fn pivoted_qr_four_sources(
+    columns: &[[f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT],
+    relative_rank_tolerance: f64,
+) -> Result<
+    (
+        [[f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT],
+        [[f64; D0_GENERAL_SOURCE_COUNT]; D0_GENERAL_SOURCE_COUNT],
+        [usize; D0_GENERAL_SOURCE_COUNT],
+        f64,
+    ),
+    D0Error,
+> {
+    let mut residual_columns = *columns;
+    let mut permutation = [0_usize, 1, 2, 3];
+    let mut orthonormal = [[0.0_f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT];
+    let mut upper = [[0.0_f64; D0_GENERAL_SOURCE_COUNT]; D0_GENERAL_SOURCE_COUNT];
+    let maximum_initial_norm = residual_columns
+        .iter()
+        .map(|column| dot_eight(column, column).sqrt())
+        .fold(0.0_f64, f64::max);
+    if !maximum_initial_norm.is_finite() || maximum_initial_norm <= 0.0 {
+        return Err(D0Error::RankDeficientSignatureBasis);
+    }
+
+    for k in 0..D0_GENERAL_SOURCE_COUNT {
+        let mut pivot = k;
+        let mut pivot_norm_squared = -1.0_f64;
+        for column in k..D0_GENERAL_SOURCE_COUNT {
+            let norm_squared = dot_eight(&residual_columns[column], &residual_columns[column]);
+            if !norm_squared.is_finite() {
+                return Err(D0Error::NonFiniteDerivedValue);
+            }
+            if norm_squared > pivot_norm_squared {
+                pivot_norm_squared = norm_squared;
+                pivot = column;
+            }
+        }
+        if pivot != k {
+            residual_columns.swap(k, pivot);
+            permutation.swap(k, pivot);
+            for prior_row in 0..k {
+                let value = upper[prior_row][k];
+                upper[prior_row][k] = upper[prior_row][pivot];
+                upper[prior_row][pivot] = value;
+            }
+        }
+
+        let diagonal = dot_eight(&residual_columns[k], &residual_columns[k]).sqrt();
+        if !diagonal.is_finite() {
+            return Err(D0Error::NonFiniteDerivedValue);
+        }
+        if diagonal <= relative_rank_tolerance * maximum_initial_norm {
+            return Err(D0Error::RankDeficientSignatureBasis);
+        }
+        upper[k][k] = diagonal;
+        for row in 0..D0_VECTOR_LENGTH {
+            orthonormal[k][row] = residual_columns[k][row] / diagonal;
+        }
+
+        for column in (k + 1)..D0_GENERAL_SOURCE_COUNT {
+            let mut projection = dot_eight(&orthonormal[k], &residual_columns[column]);
+            for row in 0..D0_VECTOR_LENGTH {
+                residual_columns[column][row] -= projection * orthonormal[k][row];
+            }
+            let correction = dot_eight(&orthonormal[k], &residual_columns[column]);
+            for row in 0..D0_VECTOR_LENGTH {
+                residual_columns[column][row] -= correction * orthonormal[k][row];
+            }
+            projection += correction;
+            upper[k][column] = projection;
+        }
+    }
+
+    let maximum_diagonal = (0..D0_GENERAL_SOURCE_COUNT)
+        .map(|i| upper[i][i])
+        .fold(0.0_f64, f64::max);
+    let minimum_diagonal = (0..D0_GENERAL_SOURCE_COUNT)
+        .map(|i| upper[i][i])
+        .fold(f64::INFINITY, f64::min);
+    if !minimum_diagonal.is_finite() || minimum_diagonal <= 0.0 {
+        return Err(D0Error::RankDeficientSignatureBasis);
+    }
+    let condition_proxy = maximum_diagonal / minimum_diagonal;
+    if !condition_proxy.is_finite() {
+        return Err(D0Error::NonFiniteDerivedValue);
+    }
+    Ok((orthonormal, upper, permutation, condition_proxy))
+}
+
+fn solve_upper_four(
+    upper: &[[f64; D0_GENERAL_SOURCE_COUNT]; D0_GENERAL_SOURCE_COUNT],
+    rhs: &[f64; D0_GENERAL_SOURCE_COUNT],
+) -> Result<[f64; D0_GENERAL_SOURCE_COUNT], D0Error> {
+    let mut solution = [0.0_f64; D0_GENERAL_SOURCE_COUNT];
+    for row in (0..D0_GENERAL_SOURCE_COUNT).rev() {
+        let mut value = rhs[row];
+        for column in (row + 1)..D0_GENERAL_SOURCE_COUNT {
+            value -= upper[row][column] * solution[column];
+        }
+        solution[row] = value / upper[row][row];
+        if !solution[row].is_finite() {
+            return Err(D0Error::NonFiniteDerivedValue);
+        }
+    }
+    Ok(solution)
+}
+
+/// Decompose residuals against arbitrary well-conditioned, non-orthogonal
+/// source signatures using full-covariance whitening and pivoted QR.
+pub fn analyse_d0_general_case(
+    input: &D0GeneralCaseInput,
+) -> Result<D0GeneralDecompositionReport, D0Error> {
+    if !input.measurement_noise_l2_bound.is_finite()
+        || input.measurement_noise_l2_bound < 0.0
+    {
+        return Err(D0Error::InvalidMeasurementNoiseBound);
+    }
+    if !input.minimum_detectable_amplitude.is_finite()
+        || input.minimum_detectable_amplitude < 0.0
+    {
+        return Err(D0Error::InvalidDetectionThreshold);
+    }
+    if !input.relative_rank_tolerance.is_finite()
+        || input.relative_rank_tolerance <= 0.0
+        || input.relative_rank_tolerance >= 1.0
+    {
+        return Err(D0Error::InvalidRankTolerance);
+    }
+    if !input.maximum_qr_diagonal_condition_proxy.is_finite()
+        || input.maximum_qr_diagonal_condition_proxy <= 1.0
+    {
+        return Err(D0Error::InvalidConditionLimit);
+    }
+    for (index, value) in input.residual.iter().enumerate() {
+        if !value.is_finite() {
+            return Err(D0Error::NonFiniteResidual { index });
+        }
+    }
+
+    let lower = cholesky_covariance_8x8(&input.observation_covariance)?;
+    let whitened_residual = forward_solve_eight(&lower, &input.residual)?;
+    let mut whitened_signatures = [[0.0_f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT];
+    for source in 0..D0_GENERAL_SOURCE_COUNT {
+        for index in 0..D0_VECTOR_LENGTH {
+            if !input.signatures.source_columns[source][index].is_finite() {
+                return Err(D0Error::NonFiniteSignature { source, index });
+            }
+        }
+        whitened_signatures[source] =
+            forward_solve_eight(&lower, &input.signatures.source_columns[source])?;
+    }
+
+    let (q, r, permutation, condition_proxy) =
+        pivoted_qr_four_sources(&whitened_signatures, input.relative_rank_tolerance)?;
+    if condition_proxy > input.maximum_qr_diagonal_condition_proxy {
+        return Err(D0Error::IllConditionedSignatureBasis { condition_proxy });
+    }
+
+    let mut projected_residual = [0.0_f64; D0_GENERAL_SOURCE_COUNT];
+    for source in 0..D0_GENERAL_SOURCE_COUNT {
+        projected_residual[source] = dot_eight(&q[source], &whitened_residual);
+    }
+    let pivoted_coefficients = solve_upper_four(&r, &projected_residual)?;
+    let mut source_coefficients = [0.0_f64; D0_GENERAL_SOURCE_COUNT];
+    for pivoted_index in 0..D0_GENERAL_SOURCE_COUNT {
+        source_coefficients[permutation[pivoted_index]] = pivoted_coefficients[pivoted_index];
+    }
+
+    let mut reconstructed = [0.0_f64; D0_VECTOR_LENGTH];
+    for source in 0..D0_GENERAL_SOURCE_COUNT {
+        for index in 0..D0_VECTOR_LENGTH {
+            reconstructed[index] = source_coefficients[source]
+                .mul_add(whitened_signatures[source][index], reconstructed[index]);
+        }
+    }
+    let mut unexplained = [0.0_f64; D0_VECTOR_LENGTH];
+    for index in 0..D0_VECTOR_LENGTH {
+        unexplained[index] = whitened_residual[index] - reconstructed[index];
+    }
+    let unexplained_l2 = dot_eight(&unexplained, &unexplained).sqrt();
+    if !unexplained_l2.is_finite() {
+        return Err(D0Error::NonFiniteDerivedValue);
+    }
+
+    let mut active_sources = Vec::new();
+    for source in 0..D0_GENERAL_SOURCE_COUNT {
+        if source_coefficients[source].abs() > input.minimum_detectable_amplitude {
+            active_sources.push(match source {
+                0 => ErrorSource::ParameterPerturbation,
+                1 => ErrorSource::NumericalBias,
+                2 => ErrorSource::MeasurementArtifact,
+                _ => ErrorSource::ModelFormDiscrepancy,
+            });
+        }
+    }
+    let disposition = if !input.conservation_ledgers_pass {
+        D0Disposition::PhysicalLedgerFailure
+    } else if !input.within_validation_envelope {
+        D0Disposition::OutOfEnvelope
+    } else if unexplained_l2 > input.measurement_noise_l2_bound {
+        D0Disposition::NotEvaluable
+    } else if source_coefficients[0].abs() > input.minimum_detectable_amplitude
+        || source_coefficients[1].abs() > input.minimum_detectable_amplitude
+    {
+        D0Disposition::ParameterOrNumericalErrorDetected
+    } else if source_coefficients[2].abs() > input.minimum_detectable_amplitude {
+        D0Disposition::MeasurementArtifactUnresolved
+    } else if source_coefficients[3].abs() > input.minimum_detectable_amplitude {
+        D0Disposition::ModelFormDiscrepancyDetected
+    } else {
+        D0Disposition::NoSystematicSourceDetected
+    };
+
+    Ok(D0GeneralDecompositionReport {
+        source_coefficients,
+        active_sources,
+        reconstructed_systematic_residual_whitened: reconstructed,
+        unexplained_residual_whitened: unexplained,
+        unexplained_residual_l2: unexplained_l2,
+        qr_diagonal_condition_proxy: condition_proxy,
+        measurement_noise_l2_bound: input.measurement_noise_l2_bound,
+        within_validation_envelope: input.within_validation_envelope,
+        conservation_ledgers_pass: input.conservation_ledgers_pass,
+        disposition,
+    })
+}
+
+/// Non-orthogonal source signatures formed by mixing the original four
+/// Hadamard directions. The basis is independent and intentionally correlated.
+pub fn d0_general_reference_signatures() -> D0GeneralSignatures {
+    let basis = reference_signatures();
+    let source = [
+        basis.parameter_perturbation,
+        basis.numerical_bias,
+        basis.measurement_artifact,
+        basis.model_form_discrepancy,
+    ];
+    let mixes = [[1.0, 0.2, 0.0, 0.0], [0.15, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.3], [0.0, 0.0, 0.1, 1.0]];
+    let mut columns = [[0.0_f64; D0_VECTOR_LENGTH]; D0_GENERAL_SOURCE_COUNT];
+    for target in 0..D0_GENERAL_SOURCE_COUNT {
+        for component in 0..D0_VECTOR_LENGTH {
+            for original in 0..D0_GENERAL_SOURCE_COUNT {
+                columns[target][component] =
+                    mixes[target][original].mul_add(source[original][component], columns[target][component]);
+            }
+        }
+    }
+    D0GeneralSignatures { source_columns: columns }
+}
+
+pub fn d0_general_reference_covariance() -> [[f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH] {
+    let rho = 0.25_f64;
+    let mut covariance = [[0.0_f64; D0_VECTOR_LENGTH]; D0_VECTOR_LENGTH];
+    for row in 0..D0_VECTOR_LENGTH {
+        for column in 0..D0_VECTOR_LENGTH {
+            covariance[row][column] = rho.powi(row.abs_diff(column) as i32);
+        }
+    }
+    covariance
+}
+
+fn d0_general_reference_input() -> D0GeneralCaseInput {
+    let signatures = d0_general_reference_signatures();
+    let coefficients = [1.5, -0.75, 0.5, 2.0];
+    let mut residual = [0.0_f64; D0_VECTOR_LENGTH];
+    for source in 0..D0_GENERAL_SOURCE_COUNT {
+        for component in 0..D0_VECTOR_LENGTH {
+            residual[component] = coefficients[source]
+                .mul_add(signatures.source_columns[source][component], residual[component]);
+        }
+    }
+    D0GeneralCaseInput {
+        residual,
+        signatures,
+        observation_covariance: d0_general_reference_covariance(),
+        measurement_noise_l2_bound: 1.0e-10,
+        minimum_detectable_amplitude: 1.0e-10,
+        relative_rank_tolerance: 1.0e-12,
+        maximum_qr_diagonal_condition_proxy: 1.0e8,
+        within_validation_envelope: true,
+        conservation_ledgers_pass: true,
+    }
+}
+
+pub fn d0_general_reference_self_check() -> Result<(), D0Error> {
+    let report = analyse_d0_general_case(&d0_general_reference_input())?;
+    if (report.source_coefficients[0] - 1.5).abs() > 1.0e-10
+        || (report.source_coefficients[1] + 0.75).abs() > 1.0e-10
+        || (report.source_coefficients[2] - 0.5).abs() > 1.0e-10
+        || (report.source_coefficients[3] - 2.0).abs() > 1.0e-10
+        || report.unexplained_residual_l2 > 1.0e-10
+        || (report.qr_diagonal_condition_proxy - 1.5236673968369188).abs() > 1.0e-9
+    {
+        return Err(D0Error::NonFiniteDerivedValue);
+    }
+    let mut confounded = d0_general_reference_input();
+    confounded.signatures.source_columns[1] = confounded.signatures.source_columns[0];
+    if !matches!(
+        analyse_d0_general_case(&confounded),
+        Err(D0Error::RankDeficientSignatureBasis)
+    ) {
+        return Err(D0Error::NonFiniteDerivedValue);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod d0_pivoted_qr_tests {
+    use super::*;
+
+    #[test]
+    fn correlated_nonorthogonal_signatures_recover_mixed_source_coefficients() {
+        let report = analyse_d0_general_case(&d0_general_reference_input()).unwrap();
+        assert!((report.source_coefficients[0] - 1.5).abs() < 1.0e-10);
+        assert!((report.source_coefficients[1] + 0.75).abs() < 1.0e-10);
+        assert!((report.source_coefficients[2] - 0.5).abs() < 1.0e-10);
+        assert!((report.source_coefficients[3] - 2.0).abs() < 1.0e-10);
+        assert_eq!(report.active_sources.len(), 4);
+        assert!(report.unexplained_residual_l2 < 1.0e-10);
+    }
+
+    #[test]
+    fn full_covariance_whitening_uses_correlated_ar1_measurement_model() {
+        let input = d0_general_reference_input();
+        let report = analyse_d0_general_case(&input).unwrap();
+        assert!(report.qr_diagonal_condition_proxy > 1.0);
+        assert!(report.unexplained_residual_l2 < 1.0e-10);
+    }
+
+    #[test]
+    fn exact_source_confounding_is_rejected_as_rank_deficient() {
+        let mut input = d0_general_reference_input();
+        input.signatures.source_columns[1] = input.signatures.source_columns[0];
+        assert_eq!(
+            analyse_d0_general_case(&input).unwrap_err(),
+            D0Error::RankDeficientSignatureBasis
+        );
+    }
+
+    #[test]
+    fn near_confounded_source_basis_abstains_above_condition_proxy_limit() {
+        let mut input = d0_general_reference_input();
+        let original = input.signatures.source_columns[0];
+        for i in 0..D0_VECTOR_LENGTH {
+            input.signatures.source_columns[1][i] =
+                original[i] + 1.0e-9 * input.signatures.source_columns[1][i];
+        }
+        assert!(matches!(
+            analyse_d0_general_case(&input),
+            Err(D0Error::IllConditionedSignatureBasis { .. })
+        ));
+    }
+
+    #[test]
+    fn asymmetric_and_non_positive_definite_covariances_are_rejected() {
+        let mut asymmetric = d0_general_reference_input();
+        asymmetric.observation_covariance[0][1] += 0.1;
+        assert!(matches!(
+            analyse_d0_general_case(&asymmetric),
+            Err(D0Error::AsymmetricCovariance { .. })
+        ));
+        let mut indefinite = d0_general_reference_input();
+        indefinite.observation_covariance[7][7] = 0.0;
+        assert!(matches!(
+            analyse_d0_general_case(&indefinite),
+            Err(D0Error::NonPositiveDefiniteCovariance { .. })
+        ));
+    }
+
+    #[test]
+    fn failed_physical_ledger_cannot_be_repaired_by_correlated_discrepancy_fit() {
+        let mut input = d0_general_reference_input();
+        input.conservation_ledgers_pass = false;
+        let report = analyse_d0_general_case(&input).unwrap();
+        assert_eq!(report.disposition, D0Disposition::PhysicalLedgerFailure);
+    }
+
+    #[test]
+    fn excessive_unexplained_residual_is_not_evaluable() {
+        let mut input = d0_general_reference_input();
+        input.residual[7] += 0.1;
+        input.measurement_noise_l2_bound = 1.0e-4;
+        let report = analyse_d0_general_case(&input).unwrap();
+        assert_eq!(report.disposition, D0Disposition::NotEvaluable);
     }
 }
