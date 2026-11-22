@@ -2494,5 +2494,5 @@
       }
     }
   ],
-  "claim_ceiling": "All inputs are synthetic. Missing cost components remain null/unknown and block economic ranking; transitive AND prerequisites of critical machine BOM items participate in local productive closure even when their own priority label is important/noncritical. Unreferenced inventory is not a required dependency. No physical machine, process, supplier or local reproductive capability is established."
+  "claim_ceiling": "All inputs are synthetic. Missing cost components remain null/unknown and block economic ranking. Productive closure traverses all transitive AND prerequisites of critical dependency roots, even when child nodes are labelled important/noncritical; unreferenced inventory is excluded. MCC-022 tests a two-level locally-made fixture -> imported calibration-reference chain. Direct critical and full transitive-closure metrics remain separate. No physical machine, process, supplier or local reproductive capability is established."
 }
