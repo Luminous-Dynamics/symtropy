@@ -1049,6 +1049,13 @@ mod tests {
         );
 
         let mut input = bundle();
+        input.header.target_failure.witness_state_commitment = commitment(0);
+        assert_eq!(
+            validate_trace_bundle(&input),
+            TraceValidation::Hold(TraceHoldReason::MissingFailureSignature)
+        );
+
+        let mut input = bundle();
         input.events[0].input_commitment = commitment(0);
         assert_eq!(
             validate_trace_bundle(&input),
