@@ -483,7 +483,8 @@ mod tests {
                     first_contact_time_upper_seconds: 24.0,
                 }),
                 outcome("trajectory-1", "early", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 24.0,
+                    first_contact_time_lower_seconds: 24.0,
+                    first_contact_time_upper_seconds: 24.0,
                 }),
             ])
             .expect("complete realization");
@@ -503,7 +504,8 @@ mod tests {
                     first_contact_time_upper_seconds: 15.0,
                 }),
                 outcome("trajectory-2", "b", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 15.0,
+                    first_contact_time_lower_seconds: 15.0,
+                    first_contact_time_upper_seconds: 15.0,
                 }),
             ])
             .expect("complete realization");
@@ -536,14 +538,15 @@ mod tests {
         let result = definition
             .classify_realization(&[
                 outcome("trajectory-4", "early", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 15.0,
+                    first_contact_time_lower_seconds: 15.0,
+                    first_contact_time_upper_seconds: 15.0,
                 }),
                 outcome("trajectory-4", "late", PathWindowDisposition::Ambiguous),
             ])
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyContact);
-        assert_eq!(result.first_contact_time_seconds, Some(15.0));
+        assert_eq!(result.first_contact_time_bounds_seconds, Some((15.0, 15.0)));
     }
 
     #[test]
@@ -557,7 +560,7 @@ mod tests {
             .expect("complete realization");
 
         assert_eq!(result.disposition, HorizonContactDisposition::DefinitelyNoContact);
-        assert_eq!(result.first_contact_time_seconds, None);
+        assert_eq!(result.first_contact_time_bounds_seconds, None);
     }
 
     #[test]
@@ -849,7 +852,8 @@ mod tests {
                 "trajectory-11",
                 "a",
                 PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 15.0,
+                    first_contact_time_lower_seconds: 15.0,
+                    first_contact_time_upper_seconds: 15.0,
                 },
             )])
             .expect("valid partial evaluation");
@@ -863,7 +867,8 @@ mod tests {
         assert_eq!(
             definition.classify_realization(&[
                 outcome("trajectory-12", "a", PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 24.0,
+                    first_contact_time_lower_seconds: 24.0,
+                    first_contact_time_upper_seconds: 24.0,
                 }),
                 outcome("trajectory-12", "b", PathWindowDisposition::DefinitelyNoContact),
             ]),
@@ -879,7 +884,8 @@ mod tests {
                 "trajectory-9",
                 "a",
                 PathWindowDisposition::DefinitelyContact {
-                    first_contact_time_seconds: 15.0,
+                    first_contact_time_lower_seconds: 15.0,
+                    first_contact_time_upper_seconds: 15.0,
                 }
             )]),
             Err(KernelError::MissingEncounterWindowOutcome)
