@@ -1,0 +1,159 @@
+{
+  "version": "0.1",
+  "scope": "M2 live applicability + authority-linearized one-shot boundary + epoch-fenced queue at synchronous native sink",
+  "claim_ceiling": "Deterministic reference composition only; owner receipts, production controller and physical effect are not independently qualified.",
+  "cases": [
+    {
+      "case_id": "valid-current-ticket",
+      "class": "positive",
+      "trigger": "Complete M2 ticket, live binding commitment, controller epoch and queue lease agree at the callback.",
+      "expected": "Applied",
+      "native_sink_calls": 1,
+      "pending_mutation": true
+    },
+    {
+      "case_id": "configuration-drift",
+      "class": "negative",
+      "trigger": "Platform configuration digest changes after enqueue.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "odd-revision-drift",
+      "class": "negative",
+      "trigger": "ODD revision changes after enqueue.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "mode-revision-drift",
+      "class": "negative",
+      "trigger": "Operating-mode revision changes after enqueue.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "authority-revoked",
+      "class": "negative",
+      "trigger": "The delegated authority is revoked before callback.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "authority-epoch-drift",
+      "class": "negative",
+      "trigger": "The live authority epoch no longer matches the ticket.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "navigation-sequence-stale",
+      "class": "negative",
+      "trigger": "The live navigation source sequence is below the ticket's minimum watermark.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "navigation-time-basis-drift",
+      "class": "negative",
+      "trigger": "The qualified navigation comparison clock or boot epoch differs from the live M2 clock.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "m2-ticket-expiry",
+      "class": "negative",
+      "trigger": "The M2 action ticket reaches its exclusive expiry boundary at callback time.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "m2-clock-boot-mismatch",
+      "class": "negative",
+      "trigger": "M2 qualified now uses a different clock or boot identity from the M2 live context.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "queue-clock-identity-mismatch",
+      "class": "negative",
+      "trigger": "Queue callback supplies a clock ID or boot epoch different from queue identity.",
+      "expected": "RejectedBeforeQueuePop",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "queue-controller-epoch-mismatch",
+      "class": "negative",
+      "trigger": "Live snapshot controller epoch differs from queued command epoch.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "queue-lease-expiry",
+      "class": "negative",
+      "trigger": "Queue monotonic nanosecond deadline expires at the exclusive callback boundary.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "whole-binding-commitment-mismatch",
+      "class": "negative",
+      "trigger": "M2 ticket commitment differs from independently supplied live binding commitment.",
+      "expected": "RejectedBeforeSink",
+      "native_sink_calls": 0,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "unknown-after-possible-application",
+      "class": "outcome",
+      "trigger": "Native callback reports UnknownAfterPossibleApplication.",
+      "expected": "AppliedUnknownHold",
+      "native_sink_calls": 1,
+      "pending_mutation": true
+    },
+    {
+      "case_id": "definitive-no-effect",
+      "class": "outcome",
+      "trigger": "Native callback reports RejectedNoEffect.",
+      "expected": "AppliedNoEffectHold",
+      "native_sink_calls": 1,
+      "pending_mutation": true
+    },
+    {
+      "case_id": "satisfied-effect-reconciled",
+      "class": "outcome",
+      "trigger": "Upstream M1/independent observer resolves effect Satisfied with a fresh ticket and newer controller epoch.",
+      "expected": "ResolvedForFreshAuthority",
+      "native_sink_calls": 1,
+      "pending_mutation": false
+    },
+    {
+      "case_id": "no-effect-without-recovery-permit",
+      "class": "outcome",
+      "trigger": "Upstream resolves NoEffect but no qualified recovery permit is supplied.",
+      "expected": "HoldRetained",
+      "native_sink_calls": 1,
+      "pending_mutation": true
+    },
+    {
+      "case_id": "unknown-resolution",
+      "class": "outcome",
+      "trigger": "Upstream reconciliation remains Unknown.",
+      "expected": "HoldRetained",
+      "native_sink_calls": 1,
+      "pending_mutation": true
+    }
+  ]
+}

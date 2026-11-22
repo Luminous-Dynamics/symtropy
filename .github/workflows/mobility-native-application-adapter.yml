@@ -1,0 +1,54 @@
+name: Mobility Native Application Composition
+
+on:
+  push:
+    branches:
+      - research/native-application-composition-v0-1
+    paths:
+      - "research/mobility-native-application-adapter/**"
+      - ".github/workflows/mobility-native-application-adapter.yml"
+  pull_request:
+    paths:
+      - "research/mobility-native-application-adapter/**"
+      - ".github/workflows/mobility-native-application-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  composition:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact M2 action contract
+        uses: actions/checkout@v4
+        with:
+          ref: 884bcfbd4474b31ed395fbedf63f0a4091eefa14
+          path: m2-src
+      - name: Checkout exact authority mutation boundary
+        uses: actions/checkout@v4
+        with:
+          ref: 62ef899124d9a23851c6c00f7beb9d7e697b7f29
+          path: mutation-src
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate public application conformance corpus and schema JSON
+        run: |
+          jq empty research/mobility-native-application-adapter/application_cases_v0_1.json
+          jq empty research/mobility-native-application-adapter/application_cases.schema.json
+          jq -e '
+            .version == "0.1"
+            and (.cases | length >= 12)
+            and ([.cases[].case_id] | length == (unique | length))
+            and ([.cases[] | select(.class == "positive")] | length >= 1)
+            and ([.cases[] | select(.class == "negative" and .native_sink_calls == 0)] | length >= 1)
+            and ([.cases[] | select(.class == "outcome" and .pending_mutation == true)] | length >= 1)
+          ' research/mobility-native-application-adapter/application_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-native-application-adapter/Cargo.toml -- --check
+      - name: Run composed-owner integration tests
+        run: cargo test --manifest-path research/mobility-native-application-adapter/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-native-application-adapter/Cargo.toml --all-targets --locked -- -D warnings
