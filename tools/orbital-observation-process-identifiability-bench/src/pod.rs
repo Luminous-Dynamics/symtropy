@@ -298,7 +298,7 @@ pub fn analyze_pod_trend(case: &PodTrendCase) -> Result<PodTrendResult, String> 
         / case.early_anchor.normalized_time_fraction)
         .ln();
     let gamma_min = if late_lower > 0.0 && early_upper > 0.0 {
-        (late_lower / early_upper).ln().div_euclid(log_time_ratio).max(0.0)
+        (late_lower / early_upper).ln() / log_time_ratio.max(0.0)
     } else {
         0.0
     };
