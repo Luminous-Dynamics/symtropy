@@ -83,7 +83,12 @@
       "matthews_correlation_coefficient",
       "false_valid_vector_removal_rate",
       "valid_vector_retention_rate",
-      "accuracy"
+      "accuracy",
+      "roc_auc_invalid_positive",
+      "log_loss_nats",
+      "brier_score",
+      "expected_calibration_error_descriptive_only",
+      "ten_bin_reliability_curve"
     ],
     "prospective_gate": {
       "minimum_f1": 0.97,
@@ -146,10 +151,12 @@
       "evaluate_piv_classifier",
       "evaluate_regional_coverage",
       "qualify_piv_measurement_quality",
-      "compare_piv_lpt_velocity"
+      "compare_piv_lpt_velocity",
+      "evaluate_piv_probability_scores"
     ],
     "self_check": "reference_self_check",
-    "rust_unit_tests": 13
+    "rust_unit_tests": 24,
+    "probability_module": "tools/ehd-reference-audit/src/piv_classifier_scores.rs"
   },
   "manufactured_examples": {
     "classifier_confusion_counts": {
@@ -203,7 +210,13 @@
     "PIV_LPT_coordinate_frame_mismatch",
     "PIV_LPT_condition_identity_mismatch",
     "shared_image_acquisition_not_called_independent",
-    "velocity_residual_exceeds_conservative_combined_bounds"
+    "velocity_residual_exceeds_conservative_combined_bounds",
+    "ROC_AUC_tie_handling",
+    "reversed_probability_ranking",
+    "exact_zero_one_probability_log_loss_clipping",
+    "one_class_region_auc_unavailable",
+    "missing_region_explicitly_unavailable_without_nan",
+    "reliability_bins_account_for_all_samples"
   ],
   "limitations": [
     "summary_level_receipt_only_no_raw_image_processing",
@@ -230,5 +243,27 @@
     "mismatched_coordinate_frames_are_rejected",
     "discrepancy_above_combined_velocity_bounds_is_flagged",
     "invalid_coverage_counts_are_rejected"
-  ]
+  ],
+  "probability_score_contract": {
+    "probability_semantics": "predicted probability that a vector is invalid",
+    "metrics": [
+      "tie_aware_roc_auc_with_average_ranks",
+      "binary_log_loss_nats_per_sample",
+      "brier_score",
+      "ten_bin_reliability_data",
+      "expected_calibration_error_descriptive_only"
+    ],
+    "reporting": "overall and independently by bulk, near_wall, shear_layer and wake",
+    "numerical_policy": "clip exact 0/1 probabilities to [1e-15,1-1e-15] for finite log loss; preserve raw probabilities for Brier/reliability",
+    "missing_class_policy": "ROC-AUC is null for a one-class cohort; no fabricated zero",
+    "comparison_policy": "compare probabilities only on the same labels and frozen holdout cohort; report threshold-free probability metrics before thresholded class metrics",
+    "note": "ECE is binning-dependent and is not a proper scoring rule"
+  },
+  "published_comparator_targets": {
+    "PIVPostProcess_2026": {
+      "ROC_AUC": 0.998,
+      "log_loss": 0.037,
+      "scope": "Source-reported target for exact matched cohort and labels only; not a generic result or current Luminous result."
+    }
+  }
 }
