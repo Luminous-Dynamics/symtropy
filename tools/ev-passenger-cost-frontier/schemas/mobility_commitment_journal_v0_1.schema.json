@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/mobility_commitment_journal_v0_1.schema.json",
+  "title": "Mobility Commitment Journal v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "decision_time_unix_ms",
+    "initial_snapshot",
+    "commands",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "MOBILITY-COMMITMENT-JOURNAL-001"
+    },
+    "decision_time_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "initial_snapshot": {
+      "$ref": "#/$defs/snapshot"
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/appendRequest"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "resourceAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "configuration_digest",
+        "power_w_by_slot",
+        "energy_wh_by_slot"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "power_w_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        },
+        "energy_wh_by_slot": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000
+          }
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "site_configuration_digest",
+        "slot_duration_seconds",
+        "horizon_slots",
+        "start_slot",
+        "end_slot",
+        "expires_at_unix_ms",
+        "flexibility_report_digest",
+        "recovery_report_digest",
+        "report_valid_until_unix_ms",
+        "resource_allocations"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot_duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "horizon_slots": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "start_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "end_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "expires_at_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "flexibility_report_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "recovery_report_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "report_valid_until_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_allocations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/resourceAllocation"
+          }
+        }
+      }
+    },
+    "resourceTerminalEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "configuration_digest",
+        "receipt_id",
+        "evidence"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "state": {
+      "enum": [
+        "firm_offered",
+        "accepted",
+        "executing",
+        "unresolved",
+        "rejected",
+        "expired",
+        "cancelled",
+        "settled"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "offer_created",
+        "accepted",
+        "executing",
+        "unresolved",
+        "settled",
+        "rejected",
+        "expired",
+        "cancelled",
+        "reconciled"
+      ]
+    },
+    "appendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_version",
+        "event_id",
+        "commitment_id",
+        "idempotency_key",
+        "kind",
+        "resolved_state",
+        "event_time_unix_ms",
+        "event_evidence",
+        "resource_terminal_evidence",
+        "contract"
+      ],
+      "properties": {
+        "expected_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "resolved_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/state"
+            }
+          ]
+        },
+        "event_time_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "resource_terminal_evidence": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/resourceTerminalEvidence"
+          }
+        },
+        "contract": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/contract"
+            }
+          ]
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "expected_version",
+        "event_id",
+        "commitment_id",
+        "idempotency_key",
+        "payload_digest",
+        "kind",
+        "resolved_state",
+        "resulting_state",
+        "event_time_unix_ms",
+        "previous_event_digest",
+        "event_evidence",
+        "resource_terminal_evidence",
+        "contract",
+        "event_digest"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "resolved_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/state"
+            }
+          ]
+        },
+        "resulting_state": {
+          "$ref": "#/$defs/state"
+        },
+        "event_time_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previous_event_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "event_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "resource_terminal_evidence": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/resourceTerminalEvidence"
+          }
+        },
+        "contract": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/contract"
+            }
+          ]
+        },
+        "event_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "events"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        }
+      }
+    }
+  }
+}
