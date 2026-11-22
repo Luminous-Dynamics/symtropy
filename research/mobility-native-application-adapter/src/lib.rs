@@ -575,6 +575,7 @@ mod tests {
         next.attempt = 2;
         next.expected_effect_predicate_id = "object-on-target".into();
         next.authority.epoch = 6;
+        next.authority.required_scope = "place".into();
         next.issued_at_ticks = 1_150;
         next.expires_at_ticks = 1_400;
         next
@@ -939,8 +940,9 @@ mod tests {
             plan_digest: next.ticket_commitment.0,
             authority_epoch: 5,
         };
+        let pending_key = gate.pending_attempt_key().unwrap().to_owned();
         let recovered = gate.resolve_pending_action(
-            gate.pending_attempt_key().unwrap(),
+            &pending_key,
             boundary::QualifiedOutcomeResolution::NoEffect,
             Some(&next),
             Some(ControllerEpoch::new(6).unwrap()),
