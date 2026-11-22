@@ -219,7 +219,7 @@ mod tests {
     use super::*;
     use crate::body::{BodyHandle, RigidBody};
     use nalgebra::SVector;
-    use symtropy_math::Point;
+    use symtropy_math::{HalfSpace, Point};
 
     #[test]
     fn snapshot_reports_mass_center_and_momentum() {
@@ -266,4 +266,45 @@ mod tests {
         assert_eq!(snapshot.non_finite_body_count, 1);
         assert!(!snapshot.is_numerically_healthy(1e-9));
     }
+    #[test]
+    fn narrowphase_stats_count_analytic_halfspace_without_gjk_or_epa() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::new([0.0, 0.4, 0.0]), 0.5, 1.0);
+        world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+        ));
+
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.halfspace_analytic_checks, 1);
+        assert_eq!(stats.halfspace_analytic_hits, 1);
+        assert_eq!(stats.gjk_calls, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 1);
+        assert!(stats.contact_points > 0);
+    }
+
+    #[test]
+    fn narrowphase_stats_distinguish_gjk_separation_from_intersection() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.add_sphere(Point::new([0.8, 0.8, 0.0]), 0.5, 1.0);
+
+        // The AABBs overlap in x and y, but the sphere centres are more than
+        // one diameter apart. Broadphase therefore emits a candidate while
+        // narrowphase must reject the actual separation.
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.gjk_calls, 1);
+        assert_eq!(stats.gjk_intersections, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 0);
+    }
+
 }
