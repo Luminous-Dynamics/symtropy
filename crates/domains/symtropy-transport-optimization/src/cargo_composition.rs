@@ -115,6 +115,7 @@ pub enum CompositionError {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CompositionReport {
+    pub module_ids: BTreeSet<String>,
     pub input_event_rows: usize,
     pub visible_event_rows: usize,
     pub future_event_rows: usize,
@@ -137,6 +138,11 @@ pub enum ModuleCountBasis {
     LeafHandlingUnits,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CompositionProjectionError {
+    UnqualifiedComposition,
+}
+
 impl CompositionReport {
     pub fn is_qualified(&self) -> bool {
         self.failures.is_empty()
@@ -146,15 +152,16 @@ impl CompositionReport {
         self.active_memberships.len()
     }
 
+    /// A count projection is available only for a fully qualified graph.
+    /// Module identities come from the exact catalogue captured at evaluation.
     pub fn count_modules(
         &self,
-        modules: &[ModuleIdentity],
         basis: ModuleCountBasis,
-    ) -> usize {
-        let all_ids: BTreeSet<&str> = modules
-            .iter()
-            .map(|module| module.module_id.as_str())
-            .collect();
+    ) -> Result<usize, CompositionProjectionError> {
+        if !self.is_qualified() {
+            return Err(CompositionProjectionError::UnqualifiedComposition);
+        }
+
         let parent_ids: BTreeSet<&str> = self
             .active_memberships
             .iter()
@@ -165,19 +172,15 @@ impl CompositionReport {
             .iter()
             .map(|membership| membership.child_module_id.as_str())
             .collect();
+        let all_ids: BTreeSet<&str> = self.module_ids.iter().map(String::as_str).collect();
 
-        match basis {
+        Ok(match basis {
             ModuleCountBasis::AllModuleIdentities => all_ids.len(),
-            ModuleCountBasis::RootHandlingUnits => {
-                all_ids.difference(&child_ids).count()
-            }
-            ModuleCountBasis::LeafHandlingUnits => {
-                all_ids.difference(&parent_ids).count()
-            }
-        }
+            ModuleCountBasis::RootHandlingUnits => all_ids.difference(&child_ids).count(),
+            ModuleCountBasis::LeafHandlingUnits => all_ids.difference(&parent_ids).count(),
+        })
     }
 }
-
 fn record_failure(
     report: &mut CompositionReport,
     failure: CompositionFailure,
@@ -343,6 +346,10 @@ pub fn evaluate_composition(
     }
 
     let mut report = CompositionReport {
+        module_ids: known_modules
+            .iter()
+            .map(|module_id| (*module_id).to_string())
+            .collect(),
         input_event_rows: events.len(),
         ..CompositionReport::default()
     };
@@ -500,15 +507,15 @@ mod tests {
         assert!(report.is_qualified());
         assert_eq!(report.active_edges(), 3);
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::AllModuleIdentities),
+            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
             4
         );
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::RootHandlingUnits),
+            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
             1
         );
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::LeafHandlingUnits),
+            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
             2
         );
     }
@@ -526,11 +533,11 @@ mod tests {
         assert!(report.is_qualified());
         assert_eq!(report.active_edges(), 1);
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::RootHandlingUnits),
+            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
             2
         );
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::LeafHandlingUnits),
+            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
             2
         );
     }
@@ -738,6 +745,26 @@ mod tests {
     }
 
     #[test]
+    fn invalid_composition_does_not_emit_a_module_count() {
+        let modules = modules(&["A", "B", "C"]);
+        let report = evaluate_composition(
+            &modules,
+            &[
+                event("ADD-1", 10, "A", "B", MembershipAction::Add),
+                event("ADD-2", 20, "C", "B", MembershipAction::Add),
+            ],
+            100,
+        )
+        .unwrap();
+
+        assert!(!report.is_qualified());
+        assert_eq!(
+            report.count_modules(ModuleCountBasis::AllModuleIdentities),
+            Err(CompositionProjectionError::UnqualifiedComposition)
+        );
+    }
+
+    #[test]
     fn composition_is_not_a_custody_or_inventory_delta() {
         let modules = modules(&["CONTAINER", "PALLET", "CARTON"]);
         let report = evaluate_composition(
@@ -751,15 +778,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::AllModuleIdentities),
+            report.count_modules(ModuleCountBasis::AllModuleIdentities).unwrap(),
             3
         );
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::RootHandlingUnits),
+            report.count_modules(ModuleCountBasis::RootHandlingUnits).unwrap(),
             1
         );
         assert_eq!(
-            report.count_modules(&modules, ModuleCountBasis::LeafHandlingUnits),
+            report.count_modules(ModuleCountBasis::LeafHandlingUnits).unwrap(),
             1
         );
         // There is no inventory or custody mutation API in this module.
