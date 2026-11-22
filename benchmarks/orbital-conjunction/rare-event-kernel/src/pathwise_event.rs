@@ -722,10 +722,7 @@ mod tests {
             forward.contacting_window_ids,
             vec!["earlier".to_owned(), "later".to_owned()]
         );
-        assert_eq!(
-            forward.unresolved_window_ids,
-            vec!["middle".to_owned()]
-        );
+        assert_eq!(forward.unresolved_window_ids, vec!["middle".to_owned()]);
     }
 
     #[test]
