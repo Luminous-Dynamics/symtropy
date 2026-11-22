@@ -1,0 +1,529 @@
+{
+  "schema": "luminous.orbital-joint-loss-scenario.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+  "cases": [
+    {
+      "case_id": "correlated-common-loss-shift",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-correlated-common-loss-shift",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-correlated-common-loss-shift",
+        "scenarios_sha256": "e969a6dc100f392d719c154c1dbeba4d7a5e081e26fa2faa418b432b50365115",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-low-shift",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-s1",
+            "action_losses": {
+              "alpha": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "model-high-shift",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-s2",
+            "action_losses": {
+              "alpha": {
+                "numerator": 6,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 7,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99"
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 12,
+            "elapsed_millis": 12
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "action-rank-reversal",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-action-rank-reversal",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-action-rank-reversal",
+        "scenarios_sha256": "8a4458f84a5b5a7ea5c76b1f5f2b01c155049f52f3d1d87053e75aef301f50da",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-one",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-s1",
+            "action_losses": {
+              "alpha": {
+                "numerator": 0,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "model-two",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-s2",
+            "action_losses": {
+              "alpha": {
+                "numerator": 9,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 1,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99"
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "unqualified-loss-model",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-unqualified-loss-model",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-unqualified-loss-model",
+        "scenarios_sha256": "6c96bdf01d5acbaa767294827d7f89a30acf7c76b0fe6c009427b8ac1212e531",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-uncertain",
+            "evidence_status": "indeterminate",
+            "evidence_receipt_id": null,
+            "action_losses": {
+              "alpha": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1"
+        ],
+        "expected_scenario_ids_sha256": "90afadf3c4de0eae96e40b6ed96adcd5b08deca5b96afff5a38b0df92a73c2ac"
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "out-of-profile-loss-model",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-out-of-profile-loss-model",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-out-of-profile-loss-model",
+        "scenarios_sha256": "39b4da0d2234fea0bb2ca2fb5afbdab81c834d8de738d472ce97e4864e0e7cf3",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-ood",
+            "evidence_status": "out_of_profile",
+            "evidence_receipt_id": "loss-receipt-ood",
+            "action_losses": {
+              "alpha": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1"
+        ],
+        "expected_scenario_ids_sha256": "90afadf3c4de0eae96e40b6ed96adcd5b08deca5b96afff5a38b0df92a73c2ac"
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "inadmissible-low-loss-action",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-inadmissible-low-loss-action",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-inadmissible-low-loss-action",
+        "scenarios_sha256": "222775a9b85382bb43cd28ed6d4a3c40af010a928cba0c82aa2a1c773b7f1197",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-base",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-base",
+            "action_losses": {
+              "safe": {
+                "numerator": 5,
+                "denominator": 10
+              },
+              "unsafe": {
+                "numerator": 0,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "model-shift",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-shift",
+            "action_losses": {
+              "safe": {
+                "numerator": 6,
+                "denominator": 10
+              },
+              "unsafe": {
+                "numerator": 0,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99"
+      },
+      "actions": [
+        {
+          "action_id": "safe",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-safe",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 20,
+            "elapsed_millis": 20
+          }
+        },
+        {
+          "action_id": "unsafe",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": "deny-unsafe",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 1
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "all-actions-excluded",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-all-actions-excluded",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-all-actions-excluded",
+        "scenarios_sha256": "7ffa7daba55059157854a6db387a5b2a08879f7e928453718e708831b84a028f",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-base",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-receipt-base",
+            "action_losses": {
+              "denied": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "unknown": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1"
+        ],
+        "expected_scenario_ids_sha256": "90afadf3c4de0eae96e40b6ed96adcd5b08deca5b96afff5a38b0df92a73c2ac"
+      },
+      "actions": [
+        {
+          "action_id": "denied",
+          "admissibility_status": "inadmissible",
+          "admissibility_receipt_id": null,
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "unknown",
+          "admissibility_status": "indeterminate",
+          "admissibility_receipt_id": null,
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "multi-world-strata",
+      "compatible_world_set": {
+        "source_receipt_id": "synthetic-world-set-multi-world-strata",
+        "world_ids_sha256": "a13934bf573d94c78094be5c688b33fb6ddb3701fa868c18b0c05719529d82b0",
+        "world_ids": [
+          "w0",
+          "w1"
+        ]
+      },
+      "loss_scenario_manifest": {
+        "source_manifest_id": "synthetic-loss-manifest-multi-world-strata",
+        "scenarios_sha256": "5be1ae9575b7fae8be3a31dab897327a406d2b2100a604d161cf816b912da47d",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "model-low",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s1",
+            "action_losses": {
+              "alpha": {
+                "numerator": 1,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 2,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "model-high",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s2",
+            "action_losses": {
+              "alpha": {
+                "numerator": 2,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 4,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s3",
+            "world_id": "w1",
+            "loss_model_id": "model-low",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s3",
+            "action_losses": {
+              "alpha": {
+                "numerator": 8,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 6,
+                "denominator": 10
+              }
+            }
+          },
+          {
+            "scenario_id": "s4",
+            "world_id": "w1",
+            "loss_model_id": "model-high",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "loss-r-s4",
+            "action_losses": {
+              "alpha": {
+                "numerator": 7,
+                "denominator": 10
+              },
+              "beta": {
+                "numerator": 5,
+                "denominator": 10
+              }
+            }
+          }
+        ],
+        "expected_scenario_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ],
+        "expected_scenario_ids_sha256": "d01b059178cb2462ea1179c5243ff59c96b7c68e9ca514abddf8d5e122ac28cf"
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-alpha",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "beta",
+          "admissibility_status": "admissible",
+          "admissibility_receipt_id": "admit-beta",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    }
+  ]
+}
