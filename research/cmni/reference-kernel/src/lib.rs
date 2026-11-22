@@ -11,8 +11,8 @@ use std::fmt;
 
 mod design_decision;
 pub use design_decision::{
-    certify_maximum_utility, DominanceDecision, DominanceUnresolvedReason,
-    PortfolioUtilityInterval, UtilityBoundEvidence,
+    certify_maximum_utility, linear_qoi_eig_utility_interval, parameter_eig_utility_interval,
+    DominanceDecision, DominanceUnresolvedReason, PortfolioUtilityInterval, UtilityBoundEvidence,
 };
 
 mod detector;
