@@ -5,6 +5,7 @@ on:
     paths:
       - "research/nav-transition-validator/**"
       - "docs/research/navigation-transition-v0.1/**"
+      - "docs/research/navigation-mission-risk-v0.1/**"
       - "research/nav-observation-toy-fim/**"
       - "research/miluv-ingest/**"
       - ".github/workflows/navigation-research-rust.yml"
@@ -133,6 +134,18 @@ jobs:
             cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-generalization-validate -- "$schema" "$fixture"
           else
             echo "Generalization split fixture is not part of this branch; validation skipped."
+          fi
+
+      - name: Validate mission-level integrity risk contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema="docs/research/navigation-mission-risk-v0.1/mission_risk_contract.schema.json"
+          fixture="docs/research/navigation-mission-risk-v0.1/examples/urbannav_medium_research_only.json"
+          if [[ -f research/nav-transition-validator/Cargo.toml && -f "$schema" && -f "$fixture" ]]; then
+            cargo run --manifest-path research/nav-transition-validator/Cargo.toml --bin nav-mission-risk-validate -- "$schema" "$fixture"
+          else
+            echo "Mission risk contract schema or example is not present; validation skipped."
           fi
 
       - name: Run rights-gated dataset admission CLI when registry is present
