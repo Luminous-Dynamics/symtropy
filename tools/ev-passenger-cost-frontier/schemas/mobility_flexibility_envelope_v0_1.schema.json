@@ -180,7 +180,9 @@
         "max_discharge_power_lower_bound_w",
         "energy_evidence",
         "power_evidence",
-        "interface_qualification_evidence"
+        "interface_qualification_evidence",
+        "availability_evidence",
+        "site_connection_evidence"
       ],
       "properties": {
         "resource_id": {
@@ -215,6 +217,12 @@
         },
         "interface_qualification_evidence": {
           "$ref": "#/$defs/evidence"
+        },
+        "availability_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "site_connection_evidence": {
+          "$ref": "#/$defs/evidence"
         }
       }
     },
@@ -223,6 +231,10 @@
       "additionalProperties": false,
       "required": [
         "resource_id",
+        "mission_reserve_receipt_id",
+        "inventory_buffer_receipt_id",
+        "safety_outage_reserve_receipt_id",
+        "uncertainty_reserve_receipt_id",
         "mission_energy_reserve_wh",
         "inventory_buffer_energy_wh",
         "safety_outage_reserve_energy_wh",
@@ -292,6 +304,22 @@
             "minimum": 0,
             "maximum": 100000000
           }
+        },
+        "mission_reserve_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inventory_buffer_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "safety_outage_reserve_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_reserve_receipt_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
