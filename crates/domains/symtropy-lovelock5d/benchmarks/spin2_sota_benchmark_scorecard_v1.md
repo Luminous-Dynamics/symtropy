@@ -239,3 +239,14 @@ Their no-mode-decomposition \(\Psi_0\) agrees with a separate mode-sum result be
 ### No aggregate “best residual” score
 
 Use a vector scorecard: discovery hit rate; branch coverage; matched-parameter coverage; original-row residual by row; held-out residual; spectral-tail estimate; profile and observable errors; constraint/Noether defects; condition and hyperbolicity margins; validated existence status; and wall-time/memory. Report the arithmetic and resolution for every entry. A value of \(10^{-85}\) in one category does not dominate a \(10^{-22}\) result in another category.
+
+
+## Independent endpoint integral: second quadrature family
+
+A separately implemented composite Gauss--Legendre method with analytic endpoint-log subtraction now reproduces the Green amplitudes. At 40 dps the absolute discrepancies are \(1.86\times10^{-35}\) for \(C_H\) and \(6.21\times10^{-36}\) for \(C_B\); at 60--80 dps they are approximately \(1.05\times10^{-49}\) and \(3.49\times10^{-50}\). The local script was executed and its Git blob SHA-1 matches the public branch exactly.
+
+The matched pair of numerical oracles is now:
+- tanh--sinh with \(s=1-t^2\);
+- composite Gauss--Legendre after analytic subtraction/restoration of thirteen endpoint-log terms.
+
+They share the mathematical integral but use distinct quadrature algorithms. Both are numerical checks, not interval enclosures.
