@@ -92,6 +92,7 @@ pub struct HbrWindowFusionReport2d {
 pub enum HbrWindowFusionError {
     EmptyTrajectory,
     InvalidWindowConfiguration,
+    InvalidWindowPlan,
     WindowIdentityOverflow,
     InvalidFusionConfiguration,
     MissingEstimate { window_id: u64, time_index: usize },
@@ -112,6 +113,7 @@ impl fmt::Display for HbrWindowFusionError {
         match self {
             Self::EmptyTrajectory => write!(f, "trajectory length must be positive"),
             Self::InvalidWindowConfiguration => write!(f, "window length must be positive and overlap must be smaller than the window length"),
+            Self::InvalidWindowPlan => write!(f, "window plan identities, bounds or contributor map are inconsistent"),
             Self::WindowIdentityOverflow => write!(f, "window identity overflowed"),
             Self::InvalidFusionConfiguration => write!(f, "fusion epsilon must be finite and positive and symmetry tolerance finite and nonnegative"),
             Self::MissingEstimate { window_id, time_index } => write!(f, "window {window_id} is missing its local position estimate at time {time_index}"),
@@ -273,9 +275,37 @@ pub fn fuse_hbr_window_positions_2d(
         return Err(HbrWindowFusionError::InvalidFusionConfiguration);
     }
 
+    if plan.trajectory_length == 0
+        || plan.windows.is_empty()
+        || plan.contributors_by_time.len() != plan.trajectory_length
+        || plan.window_length == 0
+        || plan.overlap_steps >= plan.window_length
+        || plan.stride != plan.window_length - plan.overlap_steps
+    {
+        return Err(HbrWindowFusionError::InvalidWindowPlan);
+    }
     let mut windows_by_id = BTreeMap::new();
+    let mut expected_contributors = vec![Vec::<u64>::new(); plan.trajectory_length];
     for window in &plan.windows {
-        windows_by_id.insert(window.window_id, *window);
+        if window.window_id == 0
+            || window.start_index >= window.end_index_exclusive
+            || window.end_index_exclusive > plan.trajectory_length
+            || windows_by_id.insert(window.window_id, *window).is_some()
+        {
+            return Err(HbrWindowFusionError::InvalidWindowPlan);
+        }
+        for time_index in window.start_index..window.end_index_exclusive {
+            expected_contributors[time_index].push(window.window_id);
+        }
+    }
+    for contributors in &mut expected_contributors {
+        contributors.sort_unstable();
+        if contributors.is_empty() {
+            return Err(HbrWindowFusionError::InvalidWindowPlan);
+        }
+    }
+    if expected_contributors != plan.contributors_by_time {
+        return Err(HbrWindowFusionError::InvalidWindowPlan);
     }
     let mut estimates_by_key = BTreeMap::<(u64, usize), HbrWindowPositionEstimate2d>::new();
     let mut contributions_by_time = vec![Vec::<HbrWindowContribution2d>::new(); plan.trajectory_length];
@@ -523,6 +553,31 @@ mod tests {
                 overlap_steps: 0,
             }),
             Err(HbrWindowFusionError::InvalidWindowConfiguration)
+        );
+    }
+
+    #[test]
+    fn fusion_rejects_malformed_or_internally_inconsistent_window_plans() {
+        let mut malformed = plan(3, 2, 1);
+        malformed.contributors_by_time[0].clear();
+        let estimates = complete_estimates(&plan(3, 2, 1));
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&malformed, &estimates, fusion_config()),
+            Err(HbrWindowFusionError::InvalidWindowPlan)
+        );
+
+        malformed = plan(3, 2, 1);
+        malformed.windows[1].window_id = malformed.windows[0].window_id;
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&malformed, &estimates, fusion_config()),
+            Err(HbrWindowFusionError::InvalidWindowPlan)
+        );
+
+        malformed = plan(3, 2, 1);
+        malformed.windows[0].end_index_exclusive = 4;
+        assert_eq!(
+            fuse_hbr_window_positions_2d(&malformed, &estimates, fusion_config()),
+            Err(HbrWindowFusionError::InvalidWindowPlan)
         );
     }
 
