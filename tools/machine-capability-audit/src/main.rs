@@ -1098,6 +1098,57 @@ mod tests {
     }
 
     #[test]
+    fn critical_transitive_import_blocks_local_reproducibility() {
+        let parsed = corpus();
+        let case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-022")
+            .expect("MCC-022 exists");
+        let result = evaluate_case(case).expect("transitive dependency case evaluates");
+
+        assert_eq!(result.disposition, Disposition::Feasible);
+        assert_eq!(
+            result.best_feasible_route_local_closure,
+            LocalClosure::ImportDependent
+        );
+        let metrics = &result.route_results[0].dependency_metrics;
+        assert_eq!(metrics.critical_count, 2);
+        assert_eq!(metrics.required_closure_count, 3);
+        assert_eq!(metrics.required_closure_without_alternate_source_count, 1);
+        assert_eq!(metrics.required_closure_not_locally_repairable_count, 1);
+    }
+
+    #[test]
+    fn unreferenced_imported_inventory_does_not_change_required_closure() {
+        let parsed = corpus();
+        let mut case = parsed
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "MCC-001")
+            .expect("MCC-001 exists")
+            .clone();
+        case.routes[0].dependencies.push(Dependency {
+            dependency_id: "unreferenced-spare-stock".to_owned(),
+            criticality: "noncritical".to_owned(),
+            sourcing_class: "imported_long_lead".to_owned(),
+            alternate_sources: 0,
+            local_repair_status: "not_repairable".to_owned(),
+            evidence_status: "vendor_declared".to_owned(),
+            requires: Vec::new(),
+        });
+
+        let result = evaluate_case(&case).expect("unreferenced inventory is valid");
+        assert_eq!(
+            result.best_feasible_route_local_closure,
+            LocalClosure::LocalServiceOnly
+        );
+        let metrics = &result.route_results[0].dependency_metrics;
+        assert_eq!(metrics.critical_count, 2);
+        assert_eq!(metrics.required_closure_count, 2);
+    }
+
+    #[test]
     fn missing_cost_is_unknown_and_excluded_from_economic_frontier() {
         let parsed = corpus();
         let mut case = parsed
