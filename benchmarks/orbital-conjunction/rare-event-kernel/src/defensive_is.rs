@@ -175,10 +175,11 @@ impl DefensiveImportanceConfidenceAccumulator {
         let penalty = variance_term * psi;
 
         let next_sum_observations = self.sum_observations + contribution;
-        let current_smoothed_mean = (0.5 + next_sum_observations) / (time + 1.0);
-        let current_residual = contribution - current_smoothed_mean;
+        // The empirical-Bernstein variance proxy sums predictable residuals:
+        // the current observation is centred at the prior smoothed mean, not
+        // at a mean that has already incorporated this observation.
         let next_squared_residuals =
-            self.sum_squared_predictable_residuals + current_residual * current_residual;
+            self.sum_squared_predictable_residuals + residual * residual;
         let next_sum_lambda = self.sum_lambda + lambda;
         let next_sum_lambda_observations = self.sum_lambda_observations + lambda * contribution;
         let next_penalties = self.sum_empirical_bernstein_penalties + penalty;
