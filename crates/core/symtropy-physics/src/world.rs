@@ -1199,10 +1199,16 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let r_a = pt.position - com_a;
                 let r_b = pt.position - com_b;
-                let torque_a = Bivector::from_wedge(&(-per_pt_impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&per_pt_impulse, &r_b);
-                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
-                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
+                integrator::try_apply_contact_angular_impulse(
+                    &mut self.bodies[a],
+                    &r_a,
+                    &(-per_pt_impulse),
+                )?;
+                integrator::try_apply_contact_angular_impulse(
+                    &mut self.bodies[b],
+                    &r_b,
+                    &per_pt_impulse,
+                )?;
             }
 
             // Seed lambda so TGS Soft starts from warm-start value
@@ -1384,10 +1390,16 @@ impl<const D: usize> PhysicsWorld<D> {
                 // try_apply_angular_impulse's stored-state sign inversion.
                 // Do not change this order without migrating that response and
                 // try_rotational_inverse_effective_mass together.
-                let torque_a = Bivector::from_wedge(&(-impulse), &r_a);
-                let torque_b = Bivector::from_wedge(&impulse, &r_b);
-                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
-                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
+                integrator::try_apply_contact_angular_impulse(
+                    &mut self.bodies[a],
+                    &r_a,
+                    &(-impulse),
+                )?;
+                integrator::try_apply_contact_angular_impulse(
+                    &mut self.bodies[b],
+                    &r_b,
+                    &impulse,
+                )?;
 
                 total_normal_impulse += modulated_delta.abs();
                 if !total_normal_impulse.is_finite() {
@@ -1522,10 +1534,16 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
-                    let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
-                    let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
-                    integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
-                    integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
+                    integrator::try_apply_contact_angular_impulse(
+                        &mut self.bodies[a],
+                        &r_a,
+                        &(-friction_impulse),
+                    )?;
+                    integrator::try_apply_contact_angular_impulse(
+                        &mut self.bodies[b],
+                        &r_b,
+                        &friction_impulse,
+                    )?;
 
                     // Exact kinetic-energy change for this impulse in the
                     // current rigid-body effective-mass model:
