@@ -107,6 +107,12 @@ jobs:
             echo "Mission risk budget demo is not part of this branch; demo skipped."
           fi
 
+      - name: Run temporal-alignment misregistration envelope demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin temporal_alignment_demo
+
       - name: Run schema and semantic validator CLI when corpus is present
         shell: bash
         run: |
