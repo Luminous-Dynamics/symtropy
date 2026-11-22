@@ -202,7 +202,7 @@ pub fn angular_point_velocity<const D: usize>(
     angular_velocity: &Bivector<D>,
     offset: &SVector<f64, D>,
 ) -> SVector<f64, D> {
-    -angular_velocity.apply_to_vector(offset)
+    angular_velocity.point_velocity_at_offset(offset)
 }
 
 /// Apply an impulse to a body at its center of mass.
@@ -444,7 +444,7 @@ mod tests {
 
         let offset = SVector::from([1.0, 0.0, 0.0]);
         let impulse = SVector::from([0.0, 1.0, 0.0]);
-        let torque_accumulator = Bivector::from_wedge(&impulse, &offset);
+        let torque_accumulator = Bivector::from_angular_impulse(&offset, &impulse);
         body.apply_torque(torque_accumulator);
         integrate(&mut body, &SVector::zeros(), 1e-4);
 
