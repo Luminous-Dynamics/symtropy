@@ -136,19 +136,8 @@ def _rank_report(
         for right in range(model_count):
             if left == right:
                 continue
-            left_better = all(
-                levels[left] > levels[right] for levels in levels_by_order
-            )
-            if left_better:
-                certified.append({"better": arms[left], "worse": arms[right]})
-                continue
-            right_better = all(
-                levels[right] > levels[left] for levels in levels_by_order
-            )
-            if not right_better:
-                unresolved.append({"pair": [arms[left], arms[right]]})
 
-            # Published polynomial shortcut, evaluated in log space.
+            # Published polynomial shortcut, evaluated for every ordered pair.
             terms = [pair_log_wealths[pair_index[(left, right)]]]
             for middle in range(model_count):
                 if middle in (left, right):
@@ -164,6 +153,18 @@ def _rank_report(
                     "better": arms[left],
                     "worse": arms[right],
                 })
+
+            left_better = all(
+                levels[left] > levels[right] for levels in levels_by_order
+            )
+            if left_better:
+                certified.append({"better": arms[left], "worse": arms[right]})
+                continue
+            right_better = all(
+                levels[right] > levels[left] for levels in levels_by_order
+            )
+            if not right_better and left < right:
+                unresolved.append({"pair": [arms[left], arms[right]]})
 
     rendered_rank_sets = {}
     for arm, values in rank_sets.items():
