@@ -705,8 +705,11 @@ mod tests {
     fn assembled_rows_are_symmetric_and_retain_asymmetric_rotational_coupling() {
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
         );
         let body_b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let bodies = vec![body_a, body_b];
@@ -754,15 +757,21 @@ mod tests {
     fn delassus_is_invariant_to_contact_permutation_and_global_rigid_rotation() {
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::<f64, 3>::new(2.0, 1.0, 0.5),
+            )
+            .unwrap(),
         );
         let mut body_b =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.5, -0.25]), 0.5, 1.5);
         body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), 0.37);
         body_b.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::<f64, 3>::new(0.8, 1.2, 1.7))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.5,
+                SVector::<f64, 3>::new(0.8, 1.2, 1.7),
+            )
+            .unwrap(),
         );
 
         let bodies = vec![body_a, body_b];
@@ -815,7 +824,11 @@ mod tests {
             .map(|body| {
                 let mut rotated = RigidBody::<3>::dynamic_sphere(
                     body.handle,
-                    Point::new(global_rotation.rotate_vector(&body.transform.translation.0).into()),
+                    Point::new(
+                        global_rotation
+                            .rotate_vector(&body.transform.translation.0)
+                            .into(),
+                    ),
                     0.5,
                     body.mass,
                 );
@@ -980,8 +993,11 @@ mod tests {
         let mut dynamic_body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
         );
         let frame = ContactFrame::<3>::new(SVector::<f64, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let row = ContactWrenchRow {
@@ -1113,8 +1129,11 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body
             .try_set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                    .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    1.0,
+                    SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
             )
             .unwrap();
         let bodies = vec![static_body, dynamic_body];
@@ -1194,8 +1213,11 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         dynamic_body
             .try_set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                    .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    1.0,
+                    SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
             )
             .unwrap();
         let frame = ContactFrame::<3>::new(SVector::<f64, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
@@ -1288,7 +1310,10 @@ mod tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<f64, 3>::new(1.0, 0.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
@@ -1301,8 +1326,11 @@ mod tests {
             SVector::from_element(1.0),
         );
         block.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(1.0, 0.7, 0.4))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::<f64, 3>::new(1.0, 0.7, 0.4),
+            )
+            .unwrap(),
         );
         block.linear_velocity = SVector::<f64, 3>::new(-0.1, 0.0, 0.0);
         block.friction = 0.0;
@@ -1409,8 +1437,11 @@ mod tests {
     fn delassus_reference_rejects_body_inertia_mass_mismatch() {
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.0, 0.8, 0.6))
-                .unwrap(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0,
+                SVector::<f64, 3>::new(1.0, 0.8, 0.6),
+            )
+            .unwrap(),
         );
         let body_b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         let bodies = vec![body_a, body_b];
