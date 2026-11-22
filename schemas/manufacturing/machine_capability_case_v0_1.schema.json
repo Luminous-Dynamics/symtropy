@@ -33,7 +33,8 @@
         "process_family",
         "required_inspection",
         "post_repair_verification_required",
-        "required_max_temperature_c"
+        "required_max_temperature_c",
+        "deadline_hours"
       ],
       "properties": {
         "part_id": {
@@ -99,6 +100,10 @@
         "required_max_temperature_c": {
           "type": "number",
           "minimum": -273.15
+        },
+        "deadline_hours": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -124,7 +129,9 @@
           "capacity_units",
           "lead_time_hours",
           "dependencies",
-          "cost"
+          "cost",
+          "max_process_temperature_c",
+          "inspection_methods"
         ],
         "properties": {
           "route_id": {
@@ -362,6 +369,18 @@
                 "type": "number",
                 "exclusiveMinimum": 0
               }
+            }
+          },
+          "max_process_temperature_c": {
+            "type": "number",
+            "minimum": -273.15
+          },
+          "inspection_methods": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
