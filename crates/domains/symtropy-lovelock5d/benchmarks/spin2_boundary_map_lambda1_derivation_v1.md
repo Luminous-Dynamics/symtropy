@@ -225,3 +225,24 @@ Still open:
 - full nonlinear rotating EGB uniqueness and physical PDE hyperbolicity.
 
 No finite-coupling existence or hyperbolicity conclusion is inferred from \(J_1\).
+
+
+### First-order rotation of the singular endpoint directions
+
+The off-diagonal entry of \(J_1\) gives a further diagnostic beyond the singular-value slopes. Choose continuous left/right singular-vector orientations that equal the published basis vectors at \(\lambda=0\). Let \(b=19-2\pi^2\). Perturbation theory for \(J^T J\) and \(JJ^T\), whose unperturbed eigenvalues are \(1/4\) and \(4\), gives
+
+\[
+v_{\min}(\lambda)=e_b-\frac{2b}{15}\lambda e_h+O(\lambda^2),
+\qquad
+v_{\max}(\lambda)=e_h+\frac{2b}{15}\lambda e_b+O(\lambda^2),
+\]
+
+\[
+u_{\min}(\lambda)=e_B-\frac{8b}{15}\lambda e_H+O(\lambda^2),
+\qquad
+u_{\max}(\lambda)=e_H+\frac{8b}{15}\lambda e_B+O(\lambda^2).
+\]
+
+Numerically, the right-frame rotation slope is \(0.0985611736238288\) and the left-frame rotation slope is \(0.3942446944953152\) in the fixed raw Euclidean endpoint coordinates. This quantifies the first-order mixing of the most/least constrained horizon combinations and their forbidden-amplitude responses.
+
+These slopes are coordinate-dependent. They are useful regression targets for the fixed-basis finite-\(\lambda\) BVP experiment, but must be recomputed in the declared metric-aware singular frame when endpoint norms are changed.
