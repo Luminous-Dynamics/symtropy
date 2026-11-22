@@ -637,7 +637,9 @@ fn apply_composition_batch(
                 } else if !known_modules.contains(child_module_id.as_str()) {
                     Some(CompositionFailure::UnknownChild(child_module_id.clone()))
                 } else if parent_module_id == child_module_id {
-                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                    Some(CompositionFailure::SelfContainment(
+                        parent_module_id.clone(),
+                    ))
                 } else {
                     let membership = Membership {
                         parent_module_id: parent_module_id.clone(),
@@ -670,7 +672,9 @@ fn apply_composition_batch(
                 } else if !known_modules.contains(child_module_id.as_str()) {
                     Some(CompositionFailure::UnknownChild(child_module_id.clone()))
                 } else if parent_module_id == child_module_id {
-                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                    Some(CompositionFailure::SelfContainment(
+                        parent_module_id.clone(),
+                    ))
                 } else {
                     let membership = Membership {
                         parent_module_id: parent_module_id.clone(),
@@ -692,7 +696,9 @@ fn apply_composition_batch(
                 } else if !known_modules.contains(child_module_id.as_str()) {
                     Some(CompositionFailure::UnknownChild(child_module_id.clone()))
                 } else if parent_module_id == child_module_id {
-                    Some(CompositionFailure::SelfContainment(parent_module_id.clone()))
+                    Some(CompositionFailure::SelfContainment(
+                        parent_module_id.clone(),
+                    ))
                 } else {
                     let membership = Membership {
                         parent_module_id: parent_module_id.clone(),
@@ -709,9 +715,7 @@ fn apply_composition_batch(
                     Some(CompositionFailure::UnknownParent(parent_module_id.clone()))
                 } else {
                     let before = candidate.len();
-                    candidate.retain(|membership| {
-                        membership.parent_module_id != *parent_module_id
-                    });
+                    candidate.retain(|membership| membership.parent_module_id != *parent_module_id);
                     disaggregation_count += before - candidate.len();
                     None
                 }
@@ -771,8 +775,7 @@ pub fn evaluate_composition_batches(
         input_event_rows: batches.len(),
         ..CompositionReport::default()
     };
-    let mut by_source_key: BTreeMap<&SourceEventKey, Vec<&CompositionEventBatch>> =
-        BTreeMap::new();
+    let mut by_source_key: BTreeMap<&SourceEventKey, Vec<&CompositionEventBatch>> = BTreeMap::new();
 
     for batch in batches {
         if batch.published_at <= as_of {
@@ -820,7 +823,10 @@ pub fn evaluate_composition_batches(
             EventClassification::Planned => report.planned_event_rows += 1,
             EventClassification::Actual => {
                 report.actual_event_rows += 1;
-                actual_by_time.entry(batch.event_time).or_default().push(batch);
+                actual_by_time
+                    .entry(batch.event_time)
+                    .or_default()
+                    .push(batch);
             }
         }
     }
@@ -995,9 +1001,12 @@ mod tests {
             parent_module_id: "OTHER".to_string(),
             child_module_id: "CONTAINER".to_string(),
         }));
-        assert!(!report.active_memberships.iter().any(|edge| {
-            edge.parent_module_id == "CONTAINER"
-        }));
+        assert!(
+            !report
+                .active_memberships
+                .iter()
+                .any(|edge| { edge.parent_module_id == "CONTAINER" })
+        );
         assert_eq!(report.disaggregation_all_events, 1);
         assert_eq!(report.disaggregated_membership_edges, 1);
     }
@@ -1097,12 +1106,9 @@ mod tests {
                 parent_module_id: "CONTAINER".to_string(),
             }],
         );
-        let report = evaluate_composition_batches(
-            &modules,
-            &[add, delete_all.clone(), delete_all],
-            100,
-        )
-        .unwrap();
+        let report =
+            evaluate_composition_batches(&modules, &[add, delete_all.clone(), delete_all], 100)
+                .unwrap();
         assert_eq!(report.replayed_event_rows, 1);
         assert_eq!(report.disaggregation_all_events, 1);
         assert_eq!(report.disaggregated_membership_edges, 1);
@@ -1188,15 +1194,20 @@ mod tests {
         let report =
             evaluate_composition_batches(&modules, &[existing, invalid_batch], 100).unwrap();
         assert_eq!(report.active_edges(), 1);
-        assert!(!report.active_memberships.iter().any(|edge| {
-            edge.child_module_id == "PALLET_B"
-        }));
-        assert!(report.failures.contains_key(
-            &CompositionFailure::DuplicateMembership(Membership {
-                parent_module_id: "CONTAINER".to_string(),
-                child_module_id: "PALLET_A".to_string(),
-            })
-        ));
+        assert!(
+            !report
+                .active_memberships
+                .iter()
+                .any(|edge| { edge.child_module_id == "PALLET_B" })
+        );
+        assert!(
+            report
+                .failures
+                .contains_key(&CompositionFailure::DuplicateMembership(Membership {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_A".to_string(),
+                }))
+        );
     }
 
     #[test]
@@ -1220,12 +1231,14 @@ mod tests {
         );
         let report = evaluate_composition_batches(&modules, &[first, second], 100).unwrap();
         assert_eq!(report.active_edges(), 0);
-        assert!(report.failures.contains_key(
-            &CompositionFailure::AmbiguousEventTime {
-                event_time: 10,
-                module_id: "CONTAINER".to_string(),
-            }
-        ));
+        assert!(
+            report
+                .failures
+                .contains_key(&CompositionFailure::AmbiguousEventTime {
+                    event_time: 10,
+                    module_id: "CONTAINER".to_string(),
+                })
+        );
     }
 
     #[test]
@@ -1268,12 +1281,14 @@ mod tests {
         assert!(report.is_qualified());
         assert_eq!(report.active_edges(), 0);
         assert_eq!(report.revision_retracted_membership_edges, 1);
-        assert!(!report.failures.contains_key(
-            &CompositionFailure::UnmatchedDelete(Membership {
-                parent_module_id: "CONTAINER".to_string(),
-                child_module_id: "PALLET".to_string(),
-            })
-        ));
+        assert!(
+            !report
+                .failures
+                .contains_key(&CompositionFailure::UnmatchedDelete(Membership {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET".to_string(),
+                }))
+        );
     }
 
     #[test]
@@ -1289,7 +1304,9 @@ mod tests {
         let report = evaluate_composition_batches(&modules, &[event], 100).unwrap();
         assert!(!report.is_qualified());
         assert_eq!(
-            report.failures.get(&CompositionFailure::UnknownParent("UNKNOWN".to_string())),
+            report
+                .failures
+                .get(&CompositionFailure::UnknownParent("UNKNOWN".to_string())),
             Some(&1)
         );
         assert_eq!(report.active_edges(), 0);
