@@ -278,6 +278,6 @@ The frozen fixture replays:
 `offer_created → accepted → executing → unresolved`
 and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved and reserved. The CLI report sets ledger mutation, market, dispatch and physical mutation authority to false.
 
-The module currently contains 12 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage.
+The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage.
 
 Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
