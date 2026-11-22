@@ -135,7 +135,11 @@ pub enum BatchBlock {
     EmptyActionIdentity,
     DuplicateAction,
     DuplicateTicket,
-    StateGenerationMismatch,
+    StateGenerationMismatch {
+        left: String,
+        right: String,
+        key: String,
+    },
     EmptySharedContext,
     MixedSharedContext,
     UnknownFootprint { action_id: String },
@@ -752,7 +756,7 @@ mod tests {
 
     #[test]
     fn exclusive_resource_overlap_blocks_batch() {
-        let mut a = footprint("arm-a", 10);
+        let a = footprint("arm-a", 10);
         let mut b = footprint("arm-b", 11);
         b.exclusive_claims[0].resource_id = a.exclusive_claims[0].resource_id.clone();
         assert_eq!(
@@ -771,7 +775,7 @@ mod tests {
 
     #[test]
     fn adjacent_half_open_exclusive_intervals_do_not_conflict() {
-        let mut a = footprint("arm-a", 10);
+        let a = footprint("arm-a", 10);
         let mut b = footprint("arm-b", 11);
         b.exclusive_claims[0].resource_id = a.exclusive_claims[0].resource_id.clone();
         b.exclusive_claims[0].interval.start = 20;
