@@ -7,6 +7,21 @@ from anytime_valid_policy_eval import (
     evaluate_document,
     evaluate_paired_differences,
 )
+from streaming_driver import run_stream
+
+
+def start_record(max_observations=1000):
+    return {
+        "type": "start",
+        "schema_version": 1,
+        "sampling_unit": "independent_source_cluster",
+        "alpha": 0.05,
+        "superiority_margin": 0.05,
+        "max_observations": max_observations,
+        "metric_id": "task_accuracy",
+        "candidate_policy_id": "active",
+        "reference_policy_id": "fixed",
+    }
 
 
 class AnytimeValidPolicyEvalTests(unittest.TestCase):
@@ -112,6 +127,77 @@ class AnytimeValidPolicyEvalTests(unittest.TestCase):
             "rows are sampled from one frozen target population of independent source clusters",
             result["assumptions"],
         )
+
+    def test_stream_stops_requesting_records_after_certification(self):
+        requested = []
+        emitted = []
+
+        def records():
+            yield start_record()
+            for index in range(10000):
+                requested.append(index)
+                yield {
+                    "type": "observation",
+                    "cluster_id": f"source-{index}",
+                    "paired_difference": 1.0,
+                }
+
+        result = run_stream(records(), emitted.append)
+        self.assertEqual(result["status"], "SUPERIOR")
+        self.assertEqual(len(requested), result["observations_consumed"])
+        self.assertLess(len(requested), 10000)
+        self.assertEqual(emitted[-1]["type"], "decision")
+        self.assertEqual(emitted[-1]["status"], "SUPERIOR")
+        self.assertEqual(len(result["transcript_chain_sha256"]), 64)
+
+    def test_stream_respects_maximum_observation_budget(self):
+        emitted = []
+        events = [
+            start_record(max_observations=2),
+            {"type": "observation", "cluster_id": "s1", "paired_difference": 0.1},
+            {"type": "observation", "cluster_id": "s2", "paired_difference": 0.1},
+            {"type": "observation", "cluster_id": "s3", "paired_difference": 0.1},
+        ]
+        result = run_stream(iter(events), emitted.append)
+        self.assertEqual(result["status"], "INCONCLUSIVE")
+        self.assertEqual(result["reason"], "maximum_observations_reached")
+        self.assertEqual(result["observations_consumed"], 2)
+
+    def test_stream_exhaustion_is_inconclusive(self):
+        emitted = []
+        result = run_stream(iter([
+            start_record(),
+            {"type": "observation", "cluster_id": "s1", "paired_difference": 0.0},
+        ]), emitted.append)
+        self.assertEqual(result["status"], "INCONCLUSIVE")
+        self.assertEqual(result["reason"], "input_exhausted")
+        self.assertEqual(result["observations_consumed"], 1)
+
+    def test_stream_end_before_any_observation_is_inconclusive(self):
+        emitted = []
+        result = run_stream(iter([start_record(), {"type": "end"}]), emitted.append)
+        self.assertEqual(result["status"], "INCONCLUSIVE")
+        self.assertEqual(result["looks_used"], 0)
+
+    def test_stream_rejects_duplicate_cluster_ids(self):
+        records = [
+            start_record(),
+            {"type": "observation", "cluster_id": "same", "paired_difference": 0.2},
+            {"type": "observation", "cluster_id": "same", "paired_difference": 0.1},
+        ]
+        with self.assertRaises(EvaluationError):
+            run_stream(iter(records), lambda _: None)
+
+    def test_stream_rejects_invalid_envelope_and_bounds(self):
+        bad_start = start_record()
+        bad_start["max_observations"] = True
+        with self.assertRaises(EvaluationError):
+            run_stream(iter([bad_start]), lambda _: None)
+        with self.assertRaises(EvaluationError):
+            run_stream(iter([
+                start_record(),
+                {"type": "observation", "cluster_id": "s1", "paired_difference": 1.01},
+            ]), lambda _: None)
 
 
 if __name__ == "__main__":
