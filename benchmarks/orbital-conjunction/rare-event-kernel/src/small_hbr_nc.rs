@@ -99,9 +99,7 @@ pub fn small_hbr_nc_approximation(
 ) -> Result<SmallHbrNcApproximationReport, KernelError> {
     if !inputs.regime.small_hbr_vs_covariance_scale
         || !inputs.regime.negligible_velocity_uncertainty
-        || !inputs
-            .regime
-            .negligible_position_velocity_cross_covariance
+        || !inputs.regime.negligible_position_velocity_cross_covariance
     {
         return Err(KernelError::OutsideSmallHbrAssumptions);
     }
@@ -118,9 +116,7 @@ pub fn small_hbr_nc_approximation(
     if positive_inputs.iter().any(|value| *value <= 0.0) {
         return Err(KernelError::InvalidSmallHbrInput);
     }
-    if !inputs
-        .modified_mahalanobis_distance_at_zero_hbr
-        .is_finite()
+    if !inputs.modified_mahalanobis_distance_at_zero_hbr.is_finite()
     {
         return Err(KernelError::NonFiniteValue);
     }
@@ -129,9 +125,7 @@ pub fn small_hbr_nc_approximation(
         + inputs.mean_relative_speed_at_t.ln()
         + inputs.time_width_at_zero_hbr_seconds.ln()
         - 2.0_f64.ln()
-        - inputs
-            .sqrt_abs_position_covariance_determinant_at_tca
-            .ln()
+        - inputs.sqrt_abs_position_covariance_determinant_at_tca.ln()
         - 0.5 * inputs.modified_mahalanobis_distance_at_zero_hbr;
 
     if !log_probability.is_finite() {
@@ -180,8 +174,7 @@ mod tests {
     #[test]
     fn equation_thirteen_known_answer_matches_direct_formula() {
         let report = small_hbr_nc_approximation(inputs()).expect("valid small-HBR regime");
-        let direct = (0.01_f64.powi(2) * 7_500.0 * 10.0
-            / (2.0 * 1.0e9))
+        let direct = (0.01_f64.powi(2) * 7_500.0 * 10.0 / (2.0 * 1.0e9))
             * (-25.0_f64 / 2.0).exp();
         assert!((report.probability - direct).abs() <= direct * 1.0e-12);
         assert!((report.log_probability - direct.ln()).abs() <= 1.0e-12);
@@ -230,9 +223,7 @@ mod tests {
         );
 
         let mut invalid = inputs();
-        invalid
-            .regime
-            .negligible_position_velocity_cross_covariance = false;
+        invalid.regime.negligible_position_velocity_cross_covariance = false;
         assert_eq!(
             small_hbr_nc_approximation(invalid),
             Err(KernelError::OutsideSmallHbrAssumptions)
