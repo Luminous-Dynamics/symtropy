@@ -1638,9 +1638,12 @@ mod tests {
         let printed_high =
             sigmoid_screening_potential_printed_equation(high, bulk, surface, e0, 0.5)
                 .expect("printed high");
-        let prose_low = sigmoid_screening_potential_prose_direction(low, bulk, surface, e0, 0.5)
+        // Keep the low/high probes sufficiently far into the respective
+        // logistic tails: width=0.5 leaves the low-energy point near the
+        // midpoint rather than at the surface asymptote.
+        let prose_low = sigmoid_screening_potential_prose_direction(low, bulk, surface, e0, 0.1)
             .expect("prose low");
-        let prose_high = sigmoid_screening_potential_prose_direction(high, bulk, surface, e0, 0.5)
+        let prose_high = sigmoid_screening_potential_prose_direction(high, bulk, surface, e0, 0.1)
             .expect("prose high");
 
         assert!(printed_low < printed_high);
