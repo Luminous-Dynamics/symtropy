@@ -863,6 +863,23 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_export_permission_cannot_authorize_export() {
+        let mut input = fixture();
+        input.candidate_dispatch[0].requested_discharge_power_w = 4_100;
+        input.export_permission = Some(crate::battery_service_network::BooleanEvidence {
+            evidence: input.site_evidence.clone(),
+            value: Some(true),
+        });
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(
+            result
+                .expect_err("synthetic permission evidence must be rejected")
+                .iter()
+                .any(|item| item == "export_permission_is_not_source_grade")
+        );
+    }
+
+    #[test]
     fn propulsion_pack_is_never_admitted_as_grid_storage() {
         let mut input = fixture();
         input.storage_resources[0].resource_kind = FlexResourceKind::AircraftPropulsionPack;
