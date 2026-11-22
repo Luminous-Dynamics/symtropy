@@ -21,7 +21,8 @@ Support intervals may have gaps but may not overlap. The trace is sorted determi
 - valid/invalid reference sample counts and distinct cluster count;
 - valid exposure and time above PL by axis/union;
 - contiguous breach episode counts, total duration, maximum and mean episode duration;
-- maximum error excess beyond the bound;
+- maximum error excess beyond the bound, returned in micrometers (integer; divide by 1,000,000 for metres);
+- descriptive either-axis breach episodes per valid exposure hour, scaled by 1,000,000 (not a probability).
 - descriptive breach-event rate per valid exposure hour.
 
 A breach episode continues only through adjacent support intervals whose samples exceed the same bound. A safe interval, invalid-truth interval or time gap terminates the episode. The trace treats each sample's exceedance state as constant over its explicit support interval; this is not continuous-time error interpolation.
