@@ -684,7 +684,11 @@ pub fn replay_pack_state_journal(
             errors.push(format!("duplicate_idempotency_key:{}", event.idempotency_key));
             break;
         }
-        if event.sequence != current_sequence.saturating_add(1) {
+        let Some(expected_sequence) = current_sequence.checked_add(1) else {
+            errors.push("event_sequence_overflow".to_string());
+            break;
+        };
+        if event.sequence != expected_sequence {
             errors.push(format!("non_contiguous_event_sequence:{}", event.event_id));
             break;
         }
