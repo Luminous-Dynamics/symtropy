@@ -425,16 +425,17 @@ pub fn audit_corpus(raw: &[u8], source_commit: &str) -> Result<Receipt, String> 
         results.push(evaluate_case(case)?);
     }
     results.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+    let expected_by_case: BTreeMap<&str, Disposition> = corpus
+        .cases
+        .iter()
+        .map(|case| (case.case_id.as_str(), case.expected_disposition))
+        .collect();
     let oracle_matches = results
         .iter()
-        .zip(
-            corpus
-                .cases
-                .iter()
-                .map(|case| (&case.case_id, case.expected_disposition)),
-        )
-        .filter(|(result, (case_id, expected))| {
-            result.case_id == **case_id && result.disposition == *expected
+        .filter(|result| {
+            expected_by_case
+                .get(result.case_id.as_str())
+                .is_some_and(|expected| result.disposition == *expected)
         })
         .count();
     let oracle_mismatches = results.len() - oracle_matches;
@@ -625,6 +626,25 @@ mod tests {
             audit_corpus(&bytes, SOURCE)
                 .unwrap_err()
                 .contains("DUPLICATE_CASE_ID")
+        );
+    }
+
+    #[test]
+    fn case_order_does_not_change_disposition_oracle_agreement() {
+        let mut corpus: Corpus = serde_json::from_slice(FIXTURE).unwrap();
+        corpus.cases.reverse();
+        let bytes = serde_json::to_vec(&corpus).unwrap();
+        let report = audit_corpus(&bytes, SOURCE).unwrap();
+        assert_eq!(report.case_count, 13);
+        assert_eq!(report.oracle_matches, 13);
+        assert_eq!(report.oracle_mismatches, 0);
+        assert_eq!(
+            report.cases.first().map(|case| case.case_id.as_str()),
+            Some("ATG-001-NOMINAL")
+        );
+        assert_eq!(
+            report.cases.last().map(|case| case.case_id.as_str()),
+            Some("ATG-013-CLEAR-OVERSIZE")
         );
     }
 
