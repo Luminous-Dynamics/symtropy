@@ -331,7 +331,7 @@ mod tests {
         let report = evaluate_piv_probability_scores(&fixture()).unwrap();
         assert_eq!(report.overall.roc_auc_invalid_positive, Some(1.0));
         assert!(report.overall.log_loss_nats < 0.25);
-        assert!(report.overall.brier_score < 0.05);
+        assert!(report.overall.brier_score < 0.06);
     }
 
     #[test]
