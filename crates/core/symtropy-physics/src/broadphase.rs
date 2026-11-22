@@ -420,9 +420,9 @@ impl<const D: usize> Default for StaticBroadphase<D> {
 /// - Dynamic/kinematic–dynamic/kinematic: brute-force O(n_moving²).
 /// - Dynamic/kinematic–static: linear scan against the prebuilt
 ///   `StaticBroadphase`.
-/// Kinematic bodies stay in the moving set so no kinematic pair is omitted.
+///   Kinematic bodies stay in the moving set so no kinematic pair is omitted.
 ///
-/// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
+/// For very large moving counts (≥ BRUTE_FORCE_THRESHOLD) the existing
 /// `find_pairs` (full LBVH over all bodies) is called instead, since it is
 /// superior at scale.
 pub fn find_pairs_incremental<const D: usize>(
