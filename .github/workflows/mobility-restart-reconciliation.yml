@@ -1,0 +1,46 @@
+name: Mobility Restart Reconciliation Contract
+
+on:
+  push:
+    branches:
+      - research/mobility-restart-reconciliation-v0-1
+    paths:
+      - "research/mobility-restart-reconciliation/**"
+      - ".github/workflows/mobility-restart-reconciliation.yml"
+  pull_request:
+    paths:
+      - "research/mobility-restart-reconciliation/**"
+      - ".github/workflows/mobility-restart-reconciliation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restart-reconciliation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Validate public recovery corpus and schema JSON
+        run: |
+          jq empty research/mobility-restart-reconciliation/conformance_cases_v0_1.json
+          jq empty research/mobility-restart-reconciliation/conformance_cases.schema.json
+          jq -e '
+            .version == "0.1"
+            and (.cases | length >= 20)
+            and ([.cases[].case_id] | length == ([.cases[].case_id] | unique | length))
+            and ([.cases[] | select(.class == "positive" and .expected == "fresh_attempt_candidate")] | length >= 1)
+            and ([.cases[] | select(.effect == "unknown" and .expected == "hold")] | length >= 1)
+            and ([.cases[] | select(.effect == "partial" and .expected == "hold")] | length >= 1)
+            and ([.cases[] | select(.effect == "disputed" and .expected == "hold")] | length >= 1)
+            and all(.cases[]; .native_sink_calls == 0)
+          ' research/mobility-restart-reconciliation/conformance_cases_v0_1.json
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-restart-reconciliation/Cargo.toml -- --check
+      - name: Run bounded restart/reconciliation conformance tests
+        run: cargo test --manifest-path research/mobility-restart-reconciliation/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-restart-reconciliation/Cargo.toml --all-targets --locked -- -D warnings
