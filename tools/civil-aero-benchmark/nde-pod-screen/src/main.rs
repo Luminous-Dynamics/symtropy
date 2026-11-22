@@ -718,24 +718,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exact_zero_failure_bounds_match_closed_forms() {
-        let detection = detection_lower_bound(29, 29, 0.95);
-        let false_call = false_call_upper_bound(69, 0, 0.50);
-        assert!((detection - 0.9018553723227043).abs() < 1.0e-12);
-        assert!((false_call - 0.009995322693322817).abs() < 1.0e-12);
+    fn fixed_target_bounds_allow_one_miss_and_one_false_call() {
+        let detection = detection_lower_bound(60, 59, 0.95);
+        let false_call = false_call_upper_bound(200, 1, 0.50);
+        assert!((detection - 0.9233600050654955).abs() < 1.0e-12);
+        assert!((false_call - 0.00837751942939624).abs() < 1.0e-12);
         assert!(detection >= 0.90);
         assert!(false_call <= 0.01);
     }
 
     #[test]
-    fn one_miss_and_one_false_call_break_the_declared_bounds() {
-        assert!(detection_lower_bound(29, 28, 0.95) < 0.90);
-        assert!(false_call_upper_bound(69, 1, 0.50) > 0.01);
+    fn a_second_miss_or_false_call_breaks_the_declared_bounds() {
+        assert!(detection_lower_bound(60, 58, 0.95) < 0.90);
+        assert!(false_call_upper_bound(200, 2, 0.50) > 0.01);
     }
 
     #[test]
-    fn binomial_bounds_are_monotone_in_observed_success_or_false_calls() {
-        assert!(detection_lower_bound(29, 29, 0.95) > detection_lower_bound(29, 28, 0.95));
-        assert!(false_call_upper_bound(69, 1, 0.50) > false_call_upper_bound(69, 0, 0.50));
+    fn binomial_bounds_are_monotone_in_hits_and_false_calls() {
+        assert!(detection_lower_bound(60, 60, 0.95) > detection_lower_bound(60, 59, 0.95));
+        assert!(false_call_upper_bound(200, 2, 0.50) > false_call_upper_bound(200, 1, 0.50));
     }
 }
