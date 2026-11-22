@@ -10,3 +10,5 @@ description = "Fail-closed reference for concurrent action-batch composition"
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
