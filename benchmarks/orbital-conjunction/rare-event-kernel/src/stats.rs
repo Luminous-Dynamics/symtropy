@@ -93,8 +93,8 @@ impl WeightedEventAccumulator {
         log_target_density: f64,
         log_proposal_density: f64,
     ) -> Result<(), KernelError> {
+        let log_weight = log_importance_weight(log_target_density, log_proposal_density)?;
         if event_occurred {
-            let log_weight = log_importance_weight(log_target_density, log_proposal_density)?;
             self.push_log_contribution(Some(log_weight))
         } else {
             self.push_log_contribution(None)
@@ -382,6 +382,15 @@ mod tests {
         assert_eq!(accumulator.sample_count(), 0);
     }
 
+    #[test]
+    fn zero_proposal_density_is_rejected_even_for_a_non_event_draw() {
+        let mut accumulator = WeightedEventAccumulator::new();
+        assert_eq!(
+            accumulator.push_importance_sample(false, -3.0, f64::NEG_INFINITY),
+            Err(KernelError::ProposalHasZeroDensity)
+        );
+        assert_eq!(accumulator.sample_count(), 0);
+    }
     #[test]
     fn zero_proposal_density_fails_closed_for_an_event() {
         let mut accumulator = WeightedEventAccumulator::new();
