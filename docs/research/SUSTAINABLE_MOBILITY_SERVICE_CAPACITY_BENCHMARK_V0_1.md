@@ -371,7 +371,7 @@ These are targets. A passing synthetic evaluator test does not establish any of 
 
 ## 18. Exact-head v0.1 verification and frozen fixture result
 
-Exact-head Actions run [#45067738880](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45067738880) at `c1feaed5e12f72c5f3de55d17512e4e850eacf11` passed:
+Exact-head Actions run [#45068027684](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45068027684) at `28b353addd2c4da8b9896516a145f82a78af7595` passed:
 - strict schema/fixture JSON parsing;
 - package workspace `cargo fmt --check`;
 - `cargo test`;
