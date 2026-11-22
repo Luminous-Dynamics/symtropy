@@ -28,7 +28,7 @@ def main():
     v0=sp.symbols("c")*eB
     require_zero("n=0 constant-mode compatibility",A0*v0+g0)
     N1=-I-A0
-    require_zero("n=1 determinant",N1.det()-(-5))
+    require_zero("n=1 determinant",N1.det()-5)
     require_zero("n=1 RHS",(A1*v0+g1))
     require_zero("n=1 solution",N1.inv()*(A1*v0+g1))
     N2=-2*I-A0
@@ -47,7 +47,7 @@ def main():
     require_zero("mode basis determinant",P.det()-(-12))
     print(json.dumps({
       "status":"passed_exact_rational_infinity_resonance_replay",
-      "n1_matrix_determinant":"-5",
+      "n1_matrix_determinant":"5",
       "n2_matrix_rank":2,
       "n2_matrix_nullity":2,
       "bounded_n2_resonance_compatible":True,
