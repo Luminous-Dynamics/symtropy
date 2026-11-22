@@ -15,8 +15,8 @@
 //! a nonlinear trajectory enclosure, or a formally machine-verified result.
 
 use crate::{
-    CoverageCell, CoverageMassUpperBound, KernelError,
-    affine_cell_excludes_collision_ball, standard_normal_cube_tail_probability_upper_bound,
+    CoverageCell, CoverageMassUpperBound, KernelError, affine_cell_excludes_collision_ball,
+    standard_normal_cube_tail_probability_upper_bound,
 };
 
 /// Configuration for the static affine residual-mass search.
@@ -102,12 +102,7 @@ pub fn affine_collision_residual_mass_upper_bound(
     // Validate the affine map and all chart boxes before producing a report.
     // Any malformed input aborts the certificate rather than being counted as
     // a geometric exclusion.
-    crate::affine_box_image_bounds(
-        config.offset,
-        config.matrix,
-        root.lower(),
-        root.upper(),
-    )?;
+    crate::affine_box_image_bounds(config.offset, config.matrix, root.lower(), root.upper())?;
     for chart in config.covered_chart_boxes {
         if chart.lower().len() != dimension || chart.upper().len() != dimension {
             return Err(KernelError::DimensionMismatch);
@@ -117,9 +112,11 @@ pub fn affine_collision_residual_mass_upper_bound(
             .iter()
             .zip(chart.upper())
             .zip(root.lower().iter().zip(root.upper()))
-            .any(|((chart_lower, chart_upper), (domain_lower, domain_upper))| {
-                chart_lower < domain_lower || chart_upper > domain_upper
-            })
+            .any(
+                |((chart_lower, chart_upper), (domain_lower, domain_upper))| {
+                    chart_lower < domain_lower || chart_upper > domain_upper
+                },
+            )
         {
             return Err(KernelError::CoverageChartOutsideDomain);
         }
@@ -157,11 +154,9 @@ pub fn affine_collision_residual_mass_upper_bound(
                 .iter()
                 .zip(cell.upper())
                 .zip(chart.lower().iter().zip(chart.upper()))
-                .all(
-                    |((cell_lower, cell_upper), (chart_lower, chart_upper))| {
-                        cell_lower >= chart_lower && cell_upper <= chart_upper
-                    },
-                )
+                .all(|((cell_lower, cell_upper), (chart_lower, chart_upper))| {
+                    cell_lower >= chart_lower && cell_upper <= chart_upper
+                })
         });
         if fully_chart_covered {
             chart_covered_cells += 1;
@@ -214,23 +209,20 @@ mod tests {
 
     #[test]
     fn chart_cover_and_event_exclusion_leave_only_cube_tail() {
-        let chart =
-            CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid chart box");
-        let report = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0],
-                matrix: &[1.0],
-                hard_body_radius: 0.25,
-                covered_chart_boxes: &[chart],
-                cube_radius: 4.0,
-                max_cells: 512,
-                max_depth: 16,
-            },
-        )
+        let chart = CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid chart box");
+        let report = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 0.25,
+            covered_chart_boxes: &[chart],
+            cube_radius: 4.0,
+            max_cells: 512,
+            max_depth: 16,
+        })
         .expect("valid residual-mass search");
 
-        let tail = standard_normal_cube_tail_probability_upper_bound(4.0, 1)
-            .expect("valid tail bound");
+        let tail =
+            standard_normal_cube_tail_probability_upper_bound(4.0, 1).expect("valid tail bound");
         assert_eq!(report.unresolved_cells, 0);
         assert!(report.chart_covered_cells > 0);
         assert!(report.event_free_cells > 0);
@@ -241,17 +233,15 @@ mod tests {
 
     #[test]
     fn no_chart_keeps_possible_event_mass_unresolved() {
-        let report = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0],
-                matrix: &[1.0],
-                hard_body_radius: 0.25,
-                covered_chart_boxes: &[],
-                cube_radius: 4.0,
-                max_cells: 1,
-                max_depth: 16,
-            },
-        )
+        let report = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 0.25,
+            covered_chart_boxes: &[],
+            cube_radius: 4.0,
+            max_cells: 1,
+            max_depth: 16,
+        })
         .expect("valid residual-mass search");
 
         assert!(report.budget_exhausted);
@@ -262,21 +252,19 @@ mod tests {
 
     #[test]
     fn wholly_event_free_cube_adds_no_unresolved_cell_mass() {
-        let report = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[10.0],
-                matrix: &[1.0],
-                hard_body_radius: 1.0,
-                covered_chart_boxes: &[],
-                cube_radius: 4.0,
-                max_cells: 8,
-                max_depth: 8,
-            },
-        )
+        let report = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[10.0],
+            matrix: &[1.0],
+            hard_body_radius: 1.0,
+            covered_chart_boxes: &[],
+            cube_radius: 4.0,
+            max_cells: 8,
+            max_depth: 8,
+        })
         .expect("valid residual-mass search");
 
-        let tail = standard_normal_cube_tail_probability_upper_bound(4.0, 1)
-            .expect("valid tail bound");
+        let tail =
+            standard_normal_cube_tail_probability_upper_bound(4.0, 1).expect("valid tail bound");
         assert_eq!(report.event_free_cells, 1);
         assert_eq!(report.unresolved_cells, 0);
         assert!(!report.budget_exhausted);
@@ -286,19 +274,16 @@ mod tests {
 
     #[test]
     fn partially_overlapping_chart_does_not_remove_whole_cell() {
-        let chart =
-            CoverageCell::new(vec![0.0], vec![0.5]).expect("valid chart box");
-        let report = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0],
-                matrix: &[1.0],
-                hard_body_radius: 0.25,
-                covered_chart_boxes: &[chart],
-                cube_radius: 4.0,
-                max_cells: 1,
-                max_depth: 8,
-            },
-        )
+        let chart = CoverageCell::new(vec![0.0], vec![0.5]).expect("valid chart box");
+        let report = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 0.25,
+            covered_chart_boxes: &[chart],
+            cube_radius: 4.0,
+            max_cells: 1,
+            max_depth: 8,
+        })
         .expect("valid residual-mass search");
 
         // The initial cell is not contained in the chart, so it remains
@@ -311,51 +296,44 @@ mod tests {
 
     #[test]
     fn rejects_zero_cell_budget() {
-        let result = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0],
-                matrix: &[1.0],
-                hard_body_radius: 1.0,
-                covered_chart_boxes: &[],
-                cube_radius: 2.0,
-                max_cells: 0,
-                max_depth: 4,
-            },
-        );
+        let result = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 1.0,
+            covered_chart_boxes: &[],
+            cube_radius: 2.0,
+            max_cells: 0,
+            max_depth: 4,
+        });
         assert_eq!(result, Err(KernelError::InvalidCoverageBudget));
     }
 
     #[test]
     fn rejects_chart_box_outside_search_cube() {
-        let chart =
-            CoverageCell::new(vec![-3.0], vec![-1.0]).expect("valid chart box");
-        let result = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0],
-                matrix: &[1.0],
-                hard_body_radius: 1.0,
-                covered_chart_boxes: &[chart],
-                cube_radius: 2.0,
-                max_cells: 16,
-                max_depth: 4,
-            },
-        );
+        let chart = CoverageCell::new(vec![-3.0], vec![-1.0]).expect("valid chart box");
+        let result = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 1.0,
+            covered_chart_boxes: &[chart],
+            cube_radius: 2.0,
+            max_cells: 16,
+            max_depth: 4,
+        });
         assert_eq!(result, Err(KernelError::CoverageChartOutsideDomain));
     }
 
     #[test]
     fn rejects_affine_dimension_mismatch_before_search() {
-        let result = affine_collision_residual_mass_upper_bound(
-            &AffineResidualMassConfig {
-                offset: &[0.0, 0.0],
-                matrix: &[1.0],
-                hard_body_radius: 1.0,
-                covered_chart_boxes: &[],
-                cube_radius: 2.0,
-                max_cells: 16,
-                max_depth: 4,
-            },
-        );
+        let result = affine_collision_residual_mass_upper_bound(&AffineResidualMassConfig {
+            offset: &[0.0, 0.0],
+            matrix: &[1.0],
+            hard_body_radius: 1.0,
+            covered_chart_boxes: &[],
+            cube_radius: 2.0,
+            max_cells: 16,
+            max_depth: 4,
+        });
         assert_eq!(result, Err(KernelError::InvalidMatrixLength));
     }
 }
