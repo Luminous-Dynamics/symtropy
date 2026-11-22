@@ -609,6 +609,7 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             per_scenario.push(ScenarioRegret {
                 scenario_id: scenario.scenario_id.clone(),
                 world_id: scenario.world_id.clone(),
+                loss_model_id: scenario.loss_model_id.clone(),
                 loss,
                 joint_regret,
             });
