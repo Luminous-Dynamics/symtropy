@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/battery_resource_occupancy_v0_1.schema.json",
+  "title": "Exclusive battery service resource occupancy v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision_time_unix_ms",
+    "intervals"
+  ],
+  "properties": {
+    "decision_time_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "intervals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/interval"
+      }
+    }
+  },
+  "$defs": {
+    "evidenceEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "resourceKind": {
+      "type": "string",
+      "enum": [
+        "battery_pack",
+        "aircraft",
+        "carrier_slot",
+        "swap_bay",
+        "charger",
+        "charging_channel",
+        "rack",
+        "technician",
+        "mobile_service_unit"
+      ]
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occupancy_id",
+        "idempotency_key",
+        "operation_id",
+        "owner_id",
+        "resource_id",
+        "resource_configuration_digest",
+        "resource_kind",
+        "start_unix_ms",
+        "end_unix_ms",
+        "evidence"
+      ],
+      "properties": {
+        "occupancy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_kind": {
+          "$ref": "#/$defs/resourceKind"
+        },
+        "start_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        }
+      }
+    }
+  }
+}
