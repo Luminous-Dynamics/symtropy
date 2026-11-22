@@ -177,6 +177,7 @@ def turn(turn_id, index, previous_action, status, new_ids, work, sub, forecast, 
         "action_result_status": status,
         "action_result_digest_sha256": None if status == "INITIAL" else digest(f"action-result-{turn_id}"),
         "new_observation_ids": list(new_ids),
+        "external_feedback_events": [],
         "workload": work,
         "submission": sub,
         "action_forecast": forecast,
@@ -471,6 +472,110 @@ class EvidenceGainLedgerTests(unittest.TestCase):
     def test_initial_turn_cannot_claim_parent_or_action_result(self):
         doc = base_trajectory()
         doc["turns"][0]["action_result_digest_sha256"] = digest("unexpected")
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+
+    def test_user_feedback_is_separate_from_sensor_observation(self):
+        doc = base_trajectory()
+        first = doc["turns"][0]
+        forecast = first["action_forecast"]
+        action_row = {
+            "action_id": "ask-user",
+            "modality": "other",
+            "description": "Request user-simulator clarification",
+            "cost_units": 0.05,
+            "arrival_tick": 1,
+            "source_dependency_group": "user-simulator",
+            "information_gain_proxy": 0.02,
+        }
+        forecast["action_catalogue"].append(action_row)
+        forecast["forecasts"].append({
+            "action_id": "ask-user",
+            "estimated_gross_evsi": 0.2,
+            "lower_gross_evsi": 0.1,
+            "upper_gross_evsi": 0.3,
+        })
+        forecast["selected_action_id"] = "ask-user"
+        first["action_value_receipt"]["selected_action_id"] = "ask-user"
+        first["action_value_receipt"]["forecast_digest_sha256"] = canonical_digest(forecast)
+
+        second = doc["turns"][1]
+        second["preceding_action_id"] = "ask-user"
+        second["action_result_status"] = "DELIVERED"
+        second["workload"]["observation_catalog"] = []
+        second["new_observation_ids"] = []
+        second["submission"] = submission("head-1", abstain=True)
+        second["external_feedback_events"] = [{
+            "feedback_id": "feedback-001",
+            "source_role": "user_simulator",
+            "feedback_kind": "hint",
+            "delivered_tick": 1,
+            "content_sha256": digest("look closer at the left edge"),
+            "parent_transcript_head_sha256": digest("head-0"),
+        }]
+        result = evaluate_trajectory(doc)
+        self.assertEqual(result["external_feedback_event_count"], 1)
+        self.assertEqual(result["external_feedback_source_counts"], {"user_simulator": 1})
+        self.assertEqual(result["external_feedback_kind_counts"], {"hint": 1})
+        self.assertEqual(result["turns"][1]["new_observation_ids"], [])
+        self.assertEqual(result["turns"][1]["external_feedback_event_ids"], ["feedback-001"])
+        self.assertEqual(result["turns"][1]["transition_from_previous"]["new_observation_count"], 0)
+        self.assertEqual(result["newly_grounded_claim_count"], 0)
+
+    def test_feedback_must_bind_parent_transcript_head(self):
+        doc = base_trajectory()
+        feedback = {
+            "feedback_id": "feedback-001",
+            "source_role": "user_simulator",
+            "feedback_kind": "correction",
+            "delivered_tick": 1,
+            "content_sha256": digest("please reconsider"),
+            "parent_transcript_head_sha256": digest("wrong-head"),
+        }
+        doc["turns"][1]["external_feedback_events"] = [feedback]
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_feedback_cannot_arrive_before_prior_decision(self):
+        doc = base_trajectory()
+        doc["turns"][1]["external_feedback_events"] = [{
+            "feedback_id": "feedback-001",
+            "source_role": "user_simulator",
+            "feedback_kind": "hint",
+            "delivered_tick": 0,
+            "content_sha256": digest("hint"),
+            "parent_transcript_head_sha256": digest("head-0"),
+        }]
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_failed_action_cannot_deliver_feedback(self):
+        doc = base_trajectory(second_turn_status="FAILED")
+        doc["turns"][1]["workload"]["observation_catalog"] = []
+        doc["turns"][1]["new_observation_ids"] = []
+        doc["turns"][1]["submission"] = submission("head-1", abstain=True)
+        doc["turns"][1]["external_feedback_events"] = [{
+            "feedback_id": "feedback-001",
+            "source_role": "user_simulator",
+            "feedback_kind": "hint",
+            "delivered_tick": 1,
+            "content_sha256": digest("hint"),
+            "parent_transcript_head_sha256": digest("head-0"),
+        }]
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_feedback_is_not_accepted_on_initial_turn(self):
+        doc = base_trajectory()
+        doc["turns"][0]["external_feedback_events"] = [{
+            "feedback_id": "feedback-001",
+            "source_role": "human_user",
+            "feedback_kind": "hint",
+            "delivered_tick": 0,
+            "content_sha256": digest("hint"),
+            "parent_transcript_head_sha256": digest("head-0"),
+        }]
         with self.assertRaises(EvidenceGainError):
             evaluate_trajectory(doc)
 
