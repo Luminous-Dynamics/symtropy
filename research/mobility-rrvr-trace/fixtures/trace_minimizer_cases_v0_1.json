@@ -160,6 +160,22 @@
       "expected": "hold",
       "native_sink_calls": 0,
       "authority_capabilities": []
+    },
+    {
+      "case_id": "TRC-021",
+      "class": "negative",
+      "mutation": "event_raw_artifact_reference_missing_or_duplicate",
+      "expected": "hold",
+      "native_sink_calls": 0,
+      "authority_capabilities": []
+    },
+    {
+      "case_id": "TRC-022",
+      "class": "positive",
+      "mutation": "incomparable_clock_domains_are_retained_without_cross_clock_ordering",
+      "expected": "preserved_exact_failure",
+      "native_sink_calls": 0,
+      "authority_capabilities": []
     }
   ]
 }
