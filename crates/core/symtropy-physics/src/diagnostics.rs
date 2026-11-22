@@ -306,5 +306,4 @@ mod tests {
         assert_eq!(stats.epa_calls, 0);
         assert_eq!(stats.contact_manifolds, 0);
     }
-
 }
