@@ -270,33 +270,87 @@ pub struct QualifiedClockCalibrationReceipt {
 }
 
 impl QualifiedClockCalibrationReceipt {
-    pub fn result_id(&self) -> &str { &self.result_id }
-    pub fn observation_id(&self) -> &str { &self.observation_id }
-    pub fn source_id(&self) -> &str { &self.source_id }
-    pub fn source_event_id(&self) -> &str { &self.source_event_id }
-    pub fn source_event_revision(&self) -> u32 { self.source_event_revision }
-    pub fn clock_id(&self) -> &str { &self.clock_id }
-    pub fn clock_profile_id(&self) -> &str { &self.clock_profile_id }
-    pub fn firmware_id(&self) -> &str { &self.firmware_id }
-    pub fn measurand_id(&self) -> &str { &self.measurand_id }
-    pub fn time_basis_id(&self) -> &str { &self.time_basis_id }
-    pub fn terminal_reference_id(&self) -> &str { &self.terminal_reference_id }
-    pub fn event_time_ticks(&self) -> i64 { self.event_time_ticks }
-    pub fn observation_time_ticks(&self) -> i64 { self.observation_time_ticks }
-    pub fn synchronization_method(&self) -> &str { &self.synchronization_method }
-    pub fn applicable_from_ticks(&self) -> i64 { self.applicable_from_ticks }
-    pub fn applicable_until_ticks(&self) -> i64 { self.applicable_until_ticks }
-    pub fn measured_offset_ticks(&self) -> i64 { self.measured_offset_ticks }
-    pub fn uncertainty_contributions(&self) -> &[UncertaintyContribution] { &self.uncertainty_contributions }
-    pub fn maximum_total_error_ticks(&self) -> u64 { self.maximum_total_error_ticks }
-    pub fn calibration_artifact_digests(&self) -> &[String] { &self.calibration_artifact_digests }
-    pub fn verifier_id(&self) -> &str { &self.verifier_id }
-    pub fn verifier_version(&self) -> &str { &self.verifier_version }
-    pub fn trust_store_id(&self) -> &str { &self.trust_store_id }
-    pub fn trust_store_version(&self) -> &str { &self.trust_store_version }
-    pub fn policy_id(&self) -> &str { &self.policy_id }
-    pub fn policy_version(&self) -> &str { &self.policy_version }
-    pub fn decision_as_of_utc_seconds(&self) -> i64 { self.decision_as_of_utc_seconds }
+    pub fn result_id(&self) -> &str {
+        &self.result_id
+    }
+    pub fn observation_id(&self) -> &str {
+        &self.observation_id
+    }
+    pub fn source_id(&self) -> &str {
+        &self.source_id
+    }
+    pub fn source_event_id(&self) -> &str {
+        &self.source_event_id
+    }
+    pub fn source_event_revision(&self) -> u32 {
+        self.source_event_revision
+    }
+    pub fn clock_id(&self) -> &str {
+        &self.clock_id
+    }
+    pub fn clock_profile_id(&self) -> &str {
+        &self.clock_profile_id
+    }
+    pub fn firmware_id(&self) -> &str {
+        &self.firmware_id
+    }
+    pub fn measurand_id(&self) -> &str {
+        &self.measurand_id
+    }
+    pub fn time_basis_id(&self) -> &str {
+        &self.time_basis_id
+    }
+    pub fn terminal_reference_id(&self) -> &str {
+        &self.terminal_reference_id
+    }
+    pub fn event_time_ticks(&self) -> i64 {
+        self.event_time_ticks
+    }
+    pub fn observation_time_ticks(&self) -> i64 {
+        self.observation_time_ticks
+    }
+    pub fn synchronization_method(&self) -> &str {
+        &self.synchronization_method
+    }
+    pub fn applicable_from_ticks(&self) -> i64 {
+        self.applicable_from_ticks
+    }
+    pub fn applicable_until_ticks(&self) -> i64 {
+        self.applicable_until_ticks
+    }
+    pub fn measured_offset_ticks(&self) -> i64 {
+        self.measured_offset_ticks
+    }
+    pub fn uncertainty_contributions(&self) -> &[UncertaintyContribution] {
+        &self.uncertainty_contributions
+    }
+    pub fn maximum_total_error_ticks(&self) -> u64 {
+        self.maximum_total_error_ticks
+    }
+    pub fn calibration_artifact_digests(&self) -> &[String] {
+        &self.calibration_artifact_digests
+    }
+    pub fn verifier_id(&self) -> &str {
+        &self.verifier_id
+    }
+    pub fn verifier_version(&self) -> &str {
+        &self.verifier_version
+    }
+    pub fn trust_store_id(&self) -> &str {
+        &self.trust_store_id
+    }
+    pub fn trust_store_version(&self) -> &str {
+        &self.trust_store_version
+    }
+    pub fn policy_id(&self) -> &str {
+        &self.policy_id
+    }
+    pub fn policy_version(&self) -> &str {
+        &self.policy_version
+    }
+    pub fn decision_as_of_utc_seconds(&self) -> i64 {
+        self.decision_as_of_utc_seconds
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -434,7 +488,10 @@ fn check_artifact_evidence(
         (&verifier.signer_fingerprint, "signer_fingerprint"),
         (&verifier.trust_anchor_id, "trust_anchor_id"),
         (&verifier.signature_algorithm, "signature_algorithm"),
-        (&verifier.signature_time_source_id, "signature_time_source_id"),
+        (
+            &verifier.signature_time_source_id,
+            "signature_time_source_id",
+        ),
         (&verifier.verifier_id, "verifier_id"),
         (&verifier.verifier_version, "verifier_version"),
         (&verifier.trust_store_id, "trust_store_id"),
@@ -462,7 +519,10 @@ fn check_artifact_evidence(
     {
         return ArtifactCheck::Rejected(ClockAttestationReason::VerifierPolicyMismatch);
     }
-    if !policy.trusted_anchor_ids.contains(&verifier.trust_anchor_id) {
+    if !policy
+        .trusted_anchor_ids
+        .contains(&verifier.trust_anchor_id)
+    {
         return ArtifactCheck::Rejected(ClockAttestationReason::UntrustedTrustAnchor);
     }
     if !policy
@@ -471,21 +531,15 @@ fn check_artifact_evidence(
     {
         return ArtifactCheck::Rejected(ClockAttestationReason::DisallowedSignatureAlgorithm);
     }
-    if verifier.signer_certificate_not_before_utc_seconds
-        > verifier.signature_time_utc_seconds
-        || verifier.signature_time_utc_seconds
-            > verifier.signer_certificate_not_after_utc_seconds
+    if verifier.signer_certificate_not_before_utc_seconds > verifier.signature_time_utc_seconds
+        || verifier.signature_time_utc_seconds > verifier.signer_certificate_not_after_utc_seconds
         || verifier.signer_certificate_not_before_utc_seconds
             > verifier.signer_certificate_not_after_utc_seconds
     {
-        return ArtifactCheck::Rejected(
-            ClockAttestationReason::SignerCertificateOutsideValidity,
-        );
+        return ArtifactCheck::Rejected(ClockAttestationReason::SignerCertificateOutsideValidity);
     }
     if !verifier.key_usage.contains(&policy.required_key_usage) {
-        return ArtifactCheck::Rejected(
-            ClockAttestationReason::MissingDocumentSigningKeyUsage,
-        );
+        return ArtifactCheck::Rejected(ClockAttestationReason::MissingDocumentSigningKeyUsage);
     }
 
     match verifier.signature_status {
@@ -571,7 +625,10 @@ pub fn attest_clock_for_event(
         (&expected.firmware_id, "expected.firmware_id"),
         (&expected.measurand_id, "expected.measurand_id"),
         (&expected.time_basis_id, "expected.time_basis_id"),
-        (&expected.terminal_reference_id, "expected.terminal_reference_id"),
+        (
+            &expected.terminal_reference_id,
+            "expected.terminal_reference_id",
+        ),
         (&policy.policy_id, "policy.policy_id"),
         (&policy.policy_version, "policy.policy_version"),
         (&policy.verifier_id, "policy.verifier_id"),
@@ -587,12 +644,8 @@ pub fn attest_clock_for_event(
         }
     }
 
-    if calibration.clock_id != expected.clock_id
-        || observation.clock_id != expected.clock_id
-    {
-        return ClockAttestationDecision::rejected(
-            ClockAttestationReason::ClockIdentityMismatch,
-        );
+    if calibration.clock_id != expected.clock_id || observation.clock_id != expected.clock_id {
+        return ClockAttestationDecision::rejected(ClockAttestationReason::ClockIdentityMismatch);
     }
     if calibration.clock_profile_id != expected.clock_profile_id
         || observation.clock_profile_id != expected.clock_profile_id
@@ -654,9 +707,9 @@ pub fn attest_clock_for_event(
         || !valid_text(&observation.source_event_id)
         || !valid_text(&observation.synchronization_method)
     {
-        return ClockAttestationDecision::unknown(
-            ClockAttestationReason::MissingRequiredField("measurement provenance"),
-        );
+        return ClockAttestationDecision::unknown(ClockAttestationReason::MissingRequiredField(
+            "measurement provenance",
+        ));
     }
 
     let event_time = observation.event_time_ticks;
@@ -674,14 +727,12 @@ pub fn attest_clock_for_event(
         }
     };
     let Some(maximum_observation_age) = observation.maximum_observation_age_ticks else {
-        return ClockAttestationDecision::unknown(
-            ClockAttestationReason::MissingUncertaintyBound("maximum observation age"),
-        );
+        return ClockAttestationDecision::unknown(ClockAttestationReason::MissingUncertaintyBound(
+            "maximum observation age",
+        ));
     };
     if observation_age > i64::try_from(maximum_observation_age).unwrap_or(i64::MAX) {
-        return ClockAttestationDecision::unknown(
-            ClockAttestationReason::ClockObservationTooOld,
-        );
+        return ClockAttestationDecision::unknown(ClockAttestationReason::ClockObservationTooOld);
     }
 
     if calibration.calibrated_at_ticks > event_time
@@ -695,9 +746,7 @@ pub fn attest_clock_for_event(
     }
 
     if calibration.traceability_links.is_empty() {
-        return ClockAttestationDecision::unknown(
-            ClockAttestationReason::EmptyTraceabilityChain,
-        );
+        return ClockAttestationDecision::unknown(ClockAttestationReason::EmptyTraceabilityChain);
     }
 
     if calibration.traceability_links[0].calibrated_subject_id
@@ -707,9 +756,7 @@ pub fn attest_clock_for_event(
             .last()
             .is_none_or(|link| link.reference_standard_id != calibration.terminal_reference_id)
     {
-        return ClockAttestationDecision::rejected(
-            ClockAttestationReason::BrokenTraceabilityChain,
-        );
+        return ClockAttestationDecision::rejected(ClockAttestationReason::BrokenTraceabilityChain);
     }
 
     let mut traceability_uncertainty_ticks = 0_u64;
@@ -718,10 +765,16 @@ pub fn attest_clock_for_event(
             (&link.link_id, "traceability.link_id"),
             (&link.calibrated_subject_id, "traceability.subject"),
             (&link.reference_standard_id, "traceability.reference"),
-            (&link.measurement_result_id, "traceability.measurement_result_id"),
+            (
+                &link.measurement_result_id,
+                "traceability.measurement_result_id",
+            ),
             (&link.measurand_id, "traceability.measurand_id"),
             (&link.time_basis_id, "traceability.time_basis_id"),
-            (&link.uncertainty_model_id, "traceability.uncertainty_model_id"),
+            (
+                &link.uncertainty_model_id,
+                "traceability.uncertainty_model_id",
+            ),
         ] {
             if !valid_text(value) {
                 return ClockAttestationDecision::unknown(
@@ -760,26 +813,22 @@ pub fn attest_clock_for_event(
             );
         };
         let Some(total) = traceability_uncertainty_ticks.checked_add(uncertainty) else {
-            return ClockAttestationDecision::rejected(
-                ClockAttestationReason::UncertaintyOverflow,
-            );
+            return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
         };
         traceability_uncertainty_ticks = total;
     }
 
     let Some(measurement_uncertainty_ticks) = calibration.measurement_uncertainty_bound_ticks
     else {
-        return ClockAttestationDecision::unknown(
-            ClockAttestationReason::MissingUncertaintyBound("measurement result"),
-        );
+        return ClockAttestationDecision::unknown(ClockAttestationReason::MissingUncertaintyBound(
+            "measurement result",
+        ));
     };
 
     if observation.last_sync_ticks > observation.observation_time_ticks
         || observation.last_sync_ticks > event_time
     {
-        return ClockAttestationDecision::rejected(
-            ClockAttestationReason::SyncEvidenceAfterEvent,
-        );
+        return ClockAttestationDecision::rejected(ClockAttestationReason::SyncEvidenceAfterEvent);
     }
     let sync_age = match event_time.checked_sub(observation.last_sync_ticks) {
         Some(age) => age,
@@ -819,13 +868,21 @@ pub fn attest_clock_for_event(
             return ClockAttestationDecision::rejected(ClockAttestationReason::ClockAlarmed);
         }
         ClockSyncState::Unknown => {
-            return ClockAttestationDecision::unknown(ClockAttestationReason::ClockSyncStateUnknown);
+            return ClockAttestationDecision::unknown(
+                ClockAttestationReason::ClockSyncStateUnknown,
+            );
         }
     }
 
     let use_components = [
-        ("maximum_offset_error", observation.maximum_offset_error_ticks),
-        ("holdover_drift_error", observation.holdover_drift_error_ticks),
+        (
+            "maximum_offset_error",
+            observation.maximum_offset_error_ticks,
+        ),
+        (
+            "holdover_drift_error",
+            observation.holdover_drift_error_ticks,
+        ),
         ("capture_path_error", observation.capture_path_error_ticks),
         ("rounding_error", observation.rounding_error_ticks),
     ];
@@ -847,9 +904,7 @@ pub fn attest_clock_for_event(
             );
         };
         let Some(total) = operational_error_ticks.checked_add(value) else {
-            return ClockAttestationDecision::rejected(
-                ClockAttestationReason::UncertaintyOverflow,
-            );
+            return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
         };
         operational_error_ticks = total;
         contributions.push(UncertaintyContribution {
@@ -879,29 +934,29 @@ pub fn attest_clock_for_event(
     let Some(latest) = event_time.checked_add(radius) else {
         return ClockAttestationDecision::rejected(ClockAttestationReason::UncertaintyOverflow);
     };
-    let applicable_from_ticks = calibration.traceability_links.iter().fold(
-        calibration.valid_from_ticks,
-        |current, link| current.max(link.valid_from_ticks),
-    );
-    let applicable_until_ticks = calibration.traceability_links.iter().fold(
-        calibration.valid_until_ticks,
-        |current, link| current.min(link.valid_until_ticks),
-    );
+    let applicable_from_ticks = calibration
+        .traceability_links
+        .iter()
+        .fold(calibration.valid_from_ticks, |current, link| {
+            current.max(link.valid_from_ticks)
+        });
+    let applicable_until_ticks = calibration
+        .traceability_links
+        .iter()
+        .fold(calibration.valid_until_ticks, |current, link| {
+            current.min(link.valid_until_ticks)
+        });
     if earliest < applicable_from_ticks || latest > applicable_until_ticks {
         return ClockAttestationDecision::rejected(
             ClockAttestationReason::UncertaintyIntervalOutsideValidity,
         );
     }
 
-    let artifact_digests = match verify_all_artifacts(
-        calibration,
-        observation,
-        policy,
-        decision_as_of_utc_seconds,
-    ) {
-        Ok(digests) => digests,
-        Err(decision) => return decision,
-    };
+    let artifact_digests =
+        match verify_all_artifacts(calibration, observation, policy, decision_as_of_utc_seconds) {
+            Ok(digests) => digests,
+            Err(decision) => return decision,
+        };
 
     ClockAttestationDecision::accepted(QualifiedClockCalibrationReceipt {
         result_id: calibration.result_id.clone(),
@@ -1089,13 +1144,7 @@ mod tests {
         calibration: &CalibrationMeasurementResult,
         observation: &ClockUseObservation,
     ) -> ClockAttestationDecision {
-        attest_clock_for_event(
-            calibration,
-            observation,
-            &expected(),
-            &policy(),
-            1_000,
-        )
+        attest_clock_for_event(calibration, observation, &expected(), &policy(), 1_000)
     }
 
     #[test]
@@ -1159,7 +1208,10 @@ mod tests {
     #[test]
     fn valid_clock_result_and_unbroken_chain_are_accepted_for_declared_scope() {
         let decision = evaluate(&calibration_fixture(), &observation_fixture());
-        assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
+        assert_eq!(
+            decision.status,
+            ClockAttestationStatus::AcceptedForDeclaredScope
+        );
         let receipt = decision.receipt.unwrap();
         assert_eq!(receipt.maximum_total_error_ticks(), 24);
         assert_eq!(receipt.calibration_artifact_digests().len(), 4);
@@ -1203,7 +1255,10 @@ mod tests {
             link.uncertainty_bound_ticks = Some(0);
         }
         let decision = evaluate(&calibration, &observation_fixture());
-        assert_eq!(decision.status, ClockAttestationStatus::AcceptedForDeclaredScope);
+        assert_eq!(
+            decision.status,
+            ClockAttestationStatus::AcceptedForDeclaredScope
+        );
         assert_eq!(decision.receipt.unwrap().maximum_total_error_ticks(), 9);
     }
 
@@ -1289,7 +1344,10 @@ mod tests {
     #[test]
     fn signer_certificate_must_be_valid_at_trusted_signing_time() {
         let mut calibration = calibration_fixture();
-        calibration.artifact_evidence.verifier.signature_time_utc_seconds = 1_600;
+        calibration
+            .artifact_evidence
+            .verifier
+            .signature_time_utc_seconds = 1_600;
         assert_eq!(
             evaluate(&calibration, &observation_fixture()).reason,
             Some(ClockAttestationReason::SignerCertificateOutsideValidity)
