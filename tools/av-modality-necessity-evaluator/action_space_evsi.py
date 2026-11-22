@@ -94,7 +94,7 @@ def evaluate(
         if prediction.get("transcript_head_sha256") != episode.get("transcript_head_sha256"):
             raise EvaluationError(f"{episode_id}: stale or mismatched transcript head")
         forecast_tick = prediction.get("forecast_tick")
-        if isinstance(forecast_tick, bool) or forecast_tick != current_tick:
+        if isinstance(forecast_tick, bool) or not isinstance(forecast_tick, int) or forecast_tick != current_tick:
             raise EvaluationError(f"{episode_id}: forecast must be committed at the current transcript tick")
         if forecast_tick > deadline_tick:
             raise EvaluationError(f"{episode_id}: forecast is after deadline")
@@ -132,6 +132,16 @@ def evaluate(
             actual_gross = float(outcome["expected_gross_evsi"])
             if actual_gross < 0:
                 raise EvaluationError(f"{episode_id}/{action_id}: gross EVSI cannot be negative")
+            true_lower = outcome.get("lower_gross_evsi")
+            true_upper = outcome.get("upper_gross_evsi")
+            if (
+                not finite_number(true_lower)
+                or not finite_number(true_upper)
+                or float(true_lower) > actual_gross
+                or actual_gross > float(true_upper)
+                or float(true_lower) > float(true_upper)
+            ):
+                raise EvaluationError(f"{episode_id}/{action_id}: invalid evaluator EVSI interval")
             predicted = forecast_rows[action_id]
             estimate = predicted.get("estimated_gross_evsi")
             lower = predicted.get("lower_gross_evsi")
@@ -182,7 +192,7 @@ def evaluate(
         best_value = max(true_net[action_id] for action_id in eligible_ids)
         best_ids = sorted(action_id for action_id in eligible_ids if abs(true_net[action_id] - best_value) <= 1e-12)
         selected_id = prediction.get("selected_action_id")
-        if selected_id not in expected_ids:
+        if not isinstance(selected_id, str) or selected_id not in expected_ids:
             raise EvaluationError(f"{episode_id}: selected action is not in the catalogue or stop set")
         if not feasible[selected_id]:
             raise EvaluationError(f"{episode_id}: selected action is deadline- or budget-infeasible")
