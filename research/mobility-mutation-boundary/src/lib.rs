@@ -787,4 +787,76 @@ pub use history::{
         );
     }
 
+    #[test]
+    fn recovery_permit_must_match_failed_attempt_and_current_authority_epoch() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::RejectedNoEffect
+            })
+            .unwrap();
+        let wrong_attempt = RecoveryPermitReference {
+            permit_id: "permit-wrong".to_owned(),
+            failed_attempt_key: "attempt-other".to_owned(),
+            plan_digest: [9; 32],
+            authority_epoch: 3,
+        };
+        assert_eq!(
+            boundary.resolve_pending_action(
+                "attempt-1",
+                QualifiedOutcomeResolution::NoEffect,
+                Some(live("attempt-2", 8, 4)),
+                Some(&wrong_attempt),
+            ),
+            Err(Rejection::RecoveryPermitMismatch)
+        );
+    }
+
+    #[test]
+    fn recovery_permit_identity_is_consumed_once() {
+        let boundary = ApplicationBoundary::new(live("attempt-1", 7, 3));
+        boundary
+            .apply(&ticket("attempt-1"), &now(150), |_| {
+                NativeApplicationResult::RejectedNoEffect
+            })
+            .unwrap();
+        let permit_one = RecoveryPermitReference {
+            permit_id: "permit-reuse".to_owned(),
+            failed_attempt_key: "attempt-1".to_owned(),
+            plan_digest: [9; 32],
+            authority_epoch: 3,
+        };
+        boundary
+            .resolve_pending_action(
+                "attempt-1",
+                QualifiedOutcomeResolution::NoEffect,
+                Some(live("attempt-2", 8, 4)),
+                Some(&permit_one),
+            )
+            .unwrap();
+
+        let mut second_ticket = ticket("attempt-2");
+        second_ticket.ticket_id = "ticket-18".to_owned();
+        second_ticket.binding = binding(8, 4);
+        boundary
+            .apply(&second_ticket, &now(151), |_| NativeApplicationResult::RejectedNoEffect)
+            .unwrap();
+
+        let reused_identity = RecoveryPermitReference {
+            permit_id: "permit-reuse".to_owned(),
+            failed_attempt_key: "attempt-2".to_owned(),
+            plan_digest: [10; 32],
+            authority_epoch: 4,
+        };
+        assert_eq!(
+            boundary.resolve_pending_action(
+                "attempt-2",
+                QualifiedOutcomeResolution::NoEffect,
+                Some(live("attempt-3", 9, 5)),
+                Some(&reused_identity),
+            ),
+            Err(Rejection::RecoveryPermitReplay)
+        );
+    }
+
 };
