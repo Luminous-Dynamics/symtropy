@@ -1942,6 +1942,37 @@
         "reason": "Integrated system/control demonstration; robot mass, tethered power boundary, support conditions and bare-thruster force/power definitions differ.",
         "allowed_comparison": "same-class integrated microrobot control and payload/trajectory demonstrations under matched support and power conditions"
       }
+    },
+    {
+      "source_id": "POEPPE_2026_PIV_LPT_IWT_DIAGNOSTICS",
+      "title": "Ionic Thruster Diagnostics By Means Of PIV And LPT",
+      "citation": "Pöppe, Rich and Kriegseis, 22nd International Symposium on the Application of Laser and Imaging Techniques to Fluid Mechanics (LXLASER 2026), Lisbon, 2026-06-29 to 2026-07-02",
+      "institutional_record": "https://publikationen.bibliothek.kit.edu/1000197349",
+      "publication_type": "conference_presentation_abstract",
+      "measurement_methods": [
+        "planar_PIV",
+        "Lagrangian_particle_tracking_Shake_the_Box_4_pulse"
+      ],
+      "tested_configurations": [
+        "wire_to_airfoil",
+        "wire_to_grid"
+      ],
+      "reported_method_contributions": {
+        "piv": "high-resolution near-wall velocity fields over a large area; integral momentum equation used to infer thrust when velocity fluctuations are accounted for",
+        "lpt": "material acceleration along particle trajectories permits a differential Navier-Stokes momentum approach",
+        "cross_validation": "LPT velocity fields reported to agree with PIV velocity fields",
+        "physical_interpretation": "wire-to-grid LPT acceleration fields show channel-like acceleration regions in the drift zone and indicate a major pressure-gradient contribution to thrust generation",
+        "limitations": [
+          "optical access and glare affect the wire-to-airfoil configuration",
+          "conference abstract is not a full raw-data or uncertainty package",
+          "do not treat the reported acceleration pattern as a fully validated volumetric force map"
+        ]
+      },
+      "comparability": {
+        "separate_from_PIVPostProcess": true,
+        "direct_thrust_leaderboard_eligible": false,
+        "notes": "Use as a contemporary EHD-specific multimodal measurement and cross-validation reference. PIV and LPT velocity agreement is not automatically an independent uncertainty estimate if they share tracer/acquisition sources; preserve acquisition and processing provenance."
+      }
     }
   ],
   "solver_reference_cases": [
@@ -2291,6 +2322,41 @@
           "Do not compare MAE or MSE without the same units, scaling and targets",
           "Do not infer thrust or conservation from airflow regression metrics alone",
           "Do not treat the source-reported unseen operating points as geometry-family holdout without evidence"
+        ]
+      },
+      {
+        "track_id": "PIV_UQ_AND_CROSS_DIAGNOSTIC",
+        "question": "Can the PIV measurement pipeline identify invalid vectors, quantify velocity uncertainty, preserve physical structures and agree with an alternative Lagrangian/force diagnostic on matched EHD conditions?",
+        "candidates": [
+          "PIVPOSTPROCESS_2026",
+          "POEPPE_2026_PIV_LPT_IWT_DIAGNOSTICS"
+        ],
+        "primary_observables": [
+          "per_vector_validity_probability",
+          "per_vector_velocity_uncertainty",
+          "regional_95_percent_interval_coverage",
+          "invalid_vector_false_removal_rate",
+          "PIV_LPT_velocity_residual",
+          "PIV_integral_momentum_thrust",
+          "LPT_material_acceleration_field",
+          "direct_force_balance"
+        ],
+        "match_controls": [
+          "same physical operating condition and coordinate frame",
+          "retain raw images, vector fields, masks and processing versions",
+          "stratify coverage and error by bulk, near-wall, shear-layer and wake regions",
+          "hold out complete geometry, pressure, tracer and experimental sessions",
+          "record whether PIV and LPT share source images, seeding and illumination",
+          "compare against independently calibrated Pitot/hot-wire/load-cell references where applicable",
+          "propagate vector uncertainty through all-surface momentum and material-acceleration reductions"
+        ],
+        "prohibitions": [
+          "Do not treat expert manual vector labels as independent physical velocity truth",
+          "Do not use a random vector-level split as a substitute for unseen geometry/session validation",
+          "Do not equate F1 with calibrated velocity uncertainty",
+          "Do not remove low-confidence vectors without reporting valid-vector false-removal and structure-preservation effects",
+          "Do not infer thrust from an acceleration map without pressure gradient, density, viscous, body-force and uncertainty terms",
+          "Do not claim independent PIV/LPT confirmation when their acquisition errors are shared or unquantified"
         ]
       }
     ],
