@@ -944,7 +944,7 @@ mod tests {
         let rotated_static = RigidBody::<3>::new(
             BodyHandle(0),
             BodyType::Static,
-            Transform::from_translation(Point::new(rotation.rotate_vector(&SVector::zeros()))),
+            Transform::from_translation(Point::new(rotation.rotate_vector(&SVector::<f64, 3>::zeros()).into())),
             Box::new(Sphere::new(Point::origin(), 0.5)),
             0.0,
             SVector::zeros(),
@@ -1245,7 +1245,7 @@ mod tests {
         };
         let rotated = assemble_contact_wrench_delassus(&bodies, &[rotated_row], 1e-12).unwrap();
         assert!(
-            (&rotated - reference).norm() < 1e-10,
+            (&rotated - reference.clone()).norm() < 1e-10,
             "global rotation changed contact-wrench metric by {}",
             (&rotated - reference).norm()
         );
@@ -1435,6 +1435,7 @@ mod tests {
 
     #[test]
     fn delassus_reference_rejects_body_inertia_mass_mismatch() {
+        use nalgebra::SMatrix;
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
             BivectorInertia::<3>::uniform_solid_ellipsoid(
