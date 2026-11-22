@@ -75,3 +75,9 @@ The verifier checks that the referenced records are the latest visible, non-void
 The general `evaluate_with_handoff_correlations` API requires additional `EventTimeBinding` values for the exact source-event revisions. It rejects any order other than `ProvenBefore`: both event-time intervals must be qualified, strictly disjoint, and use the same normalized time basis. Overlap, touching, estimate-only or incomparable time bases refuse the handoff. The separate `evaluate_with_synthetic_handoff_correlations` API is for dimensionless P0 fixtures only; it checks increasing fixture ticks but does not make a real-world chronology claim.
 
 The correlation evidence reference and clock calibration references remain opaque and are not authenticated here. The receipt proves only that an explicit mapping and time-qualification claim was supplied and that its declared fields satisfy the technical contract. It does not prove issuer authority, calibration truth, or physical transfer truth.
+
+## Whole-chain temporal proof gate (P1)
+
+The general `evaluate_with_handoff_correlations` API is the P1 path: it requires exact source event/revision bindings for every effective ACTUAL event on each box, each with a clock-profile-derived qualified enclosure. Every pair of actual events in the same box chain must be strictly ordered on a common normalized time basis. Overlap/touching, estimates or incomparable bases stop evaluation. Only after this complete chain order is proven does the evaluator assign internal ordinal ticks to a cloned event tape for the existing state machine. Input source events and raw source timestamps are unchanged.
+
+`evaluate_with_synthetic_handoff_correlations` is explicitly P0-only and uses dimensionless fixture ticks. `evaluate_with_paired_handoff_time_evidence` validates one release/accept pair only and is not the whole-chain P1 evaluator.
