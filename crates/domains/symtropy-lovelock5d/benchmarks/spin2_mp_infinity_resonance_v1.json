@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_infinity_resonance_compatibility",
+  "status": "exact_alpha_zero_bounded_infinity_resonance_compatible",
+  "conventions": {
+    "dimension": 5,
+    "alpha": "0",
+    "r_H": "1",
+    "coordinate": "x=1/r",
+    "logarithmic_radius": "tau=log(r)",
+    "state": [
+      "Bhat2",
+      "r*Bhat2_prime",
+      "Hhat2",
+      "r*Hhat2_prime"
+    ],
+    "equation": "-x*dV/dx=A(x)*V+g(x)",
+    "power_law": "V proportional to r^sigma = x^(-sigma)"
+  },
+  "A_coefficients": [
+    [
+      [
+        "0",
+        "1",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "-2",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "1"
+      ],
+      [
+        "0",
+        "0",
+        "8",
+        "2"
+      ]
+    ],
+    [
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ]
+    ],
+    [
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "12",
+        "-2"
+      ]
+    ]
+  ],
+  "g_coefficients": [
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  ],
+  "leading_spectrum": {
+    "eigenvalues": {
+      "0": 1,
+      "4": 1,
+      "-2": 2
+    },
+    "decaying_eigenvectors": [
+      [
+        "1",
+        "-2",
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0",
+        "1",
+        "-2"
+      ]
+    ],
+    "constant_eigenvector": [
+      "1",
+      "0",
+      "0",
+      "0"
+    ],
+    "growing_eigenvector": [
+      "0",
+      "0",
+      "1",
+      "4"
+    ],
+    "characteristic_polynomial": "sigma*(sigma-4)*(sigma+2)^2"
+  },
+  "bounded_branch_recurrence": {
+    "v0": "c*(1,0,0,0)",
+    "n0_compatibility": "A0*v0+g0=0",
+    "n1_matrix": "-I-A0",
+    "n1_determinant": "-5",
+    "n1_rhs": "A1*v0+g1=0",
+    "v1": [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    "n2_matrix": "-2*I-A0",
+    "n2_matrix_rank": 2,
+    "n2_matrix_nullity": 2,
+    "n2_rhs": "A1*v1+A2*v0+g2=0",
+    "n2_compatibility": "A2*(1,0,0,0)+g2=0",
+    "n2_free_coefficients": [
+      "amplitude of (1,-2,0,0): Bhat2 r^-2 mode",
+      "amplitude of (0,0,1,-2): Hhat2 r^-2 mode"
+    ],
+    "forced_log_at_n2": false,
+    "bounded_local_dimension": 3,
+    "after_constant_B_normalization_dimension": 2
+  },
+  "controls": {
+    "A2_annihilates_constant_B_mode": true,
+    "g2_zero": true,
+    "bounded_n2_resonance_compatible": true,
+    "decaying_modes_independent": true,
+    "growing_r4_mode_identified": true,
+    "exact_myers_perry_full_log_radius_evolution_checked_locally": true
+  },
+  "interpretation": {
+    "asymptotic_flatness": "The constant Bhat2 mode is a candidate normalization mode and the r^4 mode is growing; both must be removed by the declared asymptotic boundary conditions.",
+    "remaining_modes": "After fixing the constant Bhat2 normalization and excluding the r^4 mode, two independent r^-2 asymptotic coefficients remain at leading order.",
+    "comparison_to_horizon": "The Einstein-limit horizon analytic germ has two free data. The infinity admissible germ has two decaying coefficients after normalization. This balanced count motivates a 2x2 global boundary-data map but does not establish its rank or invertibility.",
+    "limitation": "The full asymptotic recurrence beyond this resonant order, source/response conventions, global BVP map, finite-coupling spectrum and Fredholm index remain open."
+  },
+  "claim_ceiling": "Exact lambda=0 frozen-coefficient infinity matrix through x^2 and compatibility of the bounded-branch n=2 resonance. Not a complete asymptotic expansion, source/response theorem, global boundary-map rank, finite-coupling BVP or physical hyperbolicity result."
+}
