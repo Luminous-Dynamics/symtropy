@@ -671,6 +671,57 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_three_window_union_matches_independent_finite_oracle() {
+        let definition = definition(vec![
+            window("a", 10.0, 11.0),
+            window("b", 20.0, 21.0),
+            window("c", 30.0, 31.0),
+        ]);
+
+        for mask in 0_u32..8 {
+            let mut outcomes = Vec::new();
+            let mut oracle_first_time = None;
+            for (index, (id, contact_time)) in [
+                ("a", 10.5_f64),
+                ("b", 20.5_f64),
+                ("c", 30.5_f64),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                let is_contact = ((mask >> index) & 1) == 1;
+                let disposition = if is_contact {
+                    oracle_first_time = Some(
+                        oracle_first_time
+                            .map_or(contact_time, |current: f64| current.min(contact_time)),
+                    );
+                    PathWindowDisposition::DefinitelyContact {
+                        first_contact_time_lower_seconds: contact_time,
+                        first_contact_time_upper_seconds: contact_time,
+                    }
+                } else {
+                    PathWindowDisposition::DefinitelyNoContact
+                };
+                outcomes.push(outcome("trajectory-enumerated", id, disposition));
+            }
+
+            let result = definition
+                .classify_realization(&outcomes)
+                .expect("complete enumerated realization");
+            let expected = if mask == 0 {
+                HorizonContactDisposition::DefinitelyNoContact
+            } else {
+                HorizonContactDisposition::DefinitelyContact
+            };
+            assert_eq!(result.disposition, expected);
+            assert_eq!(
+                result.first_contact_time_bounds_seconds,
+                oracle_first_time.map(|time| (time, time))
+            );
+        }
+    }
+
+    #[test]
     fn invalid_definitions_fail_closed() {
         assert_eq!(
             HorizonEventDefinition::new(
