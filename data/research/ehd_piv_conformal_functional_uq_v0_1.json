@@ -191,8 +191,57 @@
     "crate": "tools/ehd-piv-conformal-functional-uq",
     "planar_conformal_tests": 10,
     "spatial_conformal_tests": 4,
-    "functional_tests": 10,
-    "total_authored_rust_tests": 24,
+    "field_functional_tests": 10,
+    "integrated_functional_conformal_tests": 7,
+    "total_authored_rust_tests": 31,
     "rust_execution": "not_run_no_local_rust_toolchain"
-  }
+  },
+  "integrated_functional_conformal_contract": {
+    "dimension": 4,
+    "output_order": [
+      "mass_flow_kg_s",
+      "advective_momentum_flux_x_N",
+      "advective_momentum_flux_y_N",
+      "advective_momentum_flux_z_N"
+    ],
+    "reference": "independent traceable reference functional values with unique evidence identities",
+    "score": "4D squared Mahalanobis residual, using covariance normalized to correlation matrix before Cholesky",
+    "cluster_score": "maximum score across all functional observations in one independent laboratory session",
+    "rank": "ceil((n_sessions + 1) * (1-alpha))",
+    "minimum_sessions_for_finite_95_percent_radius": 19,
+    "required_identities": [
+      "protocol_fingerprint",
+      "functional_contract_id",
+      "exchangeability_attestation_id",
+      "observation_id",
+      "reference_evidence_id"
+    ],
+    "implementation": {
+      "path": "tools/ehd-piv-conformal-functional-uq/src/functional_conformal.rs",
+      "function": "calibrate_functional_conformal",
+      "authored_rust_tests": 7
+    },
+    "limitations": [
+      "does_not_complete_missing_control_volume_terms",
+      "does_not_certify_thrust",
+      "reference_functionals_must_be_independent_and_traceable",
+      "exchangeability_is_external",
+      "marginal_coverage_is_over_calibration_and_future_sessions_not_conditional_on_fixed_calibration",
+      "mixed_unit_covariance_is_standardized_before_cholesky"
+    ]
+  },
+  "field_functional_implementation": {
+    "path": "tools/ehd-piv-conformal-functional-uq/src/functional.rs",
+    "function": "propagate_field_functional_uncertainty",
+    "authored_rust_tests": 10
+  },
+  "validation_comparators": [
+    "pointwise_split_conformal",
+    "region_wise_conformal",
+    "cluster_maximum_field_conformal_2d",
+    "cluster_maximum_field_conformal_3d",
+    "hierarchical_group_conformal_CDF_pooling",
+    "hierarchical_group_conformal_repeated_subsampling",
+    "cluster_maximum_integrated_functional_conformal"
+  ]
 }
