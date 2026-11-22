@@ -29,6 +29,8 @@ pub enum ProjectionTimeQualification {
         time_basis_id: String,
         tick_quantum_id: String,
         time_evidence_id: String,
+        earliest_event_time_ticks: i64,
+        latest_event_time_ticks: i64,
     },
     /// P0 only: dimensionless fixture ticks, never physical clock chronology.
     SyntheticP0 {
@@ -124,6 +126,7 @@ pub struct ProjectedMembershipEvent {
 pub enum ProjectionQuarantineReason {
     UnqualifiedChronology(String),
     EventTimeEvidenceIdMismatch,
+    InvalidTimeEnclosure,
     InvalidRevision,
     InvalidLocation,
     InvalidPayloadDigest,
@@ -145,6 +148,11 @@ pub enum AggregationProjectionError {
     MixedChronologyDomains {
         first_domain: String,
         second_domain: String,
+    },
+    TimelineOrderNotProven {
+        module_id: String,
+        previous_event: ProjectionSourceRef,
+        current_event: ProjectionSourceRef,
     },
 }
 
@@ -263,6 +271,12 @@ fn chronology_domain(
             if time_evidence_id != &canonical_event_time_evidence_id(&source) {
                 return Err(ProjectionQuarantineReason::EventTimeEvidenceIdMismatch);
             }
+            if earliest_event_time_ticks > latest_event_time_ticks
+                || envelope.event_time_ticks < earliest_event_time_ticks
+                || envelope.event_time_ticks > latest_event_time_ticks
+            {
+                return Err(ProjectionQuarantineReason::InvalidTimeEnclosure);
+            }
             Ok(ChronologyDomain::Qualified {
                 time_basis_id: time_basis_id.clone(),
                 tick_quantum_id: tick_quantum_id.clone(),
@@ -286,6 +300,104 @@ fn chronology_domain(
             ))
         }
     }
+}
+
+fn event_time_interval(
+    envelope: &AggregationProjectionEnvelope,
+) -> Option<(i64, i64)> {
+    match &envelope.time_qualification {
+        ProjectionTimeQualification::Qualified {
+            earliest_event_time_ticks,
+            latest_event_time_ticks,
+            ..
+        } => Some((*earliest_event_time_ticks, *latest_event_time_ticks)),
+        ProjectionTimeQualification::SyntheticP0 { .. } => {
+            Some((envelope.event_time_ticks, envelope.event_time_ticks))
+        }
+        ProjectionTimeQualification::Unqualified { .. } => None,
+    }
+}
+
+fn modules_touched_by_event(event: &NormalizedAggregationEvent) -> BTreeSet<String> {
+    let mut modules = BTreeSet::new();
+    match &event.effect {
+        AggregationEffect::Add {
+            parent_id,
+            child_epcs,
+            ..
+        }
+        | AggregationEffect::Delete {
+            parent_id,
+            child_epcs,
+            ..
+        } => {
+            modules.insert(parent_id.clone());
+            modules.extend(child_epcs.iter().cloned());
+        }
+        AggregationEffect::Observe {
+            parent_id,
+            observed_child_epcs,
+            ..
+        } => {
+            if let Some(parent_id) = parent_id {
+                modules.insert(parent_id.clone());
+            }
+            modules.extend(observed_child_epcs.iter().cloned());
+        }
+        AggregationEffect::DeleteAll { parent_id } => {
+            modules.insert(parent_id.clone());
+        }
+    }
+    modules
+}
+
+fn verify_strict_module_timeline(
+    envelopes: &[&AggregationProjectionEnvelope],
+) -> Result<(), AggregationProjectionError> {
+    let mut by_module: BTreeMap<String, Vec<(i64, i64, ProjectionSourceRef)>> = BTreeMap::new();
+    for envelope in envelopes {
+        if envelope.voided || envelope.classification != EventClassification::Actual {
+            continue;
+        }
+        let Some((earliest, latest)) = event_time_interval(envelope) else {
+            continue;
+        };
+        for module_id in modules_touched_by_event(&envelope.event) {
+            by_module.entry(module_id).or_default().push((
+                earliest,
+                latest,
+                source_ref(envelope),
+            ));
+        }
+    }
+
+    for (module_id, mut intervals) in by_module {
+        intervals.sort_by(|left, right| {
+            left.0
+                .cmp(&right.0)
+                .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
+        });
+        let mut prefix_max: Option<(i64, ProjectionSourceRef)> = None;
+        for (earliest, latest, source) in intervals {
+            if let Some((previous_latest, previous_source)) = &prefix_max
+                && *previous_latest >= earliest
+            {
+                return Err(AggregationProjectionError::TimelineOrderNotProven {
+                    module_id,
+                    previous_event: previous_source.clone(),
+                    current_event: source,
+                });
+            }
+            let replace = prefix_max
+                .as_ref()
+                .is_none_or(|(previous_latest, _)| latest > *previous_latest);
+            if replace {
+                prefix_max = Some((latest, source));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn domain_label(domain: &ChronologyDomain) -> String {
@@ -483,6 +595,12 @@ pub fn project_aggregation_events(
         }
     }
     report.chronology_domain = common_domain.as_ref().map(domain_label);
+
+    let timeline_events: Vec<&AggregationProjectionEnvelope> = effective
+        .iter()
+        .map(|(envelope, _)| *envelope)
+        .collect();
+    verify_strict_module_timeline(&timeline_events)?;
 
     for (envelope, revisions) in effective {
         let source = source_ref(envelope);
@@ -728,6 +846,8 @@ mod tests {
                 time_basis_id: "UTC(ZA)".to_string(),
                 tick_quantum_id: "SI_NANOSECOND".to_string(),
                 time_evidence_id: canonical_event_time_evidence_id(&source_event),
+                earliest_event_time_ticks: 990,
+                latest_event_time_ticks: 1_010,
             },
             voided: false,
         }
@@ -1044,6 +1164,8 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "SI_NANOSECOND".to_string(),
             time_evidence_id: "another-event".to_string(),
+            earliest_event_time_ticks: 990,
+            latest_event_time_ticks: 1_010,
         };
         let report = project_aggregation_events(&[input], 200).unwrap();
         assert_eq!(
@@ -1074,6 +1196,8 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "TEN_NANOSECONDS".to_string(),
             time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            earliest_event_time_ticks: 990,
+            latest_event_time_ticks: 1_010,
         };
         assert!(matches!(
             project_aggregation_events(&[first, second], 200),
