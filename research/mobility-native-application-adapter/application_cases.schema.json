@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-native-application-cases-v0.1.schema.json",
+  "title": "Mobility native application assurance cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "scope",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "class",
+          "trigger",
+          "expected",
+          "native_sink_calls",
+          "pending_mutation"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class": {
+            "enum": [
+              "positive",
+              "negative",
+              "outcome"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "enum": [
+              "Applied",
+              "RejectedBeforeSink",
+              "RejectedBeforeQueuePop",
+              "AppliedUnknownHold",
+              "AppliedNoEffectHold",
+              "ResolvedForFreshAuthority",
+              "HoldRetained"
+            ]
+          },
+          "native_sink_calls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pending_mutation": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
