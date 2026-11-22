@@ -59,11 +59,18 @@ impl InertiaTensor {
             .flatten()
             .fold(0.0_f64, |current, value| current.max(value.abs()));
         let symmetry_tolerance = TENSOR_REL_TOL * (1.0 + scale);
+        let mut matrix = matrix;
         for i in 0..3 {
             for j in (i + 1)..3 {
                 if (matrix[i][j] - matrix[j][i]).abs() > symmetry_tolerance {
                     return Err(TensorError::NotSymmetric);
                 }
+                // Canonicalize tolerated roundoff asymmetry so the SPD solve
+                // and eigenvalue calculation operate on the same symmetric
+                // matrix rather than opposite triangles.
+                let average = 0.5 * (matrix[i][j] + matrix[j][i]);
+                matrix[i][j] = average;
+                matrix[j][i] = average;
             }
         }
 
@@ -644,8 +651,11 @@ mod tests {
     }
 
     #[test]
-    fn constant_body_torque_changes_body_momentum_by_torque_integral() {
-        let inertia = diagonal_inertia();
+    fn spherical_top_constant_body_torque_matches_angular_momentum_impulse() {
+        // For a spherical inertia, I*omega is parallel to omega and the
+        // gyroscopic cross term vanishes. Therefore body-frame angular
+        // momentum changes by the constant body torque integral exactly.
+        let inertia = InertiaTensor::diagonal([2.0, 2.0, 2.0]).expect("sphere");
         let omega = [0.4, -0.2, 0.7];
         let torque = [0.03, 0.04, -0.02];
         let initial = RigidState::new(Quaternion::IDENTITY, omega).expect("valid state");
@@ -653,6 +663,27 @@ mod tests {
         let final_state = integrate(initial, &inertia, torque, 1.0e-3, 1_000);
         let expected = add(initial_momentum, torque);
         assert!(norm(sub(inertia.mul_vec(final_state.angular_velocity_body), expected)) < 1.0e-10);
+    }
+
+    #[test]
+    fn symmetric_top_body_precession_matches_euler_closed_form() {
+        let inertia = InertiaTensor::diagonal([2.0, 2.0, 3.0]).expect("symmetric top");
+        let omega = [0.7, 1.1, 1.3];
+        let initial = RigidState::new(Quaternion::IDENTITY, omega).expect("valid state");
+        let duration = 2.0;
+        let precession_rate = (3.0 - 2.0) / 2.0 * omega[2];
+        let phase = precession_rate * duration;
+        let expected = [
+            omega[0] * phase.cos() - omega[1] * phase.sin(),
+            omega[0] * phase.sin() + omega[1] * phase.cos(),
+            omega[2],
+        ];
+        let final_state = integrate(initial, &inertia, [0.0; 3], 1.0e-3, 2_000);
+        assert!(
+            norm(sub(final_state.angular_velocity_body, expected)) < 1.0e-10,
+            "actual={:?}, expected={expected:?}",
+            final_state.angular_velocity_body
+        );
     }
 
     #[test]
