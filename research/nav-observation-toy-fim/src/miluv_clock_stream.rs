@@ -310,7 +310,7 @@ fn infer_unique_tick_advance(
 }
 
 fn div_ceil(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + u128::from(numerator % denominator != 0)
+    numerator / denominator + if numerator % denominator == 0 { 0 } else { 1 }
 }
 
 #[cfg(test)]
