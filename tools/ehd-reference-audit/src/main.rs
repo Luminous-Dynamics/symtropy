@@ -575,6 +575,38 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         "ANEMONE must remain a 3D three-component plasma-fluid reference with the published validation boundary",
     );
 
+    let analytical = find_solver("ANALYTICAL_CORONA_SMALL_GAP_2026");
+    push_if_missing(
+        &mut findings,
+        analytical.is_some_and(|profile| {
+            text_at(profile, &["paper_doi"]) == Some("10.1038/s41598-026-77180-7")
+                && number_at(profile, &["reported_validation", "electrode_gap_mm"]) == Some(20.0)
+                && number_at(profile, &["reported_validation", "mape_percent"]) == Some(4.13)
+                && text_at(profile, &["reported_validation", "observable"])
+                    == Some("corona-discharge component")
+                && contains_any(profile, &["important_limits"], "not to independently measured thrust")
+                && contains_any(profile, &["important_limits"], "preliminary engineering guidance")
+        }),
+        "ANALYTICAL_CORONA_SCOPE",
+        "4.13% MAPE must remain bounded to the 20 mm corona component, not whole-thruster validation",
+    );
+
+    let airflow_ml = find_solver("TOPTAS_YILMAZ_2026_EHD_ML");
+    push_if_missing(
+        &mut findings,
+        airflow_ml.is_some_and(|profile| {
+            text_at(profile, &["paper_doi"]) == Some("10.1016/j.ijheatfluidflow.2026.110315")
+                && text_at(profile, &["best_reported_model"]) == Some("Gradient Boosting")
+                && number_at(profile, &["reported_metrics", "r2"]) == Some(0.8961)
+                && number_at(profile, &["reported_metrics", "mae"]) == Some(0.0859)
+                && number_at(profile, &["reported_metrics", "mse"]) == Some(0.0115)
+                && contains_any(profile, &["important_limits"], "not a plasma conservation solver")
+                && contains_any(profile, &["important_limits"], "not automatically a sealed holdout")
+        }),
+        "AIRFLOW_SURROGATE_SCOPE",
+        "published Gradient Boosting airflow metrics must remain dataset-specific, with no thrust or conservation overclaim",
+    );
+
     let paschen = find_solver("PASCHEN_1D");
     push_if_missing(
         &mut findings,
@@ -644,11 +676,12 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         text_at(matrix.unwrap_or(&Value::Null), &["status"])
             == Some("scope_registry_only_no_solver_execution_or_matched_benchmark_results")
             && track_ids.as_ref().is_some_and(|ids| {
-                ids.len() == 4
+                ids.len() == 5
                     && ids.contains("DISCHARGE_STATIC")
                     && ids.contains("DISCHARGE_TRANSIENT_CIRCUIT")
                     && ids.contains("NEUTRAL_FLOW_COUPLING")
                     && ids.contains("SYSTEM_PERFORMANCE")
+                    && ids.contains("DATA_DRIVEN_FLOW_SURROGATE")
             }),
         "SOLVER_COMPARATOR_TRACKS",
         "four scoped comparison tracks must be explicit and status must not imply solver execution",
@@ -664,6 +697,20 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                 && items.iter().any(|v| v.as_str() == Some("charge_mass_momentum_energy_closure"))),
         "SOLVER_COMPARATOR_CONTROLS",
         "each solver comparison must declare observables, matched controls and invalid extrapolations",
+    );
+    let flow_surrogate = tracks.and_then(|rows| rows.iter().find(|row| {
+        text_at(row, &["track_id"]) == Some("DATA_DRIVEN_FLOW_SURROGATE")
+    }));
+    push_if_missing(
+        &mut findings,
+        flow_surrogate.is_some_and(|row| {
+            at(row, &["candidates"]).and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|item| item.as_str() == Some("TOPTAS_YILMAZ_2026_EHD_ML")))
+                && contains_any(row, &["match_controls"], "hold out complete geometry")
+                && contains_any(row, &["prohibitions"], "Do not use random point splits")
+        }),
+        "FLOW_SURROGATE_HOLDOUT",
+        "ML comparison must require full geometry/session holdouts and prohibit point leakage",
     );
 
     let reference_cases = at(root, &["solver_reference_cases"]).and_then(Value::as_array);
@@ -3407,6 +3454,46 @@ mod solver_comparator_registry_tests {
             serde_json::json!([]);
         assert!(audit_atlas(&value).iter().any(|finding| {
             finding.starts_with("SOLVER_COMPARATOR_CONTROLS")
+        }));
+    }
+
+    #[test]
+    fn analytical_corona_score_cannot_be_promoted_to_whole_thruster_mape() {
+        let mut value = atlas();
+        let rows = value["solver_profiles"].as_array_mut().unwrap();
+        let profile = rows.iter_mut().find(|row| {
+            row["solver_id"] == "ANALYTICAL_CORONA_SMALL_GAP_2026"
+        }).unwrap();
+        profile["reported_validation"]["observable"] =
+            serde_json::json!("complete propulsion system thrust");
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("ANALYTICAL_CORONA_SCOPE")
+        }));
+    }
+
+    #[test]
+    fn airflow_surrogate_metrics_cannot_authorize_thrust_claims() {
+        let mut value = atlas();
+        let rows = value["solver_profiles"].as_array_mut().unwrap();
+        let profile = rows.iter_mut().find(|row| {
+            row["solver_id"] == "TOPTAS_YILMAZ_2026_EHD_ML"
+        }).unwrap();
+        profile["important_limits"] = serde_json::json!([]);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("AIRFLOW_SURROGATE_SCOPE")
+        }));
+    }
+
+    #[test]
+    fn data_driven_flow_track_requires_family_holdout() {
+        let mut value = atlas();
+        let tracks = value["solver_comparison_matrix"]["tracks"].as_array_mut().unwrap();
+        let track = tracks.iter_mut().find(|row| {
+            row["track_id"] == "DATA_DRIVEN_FLOW_SURROGATE"
+        }).unwrap();
+        track["match_controls"] = serde_json::json!([]);
+        assert!(audit_atlas(&value).iter().any(|finding| {
+            finding.starts_with("FLOW_SURROGATE_HOLDOUT")
         }));
     }
 }
