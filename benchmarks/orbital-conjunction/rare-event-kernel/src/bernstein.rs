@@ -46,7 +46,8 @@ pub struct BernsteinTrajectoryReport {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Bound {
+/// Internal interval bound used by Bernstein and first-contact enclosures.
+pub(crate) struct Bound {
     lower: f64,
     upper: f64,
 }
@@ -332,7 +333,8 @@ pub fn enclose_polynomial_minimum_distance(
     })
 }
 
-fn power_to_bernstein(
+/// Convert an interval power-basis polynomial to Bernstein coefficients on a time cell.
+pub(crate) fn power_to_bernstein(
     coefficients: &[Interval],
     time_lower: f64,
     time_upper: f64,
@@ -402,7 +404,8 @@ fn binomial_bound(n: usize, k: usize) -> Result<Bound, KernelError> {
     Ok(result)
 }
 
-fn bernstein_hull(coefficients: &[Bound]) -> Result<Bound, KernelError> {
+/// Return the coordinate-wise convex hull of interval Bernstein coefficients.
+pub(crate) fn bernstein_hull(coefficients: &[Bound]) -> Result<Bound, KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
@@ -420,7 +423,11 @@ fn bernstein_hull(coefficients: &[Bound]) -> Result<Bound, KernelError> {
     Ok(Bound { lower, upper })
 }
 
-fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Result<Bound, KernelError> {
+/// Evaluate interval Bernstein coefficients at a normalized time in [0, 1].
+pub(crate) fn evaluate_bernstein(
+    coefficients: &[Bound],
+    unit_time: f64,
+) -> Result<Bound, KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
@@ -449,7 +456,10 @@ fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Result<Bound, K
     Ok(work[0])
 }
 
-fn split_bernstein_half(coefficients: &[Bound]) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
+/// Split an interval Bernstein polynomial at normalized time one half.
+pub(crate) fn split_bernstein_half(
+    coefficients: &[Bound],
+) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
@@ -470,7 +480,8 @@ fn split_bernstein_half(coefficients: &[Bound]) -> Result<(Vec<Bound>, Vec<Bound
     Ok((left, right))
 }
 
-fn norm_bounds(coordinates: &[Bound]) -> Result<(f64, f64), KernelError> {
+/// Bound the minimum and maximum Euclidean norms over interval coordinates.
+pub(crate) fn norm_bounds(coordinates: &[Bound]) -> Result<(f64, f64), KernelError> {
     if coordinates.is_empty() {
         return Err(KernelError::EmptyDimension);
     }
@@ -508,7 +519,8 @@ fn norm_bounds(coordinates: &[Bound]) -> Result<(f64, f64), KernelError> {
     Ok((lower, upper))
 }
 
-fn safe_midpoint(lower: f64, upper: f64) -> Result<f64, KernelError> {
+/// Compute a finite midpoint without overflowing on large same-sign endpoints.
+pub(crate) fn safe_midpoint(lower: f64, upper: f64) -> Result<f64, KernelError> {
     let midpoint = 0.5 * lower + 0.5 * upper;
     if midpoint.is_finite() {
         Ok(midpoint)

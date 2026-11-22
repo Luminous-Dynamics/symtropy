@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod bernstein;
 pub mod coverage;
+pub mod first_contact;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -50,6 +51,10 @@ pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
     affine_box_image_bounds, affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
     standard_normal_box_probability_upper_bound, standard_normal_cube_tail_probability_upper_bound,
+};
+pub use first_contact::{
+    FirstContactDisposition, FirstContactIsolationConfig, FirstContactIsolationReport,
+    isolate_polynomial_first_contact,
 };
 
 /// Errors returned by the analytic probability kernels.
@@ -91,6 +96,8 @@ pub enum KernelError {
     InvalidPolynomial,
     /// A time-window classification was configured with a zero interval budget.
     InvalidTrajectoryBudget,
+    /// A first-contact time-width tolerance is zero, negative, or non-finite.
+    InvalidTimeTolerance,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
     /// A probability is non-finite or outside the closed interval [0, 1].
@@ -133,6 +140,9 @@ impl fmt::Display for KernelError {
                 "trajectory polynomial must contain at least one coefficient per axis"
             }
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
+            Self::InvalidTimeTolerance => {
+                "first-contact time-width tolerance must be positive and finite"
+            }
             Self::CounterOverflow => "streaming observation counter overflowed",
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
