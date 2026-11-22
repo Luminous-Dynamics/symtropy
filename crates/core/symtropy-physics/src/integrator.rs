@@ -324,6 +324,9 @@ pub fn try_apply_contact_angular_impulse<const D: usize>(
         return Err(crate::inertia::RotationalInertiaError::NonFinite);
     }
     let stored_sign_impulse = Bivector::from_wedge(physical_impulse, offset);
+    if !stored_sign_impulse.is_finite() {
+        return Err(crate::inertia::RotationalInertiaError::NonFinite);
+    }
     try_apply_angular_impulse(body, &stored_sign_impulse)
 }
 
@@ -575,6 +578,22 @@ mod tests {
             Err(crate::inertia::RotationalInertiaError::NonFinite)
         );
         assert_eq!(body.angular_velocity, before);
+    }
+
+    #[test]
+    fn contact_angular_impulse_rejects_finite_inputs_that_overflow_without_mutation() {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
+        let angular_before = body.angular_velocity;
+        let offset = SVector::<f64, 3>::new(1.0e308, 0.0, 0.0);
+        let impulse = SVector::<f64, 3>::new(0.0, 1.0e308, 0.0);
+
+        assert!(offset.iter().all(|value| value.is_finite()));
+        assert!(impulse.iter().all(|value| value.is_finite()));
+        assert_eq!(
+            try_apply_contact_angular_impulse(&mut body, &offset, &impulse),
+            Err(crate::inertia::RotationalInertiaError::NonFinite)
+        );
+        assert_eq!(body.angular_velocity, angular_before);
     }
 
     #[test]
