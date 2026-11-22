@@ -140,3 +140,15 @@ Only these evaluator entry points make a chain-level claim:
 - `evaluate_with_handoff_correlations`: P1 whole-chain path; requires qualified time bindings for every effective actual event on each box, proves pairwise strict order, assigns private ordinal ticks on a clone, applies exact correlation receipts, and then runs custody replay.
 
 Do not use the low-level correlation utility or pair-level diagnostic as evidence that a complete real custody chain is temporally qualified.
+
+## Evidence-carrying P1 result
+
+The whole-chain entry point returns a `QualifiedCustodyReport`, not a bare custody scalar. The result binds:
+- decision as-of publication cutoff;
+- the custody evaluation report;
+- one `QualifiedBoxTimelineReceipt` per canonical box;
+- each box's exact ordered source event key and revision;
+- original `TimeEvidence` interval, normalized time basis and retained clock/profile/calibration provenance for every ordered event;
+- the exact handoff-correlation receipts applied.
+
+The internal ordinal ticks used by the deterministic custody reducer are not emitted as physical timestamps. The caller can serialize and commit to the qualified report alongside the raw source snapshot and adapter manifest. This crate does not itself create a cryptographic digest or authenticate the referenced calibration/correlation artifacts.
