@@ -6,6 +6,7 @@ A small Rust reference crate for auditing whether train, validation and test coh
 
 - Complete sessions or geometries accidentally appearing in both train and test when those dimensions were declared as holdouts.
 - Direct raw image-pair or multi-frame sequence reuse across splits.
+- Constituent frame/image/view reuse across train/validation/test. Overlapping windows may share constituent assets inside one split, but not across split boundaries.
 - Silent omission of required grouping metadata.
 - Reporting sample counts as if they were independent acquisition counts.
 
