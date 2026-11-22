@@ -129,7 +129,8 @@ pub fn student_t_k_tir_2d(
         return Err(StudentTPlError::InvalidDegreesOfFreedom);
     }
     if !target_integrity_risk.is_finite()
-        || !(0.0..1.0).contains(&target_integrity_risk)
+        || target_integrity_risk <= 0.0
+        || target_integrity_risk >= 1.0
     {
         return Err(StudentTPlError::InvalidTargetIntegrityRisk);
     }
