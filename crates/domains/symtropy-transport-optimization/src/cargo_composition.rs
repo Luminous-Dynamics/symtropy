@@ -863,6 +863,355 @@ mod tests {
         }
     }
 
+    fn batch(
+        event_id: &str,
+        time: i64,
+        mutations: Vec<CompositionMutation>,
+    ) -> CompositionEventBatch {
+        CompositionEventBatch {
+            source_key: SourceEventKey::new("WMS_A", event_id),
+            revision: 1,
+            published_at: time,
+            event_time: time,
+            mutations,
+            classification: EventClassification::Actual,
+            source_profile_id: "EPCIS_AGGREGATION".to_string(),
+            source_profile_version: "2.0.1".to_string(),
+            location_id: "WAREHOUSE_01".to_string(),
+            evidence_id: format!("EV-{event_id}"),
+            voided: false,
+        }
+    }
+
+    #[test]
+    fn one_source_event_atomically_adds_multiple_unordered_children() {
+        let modules = modules(&["CONTAINER", "PALLET_A", "PALLET_B", "CARTON"]);
+        let event = batch(
+            "ADD-MANY",
+            10,
+            vec![
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_B".to_string(),
+                },
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_A".to_string(),
+                },
+            ],
+        );
+        let report = evaluate_composition_batches(&modules, &[event], 100).unwrap();
+        assert!(report.is_qualified());
+        assert_eq!(report.active_edges(), 2);
+        assert_eq!(
+            report
+                .active_memberships
+                .iter()
+                .map(|edge| edge.child_module_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["PALLET_A", "PALLET_B"]
+        );
+    }
+
+    #[test]
+    fn delete_all_removes_only_direct_children_and_preserves_nested_contents() {
+        let modules = modules(&["CONTAINER", "PALLET", "CARTON", "OTHER"]);
+        let events = vec![
+            batch(
+                "ADD-1",
+                10,
+                vec![CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET".to_string(),
+                }],
+            ),
+            batch(
+                "ADD-2",
+                20,
+                vec![CompositionMutation::Add {
+                    parent_module_id: "PALLET".to_string(),
+                    child_module_id: "CARTON".to_string(),
+                }],
+            ),
+            batch(
+                "ADD-3",
+                25,
+                vec![CompositionMutation::Add {
+                    parent_module_id: "OTHER".to_string(),
+                    child_module_id: "CONTAINER".to_string(),
+                }],
+            ),
+            batch(
+                "DELETE-ALL",
+                30,
+                vec![CompositionMutation::DisaggregateAll {
+                    parent_module_id: "CONTAINER".to_string(),
+                }],
+            ),
+        ];
+        let report = evaluate_composition_batches(&modules, &events, 100).unwrap();
+        assert!(report.is_qualified());
+        assert_eq!(report.active_edges(), 2);
+        assert!(report.active_memberships.contains(&Membership {
+            parent_module_id: "PALLET".to_string(),
+            child_module_id: "CARTON".to_string(),
+        }));
+        assert!(report.active_memberships.contains(&Membership {
+            parent_module_id: "OTHER".to_string(),
+            child_module_id: "CONTAINER".to_string(),
+        }));
+        assert!(!report.active_memberships.iter().any(|edge| {
+            edge.parent_module_id == "CONTAINER"
+        }));
+        assert_eq!(report.disaggregation_all_events, 1);
+        assert_eq!(report.disaggregated_membership_edges, 1);
+    }
+
+    #[test]
+    fn delete_all_clears_every_direct_child_from_the_selected_parent() {
+        let modules = modules(&["CONTAINER", "PALLET_A", "PALLET_B", "CARTON"]);
+        let events = vec![
+            batch(
+                "ADD-MANY",
+                10,
+                vec![
+                    CompositionMutation::Add {
+                        parent_module_id: "CONTAINER".to_string(),
+                        child_module_id: "PALLET_A".to_string(),
+                    },
+                    CompositionMutation::Add {
+                        parent_module_id: "CONTAINER".to_string(),
+                        child_module_id: "PALLET_B".to_string(),
+                    },
+                ],
+            ),
+            batch(
+                "ADD-NESTED",
+                20,
+                vec![CompositionMutation::Add {
+                    parent_module_id: "PALLET_A".to_string(),
+                    child_module_id: "CARTON".to_string(),
+                }],
+            ),
+            batch(
+                "DELETE-ALL",
+                30,
+                vec![CompositionMutation::DisaggregateAll {
+                    parent_module_id: "CONTAINER".to_string(),
+                }],
+            ),
+        ];
+        let report = evaluate_composition_batches(&modules, &events, 100).unwrap();
+        assert!(report.is_qualified());
+        assert_eq!(report.active_edges(), 1);
+        assert_eq!(report.disaggregated_membership_edges, 2);
+        assert_eq!(
+            report.active_memberships.iter().next(),
+            Some(&Membership {
+                parent_module_id: "PALLET_A".to_string(),
+                child_module_id: "CARTON".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn delete_all_obeys_publication_cutoff_and_future_visibility() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let add = batch(
+            "ADD",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let mut delete_all = batch(
+            "DELETE-ALL",
+            30,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "CONTAINER".to_string(),
+            }],
+        );
+        delete_all.published_at = 50;
+        let before_publication =
+            evaluate_composition_batches(&modules, &[add.clone(), delete_all.clone()], 40).unwrap();
+        assert_eq!(before_publication.active_edges(), 1);
+        assert_eq!(before_publication.future_event_rows, 1);
+
+        let after_publication =
+            evaluate_composition_batches(&modules, &[add, delete_all], 60).unwrap();
+        assert_eq!(after_publication.active_edges(), 0);
+        assert_eq!(after_publication.disaggregation_all_events, 1);
+    }
+
+    #[test]
+    fn exact_duplicate_delete_all_replay_is_idempotent() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let add = batch(
+            "ADD",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let delete_all = batch(
+            "DELETE-ALL",
+            20,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "CONTAINER".to_string(),
+            }],
+        );
+        let report = evaluate_composition_batches(
+            &modules,
+            &[add, delete_all.clone(), delete_all],
+            100,
+        )
+        .unwrap();
+        assert_eq!(report.replayed_event_rows, 1);
+        assert_eq!(report.disaggregation_all_events, 1);
+        assert_eq!(report.disaggregated_membership_edges, 1);
+        assert_eq!(report.active_edges(), 0);
+    }
+
+    #[test]
+    fn conflicting_same_revision_delete_all_is_rejected() {
+        let modules = modules(&["CONTAINER", "PALLET", "CARTON"]);
+        let mut first = batch(
+            "DELETE-ALL",
+            20,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "CONTAINER".to_string(),
+            }],
+        );
+        let mut second = first.clone();
+        second.mutations = vec![CompositionMutation::DisaggregateAll {
+            parent_module_id: "PALLET".to_string(),
+        }];
+        assert!(matches!(
+            evaluate_composition_batches(&modules, &[first, second], 100),
+            Err(CompositionError::ConflictingEventRevision { .. })
+        ));
+    }
+
+    #[test]
+    fn later_void_revision_suppresses_prior_delete_all() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let add = batch(
+            "ADD",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let mut delete_all_v1 = batch(
+            "DELETE-ALL",
+            20,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "CONTAINER".to_string(),
+            }],
+        );
+        delete_all_v1.revision = 1;
+        let mut delete_all_v2 = delete_all_v1.clone();
+        delete_all_v2.revision = 2;
+        delete_all_v2.published_at = 30;
+        delete_all_v2.voided = true;
+        let report =
+            evaluate_composition_batches(&modules, &[add, delete_all_v1, delete_all_v2], 100)
+                .unwrap();
+        assert_eq!(report.active_edges(), 1);
+        assert_eq!(report.voided_event_rows, 1);
+        assert_eq!(report.disaggregation_all_events, 0);
+    }
+
+    #[test]
+    fn failed_multi_child_batch_rolls_back_all_changes() {
+        let modules = modules(&["CONTAINER", "PALLET_A", "PALLET_B"]);
+        let existing = batch(
+            "ADD-OLD",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET_A".to_string(),
+            }],
+        );
+        let invalid_batch = batch(
+            "ADD-ATOMIC",
+            20,
+            vec![
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_A".to_string(),
+                },
+                CompositionMutation::Add {
+                    parent_module_id: "CONTAINER".to_string(),
+                    child_module_id: "PALLET_B".to_string(),
+                },
+            ],
+        );
+        let report =
+            evaluate_composition_batches(&modules, &[existing, invalid_batch], 100).unwrap();
+        assert_eq!(report.active_edges(), 1);
+        assert!(!report.active_memberships.iter().any(|edge| {
+            edge.child_module_id == "PALLET_B"
+        }));
+        assert!(report.failures.contains_key(
+            &CompositionFailure::DuplicateMembership(Membership {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET_A".to_string(),
+            })
+        ));
+    }
+
+    #[test]
+    fn independent_source_transactions_touching_same_parent_at_same_time_are_ambiguous() {
+        let modules = modules(&["CONTAINER", "PALLET_A", "PALLET_B"]);
+        let first = batch(
+            "ADD-A",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET_A".to_string(),
+            }],
+        );
+        let second = batch(
+            "ADD-B",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET_B".to_string(),
+            }],
+        );
+        let report = evaluate_composition_batches(&modules, &[first, second], 100).unwrap();
+        assert_eq!(report.active_edges(), 0);
+        assert!(report.failures.contains_key(
+            &CompositionFailure::AmbiguousEventTime {
+                event_time: 10,
+                module_id: "CONTAINER".to_string(),
+            }
+        ));
+    }
+
+    #[test]
+    fn delete_all_from_unknown_parent_fails_closed() {
+        let modules = modules(&["CONTAINER"]);
+        let event = batch(
+            "DELETE-ALL",
+            10,
+            vec![CompositionMutation::DisaggregateAll {
+                parent_module_id: "UNKNOWN".to_string(),
+            }],
+        );
+        let report = evaluate_composition_batches(&modules, &[event], 100).unwrap();
+        assert!(!report.is_qualified());
+        assert_eq!(
+            report.failures.get(&CompositionFailure::UnknownParent("UNKNOWN".to_string())),
+            Some(&1)
+        );
+        assert_eq!(report.active_edges(), 0);
+    }
+
     #[test]
     fn nested_aggregation_preserves_all_module_identities() {
         let modules = modules(&["CONTAINER", "PALLET", "CARTON_A", "CARTON_B"]);
