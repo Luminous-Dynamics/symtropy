@@ -13,8 +13,7 @@ Evaluate how much video sampling density is needed to produce a **correct, evide
 
 For one episode / policy / candidate configuration, the bundle binds:
 - protocol, episode, source-cluster and policy identity;
-- candidate model and runtime digests;
-- sampler ID and implementation/configuration digest;
+- exact workload/episode, model, runtime, configuration, hardware and sampler digests;
 - fixed, strictly increasing FPS grid;
 - media duration and declared timestamp quantization tolerance;
 - seed IDs and minimum success fraction across seeds;
