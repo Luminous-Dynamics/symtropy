@@ -47,6 +47,17 @@ jobs:
           components: rustfmt, clippy
       - name: Format check
         run: cargo fmt --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml --all -- --check
+      - name: Recompute and verify committed lockfile
+        run: |
+          cargo generate-lockfile --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml
+          git diff --exit-code -- research/av-active-sensing-multiround-v0/Cargo.lock
+      - name: Upload regenerated lockfile for review when it drifts
+        if: failure() && matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: av-active-sensing-multiround-regenerated-lock
+          path: research/av-active-sensing-multiround-v0/Cargo.lock
+          if-no-files-found: error
       - name: Test exact locked dependency graph
         run: cargo test --manifest-path research/av-active-sensing-multiround-v0/Cargo.toml --locked
       - name: Strict Clippy
