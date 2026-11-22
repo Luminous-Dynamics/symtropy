@@ -381,6 +381,26 @@ pub fn apply_qualified_handoff_correlations(
                 TemporalCorrelationError::AcceptRevisionMismatch,
             ));
         }
+        let release_index =
+            effective_event_index(events, &receipt.release_time.source_event, as_of)
+                .map_err(QualifiedCorrelationError::Correlation)?;
+        let accept_index = effective_event_index(events, &receipt.accept_time.source_event, as_of)
+            .map_err(QualifiedCorrelationError::Correlation)?;
+
+        // Bind revision to the currently selected source record before checking
+        // the derived evidence identifier, so stale evidence is classified as
+        // a revision mismatch rather than a secondary identifier mismatch.
+        if events[release_index].revision != receipt.release_time.revision {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::ReleaseRevisionMismatch,
+            ));
+        }
+        if events[accept_index].revision != receipt.accept_time.revision {
+            return Err(QualifiedCorrelationError::Temporal(
+                TemporalCorrelationError::AcceptRevisionMismatch,
+            ));
+        }
+
         if receipt.release_time.evidence.event_id()
             != event_time_evidence_id(
                 &receipt.release_time.source_event,
@@ -394,23 +414,6 @@ pub fn apply_qualified_handoff_correlations(
         {
             return Err(QualifiedCorrelationError::Temporal(
                 TemporalCorrelationError::EventTimeEvidenceIdMismatch,
-            ));
-        }
-
-        let release_index =
-            effective_event_index(events, &receipt.release_time.source_event, as_of)
-                .map_err(QualifiedCorrelationError::Correlation)?;
-        let accept_index = effective_event_index(events, &receipt.accept_time.source_event, as_of)
-            .map_err(QualifiedCorrelationError::Correlation)?;
-
-        if events[release_index].revision != receipt.release_time.revision {
-            return Err(QualifiedCorrelationError::Temporal(
-                TemporalCorrelationError::ReleaseRevisionMismatch,
-            ));
-        }
-        if events[accept_index].revision != receipt.accept_time.revision {
-            return Err(QualifiedCorrelationError::Temporal(
-                TemporalCorrelationError::AcceptRevisionMismatch,
             ));
         }
 
@@ -1297,7 +1300,7 @@ mod tests {
 
     #[test]
     fn receipt_cannot_repair_wrong_location() {
-        let (expectations, mut events) = fixtures();
+        let (_, mut events) = fixtures();
         let release = events
             .iter()
             .find(|event| event.source_event_id == "B1-R1")
