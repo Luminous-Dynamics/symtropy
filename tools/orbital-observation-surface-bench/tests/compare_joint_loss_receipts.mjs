@@ -20,6 +20,12 @@ try {
       alpha?.worst_case_rectangular_regret?.denominator !== 2) {
     fail("correlation negative control failed: expected joint regret 0 and rectangular regret 1/2");
   }
+  const multiWorld = receipt.cases.find(item=>item.case_id==="multi-world-strata");
+  const multiAlpha = multiWorld?.action_metrics?.find(item=>item.action_id==="alpha");
+  if (multiWorld?.compatible_world_count !== 2 ||
+      multiAlpha?.worst_rectangular_regret_worlds?.join(",") !== "w1") {
+    fail("multi-world negative control failed: rectangular maximum must identify w1 for alpha");
+  }
   const unqualified = receipt.cases.find(item=>item.case_id==="unqualified-loss-model");
   if (unqualified?.status !== "LOSS_MODEL_INDETERMINATE" || unqualified.action_metrics.length !== 0) {
     fail("unqualified loss scenario was not fail-closed");
