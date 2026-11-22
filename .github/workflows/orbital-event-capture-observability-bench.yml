@@ -39,6 +39,9 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Generate Cargo lockfile for exact pinned package
+        run: cargo generate-lockfile --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml
+
       - name: Check formatting
         run: cargo fmt --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- --check
 
@@ -82,10 +85,12 @@ jobs:
       - name: Run independent JavaScript reconciliation oracle
         run: node tools/orbital-event-capture-observability-bench/tests/reference_oracle.mjs tools/orbital-event-capture-observability-bench/fixtures/v0.1/capture-cases.json
 
-      - name: Upload reproducible capture receipt
+      - name: Upload generated lockfile and reproducible capture receipt
         uses: actions/upload-artifact@v4
         with:
           name: orbital-event-capture-observability-${{ github.event.pull_request.head.sha || github.sha }}
-          path: orbital-event-capture-receipt.json
+          path: |
+            tools/orbital-event-capture-observability-bench/Cargo.lock
+            orbital-event-capture-receipt.json
           if-no-files-found: error
           retention-days: 30
