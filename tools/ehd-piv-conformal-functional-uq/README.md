@@ -1,6 +1,6 @@
 # EHD PIV conformal and functional uncertainty
 
-This crate adds six typed reference paths that complete important missing layers between per-vector covariance and engineering decisions: planar conformal calibration, 3D conformal calibration, field-functional propagation, conformal calibration of integrated outputs against independent functional references, compact-support spatial covariance for overlapping PIV windows, and integrated-functional calibration against independent references.
+This crate adds five typed reference paths that complete important missing layers between per-vector covariance and engineering decisions: planar conformal calibration, 3D conformal calibration, field-functional propagation, conformal calibration of integrated outputs against independent references, and compact-support spatial covariance for overlapping PIV windows.
 
 ## 1. Cluster-wise conformal field calibration
 
