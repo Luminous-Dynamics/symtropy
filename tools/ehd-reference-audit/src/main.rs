@@ -19,6 +19,7 @@ mod identifiability;
 mod observer_perturbation;
 mod tracer_screening;
 mod piv_qualification;
+mod piv_classifier_scores;
 
 const EMBEDDED_ATLAS: &str =
     include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
