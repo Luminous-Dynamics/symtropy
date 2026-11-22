@@ -19,6 +19,8 @@ use sha2::{Digest, Sha256};
 
 /// Current manifest schema version.
 pub const ACTION_ARGUMENT_SCHEMA_V1: u32 = 1;
+/// Reserved action ID for the explicit stop/no-acquisition alternative.
+pub const STOP_ACTION_ID_V1: &str = "__stop__";
 
 /// Deterministic validation error.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -409,10 +411,14 @@ pub struct ActionParameterForecastV1 {
     pub turn_id: u64,
     /// Candidate transcript head.
     pub transcript_head_sha256: String,
-    /// Complete currently eligible action catalogue plus per-action manifests.
+    /// Complete currently eligible acquisition action IDs, excluding reserved stop.
+    pub eligible_action_ids: Vec<String>,
+    /// Complete per-action parameter manifests for every eligible acquisition action.
     pub actions: Vec<ForecastActionManifestV1>,
-    /// Selected action and manifest digest.
-    pub selected: SelectedActionManifestV1,
+    /// Selected action ID. May be the reserved stop ID.
+    pub selected_action_id: String,
+    /// Selected manifest digest. None only when selecting stop/no-acquisition.
+    pub selected_manifest_sha256: Option<String>,
 }
 
 /// Digest an exact manifest using the canonical serde JSON representation.
@@ -442,10 +448,20 @@ pub fn validate_forecast(
     require_text(&forecast.transcript_head_sha256, "transcript_head_sha256")?;
     validate_digest(&forecast.transcript_head_sha256, "transcript_head_sha256")?;
     if forecast.actions.is_empty() {
-        return Err(ActionArgumentError::new("forecast action catalogue cannot be empty"));
+        return Err(ActionArgumentError::new("forecast acquisition catalogue cannot be empty"));
+    }
+    if forecast.eligible_action_ids.is_empty() {
+        return Err(ActionArgumentError::new("eligible_action_ids cannot be empty"));
+    }
+    let eligible_ids: BTreeSet<String> = forecast.eligible_action_ids.iter().cloned().collect();
+    if eligible_ids.len() != forecast.eligible_action_ids.len()
+        || eligible_ids.contains(STOP_ACTION_ID_V1)
+    {
+        return Err(ActionArgumentError::new(
+            "eligible action IDs must be unique and cannot contain the reserved stop ID",
+        ));
     }
     let mut action_ids = BTreeSet::new();
-    let mut found_selected = false;
     for entry in &forecast.actions {
         require_text(&entry.action_id, "forecast action_id")?;
         if !action_ids.insert(entry.action_id.clone()) {
@@ -461,21 +477,37 @@ pub fn validate_forecast(
         if digest != entry.manifest_sha256.to_ascii_lowercase() {
             return Err(ActionArgumentError::new("forecast manifest digest mismatch"));
         }
-        if entry.action_id == forecast.selected.action_id {
-            if entry.manifest_sha256 != forecast.selected.manifest_sha256 {
-                return Err(ActionArgumentError::new(
-                    "selected manifest digest differs from forecast catalogue entry",
-                ));
-            }
-            found_selected = true;
-        }
     }
-    if !found_selected {
+    if action_ids != eligible_ids {
         return Err(ActionArgumentError::new(
-            "selected action is not present in the forecasted parameter catalogue",
+            "forecast action manifests do not exactly cover the eligible action catalogue",
         ));
     }
-    validate_digest(&forecast.selected.manifest_sha256, "selected manifest digest")?;
+    require_text(&forecast.selected_action_id, "selected_action_id")?;
+    if forecast.selected_action_id == STOP_ACTION_ID_V1 {
+        if forecast.selected_manifest_sha256.is_some() {
+            return Err(ActionArgumentError::new(
+                "stop/no-acquisition selection must not carry an action-parameter digest",
+            ));
+        }
+    } else {
+        let selected = forecast
+            .actions
+            .iter()
+            .find(|entry| entry.action_id == forecast.selected_action_id)
+            .ok_or_else(|| ActionArgumentError::new(
+                "selected action is not present in the forecasted parameter catalogue",
+            ))?;
+        let selected_digest = forecast.selected_manifest_sha256.as_deref().ok_or_else(|| {
+            ActionArgumentError::new("selected acquisition requires a parameter manifest digest")
+        })?;
+        validate_digest(selected_digest, "selected manifest digest")?;
+        if selected.manifest_sha256 != selected_digest {
+            return Err(ActionArgumentError::new(
+                "selected manifest digest differs from forecast catalogue entry",
+            ));
+        }
+    }
     let encoded = serde_json::to_vec(forecast)
         .map_err(|error| ActionArgumentError::new(format!("forecast serialization failed: {error}")))?;
     Ok(hex_sha256(&encoded))
@@ -489,17 +521,25 @@ pub fn validate_action_lifecycle(
     result: &ActionResultV1,
 ) -> Result<(), ActionArgumentError> {
     validate_forecast(forecast)?;
-    let selected = &forecast.selected;
+    if forecast.selected_action_id == STOP_ACTION_ID_V1 {
+        return Err(ActionArgumentError::new(
+            "stop/no-acquisition has no request acceptance or action result lifecycle",
+        ));
+    }
+    let selected_action_id = &forecast.selected_action_id;
+    let selected_digest = forecast.selected_manifest_sha256.as_deref().ok_or_else(|| {
+        ActionArgumentError::new("selected action is missing its manifest digest")
+    })?;
     let manifest = forecast
         .actions
         .iter()
-        .find(|entry| entry.action_id == selected.action_id)
+        .find(|entry| entry.action_id == *selected_action_id)
         .ok_or_else(|| ActionArgumentError::new("selected manifest disappeared"))?;
 
     if acceptance.episode_id != forecast.episode_id
         || acceptance.turn_id != forecast.turn_id
-        || acceptance.action_id != selected.action_id
-        || acceptance.parameter_manifest_sha256 != selected.manifest_sha256
+        || acceptance.action_id != *selected_action_id
+        || acceptance.parameter_manifest_sha256 != selected_digest
         || acceptance.parent_transcript_head_sha256 != forecast.transcript_head_sha256
     {
         return Err(ActionArgumentError::new(
@@ -1104,15 +1144,14 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 3,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest: manifest.clone(),
                 manifest_sha256: digest.clone(),
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: manifest.action_id.clone(),
-                manifest_sha256: digest,
-            },
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(digest),
         };
         assert!(validate_forecast(&forecast).is_ok());
     }
@@ -1125,15 +1164,14 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 3,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest,
                 manifest_sha256: digest,
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: "crop-video".to_string(),
-                manifest_sha256: hex_sha256(b"mutated"),
-            },
+            selected_action_id: "crop-video".to_string(),
+            selected_manifest_sha256: Some(hex_sha256(b"mutated")),
         };
         assert!(validate_forecast(&forecast).is_err());
     }
@@ -1146,15 +1184,14 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 4,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest,
                 manifest_sha256: manifest_digest.clone(),
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: "crop-video".to_string(),
-                manifest_sha256: manifest_digest.clone(),
-            },
+            selected_action_id: "crop-video".to_string(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
@@ -1191,15 +1228,14 @@ mod tests {
             episode_id: "episode-1".to_string(),
             turn_id: 1,
             transcript_head_sha256: hex_sha256(b"head"),
+            eligible_action_ids: vec![manifest.action_id.clone()],
             actions: vec![ForecastActionManifestV1 {
                 action_id: manifest.action_id.clone(),
                 manifest: manifest.clone(),
                 manifest_sha256: manifest_digest.clone(),
             }],
-            selected: SelectedActionManifestV1 {
-                action_id: manifest.action_id.clone(),
-                manifest_sha256: manifest_digest.clone(),
-            },
+            selected_action_id: manifest.action_id.clone(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
         };
         let acceptance = RequestAcceptanceV1 {
             episode_id: "episode-1".to_string(),
