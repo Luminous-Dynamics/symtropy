@@ -640,7 +640,7 @@ mod tests {
             record["split"] != json!("validation")
         });
         let errors = validate_split_manifest(&manifest).unwrap_err();
-        assert!(errors.iter().any(|error| error.message.contains("validation")));
+        assert!(errors.iter().any(|error| error.message.to_lowercase().contains("validation")));
     }
 
     #[test]
@@ -654,7 +654,7 @@ mod tests {
         );
 
         forward["records"][0]["sequence_group_id"] = json!("seq-b1");
-        reverse["records"][3]["sequence_group_id"] = json!("seq-a1");
+        reverse["records"][0]["sequence_group_id"] = json!("seq-a1");
         let forward_errors = validate_split_manifest(&forward).unwrap_err();
         let reverse_errors = validate_split_manifest(&reverse).unwrap_err();
         let forward_messages: Vec<String> =
