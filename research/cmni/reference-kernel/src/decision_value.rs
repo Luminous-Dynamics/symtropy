@@ -139,7 +139,10 @@ pub fn recommend_finite_decision_step(
         ));
     }
     let mut unique_actions = std::collections::BTreeSet::new();
-    if action_ids.iter().any(|id| !unique_actions.insert(id.as_str())) {
+    if action_ids
+        .iter()
+        .any(|id| !unique_actions.insert(id.as_str()))
+    {
         return Err(ModelError::InvalidParameter(
             "decision_action_ids_must_be_unique",
         ));
@@ -147,12 +150,18 @@ pub fn recommend_finite_decision_step(
     if state_probabilities
         .iter()
         .any(|probability| !probability.is_finite())
-        || action_utilities.iter().flatten().any(|utility| !utility.is_finite())
+        || action_utilities
+            .iter()
+            .flatten()
+            .any(|utility| !utility.is_finite())
         || !abstention_utility.is_finite()
     {
         return Err(ModelError::NonFiniteValue("finite_decision_input"));
     }
-    if state_probabilities.iter().any(|probability| *probability < 0.0) {
+    if state_probabilities
+        .iter()
+        .any(|probability| *probability < 0.0)
+    {
         return Err(ModelError::InvalidParameter(
             "decision_state_probabilities_must_be_nonnegative",
         ));
@@ -217,9 +226,7 @@ pub fn recommend_finite_decision_step(
     let mut best_option: Option<(&InformationAcquisitionOption, f64, f64, f64)> = None;
 
     for option in information_options {
-        if option.option_id.trim().is_empty()
-            || !seen_options.insert(option.option_id.as_str())
-        {
+        if option.option_id.trim().is_empty() || !seen_options.insert(option.option_id.as_str()) {
             return Err(ModelError::InvalidParameter(
                 "information_option_ids_must_be_nonempty_and_unique",
             ));
@@ -252,8 +259,7 @@ pub fn recommend_finite_decision_step(
             continue;
         }
 
-        if option.outcome_likelihoods.len() != state_count
-            || option.outcome_likelihoods.is_empty()
+        if option.outcome_likelihoods.len() != state_count || option.outcome_likelihoods.is_empty()
         {
             return Err(ModelError::MismatchedDataLengths);
         }
@@ -313,16 +319,13 @@ pub fn recommend_finite_decision_step(
                             * utilities[state_index]
                     })
                     .sum::<f64>();
-                best_posterior_utility =
-                    best_posterior_utility.max(unnormalized_posterior_utility);
+                best_posterior_utility = best_posterior_utility.max(unnormalized_posterior_utility);
             }
             expected_utility_after_information += best_posterior_utility;
         }
 
-        let raw_evsi =
-            expected_utility_after_information - utility_with_current_information;
-        let numerical_tolerance =
-            1.0e-10 * utility_with_current_information.abs().max(1.0);
+        let raw_evsi = expected_utility_after_information - utility_with_current_information;
+        let numerical_tolerance = 1.0e-10 * utility_with_current_information.abs().max(1.0);
         if raw_evsi < -numerical_tolerance {
             return Err(ModelError::InvalidParameter(
                 "information_option_reduces_optimal_expected_utility",
