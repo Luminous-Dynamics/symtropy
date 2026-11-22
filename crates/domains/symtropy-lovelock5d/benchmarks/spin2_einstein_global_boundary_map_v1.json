@@ -138,9 +138,12 @@
     "Myers_Perry_known_answer_recovered": true
   },
   "derivation": {
-    "source_sha256": "7a62a78e344cf024d474a3d226f0762f7b2095e8256ec7b1cc098f04486f8fe0",
+    "source_sha256": "ce1a7238ba1e6627f09667d34dbb10378e76760fda130ee906d675bfbfe3dec8",
     "sympy_version": "1.14.0",
-    "arithmetic": "exact symbolic algebra"
+    "arithmetic": "exact symbolic algebra",
+    "source_git_blob_sha1": "abb1bfd3502fa48743fedfb2bd2e13624cab035c",
+    "local_development_source_sha256": "7a62a78e344cf024d474a3d226f0762f7b2095e8256ec7b1cc098f04486f8fe0",
+    "public_source_execution": "pending_exact_blob_replay"
   },
   "claim_ceiling": "Exact global map and unique asymptotically flat analytic-horizon solution for the 5D alpha=0 O(a^2) action-derived perturbative system with Bhat2(1)=0. This does not prove finite-coupling EGB uniqueness, full nonlinear uniqueness, interval existence, a finite-coupling validated branch, or PDE hyperbolicity."
 }
