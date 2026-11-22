@@ -840,6 +840,35 @@ mod tests {
         assert_eq!(receipt.raw_responder_ticks[1], 0);
     }
 
+
+    #[test]
+    fn raw_tick_adapter_unwraps_only_the_clock_that_crosses_modulus() {
+        let modulus = MILUV_DWT_TIMESTAMP_MODULUS as u32;
+        let initiator_only = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps(
+                [modulus - 200, 100, 200],
+                [2_000, 2_100, 2_200],
+            ),
+            1_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        assert_eq!(initiator_only.initiator_rollover_count, 1);
+        assert_eq!(initiator_only.responder_rollover_count, 0);
+
+        let responder_only = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
+            raw_miluv_timestamps(
+                [1_000, 1_300, 1_400],
+                [modulus - 200, 0, 100],
+            ),
+            1_000,
+            MILUV_REFERENCE_PROPAGATION_SPEED_MPS,
+        )
+        .unwrap();
+        assert_eq!(responder_only.initiator_rollover_count, 0);
+        assert_eq!(responder_only.responder_rollover_count, 1);
+    }
+
     #[test]
     fn raw_tick_adapter_preserves_sub_tick_error_bounds() {
         let receipt = MiluvRawTickAdapterReceipt::from_miluv_raw_uwb_timestamps(
