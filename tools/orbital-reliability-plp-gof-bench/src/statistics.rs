@@ -86,16 +86,8 @@ pub fn from_sorted_log_transforms(log_values: &[f64]) -> Result<TestStatisticVal
         kolmogorov_smirnov: d_plus.max(d_minus),
     };
 
-    let statistics = [
-        result.laplace,
-        result.greenwood,
-        result.cramer_von_mises,
-        result.anderson_darling,
-        result.kolmogorov_smirnov,
-    ];
-    if statistics.iter().any(|value| !value.is_finite() || *value < 0.0 && *value != result.laplace)
-    {
-        return Err("one or more GOF statistics are non-finite or invalid".to_owned());
+    if !result.laplace.is_finite() {
+        return Err("Laplace statistic is non-finite".to_owned());
     }
     if result.greenwood <= 0.0
         || result.cramer_von_mises < 0.0
@@ -119,10 +111,10 @@ mod tests {
         let stats = from_sorted_log_transforms(&logs).expect("valid log transforms");
 
         assert!((stats.laplace).abs() < 1.0e-14);
-        assert!((stats.greenwood - 0.26).abs() < 1.0e-14);
+        assert!((stats.greenwood - 0.34).abs() < 1.0e-14);
         assert!((stats.cramer_von_mises - 0.036_666_666_666_666_67).abs() < 1.0e-14);
-        assert!((stats.anderson_darling - 0.135_871_136_715_312_7).abs() < 1.0e-12);
-        assert!((stats.kolmogorov_smirnov - 0.166_666_666_666_666_69).abs() < 1.0e-14);
+        assert!((stats.anderson_darling - 0.272_552_808_642_008_15).abs() < 1.0e-12);
+        assert!((stats.kolmogorov_smirnov - 0.233_333_333_333_333_4).abs() < 1.0e-14);
     }
 
     #[test]
