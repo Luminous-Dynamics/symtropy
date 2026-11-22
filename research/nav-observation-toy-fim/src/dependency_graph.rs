@@ -67,6 +67,7 @@ impl FailureDomainModel {
     }
 
     pub fn p_failure_domain(&self, belief: &[f64], id: &str) -> Result<f64, DependencyGraphError> {
+        self.validate_belief(belief)?;
         let bit = self.cause_ids.iter().position(|candidate| candidate == id)
             .ok_or_else(|| DependencyGraphError::UnknownFailureDomain(id.to_owned()))?;
         let pattern_count = self.cause_pattern_count();
@@ -438,7 +439,7 @@ mod tests{
             let p=match(kind,state,power,clock){
                 ("power",0,false,_)=>0.05,("power",0,true,_)=>0.90,("power",1,_,_)=>0.95,
                 ("clock",0,_,false)=>0.15,("clock",0,_,true)=>0.35,("clock",1,_,false)=>0.85,("clock",1,_,true)=>0.75,
-                ("mixed",0,false,false)=>0.08,("mixed",0,true,_)=>0.88,("mixed",0,false,true)=>0.10,("mixed",1,_,_)=>0.92,
+                ("mixed",0,false,_)=>0.08,("mixed",0,true,_)=>0.88,("mixed",1,_,_)=>0.92,
                 _=>0.5
             };
             safe.push(p);
