@@ -104,6 +104,22 @@ Use distinct dispositions for:
 
 The disposition must not silently collapse into a boolean timestamp-valid flag.
 
+
+## Implemented P1 clock-profile constructor
+
+The executable Rust primitive now includes a typed ClockBoundProfile. A caller cannot produce a proof-grade TimeEvidence by setting QualifiedEnclosure alone; direct construction is rejected. The profile must bind:
+
+- source clock/device ID and profile ID;
+- exact normalized time-basis ID;
+- opaque calibration-evidence reference;
+- synchronization method and current state (Locked or Holdover; Alarmed/Unknown refuse);
+- calibration/validity window;
+- maximum offset, holdover-drift, timestamp capture-path and rounding-error bounds.
+
+All four error components are mandatory. Unknown is represented as None and fails qualification. The current reference implementation adds the stated worst-case tick bounds conservatively with checked arithmetic and derives [source_timestamp - total_error, source_timestamp + total_error]. It rejects event timestamps outside the calibration validity window, arithmetic overflow, missing components and unqualified clock state. Each derived TimeEvidence retains the clock/profile/calibration identifiers and total error bound.
+
+This constructor is an explicit evidence contract, not an authentication protocol. The calibration reference is opaque and this crate does not dereference it, check its signature, validate the clock's issuer, independently audit the PTP/NTP measurements, or prove the timestamp-generation path. A production adapter must verify those inputs and must not put Some(0) for a component merely because no data exists; zero is permitted only where a reviewed source contract establishes zero or non-applicability.
+
 ## P1 falsification corpus
 
 Freeze fixtures for:
