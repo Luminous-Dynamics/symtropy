@@ -95,7 +95,7 @@ impl Rational {
         })
     }
 
-    fn checked_add(&self, other: &Self) -> Result<Self, String> {
+    pub(crate) fn checked_add(&self, other: &Self) -> Result<Self, String> {
         let common = gcd_u128(u128::from(self.denominator), u128::from(other.denominator));
         let left_scale = u128::from(other.denominator) / common;
         let right_scale = u128::from(self.denominator) / common;
