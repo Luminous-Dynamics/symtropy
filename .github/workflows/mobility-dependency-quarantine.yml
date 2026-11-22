@@ -1,0 +1,49 @@
+name: Mobility Dependency Quarantine Reference
+
+on:
+  push:
+    branches:
+      - research/mobility-dependency-quarantine-v0-1
+    paths:
+      - "research/mobility-dependency-quarantine/**"
+      - ".github/workflows/mobility-dependency-quarantine.yml"
+  pull_request:
+    paths:
+      - "research/mobility-dependency-quarantine/**"
+      - ".github/workflows/mobility-dependency-quarantine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-dependency-quarantine/Cargo.toml -- --check
+      - name: Run reference tests
+        run: cargo test --manifest-path research/mobility-dependency-quarantine/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-dependency-quarantine/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate public corpus and schema contract
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("research/mobility-dependency-quarantine")
+          manifest = json.loads((root / "quarantine_cases_v0_1.json").read_text())
+          schema = json.loads((root / "quarantine_cases.schema.json").read_text())
+          assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          assert manifest["version"] == "0.1"
+          cases = manifest["cases"]
+          ids = [case["case_id"] for case in cases]
+          assert len(cases) >= 12 and len(ids) == len(set(ids))
+          expected = {case["expected"] for case in cases}
+          assert expected == {"ComponentQuarantine", "GlobalHold", "NoUnresolvedEffects"}
+          print(f"Validated {len(cases)} unique public quarantine cases.")
+          PY

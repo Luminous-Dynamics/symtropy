@@ -1,0 +1,21 @@
+{
+  "version": "0.1",
+  "cases": [
+    {"case_id":"isolated-seed","scenario":"One unresolved action has complete empty owner inventories and no dependency domain.","expected":"ComponentQuarantine"},
+    {"case_id":"transitive-chain","scenario":"A seed reaches B through one owner domain and C through another; D remains disjoint.","expected":"ComponentQuarantine"},
+    {"case_id":"capacity-hyperedge","scenario":"A shared-capacity hyperedge lists three exact attempts and quarantines all members.","expected":"ComponentQuarantine"},
+    {"case_id":"multiple-seeds","scenario":"Two unresolved seeds produce the union of their dependency closures.","expected":"ComponentQuarantine"},
+    {"case_id":"global-authority","scenario":"A Global domain binds every action in the exact scope.","expected":"ComponentQuarantine"},
+    {"case_id":"unknown-owner","scenario":"A required owner marks its inventory Unknown.","expected":"GlobalHold"},
+    {"case_id":"missing-owner","scenario":"A required owner inventory is absent.","expected":"GlobalHold"},
+    {"case_id":"duplicate-owner","scenario":"An owner inventory is duplicated and another required owner is consequently absent.","expected":"GlobalHold"},
+    {"case_id":"incomplete-count","scenario":"The declared domain count differs from the returned inventory.","expected":"GlobalHold"},
+    {"case_id":"stale-attempt","scenario":"A domain references a different action attempt.","expected":"GlobalHold"},
+    {"case_id":"unknown-impact","scenario":"An owner cannot bound a dependency domain's impact.","expected":"GlobalHold"},
+    {"case_id":"missing-outcome","scenario":"An in-scope action lacks an outcome classification.","expected":"GlobalHold"},
+    {"case_id":"duplicate-outcome","scenario":"One action has two outcome classifications.","expected":"GlobalHold"},
+    {"case_id":"foreign-outcome","scenario":"An outcome references an action outside the exact scope.","expected":"GlobalHold"},
+    {"case_id":"duplicate-domain","scenario":"One owner repeats a dependency-domain identity.","expected":"GlobalHold"},
+    {"case_id":"no-unresolved-effects","scenario":"Every action is NotApplied or reconciled.","expected":"NoUnresolvedEffects"}
+  ]
+}
