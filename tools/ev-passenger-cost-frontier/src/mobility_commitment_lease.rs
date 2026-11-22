@@ -1049,9 +1049,9 @@ mod tests {
     #[test]
     fn resource_power_overcommit_is_rejected() {
         let mut input = fixture();
-        input.candidate_lease.resource_allocations[0].power_w_by_slot[2] = 2_600;
+        input.candidate_lease.resource_allocations[0].power_w_by_slot[2] = 3_100;
         let errors = evaluate_mobility_commitment_lease(&input)
-            .expect_err("existing plus candidate power exceeds 3 kW");
+            .expect_err("candidate power exceeds the 3 kW resource ceiling");
         assert!(
             errors
                 .iter()
@@ -1219,7 +1219,7 @@ mod tests {
     #[test]
     fn evaluator_matches_independent_reference_for_12_candidate_profiles() {
         let mut input = fixture();
-        let powers = [0_u32, 1_000, 2_500, 2_600];
+        let powers = [0_u32, 1_000, 2_500, 3_100];
         let energies = [0_u64, 100, 700];
         let mut compared = 0_usize;
         let mut feasible = 0_usize;
