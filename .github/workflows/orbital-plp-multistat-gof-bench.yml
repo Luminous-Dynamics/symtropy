@@ -109,6 +109,27 @@ jobs:
             and .authority_granted == false
           ' orbital-plp-suite-null-smoke.json
 
+      - name: Run event-count and beta stratified family-wise null smoke
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_suite_null_strata_smoke.mjs > orbital-plp-suite-null-strata-smoke.json
+
+      - name: Validate stratified calibration smoke boundary
+        run: |
+          jq -e '
+            .schema == "luminous.orbital-plp-outer-suite-null-strata-smoke.v0.2"
+            and .evidence_class == "synthetic"
+            and .study_kind == "deterministic_outer_familywise_null_strata_smoke"
+            and .cell_count == 12
+            and .outer_replicates_per_cell == 50
+            and .inner_conditional_replicates == 999
+            and (.cells | length) == 12
+            and (.cells | all(.familywise_rejection_rates["0.01"].trials == 50 and .familywise_rejection_rates["0.05"].trials == 50 and .familywise_rejection_rates["0.1"].trials == 50))
+            and .multiplicity_method == "bonferroni"
+            and .calibrated_for_all_sample_sizes_or_alternatives == false
+            and .physical_reliability_claim_granted == false
+            and .qualification_granted == false
+            and .authority_granted == false
+          ' orbital-plp-suite-null-strata-smoke.json
+
       - name: Upload lockfile, suite receipt and calibration reports
         uses: actions/upload-artifact@v4
         with:
@@ -118,5 +139,6 @@ jobs:
             orbital-plp-multistat-gof-receipt.json
             orbital-plp-cvm-null-smoke.json
             orbital-plp-suite-null-smoke.json
+            orbital-plp-suite-null-strata-smoke.json
           if-no-files-found: error
           retention-days: 30
