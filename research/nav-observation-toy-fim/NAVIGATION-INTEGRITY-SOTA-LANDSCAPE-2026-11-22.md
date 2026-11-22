@@ -1,0 +1,133 @@
+# Navigation integrity: 2026 SOTA landscape and matched-benchmark plan
+
+**Date:** 2026-11-22  
+**Status:** literature-grounded benchmark plan; no new physical scores claimed.
+
+This review expands the navigation-integrity benchmark beyond NLOS classification and trajectory RMSE. It considers indoor localization standards, raw-CIR learning, dynamic uncertainty calibration, decoupled geometric correction, multi-robot UWB arrays, construction-site SLAM and secure ranging.
+
+## 1. The field has several different leaders
+
+These papers solve different tasks and use different hardware, datasets, labels and test protocols. Their reported numbers must not be ranked as if they came from one benchmark.
+
+| Work | Published result / contribution | What we must compare |
+|---|---|---|
+| ISO/IEC 21134:2026 | International framework for integrated indoor localization/tracking with dead reckoning; master sets, environments, metrics, benchmarking process and conformance | Align accuracy, trajectory and practical-performance reporting before adding integrity claims |
+| Hilti–Trimble SLAM Challenge 2026 / SPARO | Official report: 0.109 m mean RMSE, 99.85% mean trajectory coverage, 25 sequences | Reproduce official trajectory metrics; add evidence-backed support, PL breaches, unsupported NORMAL time and recovery |
+| Zhao et al., IEEE T-RO 2025, “Robust and Scalable Multi-Robot Localization Using Stereo UWB Arrays” | Centimetre-level multi-robot localization; 100 Hz UWB-only update rate reported; distributed relative localization and inter-/intra-node cooperation | Match update rate, node count, packet loss, 3D pairwise geometry, accuracy, network airtime and failure-domain independence |
+| Yang et al., Measurement 2025, “A novel credibility evaluation and mitigation for ranging measurement in UWB localization” | BERT-LSTM/CIR method; reported 80.94% NLOS and 37.9% LOS range-error reductions on its study-specific experiments | Reproduce credibility, correction and discard decisions; report LOS harm, selective risk and interval coverage |
+| Jiang et al., IEEE Communications Letters 2026, “Optimizing UWB CIR Truncation for NLOS Identification on MCU Deployment” | 63-sample CIR subset; 93.68% NLOS recall; quantized STM32 deployment | Reproduce on matched CIR representation/hardware; add false accepts, domain shift, energy and radio-rate cost |
+| Sun and Gao, Measurement Science and Technology 2026, “Probabilistic calibration and dynamic uncertainty evaluation for UWB ranging in NLOS environments” | Physics-informed multi-task NLOS classification, correction and aleatoric/epistemic uncertainty; MAE below 0.12 m reported across its evaluated datasets | Reproduce on held-out experiment/material/anchor groups; compare both error and empirical uncertainty calibration |
+| Lu et al., Measurement 2026, “A decoupled backend optimizer for UWB localization in NLOS environments” | Reusable posterior refinement layer that combines front-end estimates, ranges and anchor geometry, jointly estimating position and residual range errors | Integrate as a baseline behind multiple front ends; add bounded residuals, bias observability, failure cases and evidence provenance |
+| IUCA, IEEE Journal of Selected Areas in Sensors 2026 | Model-agnostic high-dimensional conformal calibration of joint/correlated state uncertainty, including pose ellipses | Reproduce exchangeability assumptions; measure joint coverage, sharpness, conditional/domain-shift failure and mission-level risk |
+| 2026 CIR NLOS survey, Computers & Electrical Engineering 139B | Reviews 80 representative studies; distinguishes handcrafted CIR-feature and raw-CIR sequence methods; highlights label efficiency, domain generalization and physics-guided interpretability | Use as taxonomy and ablation guide; evaluate cross-scenario robustness and deployment feasibility, not just accuracy |
+| IEEE TII 2026 secure indoor ranging review / FiRa Core 4.1 | Overshadowing, early-path injection, relay and clock-related threats; FiRa Core 4.1 expands DS-TWR security certification, responder-specific sub-session keys and 256-bit STS key testing | Separate protocol authentication, physical channel integrity, clock integrity and navigation decision integrity |
+
+## 2. Competitive paradigm: a verified front end and an independent posterior
+
+The 2026 decoupled backend optimizer is an important comparator because it explicitly avoids being tied to one front-end algorithm. We should adopt that modularity—but make the posterior evidence-qualified.
+
+Proposed architecture:
+
+1. **Raw observation qualification:** preserve radio event identity, local clock, units, CIR/RSS provenance, calibration revision, STS/session evidence and acquisition time.
+2. **Measurement hypothesis:** output a point estimate plus a hard range set and/or calibrated probabilistic uncertainty. Unknown-sign error must not be forced into a positive-NLOS-bias model.
+3. **Front-end estimator:** EKF, factor graph, VIO/UWB, LS, or multi-robot cooperative estimator; preserve exact input observation IDs and dependency labels.
+4. **Independent posterior audit:** examine geometric residuals, anchor/tag displacement, common-cause consistency and whether all predicted truth regions are actually supported.
+5. **Protection-region qualification:** derive pose protection levels from the complete uncertainty/dependency model, not only the estimator covariance.
+6. **Decision gate:** accept, acquire new evidence, degrade or abstain. Only the separately qualified contract may authorize NORMAL.
+
+This lets us compare against the 2026 backend optimizer fairly while extending the question from “did residual correction improve RMSE?” to “did it improve accuracy without making the posterior falsely confident?”
+
+## 3. Benchmark protocol: separate four leaderboards and one cross-cutting security campaign
+
+### A. Estimation
+- Median, RMSE, p95 and p99 position/orientation error.
+- Relative drift, time-to-initialization, trajectory coverage and continuity.
+- Official Hilti metrics and published MILUV baseline metrics reproduced exactly.
+- Multi-robot update rate, relative-pose error and scaling by node count.
+
+### B. Measurement integrity
+- Range interval / set empirical coverage at 90%, 95%, 99%.
+- p50/p95 interval width and a proper sharpness/score measure.
+- NLOS/LOS detection false acceptance, precision/recall, selective risk and retained-measurement coverage.
+- Bias-bound coverage and underestimation magnitude.
+- Calibration stratified by obstacle material, anchor geometry, device, robot, distance and environment.
+- Unknown-sign errors kept separate from positive excess-path bias.
+
+### C. Service integrity
+- Protection-level breaches and HMI per declared mission.
+- One-sided exact binomial confidence bounds using independent mission/experiment units.
+- Time-to-alert, unsupported-NORMAL exposure, degraded availability, abstention and recovery.
+- Common-cause campaigns for shared obstacles, clock sources, calibration, power, anchors and passive receivers.
+- Re-entry to NORMAL only after fresh, independently supported evidence.
+
+### D. Efficiency and scaling
+- p50/p95/p99 inference and update latency.
+- Radio airtime, packet loss, throughput and synchronization overhead.
+- CPU/MCU cycles, RAM, flash, energy per measurement and energy per metre.
+- Performance at 1, 3, 6 and 12 nodes, subject to the available hardware/data.
+- MCU and workstation results reported separately.
+
+### E. Cross-cutting adversarial integrity
+- Replay/stale session, identity and key-epoch binding failures.
+- STS/session evidence loss, protocol downgrade and verifier unavailability.
+- Clock reset/manipulation, timing substitution and common-mode drift.
+- Controlled channel interference, corrupted CIR and source-provenance failures.
+- Attack false acceptance, time-to-revoke authority, HMI and recovery.
+- Compare only under explicit attacker capability and protocol profile.
+
+Do not combine the five result families into a single weighted score.
+
+## 4. Reproduction ladder
+
+Run the following baselines under identical input availability and experiment-level splits:
+
+1. Uncorrected DS-TWR + least squares.
+2. Published MILUV UWB-IMU EKF.
+3. Robust/adaptive EKF and factor-graph baselines.
+4. BERT-LSTM / CIR credibility and correction.
+5. 63-sample MCU CIR model.
+6. Physics-informed evidential NLOS range calibration.
+7. Decoupled geometric posterior optimizer.
+8. Multi-robot cooperative UWB array / stereo-UWB baseline.
+9. VIO/SLAM baseline where the sensor set and reference frame permit a matched comparison.
+10. Our evidence-qualified measurement + posterior + mission-decision pipeline.
+
+For every method, report feature availability, filtering, calibration split, train/test grouping, hardware and exact source revision.
+
+## 5. Proposed stretch targets (not achieved results)
+
+- 99% nominal range/pose set coverage on untouched experiment/material/anchor groups, with p50/p95 width reported.
+- NLOS recall ≥95% while false-positive rate ≤5% on leave-one-material and leave-one-anchor splits; separately cap unsafe false acceptance.
+- Multi-robot ≥100 Hz UWB-only or equivalent matched update rate where the device/network setup permits, without sacrificing qualification or hiding packet loss.
+- HMI probability ≤10^-3 for a declared mission scope, supported by one-sided 95% confidence bounds and enough independent missions; do not use adjacent epochs as independent trials.
+- One measurement-cycle fault detection for defined clock/session/calibration fault injections, followed by an evidence-qualified recovery process.
+- Pareto improvement over the matched 63-sample MCU CIR baseline in false acceptance, NLOS detection, inference cost, energy and measurement-rate loss.
+- Reproduce official Hilti accuracy/coverage scores first; then demonstrate higher evidence-backed coverage and lower unsupported-NORMAL exposure at comparable accuracy.
+
+The targets are deliberately split. A model can have excellent NLOS recall but poor interval calibration; a backend optimizer can reduce RMSE but widen or miscalibrate residuals; a multi-robot system can run at high update rate while sharing common failure causes.
+
+## 6. Statistical and data controls
+
+- Split by full experiment/mission and environment; no random row splits.
+- Hold out obstacle material, anchor placement, robot and device revision.
+- Reserve a final sealed test set untouched by model selection.
+- Use separate calibration/test cohorts for conformal or quantile calibration.
+- Treat clusters/experiments as units for mission-risk claims.
+- Report confidence intervals, missingness, exclusions and all failures.
+- Keep controller/evaluator separation at field and row-selection levels; the MILUV truth-conditioned row filter remains blocked by [issue #6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813).
+- Do not admit any physical benchmark payload until rights, hashes, schema, calibration lineage and independent truth lineage are checked.
+
+## 7. Current Symtropy work
+
+- [#6793](https://github.com/Luminous-Dynamics/symtropy/pull/6793): interval-valued DS-TWR and positive NLOS bias kernel.
+- [#6813](https://github.com/Luminous-Dynamics/symtropy/issues/6813): truth-conditioned MILUV row-selection leakage.
+- [#6814](https://github.com/Luminous-Dynamics/symtropy/pull/6814): source audit of MILUV timestamp, clock and calibration semantics.
+- [#6815](https://github.com/Luminous-Dynamics/symtropy/pull/6815): processed-CSV and bounded raw transaction adapters; explicit propagation speed.
+- [#6816](https://github.com/Luminous-Dynamics/symtropy/issues/6816): source-clean benchmark charter.
+- [#6843](https://github.com/Luminous-Dynamics/symtropy/pull/6843): evidence-bounded multi-wrap clock stream reconstruction.
+- [#6844](https://github.com/Luminous-Dynamics/symtropy/issues/6844): adversarial UWB ranging integrity qualification.
+- [#6849](https://github.com/Luminous-Dynamics/symtropy/pull/6849): external-verifier session evidence gate.
+
+## 8. Claim boundary
+
+This document is a literature review and reproduction plan. Published numbers are study-specific and are not directly comparable. No new physical benchmark result, reproduced SOTA result, cryptographic certification or navigation safety guarantee is claimed.
