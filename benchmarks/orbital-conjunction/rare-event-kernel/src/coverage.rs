@@ -320,6 +320,47 @@ mod tests {
     }
 
     #[test]
+    fn affine_enclosure_contains_a_grid_of_transformed_points() {
+        let offset = [0.25, -0.5];
+        let matrix = [2.0, -1.0, -0.5, 3.0];
+        let lower = [-1.0, 0.5];
+        let upper = [2.0, 1.5];
+        let bounds = affine_box_image_bounds(&offset, &matrix, &lower, &upper).unwrap();
+
+        for i in 0..=20 {
+            for j in 0..=20 {
+                let x = lower[0] + (upper[0] - lower[0]) * (i as f64 / 20.0);
+                let y = lower[1] + (upper[1] - lower[1]) * (j as f64 / 20.0);
+                let out_x = offset[0] + matrix[0] * x + matrix[1] * y;
+                let out_y = offset[1] + matrix[2] * x + matrix[3] * y;
+                assert!(out_x >= bounds[0].lower() && out_x <= bounds[0].upper());
+                assert!(out_y >= bounds[1].lower() && out_y <= bounds[1].upper());
+            }
+        }
+    }
+
+    #[test]
+    fn affine_norm_lower_bound_never_exceeds_a_sampled_norm() {
+        let offset = [0.25, -0.5];
+        let matrix = [2.0, -1.0, -0.5, 3.0];
+        let lower = [-1.0, 0.5];
+        let upper = [2.0, 1.5];
+        let bound =
+            affine_box_norm_lower_bound(&offset, &matrix, &lower, &upper).unwrap();
+
+        for i in 0..=20 {
+            for j in 0..=20 {
+                let x = lower[0] + (upper[0] - lower[0]) * (i as f64 / 20.0);
+                let y = lower[1] + (upper[1] - lower[1]) * (j as f64 / 20.0);
+                let out_x = offset[0] + matrix[0] * x + matrix[1] * y;
+                let out_y = offset[1] + matrix[2] * x + matrix[3] * y;
+                let sampled_norm = (out_x * out_x + out_y * out_y).sqrt();
+                assert!(bound <= sampled_norm);
+            }
+        }
+    }
+
+    #[test]
     fn invalid_hard_body_radius_fails_closed() {
         assert_eq!(
             affine_cell_excludes_collision_ball(
