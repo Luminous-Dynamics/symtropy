@@ -1,0 +1,21 @@
+{
+  "version": "0.1",
+  "cases": [
+    { "case_id": "EVR-001", "class": "positive", "mutation": "all_required_independent_domains_support", "expected": "confirmed", "authority_capabilities": [] },
+    { "case_id": "EVR-002", "class": "negative", "mutation": "subject_support_only", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-003", "class": "negative", "mutation": "one_required_domain_missing", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-004", "class": "negative", "mutation": "valid_subject_contradiction", "expected": "refuted", "authority_capabilities": [] },
+    { "case_id": "EVR-005", "class": "negative", "mutation": "valid_independent_contradiction", "expected": "refuted", "authority_capabilities": [] },
+    { "case_id": "EVR-006", "class": "negative", "mutation": "unexpected_independent_contradiction", "expected": "refuted", "authority_capabilities": [] },
+    { "case_id": "EVR-007", "class": "negative", "mutation": "stale_contradiction", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-008", "class": "negative", "mutation": "wrong_scope_contradiction", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-009", "class": "negative", "mutation": "zero_raw_evidence_commitment", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-010", "class": "negative", "mutation": "independent_source_uses_subject_domain", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-011", "class": "negative", "mutation": "subject_source_claims_independent_domain", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-012", "class": "negative", "mutation": "duplicate_evidence_identity", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-013", "class": "negative", "mutation": "empty_or_duplicate_required_domain_profile", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-014", "class": "negative", "mutation": "fact_for_another_claim", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-015", "class": "negative", "mutation": "subject_support_substitutes_missing_domain", "expected": "insufficient_evidence", "authority_capabilities": [] },
+    { "case_id": "EVR-016", "class": "positive", "mutation": "complete_independent_support_plus_subject_support", "expected": "confirmed", "authority_capabilities": [] }
+  ]
+}
