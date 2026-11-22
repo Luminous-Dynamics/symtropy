@@ -997,10 +997,10 @@ mod tests {
 
                     if optimized.is_ok() {
                         for pair in box_events.windows(2) {
-                            assert!(matches!(
+                            assert_eq!(
                                 compare_time_evidence(&pair[0].2, &pair[1].2),
                                 TemporalRelation::ProvenBefore
-                            ));
+                            );
                         }
                     }
                 }
