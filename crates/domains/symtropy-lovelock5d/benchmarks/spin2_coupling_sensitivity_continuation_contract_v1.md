@@ -329,3 +329,10 @@ The separate oracle and replay receipt are:
 - \`spin2_green_projection_quadrature_replay_v1.json\`
 
 These are arbitrary-precision numerical discrepancies, not rigorous enclosures. The next finite-coupling validation must still solve the original BVP independently and compare both columns of \(J(\lambda)\) against \(J_0+\lambda J_1\).
+
+
+## 11. Second quadrature family before finite-coupling continuation
+
+The Green endpoint amplitudes now have two independent numerical integration routes: tanh--sinh and composite Gauss--Legendre with exact analytic subtraction of the logarithmic endpoint series. The latter is locally executed at 40/60/80 requested digits and agrees with \(C_H=67-6\pi^2\) and \(C_B=19-2\pi^2\) to \(10^{-35}\) at 40 dps and approximately \(10^{-49}\) at 60--80 dps. Its exact local source was fetched back from the public branch and Git blob matched.
+
+These controls increase confidence in the endpoint projector. They do not substitute for the finite-positive-\(\lambda\) BVP or interval qualification; both columns still need to be compared against independently corrected solutions.
