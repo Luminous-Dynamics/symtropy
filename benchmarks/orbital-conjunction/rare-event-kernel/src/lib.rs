@@ -164,14 +164,24 @@ impl fmt::Display for KernelError {
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
             Self::InvalidEvidenceIdentifier => "evidence identifiers must be nonempty and distinct",
-            Self::InvalidEvidenceDigest => "evidence digest must be 64 lowercase hexadecimal characters",
-            Self::EvidenceIdentityMismatch => "event, model or target-distribution evidence identities do not match",
-            Self::PartitionIdentityMismatch => "partition digest or region assignment does not match",
-            Self::InvalidPartitionDeclaration => "partition is not declared disjoint and exhaustive",
+            Self::InvalidEvidenceDigest => {
+                "evidence digest must be 64 lowercase hexadecimal characters"
+            }
+            Self::EvidenceIdentityMismatch => {
+                "event, model or target-distribution evidence identities do not match"
+            }
+            Self::PartitionIdentityMismatch => {
+                "partition digest or region assignment does not match"
+            }
+            Self::InvalidPartitionDeclaration => {
+                "partition is not declared disjoint and exhaustive"
+            }
             Self::IdenticalEvidenceRegions => "admitted and residual regions must be distinct",
             Self::ResidualEvidenceIncomplete => "residual event-mass evidence is incomplete",
             Self::ResidualEvidenceBudgetExhausted => "residual event-mass budget was exhausted",
-            Self::InvalidProbabilityInterval => "probability interval lower endpoint exceeds upper endpoint",
+            Self::InvalidProbabilityInterval => {
+                "probability interval lower endpoint exceeds upper endpoint"
+            }
         };
         f.write_str(message)
     }
