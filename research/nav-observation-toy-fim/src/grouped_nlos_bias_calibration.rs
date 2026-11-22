@@ -141,9 +141,7 @@ pub fn calibrate_grouped_positive_nlos_bias_upper_bound(
     config: GroupedPositiveNlosBiasCalibrationConfig,
     units: &[PositiveNlosBiasCalibrationUnit],
 ) -> Result<GroupedPositiveNlosBiasCalibrationReceipt, GroupedPositiveNlosBiasCalibrationError> {
-    if config.alpha_parts_per_million == 0
-        || config.alpha_parts_per_million >= ALPHA_PARTS_PER_MILLION
-    {
+    if !(1..ALPHA_PARTS_PER_MILLION).contains(&config.alpha_parts_per_million) {
         return Err(GroupedPositiveNlosBiasCalibrationError::InvalidAlpha);
     }
     if config.calibration_domain_id == 0 {
@@ -240,7 +238,7 @@ pub fn calibrate_grouped_positive_nlos_bias_upper_bound(
 }
 
 fn div_ceil(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + if numerator % denominator == 0 { 0 } else { 1 }
+    numerator.div_ceil(denominator)
 }
 
 #[cfg(test)]
