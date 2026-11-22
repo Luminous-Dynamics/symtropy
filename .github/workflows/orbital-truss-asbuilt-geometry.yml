@@ -6,7 +6,6 @@ on:
       - "tools/orbital-truss-asbuilt-geometry-bench/**"
       - "docs/research/orbital-truss/fixtures/asbuilt-geometry-v0_1.json"
       - "docs/research/orbital-truss/orbital_truss_asbuilt_geometry_v0_1.schema.json"
-      - ".github/workflows/orbital-truss-asbuilt-geometry.yml"
   push:
     branches:
       - "research/orbital-truss-asbuilt-geometry-v0-1"
