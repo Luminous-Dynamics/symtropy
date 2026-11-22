@@ -28,6 +28,8 @@ pub enum ProjectionTimeQualification {
     Qualified {
         time_basis_id: String,
         tick_quantum_id: String,
+        /// Digest of the immutable serialized custody time-evidence receipt.
+        time_evidence_sha256: String,
         time_evidence_id: String,
         earliest_event_time_ticks: i64,
         latest_event_time_ticks: i64,
@@ -126,6 +128,7 @@ pub struct ProjectedMembershipEvent {
 pub enum ProjectionQuarantineReason {
     UnqualifiedChronology(String),
     EventTimeEvidenceIdMismatch,
+    InvalidTimeEvidenceDigest,
     InvalidTimeEnclosure,
     InvalidRevision,
     InvalidLocation,
@@ -256,6 +259,7 @@ fn chronology_domain(
         ProjectionTimeQualification::Qualified {
             time_basis_id,
             tick_quantum_id,
+            time_evidence_sha256,
             time_evidence_id,
             earliest_event_time_ticks,
             latest_event_time_ticks,
@@ -273,6 +277,9 @@ fn chronology_domain(
                 return Err(ProjectionQuarantineReason::UnqualifiedChronology(
                     "time basis or tick quantum is empty".to_string(),
                 ));
+            }
+            if !valid_sha256(time_evidence_sha256) {
+                return Err(ProjectionQuarantineReason::InvalidTimeEvidenceDigest);
             }
             if time_evidence_id != &canonical_event_time_evidence_id(&source) {
                 return Err(ProjectionQuarantineReason::EventTimeEvidenceIdMismatch);
@@ -852,6 +859,7 @@ mod tests {
                 time_basis_id: "UTC(ZA)".to_string(),
                 tick_quantum_id: "SI_NANOSECOND".to_string(),
                 time_evidence_id: canonical_event_time_evidence_id(&source_event),
+                time_evidence_sha256: "c".repeat(64),
                 earliest_event_time_ticks: 990,
                 latest_event_time_ticks: 1_010,
             },
@@ -1170,6 +1178,7 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "SI_NANOSECOND".to_string(),
             time_evidence_id: "another-event".to_string(),
+            time_evidence_sha256: "c".repeat(64),
             earliest_event_time_ticks: 990,
             latest_event_time_ticks: 1_010,
         };
@@ -1202,6 +1211,7 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "TEN_NANOSECONDS".to_string(),
             time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            time_evidence_sha256: "c".repeat(64),
             earliest_event_time_ticks: 990,
             latest_event_time_ticks: 1_010,
         };
@@ -1261,6 +1271,7 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "SI_NANOSECOND".to_string(),
             time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            time_evidence_sha256: "c".repeat(64),
             earliest_event_time_ticks: 1_010,
             latest_event_time_ticks: 1_030,
         };
@@ -1283,6 +1294,7 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "SI_NANOSECOND".to_string(),
             time_evidence_id: canonical_event_time_evidence_id(&source_ref(&input)),
+            time_evidence_sha256: "c".repeat(64),
             earliest_event_time_ticks: 1_010,
             latest_event_time_ticks: 1_020,
         };
@@ -1316,6 +1328,7 @@ mod tests {
             time_basis_id: "UTC(ZA)".to_string(),
             tick_quantum_id: "SI_NANOSECOND".to_string(),
             time_evidence_id: canonical_event_time_evidence_id(&source_ref(&second)),
+            time_evidence_sha256: "c".repeat(64),
             earliest_event_time_ticks: 1_010,
             latest_event_time_ticks: 1_030,
         };
