@@ -34,7 +34,7 @@ RRVR's candidate differentiators:
 - exact attempt ID and original boot/controller epoch;
 - separate durable-persistence verdict and physical outcome;
 - downstream execution-graph fence evidence, not just controller queue acknowledgement;
-- two non-interchangeable observer claims: physical NoEffect and downstream graph quiescence;
+- two non-interchangeable observer claims: physical physical-outcome and downstream graph quiescence;
 - an explicit fault-model revision and observer dependency graph for common-cause qualification;
 - one-shot recovery authority, live-binding and M1/M2 freshness captured at admission;
 - exact raw owner receipt/artifact commitments and source clock identity.
