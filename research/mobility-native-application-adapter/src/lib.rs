@@ -256,7 +256,8 @@ impl<P> NativeApplicationGate<P> {
                                 .replace_live_snapshot(live_authority)
                                 .map_err(AdapterError::Boundary)?,
                             None => {
-                                *boundary_slot = Some(boundary::ApplicationBoundary::new(live_authority))
+                                *boundary_slot =
+                                    Some(boundary::ApplicationBoundary::new(live_authority))
                             }
                         }
 
@@ -271,18 +272,14 @@ impl<P> NativeApplicationGate<P> {
                         let application = boundary_slot
                             .as_ref()
                             .expect("boundary was initialized above")
-                            .apply(
-                                &boundary_ticket,
-                                &snapshot.m2_now,
-                                |native_context| {
-                                    sink.apply(
-                                        native_context,
-                                        request_id,
-                                        &queued.ticket,
-                                        &queued.payload,
-                                    )
-                                },
-                            )
+                            .apply(&boundary_ticket, &snapshot.m2_now, |native_context| {
+                                sink.apply(
+                                    native_context,
+                                    request_id,
+                                    &queued.ticket,
+                                    &queued.payload,
+                                )
+                            })
                             .map_err(AdapterError::Boundary)?;
 
                         *pending_slot = Some(attempt_key);
@@ -341,7 +338,10 @@ impl<P> NativeApplicationGate<P> {
             return Err(AdapterError::NoPendingMutation);
         }
 
-        let boundary_owner = self.boundary.as_mut().ok_or(AdapterError::NoPendingMutation)?;
+        let boundary_owner = self
+            .boundary
+            .as_mut()
+            .ok_or(AdapterError::NoPendingMutation)?;
         if resolution == boundary::QualifiedOutcomeResolution::Unknown {
             if next_ticket.is_some() || next_epoch.is_some() || recovery_permit.is_some() {
                 return Err(AdapterError::UnexpectedResolutionContext);
@@ -425,9 +425,7 @@ impl<P> NativeApplicationGate<P> {
     }
 }
 
-fn validate_m2_clock<E>(
-    snapshot: &LiveApplicationSnapshot,
-) -> Result<(), AdapterError<E>> {
+fn validate_m2_clock<E>(snapshot: &LiveApplicationSnapshot) -> Result<(), AdapterError<E>> {
     if snapshot.m2_now.clock_domain_id != snapshot.m2_context.clock.clock_id
         || snapshot.m2_now.boot_epoch_id != snapshot.m2_context.clock.boot_epoch_id
         || snapshot.m2_now.ticks != snapshot.m2_context.now_ticks
@@ -480,7 +478,9 @@ mod tests {
 
     impl StaticProvider {
         fn new(snapshot: LiveApplicationSnapshot) -> Self {
-            Self { snapshot: Mutex::new(snapshot) }
+            Self {
+                snapshot: Mutex::new(snapshot),
+            }
         }
     }
 
@@ -566,7 +566,6 @@ mod tests {
         }
     }
 
-
     fn next_ticket() -> m2::ActionTicket {
         let mut next = ticket();
         next.ticket_commitment = digest(17);
@@ -581,11 +580,7 @@ mod tests {
         next
     }
 
-    fn snapshot(
-        ticket: &m2::ActionTicket,
-        epoch: u64,
-        now_ticks: u64,
-    ) -> LiveApplicationSnapshot {
+    fn snapshot(ticket: &m2::ActionTicket, epoch: u64, now_ticks: u64) -> LiveApplicationSnapshot {
         let clock = ticket.clock.clone();
         LiveApplicationSnapshot {
             m2_context: m2::LiveContext {
@@ -688,7 +683,9 @@ mod tests {
         assert!(matches!(
             result,
             Some(EpochCommandApplication::Applied {
-                result: Err(AdapterError::M2Admission(m2::AdmissionError::ConfigurationMismatch)),
+                result: Err(AdapterError::M2Admission(
+                    m2::AdmissionError::ConfigurationMismatch
+                )),
                 ..
             })
         ));
@@ -875,31 +872,48 @@ mod tests {
         let next = next_ticket();
         let next_provider = StaticProvider::new(snapshot(&next, 6, 1_170));
         let mut gate = gate();
-        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into()).unwrap();
+        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into())
+            .unwrap();
         let mut sink = RecordingSink {
             calls: 0,
             result: boundary::NativeApplicationResult::Accepted,
         };
-        let applied = gate.apply_next_at(&queue_now(150), &first_provider, &mut sink).unwrap();
+        let applied = gate
+            .apply_next_at(&queue_now(150), &first_provider, &mut sink)
+            .unwrap();
         let receipt = match applied {
-            Some(EpochCommandApplication::Applied { result: Ok(receipt), .. }) => receipt,
+            Some(EpochCommandApplication::Applied {
+                result: Ok(receipt),
+                ..
+            }) => receipt,
             other => panic!("expected successful native application, got {other:?}"),
         };
-        let report = gate.resolve_pending_action(
-            &receipt.attempt_key,
-            boundary::QualifiedOutcomeResolution::Satisfied,
-            Some(&next),
-            Some(ControllerEpoch::new(6).unwrap()),
-            None,
-            &next_provider,
-        ).unwrap();
-        assert_eq!(report.disposition, boundary::ResolutionDisposition::ClearedForNewAuthoritySnapshot);
+        let report = gate
+            .resolve_pending_action(
+                &receipt.attempt_key,
+                boundary::QualifiedOutcomeResolution::Satisfied,
+                Some(&next),
+                Some(ControllerEpoch::new(6).unwrap()),
+                None,
+                &next_provider,
+            )
+            .unwrap();
+        assert_eq!(
+            report.disposition,
+            boundary::ResolutionDisposition::ClearedForNewAuthoritySnapshot
+        );
         assert!(!gate.is_mutation_pending());
         assert_eq!(gate.controller_epoch(), ControllerEpoch::new(6).unwrap());
 
-        gate.enqueue(2, &queue_now(220), 300, next, "place".into()).unwrap();
-        let applied_next = gate.apply_next_at(&queue_now(250), &next_provider, &mut sink).unwrap();
-        assert!(matches!(applied_next, Some(EpochCommandApplication::Applied { result: Ok(_), .. })));
+        gate.enqueue(2, &queue_now(220), 300, next, "place".into())
+            .unwrap();
+        let applied_next = gate
+            .apply_next_at(&queue_now(250), &next_provider, &mut sink)
+            .unwrap();
+        assert!(matches!(
+            applied_next,
+            Some(EpochCommandApplication::Applied { result: Ok(_), .. })
+        ));
         assert_eq!(sink.calls, 2);
         assert!(gate.is_mutation_pending());
     }
@@ -911,14 +925,20 @@ mod tests {
         let next = next_ticket();
         let next_provider = StaticProvider::new(snapshot(&next, 6, 1_170));
         let mut gate = gate();
-        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into()).unwrap();
+        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into())
+            .unwrap();
         let mut sink = RecordingSink {
             calls: 0,
             result: boundary::NativeApplicationResult::RejectedNoEffect,
         };
-        let applied = gate.apply_next_at(&queue_now(150), &first_provider, &mut sink).unwrap();
+        let applied = gate
+            .apply_next_at(&queue_now(150), &first_provider, &mut sink)
+            .unwrap();
         let receipt = match applied {
-            Some(EpochCommandApplication::Applied { result: Ok(receipt), .. }) => receipt,
+            Some(EpochCommandApplication::Applied {
+                result: Ok(receipt),
+                ..
+            }) => receipt,
             other => panic!("expected native no-effect receipt, got {other:?}"),
         };
 
@@ -930,7 +950,12 @@ mod tests {
             None,
             &next_provider,
         );
-        assert_eq!(missing_permit, Err(AdapterError::Boundary(boundary::Rejection::RecoveryPermitMissing)));
+        assert_eq!(
+            missing_permit,
+            Err(AdapterError::Boundary(
+                boundary::Rejection::RecoveryPermitMissing
+            ))
+        );
         assert!(gate.is_mutation_pending());
         assert_eq!(gate.controller_epoch(), ControllerEpoch::new(6).unwrap());
 
@@ -941,15 +966,20 @@ mod tests {
             authority_epoch: 5,
         };
         let pending_key = gate.pending_attempt_key().unwrap().to_owned();
-        let recovered = gate.resolve_pending_action(
-            &pending_key,
-            boundary::QualifiedOutcomeResolution::NoEffect,
-            Some(&next),
-            Some(ControllerEpoch::new(6).unwrap()),
-            Some(&permit),
-            &next_provider,
-        ).unwrap();
-        assert_eq!(recovered.disposition, boundary::ResolutionDisposition::ClearedForNewAuthoritySnapshot);
+        let recovered = gate
+            .resolve_pending_action(
+                &pending_key,
+                boundary::QualifiedOutcomeResolution::NoEffect,
+                Some(&next),
+                Some(ControllerEpoch::new(6).unwrap()),
+                Some(&permit),
+                &next_provider,
+            )
+            .unwrap();
+        assert_eq!(
+            recovered.disposition,
+            boundary::ResolutionDisposition::ClearedForNewAuthoritySnapshot
+        );
         assert!(!gate.is_mutation_pending());
         assert_eq!(sink.calls, 1);
     }
@@ -959,25 +989,36 @@ mod tests {
         let action = ticket();
         let provider = StaticProvider::new(snapshot(&action, 5, 1_050));
         let mut gate = gate();
-        gate.enqueue(1, &queue_now(100), 200, action, "grasp".into()).unwrap();
+        gate.enqueue(1, &queue_now(100), 200, action, "grasp".into())
+            .unwrap();
         let mut sink = RecordingSink {
             calls: 0,
             result: boundary::NativeApplicationResult::UnknownAfterPossibleApplication,
         };
-        let applied = gate.apply_next_at(&queue_now(150), &provider, &mut sink).unwrap();
+        let applied = gate
+            .apply_next_at(&queue_now(150), &provider, &mut sink)
+            .unwrap();
         let receipt = match applied {
-            Some(EpochCommandApplication::Applied { result: Ok(receipt), .. }) => receipt,
+            Some(EpochCommandApplication::Applied {
+                result: Ok(receipt),
+                ..
+            }) => receipt,
             other => panic!("expected unknown application receipt, got {other:?}"),
         };
-        let report = gate.resolve_pending_action(
-            &receipt.attempt_key,
-            boundary::QualifiedOutcomeResolution::Unknown,
-            None,
-            None,
-            None,
-            &provider,
-        ).unwrap();
-        assert_eq!(report.disposition, boundary::ResolutionDisposition::HoldRetained);
+        let report = gate
+            .resolve_pending_action(
+                &receipt.attempt_key,
+                boundary::QualifiedOutcomeResolution::Unknown,
+                None,
+                None,
+                None,
+                &provider,
+            )
+            .unwrap();
+        assert_eq!(
+            report.disposition,
+            boundary::ResolutionDisposition::HoldRetained
+        );
         assert!(gate.is_mutation_pending());
         assert_eq!(
             gate.enqueue(2, &queue_now(160), 220, ticket(), "replay".into()),
@@ -994,14 +1035,20 @@ mod tests {
         invalid_next.live_binding_commitment = digest(99).0;
         let next_provider = StaticProvider::new(invalid_next);
         let mut gate = gate();
-        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into()).unwrap();
+        gate.enqueue(1, &queue_now(100), 200, first, "grasp".into())
+            .unwrap();
         let mut sink = RecordingSink {
             calls: 0,
             result: boundary::NativeApplicationResult::Accepted,
         };
-        let applied = gate.apply_next_at(&queue_now(150), &first_provider, &mut sink).unwrap();
+        let applied = gate
+            .apply_next_at(&queue_now(150), &first_provider, &mut sink)
+            .unwrap();
         let receipt = match applied {
-            Some(EpochCommandApplication::Applied { result: Ok(receipt), .. }) => receipt,
+            Some(EpochCommandApplication::Applied {
+                result: Ok(receipt),
+                ..
+            }) => receipt,
             other => panic!("expected native receipt, got {other:?}"),
         };
         assert_eq!(
@@ -1018,6 +1065,4 @@ mod tests {
         assert!(gate.is_mutation_pending());
         assert_eq!(sink.calls, 1);
     }
-
-
 }
