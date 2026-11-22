@@ -17,16 +17,82 @@ CONSTANTS
     InitialEpoch,
     InitialClock,
     InitialBoot,
-    TicketBinding,
-    TicketAttempt,
-    TicketEpoch,
-    TicketClock,
-    TicketBoot,
-    TicketIssued,
-    TicketExpires,
-    PermitAttempt,
-    PermitEpoch,
-    PermitPlanBinding
+    TicketBinding1,
+    TicketBinding2,
+    TicketBinding3,
+    TicketAttempt1,
+    TicketAttempt2,
+    TicketAttempt3,
+    TicketEpoch1,
+    TicketEpoch2,
+    TicketEpoch3,
+    TicketClock1,
+    TicketClock2,
+    TicketClock3,
+    TicketBoot1,
+    TicketBoot2,
+    TicketBoot3,
+    TicketIssued1,
+    TicketIssued2,
+    TicketIssued3,
+    TicketExpires1,
+    TicketExpires2,
+    TicketExpires3,
+    PermitAttempt1,
+    PermitEpoch1,
+    PermitPlanBinding1
+
+
+TicketBinding ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketBinding1
+          [] t = t2 -> TicketBinding2
+          [] OTHER -> TicketBinding3]
+
+TicketAttempt ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketAttempt1
+          [] t = t2 -> TicketAttempt2
+          [] OTHER -> TicketAttempt3]
+
+TicketEpoch ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketEpoch1
+          [] t = t2 -> TicketEpoch2
+          [] OTHER -> TicketEpoch3]
+
+TicketClock ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketClock1
+          [] t = t2 -> TicketClock2
+          [] OTHER -> TicketClock3]
+
+TicketBoot ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketBoot1
+          [] t = t2 -> TicketBoot2
+          [] OTHER -> TicketBoot3]
+
+TicketIssued ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketIssued1
+          [] t = t2 -> TicketIssued2
+          [] OTHER -> TicketIssued3]
+
+TicketExpires ==
+    [t \in Tickets |->
+        CASE t = t1 -> TicketExpires1
+          [] t = t2 -> TicketExpires2
+          [] OTHER -> TicketExpires3]
+
+PermitAttempt ==
+    [p \in RecoveryPermits |-> PermitAttempt1]
+
+PermitEpoch ==
+    [p \in RecoveryPermits |-> PermitEpoch1]
+
+PermitPlanBinding ==
+    [p \in RecoveryPermits |-> PermitPlanBinding1]
 
 ASSUME
     /\ Tickets # {}
