@@ -424,7 +424,10 @@ pub(crate) fn bernstein_hull(coefficients: &[Bound]) -> Result<Bound, KernelErro
 }
 
 /// Evaluate interval Bernstein coefficients at a normalized time in [0, 1].
-pub(crate) fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Result<Bound, KernelError> {
+pub(crate) fn evaluate_bernstein(
+    coefficients: &[Bound],
+    unit_time: f64,
+) -> Result<Bound, KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
@@ -454,7 +457,9 @@ pub(crate) fn evaluate_bernstein(coefficients: &[Bound], unit_time: f64) -> Resu
 }
 
 /// Split an interval Bernstein polynomial at normalized time one half.
-pub(crate) fn split_bernstein_half(coefficients: &[Bound]) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
+pub(crate) fn split_bernstein_half(
+    coefficients: &[Bound],
+) -> Result<(Vec<Bound>, Vec<Bound>), KernelError> {
     if coefficients.is_empty() {
         return Err(KernelError::InvalidPolynomial);
     }
