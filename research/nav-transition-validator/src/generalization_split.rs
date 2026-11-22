@@ -654,7 +654,8 @@ mod tests {
         );
 
         forward["records"][0]["sequence_group_id"] = json!("seq-b1");
-        reverse["records"][0]["sequence_group_id"] = json!("seq-a1");
+        reverse = forward.clone();
+        reverse["records"].as_array_mut().unwrap().reverse();
         let forward_errors = validate_split_manifest(&forward).unwrap_err();
         let reverse_errors = validate_split_manifest(&reverse).unwrap_err();
         let forward_messages: Vec<String> =
