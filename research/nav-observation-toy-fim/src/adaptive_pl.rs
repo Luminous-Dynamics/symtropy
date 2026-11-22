@@ -358,11 +358,15 @@ impl AdaptivePlState {
         };
 
         // Eqs. (34)-(35): low-pass filtered derivative.
-        let derivative_alpha = (2.0 * PI * config.derivative_cutoff_hz * dt).min(1.0);
+        // Exact first-order low-pass coefficient from the paper:
+        // alpha_D = exp(-2*pi*f_c*dt); old derivative gets alpha_D and the
+        // finite-difference derivative gets (1-alpha_D).
+        let derivative_alpha =
+            (-2.0 * PI * config.derivative_cutoff_hz * dt).exp();
         let raw_derivative =
             (tracking_error - self.previous_tracking_error_m) / dt;
-        let next_derivative = derivative_alpha * raw_derivative
-            + (1.0 - derivative_alpha) * self.derivative_state_mps;
+        let next_derivative = derivative_alpha * self.derivative_state_mps
+            + (1.0 - derivative_alpha) * raw_derivative;
 
         // Eq. (32): PID command (m/s).
         let command = gains.kp * tracking_error
@@ -482,6 +486,30 @@ mod tests {
         assert!((step.gains.kp - 0.6).abs() < 1.0e-12);
         assert!((step.gains.ki - 0.01).abs() < 1.0e-12);
         assert!((step.gains.kd - 0.0005).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn derivative_filter_uses_exact_exponential_cutoff_coefficient() {
+        let mut cfg = config();
+        cfg.base_imu_drift_mps = 0.0;
+        cfg.drift_weight = 0.0;
+        cfg.geometric_weight_mps = 0.0;
+        cfg.kp_base = 0.0;
+        cfg.ki_base = 1.0e-12;
+        cfg.kd_base = 1.0;
+        cfg.derivative_cutoff_hz = 5.0;
+        let mut state = AdaptivePlState::new(cfg, 2.0, 1.0).unwrap();
+        let mut sample = input(0.0);
+        sample.delta_time_s = 0.01;
+        let dt = sample.delta_time_s;
+        let expected_alpha = (-2.0 * PI * cfg.derivative_cutoff_hz * dt).exp();
+        let prior_derivative = state.derivative_state_mps();
+        let prior_error = state.previous_tracking_error_m();
+        let initial_error = state.ideal_setpoint_m() - state.protection_level_m();
+        let raw = (initial_error - prior_error) / dt;
+        let expected = expected_alpha * prior_derivative + (1.0 - expected_alpha) * raw;
+        let output = state.step(cfg, sample).unwrap();
+        assert!((output.derivative_state_mps - expected).abs() < 1.0e-10);
     }
 
     #[test]
