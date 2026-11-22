@@ -1,0 +1,26 @@
+name: AV action argument replay contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-action-argument-replay.yml"
+      - "research/av-action-argument-replay-v0/**"
+      - "schemas/av-action-argument-replay-v1.schema.json"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head action argument replay contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate action argument schema JSON
+        run: python3 -m json.tool schemas/av-action-argument-replay-v1.schema.json > /dev/null
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/av-action-argument-replay-v0/Cargo.toml -- --check
+      - name: Run Rust unit tests
+        run: cargo test --manifest-path research/av-action-argument-replay-v0/Cargo.toml --locked
+      - name: Run Clippy with warnings as errors
+        run: cargo clippy --manifest-path research/av-action-argument-replay-v0/Cargo.toml --all-targets --locked -- -D warnings
