@@ -24,7 +24,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
 - A beta(1,1)-mixture Bernoulli e-process and inverted time-uniform confidence sequence for independent bounded event indicators, with an exhaustive short-horizon optional-stopping coverage test.
-- A log-domain implementation of the small-hard-body-radius 2D-Nc asymptotic from Hall, Baars & Casali (2023), Eq. 13, as a known-answer oracle under explicitly declared small-HBR, negligible-velocity-uncertainty and negligible position-velocity-cross-covariance assumptions.
+- A log-domain implementation of the small-hard-body-radius 2D-Nc asymptotic from Hall, Baars & Casali (2023), Eq. 13, as a known-answer oracle under explicitly declared small-HBR, negligible-velocity-uncertainty and negligible position-velocity-cross-covariance assumptions. It is an asymptotic check, not a complete 2D-Nc implementation or an operational method.
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
