@@ -51,14 +51,14 @@ def make_retirement_document(
     *,
     rule="TOP_K_RESOLVED",
     top_k=3,
-    episode_count=40,
+    episode_count=100,
     arms=("A0", "A1", "A2"),
     scores=None,
 ):
     if scores is None:
         scores = {
-            arm: score
-            for arm, score in zip(arms, (0.05, 0.50, 0.95))
+            arm: index / (len(arms) - 1)
+            for index, arm in enumerate(arms)
         }
     episode_ids = [f"episode-{index:04d}" for index in range(episode_count)]
     episode_order = list(reversed(episode_ids))
@@ -307,7 +307,12 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             )
 
     def test_pairwise_wealth_freezes_after_either_model_retires(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
+        doc = make_retirement_document(
+            rule="RANK_SINGLETON",
+            episode_count=80,
+            arms=("A0", "A1", "A2", "A3"),
+            scores={"A0": 0.5, "A1": 0.5, "A2": 0.5, "A3": 1.0},
+        )
         result = evaluate_document(doc)
         retirement_look = next(
             (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
@@ -335,7 +340,12 @@ class RankConfidenceSequenceTests(unittest.TestCase):
                     )
 
     def test_retired_models_cannot_be_reintroduced(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
+        doc = make_retirement_document(
+            rule="RANK_SINGLETON",
+            episode_count=80,
+            arms=("A0", "A1", "A2", "A3"),
+            scores={"A0": 0.5, "A1": 0.5, "A2": 0.5, "A3": 1.0},
+        )
         result = evaluate_document(doc)
         retirement_look = next(
             (index for index, look in enumerate(result["looks"]) if look["retired_this_look"]),
@@ -351,7 +361,12 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             evaluate_document(doc)
 
     def test_score_vector_must_match_active_set_exactly(self):
-        doc = make_retirement_document(rule="TOP_K_RESOLVED", top_k=1)
+        doc = make_retirement_document(
+            rule="RANK_SINGLETON",
+            episode_count=80,
+            arms=("A0", "A1", "A2", "A3"),
+            scores={"A0": 0.5, "A1": 0.5, "A2": 0.5, "A3": 1.0},
+        )
         result = evaluate_document(doc)
         if result["episodes_processed"] < 2:
             self.skipTest("only one item was evaluated")
@@ -367,6 +382,7 @@ class RankConfidenceSequenceTests(unittest.TestCase):
             top_k=1,
             episode_count=24,
             scores=equal_scores,
+            arms=arms,
         )
         result = evaluate_document(doc)
         self.assertEqual(result["completion_status"], "COHORT_EXHAUSTED")
