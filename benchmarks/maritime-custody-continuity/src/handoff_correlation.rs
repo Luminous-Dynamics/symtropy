@@ -1060,24 +1060,32 @@ mod tests {
         )
         .unwrap();
 
-        let mut box_events: Vec<BoxEventTime<'_>> = [&first, &second]
-            .into_iter()
-            .map(|binding| {
-                (
-                    binding.source_event.clone(),
-                    binding.revision,
-                    &binding.evidence,
-                    Vec::new(),
-                )
-            })
-            .collect();
+        let make_events = |bindings: [&EventTimeBinding; 2]| {
+            bindings
+                .into_iter()
+                .map(|binding| {
+                    (
+                        binding.source_event.clone(),
+                        binding.revision,
+                        &binding.evidence,
+                        Vec::new(),
+                    )
+                })
+                .collect::<Vec<BoxEventTime<'_>>>()
+        };
 
+        let mut forward = make_events([&first, &second]);
+        let mut reverse = make_events([&second, &first]);
+        let forward_error = prove_box_interval_total_order("BOX", &mut forward).unwrap_err();
+        let reverse_error = prove_box_interval_total_order("BOX", &mut reverse).unwrap_err();
+
+        assert_eq!(forward_error, reverse_error);
         assert!(matches!(
-            prove_box_interval_total_order("BOX", &mut box_events),
-            Err(QualifiedTimelineError::OrderNotProven {
+            forward_error,
+            QualifiedTimelineError::OrderNotProven {
                 relation: TemporalRelation::IncomparableTimeBasis,
                 ..
-            })
+            }
         ));
     }
 
