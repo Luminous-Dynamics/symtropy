@@ -183,8 +183,8 @@ pub fn rank_designs_under_finite_correlation_scenarios(
             best_case_eig_nats: best_eig,
             worst_case_posterior_parameter_variance: worst_variance,
             best_case_posterior_parameter_variance: best_variance,
-            worst_case_scenario_id,
-            best_case_scenario_id,
+            worst_case_scenario_id: worst_scenario_id,
+            best_case_scenario_id: best_scenario_id,
             robust_rank: 0,
             nominal_independence_rank: None,
         });
