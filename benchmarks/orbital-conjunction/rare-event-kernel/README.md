@@ -27,7 +27,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
-- Deterministic positive-weight Lebedev sphere rules with 6, 14 and 26 nodes (algebraic precision 3, 5 and 7), plus a validated nonnegative-sample integrator.
+- Deterministic positive-weight Lebedev sphere rules with 6, 14, 26 and 5,810 nodes (algebraic precision 3, 5, 7 and 131), plus a validated nonnegative-sample integrator. The 5,810-point rule is generated from 144 symmetry-orbit records transcribed from the public NASA CARA generator.
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
 
@@ -44,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 112 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 14 in `lebedev.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 114 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
@@ -58,5 +58,5 @@ The current authored test corpus contains 112 authored `#[test]` cases: 30 in `l
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
-- The Lebedev module includes only 6-, 14- and 26-point low-order rules. It does not include NASA CARA's production 5,810-point rule or reproduce the 3D-Nc collision-rate integrand. Significant-node diagnostics are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
+- The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. It does not reproduce the 3D-Nc collision-rate integrand, PeakOverlapPos solver or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
 - The proposal density must be the complete mixture density, including all defensive components.
