@@ -451,11 +451,19 @@ mod tests {
     #[test]
     fn duplicate_raw_hash_inside_one_split_is_also_rejected() {
         let mut input = clean_input();
-        input.samples[1].raw_sequence_sha256 = input.samples[0].raw_sequence_sha256.clone();
+        let mut additional_train = sample(
+            4,
+            DatasetSplit::Train,
+            "wake",
+            "planar-offset",
+            "session-train-2",
+        );
+        additional_train.raw_sequence_sha256 = input.samples[0].raw_sequence_sha256.clone();
+        input.samples.push(additional_train);
         let report = audit_split_integrity(&input).unwrap();
         assert!(report.violations.iter().any(|violation| {
             violation.code == "RAW_SEQUENCE_HASH_REUSED"
-                && violation.splits == vec![DatasetSplit::Train, DatasetSplit::Validation]
+                && violation.splits == vec![DatasetSplit::Train]
         }));
     }
 
