@@ -1229,6 +1229,54 @@ mod tests {
     }
 
     #[test]
+    fn revision_retraction_is_safe_when_superseded_edge_is_absent() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let correction = batch(
+            "SOURCE-CORRECTION",
+            20,
+            vec![CompositionMutation::RetractIfPresent {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let report = evaluate_composition_batches(&modules, &[correction], 100).unwrap();
+        assert!(report.is_qualified());
+        assert_eq!(report.active_edges(), 0);
+        assert_eq!(report.revision_retracted_membership_edges, 0);
+    }
+
+    #[test]
+    fn revision_retraction_removes_a_present_superseded_edge_without_unmatched_delete() {
+        let modules = modules(&["CONTAINER", "PALLET"]);
+        let prior = batch(
+            "PRIOR-ASSERTION",
+            10,
+            vec![CompositionMutation::Add {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let correction = batch(
+            "SOURCE-CORRECTION",
+            20,
+            vec![CompositionMutation::RetractIfPresent {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            }],
+        );
+        let report = evaluate_composition_batches(&modules, &[prior, correction], 100).unwrap();
+        assert!(report.is_qualified());
+        assert_eq!(report.active_edges(), 0);
+        assert_eq!(report.revision_retracted_membership_edges, 1);
+        assert!(!report.failures.contains_key(
+            &CompositionFailure::UnmatchedDelete(Membership {
+                parent_module_id: "CONTAINER".to_string(),
+                child_module_id: "PALLET".to_string(),
+            })
+        ));
+    }
+
+    #[test]
     fn delete_all_from_unknown_parent_fails_closed() {
         let modules = modules(&["CONTAINER"]);
         let event = batch(
