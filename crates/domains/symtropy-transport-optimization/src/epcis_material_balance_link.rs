@@ -15,8 +15,6 @@
 //! release authority. Receipt digests are shape/reference checked here, not
 //! cryptographically authenticated.
 
-use std::collections::BTreeSet;
-
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TransformationSourceEventRef {
     pub source_id: String,
