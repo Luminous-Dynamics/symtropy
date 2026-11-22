@@ -1,12 +1,12 @@
 //! EHD PIV cluster-conformal calibration and field-functional uncertainty.
 //!
-//! This crate composes two distinct ideas:
-//! 1. whole-acquisition conformal calibration using a maximum nonconformity
-//!    score per predeclared, exchangeable field cluster; and
-//! 2. covariance propagation from a velocity field to mass and momentum flux,
-//!    retaining shared spatially correlated nuisance modes; and
-//! 3. separate conformal calibration of those integrated functionals against
-//!    independent reference evidence.
+//! This crate composes five typed paths:
+//! 1. planar whole-acquisition conformal calibration;
+//! 2. three-component whole-acquisition conformal calibration;
+//! 3. propagation of field covariance to mass/momentum functionals;
+//! 4. conformal calibration of integrated functionals against independent
+//!    reference evidence; and
+//! 5. compact-support spatial covariance for overlapping PIV windows.
 //!
 //! Neither module processes raw images or establishes experimental truth.
 
