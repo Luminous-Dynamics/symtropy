@@ -19,6 +19,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Conservative standard-normal cell-mass upper bound using a cell-local density ceiling that tightens with distance from the nominal Gaussian mean.
 - A Gaussian Chernoff / union-bound estimate for mass outside the finite whitened cube, plus a residual-mass ledger for unresolved cells.
 - A budgeted affine-cell traversal that separately classifies cells wholly inside caller-declared chart boxes, cells proven event-free, and unresolved cells outside chart coverage.
+- A disconnected-event-union verifier that removes a cell from the event residual only when every affine collision component is proven event-free; an omitted remote mode remains in the unresolved-mass bound.
 - An interval-polynomial time-window classifier that proves no-contact / guaranteed-contact only by enclosing the entire relevant time interval, and otherwise returns an explicit ambiguous disposition.
 - Dense-grid adversarial tests checking sampled affine images remain inside the interval enclosure and sampled norms remain above the reported lower bound.
 - Streaming log-domain weighted event sums, contribution ESS, plug-in relative standard error, and a clearly labelled normal-approximation interval diagnostic.
@@ -40,7 +41,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 92 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 7 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, and 10 in `trajectory.rs`. across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
+The current authored test corpus contains 96 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 11 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, and 10 in `trajectory.rs`. across the analytic probability, affine coverage / residual-mass, weighted-statistics, and Bernoulli sequential-inference modules. Only a completed exact-head workflow establishes that a particular revision passed them.
 
 ## Important limitations
 
