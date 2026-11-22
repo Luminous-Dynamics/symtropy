@@ -10,11 +10,11 @@
 //! Carlo algorithm. Independent-chain qualification is separate.
 
 use crate::horseshoe_hmc::SplitMix64;
-use std::collections::BTreeSet;
 use crate::GroupedRawScaleHorseshoePosterior;
 use crate::{
     GlobalScalePrior, HorseshoeHmcConfig, ModelError, PreparedGroupedRawScaleHorseshoeModel,
 };
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GroupedHmcDraw {
@@ -555,7 +555,10 @@ mod tests {
         assert!(chains.iter().all(|chain| {
             chain.draws.len() == 3
                 && chain.transitions == 4
-                && chain.draws.iter().all(|draw| draw.log_posterior.is_finite())
+                && chain
+                    .draws
+                    .iter()
+                    .all(|draw| draw.log_posterior.is_finite())
         }));
     }
 
