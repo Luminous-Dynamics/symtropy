@@ -234,7 +234,7 @@ pub fn import_tlc_json_trace(
         TLC_TOOL_ARTIFACT_ID.to_owned(),
     ];
 
-    let mut events = Vec::with_capacity(action_values.len());
+    let mut events: Vec<TraceEvent> = Vec::with_capacity(action_values.len());
     for (index, action_value) in action_values.iter().enumerate() {
         let action_frame = action_value
             .as_array()
