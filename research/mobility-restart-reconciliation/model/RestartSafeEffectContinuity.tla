@@ -518,3 +518,5 @@ ReservationPrecedesNativeAcceptance ==
 StoreVerdictMatchesDurableRecord ==
     /\ (s.persistStatus = "committed" => s.storeRecord)
     /\ (s.persistStatus = "definitely_not_committed" => ~s.storeRecord)
+
+====
