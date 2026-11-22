@@ -7,6 +7,8 @@
 //! dispatch profile against resource-specific reserve buckets, correlated
 //! reserve scenarios, time-slot power limits and PCC import/export constraints.
 //! It is not a dispatch optimizer, meter, battery model or electrical controller.
+//! The reserve verifier is intentionally independent of the policy proposing a
+//! candidate trajectory; learned schedulers cannot relax these feasibility checks.
 
 use std::collections::{BTreeMap, BTreeSet};
 
