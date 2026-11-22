@@ -405,8 +405,8 @@ pub fn evaluate_mobility_flexibility(
         ) {
             add_error(&mut errors, "export_permission_evidence_not_admissible");
         }
-        if permission.value != Some(true) {
-            add_error(&mut errors, "export_permission_present_but_not_confirmed_true");
+        if permission.value.is_none() {
+            add_error(&mut errors, "export_permission_present_but_unknown");
         }
         push_evidence_class(&permission.evidence, &mut all_source_grade, &mut all_synthetic);
     }
@@ -419,19 +419,32 @@ pub fn evaluate_mobility_flexibility(
     sorted_pcc.sort_by_key(|slot| slot.slot);
     let mut pcc_by_slot = BTreeMap::new();
     for (index, pcc) in sorted_pcc.iter().enumerate() {
-        if pcc.slot != index as u8
-            || pcc.import_limit_w > MAX_POWER_W
-            || pcc.export_limit_w > MAX_POWER_W
-            || !evidence_covers(
+        let interval_start = slot_time_ms(
+            input.decision_time_unix_ms,
+            input.slot_duration_seconds,
+            pcc.slot,
+        );
+        let interval_end = pcc
+            .slot
+            .checked_add(1)
+            .and_then(|end_slot| slot_time_ms(input.decision_time_unix_ms, input.slot_duration_seconds, end_slot));
+        let pcc_evidence_valid = matches!(
+            (interval_start, interval_end),
+            (Some(start), Some(end)) if evidence_covers(
                 &pcc.evidence,
                 &input.site_id,
                 &input.site_configuration_digest,
                 input.decision_time_unix_ms,
-                slot_time_ms(input.decision_time_unix_ms, input.slot_duration_seconds, pcc.slot)
-                    .unwrap_or(u64::MAX),
-                slot_time_ms(input.decision_time_unix_ms, input.slot_duration_seconds, pcc.slot + 1)
-                    .unwrap_or(0),
+                start,
+                end,
             )
+        );
+        if pcc.slot != index as u8
+            || pcc.import_limit_w > MAX_POWER_W
+            || pcc.export_limit_w > MAX_POWER_W
+            || pcc.base_site_load_w > MAX_POWER_W
+            || pcc.scheduled_mobility_charging_load_w > MAX_POWER_W
+            || !pcc_evidence_valid
             || pcc_by_slot.insert(pcc.slot, pcc).is_some()
         {
             add_error(&mut errors, format!("pcc_slot_or_evidence_invalid:{}", pcc.slot));
@@ -490,6 +503,7 @@ pub fn evaluate_mobility_flexibility(
         let mut reserves_by_resource = BTreeMap::new();
         for reserve in &scenario.resource_reserves {
             if reserve.resource_id.trim().is_empty()
+                || !resource_map.contains_key(reserve.resource_id.as_str())
                 || reserves_by_resource
                     .insert(reserve.resource_id.as_str(), reserve)
                     .is_some()
@@ -510,6 +524,7 @@ pub fn evaluate_mobility_flexibility(
                     &mut errors,
                     format!("scenario_power_reserve_horizon_mismatch:{}", reserve.resource_id),
                 );
+                continue;
             }
         }
 
