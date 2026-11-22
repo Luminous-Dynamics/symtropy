@@ -145,6 +145,7 @@ fn validate_architecture(
         || scenario.charger_input_power_w > MAX_POWER_W
         || scenario.site_grid_import_limit_w > MAX_POWER_W
         || scenario.site_fixed_load_w > MAX_POWER_W
+        || scenario.site_fixed_load_w > scenario.site_grid_import_limit_w
     {
         add_error(
             &mut errors,
@@ -617,6 +618,28 @@ mod tests {
         scenario.operational_turnaround_seconds = 0;
         let result = evaluate_architecture_capacity(&scenario, MAX_HORIZON_SECONDS);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn sorties_never_exceed_initial_packs_plus_completed_recharges() {
+        let input = fixture();
+        for scenario in &input.architectures {
+            let result = evaluate_architecture_capacity(scenario, input.horizon_seconds)
+                .expect("scenario");
+            assert!(
+                result.completed_sorties
+                    <= u64::from(scenario.battery_pack_count) + result.charge_completions,
+                "pack reuse bound failed for {}",
+                scenario.architecture_id
+            );
+            assert_eq!(
+                result.completed_mission_hours,
+                result.completed_sorties as f64
+                    * f64::from(scenario.mission_duration_seconds)
+                    / 3_600.0
+            );
+            assert!(result.effective_charging_channels <= scenario.parallel_charging_channels);
+        }
     }
 
     #[test]
