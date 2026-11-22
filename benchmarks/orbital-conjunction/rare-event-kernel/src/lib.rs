@@ -340,7 +340,7 @@ pub fn log_importance_weight(
     if log_target_density.is_nan()
         || log_target_density == f64::INFINITY
         || log_proposal_density.is_nan()
-        || !log_proposal_density.is_finite()
+        || log_proposal_density == f64::INFINITY
     {
         return Err(KernelError::NonFiniteValue);
     }
