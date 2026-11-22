@@ -637,6 +637,7 @@ pub fn evaluate_mobility_flexibility(
                     &mut errors,
                     format!("scenario_power_reserve_horizon_mismatch:{}", reserve.resource_id),
                 );
+                reserves_by_resource.remove(reserve.resource_id.as_str());
                 continue;
             }
         }
@@ -950,6 +951,16 @@ mod tests {
     fn stale_upstream_evidence_fails_closed() {
         let mut input = fixture();
         input.charging_queue_evidence.valid_until_unix_ms = Some(input.decision_time_unix_ms);
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn malformed_reserve_slot_vector_is_rejected_without_indexing_panic() {
+        let mut input = fixture();
+        input.reserve_scenarios[0].resource_reserves[0]
+            .mission_power_reserve_w_by_slot
+            .pop();
         let result = evaluate_mobility_flexibility(&input);
         assert!(result.is_err());
     }
