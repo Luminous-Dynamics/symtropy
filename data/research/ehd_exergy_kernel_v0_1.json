@@ -1,0 +1,83 @@
+{
+  "schema": "luminous.ehd_exergy_qualification",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-EXERGY-001",
+  "as_of": "2026-11-22",
+  "status": "ideal_gas_neutral_exergy_reference_kernel_authored_tests_rust_execution_pending",
+  "claim_ceiling": "The reference kernel covers fixed-composition calorically perfect neutral ideal-gas physical flow exergy and a reduced exergy balance with supplied boundary exergy rates. It is not a plasma exergy model, chemical-exergy model, raw-flow reducer or physical EHD validation.",
+  "reference_environment": {
+    "required_fields": [
+      "temperature_k",
+      "pressure_pa",
+      "elevation_m",
+      "reference_state_identity"
+    ],
+    "dead_state_changes_must_be_versioned": true
+  },
+  "flow_exergy_model": {
+    "equation": "cp*((T-T0)-T0*ln(T/T0)) + R*T0*ln(p/p0) + speed^2/2 + g*(z-z0)",
+    "gas_assumption": "fixed_composition_calorically_perfect_neutral_ideal_gas",
+    "required_properties": [
+      "cp_j_per_kg_k",
+      "gas_constant_j_per_kg_k",
+      "gravity_m_per_s2"
+    ],
+    "pressure_flow_exergy_is_signed": true,
+    "chemical_exergy_supported": false
+  },
+  "heat_exergy": {
+    "equation": "Qdot_into_cv*(1-T0/T_boundary)",
+    "heat_direction": "positive_into_control_volume",
+    "boundary_temperature_required": true
+  },
+  "control_volume_balance": {
+    "equation": "dB_CV/dt = work_exergy_in + heat_exergy_in + mass_flow_exergy_in - mass_flow_exergy_out - other_exergy_outputs - T0*S_gen",
+    "exergy_destruction": "T0*S_gen",
+    "mass_flow_exergy_rates_may_be_signed": true,
+    "other_exergy_outputs_must_be_nonnegative": true,
+    "negative_destruction_beyond_tolerance": "reject_second_law_violation",
+    "tiny_negative_destruction_within_tolerance": "retain_signed_residual_and_report_zero_qualified_destruction"
+  },
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/exergy.rs",
+    "checks": [
+      "flow_exergy_zero_at_dead_state",
+      "kinetic_and_potential_flow_exergy",
+      "heat_exergy_and_transfer_direction",
+      "reversible_balance_zero_destruction",
+      "irreversible_balance_entropy_generation",
+      "material_second_law_violation_rejected",
+      "roundoff_negative_residual_retained"
+    ]
+  },
+  "test_families": [
+    "flow_exergy_is_zero_at_dead_state",
+    "flow_exergy_increases_with_kinetic_and_potential_terms",
+    "sub_dead_state_pressure_flow_exergy_remains_signed",
+    "heat_exergy_uses_dead_state_temperature_and_direction",
+    "reversible_balance_has_zero_destruction",
+    "irreversible_balance_reports_exergy_destruction_and_entropy_generation",
+    "materially_negative_exergy_destruction_is_rejected",
+    "tiny_negative_residual_is_retained_and_marked_as_roundoff",
+    "offline_reference_self_check",
+    "negative_work_input_is_rejected_with_boundary_field_identity"
+  ],
+  "limitations": [
+    "neutral_ideal_gas_only",
+    "fixed_composition_only",
+    "constant_cp_only",
+    "no_chemical_exergy",
+    "no_plasma_charged_species_exergy",
+    "no_non_equilibrium_plasma_entropy_generation",
+    "no_field_energy_or_surface_charge_terms",
+    "no_radiation_model",
+    "no_raw_piv_ldv_or_mass_flux_reduction",
+    "no_physical_ehd_exergy_measurement"
+  ],
+  "related_work": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6712",
+    "first_law_collision_energy": "https://github.com/Luminous-Dynamics/symtropy/issues/6640",
+    "thrust_observability": "https://github.com/Luminous-Dynamics/symtropy/issues/6641",
+    "control_volume": "https://github.com/Luminous-Dynamics/symtropy/pull/6650"
+  }
+}
