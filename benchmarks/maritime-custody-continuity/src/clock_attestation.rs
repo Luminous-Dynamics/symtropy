@@ -260,8 +260,6 @@ pub struct QualifiedClockCalibrationReceipt {
     terminal_reference_id: String,
     /// Offset-corrected event timestamp in the declared reference time basis.
     event_time_ticks: i64,
-    /// Original clock-reported timestamp before correction.
-    reported_event_time_ticks: i64,
     /// Original device-reported timestamp before signed offset correction.
     reported_event_time_ticks: i64,
     observation_time_ticks: i64,
@@ -830,8 +828,7 @@ pub fn attest_clock_for_event(
                 ClockAttestationReason::TraceabilityScopeMismatch,
             );
         }
-        if link.calibrated_at_ticks > event_time
-            || link.measured_at_ticks > event_time
+        if link.measured_at_ticks > event_time
             || link.valid_from_ticks > event_time
             || link.valid_until_ticks < event_time
             || link.valid_from_ticks > link.valid_until_ticks
