@@ -116,7 +116,9 @@ cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --
 
 This is a bounded exhaustive scheduler for up to four jobs, three charger channels and eight integer time slots. It models each charge as a fixed-duration, fixed-input-power block; requires the pack to be evidence-bound and in Cooling/charge-ready state at the planned start; requires exact pack-configuration digest compatibility; enforces one job per charger channel at a time; and enforces per-slot charging power no greater than site import cap less non-charging site load. Charger and site evidence must cover the horizon; grid evidence must cover each full slot.
 
-The objective is lexicographic: maximize completed jobs, minimize total waiting slots, minimize makespan, then deterministic identifiers. It reports declared grid input in watt-seconds (= requested charger input power × duration seconds). This is not pack-terminal energy: charging efficiency, charge curves, battery degradation and thermal evolution are not modeled.
+The objective is lexicographic: maximize completed jobs, minimize total waiting slots, minimize makespan, then deterministic identifiers.
+
+Charger capability (maximum power and exact supported pack configuration digests) and each grid slot's import cap/base load are nested inside their own evidence-bearing records, bound to exact charger/site identity and configuration. Charger/site evidence covers the whole scheduling horizon; each grid evidence record covers its full slot. Pack cooling-state evidence must remain valid at the proposed charge start. It reports declared grid input in watt-seconds (= requested charger input power × duration seconds). This is not pack-terminal energy: charging efficiency, charge curves, battery degradation and thermal evolution are not modeled.
 
 The synthetic fixture has four jobs, two charger channels and six 15-minute slots. Its exact known answer schedules:
 - job-a / pack-a on charger-1, slots [0,2), 3,000 W;
