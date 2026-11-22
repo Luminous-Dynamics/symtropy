@@ -1,0 +1,167 @@
+{
+  "schema_version": "verified-action-composition-cases/0.1",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6698",
+  "claim_ceiling": "Typed software reference fixtures only; owner receipts are not authenticated, and no controller, simulator, HIL or physical operation is represented.",
+  "cases": [
+    {
+      "case_id": "AC01-disjoint-positive",
+      "family": "positive_control",
+      "action_count": 2,
+      "mutation": "disjoint_state_and_actuator",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "Eligible"
+    },
+    {
+      "case_id": "AC02-write-read-state-conflict",
+      "family": "state_access",
+      "action_count": 2,
+      "mutation": "same_key_same_generation_write_read",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedStateConflict"
+    },
+    {
+      "case_id": "AC03-different-object-generation",
+      "family": "state_identity",
+      "action_count": 2,
+      "mutation": "same_key_different_generation",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedStateGenerationMismatch"
+    },
+    {
+      "case_id": "AC04-exclusive-resource-overlap",
+      "family": "exclusive_resource",
+      "action_count": 2,
+      "mutation": "same_resource_overlapping_half_open_intervals",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedExclusiveResourceConflict"
+    },
+    {
+      "case_id": "AC05-half-open-touching-positive",
+      "family": "exclusive_resource",
+      "action_count": 2,
+      "mutation": "same_resource_adjacent_half_open_intervals",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "Eligible"
+    },
+    {
+      "case_id": "AC06-aggregate-capacity-overload",
+      "family": "aggregate_capacity",
+      "action_count": 3,
+      "mutation": "three_claims_peak_exceeds_shared_capacity",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "over_capacity",
+      "expected": "BlockedCapacityExceeded"
+    },
+    {
+      "case_id": "AC07-adjacent-capacity-windows",
+      "family": "aggregate_capacity",
+      "action_count": 2,
+      "mutation": "adjacent_half_open_capacity_windows",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "Eligible"
+    },
+    {
+      "case_id": "AC08-unknown-footprint",
+      "family": "missing_evidence",
+      "action_count": 2,
+      "mutation": "one_footprint_unknown",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedUnknownFootprint"
+    },
+    {
+      "case_id": "AC09-missing-owner-check",
+      "family": "owner_evidence",
+      "action_count": 2,
+      "mutation": "required_owner_pair_result_missing",
+      "owner_results": "missing",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedMissingOwnerCheck"
+    },
+    {
+      "case_id": "AC10-owner-unknown",
+      "family": "owner_evidence",
+      "action_count": 2,
+      "mutation": "required_owner_returns_unknown",
+      "owner_results": "unknown",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedOwnerUnknown"
+    },
+    {
+      "case_id": "AC11-owner-conflict",
+      "family": "owner_evidence",
+      "action_count": 2,
+      "mutation": "required_owner_returns_conflict",
+      "owner_results": "conflict",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedOwnerConflict"
+    },
+    {
+      "case_id": "AC12-mixed-authority-context",
+      "family": "authority",
+      "action_count": 2,
+      "mutation": "authority_epoch_or_binding_digest_differs",
+      "owner_results": "all_clear_complete",
+      "shared_context": "mixed",
+      "resource_load": "within_capacity",
+      "expected": "BlockedMixedSharedContext"
+    },
+    {
+      "case_id": "AC13-duplicate-ticket",
+      "family": "identity",
+      "action_count": 2,
+      "mutation": "same_ticket_digest_in_two_members",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedDuplicateTicket"
+    },
+    {
+      "case_id": "AC14-owner-check-extraneous-member",
+      "family": "owner_evidence",
+      "action_count": 2,
+      "mutation": "pair_check_names_action_not_in_batch",
+      "owner_results": "extraneous",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedUnexpectedOwnerCheck"
+    },
+    {
+      "case_id": "AC15-capacity-clock-basis-mismatch",
+      "family": "time_qualification",
+      "action_count": 2,
+      "mutation": "same_resource_claims_use_uncomparable_time_bases",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "uncomparable",
+      "expected": "BlockedCapacityProfileMismatch"
+    },
+    {
+      "case_id": "AC16-same-action-two-attempts",
+      "family": "identity",
+      "action_count": 2,
+      "mutation": "same_action_id_different_attempts",
+      "owner_results": "all_clear_complete",
+      "shared_context": "same",
+      "resource_load": "within_capacity",
+      "expected": "BlockedDuplicateAction"
+    }
+  ]
+}
