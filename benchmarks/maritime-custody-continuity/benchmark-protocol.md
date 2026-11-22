@@ -127,7 +127,7 @@ The evaluator:
 
 The input events and their raw source-local timestamps are never modified. Ordinal ticks exist only inside the cloned evaluator tape and are not exported as physical timestamps.
 
-`evaluate_with_synthetic_handoff_correlations` remains a separately named P0 path for dimensionless frozen fixtures. It uses strictly increasing fixture ticks and must not be used to claim real chronology. The pair-level `evaluate_with_paired_handoff_time_evidence` helper validates only an individual release/acceptance pair; it is not a replacement for the whole-chain P1 API.
+`evaluate_with_synthetic_handoff_correlations` remains a separately named P0 path for dimensionless frozen fixtures. It uses strictly increasing fixture ticks and must not be used to claim real chronology. The pair-level `apply_qualified_handoff_correlations` helper validates an individual release/acceptance pair and returns a canonicalized clone; it is not a custody evaluator or a replacement for the whole-chain P1 API.
 
 Production adapters must pass only time bindings for effective visible actual revisions, after source event-time semantics and clock bounds have been qualified by the existing #1930/#1955/Mycelix adapter owners. Calibration references remain unauthenticated by this crate.
 
