@@ -56,6 +56,7 @@ The owner chooses holdout dimensions per benchmark. For a strict EHD transfer ca
 ## Prospective target gates
 
 - Zero raw sequence hash reuse across splits.
+- Zero constituent raw frame/image/view asset hashes shared across split boundaries; repeated frame use within one split is allowed for sliding windows.
 - Zero declared holdout-dimension values crossing train/validation/test.
 - 100% of evaluated samples carry complete source/geometry/session/calibration/tracer/pressure provenance.
 - Report independent session/geometry/family counts separately from vector counts.
