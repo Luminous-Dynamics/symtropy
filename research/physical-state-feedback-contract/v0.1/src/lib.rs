@@ -2033,6 +2033,32 @@ mod tests {
     }
 
     #[test]
+    fn parent_entity_link_keeps_pose_explicitly_world_from_entity() {
+        let mut snapshot = valid_snapshot(0, 0);
+        let mut child = valid_entity("body-2");
+        child.parent_entity_id = Some("body-1".to_owned());
+        assert_eq!(child.pose.direction, TransformDirection::WorldFromEntity);
+        assert_eq!(
+            child.pose.translation_m.metadata.frame_id.as_deref(),
+            Some("world")
+        );
+        snapshot.entities.push(child);
+
+        assert!(snapshot.validate().is_ok());
+    }
+
+    #[test]
+    fn parent_entity_link_does_not_relabel_world_pose_as_parent_relative() {
+        let mut snapshot = valid_snapshot(0, 0);
+        let mut child = valid_entity("body-2");
+        child.parent_entity_id = Some("body-1".to_owned());
+        child.pose.translation_m.metadata.frame_id = Some("body-1/frame".to_owned());
+        snapshot.entities.push(child);
+
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
     fn parent_entity_hierarchy_rejects_cycles() {
         let mut snapshot = valid_snapshot(0, 0);
         let mut second = valid_entity("body-2");
