@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_mp_frobenius_resonance_replay_receipt",
+  "status": "committed_verifier_and_fixture_replayed_against_semantic_residue_input",
+  "committed_inputs": {
+    "verifier_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_frobenius_resonance.py",
+    "verifier_git_blob_sha1": "2655ffa7672ce20f3ba66f9cd8cb2854b0b9ed7d",
+    "fixture_path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_frobenius_resonance_v1.json",
+    "fixture_git_blob_sha1": "44c4190befc0e3782aa0c78522e89c98e2432cc2",
+    "source_indicial_artifact_path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_horizon_indicial_v1.json",
+    "source_indicial_artifact_git_blob_sha1": "c323e46bffbaba7602c40151db48926cfac3b180"
+  },
+  "replay": {
+    "interpreter": "Python 3 standard library only",
+    "command": "python -S verify_spin2_mp_frobenius_resonance.py --indicial spin2_mp_horizon_indicial_v1.json --output spin2_mp_frobenius_resonance_v1.json",
+    "verifier_and_output_fixture_bytes": "The local verifier and expected output fixture were stripped only of their terminal LF and their Git blob SHA-1 values matched the committed GitHub blobs above.",
+    "result_json_sha256": "f3c6129df67b49b9760fcac98b37ac3d6fe3baf3a935ce8d900b62e61965ce68",
+    "output_matches_committed_fixture": true,
+    "projector_and_recurrence_checks_passed": true
+  },
+  "negative_controls": {
+    "mutation": "residue_A0[1][2]: 2 -> 3",
+    "expected": "reject",
+    "observed": "rejected",
+    "passed": true,
+    "second_mutation": {
+      "mutation": "inhomogeneous_g0[1]: -8/3 -> -3",
+      "expected": "reject",
+      "observed": "rejected",
+      "passed": true
+    }
+  },
+  "source_boundary": {
+    "input_mode": "semantic snapshot containing the public residue_A0 and inhomogeneous_g0 values",
+    "source_json_byte_identity_verified": false,
+    "clean_checkout_equation_generator_replay": false,
+    "ci_status": "not_run",
+    "claim_ceiling": "The exact committed verifier and output fixture reproduce the rational projector/Frobenius reduction from the supplied A0 and g0 data. This receipt does not certify byte identity of the full public indicial JSON input, a clean equation-generator replay, CI, A1, or the logarithmic status of the singular branch."
+  }
+}
