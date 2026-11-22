@@ -296,3 +296,29 @@ The same assurance sequence is now applied to all optimizer proposals:
 - [#6837](https://github.com/Luminous-Dynamics/symtropy/pull/6837): compare-and-swap promise journal and idempotent replay.
 
 DJI Dock 4's published <25 s swap and <45 s landing-to-takeoff turnaround are distinct from its 27 min 15–95% charging-time specification at 25°C. A fast mechanism is not evidence of sustainable fleet throughput. See the dossier for the matched workload, metric boundaries, SOTA tournament, hard gates and target ladder.
+
+
+## SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 — bounded cyclic throughput evaluator
+
+The executable child of [#6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909) composes mission duration, operational turnaround, ready spare inventory, fixed-duration charger channels and site import headroom into a deterministic event timeline.
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_capacity_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+```
+
+The frozen eight-hour fixture has four profiles:
+- direct one-pack recharge;
+- a Dock 4 specification-shaped profile (one aircraft, three stored spares, two channels, 45-second turnaround, 27-minute restoration); five-minute mission duration and 500 W per-channel input power are synthetic stress assumptions;
+- the same profile with site headroom reduced to one effective charging channel;
+- a two-aircraft shared compatible pool, with three effective channels after site-load headroom.
+
+At each mission completion the depleted pack enters an FCFS charge queue. The aircraft consumes a ready spare or waits. A completed charging job becomes a ready spare or is assigned to the oldest waiting aircraft. The site grid cap limits concurrent charging channels. Event ties are deterministic: charge completions are processed before mission completions, then by channel/aircraft ID.
+
+The output reports completed modeled sorties, cycles/hour, mission-hours, effective channels, queue peaks, charging starts/completions, aircraft wait, end-of-horizon inventory/queue state and a charger-input energy proxy. A 1-pack/no-recharge closed-form test independently checks the mission-completion schedule; a pack reuse bound checks that completed sorties cannot exceed initial packs plus completed recharges.
+
+Important: all modeled sorties are assumed to complete. v0.1 omits demand arrivals/deadlines, mission failures, weather, aviation permissions, maintenance, physical charge curves, battery aging, crew, mobile replenishment travel and cost. The 500 W charging-channel input proxy and site fixed load are synthetic; the Dock 4's published 2 kW is a maximum dock AC input, not a per-channel charging rating. This is capacity semantics only, not field service capacity or a DJI performance reproduction.
+
+Source: `src/sustainable_mobility_service_capacity.rs`; CLI: `src/bin/sustainable_mobility_service_capacity_screen.rs`; schema: `schemas/sustainable_mobility_service_capacity_v0_1.schema.json`; fixture: `fixtures/sustainable_mobility_service_capacity_v0_1.json`. Exact-head CI verification is pending.
