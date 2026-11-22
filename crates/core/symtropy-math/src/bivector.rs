@@ -186,10 +186,7 @@ impl<const D: usize> Bivector<D> {
     /// pose convention `exp(-B)` and the point-velocity operation
     /// `-B * r` above.
     #[inline]
-    pub fn from_angular_impulse(
-        offset: &SVector<f64, D>,
-        impulse: &SVector<f64, D>,
-    ) -> Self {
+    pub fn from_angular_impulse(offset: &SVector<f64, D>, impulse: &SVector<f64, D>) -> Self {
         Self::from_wedge(offset, impulse)
     }
 
@@ -377,9 +374,18 @@ mod tests {
         // Each pair produces a positive torque about one principal axis:
         // y×z -> +x, z×x -> +y, x×y -> +z.
         let cases = [
-            (SVector::from([0.0, 1.0, 0.0]), SVector::from([0.0, 0.0, 1.0])),
-            (SVector::from([0.0, 0.0, 1.0]), SVector::from([1.0, 0.0, 0.0])),
-            (SVector::from([1.0, 0.0, 0.0]), SVector::from([0.0, 1.0, 0.0])),
+            (
+                SVector::from([0.0, 1.0, 0.0]),
+                SVector::from([0.0, 0.0, 1.0]),
+            ),
+            (
+                SVector::from([0.0, 0.0, 1.0]),
+                SVector::from([1.0, 0.0, 0.0]),
+            ),
+            (
+                SVector::from([1.0, 0.0, 0.0]),
+                SVector::from([0.0, 1.0, 0.0]),
+            ),
         ];
 
         for (offset, impulse) in cases {
