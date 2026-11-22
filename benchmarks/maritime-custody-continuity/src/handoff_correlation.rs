@@ -9,8 +9,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    CargoEvent, Classification, EntityKind, EvaluationError, EvaluationReport, EventKind,
-    HandoffField, evaluate,
+    CustodyEvent, Classification, EvaluationError, EvaluationReport, EventKind, HandoffField,
+    evaluate,
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -75,7 +75,7 @@ fn require_non_empty(value: &str, name: &'static str) -> Result<(), CorrelationE
 }
 
 fn effective_event_index(
-    events: &[CargoEvent],
+    events: &[CustodyEvent],
     reference: &SourceEventRef,
     as_of: i64,
 ) -> Result<usize, CorrelationError> {
@@ -142,10 +142,10 @@ fn require_equal_field(
 /// referenced release/acceptance event pair receives its canonical handoff
 /// identifier. Raw source-local identifiers remain unchanged in the receipt.
 pub fn apply_handoff_correlations(
-    events: &[CargoEvent],
+    events: &[CustodyEvent],
     receipts: &[HandoffCorrelationReceipt],
     as_of: i64,
-) -> Result<Vec<CargoEvent>, CorrelationError> {
+) -> Result<Vec<CustodyEvent>, CorrelationError> {
     let mut receipt_ids = BTreeSet::new();
     let mut canonical_ids = BTreeSet::new();
     let mut mapped_releases = BTreeSet::new();
@@ -235,11 +235,7 @@ pub fn apply_handoff_correlations(
                 receipt.accept_event.clone(),
             ));
         }
-        if release.entity_kind != EntityKind::ContainerBox
-            || accept.entity_kind != EntityKind::ContainerBox
-            || release.local_entity_id != accept.local_entity_id
-            || release.local_entity_id != receipt.canonical_box_id
-        {
+        if release.box_id != accept.box_id || release.box_id != receipt.canonical_box_id {
             return Err(CorrelationError::ReferencedBoxMismatch);
         }
         if release.handoff_id != receipt.release_local_handoff_id {
@@ -304,7 +300,7 @@ pub fn apply_handoff_correlations(
 /// then run the existing fail-closed custody evaluator.
 pub fn evaluate_with_handoff_correlations(
     expectations: &[super::CustodyExpectation],
-    events: &[CargoEvent],
+    events: &[CustodyEvent],
     receipts: &[HandoffCorrelationReceipt],
     as_of: i64,
 ) -> Result<EvaluationReport, CorrelationError> {
@@ -319,18 +315,18 @@ mod tests {
     use crate::parse_events_tsv;
     use crate::parse_expectations_tsv;
 
-    fn fixtures() -> (Vec<super::CustodyExpectation>, Vec<CargoEvent>) {
+    fn fixtures() -> (Vec<super::CustodyExpectation>, Vec<CustodyEvent>) {
         (
             parse_expectations_tsv(include_str!("../data/expectations.tsv")).unwrap(),
             parse_events_tsv(include_str!("../data/events.tsv")).unwrap(),
         )
     }
 
-    fn receipt(release: &CargoEvent, accept: &CargoEvent) -> HandoffCorrelationReceipt {
+    fn receipt(release: &CustodyEvent, accept: &CustodyEvent) -> HandoffCorrelationReceipt {
         HandoffCorrelationReceipt {
             receipt_id: "CORR-001".to_string(),
             canonical_handoff_id: "CANON-HANDOFF-001".to_string(),
-            canonical_box_id: release.local_entity_id.clone(),
+            canonical_box_id: release.box_id.clone(),
             release_event: SourceEventRef::new(
                 release.source_id.clone(),
                 release.source_event_id.clone(),
@@ -532,17 +528,17 @@ mod tests {
     }
 
     #[test]
-    fn vessel_visit_event_cannot_be_correlated_as_a_container_box_handoff() {
+    fn event_for_different_canonical_box_cannot_be_correlated() {
         let (_, mut events) = fixtures();
         let mut release = events
             .iter()
             .find(|event| event.source_event_id == "B1-R1")
             .unwrap()
             .clone();
-        release.entity_kind = EntityKind::VesselVisit;
+        release.box_id = "OTHER-BOX".to_string();
         for event in &mut events {
             if event.source_event_id == "B1-R1" {
-                event.entity_kind = EntityKind::VesselVisit;
+                event.box_id = "OTHER-BOX".to_string();
             }
         }
         let accept = events
@@ -559,6 +555,7 @@ mod tests {
     }
 
     #[test]
+    #[test]
     fn conflicting_latest_event_revision_cannot_be_correlated() {
         let (_, mut events) = fixtures();
         let release = events
@@ -573,7 +570,7 @@ mod tests {
             .clone();
         let correlation = receipt(&release, &accept);
         let mut conflict = release.clone();
-        conflict.local_entity_id = "BOX-SUBSTITUTED".to_string();
+        conflict.box_id = "BOX-SUBSTITUTED".to_string();
         conflict.revision = 2;
         conflict.published_at = 100;
         events.push(conflict);
