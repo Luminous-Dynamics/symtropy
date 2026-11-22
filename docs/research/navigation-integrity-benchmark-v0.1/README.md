@@ -341,3 +341,77 @@ All results are software or metadata-admission evidence. No dataset payload has 
 7. Run an independent evaluator with a separate truth capability; no controller-readable ground truth, shared truth cache or label-derived feature leakage.
 
 No SOTA claim is available until published baselines are reproduced under matched conditions and an independently supported improvement appears on held-out environments.
+
+
+---
+
+## 13. Addendum: matched 2026 UrbanNav baselines — 22 November 2026
+
+The four-method reproduction protocol is now public in [PR #6734](https://github.com/Luminous-Dynamics/symtropy/pull/6734), tracked by [NAV-URBANNAV-BASELINES-001 #6733](https://github.com/Luminous-Dynamics/symtropy/issues/6733). It is a protocol only; no baseline has been reproduced.
+
+### 13.1 Adaptive protection-level control (direct integrity comparator)
+
+Maharmeh, Resende and Nashashibi, *Integrity as a Control Problem: Smooth and Adaptive Protection Levels for Multi-Modal Localization*, Sensors 26(16), 5140 (14 August 2026), DOI 10.3390/s26165140.
+
+The paper computes an along-track/cross-track error-growth signal from:
+- base IMU drift;
+- discrepancy between ES-EKF displacement and raw IMU dead-reckoning;
+- LiDAR geometric registration residual weighted by a sensitivity term based on the minimum eigenvalue of the information/Hessian matrix.
+
+It integrates a saturated ideal bound, then tracks it with an adaptive PID whose gains are scheduled by normalized Shannon entropy of LiDAR ICP residuals. The PL expands at the full command rate and contracts more slowly. It evaluates medium (3.64 km), low (1.21 km) and deep urban (4.51 km) UrbanNav routes.
+
+The paper reports 0.0% pointwise PL exceedance in moderate routes, a deep-urban nonzero breach, and a sensitivity to maximum PL ceiling. Its primary reported configuration includes Smax=10m and a further 10/12/14m ceiling sweep. The full reproduction protocol captures the numeric PID/drift/entropy parameters and full/non-integral comparison.
+
+**Critical interpretation:** this is a finite-route Stanford-diagram point fraction (true error > PL), not automatically an independently calibrated probability-of-integrity per hour or mission. The deep-urban breach and Smax sensitivity must be retained, not hidden. Our additional event-clustered and false-safe-exposure measures complement—but do not replace—the exact paper metric.
+
+Paper:
+- https://www.mdpi.com/1424-8220/26/16/5140
+- https://doi.org/10.3390/s26165140
+
+### 13.2 Adaptive temporal Kalman and solution separation
+
+Luo, Sun and Fu, *ATM: Adaptive Temporal Kalman Filter-Based Solution Separation Method for Positioning and Integrity Monitoring*, IEEE Transactions on Instrumentation and Measurement 75 (2026), DOI 10.1109/TIM.2026.3670522.
+
+The accessible abstract describes a first-order adaptive Markov representation for temporally colored measurement noise, measurement-noise modelling, combined state/measurement-vector formulation, weighted-least-squares update and position-domain solution separation for fault detection/exclusion. The available abstract/index reports UrbanNav horizontal error improvements of 4.80% / 4.57%, HPL reductions 13.32% / 18.32%, and VPL reductions 18.51% / 26.74% across its medium/deep urban tests.
+
+**Reproduction status:** full paper/method and exact baseline configuration have not yet been obtained from accessible full-text sources. Percentages are paper-reported abstract values; do not infer an implementation or claim reproduction from them.
+
+- https://doi.org/10.1109/TIM.2026.3670522
+- https://www.researchgate.net/publication/401578449_ATM_Adaptive_Temporal_Kalman_Filter-Based_Solution_Separation_Method_for_Positioning_and_Integrity_Monitoring
+
+### 13.3 Resilient GNSS–IMU–LiDAR–camera–loop fusion
+
+Liu et al., *Robust urban SLAM via resilient GNSS–IMU–LiDAR–camera–loop fusion*, ISPRS Journal of Photogrammetry and Remote Sensing 238 (August 2026), pp. 794–815, DOI 10.1016/j.isprsjprs.2026.05.035.
+
+Publisher description includes LVIO, GNSS and loop-closure factors, frame-by-frame covariance propagation on Lie groups, Hessian-eigenvalue degeneracy detection with per-DoF down-weighting, LiDAR-assisted depth-enriched visual features, and 3D object-detection-based dynamic point removal. The paper reports evaluation on UrbanNav, KITTI, GREAT-WHU and two self-collected datasets, with pose performance comparable to its SOTA comparisons and improved map construction.
+
+Potential implementation repository: https://github.com/TK72/FAST-LIVOSAM
+
+**Reproduction and code gate:** the candidate repository README says its current experiments are mainly GREAT-WHU and KITTI, so it does not prove exact paper UrbanNav configuration. It contains an MIT licence heading but the pinned root snapshot has no LICENSE file and GitHub does not recognize a repository licence. Do not reuse code until the licence is clarified and paper-version/config/data splits are matched.
+
+- https://doi.org/10.1016/j.isprsjprs.2026.05.035
+- https://github.com/TK72/FAST-LIVOSAM
+
+### 13.4 Receiver-only Doppler-rate spoofing detector
+
+Fang and Xu, *A Doppler frequency metric for GNSS spoofing detection in urban environments*, Aerospace Systems (6 July 2026), DOI 10.1007/s42401-026-00509-7.
+
+The proposed receiver-only detector compares observed Doppler-frequency rate from tracking outputs with predicted Doppler-rate from the receiver navigation solution. It uses an adaptive threshold and Neyman–Pearson decision rule. The paper analyses 16 user-dynamics/spoofer-antenna cases and reports the method effective in 11; its TEXBAT experiment reports under-five-second detection delay and approximately 2% false alarm.
+
+Use this as a low-compute receiver-only baseline. Reproduce both effective and ineffective attack cases. Do not report only the successful 11. Apply to HK-UrbanSpoof only after the payload rights, exact data, truth labels and release ambiguity are resolved.
+
+- https://link.springer.com/article/10.1007/s42401-026-00509-7
+
+### 13.5 Reproduction and promotion gates
+
+All four baselines are recorded in [the machine-readable plan](https://github.com/Luminous-Dynamics/symtropy/blob/research/nav-urbannav-baselines-v0-2026-11-22/docs/research/nav-urbannav-v0.1/baseline_reproduction_plan.v0.1.json).
+
+Before comparative scoring:
+1. acquire exact paper/full-method/config/code versions;
+2. freeze the same UrbanNav route payload and SHA-256 manifest for every method;
+3. freeze coordinate/time transforms, sensor inputs, dropouts, calibration, truth lineage and route split;
+4. reproduce each paper's metric separately, then add common service-level and cluster-aware metrics;
+5. compare under the same compute/energy budget;
+6. publish parameter receipts, raw logs, exclusions, seeds and input digests.
+
+No baseline in this charter is currently reproduced by Symtropy. No SOTA superiority claim is permitted until a matched paper-faithful reproduction and statistically supported held-out-domain improvement exist.
