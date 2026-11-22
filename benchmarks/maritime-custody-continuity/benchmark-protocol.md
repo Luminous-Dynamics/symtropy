@@ -112,3 +112,21 @@ No fuzzy matching by vessel name, timestamp proximity, route, location text or i
 The correlation receipt's evidence ID is opaque. P1 does not dereference or authenticate it, identify an issuer or validate representative authority. It records an explicit mapping claim; it is not physical proof of the handoff. Source identity resolution (#6631), semantic translation (#1955/#437) and authority admission (Mycelix) remain independent prerequisites/owners.
 
 The new finite corpus includes different source-local IDs that can be joined only by an exact receipt, no-receipt rejection, wrong field binding, wrong event reference, voided release, planned acceptance, duplicate release mapping, missing evidence reference and source-record immutability.
+
+## P1 integration: whole-chain temporal proof before custody replay
+
+The general `evaluate_with_handoff_correlations` API requires a `EventTimeBinding` for every effective ACTUAL event visible at the selected publication cutoff. Each binding must name the exact `(source_id, source_event_id, revision)` and carry a clock-profile-derived `QualifiedEnclosure` with a common normalized time basis for that box's event chain.
+
+The evaluator:
+- selects the latest visible revision for every source event key and rejects same-revision payload conflicts;
+- ignores planned, latest-voided and future-published events for custody mutation;
+- rejects missing, duplicate, stale-revision, unexpected or event-ID-substituted time bindings;
+- requires every pair of effective actual events for the same canonical box to be strictly ordered by `ProvenBefore` or `ProvenAfter`; overlap, touching, estimated order and incomparable time bases refuse the chain;
+- only after that proof sorts the events and assigns ordinal times on a cloned event tape, so the existing deterministic custody reducer never relies on unrelated source-local clock ticks;
+- applies exact handoff-correlation receipts and then evaluates the custody state machine.
+
+The input events and their raw source-local timestamps are never modified. Ordinal ticks exist only inside the cloned evaluator tape and are not exported as physical timestamps.
+
+`evaluate_with_synthetic_handoff_correlations` remains a separately named P0 path for dimensionless frozen fixtures. It uses strictly increasing fixture ticks and must not be used to claim real chronology. The pair-level `evaluate_with_paired_handoff_time_evidence` helper validates only an individual release/acceptance pair; it is not a replacement for the whole-chain P1 API.
+
+Production adapters must pass only time bindings for effective visible actual revisions, after source event-time semantics and clock bounds have been qualified by the existing #1930/#1955/Mycelix adapter owners. Calibration references remain unauthenticated by this crate.
