@@ -116,7 +116,7 @@
         "Luminous-Dynamics/symtropy#6786",
         "Luminous-Dynamics/symthaea#12533"
       ],
-      "evidence_state": "draft_PR_6532_exact_head_74d91bb_pending_or_failing_clippy_recheck_at_last_inspection_refs_to_symthaea_PR_5701_commit_0b3feb49_remain_unresolved"
+      "evidence_state": "draft_PR_6532_focused_workflow_passed_on_exact_head_3fbd57bfdd7a7e67149fe88355861bb94d0da558; external refs still unresolved pending Symthaea PR_5701 current_main replay #5901 and future exact-object resolver"
     },
     {
       "owner": "Luminous-Dynamics/mycelix",
@@ -380,5 +380,5 @@
     "Mycelix MFG-PROC-001A typed references bind exact Symthaea contract crate/type/source commit and BLAKE3 object/process identities; until external owner objects are fetched and verified, the only local state is TypedReferencePresent, not qualified.",
     "Mycelix MFG-PROC-001B resource offers separate published claims, declared capacity, calendar availability, bookable capacity, reserved capacity and observed output. A published offer never proves resource qualification or schedulability."
   ],
-  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 is still an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 references remain unresolved. Mycelix #6533 is a design issue only. No private-workspace completeness, schema conformance, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
+  "claim_ceiling": "Public owner/path audit only. Symthaea PR #5701 is still an open draft and its current-main replay #5901 is not qualified; Mycelix PR #6532 type-reference implementation passed its focused exact-head workflow but external process objects remain unresolved. Mycelix #6533 is a design issue only. No private-workspace completeness, schema conformance of external objects, physical machine qualification, supplier approval, resource availability, production capacity, cost savings or local productive closure is established."
 }
