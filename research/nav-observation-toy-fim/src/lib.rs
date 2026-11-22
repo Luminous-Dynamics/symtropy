@@ -2,6 +2,7 @@ pub mod correlated;
 pub mod decision_value;
 pub mod robust_decision_value;
 pub mod risk_coverage;
+pub mod clustered_risk;
 pub mod correlation_envelope;
 pub mod correlation_audit;
 pub mod correlation_planning;
