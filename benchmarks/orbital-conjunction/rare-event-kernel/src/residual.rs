@@ -455,10 +455,14 @@ mod tests {
                 hard_body_radius: 0.2,
             },
         ];
+        let charts = [AffineCollisionChart {
+            component_index: 0,
+            bounds: &chart,
+        }];
         let report =
             affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
-                covered_chart_boxes: &[chart],
+                covered_charts: &charts,
                 cube_radius: 4.0,
                 max_cells: 4096,
                 max_depth: 12,
@@ -491,10 +495,20 @@ mod tests {
                 hard_body_radius: 0.2,
             },
         ];
+        let charts = [
+            AffineCollisionChart {
+                component_index: 0,
+                bounds: &central,
+            },
+            AffineCollisionChart {
+                component_index: 1,
+                bounds: &remote,
+            },
+        ];
         let report =
             affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
-                covered_chart_boxes: &[central, remote],
+                covered_charts: &charts,
                 cube_radius: 4.0,
                 max_cells: 4096,
                 max_depth: 24,
@@ -516,7 +530,7 @@ mod tests {
         let result =
             affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &[],
-                covered_chart_boxes: &[],
+                covered_charts: &[],
                 cube_radius: 4.0,
                 max_cells: 32,
                 max_depth: 8,
@@ -541,11 +555,68 @@ mod tests {
         let result =
             affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
                 components: &components,
-                covered_chart_boxes: &[],
+                covered_charts: &[],
                 cube_radius: 4.0,
                 max_cells: 32,
                 max_depth: 8,
             });
         assert_eq!(result, Err(KernelError::DimensionMismatch));
     }
+    #[test]
+    fn one_component_chart_does_not_cover_an_overlapping_second_component() {
+        let chart = CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid chart box");
+        let components = [
+            AffineCollisionComponent {
+                offset: &[0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.2,
+            },
+            AffineCollisionComponent {
+                offset: &[0.0],
+                matrix: &[1.0],
+                hard_body_radius: 0.4,
+            },
+        ];
+        let charts = [AffineCollisionChart {
+            component_index: 0,
+            bounds: &chart,
+        }];
+        let report =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
+                components: &components,
+                covered_charts: &charts,
+                cube_radius: 4.0,
+                max_cells: 512,
+                max_depth: 12,
+            })
+            .expect("valid overlapping event union");
+
+        assert!(report.chart_covered_cells > 0);
+        assert!(report.unresolved_cells > 0);
+        assert!(report.residual_event_mass_upper_bound > 0.0);
+    }
+
+    #[test]
+    fn rejects_chart_assignment_to_missing_union_component() {
+        let chart = CoverageCell::new(vec![-0.5], vec![0.5]).expect("valid chart box");
+        let components = [AffineCollisionComponent {
+            offset: &[0.0],
+            matrix: &[1.0],
+            hard_body_radius: 0.2,
+        }];
+        let charts = [AffineCollisionChart {
+            component_index: 1,
+            bounds: &chart,
+        }];
+        let result =
+            affine_union_collision_residual_mass_upper_bound(&AffineUnionResidualMassConfig {
+                components: &components,
+                covered_charts: &charts,
+                cube_radius: 4.0,
+                max_cells: 32,
+                max_depth: 8,
+            });
+        assert_eq!(result, Err(KernelError::InvalidChartComponentIndex));
+    }
+
 }
