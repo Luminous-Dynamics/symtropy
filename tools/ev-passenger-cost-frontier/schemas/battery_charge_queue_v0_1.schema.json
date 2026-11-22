@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/battery_charge_queue_v0.1.schema.json",
+  "title": "Exact battery charge queue v0.1 input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "site_id",
+    "site_configuration_digest",
+    "decision_time_unix_ms",
+    "slot_duration_seconds",
+    "horizon_slots",
+    "site_evidence",
+    "jobs",
+    "chargers",
+    "grid_slots",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "CHARGER-QUEUE-ORACLE-001"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_configuration_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_time_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "slot_duration_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "horizon_slots": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "site_evidence": {
+      "$ref": "#/$defs/evidenceEnvelope"
+    },
+    "jobs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/job"
+      }
+    },
+    "chargers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/charger"
+      }
+    },
+    "grid_slots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/gridSlot"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidenceEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "packState": {
+      "type": "string",
+      "enum": [
+        "available",
+        "installed",
+        "reserved",
+        "depleted",
+        "charging",
+        "cooling",
+        "balancing",
+        "inspection",
+        "repair",
+        "post_test",
+        "quarantined",
+        "in_transit",
+        "retired",
+        "unknown"
+      ]
+    },
+    "packStateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "value"
+      ],
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        },
+        "value": {
+          "$ref": "#/$defs/packState"
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "pack_id",
+        "pack_configuration_digest",
+        "pack_state",
+        "release_slot",
+        "deadline_slot_exclusive",
+        "duration_slots",
+        "requested_power_w"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pack_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pack_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pack_state": {
+          "$ref": "#/$defs/packStateEvidence"
+        },
+        "release_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "deadline_slot_exclusive": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "duration_slots": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "requested_power_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        }
+      }
+    },
+    "charger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "charger_id",
+        "configuration_digest",
+        "max_power_w",
+        "supported_pack_configuration_digests",
+        "availability_evidence"
+      ],
+      "properties": {
+        "charger_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_power_w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "supported_pack_configuration_digests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "availability_evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        }
+      }
+    },
+    "gridSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "import_cap_w",
+        "non_charging_site_load_w",
+        "evidence"
+      ],
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "import_cap_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "non_charging_site_load_w": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceEnvelope"
+        }
+      }
+    }
+  }
+}
