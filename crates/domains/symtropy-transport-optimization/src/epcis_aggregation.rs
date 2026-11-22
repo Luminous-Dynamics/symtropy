@@ -571,6 +571,58 @@ mod tests {
     }
 
     #[test]
+    fn invalid_source_and_repository_provenance_is_rejected() {
+        let mut input = event(AggregationAction::Delete);
+        input.source_id.clear();
+        assert_eq!(
+            normalize_aggregation_event(&input),
+            Err(AggregationSemanticError::EmptySourceIdentity)
+        );
+
+        let mut input = event(AggregationAction::Delete);
+        input.source_event_id = " padded-event-key ".to_string();
+        assert_eq!(
+            normalize_aggregation_event(&input),
+            Err(AggregationSemanticError::EmptySourceIdentity)
+        );
+
+        let mut input = event(AggregationAction::Delete);
+        input.source_profile_version.clear();
+        assert_eq!(
+            normalize_aggregation_event(&input),
+            Err(AggregationSemanticError::EmptySourceProfile)
+        );
+
+        let mut input = event(AggregationAction::Delete);
+        input.record_time_lexeme = Some(" ".to_string());
+        assert_eq!(
+            normalize_aggregation_event(&input),
+            Err(AggregationSemanticError::EmptyRecordTime)
+        );
+    }
+
+    #[test]
+    fn epcis_offset_accepts_both_inclusive_fourteen_hour_boundaries() {
+        for offset in ["+14:00", "-14:00", "+00:00", "-00:00"] {
+            let mut input = event(AggregationAction::Delete);
+            input.event_time_zone_offset = offset.to_string();
+            assert!(normalize_aggregation_event(&input).is_ok(), "{offset}");
+        }
+    }
+
+    #[test]
+    fn blank_or_padded_unit_of_measure_is_not_normalized() {
+        for unit in ["", " EA", "EA "] {
+            let mut input = event(AggregationAction::Add);
+            input.child_quantity_list = vec![quantity("class-a", "2", unit)];
+            assert!(matches!(
+                normalize_aggregation_event(&input),
+                Err(AggregationSemanticError::InvalidQuantityElement(_))
+            ));
+        }
+    }
+
+    #[test]
     fn raw_identifiers_are_not_trimmed_or_repaired() {
         let mut input = event(AggregationAction::Add);
         input.child_epcs = vec![" child ".to_string()];
