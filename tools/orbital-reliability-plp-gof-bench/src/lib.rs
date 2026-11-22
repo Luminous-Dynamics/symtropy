@@ -354,27 +354,37 @@ fn conditional_reference_cvm(count: usize, rng: &mut SplitMix64) -> Result<f64, 
     Ok(conditional_reference_statistics(count, rng)?.cramer_von_mises)
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TailSummary<'a> {
+    method: &'a str,
+    selected_exceedances: usize,
+    lower_exceedances: Option<usize>,
+    upper_exceedances: Option<usize>,
+    tail_multiplier: f64,
+}
+
 fn component_monte_carlo_result(
     statistic_id: &str,
     observed_value: f64,
-    tail_method: &str,
-    selected_tail_exceedances: usize,
-    lower_tail_exceedances: Option<usize>,
-    upper_tail_exceedances: Option<usize>,
+    tail: TailSummary<'_>,
     replicates: usize,
-    two_sided_tail_multiplier: f64,
 ) -> Result<StatisticMonteCarloResult, String> {
-    let (tail_probability_estimate, monte_carlo_standard_error, wilson_95_lower, wilson_95_upper) =
-        wilson_interval(selected_tail_exceedances, replicates)?;
-    let one_sided_p = (selected_tail_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
-    let monte_carlo_p_value = (two_sided_tail_multiplier * one_sided_p).min(1.0);
+    let (
+        tail_probability_estimate,
+        monte_carlo_standard_error,
+        wilson_95_lower,
+        wilson_95_upper,
+    ) = wilson_interval(tail.selected_exceedances, replicates)?;
+    let one_sided_p =
+        (tail.selected_exceedances as f64 + 1.0) / (replicates as f64 + 1.0);
+    let monte_carlo_p_value = (tail.tail_multiplier * one_sided_p).min(1.0);
     Ok(StatisticMonteCarloResult {
         statistic_id: statistic_id.to_owned(),
         observed_value,
-        tail_method: tail_method.to_owned(),
-        tail_exceedances: selected_tail_exceedances,
-        lower_tail_exceedances,
-        upper_tail_exceedances,
+        tail_method: tail.method.to_owned(),
+        tail_exceedances: tail.selected_exceedances,
+        lower_tail_exceedances: tail.lower_exceedances,
+        upper_tail_exceedances: tail.upper_exceedances,
         monte_carlo_p_value,
         bonferroni_adjusted_p_value: (STATISTIC_COUNT as f64 * monte_carlo_p_value).min(1.0),
         tail_probability_estimate,
@@ -426,52 +436,62 @@ pub fn conditional_gof(
         component_monte_carlo_result(
             "laplace-two-sided-v1",
             observed.laplace,
-            "absolute_two_sided",
-            laplace_extreme,
-            None,
-            Some(laplace_extreme),
+            TailSummary {
+                method: "absolute_two_sided",
+                selected_exceedances: laplace_extreme,
+                lower_exceedances: None,
+                upper_exceedances: None,
+                tail_multiplier: 1.0,
+            },
             replicates,
-            1.0,
         )?,
         component_monte_carlo_result(
             "greenwood-two-sided-v1",
             observed.greenwood,
-            "doubled_minimum_of_lower_and_upper_tails",
-            greenwood_selected_tail,
-            Some(greenwood_lower),
-            Some(greenwood_upper),
+            TailSummary {
+                method: "doubled_minimum_of_lower_and_upper_tails",
+                selected_exceedances: greenwood_selected_tail,
+                lower_exceedances: Some(greenwood_lower),
+                upper_exceedances: Some(greenwood_upper),
+                tail_multiplier: 2.0,
+            },
             replicates,
-            2.0,
         )?,
         component_monte_carlo_result(
             STATISTIC_ID,
             observed.cramer_von_mises,
-            "upper_tail",
-            cvm_upper,
-            None,
-            Some(cvm_upper),
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: cvm_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(cvm_upper),
+                tail_multiplier: 1.0,
+            },
             replicates,
-            1.0,
         )?,
         component_monte_carlo_result(
             "anderson-darling-upper-tail-v1",
             observed.anderson_darling,
-            "upper_tail",
-            ad_upper,
-            None,
-            Some(ad_upper),
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: ad_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(ad_upper),
+                tail_multiplier: 1.0,
+            },
             replicates,
-            1.0,
         )?,
         component_monte_carlo_result(
             "kolmogorov-smirnov-upper-tail-v1",
             observed.kolmogorov_smirnov,
-            "upper_tail",
-            ks_upper,
-            None,
-            Some(ks_upper),
+            TailSummary {
+                method: "upper_tail",
+                selected_exceedances: ks_upper,
+                lower_exceedances: None,
+                upper_exceedances: Some(ks_upper),
+                tail_multiplier: 1.0,
+            },
             replicates,
-            1.0,
         )?,
     ];
 
