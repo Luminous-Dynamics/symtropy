@@ -163,8 +163,10 @@ def turn(turn_id, index, previous_action, status, new_ids, work, sub, forecast, 
     return {
         "turn_id": turn_id,
         "turn_index": index,
+        "parent_transcript_head_sha256": None if index == 0 else digest("head-0"),
         "preceding_action_id": previous_action,
         "action_result_status": status,
+        "action_result_digest_sha256": None if status == "INITIAL" else digest(f"action-result-{turn_id}"),
         "new_observation_ids": list(new_ids),
         "workload": work,
         "submission": sub,
@@ -419,6 +421,28 @@ class EvidenceGainLedgerTests(unittest.TestCase):
             "start_ms": 10,
             "end_ms": 20,
         })
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+
+    def test_turn_must_extend_exact_parent_transcript_head(self):
+        doc = base_trajectory()
+        doc["turns"][1]["parent_transcript_head_sha256"] = digest("wrong-parent")
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_failed_action_must_have_result_digest(self):
+        doc = base_trajectory(second_turn_status="FAILED")
+        doc["turns"][1]["workload"]["observation_catalog"] = []
+        doc["turns"][1]["new_observation_ids"] = []
+        doc["turns"][1]["submission"] = submission("head-1", abstain=True)
+        doc["turns"][1]["action_result_digest_sha256"] = None
+        with self.assertRaises(EvidenceGainError):
+            evaluate_trajectory(doc)
+
+    def test_initial_turn_cannot_claim_parent_or_action_result(self):
+        doc = base_trajectory()
+        doc["turns"][0]["action_result_digest_sha256"] = digest("unexpected")
         with self.assertRaises(EvidenceGainError):
             evaluate_trajectory(doc)
 
