@@ -1,0 +1,678 @@
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+
+//! Small, deterministic mathematical kernels for the orbital rare-event
+//! research programme.
+//!
+//! This crate deliberately has no orbit propagator, random-number generator,
+//! proposal fitter, or operational collision logic. It provides:
+//!
+//! - strict positive-definite covariance validation;
+//! - multivariate Gaussian log densities using a Cholesky factor;
+//! - exact Gaussian half-space probabilities (reduced to one dimension);
+//! - normalized Gaussian-mixture log densities using log-sum-exp;
+//! - full-density importance log weights and weighted event indicators;
+//! - a structural check for a strict covariance floor
+//!   Sigma_component > alpha * Sigma_nominal.
+//!
+//! These primitives do not establish event-mode completeness, finite-budget
+//! confidence-interval coverage, physical-model adequacy, or the assumptions
+//! of any particular importance-sampling theorem.
+
+use core::fmt;
+
+/// Errors returned by the analytic probability kernels.
+#[derive(Debug, Clone, PartialEq)]
+pub enum KernelError {
+    /// A zero-dimensional vector or matrix was supplied.
+    EmptyDimension,
+    /// Two related vectors or matrices have incompatible dimensions.
+    DimensionMismatch,
+    /// A square matrix does not contain dimension squared entries.
+    InvalidMatrixLength,
+    /// An input contains NaN or an infinite value where it is not meaningful.
+    NonFiniteValue,
+    /// A covariance matrix is not symmetric within floating-point tolerance.
+    NonSymmetricMatrix,
+    /// A covariance matrix is not strictly positive definite.
+    NotPositiveDefinite,
+    /// A Gaussian-mixture component weight is not strictly positive and finite.
+    InvalidMixtureWeight,
+    /// Gaussian-mixture weights do not sum to one within the declared tolerance.
+    MixtureWeightsNotNormalized,
+    /// The covariance-floor fraction is negative or non-finite.
+    InvalidCovarianceFloorFraction,
+    /// A nonzero half-space normal has zero projected variance.
+    ZeroProjectedVariance,
+    /// A mathematically required intermediate exceeds the representable range.
+    NumericalOverflow,
+    /// The proposal log density is negative infinity, so the importance ratio
+    /// is undefined at a point where a weight was requested.
+    ProposalHasZeroDensity,
+}
+
+impl fmt::Display for KernelError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::EmptyDimension => "dimension must be nonzero",
+            Self::DimensionMismatch => "input dimensions do not match",
+            Self::InvalidMatrixLength => "matrix must contain dimension squared entries",
+            Self::NonFiniteValue => "input contains a non-finite value",
+            Self::NonSymmetricMatrix => "matrix is not symmetric within tolerance",
+            Self::NotPositiveDefinite => "matrix is not strictly positive definite",
+            Self::InvalidMixtureWeight => "mixture weights must be strictly positive and finite",
+            Self::MixtureWeightsNotNormalized => "mixture weights must sum to one",
+            Self::InvalidCovarianceFloorFraction => {
+                "covariance-floor fraction must be nonnegative and finite"
+            }
+            Self::ZeroProjectedVariance => "half-space projection has zero variance",
+            Self::NumericalOverflow => "numerical intermediate is outside the representable range",
+            Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+        };
+        f.write_str(message)
+    }
+}
+
+impl std::error::Error for KernelError {}
+
+/// A multivariate normal distribution with a validated positive-definite
+/// covariance matrix.
+///
+/// The covariance is stored through its lower Cholesky factor. Matrices use
+/// row-major flattened storage of length dimension squared.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Gaussian {
+    mean: Vec<f64>,
+    lower_cholesky: Vec<f64>,
+    log_determinant: f64,
+}
+
+impl Gaussian {
+    /// Construct a Gaussian from its mean and row-major covariance matrix.
+    ///
+    /// Construction fails closed for empty, non-finite, non-symmetric, or
+    /// non-positive-definite inputs. The covariance is not silently repaired,
+    /// regularized, or eigenvalue-clipped.
+    pub fn new(mean: Vec<f64>, covariance: Vec<f64>) -> Result<Self, KernelError> {
+        let dimension = mean.len();
+        if dimension == 0 {
+            return Err(KernelError::EmptyDimension);
+        }
+        if !all_finite(&mean) {
+            return Err(KernelError::NonFiniteValue);
+        }
+
+        let lower_cholesky = cholesky_lower(&covariance, dimension)?;
+        let mut log_determinant = 0.0;
+        for index in 0..dimension {
+            let diagonal = lower_cholesky[index * dimension + index];
+            log_determinant += 2.0 * diagonal.ln();
+        }
+        if !log_determinant.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
+
+        Ok(Self {
+            mean,
+            lower_cholesky,
+            log_determinant,
+        })
+    }
+
+    /// Return the distribution dimension.
+    pub fn dimension(&self) -> usize {
+        self.mean.len()
+    }
+
+    /// Return the mean vector.
+    pub fn mean(&self) -> &[f64] {
+        &self.mean
+    }
+
+    /// Evaluate the multivariate Gaussian log density at a point.
+    ///
+    /// This returns a log density, not a probability mass. The Cholesky solve
+    /// avoids explicit matrix inversion.
+    pub fn log_pdf(&self, point: &[f64]) -> Result<f64, KernelError> {
+        let dimension = self.dimension();
+        if point.len() != dimension {
+            return Err(KernelError::DimensionMismatch);
+        }
+        if !all_finite(point) {
+            return Err(KernelError::NonFiniteValue);
+        }
+
+        let mut whitened = vec![0.0; dimension];
+        for row in 0..dimension {
+            let mut residual = point[row] - self.mean[row];
+            for column in 0..row {
+                residual -=
+                    self.lower_cholesky[row * dimension + column] * whitened[column];
+            }
+            let diagonal = self.lower_cholesky[row * dimension + row];
+            whitened[row] = residual / diagonal;
+        }
+
+        let quadratic_form: f64 = whitened.iter().map(|value| value * value).sum();
+        if !quadratic_form.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
+
+        let normalizer = dimension as f64 * core::f64::consts::TAU.ln()
+            + self.log_determinant;
+        let result = -0.5 * (normalizer + quadratic_form);
+        if result.is_finite() {
+            Ok(result)
+        } else {
+            Err(KernelError::NumericalOverflow)
+        }
+    }
+}
+
+/// Evaluate the probability of a Gaussian half-space event.
+///
+/// For X ~ N(mean, covariance), this returns P(normal dot X <= bound). The
+/// event is reduced exactly to a one-dimensional normal projection. The
+/// covariance must be strictly positive definite and the projected variance
+/// must be positive.
+///
+/// This is an analytic reference fixture for validating higher-dimensional
+/// integration and importance-sampling implementations.
+pub fn gaussian_half_space_probability(
+    mean: &[f64],
+    covariance: &[f64],
+    normal: &[f64],
+    bound: f64,
+) -> Result<f64, KernelError> {
+    let dimension = mean.len();
+    if dimension == 0 {
+        return Err(KernelError::EmptyDimension);
+    }
+    if normal.len() != dimension {
+        return Err(KernelError::DimensionMismatch);
+    }
+    if !bound.is_finite() || !all_finite(mean) || !all_finite(normal) {
+        return Err(KernelError::NonFiniteValue);
+    }
+
+    // Validate covariance through the same strict Cholesky path used by
+    // Gaussian::new. The factor is not needed for this scalar projection.
+    let _ = cholesky_lower(covariance, dimension)?;
+
+    let projected_mean: f64 = normal
+        .iter()
+        .zip(mean.iter())
+        .map(|(a, x)| a * x)
+        .sum();
+
+    let mut projected_variance = 0.0;
+    for row in 0..dimension {
+        for column in 0..dimension {
+            projected_variance += normal[row]
+                * covariance[row * dimension + column]
+                * normal[column];
+        }
+    }
+
+    if !projected_mean.is_finite() || !projected_variance.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    if projected_variance <= 0.0 {
+        return Err(KernelError::ZeroProjectedVariance);
+    }
+
+    let z = (bound - projected_mean) / projected_variance.sqrt();
+    if z.is_nan() {
+        return Err(KernelError::NumericalOverflow);
+    }
+
+    let probability = 0.5 * libm::erfc(-z / core::f64::consts::SQRT_2);
+    if probability.is_finite() && (0.0..=1.0).contains(&probability) {
+        Ok(probability)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+/// One positive-weight component in a Gaussian mixture.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GaussianComponent {
+    weight: f64,
+    distribution: Gaussian,
+}
+
+impl GaussianComponent {
+    /// Construct a mixture component with a strictly positive finite weight.
+    pub fn new(weight: f64, distribution: Gaussian) -> Result<Self, KernelError> {
+        if !weight.is_finite() || weight <= 0.0 {
+            return Err(KernelError::InvalidMixtureWeight);
+        }
+        Ok(Self {
+            weight,
+            distribution,
+        })
+    }
+
+    /// Return the normalized component weight.
+    pub fn weight(&self) -> f64 {
+        self.weight
+    }
+
+    /// Return the component distribution.
+    pub fn distribution(&self) -> &Gaussian {
+        &self.distribution
+    }
+}
+
+/// A normalized finite mixture of multivariate Gaussian distributions.
+///
+/// The constructor requires weights to sum to one within 1e-12. It does not
+/// silently renormalize them, so the stored density is exactly the mixture
+/// specified by the caller, up to floating-point arithmetic.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GaussianMixture {
+    components: Vec<GaussianComponent>,
+    dimension: usize,
+}
+
+impl GaussianMixture {
+    /// Construct a normalized Gaussian mixture.
+    pub fn new(components: Vec<GaussianComponent>) -> Result<Self, KernelError> {
+        if components.is_empty() {
+            return Err(KernelError::EmptyDimension);
+        }
+        let dimension = components[0].distribution.dimension();
+        if components
+            .iter()
+            .any(|component| component.distribution.dimension() != dimension)
+        {
+            return Err(KernelError::DimensionMismatch);
+        }
+
+        let weight_sum: f64 = components.iter().map(|component| component.weight).sum();
+        if !weight_sum.is_finite() || (weight_sum - 1.0).abs() > 1.0e-12 {
+            return Err(KernelError::MixtureWeightsNotNormalized);
+        }
+
+        Ok(Self {
+            components,
+            dimension,
+        })
+    }
+
+    /// Return the number of Gaussian components.
+    pub fn component_count(&self) -> usize {
+        self.components.len()
+    }
+
+    /// Return the common component dimension.
+    pub fn dimension(&self) -> usize {
+        self.dimension
+    }
+
+    /// Return all normalized mixture components.
+    pub fn components(&self) -> &[GaussianComponent] {
+        &self.components
+    }
+
+    /// Evaluate the full mixture log density.
+    ///
+    /// Importance sampling must use this full density in the denominator,
+    /// including every defensive or coverage component.
+    pub fn log_pdf(&self, point: &[f64]) -> Result<f64, KernelError> {
+        if point.len() != self.dimension {
+            return Err(KernelError::DimensionMismatch);
+        }
+        let mut terms = Vec::with_capacity(self.components.len());
+        for component in &self.components {
+            let component_log_pdf = component.distribution.log_pdf(point)?;
+            terms.push(component.weight.ln() + component_log_pdf);
+        }
+        logsumexp(&terms)
+    }
+}
+
+/// Compute log p(x) - log q(x), rejecting zero proposal density.
+pub fn log_importance_weight(
+    log_target_density: f64,
+    log_proposal_density: f64,
+) -> Result<f64, KernelError> {
+    if log_target_density.is_nan()
+        || log_target_density == f64::INFINITY
+        || log_proposal_density.is_nan()
+        || !log_proposal_density.is_finite()
+    {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if log_proposal_density == f64::NEG_INFINITY {
+        return Err(KernelError::ProposalHasZeroDensity);
+    }
+    if log_target_density == f64::NEG_INFINITY {
+        return Ok(f64::NEG_INFINITY);
+    }
+
+    let weight = log_target_density - log_proposal_density;
+    if weight.is_finite() {
+        Ok(weight)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+/// Compute the likelihood ratio p(x) / q(x) from log densities.
+///
+/// Underflow to zero is retained as floating-point underflow. Overflow is
+/// reported as an error; callers should retain the log weight in their
+/// evidence record even when converting to a linear weight.
+pub fn importance_weight(
+    log_target_density: f64,
+    log_proposal_density: f64,
+) -> Result<f64, KernelError> {
+    let log_weight = log_importance_weight(log_target_density, log_proposal_density)?;
+    if log_weight == f64::NEG_INFINITY {
+        return Ok(0.0);
+    }
+    if log_weight > f64::MAX.ln() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let weight = log_weight.exp();
+    if weight.is_finite() {
+        Ok(weight)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+/// Return the importance-weighted event indicator for one evaluation draw.
+///
+/// A non-event contributes exactly zero. An event contributes p(x) / q(x).
+/// This primitive does not aggregate draws or construct a confidence interval.
+pub fn weighted_event_indicator(
+    event_occurred: bool,
+    log_target_density: f64,
+    log_proposal_density: f64,
+) -> Result<f64, KernelError> {
+    if !event_occurred {
+        return Ok(0.0);
+    }
+    importance_weight(log_target_density, log_proposal_density)
+}
+
+/// Check the strict Loewner covariance-floor inequality.
+///
+/// Returns success exactly when candidate - fraction * nominal is strictly
+/// positive definite under the floating-point Cholesky check. For the Lorek
+/// constrained-mixture condition, callers would normally set fraction to 0.5.
+///
+/// This function validates only the matrix inequality. It does not establish
+/// that the remaining assumptions of a finite-variance theorem hold.
+pub fn validate_covariance_floor(
+    candidate: &[f64],
+    nominal: &[f64],
+    dimension: usize,
+    fraction: f64,
+) -> Result<(), KernelError> {
+    if !fraction.is_finite() || fraction < 0.0 {
+        return Err(KernelError::InvalidCovarianceFloorFraction);
+    }
+    if dimension == 0 {
+        return Err(KernelError::EmptyDimension);
+    }
+    let expected_length = dimension
+        .checked_mul(dimension)
+        .ok_or(KernelError::InvalidMatrixLength)?;
+    if candidate.len() != expected_length || nominal.len() != expected_length {
+        return Err(KernelError::InvalidMatrixLength);
+    }
+
+    // The nominal covariance itself must be a valid positive-definite matrix.
+    let _ = cholesky_lower(nominal, dimension)?;
+    let _ = cholesky_lower(candidate, dimension)?;
+
+    let difference: Vec<f64> = candidate
+        .iter()
+        .zip(nominal.iter())
+        .map(|(candidate_value, nominal_value)| candidate_value - fraction * nominal_value)
+        .collect();
+    let _ = cholesky_lower(&difference, dimension)?;
+    Ok(())
+}
+
+fn all_finite(values: &[f64]) -> bool {
+    values.iter().all(|value| value.is_finite())
+}
+
+fn cholesky_lower(matrix: &[f64], dimension: usize) -> Result<Vec<f64>, KernelError> {
+    if dimension == 0 {
+        return Err(KernelError::EmptyDimension);
+    }
+    let expected_length = dimension
+        .checked_mul(dimension)
+        .ok_or(KernelError::InvalidMatrixLength)?;
+    if matrix.len() != expected_length {
+        return Err(KernelError::InvalidMatrixLength);
+    }
+    if !all_finite(matrix) {
+        return Err(KernelError::NonFiniteValue);
+    }
+
+    let scale = matrix
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
+    let symmetry_tolerance = 64.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
+    for row in 0..dimension {
+        for column in (row + 1)..dimension {
+            if (matrix[row * dimension + column] - matrix[column * dimension + row]).abs()
+                > symmetry_tolerance
+            {
+                return Err(KernelError::NonSymmetricMatrix);
+            }
+        }
+    }
+
+    let mut lower = vec![0.0; expected_length];
+    for row in 0..dimension {
+        for column in 0..=row {
+            let mut value = matrix[row * dimension + column];
+            for inner in 0..column {
+                value -= lower[row * dimension + inner] * lower[column * dimension + inner];
+            }
+
+            if row == column {
+                if !value.is_finite() || value <= 0.0 {
+                    return Err(KernelError::NotPositiveDefinite);
+                }
+                lower[row * dimension + column] = value.sqrt();
+            } else {
+                let diagonal = lower[column * dimension + column];
+                let entry = value / diagonal;
+                if !entry.is_finite() {
+                    return Err(KernelError::NumericalOverflow);
+                }
+                lower[row * dimension + column] = entry;
+            }
+        }
+    }
+    Ok(lower)
+}
+
+fn logsumexp(values: &[f64]) -> Result<f64, KernelError> {
+    if values.is_empty() {
+        return Err(KernelError::EmptyDimension);
+    }
+    if values.iter().any(|value| value.is_nan() || *value == f64::INFINITY) {
+        return Err(KernelError::NonFiniteValue);
+    }
+    let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if maximum == f64::NEG_INFINITY {
+        return Ok(f64::NEG_INFINITY);
+    }
+
+    let sum: f64 = values.iter().map(|value| (value - maximum).exp()).sum();
+    let result = maximum + sum.ln();
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(KernelError::NumericalOverflow)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_close(actual: f64, expected: f64, tolerance: f64) {
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual {actual:.17e} differs from expected {expected:.17e} by more than {tolerance:.3e}"
+        );
+    }
+
+    #[test]
+    fn standard_normal_log_density_at_origin_is_known_answer() {
+        let gaussian = Gaussian::new(vec![0.0], vec![1.0]).unwrap();
+        assert_close(
+            gaussian.log_pdf(&[0.0]).unwrap(),
+            -0.5 * core::f64::consts::TAU.ln(),
+            2.0e-15,
+        );
+    }
+
+    #[test]
+    fn translated_and_scaled_gaussian_log_density_is_known_answer() {
+        let gaussian = Gaussian::new(vec![2.0], vec![4.0]).unwrap();
+        let expected = -0.5 * core::f64::consts::TAU.ln() - 0.5 * 4.0_f64.ln();
+        assert_close(gaussian.log_pdf(&[2.0]).unwrap(), expected, 2.0e-15);
+    }
+
+    #[test]
+    fn standard_normal_half_space_is_one_half() {
+        let probability =
+            gaussian_half_space_probability(&[0.0], &[1.0], &[1.0], 0.0).unwrap();
+        assert_close(probability, 0.5, 2.0e-16);
+    }
+
+    #[test]
+    fn correlated_multivariate_half_space_reduces_to_projected_normal() {
+        let probability = gaussian_half_space_probability(
+            &[0.0, 0.0],
+            &[1.0, 0.5, 0.5, 1.0],
+            &[1.0, 1.0],
+            0.0,
+        )
+        .unwrap();
+        assert_close(probability, 0.5, 2.0e-16);
+    }
+
+    #[test]
+    fn shifted_half_space_probability_matches_standard_normal_cdf() {
+        let probability =
+            gaussian_half_space_probability(&[1.0], &[4.0], &[1.0], 1.0).unwrap();
+        assert_close(probability, 0.5, 2.0e-16);
+    }
+
+    #[test]
+    fn mixture_log_density_uses_the_full_weighted_mixture() {
+        let narrow = Gaussian::new(vec![0.0], vec![1.0]).unwrap();
+        let broad = Gaussian::new(vec![0.0], vec![4.0]).unwrap();
+        let mixture = GaussianMixture::new(vec![
+            GaussianComponent::new(0.25, narrow).unwrap(),
+            GaussianComponent::new(0.75, broad).unwrap(),
+        ])
+        .unwrap();
+
+        let density = 0.25 / core::f64::consts::TAU.sqrt()
+            + 0.75 / (2.0 * core::f64::consts::TAU.sqrt());
+        assert_close(mixture.log_pdf(&[0.0]).unwrap(), density.ln(), 2.0e-15);
+    }
+
+    #[test]
+    fn mixture_rejects_non_normalized_weights_instead_of_repairing_them() {
+        let first = Gaussian::new(vec![0.0], vec![1.0]).unwrap();
+        let second = Gaussian::new(vec![1.0], vec![1.0]).unwrap();
+        let result = GaussianMixture::new(vec![
+            GaussianComponent::new(0.4, first).unwrap(),
+            GaussianComponent::new(0.4, second).unwrap(),
+        ]);
+        assert_eq!(result, Err(KernelError::MixtureWeightsNotNormalized));
+    }
+
+    #[test]
+    fn importance_weight_is_computed_from_log_density_ratio() {
+        let log_weight = log_importance_weight(-3.0, -5.0).unwrap();
+        assert_close(log_weight, 2.0, 0.0);
+        assert_close(importance_weight(-3.0, -5.0).unwrap(), 2.0_f64.exp(), 2.0e-15);
+    }
+
+    #[test]
+    fn event_indicator_is_zero_for_non_events() {
+        assert_eq!(weighted_event_indicator(false, -2.0, -4.0).unwrap(), 0.0);
+    }
+
+    #[test]
+    fn zero_proposal_density_is_rejected_for_an_event_weight() {
+        assert_eq!(
+            log_importance_weight(-2.0, f64::NEG_INFINITY),
+            Err(KernelError::ProposalHasZeroDensity)
+        );
+    }
+
+    #[test]
+    fn strict_half_nominal_covariance_floor_accepts_positive_difference() {
+        validate_covariance_floor(
+            &[0.75, 0.0, 0.0, 0.65],
+            &[1.0, 0.0, 0.0, 1.0],
+            2,
+            0.5,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn strict_covariance_floor_rejects_equality() {
+        assert_eq!(
+            validate_covariance_floor(
+                &[0.5, 0.0, 0.0, 0.75],
+                &[1.0, 0.0, 0.0, 1.0],
+                2,
+                0.5,
+            ),
+            Err(KernelError::NotPositiveDefinite)
+        );
+    }
+
+    #[test]
+    fn covariance_floor_rejects_indefinite_difference() {
+        assert_eq!(
+            validate_covariance_floor(
+                &[0.75, 0.0, 0.0, 0.4],
+                &[1.0, 0.0, 0.0, 1.0],
+                2,
+                0.5,
+            ),
+            Err(KernelError::NotPositiveDefinite)
+        );
+    }
+
+    #[test]
+    fn non_positive_definite_and_asymmetric_covariances_fail_closed() {
+        assert_eq!(
+            Gaussian::new(vec![0.0, 0.0], vec![1.0, 2.0, 0.0, 1.0]),
+            Err(KernelError::NonSymmetricMatrix)
+        );
+        assert_eq!(
+            Gaussian::new(vec![0.0, 0.0], vec![1.0, 2.0, 2.0, 1.0]),
+            Err(KernelError::NotPositiveDefinite)
+        );
+    }
+
+    #[test]
+    fn dimension_mismatch_fails_closed() {
+        let gaussian = Gaussian::new(vec![0.0, 0.0], vec![1.0, 0.0, 0.0, 1.0]).unwrap();
+        assert_eq!(
+            gaussian.log_pdf(&[0.0]),
+            Err(KernelError::DimensionMismatch)
+        );
+    }
+}
