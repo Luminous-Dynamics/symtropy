@@ -60,12 +60,12 @@ The slot remains occupied regardless of whether the native callback reports acce
 
 Consumes a result supplied by the existing independent-observer/M1 reconciliation owners:
 - Satisfied: clears the pending slot and requires a fresh authority snapshot for the next action.
-- NoEffect: clears the slot only with a typed M1 recovery-permit reference bound to the failed attempt, current authority epoch and approved plan digest, and with a strictly newer authority snapshot.
-- PartialEffect: clears the slot only with a typed M1-approved replan/recovery permit bound to the failed attempt/current authority epoch/approved plan digest, and with a strictly newer authority snapshot.
+- NoEffect: clears the slot only with a typed M1 recovery-permit reference bound to the failed attempt, current authority epoch and the exact next authority/action binding commitment, and with a strictly newer authority snapshot.
+- PartialEffect: clears the slot only with a typed M1-approved replan/recovery permit bound to the failed attempt/current authority epoch/exact next authority/action binding commitment, and with a strictly newer authority snapshot.
 - Recovery permits are consumed by globally unique permit ID. A permit cannot authorize a different attempt or be replayed under a later authority epoch.
 - Unknown: retains the hold; no next snapshot or permit is accepted as a substitute for physical reconciliation.
 
-The Rust reference checks the permit ID, failed-attempt identity, authority epoch, nonzero plan commitment and one-shot permit consumption. It does not authenticate the observer, evidence digest, permit issuer or allowlist membership; M1 remains the permit authority. It does not establish physical truth.
+The Rust reference checks the permit ID, failed-attempt identity, authority epoch, nonzero plan commitment, equality between that commitment and the exact next binding commitment, and one-shot permit consumption. It does not authenticate the observer, evidence digest, permit issuer or allowlist membership; M1 remains the permit authority. It does not establish physical truth.
 
 ## 4. Checker algorithm and bounds
 
@@ -104,7 +104,7 @@ The unit tests cover:
 - pending action blocking a second mutation;
 - unknown outcome retaining the hold;
 - no-effect recovery requiring a correctly scoped permit;
-- permit attempt/epoch mismatch and permit replay rejection;
+- permit attempt/epoch mismatch, next-binding substitution and permit replay rejection;
 - missing response and incomplete recorder;
 - search-budget exhaustion;
 - incorrect application sequence receipts.
