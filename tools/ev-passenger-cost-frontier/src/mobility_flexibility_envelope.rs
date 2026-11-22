@@ -609,7 +609,7 @@ pub fn evaluate_mobility_flexibility(
                 ("safety_outage", &reserve.safety_outage_reserve_receipt_id, &reserve.safety_outage_reserve_evidence),
                 ("uncertainty", &reserve.uncertainty_reserve_receipt_id, &reserve.uncertainty_reserve_evidence),
             ] {
-                if evidence.evidence_reference != *receipt_id
+                if evidence.evidence_reference.as_str() != receipt_id.as_str()
                     || !evidence_covers(
                         evidence,
                         &resource.resource_id,
@@ -950,6 +950,26 @@ mod tests {
     fn stale_upstream_evidence_fails_closed() {
         let mut input = fixture();
         input.charging_queue_evidence.valid_until_unix_ms = Some(input.decision_time_unix_ms);
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn reserve_bucket_evidence_must_match_its_receipt_id() {
+        let mut input = fixture();
+        input.reserve_scenarios[0].resource_reserves[0]
+            .mission_reserve_evidence
+            .evidence_reference = "synthetic://wrong-reserve-receipt".to_owned();
+        let result = evaluate_mobility_flexibility(&input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn scheduled_charging_load_must_match_the_queue_receipt() {
+        let mut input = fixture();
+        input.pcc_slots[0]
+            .scheduled_charging_load_evidence
+            .evidence_reference = "synthetic://wrong-queue-report".to_owned();
         let result = evaluate_mobility_flexibility(&input);
         assert!(result.is_err());
     }
