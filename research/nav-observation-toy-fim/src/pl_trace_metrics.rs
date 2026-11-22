@@ -58,12 +58,14 @@ pub struct ProtectionLevelTraceSummary {
     pub cross_track_breaches: BreachEpisodeMetrics,
     pub either_axis_breaches: BreachEpisodeMetrics,
 
-    pub maximum_longitudinal_exceedance_m: u64,
-    pub maximum_cross_track_exceedance_m: u64,
-    pub maximum_either_axis_exceedance_m: u64,
+    pub maximum_longitudinal_exceedance_micrometers: u64,
+    pub maximum_cross_track_exceedance_micrometers: u64,
+    pub maximum_either_axis_exceedance_micrometers: u64,
 
     /// Descriptive breach-event counts divided by valid exposure hours. This
     /// is not a statistically calibrated integrity probability.
+    /// Breach events per valid exposure hour, multiplied by 1,000,000.
+    /// This descriptive rate is not a probability or integrity guarantee.
     pub either_axis_breach_events_per_valid_hour_micros: Option<u64>,
 }
 
