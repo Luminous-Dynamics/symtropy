@@ -10,3 +10,5 @@ description = "Dependency-free reference model for authority-linearized native c
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
