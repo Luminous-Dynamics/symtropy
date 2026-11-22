@@ -887,8 +887,14 @@ mod tests {
         let (expectations, events) = fixtures();
         let time_bindings = qualified_timeline_bindings(&events, 200);
         let receipt = receipt(
-            events.iter().find(|event| event.source_event_id == "B1-R1").unwrap(),
-            events.iter().find(|event| event.source_event_id == "B1-A1").unwrap(),
+            events
+                .iter()
+                .find(|event| event.source_event_id == "B1-R1")
+                .unwrap(),
+            events
+                .iter()
+                .find(|event| event.source_event_id == "B1-A1")
+                .unwrap(),
         );
         let report = evaluate_with_handoff_correlations(
             &expectations,
@@ -959,10 +965,7 @@ mod tests {
         )
         .unwrap();
         release_binding.evidence = profile
-            .qualify_event(
-                event_time_evidence_id(&release, 1),
-                20,
-            )
+            .qualify_event(event_time_evidence_id(&release, 1), 20)
             .unwrap();
 
         assert!(matches!(
