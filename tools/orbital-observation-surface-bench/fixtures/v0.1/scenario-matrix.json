@@ -150,5 +150,19 @@
     "per_channel_detection",
     "per_channel_false_positive",
     "shared_common_cause"
-  ]
+  ],
+  "replication_plan": {
+    "false_trend_commit_target": {
+      "threshold": 0.01,
+      "one_sided_confidence": 0.95,
+      "minimum_independent_episodes_if_zero_observed": 299,
+      "adjustment": "additional episodes are required for multiple strata or family-wise claims"
+    },
+    "coverage_monte_carlo_precision": {
+      "nominal_coverage": 0.95,
+      "approximate_absolute_precision": 0.01,
+      "approximate_independent_replicates_per_stratum": 1825,
+      "final_interval_method": "exact binomial or preregistered justified method"
+    }
+  }
 }
