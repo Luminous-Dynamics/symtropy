@@ -4,3 +4,4 @@
 
 pub mod adaptive_pl;
 pub mod student_t_pl;
+pub mod pl_trace_metrics;
