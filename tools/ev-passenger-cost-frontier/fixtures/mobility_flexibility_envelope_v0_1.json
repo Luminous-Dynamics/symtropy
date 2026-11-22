@@ -1,0 +1,387 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-FLEX-ENVELOPE-001",
+  "site_id": "depot-01",
+  "site_configuration_digest": "sha256:site-config-v01",
+  "decision_time_unix_ms": 1800000000000,
+  "slot_duration_seconds": 900,
+  "horizon_slots": 4,
+  "site_evidence": {
+    "asset_id": "depot-01",
+    "configuration_digest": "sha256:site-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-known-answer-v0.1",
+    "evidence_reference": "synthetic://site/base",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800003599999
+  },
+  "allocation_evidence": {
+    "asset_id": "depot-01",
+    "configuration_digest": "sha256:site-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-known-answer-v0.1",
+    "evidence_reference": "synthetic://site/base",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800003599999
+  },
+  "charging_queue_evidence": {
+    "asset_id": "depot-01",
+    "configuration_digest": "sha256:site-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-known-answer-v0.1",
+    "evidence_reference": "synthetic://site/base",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800003599999
+  },
+  "site_meter_evidence": {
+    "asset_id": "depot-01",
+    "configuration_digest": "sha256:site-config-v01",
+    "producer_id": "fixture-generator",
+    "method_id": "synthetic-known-answer-v0.1",
+    "evidence_reference": "synthetic://site/base",
+    "evidence_class": "synthetic",
+    "observed_at_unix_ms": 1799999940000,
+    "valid_from_unix_ms": 1799999940000,
+    "valid_until_unix_ms": 1800003599999
+  },
+  "storage_resources": [
+    {
+      "resource_id": "ess-01",
+      "configuration_digest": "sha256:ess-01-v01",
+      "resource_kind": "stationary_ess",
+      "available_energy_lower_bound_wh": 2500,
+      "max_discharge_power_lower_bound_w": 3000,
+      "energy_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-01/energy",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "power_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-01/power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "interface_qualification_evidence": {
+        "asset_id": "ess-01",
+        "configuration_digest": "sha256:ess-01-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-01/interface",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    },
+    {
+      "resource_id": "ess-02",
+      "configuration_digest": "sha256:ess-02-v01",
+      "resource_kind": "stationary_ess",
+      "available_energy_lower_bound_wh": 1500,
+      "max_discharge_power_lower_bound_w": 2500,
+      "energy_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-02/energy",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "power_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-02/power",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "interface_qualification_evidence": {
+        "asset_id": "ess-02",
+        "configuration_digest": "sha256:ess-02-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://ess-02/interface",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    }
+  ],
+  "reserve_scenarios": [
+    {
+      "scenario_id": "baseline-weather",
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_reserves": [
+        {
+          "resource_id": "ess-01",
+          "mission_energy_reserve_wh": 300,
+          "inventory_buffer_energy_wh": 100,
+          "safety_outage_reserve_energy_wh": 300,
+          "uncertainty_energy_allowance_wh": 100,
+          "mission_power_reserve_w_by_slot": [
+            300,
+            600,
+            300,
+            0
+          ],
+          "inventory_buffer_power_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_power_reserve_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_power_allowance_w_by_slot": [
+            50,
+            50,
+            50,
+            50
+          ]
+        },
+        {
+          "resource_id": "ess-02",
+          "mission_energy_reserve_wh": 200,
+          "inventory_buffer_energy_wh": 200,
+          "safety_outage_reserve_energy_wh": 200,
+          "uncertainty_energy_allowance_wh": 100,
+          "mission_power_reserve_w_by_slot": [
+            200,
+            300,
+            150,
+            0
+          ],
+          "inventory_buffer_power_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_power_reserve_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_power_allowance_w_by_slot": [
+            50,
+            50,
+            50,
+            50
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "high-demand-low-renewable",
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      },
+      "resource_reserves": [
+        {
+          "resource_id": "ess-01",
+          "mission_energy_reserve_wh": 500,
+          "inventory_buffer_energy_wh": 100,
+          "safety_outage_reserve_energy_wh": 300,
+          "uncertainty_energy_allowance_wh": 150,
+          "mission_power_reserve_w_by_slot": [
+            500,
+            700,
+            400,
+            0
+          ],
+          "inventory_buffer_power_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_power_reserve_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_power_allowance_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ]
+        },
+        {
+          "resource_id": "ess-02",
+          "mission_energy_reserve_wh": 400,
+          "inventory_buffer_energy_wh": 200,
+          "safety_outage_reserve_energy_wh": 200,
+          "uncertainty_energy_allowance_wh": 150,
+          "mission_power_reserve_w_by_slot": [
+            300,
+            500,
+            200,
+            0
+          ],
+          "inventory_buffer_power_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "safety_outage_power_reserve_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ],
+          "uncertainty_power_allowance_w_by_slot": [
+            100,
+            100,
+            100,
+            100
+          ]
+        }
+      ]
+    }
+  ],
+  "pcc_slots": [
+    {
+      "slot": 0,
+      "base_site_load_w": 2500,
+      "scheduled_mobility_charging_load_w": 1500,
+      "import_limit_w": 8000,
+      "export_limit_w": 0,
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    },
+    {
+      "slot": 1,
+      "base_site_load_w": 2500,
+      "scheduled_mobility_charging_load_w": 2000,
+      "import_limit_w": 8000,
+      "export_limit_w": 0,
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    },
+    {
+      "slot": 2,
+      "base_site_load_w": 2500,
+      "scheduled_mobility_charging_load_w": 1000,
+      "import_limit_w": 8000,
+      "export_limit_w": 0,
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    },
+    {
+      "slot": 3,
+      "base_site_load_w": 2500,
+      "scheduled_mobility_charging_load_w": 500,
+      "import_limit_w": 8000,
+      "export_limit_w": 0,
+      "evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "sha256:site-config-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-known-answer-v0.1",
+        "evidence_reference": "synthetic://site/base",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 1799999940000,
+        "valid_from_unix_ms": 1799999940000,
+        "valid_until_unix_ms": 1800003599999
+      }
+    }
+  ],
+  "candidate_dispatch": [
+    {
+      "slot": 0,
+      "requested_discharge_power_w": 2200
+    },
+    {
+      "slot": 1,
+      "requested_discharge_power_w": 2500
+    },
+    {
+      "slot": 2,
+      "requested_discharge_power_w": 2000
+    },
+    {
+      "slot": 3,
+      "requested_discharge_power_w": 800
+    }
+  ],
+  "export_permission": null,
+  "claim_ceiling": "Deterministic model-level reserve-envelope verification only; no grid export permission, electrical dispatch authority, battery safety qualification, flight authorization, return-to-service authority or commercial performance claim."
+}
