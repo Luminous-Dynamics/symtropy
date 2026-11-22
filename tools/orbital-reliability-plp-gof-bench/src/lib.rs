@@ -759,6 +759,39 @@ mod tests {
     }
 
     #[test]
+    fn outer_null_calibration_smoke_covers_declared_alpha_levels() {
+        let mut outer_rng = SplitMix64::new(20_261_122);
+        let mut rejected_at_one_percent = 0usize;
+        let mut rejected_at_five_percent = 0usize;
+        let mut rejected_at_ten_percent = 0usize;
+
+        for _ in 0..250 {
+            let observed = conditional_reference_cvm(10, &mut outer_rng)
+                .expect("null outer sample");
+            let mut reference_rng = SplitMix64::new(outer_rng.next_u64());
+            let mut exceedances = 0usize;
+            for _ in 0..999 {
+                if conditional_reference_cvm(10, &mut reference_rng)
+                    .expect("conditional reference sample")
+                    >= observed
+                {
+                    exceedances += 1;
+                }
+            }
+            let p_value = (exceedances as f64 + 1.0) / 1000.0;
+            rejected_at_one_percent += usize::from(p_value <= 0.01);
+            rejected_at_five_percent += usize::from(p_value <= 0.05);
+            rejected_at_ten_percent += usize::from(p_value <= 0.10);
+        }
+
+        // A deterministic smoke envelope only. The full operating-characteristic
+        // study remains a separate benchmark with exact binomial intervals.
+        assert!((0..=8).contains(&rejected_at_one_percent));
+        assert!((4..=23).contains(&rejected_at_five_percent));
+        assert!((13..=38).contains(&rejected_at_ten_percent));
+    }
+
+    #[test]
     fn beta_not_equal_to_one_is_not_a_trend_test() {
         let times = [3_000, 7_000, 12_000, 22_000, 45_000, 78_000];
         let (beta_hat, _) = estimate_beta_and_cvm(&times, 100_000).expect("valid PLP history");
