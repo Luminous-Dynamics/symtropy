@@ -299,3 +299,22 @@ The SOTA landscape and scorecard now record the exact metric classes separately:
 - Li--Hu--Yunes 4D Kerr source reconstruction: six interactions at leading coupling, no mode decomposition, sampled \(\Psi_0\) relative discrepancy below \(1.4\times10^{-22}\) at \(a/M=0.9999\) (five angles, 200 radii, reference \(\ell_{\max}=100\)); separate exact thermodynamic checks. This is not a full-domain error or runtime bound.
 
 The programme now scores discovery, branch coverage, matched equations and boundary conditions, equation rows, held-out error, observables, physical qualification and validated existence separately. No cross-category residual ranking is allowed.
+
+
+## Independent second quadrature: endpoint-log-subtracted composite Gauss--Legendre (22 November 2026)
+
+A second implementation of the Green endpoint integral was written and executed locally, using composite Gauss--Legendre quadrature rather than tanh--sinh. It analytically subtracts the first thirteen odd-power \(\log t\) endpoint terms after \(s=1-t^2\), integrates the regularized remainder with four panels of 24 Gauss--Legendre nodes each, then restores the subtracted integrals exactly.
+
+The independent result again reproduces
+\[
+C_H=67-6\pi^2,\qquad C_B=19-2\pi^2.
+\]
+At 40 digits the discrepancies are \(1.86\times10^{-35}\) and \(6.21\times10^{-36}\); at 60--80 digits they are approximately \(1.05\times10^{-49}\) and \(3.49\times10^{-50}\).
+
+The exact local script was run with Python 3.13.5 / mpmath 1.3.0 before publication. Its local Git blob SHA-1 7e454db8297d14c1f86d196b3e4a1ef2648e6ae7 matches the fetched public branch file exactly. Artifacts:
+- verify_spin2_green_projection_gauss_legendre.py
+- spin2_green_projection_gauss_legendre_v1.json
+- spin2_green_projection_gauss_legendre_v1.md
+- spin2_green_projection_gauss_legendre_replay_v1.json
+
+This is a second numerical quadrature family. It is not an interval enclosure, action-row replay or finite-\(\lambda\) BVP result.
