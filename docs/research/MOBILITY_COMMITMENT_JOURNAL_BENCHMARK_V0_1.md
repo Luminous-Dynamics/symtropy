@@ -119,6 +119,8 @@ The September 2026 mobile battery-swapping study models vans, battery inventory,
 
 ## 5. Benchmarks and target ladder
 
+Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload. Test binaries reported 171 passed and 0 failed; the journal contains 14 focused Rust test definitions. Clippy and durable/distributed adapter verification remain unverified.
+
 These are research targets, not achieved measurements.
 
 | Dimension | Target |
