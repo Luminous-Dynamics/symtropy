@@ -391,6 +391,7 @@ pub enum EpisodeStatusV1 {
     Stopped,
 }
 
+#[derive(Clone)]
 struct PendingAction {
     request_id: String,
     action_id: String,
