@@ -800,6 +800,42 @@ mod tests {
     }
 
     #[test]
+    fn analytic_probability_sweep_covers_target_tails_and_dimensions() {
+        let tail_cases = [
+            (3.090_232_306_167_813_2, 1.0e-3_f64),
+            (4.264_890_793_923_84, 1.0e-5_f64),
+            (5.199_337_582_290_662, 1.0e-7_f64),
+            (5.997_807_019_601_638, 1.0e-9_f64),
+        ];
+
+        for dimension in [1_usize, 2, 3, 6, 12] {
+            let mut covariance = vec![0.0; dimension * dimension];
+            for axis in 0..dimension {
+                covariance[axis * dimension + axis] = 1.0;
+            }
+            let mut normal = vec![0.0; dimension];
+            normal[0] = 1.0;
+
+            for (offset, expected_probability) in tail_cases {
+                let mut mean = vec![0.0; dimension];
+                mean[0] = offset;
+                let log_probability = gaussian_half_space_log_probability(
+                    &mean,
+                    &covariance,
+                    &normal,
+                    0.0,
+                )
+                .unwrap();
+                assert_close(
+                    log_probability,
+                    expected_probability.ln(),
+                    1.0e-7,
+                );
+            }
+        }
+    }
+
+    #[test]
     fn log_half_space_probability_matches_ten_sigma_reference() {
         let log_probability =
             gaussian_half_space_log_probability(&[10.0], &[1.0], &[1.0], 0.0).unwrap();
