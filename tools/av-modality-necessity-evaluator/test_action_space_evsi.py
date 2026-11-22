@@ -97,6 +97,37 @@ class ActionSpaceEVSITests(unittest.TestCase):
         self.assertEqual(score["episodes"][2]["oracle_best_action_ids"], ["__stop__"])
         self.assertEqual(score["episodes"][2]["selected_action_id"], "__stop__")
 
+    def test_wide_interval_is_penalized_for_lack_of_sharpness(self):
+        baseline = self.score()["totals"]
+        candidate = copy.deepcopy(self.submission)
+        row = next(
+            x for x in candidate["predictions"][0]["forecasts"]
+            if x["action_id"] == "zoom-detail"
+        )
+        row["lower_gross_evsi"] = -10.0
+        row["upper_gross_evsi"] = 10.0
+        widened = self.score(candidate)["totals"]
+        self.assertEqual(widened["forecast_interval_coverage"], baseline["forecast_interval_coverage"])
+        self.assertGreater(
+            widened["forecast_interval_mean_width"],
+            baseline["forecast_interval_mean_width"],
+        )
+        self.assertGreater(
+            widened["forecast_interval_winkler_score"],
+            baseline["forecast_interval_winkler_score"],
+        )
+
+    def test_interval_score_penalizes_a_missed_expected_value(self):
+        baseline = self.score()["totals"]["forecast_interval_winkler_score"]
+        candidate = copy.deepcopy(self.submission)
+        row = next(
+            x for x in candidate["predictions"][1]["forecasts"]
+            if x["action_id"] == "zoom-busy-dashboard"
+        )
+        row.update(lower_gross_evsi=0.15, upper_gross_evsi=0.25)
+        scored = self.score(candidate)["totals"]["forecast_interval_winkler_score"]
+        self.assertGreater(scored, baseline)
+
 
 if __name__ == "__main__":
     unittest.main()
