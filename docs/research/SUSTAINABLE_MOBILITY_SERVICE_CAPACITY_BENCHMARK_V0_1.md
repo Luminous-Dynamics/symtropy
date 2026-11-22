@@ -238,3 +238,131 @@ The existing #6226 and #6330 evidence gates remain authoritative for aviation/op
 ## 12. Claim boundary
 
 This benchmark defines a fair comparison and evidence ledger. It does not claim Luminous outperforms DJI, Zipline, Amazon, Wing, a mobile trailer or a published optimizer. It does not establish a South African commercial operating case, aircraft airworthiness, real battery life, grid-export permission or field reliability. Those claims require matched reproduction and independent measured evidence.
+
+
+## 13. Executable v0.1: closed-loop service-capacity oracle
+
+The benchmark now has a bounded Rust event simulator:
+
+- `tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_capacity.rs`
+- `tools/ev-passenger-cost-frontier/src/bin/sustainable_mobility_service_capacity_screen.rs`
+- `tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_capacity_v0_1.schema.json`
+- `tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json`
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_capacity_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+```
+
+### v0.1 state machine
+
+A sortie completion changes the resource state through this loop:
+
+`installed pack -> depleted -> FCFS charging queue -> active charge channel -> ready spare -> aircraft turnaround -> next sortie`
+
+An aircraft landing without a ready spare enters an explicit waiting queue. A completed charge is assigned to the oldest waiting aircraft, or becomes ready inventory if no aircraft is waiting. Charging channels are limited by:
+
+[
+N_{effective} = minleft(N_{channels},leftlfloor
+rac{max(0,P_{site}-P_{fixed})}{P_{charger}}ightflooright)
+]
+
+The simulation uses deterministic event ordering: charge completions first, then mission completions, with a stable ID tie-break. Simultaneous events therefore cannot depend on hash/map iteration order.
+
+### Frozen fixture
+
+The fixture is an eight-hour synthetic comparison with four architectures:
+1. a direct one-pack recharge baseline;
+2. a Dock 4 specification-shaped profile with one aircraft, three ready spares, two charging channels, 45-second turnaround and 27-minute restoration;
+3. the same profile with site headroom admitting only one 500 W modeled charger channel;
+4. a two-aircraft shared pool with six ready spares, four nominal channels and three channels admitted by the synthetic site headroom.
+
+The short mission durations, 500 W per-channel input proxy, site fixed loads and shared-pool compatibility are explicit synthetic stress assumptions. They are not vendor specifications. The manufacturer's 2 kW maximum Dock 4 AC input is not a per-channel charger rating; the simulation does not infer internal channel power or conversion efficiency from it.
+
+Output separates:
+- completed modeled sorties and cycles per hour;
+- completed mission-hours;
+- effective channels and modeled charging power;
+- charge starts/completions and peak/current backlog;
+- ready spares, active chargers and waiting aircraft at the horizon;
+- aircraft wait seconds/share and maximum single wait;
+- charger-input energy proxy and site fixed-load energy.
+
+A sortie in this model is assumed to complete successfully once launched. The metric is therefore **modeled cyclic sortie capacity**, not successful on-time customer service, mission reliability or commercial throughput.
+
+### Independent controls
+
+The module includes 16 Rust test definitions. Among them:
+- a single-pack/no-replenishment case is compared with the closed-form completion count (1+lfloor(H-T_m)/(T_m+T_o)floor);
+- completed sorties are bounded by initial battery packs plus successfully completed recharges;
+- battery-pool conservation is checked at the horizon;
+- site power limits the effective channel count;
+- no grid headroom cannot fabricate charge completions;
+- increased inventory must reduce waiting in the frozen short-cycle stress case;
+- an event-count ceiling rejects pathological horizons/event rates;
+- architecture input permutation produces the same canonical output.
+
+The exact-head Cargo/format/report workflow is wired in CI. No pass is claimed until the latest exact head completes. This remains a fixed-parameter event model; it is not yet a charge-curve, stochastic demand, weather/permission, lifecycle-cost or mobile replenishment simulator.
+
+## 14. Current research comparison: what is new, and what is not
+
+The current literature reinforces that we should not claim novelty for battery swapping, multi-visit sorties, mobile trailers, fleet sizing or routing in isolation:
+
+- Xie, Zhang and Jia's 2026 *Drones* paper jointly sizes multi-truck/multi-drone fleets and routes; its ablations identify multi-visit delivery as a major fleet/cost mechanism, with cross-vehicle retrieval adding flexibility. [DOI 10.3390/drones10090658](https://doi.org/10.3390/drones10090658).
+- Liang, Chen and Du's EJOR paper (online 15 October 2026) combines release dates, time windows, pickup/delivery, lockers and drone resupply using a mixed-integer bilinear model and a tailored metaheuristic. [DOI 10.1016/j.ejor.2026.10.020](https://doi.org/10.1016/j.ejor.2026.10.020).
+- Tran et al.'s November 2026 *Transportation Research Part E* article jointly models truck routing and multi-rendezvous drone resupply and reports its adaptive tabu search outperforming CPLEX by 7.39% on its own instances. The figure is paper-specific, not a cross-domain claim. [DOI 10.1016/j.tre.2026.105082](https://doi.org/10.1016/j.tre.2026.105082).
+- Liu, Zhu and Zhang's November 2026 *Transportation Research Part E* paper includes heterogeneous drones, multi-visit sorties, en-route launch/recovery, energy dynamics and an RL-guided ALNS. [DOI 10.1016/j.tre.2026.105114](https://doi.org/10.1016/j.tre.2026.105114).
+
+The current v0.1 differentiator is modest and precise: a bounded, reproducible, event-driven capacity composition of finite pack inventory, charge channels, site import headroom and aircraft turnaround, with explicit end-of-horizon backlog and waiting. It does not replace the route optimizers or specialized battery/charge schedulers in #6247/#6674/#6705.
+
+The larger research opportunity is to connect those layers on a matched multi-day workload, then test whether the architecture/policy can deliver more **qualified on-time mission-hours per lifecycle dollar and per metered kWh** without violating reserve, permission, inventory or recovery constraints.
+
+## 15. Paradigm-shift research roadmap
+
+### A. From component-speed optimization to service-flow optimization
+
+Treat the depot as a production network whose output is verified useful service. Flight, turnaround, charge, inspection, cooling, maintenance, repositioning and permission windows are process stages competing for resources. Optimize the bottleneck of the entire loop, not whichever local stage has the most impressive vendor number.
+
+### B. From fixed architecture to adaptive service topology
+
+Allow the exact same demand set to be served by fixed dock, mobile station, truck-only, shared UAV/AMR, locker or human fallback. Choose not to fly when grid, weather, permissions, payload or reserve make aerial service inferior or unavailable. Mobile and mid-air replenishment must pay for donor assets, route/rendezvous time, payload and energy.
+
+### C. From nominal packs to time-indexed, qualified energy inventory
+
+A pack is not simply `available` or `empty`. Its compatibility, location, state-of-charge, peak power, temperature, health, charge protocol, custody and return-to-service evidence all affect whether it can serve the next mission. Compose the event simulator with #6674/#6705 rather than creating a second battery registry or charger scheduler.
+
+### D. From average throughput to tail-risk and resilience
+
+Use empirical demand/weather traces and correlated outage/charger failures. Report p50/p95/p99 queue waits, unmet mission demand, recovery curves and repeated-shock service survival. Mean utilization is not a resilience metric. Do not release unresolved battery or service promises to improve average throughput.
+
+### E. From learned dispatch to learned proposals under a fixed assurance envelope
+
+Compare greedy, MPC, exact MILP/DP, robust/chance-constrained, ALNS/ATS and DR-SAC/Symthaea proposal policies. Every policy must use the same #6803/#6809/#6829/#6837 hard gates. Report rejected unsafe proposals and the economic/service opportunity cost of conservative gating, separately from any policy reward.
+
+## 16. Target ladder (not achieved performance)
+
+| Target | Benchmark rule |
+| --- | --- |
+| Event model | 100% agreement with an independent discrete-event oracle on bounded small cases |
+| Battery accounting | Zero pack double-allocation; pool conservation at every event cut |
+| Charger physics abstraction | Zero overlapping jobs per channel; active channels never exceed grid headroom |
+| Sustainable throughput | Report cycles/hour, useful mission-hours and per-aircraft-hour denominator |
+| Service quality extension | p50/p95/p99 queue and end-to-end request latency; unserved demand reported explicitly |
+| Hard assurance | Zero false acceptance of reserve, permission, compatibility or double-booking violations |
+| Robustness | Frozen repeated-shock tests; 100% survival of admitted hard cases or explicit abstention |
+| Optimization quality | Mean regret ≤1%, p95 ≤5% against exact/MILP references where tractable |
+| Runtime | p99 <10 ms for bounded evaluator on declared hardware; end-to-end optimizer latency reported separately |
+| Commercial superiority | Pareto improvement on matched service/cost/energy with confidence intervals and independent measured denominators |
+
+These are targets. A passing synthetic evaluator test does not establish any of the service, reliability or economics targets.
+
+## 17. Source anchors
+
+- [DJI Dock 4 official specs](https://enterprise.dji.com/dock-4/specs): swap <25 s; operational turnaround <45 s; three maximum stored batteries; two parallel charging channels; 27-minute 15–95% recharge at 25°C; maximum dock AC input 2 kW; one aircraft per dock.
+- [DJI product/support details](https://www.dji.com/support/product/dock-4): controlled-test definitions and reference-only caveats for swap and turnaround.
+- [Xie et al. 2026](https://doi.org/10.3390/drones10090658): multi-truck/multi-drone fleet sizing/routing.
+- [Liang et al. 2026](https://doi.org/10.1016/j.ejor.2026.10.020): multi-visit, release-date/time-window pickup/delivery and drone resupply.
+- [Tran et al. 2026](https://doi.org/10.1016/j.tre.2026.105082): multi-rendezvous truck-drone resupply.
+- [Liu et al. 2026](https://doi.org/10.1016/j.tre.2026.105114): heterogeneous en-route drone operations.
