@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     CargoEvent, ChainFailure, Classification, EvaluationError, EvaluationReport, EventKind,
-    HandoffField, evaluate,
+    EntityKind, HandoffField, evaluate,
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -235,7 +235,8 @@ pub fn apply_handoff_correlations(
                 receipt.accept_event.clone(),
             ));
         }
-        if release.entity_kind != accept.entity_kind
+        if release.entity_kind != EntityKind::ContainerBox
+            || accept.entity_kind != EntityKind::ContainerBox
             || release.local_entity_id != accept.local_entity_id
             || release.local_entity_id != receipt.canonical_box_id
         {
@@ -526,6 +527,62 @@ mod tests {
             Err(CorrelationError::DuplicateReleaseMapping(
                 SourceEventRef::new("SRC_DGT", "B1-R1")
             ))
+        );
+    }
+
+    #[test]
+    fn vessel_visit_event_cannot_be_correlated_as_a_container_box_handoff() {
+        let (_, mut events) = fixtures();
+        let mut release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        release.entity_kind = EntityKind::VesselVisit;
+        for event in &mut events {
+            if event.source_event_id == "B1-R1" {
+                event.entity_kind = EntityKind::VesselVisit;
+            }
+        }
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let correlation = receipt(&release, &accept);
+
+        assert_eq!(
+            apply_handoff_correlations(&events, &[correlation], 200),
+            Err(CorrelationError::ReferencedBoxMismatch)
+        );
+    }
+
+    #[test]
+    fn conflicting_latest_event_revision_cannot_be_correlated() {
+        let (_, mut events) = fixtures();
+        let release = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-R1")
+            .unwrap()
+            .clone();
+        let accept = events
+            .iter()
+            .find(|event| event.source_event_id == "B1-A1")
+            .unwrap()
+            .clone();
+        let correlation = receipt(&release, &accept);
+        let mut conflict = release.clone();
+        conflict.local_entity_id = "BOX-SUBSTITUTED".to_string();
+        conflict.revision = 2;
+        conflict.published_at = 100;
+        events.push(conflict);
+
+        assert_eq!(
+            apply_handoff_correlations(&events, &[correlation], 200),
+            Err(CorrelationError::ConflictingEventRevision(SourceEventRef::new(
+                "SRC_DGT",
+                "B1-R1"
+            )))
         );
     }
 
