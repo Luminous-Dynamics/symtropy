@@ -34,16 +34,16 @@ pub mod stats;
 pub mod pathwise_event;
 pub mod trajectory;
 
+pub use pathwise_event::{
+    EncounterWindow, HorizonContactDisposition, HorizonEventDefinition, PathWindowDisposition,
+    PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
+};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
-pub use pathwise_event::{
-    EncounterWindow, HorizonContactDisposition, HorizonEventDefinition, PathWindowDisposition,
-    PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
-};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
@@ -164,17 +164,31 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
-            Self::InvalidEventDefinition => "horizon event definition has invalid identity or bounds",
+            Self::InvalidEventDefinition => {
+                "horizon event definition has invalid identity or bounds"
+            }
             Self::InvalidEncounterWindow => "encounter window has invalid identity or bounds",
             Self::DuplicateEncounterWindow => "encounter window identifier is duplicated",
-            Self::EmptyEncounterWindowSet => "horizon event definition requires at least one window",
-            Self::InvalidTrajectoryRealization => "trajectory realization identifier must be nonempty",
-            Self::MismatchedTrajectoryRealization => "window outcomes must share one trajectory realization",
+            Self::EmptyEncounterWindowSet => {
+                "horizon event definition requires at least one window"
+            }
+            Self::InvalidTrajectoryRealization => {
+                "trajectory realization identifier must be nonempty"
+            }
+            Self::MismatchedTrajectoryRealization => {
+                "window outcomes must share one trajectory realization"
+            }
             Self::UnknownEncounterWindow => "outcome refers to an undeclared encounter window",
-            Self::DuplicateEncounterWindowOutcome => "more than one outcome was supplied for a window",
+            Self::DuplicateEncounterWindowOutcome => {
+                "more than one outcome was supplied for a window"
+            }
             Self::MissingEncounterWindowOutcome => "an encounter window outcome is missing",
-            Self::InvalidEncounterContactTime => "reported contact time lies outside its encounter window",
-            Self::ContradictoryEncounterWindowOutcome => "overlapping window outcomes contradict one another",
+            Self::InvalidEncounterContactTime => {
+                "reported contact time lies outside its encounter window"
+            }
+            Self::ContradictoryEncounterWindowOutcome => {
+                "overlapping window outcomes contradict one another"
+            }
         };
         f.write_str(message)
     }
