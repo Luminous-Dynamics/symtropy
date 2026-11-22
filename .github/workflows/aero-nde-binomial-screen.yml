@@ -1,0 +1,95 @@
+name: AER-01 fixed-target NDE binomial screen
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-nde-binomial-screen.yml"
+      - "tools/civil-aero-benchmark/nde-pod-screen/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-fixed-target-nde-screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\\n' "$actual_subject_sha"
+          printf 'event_commit=%s\\n' "$GITHUB_SHA"
+
+      - name: Install Rust toolchain with rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+          python3 --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- --check
+
+      - name: Run Rust tests with locked dependencies
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml --all-targets -- -D warnings
+
+      - name: Produce deterministic Rust receipt
+        env:
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- \\
+            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result.json
+          cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml -- \\
+            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json "$SOURCE_COMMIT" > nde-screen-rust-result-repeat.json
+          cmp nde-screen-rust-result.json nde-screen-rust-result-repeat.json
+
+      - name: Independently recompute with Python
+        run: |
+          python3 tools/civil-aero-benchmark/nde-pod-screen/tests/reference_oracle.py \\
+            --corpus tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json \\
+            --rust-output nde-screen-rust-result.json > nde-screen-python-audit.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json > nde-screen-source.sha256
+          sha256sum nde-screen-rust-result.json > nde-screen-rust-result.sha256
+          sha256sum nde-screen-python-audit.json > nde-screen-python-audit.sha256
+
+      - name: Retain corpus, schema, implementation, audit and digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-nde-binomial-screen-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/civil-aero-benchmark/nde-pod-screen/Cargo.toml
+            tools/civil-aero-benchmark/nde-pod-screen/Cargo.lock
+            tools/civil-aero-benchmark/nde-pod-screen/src/main.rs
+            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.json
+            tools/civil-aero-benchmark/nde-pod-screen/fixtures/v0.1/corpus.schema.json
+            tools/civil-aero-benchmark/nde-pod-screen/tests/reference_oracle.py
+            nde-screen-rust-result.json
+            nde-screen-python-audit.json
+            nde-screen-source.sha256
+            nde-screen-rust-result.sha256
+            nde-screen-python-audit.sha256
+          if-no-files-found: error
+          retention-days: 90
