@@ -2,6 +2,7 @@
 "use strict";
 
 import fs from "node:fs";
+
 const MASK64 = (1n << 64n) - 1n;
 const SPLIT_INCREMENT = 0x9E3779B97F4A7C15n;
 const MIX1 = 0xBF58476D1CE4E5B9n;
@@ -11,123 +12,156 @@ const MAX_EVENTS = 10000;
 const MIN_REPLICATES = 999;
 const MAX_REPLICATES = 100000;
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
+const MAX_TOTAL_DRAWS = 10000000;
+const STATISTIC_COUNT = 5;
 
 function validHex(value, length) {
-  return typeof value === "string" && value.length === length && new RegExp("^[0-9a-f]{" + length + "}$").test(value);
+  return typeof value === "string" && value.length === length
+    && new RegExp("^[0-9a-f]{" + length + "}$").test(value);
 }
-
 function nonblank(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
-
-function wilson(successes, trials) {
-  const z = 1.959963984540054;
-  const n = trials;
-  const p = successes / n;
-  const se = Math.sqrt(p * (1 - p) / n);
-  const z2 = z * z;
-  const den = 1 + z2 / n;
-  const center = (p + z2 / (2 * n)) / den;
-  const half = z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / den;
+function blocked(disposition, eventCount, code) {
   return {
-    estimate: p,
-    se,
-    lower: Math.max(0, center - half),
-    upper: Math.min(1, center + half)
+    disposition, event_count: eventCount, beta_hat: null, observed_cvm: null,
+    tail_exceedances: null, monte_carlo_p_value: null,
+    component_p_values: [], bonferroni_adjusted_min_p_value: null,
+    blockers: [code]
   };
-}
-
-function cvm(values) {
-  if (values.length === 0) throw new Error("empty CvM sample");
-  const n = values.length;
-  let result = 1 / (12 * n);
-  let previous = 0;
-  for (let i = 0; i < n; i += 1) {
-    const value = values[i];
-    if (!Number.isFinite(value) || value < 0 || value > 1 || value < previous) {
-      throw new Error("invalid sorted fitted transforms");
-    }
-    const expected = (2 * i + 1) / (2 * n);
-    result += (value - expected) ** 2;
-    previous = value;
-  }
-  return result;
-}
-
-function estimateBetaCvm(events, endpoint) {
-  if (!Number.isSafeInteger(endpoint) || endpoint <= 0 || endpoint > MAX_SAFE) {
-    throw new Error("invalid exposure endpoint");
-  }
-  if (events.length < MIN_EVENTS || events.length > MAX_EVENTS) {
-    throw new Error("event count outside supported range");
-  }
-  let previous = 0;
-  let logSum = 0;
-  for (const t of events) {
-    if (!Number.isSafeInteger(t) || t <= 0 || t >= endpoint || t <= previous) {
-      throw new Error("invalid event chronology/window");
-    }
-    logSum += Math.log(endpoint / t);
-    previous = t;
-  }
-  if (!Number.isFinite(logSum) || logSum <= 0) throw new Error("invalid event-time sum");
-  const beta = events.length / logSum;
-  if (!Number.isFinite(beta) || beta <= 0) throw new Error("invalid beta");
-  const transforms = events.map(t => (t / endpoint) ** beta);
-  return { beta, cvm: cvm(transforms) };
 }
 
 class SplitMix64 {
   constructor(seed) { this.state = BigInt(seed) & MASK64; }
-  nextU64() {
+  next() {
     this.state = (this.state + SPLIT_INCREMENT) & MASK64;
-    let z = this.state;
-    z = ((z ^ (z >> 30n)) * MIX1) & MASK64;
-    z = ((z ^ (z >> 27n)) * MIX2) & MASK64;
-    return (z ^ (z >> 31n)) & MASK64;
+    let value = this.state;
+    value = ((value ^ (value >> 30n)) * MIX1) & MASK64;
+    value = ((value ^ (value >> 27n)) * MIX2) & MASK64;
+    return (value ^ (value >> 31n)) & MASK64;
   }
   uniformOpen() {
-    const numerator = Number(this.nextU64() >> 12n) + 1;
+    const numerator = Number(this.next() >> 12n) + 1;
     return numerator / 4503599627370497;
   }
   exponentialUnit() { return -Math.log(this.uniformOpen()); }
 }
 
-function referenceCvm(n, rng) {
-  const values = [];
-  let sum = 0;
-  for (let i = 0; i < n; i += 1) {
-    const x = rng.exponentialUnit();
-    values.push(x);
-    sum += x;
-  }
-  if (!Number.isFinite(sum) || sum <= 0) throw new Error("conditional normalization failed");
-  values.sort((a, b) => b - a);
-  const fitted = values.map(x => Math.exp(-n * x / sum));
-  return cvm(fitted);
+function logOneMinusExp(value) {
+  if (!Number.isFinite(value) || value >= 0) throw new Error("invalid log transform");
+  return value < -Math.LN2
+    ? Math.log1p(-Math.exp(value))
+    : Math.log(-Math.expm1(value));
 }
 
-function runGof(events, endpoint, reps, seed) {
-  const fit = estimateBetaCvm(events, endpoint);
-  const rng = new SplitMix64(seed);
-  let exceedances = 0;
-  for (let i = 0; i < reps; i += 1) {
-    if (referenceCvm(events.length, rng) >= fit.cvm) exceedances += 1;
+function statisticsFromSortedLogTransforms(logValues) {
+  const n = logValues.length;
+  if (n === 0) throw new Error("empty fitted transform sample");
+  const values = [];
+  let previous = -Infinity;
+  for (const value of logValues) {
+    if (!Number.isFinite(value) || value >= 0 || value < previous) {
+      throw new Error("invalid ordered log transforms");
+    }
+    previous = value;
+    values.push(Math.exp(value));
   }
-  const mc = wilson(exceedances, reps);
+  let laplaceSum = 0;
+  let greenwood = 0;
+  let cvm = 1 / (12 * n);
+  let adSum = 0;
+  let dPlus = 0;
+  let dMinus = 0;
+  let previousValue = 0;
+  for (let i = 0; i < n; i += 1) {
+    const rank = i + 1;
+    const value = values[i];
+    laplaceSum += value - 0.5;
+    cvm += (value - (2 * rank - 1) / (2 * n)) ** 2;
+    dPlus = Math.max(dPlus, rank / n - value);
+    dMinus = Math.max(dMinus, value - (rank - 1) / n);
+    adSum += (2 * rank - 1) * (logValues[i] + logOneMinusExp(logValues[n - rank]));
+    const gap = value - previousValue;
+    greenwood += gap * gap;
+    previousValue = value;
+  }
+  greenwood += (1 - previousValue) ** 2;
   return {
-    beta_hat: fit.beta,
-    observed_cvm: fit.cvm,
-    tail_exceedances: exceedances,
-    monte_carlo_p_value: (exceedances + 1) / (reps + 1),
-    mc
+    laplace: Math.sqrt(12 / n) * laplaceSum,
+    greenwood,
+    cvm,
+    ad: -adSum / n - n,
+    ks: Math.max(dPlus, dMinus)
   };
 }
 
-function blocked(disposition, eventCount, code) {
+function estimate(events, endpoint) {
+  if (!Number.isSafeInteger(endpoint) || endpoint <= 0 || endpoint > MAX_SAFE) {
+    throw new Error("invalid endpoint");
+  }
+  if (events.length < MIN_EVENTS || events.length > MAX_EVENTS) {
+    throw new Error("unsupported event count");
+  }
+  let previous = 0;
+  let sumLogRatio = 0;
+  for (const time of events) {
+    if (!Number.isSafeInteger(time) || time <= 0 || time >= endpoint || time <= previous) {
+      throw new Error("invalid event chronology/window");
+    }
+    sumLogRatio += Math.log1p((endpoint - time) / time);
+    previous = time;
+  }
+  if (!Number.isFinite(sumLogRatio) || sumLogRatio <= 0) throw new Error("invalid log exposure sum");
+  const beta = events.length / sumLogRatio;
+  if (!Number.isFinite(beta) || beta <= 0) throw new Error("invalid fitted beta");
+  const logTransforms = events.map(time => beta * Math.log1p(-(endpoint - time) / endpoint));
+  return { beta, statistics: statisticsFromSortedLogTransforms(logTransforms) };
+}
+
+function conditionalReferenceStatistics(n, rng) {
+  const exponentials = [];
+  let total = 0;
+  for (let i = 0; i < n; i += 1) {
+    const value = rng.exponentialUnit();
+    exponentials.push(value);
+    total += value;
+  }
+  if (!Number.isFinite(total) || total <= 0) throw new Error("conditional normalisation failed");
+  exponentials.sort((a, b) => b - a);
+  const logTransforms = exponentials.map(value => -(n * value / total));
+  return statisticsFromSortedLogTransforms(logTransforms);
+}
+
+function runGof(events, endpoint, replicates, seed) {
+  const fit = estimate(events, endpoint);
+  const rng = new SplitMix64(seed);
+  const counts = { laplace: 0, greenwoodLower: 0, greenwoodUpper: 0, cvm: 0, ad: 0, ks: 0 };
+  for (let i = 0; i < replicates; i += 1) {
+    const simulated = conditionalReferenceStatistics(events.length, rng);
+    if (Math.abs(simulated.laplace) >= Math.abs(fit.statistics.laplace)) counts.laplace += 1;
+    if (simulated.greenwood <= fit.statistics.greenwood) counts.greenwoodLower += 1;
+    if (simulated.greenwood >= fit.statistics.greenwood) counts.greenwoodUpper += 1;
+    if (simulated.cvm >= fit.statistics.cvm) counts.cvm += 1;
+    if (simulated.ad >= fit.statistics.ad) counts.ad += 1;
+    if (simulated.ks >= fit.statistics.ks) counts.ks += 1;
+  }
+  const plusOne = count => (count + 1) / (replicates + 1);
+  const greenwoodExtreme = Math.min(counts.greenwoodLower, counts.greenwoodUpper);
+  const componentPValues = [
+    plusOne(counts.laplace),
+    Math.min(1, 2 * plusOne(greenwoodExtreme)),
+    plusOne(counts.cvm),
+    plusOne(counts.ad),
+    plusOne(counts.ks)
+  ];
+  const bonferroni = Math.min(1, STATISTIC_COUNT * Math.min(...componentPValues));
   return {
-    disposition, event_count: eventCount, beta_hat: null, observed_cvm: null,
-    tail_exceedances: null, monte_carlo_p_value: null, blockers: [code]
+    beta: fit.beta,
+    statistics: fit.statistics,
+    tailExceedances: counts.cvm,
+    cvmPValue: componentPValues[2],
+    componentPValues,
+    bonferroniAdjustedMinPValue: bonferroni
   };
 }
 
@@ -136,7 +170,8 @@ function evaluateCase(c) {
   if (c.model_profile !== "power_law_process_repairable_minimal_repair") {
     return blocked("model_not_supported", eventCount, "selected_model_profile_is_not_power_law_minimal_repair");
   }
-  if (c.termination_profile !== "administrative_time_terminated_complete_window" || c.observation_start_seconds !== 0) {
+  if (c.termination_profile !== "administrative_time_terminated_complete_window"
+      || c.observation_start_seconds !== 0) {
     return blocked("model_not_supported", eventCount, "only_complete_fixed_time_terminated_windows_from_zero_are_supported");
   }
   if (!c.complete_event_history) {
@@ -166,26 +201,33 @@ function evaluateCase(c) {
   if (eventCount < MIN_EVENTS) {
     return blocked("indeterminate", eventCount, "insufficient_event_count_for_v0_1_diagnostic");
   }
-  if (eventCount * c.monte_carlo_replicates > 10000000) {
+  if (eventCount * c.monte_carlo_replicates > MAX_TOTAL_DRAWS) {
     return blocked("rejected", eventCount, "monte_carlo_total_draw_budget_exceeded");
   }
   try {
-    const result = runGof(c.event_times_seconds, c.exposure_end_seconds, c.monte_carlo_replicates, c.random_seed);
-    const disposition = result.monte_carlo_p_value <= c.significance_level
+    const result = runGof(c.event_times_seconds, c.exposure_end_seconds,
+      c.monte_carlo_replicates, c.random_seed);
+    const disposition = result.bonferroniAdjustedMinPValue <= c.significance_level
       ? "fit_rejected" : "fit_not_rejected_at_declared_level";
     return {
-      disposition, event_count: eventCount, beta_hat: result.beta_hat,
-      observed_cvm: result.observed_cvm, tail_exceedances: result.tail_exceedances,
-      monte_carlo_p_value: result.monte_carlo_p_value, blockers: []
+      disposition,
+      event_count: eventCount,
+      beta_hat: result.beta,
+      observed_cvm: result.statistics.cvm,
+      tail_exceedances: result.tailExceedances,
+      monte_carlo_p_value: result.cvmPValue,
+      component_p_values: result.componentPValues,
+      bonferroni_adjusted_min_p_value: result.bonferroniAdjustedMinPValue,
+      blockers: []
     };
-  } catch (error) {
+  } catch (_error) {
     return blocked("rejected", eventCount, "event_history_or_exposure_window_invalid");
   }
 }
 
-function close(a, b) {
-  if (a === null || b === null) return a === b;
-  return Math.abs(a - b) <= 1e-10 * Math.max(Math.abs(b), 1);
+function close(actual, expected) {
+  if (actual === null || expected === null) return actual === expected;
+  return Math.abs(actual - expected) <= 1.0e-10 * Math.max(Math.abs(expected), 1.0);
 }
 
 function main() {
@@ -206,35 +248,40 @@ function main() {
   }
 
   const ids = new Set();
+  const dispositions = Object.create(null);
   let mismatches = 0;
-  const distribution = Object.create(null);
-  for (const c of corpus.cases) {
-    if (!nonblank(c.case_id) || ids.has(c.case_id)) {
+  for (const testCase of corpus.cases) {
+    if (!nonblank(testCase.case_id) || ids.has(testCase.case_id)) {
       process.stderr.write("GOF case IDs must be unique and nonblank\n");
       process.exitCode = 2;
       return;
     }
-    ids.add(c.case_id);
-    const actual = evaluateCase(c);
-    const expected = c.expected;
+    ids.add(testCase.case_id);
+    const actual = evaluateCase(testCase);
+    const expected = testCase.expected;
+    const componentsMatch = actual.component_p_values.length === expected.component_p_values.length
+      && actual.component_p_values.every((value, index) => close(value, expected.component_p_values[index]));
     const matched = actual.disposition === expected.disposition
       && actual.event_count === expected.event_count
       && close(actual.beta_hat, expected.beta_hat)
       && close(actual.observed_cvm, expected.observed_cvm)
       && actual.tail_exceedances === expected.tail_exceedances
       && close(actual.monte_carlo_p_value, expected.monte_carlo_p_value)
+      && componentsMatch
+      && close(actual.bonferroni_adjusted_min_p_value, expected.bonferroni_adjusted_min_p_value)
       && JSON.stringify(actual.blockers) === JSON.stringify(expected.blockers);
     if (!matched) {
       mismatches += 1;
-      process.stderr.write(JSON.stringify({case_id: c.case_id, actual, expected}) + "\n");
+      process.stderr.write(JSON.stringify({case_id: testCase.case_id, actual, expected}) + "\n");
     }
-    distribution[actual.disposition] = (distribution[actual.disposition] || 0) + 1;
+    dispositions[actual.disposition] = (dispositions[actual.disposition] || 0) + 1;
   }
+
   const output = {
-    oracle: "independent-javascript-conditional-plp-gof-v0.1",
+    oracle: "independent-javascript-conditional-plp-five-statistic-gof-v0.2",
     case_count: corpus.cases.length,
     expected_result_mismatches: mismatches,
-    dispositions: distribution,
+    dispositions,
     fit_acceptance_granted: false,
     reliability_claim_granted: false,
     physical_qualification_granted: false,
