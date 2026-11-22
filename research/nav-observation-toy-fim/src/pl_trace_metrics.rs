@@ -401,9 +401,9 @@ pub fn evaluate_protection_level_trace(
         longitudinal_breaches,
         cross_track_breaches,
         either_axis_breaches,
-        maximum_longitudinal_exceedance_m: longitudinal_max_micrometers,
-        maximum_cross_track_exceedance_m: cross_max_micrometers,
-        maximum_either_axis_exceedance_m: either_max_micrometers,
+        maximum_longitudinal_exceedance_micrometers: longitudinal_max_micrometers,
+        maximum_cross_track_exceedance_micrometers: cross_max_micrometers,
+        maximum_either_axis_exceedance_micrometers: either_max_micrometers,
         either_axis_breach_events_per_valid_hour_micros: event_rate_micros,
     })
 }
