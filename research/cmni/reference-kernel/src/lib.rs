@@ -66,6 +66,15 @@ pub use sampler_diagnostics::{
     HmcDiagnosticSummary,
 };
 
+mod qoi_design;
+pub use qoi_design::{
+    rank_portfolios_by_finite_scenario_lower_cvar,
+    rank_portfolios_by_linear_quantity_of_interest,
+    rank_portfolios_by_weighted_finite_scenario_lower_cvar,
+    score_linear_quantity_of_interest, FiniteScenarioRiskScore, LinearQuantityOfInterestScore,
+    QuantityOfInterestPortfolioScore,
+};
+
 mod batch_design;
 pub use batch_design::{
     enumerate_batch_portfolios, select_greedy_batch_portfolio, BatchDesignCandidate,
