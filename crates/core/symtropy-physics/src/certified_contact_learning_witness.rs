@@ -86,12 +86,7 @@ struct TwoDiskGapCertificate {
 fn verify_two_disk_gap_certificate(
     certificate: &TwoDiskGapCertificate,
 ) -> Result<(), &'static str> {
-    const H_NUM: Matrix4 = [
-        [10, 0, 0, 0],
-        [0, 10, 0, 0],
-        [0, 0, 10, 0],
-        [0, 0, 0, 10],
-    ];
+    const H_NUM: Matrix4 = [[10, 0, 0, 0], [0, 10, 0, 0], [0, 0, 10, 0], [0, 0, 0, 10]];
     const C_NUM_OVER_100: Vector4 = [-300, 0, -300, 0];
     const DISK_RADIUS_SQUARED_NUM_OVER_100: i128 = 100;
 
@@ -111,10 +106,7 @@ fn verify_two_disk_gap_certificate(
     let dual_minimizer = &certificate.dual_minimizer_num_over_10;
     for disk in [0..2, 2..4] {
         let candidate_pair = [candidate[disk.start], candidate[disk.start + 1]];
-        let dual_pair = [
-            dual_minimizer[disk.start],
-            dual_minimizer[disk.start + 1],
-        ];
+        let dual_pair = [dual_minimizer[disk.start], dual_minimizer[disk.start + 1]];
         if disk_squared(&candidate_pair) > DISK_RADIUS_SQUARED_NUM_OVER_100
             || disk_squared(&dual_pair) > DISK_RADIUS_SQUARED_NUM_OVER_100
         {
@@ -149,10 +141,7 @@ fn verify_two_disk_gap_certificate(
     // Complementary slackness makes the dual minimizer a feasible primal
     // minimizer of the original disk-constrained problem.
     for disk in [0..2, 2..4] {
-        let pair = [
-            dual_minimizer[disk.start],
-            dual_minimizer[disk.start + 1],
-        ];
+        let pair = [dual_minimizer[disk.start], dual_minimizer[disk.start + 1]];
         let slack = disk_squared(&pair) - DISK_RADIUS_SQUARED_NUM_OVER_100;
         if certificate.multipliers[disk.start / 2] * slack != 0 {
             return Err("dual multiplier and disk slack violate complementary slackness");
@@ -167,8 +156,7 @@ fn verify_two_disk_gap_certificate(
         return Err("objective numerator is not integral at the declared scale");
     }
     let primal_objective = candidate_norm_squared / 2 - 30 * (candidate[0] + candidate[2]);
-    let mut dual_objective =
-        dual_norm_squared / 2 - 30 * (dual_minimizer[0] + dual_minimizer[2]);
+    let mut dual_objective = dual_norm_squared / 2 - 30 * (dual_minimizer[0] + dual_minimizer[2]);
     for disk in [0..2, 2..4] {
         let pair = [
             dual_minimizer[disk.start],
@@ -188,8 +176,7 @@ fn verify_two_disk_gap_certificate(
         return Err("claimed primal-dual gap is negative or inconsistent");
     }
 
-    let error: Vector4 =
-        std::array::from_fn(|index| candidate[index] - dual_minimizer[index]);
+    let error: Vector4 = std::array::from_fn(|index| candidate[index] - dual_minimizer[index]);
     let squared_error = squared_norm(&error);
     if squared_error != certificate.squared_error_num_over_100 {
         return Err("claimed squared error does not match exact recomputation");
