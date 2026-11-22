@@ -939,9 +939,11 @@ mod tests {
         let original_linear_velocity = dynamic_body.linear_velocity;
         let original_angular_velocity = dynamic_body.angular_velocity;
         let original_rotation = dynamic_body.transform.rotation.clone();
-        let reference =
-            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], std::slice::from_ref(&row))
-                .unwrap();
+        let reference = assemble_contact_wrench_free_velocity(
+            &[static_body, dynamic_body],
+            std::slice::from_ref(&row),
+        )
+        .unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
         let rotated_static = RigidBody::<3>::new(
@@ -1235,7 +1237,8 @@ mod tests {
             frame,
         };
         let mut bodies = vec![static_body, dynamic_body];
-        let reference = assemble_contact_wrench_delassus(&bodies, std::slice::from_ref(&row), 1e-12).unwrap();
+        let reference =
+            assemble_contact_wrench_delassus(&bodies, std::slice::from_ref(&row), 1e-12).unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
         for body in &mut bodies {
