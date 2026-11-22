@@ -68,12 +68,12 @@ pub fn try_integrate<const D: usize>(
     // Sanitize into local values first. This keeps the body's state and
     // accumulators untouched if the validated inertia solve below fails.
     let force_accumulator = if body.force_accumulator.iter().all(|v| v.is_finite()) {
-        body.force_accumulator.clone()
+        body.force_accumulator
     } else {
         SVector::zeros()
     };
     let torque_accumulator = if body.torque_accumulator.is_finite() {
-        body.torque_accumulator.clone()
+        body.torque_accumulator
     } else {
         Bivector::zero()
     };
