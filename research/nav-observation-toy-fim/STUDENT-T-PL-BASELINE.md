@@ -7,7 +7,7 @@ The paper sweeps degrees of freedom {4,5,6,7,8,9,10,100}. It calculates an overa
 The implementation preserves the paper's printed directional equation:
 PL_i = K_TIR(dof) sqrt((dof-2) max(lambda_1 |V_1,i|, lambda_2 |V_2,i|)).
 
-K_TIR(dof) is an explicit argument. The paper describes it as the inflation multiplier obtained from the 2D multivariate Student-t CDF for the target TIR. Do not replace this with a one-dimensional normal quantile or reuse a constant across degrees of freedom. The full TIR-to-quantile convention must be verified and frozen in the reproduction manifest.
+The implementation now provides `student_t_k_tir_2d(dof, tir)` for the standard 2D radial-tail convention when P_g is the covariance matrix (not the Student-t scale matrix). For a 2D multivariate Student-t, the squared Mahalanobis radius has the scaled F(2,dof) law; with the paper's `(dof-2) * covariance` normalization, the radial tail is `(1 + K_TIR^2)^(-dof/2)`. Solving for the requested total 2D radial tail probability gives `K_TIR = sqrt(tir^(-2/dof) - 1)`. The helper and convenience API are tested for dof {4,5,6,7,8,9,10,100}. The caller must still verify that the paper's TIR is interpreted as this total radial tail (rather than per-axis/two-sided marginal coverage) before comparing route metrics. Never substitute a 1D normal quantile.
 
 ## References
 
