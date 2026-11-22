@@ -175,7 +175,8 @@
             "valid_until_unix_ms": 1800005399999
           }
         }
-      ]
+      ],
+      "state_receipt_id": "synthetic://lease/existing-01/accepted"
     },
     {
       "commitment_id": "grid-lease-uncertain-02",
@@ -227,7 +228,8 @@
             "valid_until_unix_ms": 1800005399999
           }
         }
-      ]
+      ],
+      "state_receipt_id": "synthetic://lease/uncertain-02/timeout"
     },
     {
       "commitment_id": "grid-lease-settled-03",
@@ -279,7 +281,8 @@
             "valid_until_unix_ms": 1800005399999
           }
         }
-      ]
+      ],
+      "state_receipt_id": "synthetic://lease/settled-03/terminal-proof"
     }
   ],
   "candidate_lease": {
