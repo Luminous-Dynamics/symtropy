@@ -445,6 +445,20 @@ mod tests {
     }
 
     #[test]
+    fn partition_declaration_must_match_the_same_event_and_target_model() {
+        let mut partition_input = partition();
+        partition_input.identity.target_distribution_sha256 = HASH_D.to_owned();
+        assert_eq!(
+            compose_admitted_and_residual_event_mass(
+                &admitted(),
+                &residual(),
+                &partition_input
+            ),
+            Err(KernelError::EvidenceIdentityMismatch)
+        );
+    }
+
+    #[test]
     fn partition_digest_mismatch_is_rejected() {
         let mut residual_input = residual();
         residual_input.partition_sha256 = HASH_D.to_owned();
