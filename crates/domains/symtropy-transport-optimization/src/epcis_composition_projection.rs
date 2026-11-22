@@ -33,9 +33,7 @@ pub enum ProjectionTimeQualification {
         latest_event_time_ticks: i64,
     },
     /// P0 only: dimensionless fixture ticks, never physical clock chronology.
-    SyntheticP0 {
-        fixture_profile_id: String,
-    },
+    SyntheticP0 { fixture_profile_id: String },
     /// Missing / rejected / incomparable chronology; event is quarantined.
     Unqualified { reason: String },
 }
