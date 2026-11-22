@@ -1,0 +1,10 @@
+[package]
+name = "ehd-dpm-counterfactual"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Randomized drift-balanced counterfactual qualification for EHD diagnostic interventions"
+
+[lib]
+path = "src/lib.rs"
