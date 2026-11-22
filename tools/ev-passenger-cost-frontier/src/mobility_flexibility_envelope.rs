@@ -208,11 +208,7 @@ fn evidence_covers(
     }
 }
 
-fn slot_time_ms(
-    decision_time_unix_ms: u64,
-    slot_duration_seconds: u32,
-    slot: u8,
-) -> Option<u64> {
+fn slot_time_ms(decision_time_unix_ms: u64, slot_duration_seconds: u32, slot: u8) -> Option<u64> {
     u64::from(slot)
         .checked_mul(u64::from(slot_duration_seconds))?
         .checked_mul(1_000)?
@@ -331,7 +327,10 @@ pub fn evaluate_mobility_flexibility(
             input.decision_time_unix_ms,
             horizon_end,
         ) {
-            add_error(&mut errors, format!("{name}_evidence_not_admissible_for_horizon"));
+            add_error(
+                &mut errors,
+                format!("{name}_evidence_not_admissible_for_horizon"),
+            );
         }
     }
 
@@ -355,11 +354,16 @@ pub fn evaluate_mobility_flexibility(
             || resource.max_discharge_power_lower_bound_w == 0
             || resource.max_discharge_power_lower_bound_w > MAX_POWER_W
             || resource.resource_kind == FlexResourceKind::AircraftPropulsionPack
-            || resource_map.insert(resource.resource_id.as_str(), resource).is_some()
+            || resource_map
+                .insert(resource.resource_id.as_str(), resource)
+                .is_some()
         {
             add_error(
                 &mut errors,
-                format!("storage_identity_capability_or_class_invalid:{}", resource.resource_id),
+                format!(
+                    "storage_identity_capability_or_class_invalid:{}",
+                    resource.resource_id
+                ),
             );
             continue;
         }
@@ -395,7 +399,10 @@ pub fn evaluate_mobility_flexibility(
         ) {
             add_error(
                 &mut errors,
-                format!("site_connection_evidence_not_admissible:{}", resource.resource_id),
+                format!(
+                    "site_connection_evidence_not_admissible:{}",
+                    resource.resource_id
+                ),
             );
         }
         push_evidence_class(
@@ -410,19 +417,21 @@ pub fn evaluate_mobility_flexibility(
         {
             add_error(
                 &mut errors,
-                format!("bidirectional_interface_requires_independent_test:{}", resource.resource_id),
+                format!(
+                    "bidirectional_interface_requires_independent_test:{}",
+                    resource.resource_id
+                ),
             );
         }
 
-        total_available_energy = match total_available_energy
-            .checked_add(resource.available_energy_lower_bound_wh)
-        {
-            Some(total) => total,
-            None => {
-                add_error(&mut errors, "total_available_energy_overflow");
-                total_available_energy
-            }
-        };
+        total_available_energy =
+            match total_available_energy.checked_add(resource.available_energy_lower_bound_wh) {
+                Some(total) => total,
+                None => {
+                    add_error(&mut errors, "total_available_energy_overflow");
+                    total_available_energy
+                }
+            };
     }
 
     if let Some(permission) = &input.export_permission {
@@ -447,18 +456,19 @@ pub fn evaluate_mobility_flexibility(
         {
             add_error(&mut errors, "export_permission_is_not_source_grade");
         }
-        push_evidence_class(&permission.evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(
+            &permission.evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
     }
-    let export_permitted = input
-        .export_permission
-        .as_ref()
-        .is_some_and(|permission| {
-            permission.value == Some(true)
-                && matches!(
-                    permission.evidence.evidence_class,
-                    EvidenceClass::Measured | EvidenceClass::IndependentTest
-                )
-        });
+    let export_permitted = input.export_permission.as_ref().is_some_and(|permission| {
+        permission.value == Some(true)
+            && matches!(
+                permission.evidence.evidence_class,
+                EvidenceClass::Measured | EvidenceClass::IndependentTest
+            )
+    });
 
     let mut sorted_pcc = input.pcc_slots.clone();
     sorted_pcc.sort_by_key(|slot| slot.slot);
@@ -469,10 +479,13 @@ pub fn evaluate_mobility_flexibility(
             input.slot_duration_seconds,
             pcc.slot,
         );
-        let interval_end = pcc
-            .slot
-            .checked_add(1)
-            .and_then(|end_slot| slot_time_ms(input.decision_time_unix_ms, input.slot_duration_seconds, end_slot));
+        let interval_end = pcc.slot.checked_add(1).and_then(|end_slot| {
+            slot_time_ms(
+                input.decision_time_unix_ms,
+                input.slot_duration_seconds,
+                end_slot,
+            )
+        });
         let pcc_evidence_valid = matches!(
             (interval_start, interval_end),
             (Some(start), Some(end)) if evidence_covers(
@@ -516,11 +529,22 @@ pub fn evaluate_mobility_flexibility(
             || !load_receipts_match
             || pcc_by_slot.insert(pcc.slot, pcc).is_some()
         {
-            add_error(&mut errors, format!("pcc_slot_or_evidence_invalid:{}", pcc.slot));
+            add_error(
+                &mut errors,
+                format!("pcc_slot_or_evidence_invalid:{}", pcc.slot),
+            );
         }
         push_evidence_class(&pcc.evidence, &mut all_source_grade, &mut all_synthetic);
-        push_evidence_class(&pcc.base_load_evidence, &mut all_source_grade, &mut all_synthetic);
-        push_evidence_class(&pcc.scheduled_charging_load_evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(
+            &pcc.base_load_evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
+        push_evidence_class(
+            &pcc.scheduled_charging_load_evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
     }
 
     let mut sorted_profile = input.candidate_dispatch.clone();
@@ -545,7 +569,9 @@ pub fn evaluate_mobility_flexibility(
     for scenario in &sorted_scenarios {
         let mut findings = Vec::new();
         let mut reserve_feasible = true;
-        if scenario.scenario_id.trim().is_empty() || !scenario_ids.insert(scenario.scenario_id.as_str()) {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.as_str())
+        {
             add_error(&mut errors, "reserve_scenario_identity_duplicate_or_empty");
             continue;
         }
@@ -559,15 +585,25 @@ pub fn evaluate_mobility_flexibility(
         ) {
             add_error(
                 &mut errors,
-                format!("reserve_scenario_evidence_not_admissible:{}", scenario.scenario_id),
+                format!(
+                    "reserve_scenario_evidence_not_admissible:{}",
+                    scenario.scenario_id
+                ),
             );
         }
-        push_evidence_class(&scenario.evidence, &mut all_source_grade, &mut all_synthetic);
+        push_evidence_class(
+            &scenario.evidence,
+            &mut all_source_grade,
+            &mut all_synthetic,
+        );
 
         if scenario.resource_reserves.len() != input.storage_resources.len() {
             add_error(
                 &mut errors,
-                format!("scenario_resource_coverage_incomplete:{}", scenario.scenario_id),
+                format!(
+                    "scenario_resource_coverage_incomplete:{}",
+                    scenario.scenario_id
+                ),
             );
         }
 
@@ -579,14 +615,20 @@ pub fn evaluate_mobility_flexibility(
             {
                 add_error(
                     &mut errors,
-                    format!("scenario_resource_reserve_unknown_or_empty:{}", scenario.scenario_id),
+                    format!(
+                        "scenario_resource_reserve_unknown_or_empty:{}",
+                        scenario.scenario_id
+                    ),
                 );
                 continue;
             }
             if reserves_by_resource.contains_key(reserve.resource_id.as_str()) {
                 add_error(
                     &mut errors,
-                    format!("scenario_resource_reserve_duplicate:{}", scenario.scenario_id),
+                    format!(
+                        "scenario_resource_reserve_duplicate:{}",
+                        scenario.scenario_id
+                    ),
                 );
                 reserves_by_resource.remove(reserve.resource_id.as_str());
                 continue;
@@ -598,10 +640,14 @@ pub fn evaluate_mobility_flexibility(
                 &reserve.safety_outage_reserve_receipt_id,
                 &reserve.uncertainty_reserve_receipt_id,
             ] {
-                if receipt_id.trim().is_empty() || !reserve_receipt_ids.insert(receipt_id.as_str()) {
+                if receipt_id.trim().is_empty() || !reserve_receipt_ids.insert(receipt_id.as_str())
+                {
                     add_error(
                         &mut errors,
-                        format!("reserve_receipt_id_empty_or_reused:{}", scenario.scenario_id),
+                        format!(
+                            "reserve_receipt_id_empty_or_reused:{}",
+                            scenario.scenario_id
+                        ),
                     );
                 }
             }
@@ -610,10 +656,26 @@ pub fn evaluate_mobility_flexibility(
                 continue;
             };
             for (label, receipt_id, evidence) in [
-                ("mission", &reserve.mission_reserve_receipt_id, &reserve.mission_reserve_evidence),
-                ("inventory", &reserve.inventory_buffer_receipt_id, &reserve.inventory_buffer_evidence),
-                ("safety_outage", &reserve.safety_outage_reserve_receipt_id, &reserve.safety_outage_reserve_evidence),
-                ("uncertainty", &reserve.uncertainty_reserve_receipt_id, &reserve.uncertainty_reserve_evidence),
+                (
+                    "mission",
+                    &reserve.mission_reserve_receipt_id,
+                    &reserve.mission_reserve_evidence,
+                ),
+                (
+                    "inventory",
+                    &reserve.inventory_buffer_receipt_id,
+                    &reserve.inventory_buffer_evidence,
+                ),
+                (
+                    "safety_outage",
+                    &reserve.safety_outage_reserve_receipt_id,
+                    &reserve.safety_outage_reserve_evidence,
+                ),
+                (
+                    "uncertainty",
+                    &reserve.uncertainty_reserve_receipt_id,
+                    &reserve.uncertainty_reserve_evidence,
+                ),
             ] {
                 if evidence.evidence_reference.as_str() != receipt_id.as_str()
                     || !evidence_covers(
@@ -627,7 +689,10 @@ pub fn evaluate_mobility_flexibility(
                 {
                     add_error(
                         &mut errors,
-                        format!("reserve_bucket_evidence_not_bound:{label}:{}", reserve.resource_id),
+                        format!(
+                            "reserve_bucket_evidence_not_bound:{label}:{}",
+                            reserve.resource_id
+                        ),
                     );
                 }
                 push_evidence_class(evidence, &mut all_source_grade, &mut all_synthetic);
@@ -641,7 +706,10 @@ pub fn evaluate_mobility_flexibility(
             {
                 add_error(
                     &mut errors,
-                    format!("scenario_power_reserve_horizon_mismatch:{}", reserve.resource_id),
+                    format!(
+                        "scenario_power_reserve_horizon_mismatch:{}",
+                        reserve.resource_id
+                    ),
                 );
                 reserves_by_resource.remove(reserve.resource_id.as_str());
                 continue;
@@ -667,7 +735,10 @@ pub fn evaluate_mobility_flexibility(
             };
             if reserved_energy > resource.available_energy_lower_bound_wh {
                 reserve_feasible = false;
-                findings.push(format!("energy_reserve_exceeds_available:{}", resource.resource_id));
+                findings.push(format!(
+                    "energy_reserve_exceeds_available:{}",
+                    resource.resource_id
+                ));
             } else {
                 residual_energy = match residual_energy
                     .checked_add(resource.available_energy_lower_bound_wh - reserved_energy)
@@ -698,21 +769,19 @@ pub fn evaluate_mobility_flexibility(
                     continue;
                 }
                 let residual = resource.max_discharge_power_lower_bound_w - reserved_power;
-                residual_power_by_slot[slot] = match residual_power_by_slot[slot].checked_add(residual) {
-                    Some(value) => value,
-                    None => {
-                        add_error(&mut errors, "residual_power_overflow");
-                        residual_power_by_slot[slot]
-                    }
-                };
+                residual_power_by_slot[slot] =
+                    match residual_power_by_slot[slot].checked_add(residual) {
+                        Some(value) => value,
+                        None => {
+                            add_error(&mut errors, "residual_power_overflow");
+                            residual_power_by_slot[slot]
+                        }
+                    };
             }
         }
 
         let mut energy_feasible = reserve_feasible;
-        let candidate_energy = candidate_energy_wh(
-            &sorted_profile,
-            input.slot_duration_seconds,
-        );
+        let candidate_energy = candidate_energy_wh(&sorted_profile, input.slot_duration_seconds);
         let Some(candidate_energy) = candidate_energy else {
             add_error(&mut errors, "candidate_energy_arithmetic_overflow");
             return Err(errors);
@@ -741,8 +810,8 @@ pub fn evaluate_mobility_flexibility(
                 pcc_feasible = false;
                 continue;
             };
-            let site_load = i64::from(pcc.base_site_load_w)
-                + i64::from(pcc.scheduled_mobility_charging_load_w);
+            let site_load =
+                i64::from(pcc.base_site_load_w) + i64::from(pcc.scheduled_mobility_charging_load_w);
             let net_import = site_load - i64::from(requested);
             if net_import > i64::from(pcc.import_limit_w) {
                 pcc_feasible = false;
@@ -826,8 +895,8 @@ pub fn evaluate_mobility_flexibility(
         });
     }
 
-    let candidate_model_feasible = !scenario_results.is_empty()
-        && scenario_results.iter().all(|result| result.model_feasible);
+    let candidate_model_feasible =
+        !scenario_results.is_empty() && scenario_results.iter().all(|result| result.model_feasible);
     if !candidate_model_feasible && aggregate_findings.is_empty() {
         aggregate_findings.insert("candidate_not_feasible_in_all_scenarios".to_owned());
     }
@@ -868,8 +937,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> MobilityFlexibilityInput {
-        serde_json::from_str(include_str!("../fixtures/mobility_flexibility_envelope_v0_1.json"))
-            .expect("frozen mobility flexibility fixture must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/mobility_flexibility_envelope_v0_1.json"
+        ))
+        .expect("frozen mobility flexibility fixture must parse")
     }
 
     fn independent_reference_feasible(input: &MobilityFlexibilityInput) -> bool {
@@ -962,10 +1033,12 @@ mod tests {
                         input.candidate_dispatch = profile
                             .into_iter()
                             .enumerate()
-                            .map(|(slot, requested_discharge_power_w)| CandidateDispatchSlot {
-                                slot: slot as u8,
-                                requested_discharge_power_w,
-                            })
+                            .map(
+                                |(slot, requested_discharge_power_w)| CandidateDispatchSlot {
+                                    slot: slot as u8,
+                                    requested_discharge_power_w,
+                                },
+                            )
                             .collect();
 
                         let expected = independent_reference_feasible(&input);
@@ -985,7 +1058,8 @@ mod tests {
 
     #[test]
     fn known_answer_is_feasible_but_proposal_only() {
-        let report = evaluate_mobility_flexibility(&fixture()).expect("fixture is structurally valid");
+        let report =
+            evaluate_mobility_flexibility(&fixture()).expect("fixture is structurally valid");
         assert!(report.candidate_model_feasible);
         assert_eq!(report.total_available_energy_lower_bound_wh, 4_000);
         assert_eq!(report.candidate_energy_wh, 1_875);
@@ -1004,7 +1078,12 @@ mod tests {
         input.candidate_dispatch[1].requested_discharge_power_w = 5_000;
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
-        assert!(report.findings.iter().any(|item| item == "candidate_exceeds_residual_power:1"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item == "candidate_exceeds_residual_power:1")
+        );
     }
 
     #[test]
@@ -1015,7 +1094,12 @@ mod tests {
         }
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
-        assert!(report.findings.iter().any(|item| item == "candidate_exceeds_horizon_residual_energy"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item == "candidate_exceeds_horizon_residual_energy")
+        );
     }
 
     #[test]
@@ -1025,8 +1109,7 @@ mod tests {
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
         assert!(report.scenario_results.iter().any(|result| {
-            result.scenario_id == "high-demand-low-renewable"
-                && !result.reserve_feasible
+            result.scenario_id == "high-demand-low-renewable" && !result.reserve_feasible
         }));
     }
 
@@ -1036,7 +1119,12 @@ mod tests {
         input.candidate_dispatch[0].requested_discharge_power_w = 4_500;
         let report = evaluate_mobility_flexibility(&input).expect("valid input");
         assert!(!report.candidate_model_feasible);
-        assert!(report.findings.iter().any(|item| item == "pcc_export_not_permitted:0"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item == "pcc_export_not_permitted:0")
+        );
     }
 
     #[test]
@@ -1127,8 +1215,9 @@ mod tests {
     #[test]
     fn storage_must_be_bound_to_the_same_site_configuration() {
         let mut input = fixture();
-        input.storage_resources[0].site_connection_evidence.configuration_digest =
-            "sha256:other-site-config".to_owned();
+        input.storage_resources[0]
+            .site_connection_evidence
+            .configuration_digest = "sha256:other-site-config".to_owned();
         let result = evaluate_mobility_flexibility(&input);
         assert!(result.is_err());
     }
