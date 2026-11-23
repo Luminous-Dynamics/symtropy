@@ -263,7 +263,11 @@ The evaluator rejects future evidence exposed at the decision cut-off, invalid p
 
 ### Current verification boundary
 
-The Rust code and fixtures have been committed to the branch and are wired into an exact-branch/pull-request workflow. This environment does not have `cargo` or `rustc`, so no local Rust compile, test or Clippy pass is claimed. The fixture/known-answer generation is deterministic and was authored separately from the Rust evaluator, but the expected outputs have not yet received independent engineering review. A hosted exact-head pass, source/artifact digest review, and independent review of the objective and failure-model assumptions remain required.
+The Rust code and fixtures are committed to the branch and wired into an exact-branch/pull-request workflow. Exact-head workflow [#45161538348](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45161538348) passed on `2805cfce172f975c87471e1636495fe9cbd68197`: rustfmt, known-answer/adversarial tests, benchmark report validation, both negative controls, SHA-256 generation, strict Clippy with warnings denied, and artifact upload all succeeded.
+
+The generated report and formatted Rust source are retained as workflow artifacts. The general repository CI run [#45161538208](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45161538208) was still pending at the time of this update; the focused workflow is the evidence for this isolated crate.
+
+This environment does not have `cargo` or `rustc`, so no local Rust compile/test claim is made. A separate cross-language verification recomputed all 120 oracle decisions and all 600 policy decisions, including selected route, expected cost, regret, synthetic completion, on-time disposition and realized synthetic cost; it found zero mismatches against the frozen known-answer file. This is a fixture-consistency check, not independent engineering review of the probability model, objective, scenario design or expected labels. Those reviews remain required.
 
 ### Important model limitations
 
@@ -272,3 +276,29 @@ The Rust code and fixtures have been committed to the branch and are wired into 
 - The common-cause group identity is supplied by the fixture; no real supplier identity resolution or cut-set proof occurs here.
 - The single-route decision omits fallback reservations, multi-part job grouping, transport routing, dynamic capacity contention and time-expanded recourse.
 - A synthetic completion is not a conforming part, physical delivery, accepted product or qualified manufacturing service.
+
+
+## 14. Initial synthetic results and interpretation
+
+The exact-head Rust workflow passed the v0.1 corpus and generated a machine-readable report. The frozen case/answer pair was also independently recomputed in a separate JavaScript implementation: all 120 oracle decisions and all 600 policy decisions matched, including selected route, expected cost, regret, synthetic completion, on-time status and realized synthetic cost.
+
+The following summary is descriptive of the frozen synthetic fixture only. Every policy had 120 cases; 114 selected a route and six abstained because no route passed the declared capacity, budget and deadline constraints.
+
+| Policy | Selected | Synthetic completions | Synthetic on-time | Mean realized synthetic cost units |
+|---|---:|---:|---:|---:|
+| Cheapest admissible | 114 | 98 | 96 | 175.475 |
+| Fastest admissible | 114 | 97 | 95 | 190.058 |
+| Reliability-first | 114 | 107 | 104 | 212.467 |
+| Expected-cost | 114 | 99 | 97 | 182.558 |
+| Fixed priority | 114 | 98 | 96 | 175.475 |
+
+Interpretation:
+
+- Reliability-first produced more synthetic completions (107/120) and on-time outcomes (104/120) than cheapest-admissible (98/120 and 96/120), but its mean realized synthetic cost was higher (212.467 vs 175.475). This is an intentionally visible cost/reliability trade-off, not a universal winner.
+- Expected-cost is the same ranking objective used by the exact small-instance oracle. Its zero regret is therefore by construction and must not be presented as an independent policy victory.
+- Cheapest-admissible and fixed-priority happen to choose the same routes on this particular fixture; that is a fixture property, not evidence that the policies are generally equivalent.
+- "Synthetic completion" means only that the evaluator-only failure state did not mark the selected synthetic route as failed. It is not a completed physical process, product acceptance, conforming output or delivery.
+- Synthetic cost units are dimensionless challenge values. They are not ZAR, supplier quotes, cost per accepted part or a financial forecast.
+- The 20 seeds within a family test reproducible scenario cases; they are not measured supplier reliability, independent physical campaigns or a statistical estimate of real-world failure rates.
+
+The useful initial result is methodological: the benchmark can expose a measurable trade-off, preserve abstentions and distinguish nominal decision cost from realized synthetic outcomes without converting the result into a single factory score. The next scientific step is to add non-anticipative fallback/recourse and independently reviewed failure-domain assumptions, not to claim that one of these simple policies beats industrial SOTA.
