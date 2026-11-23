@@ -959,7 +959,14 @@ fn exhaustive_oracle(
     mode: ObservationMode,
     acquisition_cost: u32,
 ) -> Option<OraclePolicy> {
-    let unique = unique_labels(labels);
+    // Re-derive partition labels independently rather than calling the
+    // production partition-normalization helper.
+    let unique = labels
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
     let search = OracleSearch {
         worlds,
         labels,
