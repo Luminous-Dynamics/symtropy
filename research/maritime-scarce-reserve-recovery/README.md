@@ -67,9 +67,9 @@ The shared TOS signal has an explicit **outcome-dependent missingness control**.
 - B-priority in the second and fifth worlds;
 - MISSING in both the reserve-plus-gateway common-cause outage world and the sensor-only-failure world where reserve capacity is actually healthy.
 
-The evaluator separately retains the hidden cause of each missing observation. The policy sees only the shared MISSING token and must not infer which hidden cause occurred. This is a deterministic finite structural test of non-ignorable/missing-not-at-random observation behavior; it does not estimate statistical missingness probabilities, calibrate a stochastic likelihood or establish field missingness rates. The hidden cause is deliberately not part of the `World` type passed into the policy solver; it appears only in the evaluator's adjudication receipt.
+The evaluator separately retains the hidden cause of each missing observation. The policy sees only the shared MISSING token and must not infer which hidden cause occurred. The independent reserve inspection also returns the same physical reading for the healthy-reserve and sensor-only-fault worlds; it cannot magically diagnose why the shared TOS sensor failed. This is a deterministic finite structural test of non-ignorable/missing-not-at-random observation behavior; it does not estimate statistical missingness probabilities, calibrate a stochastic likelihood or establish field missingness rates. The hidden cause is deliberately not part of the `World` type passed into the policy solver; it appears only in the evaluator's adjudication receipt.
 
-The independent inspection separates all six worlds. Participant authorization is not inferred from the physical inspection: a current Mycelix-style authorization snapshot is separately required. The reserve is assigned:
+The independent inspection separates the operational/authorization states, but deliberately does not separate two physically identical worlds: the healthy-reserve world and the same world with an unrelated sensor-only failure. Participant authorization is not inferred from the physical inspection: a current Mycelix-style authorization snapshot is separately required. The reserve is assigned:
 - to A in the A-critical/ready world;
 - to B in the B-critical/ready world;
 - to nobody when the reserve is unavailable;
