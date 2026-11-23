@@ -33,7 +33,9 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     if source_commit.len() != 40
-        || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        || !source_commit
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
         eprintln!("source commit must be a lowercase 40-character hexadecimal SHA");
         return ExitCode::from(2);
