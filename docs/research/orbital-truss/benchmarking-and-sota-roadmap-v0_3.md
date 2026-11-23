@@ -74,3 +74,8 @@ Metrics remain separate: requested-k attainment; attainable capped-target attain
 - Mycelix #6390/#6519: AP242/QIF identity, evidence custody and authority binding.
 
 The intended end-to-end chain is candidate generation -> support certificate -> multi-view selection -> reachable inspection plan -> acquired observation -> calibrated interpretation -> independent disposition. A downstream stage never inherits a result that an upstream stage did not prove.
+
+
+## Conditional-input boundary
+
+The v0.1 support-envelope evaluator treats enclosing-ball and normal-cone flags as input assertions, not proofs established by the evaluator. Every certificate reports precondition_proofs_verified_independently=false. Its envelope result is conditional on those declarations. This is intentional until a separate support-geometry evidence producer/verifier exists; no full-support or physical claim may be inferred from the booleans.
