@@ -138,6 +138,18 @@ pub struct SurfacePatch {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SurfaceSupport {
+    pub support_id: String,
+    pub feature_id: String,
+    pub cell: [usize; 3],
+    pub centre_um: [i64; 3],
+    pub half_extents_um: [i64; 3],
+    pub outward_normal_q1e6: [i64; 3],
+    pub normal_cone_half_angle_microrad: i64,
+    pub support_kind: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CandidateView {
     pub view_id: String,
     pub source_feature_id: String,
@@ -426,6 +438,111 @@ impl Grid {
         Ok(patches)
     }
 
+    fn surface_supports(&self) -> Result<Vec<SurfaceSupport>, String> {
+        let mut supports = Vec::new();
+        for &(x, y, z) in &self.occupied {
+            let cell = [x, y, z];
+            let centre = self.centre(cell);
+            let mut normals = Vec::new();
+            for (delta, normal) in FACE_NEIGHBOURS {
+                let neighbour = plus([x as isize, y as isize, z as isize], delta);
+                if self.is_occupied(neighbour) {
+                    continue;
+                }
+                let inside_original = neighbour
+                    .iter()
+                    .enumerate()
+                    .all(|(axis, value)| *value >= 0 && *value < self.dimensions[axis] as isize);
+                let is_exterior = !inside_original
+                    || self.exterior.contains(&(
+                        neighbour[0] as usize,
+                        neighbour[1] as usize,
+                        neighbour[2] as usize,
+                    ));
+                if is_exterior {
+                    normals.push(normal);
+                }
+            }
+            if normals.is_empty() {
+                continue;
+            }
+
+            let summed = normals.iter().fold(
+                Vec3 {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                |acc, normal| {
+                    acc.add(Vec3 {
+                        x: normal[0] as f64,
+                        y: normal[1] as f64,
+                        z: normal[2] as f64,
+                    })
+                },
+            );
+
+            if summed.norm() <= 1.0e-9 {
+                // Opposing boundary faces are retained as separate planar supports.
+                for (normal_index, normal) in normals.iter().enumerate() {
+                    let direction = Vec3 {
+                        x: normal[0] as f64,
+                        y: normal[1] as f64,
+                        z: normal[2] as f64,
+                    };
+                    let face_centre = centre.add(direction.scale(self.voxel_size * 0.5));
+                    let mut half_extents = [self.voxel_size * 0.5; 3];
+                    let normal_axis = normal
+                        .iter()
+                        .position(|component| *component != 0)
+                        .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_INVALID".to_owned())?;
+                    half_extents[normal_axis] = 0.0;
+                    supports.push(surface_support_record(
+                        format!("{}-N{}", feature_id(cell), normal_index),
+                        format!("{}-N{}", feature_id(cell), normal_index),
+                        cell,
+                        face_centre,
+                        half_extents,
+                        direction,
+                        0.0,
+                        "PLANAR_VOXEL_FACE",
+                    )?);
+                }
+            } else {
+                let normal = summed
+                    .normalized()
+                    .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_ZERO".to_owned())?;
+                let normal_cone = normals
+                    .iter()
+                    .map(|face_normal| {
+                        normal
+                            .angle(Vec3 {
+                                x: face_normal[0] as f64,
+                                y: face_normal[1] as f64,
+                                z: face_normal[2] as f64,
+                            })
+                            .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_CONE_INVALID".to_owned())
+                    })
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into_iter()
+                    .fold(0.0_f64, f64::max);
+                // The whole cell box encloses the union of its exterior face supports.
+                supports.push(surface_support_record(
+                    feature_id(cell),
+                    feature_id(cell),
+                    cell,
+                    centre,
+                    [self.voxel_size * 0.5; 3],
+                    normal,
+                    normal_cone,
+                    "EXTERIOR_FACE_UNION_BOUND",
+                )?);
+            }
+        }
+        supports.sort_by(|left, right| left.support_id.cmp(&right.support_id));
+        Ok(supports)
+    }
+
     fn ray_occluded(&self, origin: Vec3, target: Vec3, target_cell: [usize; 3]) -> bool {
         let segment = target.sub(origin);
         let distance = segment.norm();
@@ -503,6 +620,69 @@ impl Grid {
     }
 }
 
+fn surface_support_record(
+    support_id: String,
+    feature_id: String,
+    cell: [usize; 3],
+    centre: Vec3,
+    half_extents: [f64; 3],
+    normal: Vec3,
+    normal_cone_half_angle_rad: f64,
+    support_kind: &str,
+) -> Result<SurfaceSupport, String> {
+    let normal = normal
+        .normalized()
+        .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_INVALID".to_owned())?;
+    let normal_q1e6 = [
+        quantize(normal.x, 1.0e6)?,
+        quantize(normal.y, 1.0e6)?,
+        quantize(normal.z, 1.0e6)?,
+    ];
+    let quantized_normal = Vec3::from_array([
+        normal_q1e6[0] as f64 / 1.0e6,
+        normal_q1e6[1] as f64 / 1.0e6,
+        normal_q1e6[2] as f64 / 1.0e6,
+    ])
+    .normalized()
+    .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_QUANTIZATION_INVALID".to_owned())?;
+    let normal_quantization_error = normal
+        .angle(quantized_normal)
+        .ok_or_else(|| "SURFACE_SUPPORT_NORMAL_QUANTIZATION_INVALID".to_owned())?;
+    let centre_um = [
+        quantize(centre.x, 1.0e6)?,
+        quantize(centre.y, 1.0e6)?,
+        quantize(centre.z, 1.0e6)?,
+    ];
+    // Ceiling plus one micrometre covers both extent rounding and centre quantization.
+    let mut half_extents_um = [0_i64; 3];
+    for axis in 0..3 {
+        let value = half_extents[axis] * 1.0e6;
+        if !value.is_finite() || value < 0.0 || value > i64::MAX as f64 - 2.0 {
+            return Err("SURFACE_SUPPORT_EXTENT_INVALID".to_owned());
+        }
+        half_extents_um[axis] = value.ceil() as i64 + 1;
+    }
+    let cone = normal_cone_half_angle_rad + normal_quantization_error;
+    if !cone.is_finite() || !(0.0..=std::f64::consts::PI).contains(&cone) {
+        return Err("SURFACE_SUPPORT_NORMAL_CONE_INVALID".to_owned());
+    }
+    let cone_microrad = (cone * 1.0e6).ceil();
+    if !cone_microrad.is_finite() || cone_microrad > i64::MAX as f64 {
+        return Err("SURFACE_SUPPORT_NORMAL_CONE_OVERFLOW".to_owned());
+    }
+
+    Ok(SurfaceSupport {
+        support_id,
+        feature_id,
+        cell,
+        centre_um,
+        half_extents_um,
+        outward_normal_q1e6: normal_q1e6,
+        normal_cone_half_angle_microrad: cone_microrad as i64 + 1,
+        support_kind: support_kind.to_owned(),
+    })
+}
+
 fn validate_case(case: &GsdCase) -> Result<(), String> {
     if case.schema != CASE_SCHEMA
         || case.benchmark_id != BENCHMARK_ID
@@ -566,6 +746,11 @@ fn validate_case(case: &GsdCase) -> Result<(), String> {
 
 fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+
+pub fn surface_supports(case: &GsdCase) -> Result<Vec<SurfaceSupport>, String> {
+    validate_case(case)?;
+    Grid::from_input(&case.grid)?.surface_supports()
 }
 
 pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, String> {
@@ -1003,6 +1188,38 @@ mod tests {
         };
         let target = grid.centre([2, 0, 0]);
         assert!(grid.ray_occluded(origin, target, [2, 0, 0]));
+    }
+
+    #[test]
+    fn surface_support_export_preserves_individual_opposing_faces() {
+        let bytes = include_bytes!(
+            "../../../docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json"
+        );
+        let case: GsdCase = serde_json::from_slice(bytes).unwrap();
+        let supports = surface_supports(&case).unwrap();
+        assert!(!supports.is_empty());
+        assert!(
+            supports
+                .iter()
+                .all(|support| support.half_extents_um.iter().all(|extent| *extent >= 1))
+        );
+        assert!(supports.iter().all(|support| {
+            (0_i64..=3_141_594_i64).contains(&support.normal_cone_half_angle_microrad)
+        }));
+        assert!(supports.iter().any(|support| {
+            support.support_kind == "PLANAR_VOXEL_FACE"
+                && support.normal_cone_half_angle_microrad <= 2
+                && support
+                    .half_extents_um
+                    .iter()
+                    .filter(|extent| **extent == 1)
+                    .count()
+                    == 1
+        }));
+        assert!(supports.iter().any(|support| {
+            support.support_kind == "EXTERIOR_FACE_UNION_BOUND"
+                && support.half_extents_um.iter().all(|extent| *extent > 1)
+        }));
     }
 
     #[test]
