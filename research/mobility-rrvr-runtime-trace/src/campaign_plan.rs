@@ -336,7 +336,10 @@ impl CompiledCampaignPlan {
             scene_broadcaster_revision: manifest.platform.scene_broadcaster_revision.clone(),
             scene_broadcaster_sha256: manifest.platform.scene_broadcaster_sha256.clone(),
             ros_distribution: manifest.platform.ros_distribution.clone(),
-            simulation_interfaces_revision: manifest.platform.simulation_interfaces_revision.clone(),
+            simulation_interfaces_revision: manifest
+                .platform
+                .simulation_interfaces_revision
+                .clone(),
             middleware_revision: manifest.platform.middleware_revision.clone(),
             controller_revision: manifest.platform.controller_revision.clone(),
             driver_revision: manifest.platform.driver_revision.clone(),
