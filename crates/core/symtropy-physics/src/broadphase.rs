@@ -34,7 +34,41 @@ impl<const D: usize> Aabb<D> {
             max: SVector::from_element(f64::MIN),
         }
     }
+
+    /// True only for finite, component-wise ordered bounds.
+    ///
+    /// Non-finite or reversed body bounds are unknown, not evidence of
+    /// separation. Broadphase entry points must fail open when this is false.
+    pub fn is_valid_finite(&self) -> bool {
+        (0..D).all(|i| {
+            self.min[i].is_finite()
+                && self.max[i].is_finite()
+                && self.min[i] <= self.max[i]
+        })
+    }
+
+    fn is_empty_sentinel(&self) -> bool {
+        (0..D).all(|i| self.min[i] == f64::MAX && self.max[i] == f64::MIN)
+    }
+
+    fn unbounded() -> Self {
+        Self {
+            min: SVector::from_element(-f64::MAX),
+            max: SVector::from_element(f64::MAX),
+        }
+    }
+
     pub fn union(&self, other: &Self) -> Self {
+        if self.is_empty_sentinel() {
+            return other.clone();
+        }
+        if other.is_empty_sentinel() {
+            return self.clone();
+        }
+        if !self.is_valid_finite() || !other.is_valid_finite() {
+            return Self::unbounded();
+        }
+
         let mut min = self.min;
         let mut max = self.max;
         for i in 0..D {
@@ -47,7 +81,15 @@ impl<const D: usize> Aabb<D> {
         }
         Self { min, max }
     }
+
     pub fn overlaps(&self, other: &Self) -> bool {
+        if self.is_empty_sentinel() || other.is_empty_sentinel() {
+            return false;
+        }
+        if !self.is_valid_finite() || !other.is_valid_finite() {
+            return true;
+        }
+
         for i in 0..D {
             if self.max[i] < other.min[i] || self.min[i] > other.max[i] {
                 return false;
@@ -128,6 +170,8 @@ pub struct Lbvh<const D: usize> {
     sorted_indices: Vec<usize>,
     leaf_aabbs: Vec<Aabb<D>>,
     nodes: Vec<BvhNode<D>>,
+    /// Invalid leaf bounds disable hierarchy pruning for this query.
+    unprunable: bool,
 }
 
 impl<const D: usize> Lbvh<D> {
@@ -148,6 +192,15 @@ impl<const D: usize> Lbvh<D> {
             }
             aabbs.push(aabb);
         }
+        if aabbs.iter().any(|aabb| !aabb.is_valid_finite()) {
+            return Self {
+                sorted_indices: (0..n).collect(),
+                leaf_aabbs: aabbs,
+                nodes: Vec::new(),
+                unprunable: true,
+            };
+        }
+
         for i in 0..D {
             if world_max[i] - world_min[i] < 1e-6 {
                 world_min[i] -= 1.0;
@@ -179,6 +232,7 @@ impl<const D: usize> Lbvh<D> {
             sorted_indices,
             leaf_aabbs: sorted_aabbs,
             nodes,
+            unprunable: false,
         }
     }
 
@@ -241,6 +295,10 @@ impl<const D: usize> Lbvh<D> {
     }
 
     pub fn query_pairs(&self, bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+        if self.unprunable {
+            return find_pairs_unpruned(bodies);
+        }
+
         let n = self.sorted_indices.len();
         if n <= 1 {
             return Vec::new();
@@ -298,6 +356,36 @@ impl<const D: usize> Lbvh<D> {
 #[inline]
 fn should_collide<const D: usize>(a: &RigidBody<D>, b: &RigidBody<D>) -> bool {
     (a.collision_group & b.collision_mask != 0) && (b.collision_group & a.collision_mask != 0)
+}
+
+/// Return every filter-eligible pair without using geometric exclusion.
+///
+/// This is deliberately overinclusive. It is the safe fallback when any body
+/// has an invalid/non-finite AABB and no separation decision is trustworthy.
+fn find_pairs_unpruned<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+    let mut pairs = Vec::new();
+    for i in 0..bodies.len() {
+        for j in (i + 1)..bodies.len() {
+            if bodies[i].body_type == BodyType::Static
+                && bodies[j].body_type == BodyType::Static
+            {
+                continue;
+            }
+            if !should_collide(&bodies[i], &bodies[j]) {
+                continue;
+            }
+
+            let (ha, hb) = (bodies[i].handle, bodies[j].handle);
+            if ha < hb {
+                pairs.push(BroadphasePair(ha, hb));
+            } else {
+                pairs.push(BroadphasePair(hb, ha));
+            }
+        }
+    }
+    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+    pairs.dedup();
+    pairs
 }
 
 /// Find all potentially colliding pairs. Uses LBVH for ≥50 bodies, brute-force otherwise.
@@ -453,6 +541,17 @@ pub fn find_pairs_incremental<const D: usize>(
         return find_pairs(bodies);
     }
 
+    // Invalid bounds cannot justify an exclusion. Check both fresh moving
+    // entries and the cached static/kinematic entries before pruning any pair.
+    if dynamic.iter().any(|entry| !entry.aabb.is_valid_finite())
+        || static_bp
+            .entries
+            .iter()
+            .any(|entry| !entry.aabb.is_valid_finite())
+    {
+        return find_pairs_unpruned(bodies);
+    }
+
     let mut pairs = Vec::new();
 
     // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
@@ -484,23 +583,34 @@ pub fn find_pairs_incremental<const D: usize>(
 }
 
 fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+    let aabbs: Vec<_> = bodies.iter().map(Aabb::from_body).collect();
+    if aabbs.iter().any(|aabb| !aabb.is_valid_finite()) {
+        return find_pairs_unpruned(bodies);
+    }
+
     let mut pairs = Vec::new();
     for i in 0..bodies.len() {
-        let ti = bodies[i].body_type;
         for j in (i + 1)..bodies.len() {
-            if ti == BodyType::Static && bodies[j].body_type == BodyType::Static {
+            if bodies[i].body_type == BodyType::Static
+                && bodies[j].body_type == BodyType::Static
+            {
                 continue;
             }
             if !should_collide(&bodies[i], &bodies[j]) {
                 continue;
             }
-            let aabb_i = Aabb::from_body(&bodies[i]);
-            let aabb_j = Aabb::from_body(&bodies[j]);
-            if aabb_i.overlaps(&aabb_j) {
-                pairs.push(BroadphasePair(bodies[i].handle, bodies[j].handle));
+            if aabbs[i].overlaps(&aabbs[j]) {
+                let (ha, hb) = (bodies[i].handle, bodies[j].handle);
+                if ha < hb {
+                    pairs.push(BroadphasePair(ha, hb));
+                } else {
+                    pairs.push(BroadphasePair(hb, ha));
+                }
             }
         }
     }
+    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+    pairs.dedup();
     pairs
 }
 
@@ -509,6 +619,94 @@ mod tests {
     use super::*;
     use crate::body::RigidBody;
     use symtropy_math::{Point, Sphere};
+
+    #[test]
+    fn non_finite_bounds_fail_open_in_brute_force_path() {
+        let mut invalid =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        invalid.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
+        let distant =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([100.0, 0.0, 0.0]), 0.5, 1.0);
+        let bodies = vec![invalid, distant];
+
+        assert_eq!(
+            find_pairs(&bodies),
+            vec![BroadphasePair(BodyHandle(0), BodyHandle(1))]
+        );
+    }
+
+    #[test]
+    fn non_finite_bounds_fail_open_in_lbvh_path() {
+        let mut invalid =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        invalid.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
+
+        let mut bodies = vec![invalid];
+        for index in 1..BRUTE_FORCE_THRESHOLD {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(index),
+                Point::new([index as f64 * 10.0, 0.0, 0.0]),
+                0.5,
+                1.0,
+            ));
+        }
+
+        let expected_count = bodies.len() * (bodies.len() - 1) / 2;
+        let pairs = find_pairs(&bodies);
+        assert_eq!(pairs.len(), expected_count);
+        assert!(pairs.contains(&BroadphasePair(BodyHandle(0), BodyHandle(1))));
+
+        let direct = Lbvh::build(&bodies).query_pairs(&bodies);
+        assert_eq!(direct, pairs);
+    }
+
+    #[test]
+    fn non_finite_bounds_fail_open_in_incremental_path() {
+        let mut invalid_dynamic =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        invalid_dynamic.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
+        let distant_static = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([100.0, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        let bodies = vec![invalid_dynamic, distant_static];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+        assert_eq!(
+            find_pairs_incremental(&bodies, &cache),
+            vec![BroadphasePair(BodyHandle(0), BodyHandle(1))]
+        );
+
+        let valid_dynamic =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([100.0, 0.0, 0.0]), 0.5, 1.0);
+        let mut invalid_static = RigidBody::<3>::static_body(
+            BodyHandle(3),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        invalid_static.transform.translation = Point::new([f64::INFINITY, 100.0, 0.0]);
+        let cached_bodies = vec![valid_dynamic, invalid_static];
+        cache.rebuild(&cached_bodies);
+        assert_eq!(
+            find_pairs_incremental(&cached_bodies, &cache),
+            vec![BroadphasePair(BodyHandle(2), BodyHandle(3))]
+        );
+    }
+
+    #[test]
+    fn reversed_body_bounds_are_not_valid_for_pruning() {
+        let aabb = Aabb {
+            min: SVector::from([2.0, 0.0, 0.0]),
+            max: SVector::from([1.0, 1.0, 1.0]),
+        };
+        let finite = Aabb {
+            min: SVector::zeros(),
+            max: SVector::from_element(1.0),
+        };
+        assert!(!aabb.is_valid_finite());
+        assert!(aabb.overlaps(&finite));
+    }
 
     #[test]
     fn overlapping_pair_detected() {
