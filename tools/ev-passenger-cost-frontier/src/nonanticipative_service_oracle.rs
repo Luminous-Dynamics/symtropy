@@ -12,6 +12,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::sustainable_mobility_service_capacity::{
+    SustainableServiceCapacityInput, evaluate_sustainable_service_capacity,
+};
+use crate::sustainable_mobility_service_quality::{
+    FallbackMode, FlightWindow, LinkedServiceQualityInput, ServiceMode,
+    evaluate_linked_service_quality,
+};
+
 const MAX_REQUESTS: usize = 4;
 const MAX_OPPORTUNITIES: usize = 4;
 const MAX_SCENARIOS: usize = 8;
@@ -89,6 +97,7 @@ struct ObservationPayload {
     permission_state: PermissionState,
     weather_evidence_digest: String,
     permission_evidence_digest: String,
+    flight_window_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -113,6 +122,7 @@ pub struct ObservationNode {
     pub permission_state: PermissionState,
     pub weather_evidence_digest: String,
     pub permission_evidence_digest: String,
+    pub flight_window_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -130,8 +140,8 @@ pub struct NonanticipativeOracleInput {
     pub schema_version: String,
     pub benchmark_id: String,
     pub horizon_seconds: u64,
-    pub requests: Vec<ScenarioRequest>,
-    pub opportunities: Vec<ScenarioOpportunity>,
+    pub linked_service_input: LinkedServiceQualityInput,
+    pub capacity_input: SustainableServiceCapacityInput,
     pub observation_nodes: Vec<ObservationNode>,
     pub scenarios: Vec<ScenarioPath>,
     pub claim_ceiling: String,
@@ -207,6 +217,12 @@ pub struct NonanticipativeOracleReport {
     pub opportunity_count: usize,
     pub scenario_count: usize,
     pub information_set_count: usize,
+    pub capacity_source_architecture_id: String,
+    pub capacity_source_report_digest: String,
+    pub capacity_service_opportunity_digest: String,
+    pub capacity_architecture_configuration_digest: String,
+    pub capacity_opportunities_in_source: usize,
+    pub capacity_opportunities_qualified: usize,
     pub search_transition_limit: usize,
     pub search_transitions: usize,
     pub information_model: &'static str,
@@ -1211,6 +1227,7 @@ mod tests {
                 permission_state: node.permission_state,
                 weather_evidence_digest: node.weather_evidence_digest.clone(),
                 permission_evidence_digest: node.permission_evidence_digest.clone(),
+                flight_window_id: node.flight_window_id.clone(),
             };
             let observation = serde_json::to_vec(&payload).expect("observation JSON");
             node.observation_digest = sha256_hex(&observation);
