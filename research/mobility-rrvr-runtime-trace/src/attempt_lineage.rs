@@ -803,6 +803,21 @@ mod tests {
     }
 
     #[test]
+    fn refuses_observer_asserted_value_change_without_new_scope_commitment() {
+        let mut recording = valid_recording();
+        recording.attempts[0]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .asserted_value = "applied".into();
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
     fn refuses_replayed_observer_owner_receipt_from_another_attempt() {
         let mut recording = valid_recording();
         let old_attempt_receipt = recording.attempts[0]
