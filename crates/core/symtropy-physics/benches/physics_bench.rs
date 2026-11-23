@@ -693,7 +693,6 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
     group.finish();
 }
 
-
 fn bench_broadphase_static_churn(c: &mut Criterion) {
     const FRAMES: usize = 16;
     let mut group = c.benchmark_group("broadphase_static_churn_3d");
@@ -747,7 +746,8 @@ fn bench_broadphase_static_churn(c: &mut Criterion) {
                             candidates += broadphase::find_pairs_incremental(
                                 black_box(bodies),
                                 black_box(&cache),
-                            ).len();
+                            )
+                            .len();
                         }
                         black_box(candidates);
                     });
