@@ -48,6 +48,27 @@ Scenario order is canonicalized. Failed and unknown resource sets are sorted; du
 
 This is an explicit-history path representation that derives the scenario tree/prefix nodes at load time. It is a small reference model; larger tree storage, event identity/clock provenance, multiple operations per job, setup sequences, in-process WIP, capacity reservations, inspection actions and distributionally robust policy sets remain future work tracked by #7168/#7102/#5520.
 
+## Observed v0.1 result (exact head 33d20686506f0c209e62b8da2d456440b32f02f3)
+
+The frozen run evaluated 12 cases, 60 scenario leaves and 96 decision nodes across six families. Expected-cost numerators are in parts-per-million weighted synthetic challenge units.
+
+| Policy | Mean cost / case | Aggregate numerator |
+|---|---:|---:|
+| Myopic max-jobs / lowest immediate cost | 51.0 | 612,000,000 |
+| Scarcity + earliest-due-date one-step rule | 11.3 | 135,600,000 |
+| Exact non-anticipative policy | 11.3 | 135,600,000 |
+
+The exact policy is 77.8% lower than the intentionally weak cost-only baseline. However, the stronger scarcity/deadline-aware heuristic ties the exact policy on **all 12 cases** (zero regret). This is the important result: v0.1 validates the model, non-anticipativity and replay machinery, but does not establish decision-quality uplift over a competent simple dispatch rule. The corpus has a structurally obvious A-only job and a flexible job; a scarcity-first dispatch rule is sufficient.
+
+Do not present the 77.8% figure as an industry comparison or SOTA result. The exact-versus-scarcity tie is a negative result to preserve. v0.2 must introduce interacting bottlenecks, overlapping eligibility, recovery-time uncertainty, operation/setup state and evidence-dependent route transitions, then compare against a tuned baseline portfolio on held-out regimes.
+
+Validation on the exact head above:
+- Focused workflow run #19: formatting, schemas, all 12 independent known answers, adversarial tests, exact policy execution, independent scenario replay, capacity-overbooking negative control and strict Clippy — all passed.
+- Full repository CI run #21220: Ubuntu, Windows and macOS — all passed.
+- PR #7174 remains draft and unmerged.
+
+These checks establish only the declared synthetic reference behavior. They do not qualify any provider, manufacturing route, machine, measurement method or physical product.
+
 ## Known-answer and validation protocol
 
 - Strict Draft 2020-12 validation for the case corpus and known-answer file, offline.
