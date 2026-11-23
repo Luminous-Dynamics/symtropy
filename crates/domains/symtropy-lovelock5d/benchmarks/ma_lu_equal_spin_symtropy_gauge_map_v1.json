@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_symtropy_radial_gauge_map",
+  "status": "exact_equal_spin_angular_reduction_and_first_order_radial_map_derived",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081, arXiv:2512.23797",
+    "equations": ["(2.8)", "(2.9)", "(2.11)", "(2.12)"],
+    "chi_definition": "chi=a/sqrt(mu)",
+    "chi_squared": "a^2/mu"
+  },
+  "definitions": {
+    "A": "r^2+a^2",
+    "Delta": "A^2/r^2-2*mu",
+    "x": "cos(theta)",
+    "eta": "(1-x^2)*dphi+x^2*dpsi",
+    "D": "2*mu*a^2/A",
+    "G": "A*(1+alpha_R*H7)"
+  },
+  "equal_spin_h_functions_through_chi2": {
+    "H1": "16/(3*r^2)-16*mu/(3*r^4)-32*mu^2/(3*r^6)-(2/45)*(a^2/mu)*(282/r^2-162*mu/r^4-356*mu^2/r^6)",
+    "H2": "-8/(3*r^2)-16*mu/(3*r^4)+(2/45)*(a^2/mu)*(141/r^2+48*mu/r^4+418*mu^2/r^6)",
+    "H3": "H2",
+    "H4": "-22/(3*mu)-12/r^2-16*mu/(3*r^4)+(a^2/mu)*(71/(10*mu)+119/(15*r^2)+217*mu/(15*r^4)+836*mu^2/(45*r^6))",
+    "H5": "H7-(4/45)*(a^2/mu)*x^2*(165*mu/r^4+330*mu^2/r^6+150*mu^3/r^8)",
+    "H6": "H7-(4/45)*(a^2/mu)*(1-x^2)*(165*mu/r^4+330*mu^2/r^6+150*mu^3/r^8)",
+    "H7": "8/(3*r^2)+4*mu/(3*r^4)-(2/45)*(a^2/mu)*(141/r^2+48*mu/r^4-22*mu^2/r^6)"
+  },
+  "angular_reduction": {
+    "metric": "G*dOmega3^2+D*(1+alpha_R*H4)*eta^2+O(alpha_R^2,chi^4)",
+    "dOmega3_squared": "dtheta^2+(1-x^2)*dphi^2+x^2*dpsi^2",
+    "H5_identity": "H5*(A+D*x^2)=A*H7+D*x^2*H4+O(chi^4)",
+    "H6_identity": "H6*(A+D*(1-x^2))=A*H7+D*(1-x^2)*H4+O(chi^4)",
+    "residuals": {"H5":"0 through a^2","H6":"0 through a^2","H2_minus_H3":"0"}
+  },
+  "radial_gauge": {
+    "definition": "R^2=G=A*(1+alpha_R*H7)",
+    "inverse_first_order": "r=sqrt(R^2-a^2)-alpha_R*R^2*H7(sqrt(R^2-a^2))/(2*sqrt(R^2-a^2))+O(alpha_R^2)",
+    "f_exact_from_chain_rule": "Delta*(dG/dr)^2/(4*G^2)",
+    "f_first_order": "Delta*r^2/A^2*(1+alpha_R*A*H7'(r)/r)",
+    "g_symtropy": "R^2"
+  },
+  "symtropy_metric_functions_in_old_r_coordinate": {
+    "g": "G",
+    "h": "G+D*(1+alpha_R*H4)",
+    "h_times_w": "2*mu*a/A*(1+alpha_R*H2)",
+    "w": "[2*mu*a/A*(1+alpha_R*H2)]/[G+D*(1+alpha_R*H4)]",
+    "b": "1-2*mu/A-alpha_R*H1+h*w^2",
+    "f": "Delta*(dG/dr)^2/(4*G^2)",
+    "coordinate_caveat": "These are functions of old BL coordinate r; full comparison must substitute r(R) and reparameterize horizon radius and physical Omega_H."
+  },
+  "negative_controls": {
+    "wrong_chi_squared_factor_of_two_rejected": true,
+    "omitting_H7_radial_redefinition_changes_f": true
+  },
+  "checks": {
+    "equal_spin_H2_equals_H3": true,
+    "H5_angular_cohomogeneity_identity_through_a2": true,
+    "H6_angular_cohomogeneity_identity_through_a2": true,
+    "radial_f_chain_rule_identity_through_alpha": true,
+    "horizon_parameter_redefinition_not_yet_applied": true,
+    "physical_Omega_H_parameter_redefinition_not_yet_applied": true
+  },
+  "claim_ceiling": "The equal-spin angular sector and first-order radial gauge transformation are derived from the published ansatz. No matched horizon/Omega reparameterization, coefficient-level comparison with the Symtropy O(a^2) EGB solution, full original-EOM residual, or finite-coupling result is claimed.",
+  "source_sha256_of_locally_executed_derivation": "ac07be432a1450e9deeb4368b71a05957122dc85b486238d4ba51757cfbbb4db",
+  "environment": {"python":"3.13.5","sympy":"1.14.0"}
+}
