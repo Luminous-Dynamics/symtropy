@@ -124,6 +124,9 @@ pub struct AnisotropicEpisodeTube2d {
     centers_m: Vec<[f64; DIM]>,
     shape_matrices: Vec<[[f64; DIM]; DIM]>,
     normalized_radius: f64,
+    /// Exact numerical shape-admission policy frozen at calibration.
+    symmetry_tolerance: f64,
+    minimum_relative_eigenvalue: f64,
     requested_miscoverage: f64,
     requested_coverage: f64,
     calibration_episode_count: usize,
@@ -218,9 +221,8 @@ impl AnisotropicEpisodeTube2d {
         let normalized_error = normalized_mahalanobis_radius(
             error,
             *shape,
-            // The matrices were already validated at construction time.
-            1e-12,
-            1e-12,
+            self.symmetry_tolerance,
+            self.minimum_relative_eigenvalue,
         )?;
         Ok(normalized_error <= self.normalized_radius)
     }
@@ -376,7 +378,10 @@ impl AnisotropicEpisodeConformalFamily2d {
         if config.shape_definition_sha256.iter().all(|byte| *byte == 0) {
             return Err(AnisotropicEpisodeSetError::MissingShapeDefinitionCommitment);
         }
-        if !config.symmetry_tolerance.is_finite() || config.symmetry_tolerance < 0.0 {
+        if !config.symmetry_tolerance.is_finite()
+            || config.symmetry_tolerance < 0.0
+            || config.symmetry_tolerance >= 1.0
+        {
             return Err(AnisotropicEpisodeSetError::InvalidShapeTolerance);
         }
         if !config.minimum_relative_eigenvalue.is_finite()
@@ -459,7 +464,7 @@ impl AnisotropicEpisodeConformalFamily2d {
         ordered_scores.sort_by(|left, right| {
             left.0
                 .total_cmp(&right.0)
-                .then_with(|| left.1.cmp(&right.1)
+                .then_with(|| left.1.cmp(&right.1))
         });
 
         Ok(Self {
@@ -593,6 +598,8 @@ impl AnisotropicEpisodeConformalFamily2d {
             centers_m: predicted_positions_m.to_vec(),
             shape_matrices: shape_matrices.to_vec(),
             normalized_radius: radius.normalized_radius,
+            symmetry_tolerance: self.config.symmetry_tolerance,
+            minimum_relative_eigenvalue: self.config.minimum_relative_eigenvalue,
             requested_miscoverage,
             requested_coverage: radius.requested_coverage,
             calibration_episode_count: radius.calibration_episode_count,
@@ -799,11 +806,53 @@ mod tests {
     fn increasing_miscoverage_cannot_increase_the_selected_normalized_radius() {
         let family = family();
         let mut previous = f64::INFINITY;
-        for eta in [0.05, 0.10, 0.20, 0.30, 0.40, 0.60] {
+        for eta in [0.20, 0.25, 0.30, 0.40, 0.50, 0.60] {
             let selected = family.select_radius(eta).unwrap().unwrap();
             assert!(selected.normalized_radius <= previous);
             previous = selected.normalized_radius;
         }
+    }
+
+    #[test]
+    fn unavailable_finite_sample_rank_abstains_instead_of_emitting_a_tube() {
+        let family = family();
+        assert_eq!(
+            family.select_radius(0.05).unwrap(),
+            Err(AnisotropicEpisodeAbstention::InsufficientCalibrationRank {
+                needed_rank: 5,
+                available_episodes: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn evaluation_reuses_the_frozen_shape_tolerances() {
+        let mut cfg = config();
+        cfg.symmetry_tolerance = 1.0e-6;
+        let family = AnisotropicEpisodeConformalFamily2d::fit(&calibration(), cfg).unwrap();
+        let outcome = family
+            .build_episode_tube(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                &[[[4.0, 5.0e-7], [0.0, 1.0]]],
+                0.2,
+                [0xB2; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                501,
+                [0xD4; SHA256_BYTES],
+            )
+            .unwrap();
+        let AnisotropicEpisodeSetOutcome2d::Ellipses(tube) = outcome else {
+            panic!("expected ellipses");
+        };
+        assert!(tube.contains_position(0, [0.0, 0.0]).unwrap());
+
+        cfg.symmetry_tolerance = 1.0;
+        assert_eq!(
+            AnisotropicEpisodeConformalFamily2d::fit(&calibration(), cfg),
+            Err(AnisotropicEpisodeSetError::InvalidShapeTolerance)
+        );
     }
 
     #[test]
