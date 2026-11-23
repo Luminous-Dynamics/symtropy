@@ -1184,6 +1184,71 @@ mod tests {
     }
 
     #[test]
+    fn held_out_variance_amplitude_shift_is_rejected_even_when_mean_is_centered() {
+        let calibration = synthetic_fields("cal-amplitude", 256, 0x5151, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let mut validation = synthetic_fields("val-amplitude", 256, 0x6161, 2.0);
+        for field in &mut validation {
+            for residual in &mut field.residuals_m_s {
+                residual[0] *= 1.5;
+            }
+        }
+        let report = validate_spatial_error_kernel(
+            &fit,
+            &validation,
+            &"b".repeat(64),
+            "amplitude-shift-receipt",
+        )
+        .unwrap();
+        assert_eq!(
+            report.status,
+            QualificationStatus::RejectedHeldOutVarianceScale
+        );
+        assert!(!report.negative_correlation_lobe_detected);
+        assert!(
+            (report.validation_to_calibration_variance_ratio[0].unwrap() - 2.25).abs()
+                < 1.0e-10
+        );
+        assert!(
+            (report.maximum_validation_relative_variance_error - 1.25).abs() < 1.0e-10
+        );
+        assert!(matches!(
+            report.to_spatial_error_kernel(&fit),
+            Err(SpatialFitError::ValidationNotQualified)
+        ));
+    }
+
+    #[test]
+    fn held_out_variance_in_previously_zero_component_is_rejected() {
+        let calibration = synthetic_fields("cal-zero-axis", 256, 0x7171, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let mut validation = synthetic_fields("val-zero-axis", 256, 0x8181, 2.0);
+        for (index, field) in validation.iter_mut().enumerate() {
+            let sign = if index % 2 == 0 { 1.0 } else { -1.0 };
+            for residual in &mut field.residuals_m_s {
+                residual[1] = 0.1 * sign;
+            }
+        }
+        let report = validate_spatial_error_kernel(
+            &fit,
+            &validation,
+            &"b".repeat(64),
+            "new-component-variance-receipt",
+        )
+        .unwrap();
+        assert_eq!(
+            report.status,
+            QualificationStatus::RejectedHeldOutVarianceScale
+        );
+        assert_eq!(report.validation_to_calibration_variance_ratio[1], None);
+        assert!(report.zero_to_nonzero_variance_component_detected);
+        assert!(matches!(
+            report.to_spatial_error_kernel(&fit),
+            Err(SpatialFitError::ValidationNotQualified)
+        ));
+    }
+
+    #[test]
     fn held_out_mismatch_is_reported_not_silently_recalibrated() {
         let calibration = synthetic_fields("cal-shift", 256, 0x3333, 2.0);
         let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
