@@ -36,7 +36,7 @@ Worst-case metrics use conservative endpoints:
 - observation age at decision = decision-cutoff.upper - measurement.lower;
 - prediction horizon = target.upper - decision-cutoff.lower.
 
-All arithmetic is checked. The policy includes separate maximum age, acquisition delay, processing delay and prediction horizon.
+All arithmetic is checked. The policy includes separate maximum age, acquisition delay, processing delay and prediction horizon. It also pins the expected estimator/predictor revision and model-domain-support commitment; a nonzero but mismatched revision/domain is explicitly unsupported, not treated as applicable.
 
 ## Fail-closed statuses
 
