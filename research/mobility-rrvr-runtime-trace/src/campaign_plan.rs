@@ -42,6 +42,7 @@ pub struct CompiledPlatformBinding {
     pub observer_stack_revision: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
+    pub fault_injector_fault_domain_id: String,
     pub native_adapter_revision: String,
     pub runtime_monitor_revision: String,
 }
@@ -334,6 +335,7 @@ impl CompiledCampaignPlan {
             observer_stack_revision: manifest.platform.observer_stack_revision.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
             fault_injector_sha256: manifest.platform.fault_injector_sha256.clone(),
+            fault_injector_fault_domain_id: manifest.platform.fault_injector_fault_domain_id.clone(),
             native_adapter_revision: manifest.platform.native_adapter_revision.clone(),
             runtime_monitor_revision: manifest.platform.runtime_monitor_revision.clone(),
         };
