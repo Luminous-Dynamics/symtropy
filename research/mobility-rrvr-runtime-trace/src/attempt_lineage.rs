@@ -661,6 +661,16 @@ mod tests {
     }
 
     #[test]
+    fn refuses_confirmed_terminal_applied_without_physical_observer_quorum() {
+        let mut recording = valid_recording();
+        recording.attempts[2].observer_assurance = None;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::MissingObserverAssurance)
+        );
+    }
+
+    #[test]
     fn rejects_typed_outcome_changed_without_matching_owner_assertion() {
         let mut recording = valid_recording();
         recording.attempts[0].physical_outcome.outcome = PhysicalOutcome::Applied;
@@ -705,6 +715,8 @@ mod tests {
             .clone();
         assurance
             .downstream_quiescence
+            .as_mut()
+            .unwrap()
             .observer_quorum
             .as_mut()
             .unwrap()
