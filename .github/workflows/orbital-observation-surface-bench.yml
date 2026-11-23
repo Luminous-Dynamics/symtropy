@@ -9,6 +9,7 @@ on:
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
       - research/orbital-regret-calibration-v0-1
+      - research/orbital-assurance-budget-v0-1
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
@@ -16,6 +17,7 @@ on:
       - "research/orbital/DECISION_LOSS_REGRET_FRONTIER_BENCHMARK_V0_1.md"
       - "research/orbital/JOINT_LOSS_MODEL_SCENARIO_REGRET_BENCHMARK_V0_1.md"
       - "research/orbital/DECISION_ALIGNED_REGRET_CALIBRATION_BENCHMARK_V0_1.md"
+      - "research/orbital/ASSURANCE_BUDGET_COMPOSITION_BENCHMARK_V0_1.md"
       - ".github/workflows/orbital-observation-surface-bench.yml"
   push:
     branches:
@@ -24,6 +26,7 @@ on:
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
       - research/orbital-regret-calibration-v0-1
+      - research/orbital-assurance-budget-v0-1
 
 permissions:
   contents: read
@@ -196,6 +199,40 @@ jobs:
             node tools/orbital-observation-surface-bench/tests/compare_regret_calibration_receipts.mjs \
               "artifacts/regret-calibration-${stem}-receipt-v0.1.json" \
               "artifacts/regret-calibration-${stem}-oracle-v0.1.json"
+          done
+      - name: Validate assurance budget corpora
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          for stem in fixed overrun missing-loss fixed-as-anytime anytime; do
+            node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+              tools/orbital-observation-surface-bench/schema/v0.1/assurance-budget-corpus.schema.json \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-${stem}.json"
+          done
+      - name: Generate assurance budget receipts and independent oracles
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          for stem in fixed overrun missing-loss fixed-as-anytime anytime; do
+            cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin assurance-budget -- \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-${stem}.json" \
+              --source-commit "${GITHUB_SHA}" > "artifacts/assurance-budget-${stem}-receipt-v0.1.json"
+            node tools/orbital-observation-surface-bench/tests/assurance_budget_oracle.mjs \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-${stem}.json" \
+              > "artifacts/assurance-budget-${stem}-oracle-v0.1.json"
+          done
+      - name: Validate assurance budget receipts and compare Rust with oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/assurance-budget-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          for stem in fixed overrun missing-loss fixed-as-anytime anytime; do
+            node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+              tools/orbital-observation-surface-bench/schema/v0.1/assurance-budget-receipt.schema.json \
+              "artifacts/assurance-budget-${stem}-receipt-v0.1.json"
+            node tools/orbital-observation-surface-bench/tests/compare_assurance_budget_receipts.mjs \
+              "artifacts/assurance-budget-${stem}-receipt-v0.1.json" \
+              "artifacts/assurance-budget-${stem}-oracle-v0.1.json"
           done
       - uses: actions/upload-artifact@v4
         with:

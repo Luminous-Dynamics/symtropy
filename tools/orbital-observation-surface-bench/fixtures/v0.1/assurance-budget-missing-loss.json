@@ -1,0 +1,54 @@
+{
+  "schema": "luminous.orbital-assurance-budget.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "exact-union-bound-assurance-budget-algebra-only",
+  "assurance_budget_id": "budget-missing-loss",
+  "requested_scope": "FIXED_EVALUATION",
+  "requested_scope_id": "scope-v0",
+  "total_alpha": {
+    "numerator": 5,
+    "denominator": 100
+  },
+  "expected_claim_ids": [
+    "regret",
+    "world"
+  ],
+  "expected_claim_ids_sha256": "626175a0313fc13deddf19ce29f0bd3be4bffc91bed6f0b66c8e39821898fb1f",
+  "claims_sha256": "144cf011b51c05a61925b5e5f2cee65161ac69272f7a2f23edb87b7837ee73fe",
+  "claims": [
+    {
+      "claim_id": "world",
+      "claim_class": "OBSERVATION_WORLD_COVERAGE",
+      "guarantee_kind": "STATISTICAL_GUARANTEE",
+      "claim_scope": "FIXED_EVALUATION",
+      "scope_id": "scope-v0",
+      "evidence_status": "admissible",
+      "evidence_receipt_id": "evidence-world",
+      "claim_receipt_id": "claim-world",
+      "multiplicity_family_id": "family-world",
+      "multiplicity_allocation_receipt_id": "allocation-world",
+      "alpha": {
+        "numerator": 1,
+        "denominator": 100
+      },
+      "source_contract_sha256": "64159d57551d4b472f615da1e6eeb53fef0dde19cadf0f0c363f4055dd7f06a6"
+    },
+    {
+      "claim_id": "regret",
+      "claim_class": "REGRET_SCORE_CALIBRATION",
+      "guarantee_kind": "STATISTICAL_GUARANTEE",
+      "claim_scope": "FIXED_EVALUATION",
+      "scope_id": "scope-v0",
+      "evidence_status": "admissible",
+      "evidence_receipt_id": "evidence-regret",
+      "claim_receipt_id": "claim-regret",
+      "multiplicity_family_id": "family-regret",
+      "multiplicity_allocation_receipt_id": "allocation-regret",
+      "alpha": {
+        "numerator": 2,
+        "denominator": 100
+      },
+      "source_contract_sha256": "88c4587caccaf4db2a7e696c34bfef03cf3017ba3897be729f58c61962a2becc"
+    }
+  ]
+}

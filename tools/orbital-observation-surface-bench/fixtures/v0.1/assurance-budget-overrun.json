@@ -1,0 +1,72 @@
+{
+  "schema": "luminous.orbital-assurance-budget.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "exact-union-bound-assurance-budget-algebra-only",
+  "assurance_budget_id": "budget-overrun",
+  "requested_scope": "FIXED_EVALUATION",
+  "requested_scope_id": "scope-v0",
+  "total_alpha": {
+    "numerator": 5,
+    "denominator": 100
+  },
+  "expected_claim_ids": [
+    "loss",
+    "regret",
+    "world"
+  ],
+  "expected_claim_ids_sha256": "02b6d8dc029e1f57f2ae027ed5119ec3a8e38b766176a943e9a0ee96595c024d",
+  "claims_sha256": "e965795b495c81215c31ed612e3795fa09421d758805f52cb3172eed9b501cb2",
+  "claims": [
+    {
+      "claim_id": "world",
+      "claim_class": "OBSERVATION_WORLD_COVERAGE",
+      "guarantee_kind": "STATISTICAL_GUARANTEE",
+      "claim_scope": "FIXED_EVALUATION",
+      "scope_id": "scope-v0",
+      "evidence_status": "admissible",
+      "evidence_receipt_id": "evidence-world",
+      "claim_receipt_id": "claim-world",
+      "multiplicity_family_id": "family-world",
+      "multiplicity_allocation_receipt_id": "allocation-world",
+      "alpha": {
+        "numerator": 2,
+        "denominator": 100
+      },
+      "source_contract_sha256": "64159d57551d4b472f615da1e6eeb53fef0dde19cadf0f0c363f4055dd7f06a6"
+    },
+    {
+      "claim_id": "loss",
+      "claim_class": "LOSS_MODEL_COVERAGE",
+      "guarantee_kind": "STATISTICAL_GUARANTEE",
+      "claim_scope": "FIXED_EVALUATION",
+      "scope_id": "scope-v0",
+      "evidence_status": "admissible",
+      "evidence_receipt_id": "evidence-loss",
+      "claim_receipt_id": "claim-loss",
+      "multiplicity_family_id": "family-loss",
+      "multiplicity_allocation_receipt_id": "allocation-loss",
+      "alpha": {
+        "numerator": 2,
+        "denominator": 100
+      },
+      "source_contract_sha256": "1200b29638dd5a94f5f3b4b52349e15a50193fed0a2d35b74da60a49e42f7288"
+    },
+    {
+      "claim_id": "regret",
+      "claim_class": "REGRET_SCORE_CALIBRATION",
+      "guarantee_kind": "STATISTICAL_GUARANTEE",
+      "claim_scope": "FIXED_EVALUATION",
+      "scope_id": "scope-v0",
+      "evidence_status": "admissible",
+      "evidence_receipt_id": "evidence-regret",
+      "claim_receipt_id": "claim-regret",
+      "multiplicity_family_id": "family-regret",
+      "multiplicity_allocation_receipt_id": "allocation-regret",
+      "alpha": {
+        "numerator": 2,
+        "denominator": 100
+      },
+      "source_contract_sha256": "88c4587caccaf4db2a7e696c34bfef03cf3017ba3897be729f58c61962a2becc"
+    }
+  ]
+}
