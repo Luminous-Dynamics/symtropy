@@ -471,3 +471,5 @@ mod tests {
         assert_eq!(actual, original);
     }
 }
+
+pub mod ray_geometry;
