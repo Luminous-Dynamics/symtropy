@@ -52,8 +52,8 @@ jobs:
           known = {feature["feature_id"] for feature in problem["features"]}
           assert all(set(view["nominal_feature_ids"]) <= known for view in problem["views"])
           assert all(set(view["robust_feature_ids"]) <= set(view["nominal_feature_ids"]) for view in problem["views"])
-          assert schema["properties"]["views"]["maxItems"] == 100000
-          assert schema["properties"]["features"]["maxItems"] == 250000
+          assert schema["$defs"]["Problem"]["properties"]["views"]["maxItems"] == 100000
+          assert schema["$defs"]["Problem"]["properties"]["features"]["maxItems"] == 250000
           assert schema["properties"]["problem"]["$ref"] == "#/$defs/Problem"
           print(f"frozen sparse multicover corpus: {len(problem['views'])} candidates, {len(problem['features'])} features")
           PY
