@@ -705,7 +705,7 @@ mod tests {
         let report = distribution
             .evaluate_direction(
                 [0.0; 3],
-                [0.0, 0.0, 1.0],
+                [0.0, 0.0, -1.0e-11],
                 1.0,
                 [0.0, 0.0, 1.0],
                 0.0,
@@ -723,7 +723,7 @@ mod tests {
         let blocks = RelativePositionVelocityCovarianceBlocks {
             position: identity_matrix(),
             velocity_position: [[0.0; 3]; 3],
-            velocity: [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, -1.0e-14]],
+            velocity: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0e-14]],
         };
         let distribution =
             ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
