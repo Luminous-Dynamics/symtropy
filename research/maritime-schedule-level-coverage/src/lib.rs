@@ -502,9 +502,7 @@ mod tests {
             metrics.total_calls,
             TEST_SCHEDULES_PER_WINDOW * SCHEDULE_SIZE
         );
-        assert!(
-            metrics.covered_calls >= metrics.covered_schedules * SCHEDULE_SIZE
-        );
+        assert!(metrics.covered_calls >= metrics.covered_schedules * SCHEDULE_SIZE);
     }
 
     #[test]
