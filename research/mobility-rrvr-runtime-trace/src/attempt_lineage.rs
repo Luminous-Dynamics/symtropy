@@ -239,9 +239,12 @@ fn validate_owner_evidence(
     expected_scope: &EvidenceScope,
     evidence_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
+    if evidence.scope != *expected_scope {
+        return Err(LineageError::EvidenceScopeMismatch);
+    }
+
     if evidence.domain != expected_domain
         || evidence.asserted_value != expected_asserted_value
-        || evidence.scope != *expected_scope
         || !nonempty(&evidence.owner_id)
         || !nonempty(&evidence.owner_revision)
         || !nonempty(&evidence.evidence_id)
