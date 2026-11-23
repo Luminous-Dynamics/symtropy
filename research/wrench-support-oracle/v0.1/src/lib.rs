@@ -369,7 +369,9 @@ pub fn select_greedy_subset(
 ) -> Result<WrenchSupportReport, OracleError> {
     let (points, directions) = validate_patch(patch)?;
     if config.keep == 0 || config.keep > points.len() {
-        return Err(OracleError::new("keep must be in 1..=candidate point count"));
+        return Err(OracleError::new(
+            "keep must be in 1..=candidate point count",
+        ));
     }
     if config.maximum_evaluations == 0 {
         return Err(OracleError::new("maximum_evaluations must be positive"));
@@ -393,13 +395,13 @@ pub fn select_greedy_subset(
             let mut trial_indices = selected_indices.clone();
             trial_indices.push(candidate_index);
             trial_indices.sort_unstable();
-            let candidate_report =
-                build_report(patch, &points, &directions, &trial_indices, 0)?;
+            let candidate_report = build_report(patch, &points, &directions, &trial_indices, 0)?;
             evaluation_count += 1;
 
-            if best_candidate.as_ref().is_none_or(|(incumbent, _)| {
-                compare_reports(&candidate_report, incumbent).is_lt()
-            }) {
+            if best_candidate
+                .as_ref()
+                .is_none_or(|(incumbent, _)| compare_reports(&candidate_report, incumbent).is_lt())
+            {
                 best_candidate = Some((candidate_report, trial_indices));
             }
         }
@@ -674,7 +676,10 @@ mod tests {
         )
         .expect("greedy selector");
         assert_eq!(greedy.retained_point_ids, exact.retained_point_ids);
-        assert_eq!(greedy.maximum_normalized_deficit, exact.maximum_normalized_deficit);
+        assert_eq!(
+            greedy.maximum_normalized_deficit,
+            exact.maximum_normalized_deficit
+        );
         assert_eq!(greedy.subsets_evaluated, 7);
     }
 
@@ -703,22 +708,64 @@ mod tests {
     fn exact_oracle_exposes_a_real_greedy_local_choice_gap() {
         let source = ContactPatch {
             points: vec![
-                ContactPoint { id: "p0".into(), position: [-0.8053331255487975, -1.0022880202777662, 0.0] },
-                ContactPoint { id: "p1".into(), position: [-0.00663309450661842, 0.24817392184595977, 0.0] },
-                ContactPoint { id: "p2".into(), position: [-0.9469860377145608, -1.4553152497193032, 0.0] },
-                ContactPoint { id: "p3".into(), position: [-0.0866003133286175, 0.6847299845497847, 0.0] },
-                ContactPoint { id: "p4".into(), position: [1.25580147532063, 0.37660201720639197, 0.0] },
+                ContactPoint {
+                    id: "p0".into(),
+                    position: [-0.8053331255487975, -1.0022880202777662, 0.0],
+                },
+                ContactPoint {
+                    id: "p1".into(),
+                    position: [-0.00663309450661842, 0.24817392184595977, 0.0],
+                },
+                ContactPoint {
+                    id: "p2".into(),
+                    position: [-0.9469860377145608, -1.4553152497193032, 0.0],
+                },
+                ContactPoint {
+                    id: "p3".into(),
+                    position: [-0.0866003133286175, 0.6847299845497847, 0.0],
+                },
+                ContactPoint {
+                    id: "p4".into(),
+                    position: [1.25580147532063, 0.37660201720639197, 0.0],
+                },
             ],
             directions: vec![
-                WrenchDirection { id: "mx-positive".into(), components: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0] },
-                WrenchDirection { id: "mx-negative".into(), components: [0.0, 0.0, 0.0, -1.0, 0.0, 0.0] },
-                WrenchDirection { id: "my-positive".into(), components: [0.0, 0.0, 0.0, 0.0, 1.0, 0.0] },
-                WrenchDirection { id: "my-negative".into(), components: [0.0, 0.0, 0.0, 0.0, -1.0, 0.0] },
-                WrenchDirection { id: "fx-positive".into(), components: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0] },
-                WrenchDirection { id: "fx-negative".into(), components: [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0] },
-                WrenchDirection { id: "fy-positive".into(), components: [0.0, 1.0, 0.0, 0.0, 0.0, 0.0] },
-                WrenchDirection { id: "fy-negative".into(), components: [0.0, -1.0, 0.0, 0.0, 0.0, 0.0] },
-                WrenchDirection { id: "fz-positive".into(), components: [0.0, 0.0, 1.0, 0.0, 0.0, 0.0] },
+                WrenchDirection {
+                    id: "mx-positive".into(),
+                    components: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "mx-negative".into(),
+                    components: [0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "my-positive".into(),
+                    components: [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "my-negative".into(),
+                    components: [0.0, 0.0, 0.0, 0.0, -1.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "fx-positive".into(),
+                    components: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "fx-negative".into(),
+                    components: [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "fy-positive".into(),
+                    components: [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "fy-negative".into(),
+                    components: [0.0, -1.0, 0.0, 0.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "fz-positive".into(),
+                    components: [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                },
             ],
             friction_coefficient: 0.6,
             characteristic_length: 1.0,
@@ -812,14 +859,16 @@ mod tests {
     fn non_coplanar_points_are_rejected_by_shared_normal_model() {
         let mut source = patch();
         source.points[0].position[2] = 0.25;
-        assert!(select_exact_subset(
-            &source,
-            ExactSelectorConfig {
-                keep: 2,
-                maximum_subsets: 100,
-            }
-        )
-        .is_err());
+        assert!(
+            select_exact_subset(
+                &source,
+                ExactSelectorConfig {
+                    keep: 2,
+                    maximum_subsets: 100,
+                }
+            )
+            .is_err()
+        );
     }
 
     #[test]
