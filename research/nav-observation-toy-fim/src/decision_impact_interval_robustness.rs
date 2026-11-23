@@ -279,7 +279,7 @@ fn validate_and_pair(
 
     let class_ids: BTreeSet<u64> = point_pairs
         .keys()
-        .flat_map(|(lower, upper)| [*lower, *upper])
+        .flat_map(|pair| [pair.0, pair.1])
         .collect();
     let expected_class_pair_count = class_ids
         .len()
@@ -436,10 +436,10 @@ mod tests {
         let mut class_pair_assessments = Vec::new();
 
         for (a, b, total, separated, weight) in values {
-            let numerator = (*separated as u128) * u128::from(SCALE);
+            let numerator = u128::from(*separated) * u128::from(SCALE);
             let floor = numerator / *total as u128;
-            let unresolved = total - separated;
-            total_pairs += total;
+            let unresolved = *total - *separated;
+            total_pairs += *total;
             total_weight += u128::from(*weight);
             weighted += u128::from(*weight) * floor;
             class_pair_assessments.push(DecisionClassPairImpactAssessment {
