@@ -6,12 +6,14 @@ on:
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
+      - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
+      - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   workflow_dispatch:
 
