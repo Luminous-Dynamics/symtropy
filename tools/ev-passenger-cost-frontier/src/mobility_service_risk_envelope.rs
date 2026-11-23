@@ -10,16 +10,15 @@
 //! ambiguity sensitivity bound over the upstream leaf distribution.
 //!
 //! A total-variation ball is not a Wasserstein or moment ambiguity set. The
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 //! evaluator does not calibrate probabilities; that evidence remains owned by
 //! #6460. Stress-only scenarios are not probability-weighted here.
 
-use std::collections::BTreeSet;
-use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
 
 use crate::nonanticipative_service_oracle::{
-    NonanticipativeServiceOracleInput,
-    NonanticipativeOracleStatus,
+    NonanticipativeOracleStatus, NonanticipativeServiceOracleInput,
     evaluate_nonanticipative_service_oracle,
 };
 use crate::sustainable_mobility_service_capacity::SustainableServiceCapacityInput;
@@ -178,13 +177,12 @@ fn source_digest<T: Serialize>(value: &T) -> Result<String, String> {
     Ok(sha256_hex(&bytes))
 }
 
-fn canonical_tree_digest(
-    tree: &NonanticipativeServiceOracleInput,
-) -> Result<String, String> {
+fn canonical_tree_digest(tree: &NonanticipativeServiceOracleInput) -> Result<String, String> {
     let mut canonical = tree.clone();
     canonical.nodes.sort_by(|a, b| a.node_id.cmp(&b.node_id));
     for node in &mut canonical.nodes {
-        node.request_reveals.sort_by(|a, b| a.request_id.cmp(&b.request_id));
+        node.request_reveals
+            .sort_by(|a, b| a.request_id.cmp(&b.request_id));
         node.aerial_reveals
             .sort_by(|a, b| a.opportunity_id.cmp(&b.opportunity_id));
         node.fallback_reveals
@@ -225,13 +223,19 @@ fn validate_probability_manifest(
         || manifest.expected_leaf_node_ids.is_empty()
         || manifest.expected_leaf_node_ids.len() > MAX_LEAVES
     {
-        add_error(&mut errors, "probability_manifest_identity_or_bounds_invalid");
+        add_error(
+            &mut errors,
+            "probability_manifest_identity_or_bounds_invalid",
+        );
     }
 
     let mut expected = BTreeSet::new();
     for id in &manifest.expected_leaf_node_ids {
         if id.trim().is_empty() || !expected.insert(id.as_str()) {
-            add_error(&mut errors, "probability_manifest_leaf_identity_duplicate_or_empty");
+            add_error(
+                &mut errors,
+                "probability_manifest_leaf_identity_duplicate_or_empty",
+            );
         }
     }
     if &expected != leaf_ids {
@@ -245,11 +249,17 @@ fn validate_probability_manifest(
                 || manifest.source_dataset_digest.is_some()
                 || manifest.calibration_report_digest.is_some()
             {
-                add_error(&mut errors, "synthetic_probability_must_not_claim_empirical_calibration");
+                add_error(
+                    &mut errors,
+                    "synthetic_probability_must_not_claim_empirical_calibration",
+                );
             }
         }
         ProbabilityBasis::HistoricalFrequencyEstimate => {
-            if manifest.source_dataset_digest.as_deref().is_none_or(|v| !valid_sha256(v))
+            if manifest
+                .source_dataset_digest
+                .as_deref()
+                .is_none_or(|v| !valid_sha256(v))
                 || manifest
                     .calibration_report_digest
                     .as_deref()
@@ -267,11 +277,17 @@ fn validate_probability_manifest(
                     .zip(manifest.evaluation_window_start_seconds)
                     .is_none_or(|(cutoff, start)| cutoff >= start)
             {
-                add_error(&mut errors, "historical_probability_provenance_or_holdout_invalid");
+                add_error(
+                    &mut errors,
+                    "historical_probability_provenance_or_holdout_invalid",
+                );
             }
         }
         ProbabilityBasis::ForecastModel => {
-            if manifest.source_dataset_digest.as_deref().is_none_or(|v| !valid_sha256(v))
+            if manifest
+                .source_dataset_digest
+                .as_deref()
+                .is_none_or(|v| !valid_sha256(v))
                 || manifest
                     .calibration_report_digest
                     .as_deref()
@@ -293,7 +309,10 @@ fn validate_probability_manifest(
                 || manifest.sample_count.unwrap_or(0) == 0
                 || manifest.effective_sample_size_milli.unwrap_or(0) == 0
             {
-                add_error(&mut errors, "forecast_probability_provenance_or_no_leakage_invalid");
+                add_error(
+                    &mut errors,
+                    "forecast_probability_provenance_or_no_leakage_invalid",
+                );
             }
         }
         ProbabilityBasis::ExpertElicitation => {
@@ -304,14 +323,23 @@ fn validate_probability_manifest(
                     .as_deref()
                     .is_none_or(str::is_empty)
             {
-                add_error(&mut errors, "expert_probability_elicitation_provenance_invalid");
+                add_error(
+                    &mut errors,
+                    "expert_probability_elicitation_provenance_invalid",
+                );
             }
         }
         ProbabilityBasis::StressOnly => {
-            add_error(&mut errors, "stress_only_scenarios_cannot_enter_probabilistic_risk_metrics");
+            add_error(
+                &mut errors,
+                "stress_only_scenarios_cannot_enter_probabilistic_risk_metrics",
+            );
         }
         ProbabilityBasis::Unknown => {
-            add_error(&mut errors, "unknown_probability_basis_cannot_enter_probabilistic_risk_metrics");
+            add_error(
+                &mut errors,
+                "unknown_probability_basis_cannot_enter_probabilistic_risk_metrics",
+            );
         }
     }
 
@@ -420,9 +448,7 @@ fn worst_case_tv_expectation(
         {
             receiver_cursor += 1;
         }
-        while donor_cursor < donor_order.len()
-            && mass[donor_order[donor_cursor]] == 0
-        {
+        while donor_cursor < donor_order.len() && mass[donor_order[donor_cursor]] == 0 {
             donor_cursor += 1;
         }
         if receiver_cursor >= receiver_order.len() || donor_cursor >= donor_order.len() {
@@ -445,11 +471,14 @@ fn worst_case_tv_expectation(
         remaining -= transferable;
     }
 
-    let numerator = leaves.iter().enumerate().try_fold(0_u128, |sum, (index, leaf)| {
-        u128::from(metric(leaf))
-            .checked_mul(mass[index])
-            .and_then(|value| sum.checked_add(value))
-    });
+    let numerator = leaves
+        .iter()
+        .enumerate()
+        .try_fold(0_u128, |sum, (index, leaf)| {
+            u128::from(metric(leaf))
+                .checked_mul(mass[index])
+                .and_then(|value| sum.checked_add(value))
+        });
     Ok(ExactRiskRatio {
         numerator: numerator.ok_or_else(|| "risk_tv_numerator_overflow".to_owned())?,
         denominator,
@@ -486,7 +515,10 @@ pub fn evaluate_mobility_service_risk_envelope(
         || input.tail_mass_ppm > 1_000_000
         || input.total_variation_radius_ppm > 1_000_000
     {
-        add_error(&mut errors, "mobility_service_risk_identity_or_bounds_invalid");
+        add_error(
+            &mut errors,
+            "mobility_service_risk_identity_or_bounds_invalid",
+        );
     }
     if !errors.is_empty() {
         errors.sort();
@@ -494,8 +526,13 @@ pub fn evaluate_mobility_service_risk_envelope(
         return Err(errors);
     }
 
-    let oracle = evaluate_nonanticipative_service_oracle(tree, service, capacity)
-        .map_err(|items| items.into_iter().map(|item| format!("upstream_oracle_rejected:{item}")).collect::<Vec<_>>())?;
+    let oracle =
+        evaluate_nonanticipative_service_oracle(tree, service, capacity).map_err(|items| {
+            items
+                .into_iter()
+                .map(|item| format!("upstream_oracle_rejected:{item}"))
+                .collect::<Vec<_>>()
+        })?;
     if oracle.status != NonanticipativeOracleStatus::Evaluated
         || oracle.leaf_results.is_empty()
         || oracle.leaf_results.len() > MAX_LEAVES
@@ -516,11 +553,7 @@ pub fn evaluate_mobility_service_risk_envelope(
         return Err(vec!["upstream_oracle_leaf_id_duplicate".to_owned()]);
     }
 
-    validate_probability_manifest(
-        &input.probability_manifest,
-        tree,
-        &leaf_ids,
-    )?;
+    validate_probability_manifest(&input.probability_manifest, tree, &leaf_ids)?;
 
     let probability_denominator = oracle.leaf_results[0].probability_denominator;
     if probability_denominator == 0
@@ -530,13 +563,21 @@ pub fn evaluate_mobility_service_risk_envelope(
                 || leaf.probability_numerator == 0
         })
     {
-        return Err(vec!["upstream_probability_denominator_or_leaf_weight_invalid".to_owned()]);
+        return Err(vec![
+            "upstream_probability_denominator_or_leaf_weight_invalid".to_owned(),
+        ]);
     }
-    let probability_sum = oracle.leaf_results.iter().try_fold(0_u128, |sum, leaf| {
-        sum.checked_add(leaf.probability_numerator)
-    }).ok_or_else(|| vec!["upstream_probability_sum_overflow".to_owned()])?;
+    let probability_sum = oracle
+        .leaf_results
+        .iter()
+        .try_fold(0_u128, |sum, leaf| {
+            sum.checked_add(leaf.probability_numerator)
+        })
+        .ok_or_else(|| vec!["upstream_probability_sum_overflow".to_owned()])?;
     if probability_sum != probability_denominator {
-        return Err(vec!["upstream_leaf_probability_mass_does_not_sum_to_one".to_owned()]);
+        return Err(vec![
+            "upstream_leaf_probability_mass_does_not_sum_to_one".to_owned(),
+        ]);
     }
 
     let tail_mass = probability_denominator
@@ -561,7 +602,8 @@ pub fn evaluate_mobility_service_risk_envelope(
             completed: u64::try_from(leaf.completed_by_horizon).unwrap_or(u64::MAX),
             lateness: leaf.lateness_seconds,
             unserved_plus_rejected: u64::try_from(
-                leaf.unserved_requests.saturating_add(leaf.rejected_requests),
+                leaf.unserved_requests
+                    .saturating_add(leaf.rejected_requests),
             )
             .unwrap_or(u64::MAX),
         })
@@ -586,18 +628,33 @@ pub fn evaluate_mobility_service_risk_envelope(
     let upper_tail_cvar_lateness_seconds =
         weighted_tail_average(&leaves, probability_denominator, tail_mass, lateness, false)
             .map_err(|error| vec![error])?;
-    let upper_tail_cvar_unserved_plus_rejected =
-        weighted_tail_average(&leaves, probability_denominator, tail_mass, unserved_plus_rejected, false)
-            .map_err(|error| vec![error])?;
+    let upper_tail_cvar_unserved_plus_rejected = weighted_tail_average(
+        &leaves,
+        probability_denominator,
+        tail_mass,
+        unserved_plus_rejected,
+        false,
+    )
+    .map_err(|error| vec![error])?;
     let tv_robust_min_expected_on_time_services =
         worst_case_tv_expectation(&leaves, probability_denominator, radius_mass, on_time, true)
             .map_err(|error| vec![error])?;
-    let tv_robust_min_expected_completed_services =
-        worst_case_tv_expectation(&leaves, probability_denominator, radius_mass, completed, true)
-            .map_err(|error| vec![error])?;
-    let tv_robust_max_expected_lateness_seconds =
-        worst_case_tv_expectation(&leaves, probability_denominator, radius_mass, lateness, false)
-            .map_err(|error| vec![error])?;
+    let tv_robust_min_expected_completed_services = worst_case_tv_expectation(
+        &leaves,
+        probability_denominator,
+        radius_mass,
+        completed,
+        true,
+    )
+    .map_err(|error| vec![error])?;
+    let tv_robust_max_expected_lateness_seconds = worst_case_tv_expectation(
+        &leaves,
+        probability_denominator,
+        radius_mass,
+        lateness,
+        false,
+    )
+    .map_err(|error| vec![error])?;
 
     let mut leaf_results: Vec<ServiceLeafRiskResult> = oracle
         .leaf_results
@@ -629,7 +686,10 @@ pub fn evaluate_mobility_service_risk_envelope(
         benchmark_id: input.benchmark_id.clone(),
         probability_set_id: input.probability_manifest.probability_set_id.clone(),
         probability_basis: input.probability_manifest.probability_basis,
-        probability_source_reference: input.probability_manifest.probability_source_reference.clone(),
+        probability_source_reference: input
+            .probability_manifest
+            .probability_source_reference
+            .clone(),
         probability_provenance_complete: true,
         calibration_quality_recomputed: false,
         synthetic_only: all_synthetic,
@@ -697,7 +757,14 @@ mod tests {
         .expect("risk manifest fixture")
     }
 
-    fn leaf(id: &str, weight: u128, on_time: u64, completed: u64, lateness: u64, unserved: u64) -> RiskLeaf {
+    fn leaf(
+        id: &str,
+        weight: u128,
+        on_time: u64,
+        completed: u64,
+        lateness: u64,
+        unserved: u64,
+    ) -> RiskLeaf {
         RiskLeaf {
             id: id.to_owned(),
             weight,
@@ -739,7 +806,13 @@ mod tests {
             leaf("high", 50, 5, 5, 0, 0),
         ];
         let result = weighted_tail_average(&leaves, 100, 40, on_time, true).expect("CVaR");
-        assert_eq!(result, ExactRiskRatio { numerator: 60, denominator: 40 });
+        assert_eq!(
+            result,
+            ExactRiskRatio {
+                numerator: 60,
+                denominator: 40
+            }
+        );
     }
 
     #[test]
@@ -750,7 +823,13 @@ mod tests {
             leaf("high", 20, 0, 1, 100, 4),
         ];
         let result = weighted_tail_average(&leaves, 100, 40, lateness, false).expect("CVaR");
-        assert_eq!(result, ExactRiskRatio { numerator: 2_200, denominator: 40 });
+        assert_eq!(
+            result,
+            ExactRiskRatio {
+                numerator: 2_200,
+                denominator: 40
+            }
+        );
     }
 
     #[test]
@@ -761,8 +840,20 @@ mod tests {
         ];
         let expected = exact_weighted_expectation(&leaves, 1_000, lateness).expect("expectation");
         let tail = weighted_tail_average(&leaves, 1_000, 50, lateness, false).expect("tail");
-        assert_eq!(expected, ExactRiskRatio { numerator: 100_000, denominator: 1_000 });
-        assert_eq!(tail, ExactRiskRatio { numerator: 100_000, denominator: 50 });
+        assert_eq!(
+            expected,
+            ExactRiskRatio {
+                numerator: 100_000,
+                denominator: 1_000
+            }
+        );
+        assert_eq!(
+            tail,
+            ExactRiskRatio {
+                numerator: 100_000,
+                denominator: 50
+            }
+        );
     }
 
     #[test]
@@ -774,16 +865,36 @@ mod tests {
         ];
         let nominal = worst_case_tv_expectation(&leaves, 100, 0, on_time, true).expect("nominal");
         let full = worst_case_tv_expectation(&leaves, 100, 100, on_time, true).expect("full");
-        let high_late = worst_case_tv_expectation(&leaves, 100, 100, lateness, false).expect("late");
-        assert_eq!(nominal, ExactRiskRatio { numerator: 220, denominator: 100 });
-        assert_eq!(full, ExactRiskRatio { numerator: 0, denominator: 100 });
-        assert_eq!(high_late, ExactRiskRatio { numerator: 10_000, denominator: 100 });
+        let high_late =
+            worst_case_tv_expectation(&leaves, 100, 100, lateness, false).expect("late");
+        assert_eq!(
+            nominal,
+            ExactRiskRatio {
+                numerator: 220,
+                denominator: 100
+            }
+        );
+        assert_eq!(
+            full,
+            ExactRiskRatio {
+                numerator: 0,
+                denominator: 100
+            }
+        );
+        assert_eq!(
+            high_late,
+            ExactRiskRatio {
+                numerator: 10_000,
+                denominator: 100
+            }
+        );
     }
 
     fn validate_probability_mass(weights: &[u128], denominator: u128) -> Result<(), String> {
-        let total = weights.iter().try_fold(0_u128, |sum, weight| {
-            sum.checked_add(*weight)
-        }).ok_or_else(|| "probability_mass_overflow".to_owned())?;
+        let total = weights
+            .iter()
+            .try_fold(0_u128, |sum, weight| sum.checked_add(*weight))
+            .ok_or_else(|| "probability_mass_overflow".to_owned())?;
         if denominator == 0 || total != denominator || weights.iter().any(|weight| *weight == 0) {
             return Err("probability_mass_does_not_sum_to_one".to_owned());
         }
@@ -808,7 +919,11 @@ mod tests {
             &risk,
         )
         .expect_err("stress-only weights may not enter CVaR");
-        assert!(errors.iter().any(|error| error.contains("stress_only_scenarios")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("stress_only_scenarios"))
+        );
         risk.probability_manifest.probability_basis = ProbabilityBasis::Unknown;
         let errors = evaluate_mobility_service_risk_envelope(
             &tree_fixture(),
@@ -817,18 +932,23 @@ mod tests {
             &risk,
         )
         .expect_err("unknown probability source rejected");
-        assert!(errors.iter().any(|error| error.contains("unknown_probability_basis")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown_probability_basis"))
+        );
     }
 
     #[test]
     fn historical_frequency_requires_holdout_after_training_cutoff() {
         let mut risk = risk_fixture();
-        risk.probability_manifest.probability_basis =
-            ProbabilityBasis::HistoricalFrequencyEstimate;
-        risk.probability_manifest.source_dataset_digest =
-            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
-        risk.probability_manifest.calibration_report_digest =
-            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        risk.probability_manifest.probability_basis = ProbabilityBasis::HistoricalFrequencyEstimate;
+        risk.probability_manifest.source_dataset_digest = Some(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        );
+        risk.probability_manifest.calibration_report_digest = Some(
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+        );
         risk.probability_manifest.sample_count = Some(100);
         risk.probability_manifest.effective_sample_size_milli = Some(80_000);
         risk.probability_manifest.training_cutoff_seconds = Some(500);
@@ -841,7 +961,11 @@ mod tests {
             &risk,
         )
         .expect_err("holdout overlaps training data");
-        assert!(errors.iter().any(|error| error.contains("historical_probability_provenance")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("historical_probability_provenance"))
+        );
     }
 
     #[test]
@@ -897,8 +1021,16 @@ mod tests {
             &risk,
         )
         .expect_err("leaf evidence identity must be exact and unique");
-        assert!(errors.iter().any(|error| error.contains("leaf_identity_duplicate")));
-        assert!(errors.iter().any(|error| error.contains("leaf_coverage_mismatch")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("leaf_identity_duplicate"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("leaf_coverage_mismatch"))
+        );
     }
 
     #[test]
@@ -915,17 +1047,39 @@ mod tests {
             .expect("permuted tree");
         assert_eq!(a.leaf_results, b.leaf_results);
         assert_eq!(a.source_tree_digest, b.source_tree_digest);
-        assert_eq!(a.lower_tail_cvar_on_time_services, b.lower_tail_cvar_on_time_services);
-        assert_eq!(a.tv_robust_min_expected_on_time_services, b.tv_robust_min_expected_on_time_services);
+        assert_eq!(
+            a.lower_tail_cvar_on_time_services,
+            b.lower_tail_cvar_on_time_services
+        );
+        assert_eq!(
+            a.tv_robust_min_expected_on_time_services,
+            b.tv_robust_min_expected_on_time_services
+        );
     }
 
     #[test]
     fn invalid_tail_fraction_and_tv_radius_are_rejected() {
         let mut risk = risk_fixture();
         risk.tail_mass_ppm = 0;
-        assert!(evaluate_mobility_service_risk_envelope(&tree_fixture(), &service_fixture(), &capacity_fixture(), &risk).is_err());
+        assert!(
+            evaluate_mobility_service_risk_envelope(
+                &tree_fixture(),
+                &service_fixture(),
+                &capacity_fixture(),
+                &risk
+            )
+            .is_err()
+        );
         risk = risk_fixture();
         risk.total_variation_radius_ppm = 1_000_001;
-        assert!(evaluate_mobility_service_risk_envelope(&tree_fixture(), &service_fixture(), &capacity_fixture(), &risk).is_err());
+        assert!(
+            evaluate_mobility_service_risk_envelope(
+                &tree_fixture(),
+                &service_fixture(),
+                &capacity_fixture(),
+                &risk
+            )
+            .is_err()
+        );
     }
 }
