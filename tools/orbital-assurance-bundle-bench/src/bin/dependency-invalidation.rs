@@ -14,9 +14,9 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn run() -> Result<ExitCode, String> {
     let mut args = env::args().skip(1);
-    let fixture_path = args
-        .next()
-        .ok_or_else(|| "usage: dependency-invalidation <cases.json> --source-commit <sha>".to_owned())?;
+    let fixture_path = args.next().ok_or_else(|| {
+        "usage: dependency-invalidation <cases.json> --source-commit <sha>".to_owned()
+    })?;
     if args.next().as_deref() != Some("--source-commit") {
         return Err("expected --source-commit".to_owned());
     }
