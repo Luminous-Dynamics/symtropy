@@ -7,6 +7,7 @@
 use std::fmt;
 
 pub const SCHEMA_VERSION_V0: u16 = 1;
+const MAX_EVENTS_V0: usize = 65_536;
 const UNIT_PATTERNS: [[u8; 2]; 3] = [[0, 1], [2, 3], [0, 2]];
 const MOTIF_PREFIX: [u8; 18] = [0, 1, 2, 0, 0, 1, 1, 2, 2, 0, 1, 2, 1, 0, 2, 2, 1, 0];
 
@@ -75,6 +76,7 @@ struct TruthSpan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorldError {
     TooFewEvents,
+    TooManyEvents,
     InvalidTimeScale,
     InvalidSymbolPermutation,
     TimeOverflow,
@@ -86,6 +88,7 @@ impl fmt::Display for WorldError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooFewEvents => write!(formatter, "event count must be at least two"),
+            Self::TooManyEvents => write!(formatter, "event count exceeds the v0 bound"),
             Self::InvalidTimeScale => write!(formatter, "time scale must be nonzero"),
             Self::InvalidSymbolPermutation => {
                 write!(formatter, "symbol mapping must be a permutation of 0..4")
@@ -121,6 +124,9 @@ impl WorldV0 {
     ) -> Result<Self, WorldError> {
         if event_count < 2 {
             return Err(WorldError::TooFewEvents);
+        }
+        if event_count > MAX_EVENTS_V0 {
+            return Err(WorldError::TooManyEvents);
         }
         if time_scale == 0 {
             return Err(WorldError::InvalidTimeScale);
@@ -203,10 +209,6 @@ impl WorldV0 {
         })
     }
 
-    pub fn frame_count(&self) -> usize {
-        self.frames.len()
-    }
-
     /// Evaluate a frozen learner snapshot against evaluator-owned labels.
     ///
     /// This method is owner/evaluator-side API. It must not be exposed to an
@@ -262,8 +264,20 @@ fn count_metrics(
 ) -> CountMetricsV0 {
     let predicted = true_positive + false_positive;
     let actual = true_positive + false_negative;
-    let precision = (predicted > 0).then(|| true_positive as f64 / predicted as f64);
-    let recall = (actual > 0).then(|| true_positive as f64 / actual as f64);
+    let precision = if predicted > 0 {
+        Some(true_positive as f64 / predicted as f64)
+    } else if actual > 0 {
+        Some(0.0)
+    } else {
+        None
+    };
+    let recall = if actual > 0 {
+        Some(true_positive as f64 / actual as f64)
+    } else if predicted > 0 {
+        Some(0.0)
+    } else {
+        None
+    };
     let f1 = match (precision, recall) {
         (Some(p), Some(r)) if p + r > 0.0 => Some(2.0 * p * r / (p + r)),
         (Some(_), Some(_)) => Some(0.0),
@@ -329,10 +343,8 @@ fn equivalence_metrics(
     let mut false_positive = 0;
     let mut false_negative = 0;
 
-    for left_index in 0..matched.len() {
-        for right_index in (left_index + 1)..matched.len() {
-            let left = matched[left_index];
-            let right = matched[right_index];
+    for (left_index, left) in matched.iter().enumerate() {
+        for right in matched.iter().skip(left_index + 1) {
             let predicted_same = left.predicted_cluster == right.predicted_cluster;
             let actual_same =
                 truth[left.truth_index].class_id == truth[right.truth_index].class_id;
@@ -460,7 +472,7 @@ mod tests {
         let generated = world();
         let mut snapshot = exact_snapshot(&generated);
         for (index, candidate) in snapshot.units.iter_mut().enumerate() {
-            candidate.cluster_id = index as u32;
+            candidate.cluster_id = u32::try_from(index).expect("fixture index fits u32");
         }
         let report = generated.evaluate(&snapshot);
         assert_eq!(report.unit_boundaries.f1, Some(1.0));
@@ -475,7 +487,7 @@ mod tests {
             units: vec![CandidateSpanV0 {
                 span: SpanV0 {
                     start_frame: 0,
-                    end_frame: generated.frame_count(),
+                    end_frame: generated.frames.len(),
                 },
                 cluster_id: 0,
             }],
@@ -501,7 +513,7 @@ mod tests {
     fn invalid_prefix_is_rejected_without_exposing_future_frames() {
         let generated = world();
         assert_eq!(
-            generated.policy_view(generated.frame_count() + 1).unwrap_err(),
+            generated.policy_view(generated.frames.len() + 1).unwrap_err(),
             WorldError::PrefixOutOfRange
         );
     }
