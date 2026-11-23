@@ -20,38 +20,38 @@ Do not treat the first quantity as a proxy for the second.
 
 ## 2. Non-anticipative robust objective
 
-Let states be \\(\\theta\\in\\Theta\\), actions be \\(a\\in\\mathcal A\\), outcomes be \\(y\\in\\mathcal Y_d\\), and admissible dependence scenarios be \\(s\\in\\mathcal S\\). Each scenario supplies a likelihood \\(p_s(y\\mid\\theta,d)\\), and the decision utility is \\(U(a,\\theta)\\).
+Let states be \(\theta\in\Theta\), actions be \(a\in\mathcal A\), outcomes be \(y\in\mathcal Y_d\), and admissible dependence scenarios be \(s\in\mathcal S\). Each scenario supplies a likelihood \(p_s(y\mid\theta,d)\), and the decision utility is \(U(a,\theta)\).
 
-For each design, choose one policy \\(\\pi_d:\\mathcal Y_d\\to\\mathcal A\\) *before* the hidden scenario is known:
+For each design, choose one policy \(\pi_d:\mathcal Y_d\to\mathcal A\) *before* the hidden scenario is known:
 
-\\[
-V_{\\mathrm{robust}}(d)
+\[
+V_{\mathrm{robust}}(d)
 =
-\\max_{\\pi_d}
-\\min_{s\\in\\mathcal S}
-\\sum_{\\theta,y}
-p(\\theta) p_s(y\\mid\\theta,d)
-U(\\pi_d(y),\\theta).
-\\]
+\max_{\pi_d}
+\min_{s\in\mathcal S}
+\sum_{\theta,y}
+p(\theta) p_s(y\mid\theta,d)
+U(\pi_d(y),\theta).
+\]
 
 The prior decision value is
 
-\\[
-V_0=\\max_{a\\in\\mathcal A}
-\\sum_{\\theta}p(\\theta)U(a,\\theta).
-\\]
+\[
+V_0=\max_{a\in\mathcal A}
+\sum_{\theta}p(\theta)U(a,\theta).
+\]
 
-Thus robust EVSI is \\(V_{\\mathrm{robust}}(d)-V_0\\). The net quantity subtracts resource cost converted using an explicit caller-supplied utility rate. A candidate outside the hard remaining resource budget is never recommended.
+Thus robust EVSI is \(V_{\mathrm{robust}}(d)-V_0\). The net quantity subtracts resource cost converted using an explicit caller-supplied utility rate. A candidate outside the hard remaining resource budget is never recommended.
 
 The clairvoyant comparator is
 
-\\[
-V_{\\mathrm{clairvoyant}}(d)
+\[
+V_{\mathrm{clairvoyant}}(d)
 =
-\\min_{s\\in\\mathcal S}
-\\max_{\\pi_d}
-\\mathbb E_s[U(\\pi_d(Y),\\theta)].
-\\]
+\min_{s\in\mathcal S}
+\max_{\pi_d}
+\mathbb E_s[U(\pi_d(Y),\theta)].
+\]
 
 The non-anticipativity gap is the difference between this upper bound and the shared-policy robust value. It measures how much a scenario-aware calculation could overstate usable decision value.
 
@@ -63,7 +63,7 @@ The Rust module `robust_decision_design.rs` adds:
 - Candidate-specific outcome sets with a shared, ordered finite dependence-scenario set.
 - One common dependence-scope receipt reference across the candidate family. This is a scope check only; receipt authentication is external.
 - Exhaustive enumeration of deterministic outcome-to-action policies, shared across all scenarios.
-- Exact finite-state \\(I(\\theta;Y)\\) per scenario, alongside robust and clairvoyant decision values.
+- Exact finite-state \(I(\theta;Y)\) per scenario, alongside robust and clairvoyant decision values.
 - Explicit resource-budget feasibility and cost-to-utility conversion.
 - A cumulative policy-evaluation cap. Exceeding it returns an error; no partial ranking is labelled optimal.
 - Machine-readable output that keeps EIG, robust EVSI, cost, non-anticipativity gap, and feasibility as separate metrics.
@@ -76,7 +76,7 @@ Fixture: `research/cmni/fixtures/robust-decision-value-vs-eig-rank-reversal-v1.j
 
 There are two equiprobable states, two actions, and two admitted dependence scenarios. The utility is one for choosing the correct state and zero otherwise.
 
-**Candidate A — ambiguous perfect sensor.** Each dependence scenario makes the sensor perfectly informative, so its EIG is \\(\\ln 2\\) nats. But the outcome/state correspondence reverses between scenarios. The best single policy has worst-case utility 0.5, equal to acting before measuring. Robust EVSI is zero. A scenario-aware policy would score 1.0, exposing a 0.5 non-anticipativity gap.
+**Candidate A — ambiguous perfect sensor.** Each dependence scenario makes the sensor perfectly informative, so its EIG is \(\ln 2\) nats. But the outcome/state correspondence reverses between scenarios. The best single policy has worst-case utility 0.5, equal to acting before measuring. Robust EVSI is zero. A scenario-aware policy would score 1.0, exposing a 0.5 non-anticipativity gap.
 
 **Candidate B — stable 80%-accurate sensor.** Its outcome likelihood is the same in both scenarios. It has lower EIG, approximately 0.1927447570 nats, but the common policy obtains expected utility 0.8. Robust EVSI is 0.3.
 
