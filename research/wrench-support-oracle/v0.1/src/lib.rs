@@ -288,16 +288,10 @@ fn build_report(
 }
 
 fn squared_distance(left: [f64; 3], right: [f64; 3]) -> f64 {
-    (left[0] - right[0]).powi(2)
-        + (left[1] - right[1]).powi(2)
-        + (left[2] - right[2]).powi(2)
+    (left[0] - right[0]).powi(2) + (left[1] - right[1]).powi(2) + (left[2] - right[2]).powi(2)
 }
 
-fn perpendicular_distance_squared(
-    point: [f64; 3],
-    origin: [f64; 3],
-    edge: [f64; 3],
-) -> f64 {
+fn perpendicular_distance_squared(point: [f64; 3], origin: [f64; 3], edge: [f64; 3]) -> f64 {
     let vector = [
         point[0] - origin[0],
         point[1] - origin[1],
@@ -307,8 +301,8 @@ fn perpendicular_distance_squared(
     if edge_length_squared < 1.0e-30 {
         return vector.iter().map(|value| value * value).sum();
     }
-    let projection = (vector[0] * edge[0] + vector[1] * edge[1] + vector[2] * edge[2])
-        / edge_length_squared;
+    let projection =
+        (vector[0] * edge[0] + vector[1] * edge[1] + vector[2] * edge[2]) / edge_length_squared;
     (0..3)
         .map(|axis| (vector[axis] - edge[axis] * projection).powi(2))
         .sum()
@@ -327,7 +321,9 @@ pub fn select_deepest_area_subset(
 ) -> Result<WrenchSupportReport, OracleError> {
     let (points, directions) = validate_patch(patch)?;
     if keep == 0 || keep > points.len() || keep > 4 {
-        return Err(OracleError::new("best-N keep must be in 1..=min(4, candidate count)"));
+        return Err(OracleError::new(
+            "best-N keep must be in 1..=min(4, candidate count)",
+        ));
     }
 
     let mut selected = Vec::with_capacity(keep);
