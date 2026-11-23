@@ -131,3 +131,30 @@ policy = "require source_pinned_hydraulic_and_operator_evidence_before_calibrati
 [policy_document_observations.draft_strategic_stocks_policy_2026.stock_rotation]
 refined_product_rotation_max_days = 90
 evidence_class = "reported_draft_policy"
+
+[structural_supply_context]
+source_id = "SARB-REFINERY-CLOSURES-2026"
+sarb_refining_capacity_change = "halved_over_prior_decade"
+imported_refined_products_share_of_domestic_fuel_demand = "more_than_50_percent"
+evidence_class = "reported_macro_context"
+not_equivalent_to = ["current_stock", "diesel_only_import_share", "immediate_shortage"]
+
+[structural_supply_context.industry_attributed_deficit]
+source_id = "SPGLOBAL-STOCK-POLICY-STATUS-2026"
+value_barrels_per_day = 300000
+scope = "oil_products_shortfall_attributed_to_SANPC_CEO_after_Enref_and_Sapref_closures"
+evidence_class = "reported_executive_estimate"
+not_equivalent_to = ["diesel_only_deficit", "usable_inventory_shortfall", "calibrated_national_balance"]
+
+[short_term_availability_context]
+source_id = "MINISTER-FUEL-SUPPLY-HANSARD-2026-05"
+statement_date = "2026-05-19"
+claim = "Minister stated supply was secured and no near-term shortage expected"
+evidence_class = "official_parliamentary_statement"
+not_equivalent_to = ["independent_stock_audit", "long_horizon_resilience", "verified_days_of_cover"]
+
+[policy_status_as_of_2026_11_24]
+source_id = "SPGLOBAL-STOCK-POLICY-STATUS-2026"
+reported_status = "consultation_concluded; Cabinet approval awaited as of 2026-10-15"
+formalization_target = "by_end_2026"
+verification_status = "no_final_policy_instrument_verified_in_sources_reviewed_by_2026-11-24"

@@ -105,3 +105,20 @@ These can form a policy-scenario track, not factual operational thresholds. The 
 - Cabinet statement, 1 July 2026: https://www.gov.za/news/cabinet-statements/full-statement-cabinet-meeting-1-july-2026-03-jul-2026
 
 **Claim ceiling:** this audits internal consistency of a draft policy. It does not estimate actual reserve holdings, independently validate economic losses, qualify MPP hydraulic capacity, or establish the legal status of a final policy.
+
+
+## 8. Latest public status located by 24 November 2026
+
+S&P Global Energy reported on **15 October 2026** that the public consultation process had concluded, Cabinet approval was still awaited, and CEF leadership expected a decision by year-end. That is the latest policy-status report identified in this research pass; it does not establish that Cabinet has since approved the policy or that a binding rule has commenced. The stock-cover requirements in this audit therefore remain draft-policy claims until a final approved/gazetted instrument is found.
+
+S&P also reported SANPC leadership's attributed estimate of a **300,000 barrels/day** oil-products shortfall following refinery closures. This is a source-attributed industry estimate; it is not a diesel-only deficit, a verified volume of missing stock, or a calibrated annual import requirement. Preserve its source, scope and unit separately.
+
+The South African Reserve Bank's 2026 research note independently reports that refining capacity has halved over the prior decade and imported refined products now supply more than half of domestic fuel demand. This is evidence of **structural import exposure**, not proof of an immediate shortage or a measurement of current stocks.
+
+Conversely, the Minister stated in the National Assembly on 19 May 2026 that supply had been secured and no near-term shortage was expected. This statement is not a stock audit, but it illustrates why SAFRB must distinguish:
+- current short-term market availability;
+- structural dependence on imported refined products;
+- physical reserve adequacy;
+- location-specific delivered service under disruption scenarios.
+
+These categories must not be collapsed into one binary "shortage" label.
