@@ -14,6 +14,7 @@ on:
     paths:
       - "tools/mfg-route-policy-benchmark/**"
       - "schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_route_policy_known_answers_v0_1.schema.json"
       - "fixtures/manufacturing/mfg_route_policy_cases_v0_1.json"
       - "fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json"
       - ".github/workflows/mfg-route-policy-benchmark.yml"
