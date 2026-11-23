@@ -185,7 +185,8 @@
         "observer_id",
         "observer_fault_domain_id",
         "observer_binary_sha256",
-        "world_stats_topic"
+        "world_stats_topic",
+        "gazebo_release"
       ],
       "properties": {
         "platform_id": {
@@ -286,6 +287,12 @@
         "world_stats_topic": {
           "type": "string",
           "minLength": 1
+        },
+        "gazebo_release": {
+          "enum": [
+            "harmonic",
+            "jetty"
+          ]
         }
       }
     },
