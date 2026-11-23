@@ -133,7 +133,11 @@ jobs:
           dual = rust["dual_bound"]
           assert dual["dual_constraints_verified"] is True
           assert dual["maximum_candidate_constraint_load_numerator"] <= dual["objective_denominator"]
-          assert dual["minimum_cardinality_optimum_certified"] is False
+          assert dual["minimum_cardinality_optimum_certified"] == (
+              dual["dual_constraints_verified"]
+              and dual["lower_bound_ceiling"] == rust["selected_view_count"]
+              and rust["selected_attainable_targets_fully_covered"]
+          )
           assert dual["lower_bound_ceiling"] <= rust["selected_view_count"]
           assert rust["selected_minus_dual_lower_bound"] == (
               rust["selected_view_count"] - dual["lower_bound_ceiling"]
