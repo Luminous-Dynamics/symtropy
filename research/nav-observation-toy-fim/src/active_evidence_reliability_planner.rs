@@ -466,7 +466,7 @@ mod tests {
     }
 
     fn contract(action_id: u64, lower: f64, upper: f64, successes: usize) -> ValidAcquisitionProbabilityContract {
-        let campaign_blocks = (0..3).map(|index| AcquisitionCampaignBlock {
+        let campaign_blocks = (0..10).map(|index| AcquisitionCampaignBlock {
             block_id: 1 + index as u64,
             independence_group_id: 101 + index as u64,
             outcome: if index < successes {
@@ -494,7 +494,7 @@ mod tests {
         let candidates = [candidate(1, 2.5, 40, 200), candidate(2, 2.6, 40, 200)];
         // Action 1 separates both cross-decision pairs, action 2 separates one.
         let reports = [report(1, [0.0, 2.0, 2.0]), report(2, [0.0, 1.0, 0.0])];
-        let contracts = [contract(1, 0.2, 0.6, 1), contract(2, 0.8, 0.95, 2)];
+        let contracts = [contract(1, 0.2, 0.6, 4), contract(2, 0.8, 0.95, 9)];
         let plan = plan_active_evidence_with_reliability(
             &policy(), &reliability_policy(), &candidates, &reports, &contracts,
         ).unwrap();
@@ -512,7 +512,7 @@ mod tests {
     fn action_below_the_probability_lower_bound_threshold_is_rejected_not_assumed_successful() {
         let candidates = [candidate(1, 2.2, 40, 200), candidate(2, 2.5, 40, 200)];
         let reports = [report(1, [0.0, 2.0, 2.0]), report(2, [0.0, 1.0, 0.0])];
-        let contracts = [contract(1, 0.05, 0.7, 2), contract(2, 0.8, 0.95, 2)];
+        let contracts = [contract(1, 0.05, 0.7, 4), contract(2, 0.8, 0.95, 9)];
         let plan = plan_active_evidence_with_reliability(
             &policy(), &reliability_policy(), &candidates, &reports, &contracts,
         ).unwrap();
@@ -538,7 +538,7 @@ mod tests {
     fn mismatched_acquisition_protocol_is_excluded() {
         let candidates = [candidate(1, 2.2, 40, 200)];
         let reports = [report(1, [0.0, 2.0, 2.0])];
-        let mut bad = contract(1, 0.8, 0.95, 2);
+        let mut bad = contract(1, 0.8, 0.95, 9);
         bad.acquisition_protocol_sha256 = [0x23; 32];
         let plan = plan_active_evidence_with_reliability(
             &policy(), &reliability_policy(), &candidates, &reports, &[bad],
