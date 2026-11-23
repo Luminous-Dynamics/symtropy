@@ -629,8 +629,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        let shifted =
-            transfer_normal_impulse(&shifted_previous, &shifted_next).expect("shifted");
+        let shifted = transfer_normal_impulse(&shifted_previous, &shifted_next).expect("shifted");
 
         assert_eq!(baseline.retained_contact_ids, shifted.retained_contact_ids);
         assert_eq!(baseline.allocations, shifted.allocations);
