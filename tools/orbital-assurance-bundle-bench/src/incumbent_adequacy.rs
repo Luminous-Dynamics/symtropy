@@ -153,6 +153,9 @@ pub struct Summary {
     pub invalid_input_cases: usize,
     pub incumbent_infeasible_cases: usize,
     pub threshold_exceeded_cases: usize,
+    pub loss_model_set_blocked_cases: usize,
+    pub loss_scenario_evidence_blocked_cases: usize,
+    pub joint_scenario_inventory_blocked_cases: usize,
     pub expected_result_mismatches: usize,
     pub authority_grants: usize,
 }
@@ -815,6 +818,37 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
                 case.trigger_reason == "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD"
             })
             .count(),
+        loss_model_set_blocked_cases: cases
+            .iter()
+            .filter(|case| {
+                matches!(
+                    case.trigger_reason.as_str(),
+                    "STALE_LOSS_MODEL_SET"
+                        | "INDETERMINATE_LOSS_MODEL_SET"
+                        | "LOSS_MODEL_SET_OUT_OF_PROFILE"
+                        | "LOSS_MODEL_SET_INADEQUATE"
+                )
+            })
+            .count(),
+        loss_scenario_evidence_blocked_cases: cases
+            .iter()
+            .filter(|case| {
+                matches!(
+                    case.trigger_reason.as_str(),
+                    "LOSS_SCENARIO_OUT_OF_PROFILE"
+                        | "LOSS_SCENARIO_EVIDENCE_INDETERMINATE"
+                        | "LOSS_SCENARIO_RECEIPT_MISSING"
+                )
+            })
+            .count(),
+        joint_scenario_inventory_blocked_cases: cases
+            .iter()
+            .filter(|case| {
+                case.trigger_reason.contains("joint scenario")
+                    || case.trigger_reason.contains("joint loss-scenario")
+                    || case.trigger_reason.contains("physical-world inventory")
+            })
+            .count(),
         expected_result_mismatches: cases
             .iter()
             .filter(|case| !case.expected_result_matched)
@@ -855,6 +889,60 @@ mod tests {
             .iter()
             .find(|item| item.case_id == id)
             .expect("case exists")
+    }
+
+    #[test]
+    fn multiple_loss_models_for_one_physical_world_are_distinct_joint_scenarios() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "multi_loss_models_same_world");
+        assert_eq!(result.disposition, "RETAIN_INCUMBENT");
+        assert_eq!(result.joint_scenario_count, 2);
+        assert_eq!(result.loss_model_ids, vec!["loss-model-A", "loss-model-B"]);
+        assert_eq!(result.world_assessments.len(), 2);
+        assert!(result.world_assessments.iter().all(|assessment| {
+            assessment.world_id == "physical-world-shared"
+        }));
+    }
+
+    #[test]
+    fn stale_loss_model_set_blocks_retention_even_when_world_set_is_current() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "loss_model_set_stale");
+        assert_eq!(result.disposition, "ABSTAIN");
+        assert_eq!(result.trigger_reason, "STALE_LOSS_MODEL_SET");
+        assert_eq!(result.world_set_state, "CURRENT");
+        assert_eq!(result.loss_model_state, "STALE");
+    }
+
+    #[test]
+    fn loss_scenario_out_of_profile_blocks_numeric_decision_metrics() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "loss_scenario_out_of_profile");
+        assert_eq!(result.disposition, "ABSTAIN");
+        assert_eq!(result.trigger_reason, "LOSS_SCENARIO_OUT_OF_PROFILE");
+        assert_eq!(result.worst_case_improvement, None);
+    }
+
+    #[test]
+    fn omitted_joint_scenario_is_rejected_against_planned_inventory() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "joint_scenario_omission");
+        assert_eq!(result.disposition, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "observed joint scenarios do not match planned loss-model inventory"
+        );
+    }
+
+    #[test]
+    fn omitted_physical_world_is_not_hidden_by_remaining_loss_models() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "physical_world_omission");
+        assert_eq!(result.disposition, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "joint loss scenarios do not cover the exact surviving physical-world inventory"
+        );
     }
 
     #[test]
