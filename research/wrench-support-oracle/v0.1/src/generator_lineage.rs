@@ -126,19 +126,6 @@ impl CandidateGenerationCounts {
                 "candidate admission limit exceeds temporary buffer storage capacity",
             ));
         }
-        if self.support_candidates_admitted > self.candidate_admission_limit {
-            return Err(OracleError::new(
-                "admitted support candidates exceed the explicit admission limit",
-            ));
-        }
-        if self.candidate_admission_capacity_rejected > 0
-            && self.support_candidates_admitted != self.candidate_admission_limit
-        {
-            return Err(OracleError::new(
-                "candidate admission drops require the admission limit to be fully occupied",
-            ));
-        }
-
         let primary_count = self.primary_candidate_admitted as u64;
         let pool_count = checked_sum(
             &[primary_count, self.support_candidates_admitted],
@@ -152,6 +139,18 @@ impl CandidateGenerationCounts {
         if pool_count > self.candidate_buffer_storage_capacity {
             return Err(OracleError::new(
                 "candidate pool exceeds temporary buffer storage capacity",
+            ));
+        }
+        if pool_count > self.candidate_admission_limit {
+            return Err(OracleError::new(
+                "candidate pool exceeds the explicit admission limit",
+            ));
+        }
+        if self.candidate_admission_capacity_rejected > 0
+            && pool_count != self.candidate_admission_limit
+        {
+            return Err(OracleError::new(
+                "candidate admission drops require the full pool to reach the admission limit",
             ));
         }
 
@@ -187,8 +186,7 @@ impl CandidateGenerationCounts {
                 let capacity = self.final_storage_fixed_capacity.ok_or_else(|| {
                     OracleError::new("fixed-capacity storage requires a capacity")
                 })?;
-                if self.final_storage_attempted_count > capacity
-                    || self.final_storage_stored_count > capacity
+                if self.final_storage_stored_count > capacity
                     || self.final_storage_spill_used
                 {
                     return Err(OracleError::new(
@@ -315,7 +313,11 @@ mod tests {
         counts.support_queries_completed = 10;
         counts.candidate_admission_limit = 5;
         counts.candidate_admission_capacity_rejected = 2;
-        counts.support_candidates_admitted = 5;
+        counts.support_candidates_admitted = 4;
+        counts.perturbations_requested = 9;
+        counts.perturbations_valid = 9;
+        counts.support_queries_completed = 9;
+        counts.best_n_reduced_count = 1;
         let report = counts.validate().expect("admission loss explicit");
         assert_eq!(report.support_queries_attempted, 10);
         assert_eq!(report.best_n_reduced_count, 2);
@@ -328,8 +330,14 @@ mod tests {
         counts.perturbations_requested = 11;
         counts.perturbations_valid = 11;
         counts.support_queries_completed = 11;
+        counts.candidate_admission_limit = 8;
         counts.candidate_admission_capacity_rejected = 3;
-        let report = counts.validate().expect("8 admission, 16 backing");
+        counts.support_candidates_admitted = 7;
+        counts.perturbations_requested = 13;
+        counts.perturbations_valid = 13;
+        counts.support_queries_completed = 13;
+        counts.candidate_pool_count_before_reduction = 8;
+        let report = counts.validate().expect("8 total admission, 16 backing");
         assert_eq!(report.support_candidates_admitted, 5);
         assert!(!report.evidence_complete);
     }
@@ -350,7 +358,11 @@ mod tests {
     fn inline_storage_spill_is_not_a_dropped_point() {
         let mut counts = baseline();
         counts.support_candidates_admitted = 11;
+        counts.candidate_admission_limit = 16;
         counts.candidate_pool_count_before_reduction = 12;
+        counts.perturbations_requested = 14;
+        counts.perturbations_valid = 14;
+        counts.support_queries_completed = 14;
         counts.best_n_limit = 12;
         counts.best_n_output_count = 12;
         counts.best_n_reduced_count = 0;
@@ -393,6 +405,9 @@ mod tests {
         let mut counts = baseline();
         counts.support_queries_completed = 7;
         counts.support_queries_failed = 1;
+        counts.support_candidates_admitted = 4;
+        counts.candidate_pool_count_before_reduction = 5;
+        counts.best_n_reduced_count = 1;
         let report = counts.validate().expect("query failure explicit");
         assert_eq!(report.support_queries_failed, 1);
         assert!(!report.evidence_complete);
