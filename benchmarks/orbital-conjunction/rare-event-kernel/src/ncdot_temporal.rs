@@ -604,7 +604,7 @@ mod tests {
         let result = integrate_ncdot_time_series(&identity(), horizon(5.0, 3.0), &samples)
             .expect("valid constant-rate series");
         assert!((result.expected_collision_count - 10.0).abs() < 1.0e-12);
-        assert_eq!(result.rate_weighted_average_significant_nodes, Some(7.0));
+        assert!((result.rate_weighted_average_significant_nodes.unwrap() - 7.0).abs() < 1.0e-12);
         assert_eq!(result.cumulative_log_expected_collision_count.len(), 3);
         assert!(result.qualified);
         assert!(result.extrema.is_empty());
@@ -729,7 +729,7 @@ mod tests {
         );
         assert_eq!(result.expected_collision_count, 0.0);
         assert!(result.collision_count_underflowed);
-        assert_eq!(result.rate_weighted_average_significant_nodes, Some(3.0));
+        assert!((result.rate_weighted_average_significant_nodes.unwrap() - 3.0).abs() < 1.0e-12);
     }
 
     #[test]
