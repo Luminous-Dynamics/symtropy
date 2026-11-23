@@ -35,16 +35,19 @@ pub enum FaultEnvelopeEvidence2d {
         half_width_y_m: f64,
         hypothesis_inventory_sha256: [u8; SHA256_BYTES],
         bounding_evidence_sha256: [u8; SHA256_BYTES],
+        declared_hypothesis_count: u64,
         hypotheses_evaluated: u64,
     },
     Incomplete {
         hypothesis_inventory_sha256: [u8; SHA256_BYTES],
         bounding_evidence_sha256: [u8; SHA256_BYTES],
+        declared_hypothesis_count: u64,
         hypotheses_evaluated: u64,
     },
     Unbounded {
         hypothesis_inventory_sha256: [u8; SHA256_BYTES],
         bounding_evidence_sha256: [u8; SHA256_BYTES],
+        declared_hypothesis_count: u64,
         hypotheses_evaluated: u64,
     },
 }
@@ -78,6 +81,7 @@ pub enum FaultAwareSetCompositionError {
     MissingHypothesisInventoryCommitment(usize),
     MissingBoundingEvidenceCommitment(usize),
     EmptyHypothesisInventory(usize),
+    HypothesisCountMismatch { index: usize, declared: u64, evaluated: u64 },
     IncompleteHypothesisInventory(usize),
     UnboundedFaultEnvelope(usize),
     InvalidFaultHalfWidth(usize),
@@ -99,6 +103,7 @@ impl fmt::Display for FaultAwareSetCompositionError {
             Self::MissingHypothesisInventoryCommitment(i) => write!(f, "fault inventory digest missing at position {i}"),
             Self::MissingBoundingEvidenceCommitment(i) => write!(f, "fault-bound evidence digest missing at position {i}"),
             Self::EmptyHypothesisInventory(i) => write!(f, "fault hypothesis inventory empty at position {i}"),
+            Self::HypothesisCountMismatch { index, declared, evaluated } => write!(f, "fault hypotheses evaluated {evaluated} but inventory declares {declared} at position {index}"),
             Self::IncompleteHypothesisInventory(i) => write!(f, "fault hypothesis inventory incomplete at position {i}"),
             Self::UnboundedFaultEnvelope(i) => write!(f, "fault envelope unbounded at position {i}"),
             Self::InvalidFaultHalfWidth(i) => write!(f, "fault half-width invalid at position {i}"),
@@ -144,19 +149,19 @@ impl FaultAwareAnisotropicEpisodeTube2d {
 
         let mut fault_boxes = Vec::with_capacity(evidence.len());
         for (index, item) in evidence.iter().copied().enumerate() {
-            let (inventory, bound, count) = match item {
+            let (inventory, bound, declared_count, evaluated_count) = match item {
                 FaultEnvelopeEvidence2d::CompleteBounded {
                     hypothesis_inventory_sha256, bounding_evidence_sha256,
-                    hypotheses_evaluated, ..
+                    declared_hypothesis_count, hypotheses_evaluated, ..
                 }
                 | FaultEnvelopeEvidence2d::Incomplete {
                     hypothesis_inventory_sha256, bounding_evidence_sha256,
-                    hypotheses_evaluated,
+                    declared_hypothesis_count, hypotheses_evaluated,
                 }
                 | FaultEnvelopeEvidence2d::Unbounded {
                     hypothesis_inventory_sha256, bounding_evidence_sha256,
-                    hypotheses_evaluated,
-                } => (hypothesis_inventory_sha256, bounding_evidence_sha256, hypotheses_evaluated),
+                    declared_hypothesis_count, hypotheses_evaluated,
+                } => (hypothesis_inventory_sha256, bounding_evidence_sha256, declared_hypothesis_count, hypotheses_evaluated),
             };
 
             if inventory.iter().all(|byte| *byte == 0) {
@@ -165,14 +170,22 @@ impl FaultAwareAnisotropicEpisodeTube2d {
             if bound.iter().all(|byte| *byte == 0) {
                 return Err(FaultAwareSetCompositionError::MissingBoundingEvidenceCommitment(index));
             }
-            if count == 0 {
+            if declared_count == 0 || evaluated_count == 0 {
                 return Err(FaultAwareSetCompositionError::EmptyHypothesisInventory(index));
+            }
+            if matches!(item, FaultEnvelopeEvidence2d::CompleteBounded { .. })
+                && evaluated_count != declared_count
+            {
+                return Err(FaultAwareSetCompositionError::HypothesisCountMismatch {
+                    index, declared: declared_count, evaluated: evaluated_count,
+                });
             }
 
             match item {
                 FaultEnvelopeEvidence2d::CompleteBounded {
                     half_width_x_m, half_width_y_m,
                     hypothesis_inventory_sha256, bounding_evidence_sha256,
+                    declared_hypothesis_count: _,
                     hypotheses_evaluated,
                 } => {
                     if !half_width_x_m.is_finite() || half_width_x_m < 0.0
@@ -473,6 +486,7 @@ mod tests {
             half_width_y_m: dy,
             hypothesis_inventory_sha256: [domain; SHA256_BYTES],
             bounding_evidence_sha256: [domain.wrapping_add(1); SHA256_BYTES],
+            declared_hypothesis_count: 3,
             hypotheses_evaluated: 3,
         }
     }
@@ -546,11 +560,40 @@ mod tests {
     }
 
     #[test]
+    fn rotated_ellipse_edge_minimizer_includes_support_boundary_and_rejects_outside() {
+        let composed = compose([[4.0, 1.5], [1.5, 1.0]], 0.3, 0.2);
+        let q = composed.statistical_tube().normalized_radius();
+        // The ellipse support point along +x is q*A*[1,0]/sqrt(A_xx).
+        let boundary = [2.0 * q + 0.3, 0.75 * q + 0.2];
+        assert!(composed.contains_position(0, boundary).unwrap());
+        assert!(!composed.contains_position(0, [boundary[0] + 1.0e-5, boundary[1]]).unwrap());
+    }
+
+    #[test]
+    fn complete_inventory_requires_evaluated_count_to_match_declaration() {
+        let mut evidence = complete_box(0.1, 0.1, 0xD0);
+        if let FaultEnvelopeEvidence2d::CompleteBounded {
+            hypotheses_evaluated, ..
+        } = &mut evidence {
+            *hypotheses_evaluated = 2;
+        }
+        assert_eq!(
+            FaultAwareAnisotropicEpisodeTube2d::compose(
+                base_tube([[4.0, 0.0], [0.0, 1.0]]), &[evidence],
+            ),
+            Err(FaultAwareSetCompositionError::HypothesisCountMismatch {
+                index: 0, declared: 3, evaluated: 2,
+            })
+        );
+    }
+
+    #[test]
     fn incomplete_or_unbounded_fault_inventory_never_falls_back_to_ellipse() {
         let base = base_tube([[4.0, 0.0], [0.0, 1.0]]);
         let incomplete = FaultEnvelopeEvidence2d::Incomplete {
             hypothesis_inventory_sha256: [0xD0; SHA256_BYTES],
             bounding_evidence_sha256: [0xD1; SHA256_BYTES],
+            declared_hypothesis_count: 3,
             hypotheses_evaluated: 3,
         };
         assert_eq!(
@@ -560,6 +603,7 @@ mod tests {
         let unbounded = FaultEnvelopeEvidence2d::Unbounded {
             hypothesis_inventory_sha256: [0xD0; SHA256_BYTES],
             bounding_evidence_sha256: [0xD1; SHA256_BYTES],
+            declared_hypothesis_count: 3,
             hypotheses_evaluated: 3,
         };
         assert_eq!(
@@ -585,6 +629,7 @@ mod tests {
             half_width_x_m: 0.1, half_width_y_m: 0.1,
             hypothesis_inventory_sha256: [0xD0; SHA256_BYTES],
             bounding_evidence_sha256: [0xD1; SHA256_BYTES],
+            declared_hypothesis_count: 3,
             hypotheses_evaluated: 0,
         };
         assert_eq!(
