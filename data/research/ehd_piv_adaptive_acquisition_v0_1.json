@@ -1,0 +1,102 @@
+{
+  "schema": "luminous.ehd_piv_adaptive_acquisition_benchmark",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-ADAPT-001",
+  "status": "manufactured_deterministic_scheduler_authored_tests_execution_pending",
+  "policy": "risk_triggered_capability_cover_with_cost_latency_tiebreak",
+  "maximum_diagnostic_options": 16,
+  "scheduler_limits": {
+    "maximum_selected_actions": 6,
+    "unit_cost_budget_example": 12,
+    "latency_seconds_budget_example": 30
+  },
+  "targets": {
+    "sentinel_monitoring": [],
+    "field_covariance": [
+      "high_resolution_piv",
+      "spatial_region_coverage",
+      "reference_qualification"
+    ],
+    "three_dimensional_velocity": [
+      "volumetric_lpt",
+      "independent_velocity_reference"
+    ],
+    "integrated_force": [
+      "direct_force_measurement",
+      "complete_control_volume"
+    ],
+    "thrust_claim": [
+      "direct_force_measurement",
+      "complete_control_volume",
+      "independent_velocity_reference",
+      "electrical_power_accounting"
+    ]
+  },
+  "triggers": [
+    "local_uncertainty_exceeded",
+    "out_of_domain",
+    "independent_diagnostics_disagree",
+    "conservation_residual_exceeded",
+    "high_fidelity_acquisition_stale",
+    "spatial_coverage_missing",
+    "diagnostic_quality_failed",
+    "reference_evidence_unqualified",
+    "observer_state_unqualified",
+    "sentinel_telemetry_incomplete"
+  ],
+  "observer_requalification": {
+    "already_unqualified": "before_measurement",
+    "potentially_perturbative_or_unknown_action": "after_measurement",
+    "both_conditions": "before_and_after",
+    "no_observer_qualification": "not_required"
+  },
+  "fail_closed_rules": [
+    "unknown_observer_state_requires_requalification_before_measurement",
+    "potentially_perturbative_diagnostic_requires_observer_requalification_after_measurement",
+    "both_observer_conditions_require_pre_and_post_requalification",
+    "reference_unknown_does_not_authorize_piv_only_covariance",
+    "thrust_claim_requires_direct_force_and_complete_control_volume",
+    "missing_direct_force_resource_causes_abstention",
+    "every_action_requires_replayable_evidence_receipt",
+    "budget_or_latency_exhaustion_causes_abstention",
+    "action_order_is_deterministic_under_catalog_permutation"
+  ],
+  "benchmark_baselines": [
+    "fixed_periodic_high_fidelity",
+    "sentinel_only",
+    "fixed_threshold",
+    "risk_capability_aware_set_cover",
+    "budget_matched_random",
+    "future_expected_information_gain"
+  ],
+  "manufactured_event_classes": [
+    "stationary_benign_flow",
+    "near_wall_gradient_increase",
+    "out_of_plane_motion",
+    "low_seeding_or_poor_correlation",
+    "reference_drift_or_bandwidth_loss",
+    "clock_synchronization_drift",
+    "observer_state_intervention",
+    "model_disagreement",
+    "force_balance_disagreement",
+    "conservation_ledger_residual",
+    "high_fidelity_sensor_unavailable",
+    "budget_exhausted",
+    "stale_or_replayed_receipt"
+  ],
+  "prospective_targets": {
+    "hard_gate_event_triggered_or_abstained": 1,
+    "piv_only_force_or_thrust_claims": 0,
+    "stale_or_replayed_receipt_acceptance": 0,
+    "benign_independent_dependence_cluster_count": 300,
+    "high_fidelity_cost_reduction_at_matched_detection_and_coverage": 0.2
+  },
+  "authored_rust_unit_tests": 21,
+  "claim_boundary": [
+    "manufactured_scheduler_only",
+    "no_sensor_processing",
+    "no_physical_ehd_validation",
+    "no_actuation_or_safety_authorization",
+    "no_global_optimality_claim"
+  ]
+}
