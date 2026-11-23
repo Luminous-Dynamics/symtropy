@@ -305,7 +305,7 @@ pub enum OverflowFlagLifetime {
     Unknown = 4,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u8)]
 pub enum CapacityDiagnosticScope {
     World = 1,
@@ -390,6 +390,232 @@ impl OverflowObservation {
             }
             OverflowFlagLifetime::Unknown => StepOverflowAttribution::Unattributable,
         })
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct CapacityEvidence {
+    pub manifold_lineages: Vec<ContactManifoldLineage>,
+    pub overflow_observations: Vec<OverflowObservation>,
+    pub diagnostic_resets: Vec<DiagnosticResetReceipt>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapacityEvidenceReport {
+    pub manifold_pairs: u64,
+    pub geometric_points_generated: u64,
+    pub geometric_points_retained: u64,
+    pub geometric_points_reduced: u64,
+    pub geometric_points_capacity_dropped: u64,
+    pub solver_contact_groups: u64,
+    pub solver_mapping_incomplete_pairs: u64,
+    pub overflow_observations: u64,
+    pub overflow_occurred_this_step: u64,
+    pub overflow_not_attributable_to_step: u64,
+    pub diagnostic_resets: u64,
+}
+
+impl CapacityEvidence {
+    pub fn validate(&self) -> Result<CapacityEvidenceReport, ValidationError> {
+        let mut pair_ids = BTreeSet::new();
+        let mut manifold_pairs = 0_u64;
+        let mut geometric_points_generated = 0_u64;
+        let mut geometric_points_retained = 0_u64;
+        let mut geometric_points_reduced = 0_u64;
+        let mut geometric_points_capacity_dropped = 0_u64;
+        let mut solver_contact_groups = 0_u64;
+        let mut solver_mapping_incomplete_pairs = 0_u64;
+
+        for lineage in &self.manifold_lineages {
+            if !pair_ids.insert(lineage.pair_id.as_str()) {
+                return Err(ValidationError::new(
+                    "capacity.manifold_lineages",
+                    "duplicate contact-pair lineage identity",
+                ));
+            }
+            let report = lineage.validate()?;
+            manifold_pairs += 1;
+            geometric_points_generated += report.generated_points;
+            geometric_points_retained += report.retained_points;
+            geometric_points_reduced += report.reduced_by_policy;
+            geometric_points_capacity_dropped += report.capacity_dropped;
+            solver_contact_groups += report.solver_groups;
+            if !report.solver_mapping_complete {
+                solver_mapping_incomplete_pairs += 1;
+            }
+        }
+
+        let mut overflow_keys = BTreeSet::new();
+        let mut overflow_occurred_this_step = 0_u64;
+        let mut overflow_not_attributable_to_step = 0_u64;
+        for observation in &self.overflow_observations {
+            observation.validate()?;
+            let key = (
+                observation.scope_kind,
+                observation.scope_id.as_str(),
+                observation.row_family,
+                observation.step_index,
+            );
+            if !overflow_keys.insert(key) {
+                return Err(ValidationError::new(
+                    "capacity.overflow_observations",
+                    "duplicate scope/row-family/step observation",
+                ));
+            }
+            match observation.validate()? {
+                StepOverflowAttribution::OccurredThisStep => overflow_occurred_this_step += 1,
+                StepOverflowAttribution::Unattributable => {
+                    overflow_not_attributable_to_step += 1
+                }
+                StepOverflowAttribution::DidNotOccurThisStep => {}
+            }
+        }
+
+        let mut reset_ids = BTreeSet::new();
+        for reset in &self.diagnostic_resets {
+            reset.validate()?;
+            if !reset_ids.insert((
+                reset.scope_kind,
+                reset.scope_id.as_str(),
+                reset.reset_id.as_str(),
+            )) {
+                return Err(ValidationError::new(
+                    "capacity.diagnostic_resets",
+                    "duplicate reset identity within diagnostic scope",
+                ));
+            }
+        }
+
+        Ok(CapacityEvidenceReport {
+            manifold_pairs,
+            geometric_points_generated,
+            geometric_points_retained,
+            geometric_points_reduced,
+            geometric_points_capacity_dropped,
+            solver_contact_groups,
+            solver_mapping_incomplete_pairs,
+            overflow_observations: self.overflow_observations.len() as u64,
+            overflow_occurred_this_step,
+            overflow_not_attributable_to_step,
+            diagnostic_resets: self.diagnostic_resets.len() as u64,
+        })
+    }
+
+    /// Deterministic preimage for contact-lineage and temporal capacity evidence.
+    pub fn canonical_preimage(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.extend_from_slice(b"SYMCOV-CAPACITY\\0");
+
+        let mut lineages = self.manifold_lineages.clone();
+        lineages.sort_by(|a, b| a.pair_id.cmp(&b.pair_id));
+        push_u64(&mut out, lineages.len() as u64);
+        for lineage in lineages {
+            push_string(&mut out, &lineage.pair_id);
+            push_optional_string(&mut out, lineage.reduction_policy_id.as_deref());
+            push_optional_u64(&mut out, lineage.point_capacity);
+            out.push(u8::from(lineage.solver_mapping_complete));
+
+            let mut points = lineage.generated_points.clone();
+            points.sort_by(|a, b| a.point_id.cmp(&b.point_id));
+            push_u64(&mut out, points.len() as u64);
+            for point in points {
+                push_string(&mut out, &point.point_id);
+                out.push(point.disposition as u8);
+                push_optional_string(&mut out, point.reason.as_deref());
+            }
+
+            let mut groups = lineage.solver_contacts.clone();
+            groups.sort_by(|a, b| a.solver_contact_id.cmp(&b.solver_contact_id));
+            push_u64(&mut out, groups.len() as u64);
+            for mut group in groups {
+                push_string(&mut out, &group.solver_contact_id);
+                group.source_point_ids.sort();
+                push_u64(&mut out, group.source_point_ids.len() as u64);
+                for source_id in group.source_point_ids {
+                    push_string(&mut out, &source_id);
+                }
+                out.push(group.disposition as u8);
+                push_optional_string(&mut out, group.reason.as_deref());
+            }
+        }
+
+        let mut observations = self.overflow_observations.clone();
+        observations.sort_by(|a, b| {
+            (
+                a.scope_kind,
+                &a.scope_id,
+                a.row_family,
+                a.step_index,
+            )
+                .cmp(&(
+                    b.scope_kind,
+                    &b.scope_id,
+                    b.row_family,
+                    b.step_index,
+                ))
+        });
+        push_u64(&mut out, observations.len() as u64);
+        for item in observations {
+            push_string(&mut out, &item.backend_profile_sha256.to_ascii_lowercase());
+            out.push(item.scope_kind as u8);
+            push_string(&mut out, &item.scope_id);
+            out.push(item.row_family.map_or(0, |family| family as u8));
+            push_u64(&mut out, item.step_index);
+            push_optional_u64(&mut out, item.reset_epoch);
+            push_optional_u64(&mut out, item.last_confirmed_reset_step);
+            out.push(item.flag_lifetime as u8);
+            out.push(u8::from(item.observed_before_step));
+            out.push(u8::from(item.observed_after_step));
+            push_optional_u64(&mut out, item.new_overflow_count);
+            push_string(&mut out, &item.source_semantics_id);
+        }
+
+        let mut resets = self.diagnostic_resets.clone();
+        resets.sort_by(|a, b| {
+            (a.scope_kind, &a.scope_id, &a.reset_id)
+                .cmp(&(b.scope_kind, &b.scope_id, &b.reset_id))
+        });
+        push_u64(&mut out, resets.len() as u64);
+        for item in resets {
+            push_string(&mut out, &item.backend_profile_sha256.to_ascii_lowercase());
+            out.push(item.scope_kind as u8);
+            push_string(&mut out, &item.scope_id);
+            push_string(&mut out, &item.reset_id);
+            push_u64(&mut out, item.step_index);
+            push_u64(&mut out, item.epoch_before);
+            push_u64(&mut out, item.epoch_after);
+            push_string(&mut out, &item.source_semantics_id);
+        }
+        out
+    }
+}
+
+fn push_u64(out: &mut Vec<u8>, value: u64) {
+    out.extend_from_slice(&value.to_be_bytes());
+}
+
+fn push_optional_u64(out: &mut Vec<u8>, value: Option<u64>) {
+    match value {
+        Some(value) => {
+            out.push(1);
+            push_u64(out, value);
+        }
+        None => out.push(0),
+    }
+}
+
+fn push_string(out: &mut Vec<u8>, value: &str) {
+    push_u64(out, value.len() as u64);
+    out.extend_from_slice(value.as_bytes());
+}
+
+fn push_optional_string(out: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            out.push(1);
+            push_string(out, value);
+        }
+        None => out.push(0),
     }
 }
 
