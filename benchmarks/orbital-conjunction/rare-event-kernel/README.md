@@ -32,6 +32,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Deterministic positive-weight Lebedev sphere rules with 6, 14, 26 and 5,810 nodes (algebraic precision 3, 5, 7 and 131), plus a validated nonnegative-sample integrator. The 5,810-point rule is generated from 144 symmetry-orbit records transcribed from the public NASA CARA generator.
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
+- Log-domain instantaneous Ncdot composition over any built-in Lebedev rule, including 5,810 points. Pointwise finite log contributions are accumulated with weighted log-sum-exp before applying the outer HBR-squared factor; exact all-zero rates remain distinct from underflowed rates.
 
 ## Run the isolated tests
 
