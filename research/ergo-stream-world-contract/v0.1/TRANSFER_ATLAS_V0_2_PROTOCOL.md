@@ -19,6 +19,25 @@ This claim has four distinct levels. Never merge them:
 
 A result at level 1 is not evidence for levels 2–4. A sign-level reference test is not an authenticated intervention. Synthetic evaluation is not physical discovery.
 
+## Existing owner composition
+
+ErgoStream is a cross-repository research/qualification layer, not another learner, hidden-world runner, model DSL or sensor stack. The implementation should consume existing owners:
+
+| Owner | Existing capability to reuse | ErgoStream-specific addition |
+|---|---|---|
+| Symthaea [#11042](https://github.com/Luminous-Dynamics/symthaea/issues/11042), [#11044](https://github.com/Luminous-Dynamics/symthaea/pull/11044) | Ansätz-free discovery contract; A0/A2/A3/A4/A5 split; structural identification, non-identifiability and positive/negative mechanism transfer | Freeze a versioned structural library and correspondence as explicit transfer artifacts |
+| Symthaea [#11060](https://github.com/Luminous-Dynamics/symthaea/pull/11060) | Three executable finite world families, public `AgentView` / `AgentAction`, parent-runner/child-agent bridge, seven policy baselines, evidence-prefix digests and paired A0/A2 campaign | Add post-acquisition structural and finite-dynamics transfer outputs to this interface; do not create another JSONL episode runner or duplicate the existing seven acquisition policies |
+| Symtropy [#5990](https://github.com/Luminous-Dynamics/symtropy/issues/5990) | Trusted owner-side interactive episode boundary and private world state | Add only typed stream-world adapters and hidden transfer probes through this custody boundary |
+| Symtropy [#6027](https://github.com/Luminous-Dynamics/symtropy/issues/6027), [#6065](https://github.com/Luminous-Dynamics/symtropy/pull/6065) | Candidate-independent, bounded typed model DSL / interpreter and counterexample foundation | Encode or link candidate finite dynamics through the existing typed vocabulary; do not create a second scientific model AST |
+| Symtropy [#7149](https://github.com/Luminous-Dynamics/symtropy/issues/7149) | ErgoStream stream-world provider and information-boundary contract | Supply paired stream inputs and withheld structural probes to the existing runner |
+| Symthaea [#8919](https://github.com/Luminous-Dynamics/symthaea/issues/8919), [#8671](https://github.com/Luminous-Dynamics/symthaea/issues/8671), [#8705](https://github.com/Luminous-Dynamics/symthaea/issues/8705) | Shared grammar recovery, progressive knowledge acquisition / negative-transfer concerns, invariant mechanism transfer | Treat learned grammar and mechanism fragments as candidate structural libraries with explicit transfer scope |
+| Symthaea [#8669](https://github.com/Luminous-Dynamics/symthaea/issues/8669) | Equivalence classes, posterior uncertainty, support omission and abstention | Preserve set-valued or unresolved correspondences when a unique map is not identifiable |
+| Symthaea [#12837](https://github.com/Luminous-Dynamics/symthaea/issues/12837) | AV-STREAM timing, multimodal continuity and active sensing | Reuse as the audiovisual acquisition adapter, not a new clock/fusion layer |
+| Symthaea [#9094](https://github.com/Luminous-Dynamics/symthaea/issues/9094), [#13389](https://github.com/Luminous-Dynamics/symthaea/issues/13389) | Decision-centric world-model comparison and RoboDyna / LIBERO-Dynamic adapters | Measure whether transferred structure improves action outcomes under matched budgets |
+| Symthaea [#13375](https://github.com/Luminous-Dynamics/symthaea/issues/13375), [#13377](https://github.com/Luminous-Dynamics/symthaea/pull/13377) | Causal trajectory pairing, evidence filtration and action/outcome provenance | Reuse the existing trajectory identities for prediction-to-action qualification |
+
+The tiny fixtures in Symtropy #7173 are contract-conformance tests only. The confirmatory world corpus should be layered onto these owners rather than implemented as a second simulator or process protocol.
+
 ## 2. Evaluation custody and episode contract
 
 ### Owner / evaluator process
@@ -75,7 +94,7 @@ Begin with finite deterministic generators and independent exact oracles. Introd
 | Cross-modal alignment | Coupled event streams with delay, drift and missing channels | Incorrect association, temporal shuffling and missing-modality controls |
 | Interactive dynamics | Occlusion, contact, event order and continuous-time state changes | Same snapshots with different causal ordering / action outcomes |
 
-The current v0.1 implementation covers only a relabeled/reversed graph pair, a degree-matched non-isomorphic pair, and a qualitative intervention-divergent effect fixture. It does not yet implement these full generator families.
+The current v0.1 Transfer Atlas fixtures cover a relabeled/reversed graph pair, a degree-matched non-isomorphic pair, and a qualitative intervention-divergent effect fixture. Separately, #7173 now contains a deterministic finite-state dynamics witness that checks exact transition commutation under a proposed state/action map. Neither the fixtures nor the validator implement these full generator families, stream-to-graph learning, an authenticated intervention runner, or a sealed evaluation service.
 
 ## 4. Baseline ladder and comparison discipline
 
