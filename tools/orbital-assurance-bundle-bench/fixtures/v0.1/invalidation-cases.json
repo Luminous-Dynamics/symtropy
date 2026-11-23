@@ -44,7 +44,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -80,7 +82,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -93,7 +97,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -153,14 +159,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "CURRENT",
@@ -207,7 +217,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -243,7 +255,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -256,7 +270,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -316,14 +332,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "REQUALIFICATION_REQUIRED",
@@ -380,7 +400,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -416,7 +438,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -430,7 +454,8 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -490,14 +515,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "REQUALIFICATION_REQUIRED",
@@ -549,7 +578,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -585,7 +616,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -598,7 +631,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -658,7 +693,9 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
@@ -666,7 +703,8 @@
           "current_content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "CURRENT",
@@ -715,7 +753,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -751,7 +791,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -764,7 +806,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -824,14 +868,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "REQUALIFICATION_REQUIRED",
@@ -893,7 +941,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -929,7 +979,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -942,7 +994,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -1002,14 +1056,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "INVALID_GRAPH",
@@ -1072,7 +1130,9 @@
               "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "current_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "node_id": "feasibility",
@@ -1113,7 +1173,9 @@
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "current_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "node_id": "loss_model",
@@ -1126,7 +1188,9 @@
               "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "current_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
         },
         {
           "node_id": "regret",
@@ -1186,14 +1250,18 @@
               "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             }
-          ]
+          ],
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "current_content_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "node_id": "unrelated_campaign",
           "node_type": "unrelated_campaign",
           "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "dependencies": []
+          "dependencies": [],
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ],
       "expected_disposition": "INVALID_GRAPH",
