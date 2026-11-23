@@ -510,6 +510,14 @@ mod tests {
     }
 
     #[test]
+    fn rejects_event_count_over_bound_before_allocating() {
+        assert_eq!(
+            WorldV0::generate(1, 65_537, [0, 1, 2, 3], 1, 0).unwrap_err(),
+            WorldError::TooManyEvents
+        );
+    }
+
+    #[test]
     fn invalid_prefix_is_rejected_without_exposing_future_frames() {
         let generated = world();
         assert_eq!(
