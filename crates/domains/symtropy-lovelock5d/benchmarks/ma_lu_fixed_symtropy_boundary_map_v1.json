@@ -44,5 +44,10 @@
     "sympy": "1.14.0"
   },
   "local_prototype_source_sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
-  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), through the displayed orders. No corrected metric component comparison, full EOM residual, finite-coupling solution or existence theorem is claimed."
+  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), through the displayed orders. No corrected metric component comparison, full EOM residual, finite-coupling solution or existence theorem is claimed.",
+  "parameter_interpretation": {
+    "mu_over_R_H2": "Converted background Myers-Perry mass parameter only; not the corrected ADM mass.",
+    "physical_ADM_mass": "Must be independently extracted from the asymptotic 1/R^2 coefficient of the fully transformed metric, including the H1 correction and the selected ensemble.",
+    "ma_lu_parameter_ensemble": "The perturbative construction holds the background MP parameters/horizon data fixed; the fixed-Symtropy (R_H,Omega_H) map is a reparameterization and must not be mistaken for the thermodynamic fixed-(T,Omega) or fixed-charge ensembles."
+  }
 }
