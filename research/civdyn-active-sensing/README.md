@@ -45,15 +45,15 @@ The no-observation baseline must choose one action feasible in all worlds. Its m
 
 ### Observation alternatives
 
-| Observation | Evidence ceiling | Energy | Delay | Net result |
+| Observation | Evidence ceiling | Energy | Delay | Worst regret | Regret reduction vs no observation |
 |---|---|---:|---:|---|
-| no_observation | No new evidence | 0 kWh | 0 ticks | 70 regret |
-| shared_tos_signal | Advisory only; shared gateway | 1 kWh | 0 ticks | 71 regret |
-| independent_field_inspection | Independent observation candidate | 2 kWh | 1 tick | 5 regret |
-| unknown_dependency_feed | Not admissible | 0 kWh | 0 ticks | Blocked |
-| ambiguous_event_camera | Not admissible | 0 kWh | 0 ticks | Blocked |
-| stale_field_sensor | Not admissible | 0 kWh | 0 ticks | Blocked |
-| overbudget_independent_audit | Above budget | 4 kWh | 2 ticks | 12 service_units; budget is 8 |
+| no_observation | No new evidence | 0 kWh | 0 ticks | 70 service_units | 0 service_units |
+| shared_tos_signal | Advisory only; shared gateway | 1 kWh | 0 ticks | 71 service_units | -1 service_unit |
+| independent_field_inspection | Independent observation candidate | 2 kWh | 1 tick | 5 service_units | 65 service_units |
+| unknown_dependency_feed | Not admissible | 0 kWh | 0 ticks | NA | NA |
+| ambiguous_event_camera | Not admissible | 0 kWh | 0 ticks | NA | NA |
+| stale_field_sensor | Not admissible | 0 kWh | 0 ticks | NA | NA |
+| overbudget_independent_audit | Above budget | 4 kWh | 2 ticks | NA | NA (12 cost units > 8 budget) |
 
 Conversion is explicit and synthetic: 1 service_unit per kWh and 3 service_units per acquisition-delay tick. The independent inspection therefore costs 2 + 3 = 5 service_units. Its three distinct, qualified outcomes select maintain_primary, use_reserve, and maintain_primary respectively. The reserve action is never admitted in the world where reserve capacity is unavailable.
 
