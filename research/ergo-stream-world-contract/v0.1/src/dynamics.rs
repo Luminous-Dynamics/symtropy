@@ -480,7 +480,8 @@ mod tests {
 
     #[test]
     fn rejects_action_kind_mapping_collision() {
-        let (source, target, mut correspondence) = fixture();
+        let (source, mut target, mut correspondence) = fixture();
+        target.actions[1].kind = 100;
         correspondence.actions[1].target_action_kind = 100;
 
         assert_eq!(
