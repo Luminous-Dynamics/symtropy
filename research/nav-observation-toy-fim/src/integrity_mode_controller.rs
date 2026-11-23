@@ -587,16 +587,23 @@ mod tests {
         let mut controller = controller();
         qualify_normal(&mut controller, 1);
 
-        let first = controller.observe(frame(4, 104, 0.1));
+        let fault = controller.observe(frame(4, 104, 0.6));
+        assert_eq!(fault.current_mode, IntegrityMode::Degraded);
+        assert_eq!(
+            fault.reason,
+            IntegrityModeReason::ProtectionLevelExceedsAlertLimit
+        );
+
+        let first = controller.observe(frame(5, 105, 0.1));
         assert_eq!(first.current_mode, IntegrityMode::Degraded);
         assert_eq!(first.recovery_streak, 1);
         assert!(!first.qualified_for_normal_operation);
 
-        let second = controller.observe(frame(5, 105, 0.05));
+        let second = controller.observe(frame(6, 106, 0.05));
         assert_eq!(second.current_mode, IntegrityMode::Degraded);
         assert_eq!(second.recovery_streak, 2);
 
-        let third = controller.observe(frame(6, 106, 0.04));
+        let third = controller.observe(frame(7, 107, 0.04));
         assert_eq!(third.current_mode, IntegrityMode::Normal);
         assert_eq!(
             third.reason,
