@@ -13,7 +13,7 @@
 //! evaluator does not calibrate probabilities; that evidence remains owned by
 //! #6460. Stress-only scenarios are not probability-weighted here.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
 
