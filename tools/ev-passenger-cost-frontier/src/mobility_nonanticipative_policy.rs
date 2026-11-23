@@ -379,7 +379,14 @@ pub fn evaluate_nonanticipative_policy(
     // state and the same action. This is the nonanticipativity certificate.
     let mut information_sets: BTreeMap<
         String,
-        (String, Vec<AvailableRequest>, Vec<AvailableOpportunity>, PolicyAction, usize),
+        (
+            u64,
+            String,
+            Vec<AvailableRequest>,
+            Vec<AvailableOpportunity>,
+            PolicyAction,
+            usize,
+        ),
     > = BTreeMap::new();
 
     for node in &input.nodes {
@@ -393,6 +400,7 @@ pub fn evaluate_nonanticipative_policy(
                 information_sets.insert(
                     node.information_set_digest.clone(),
                     (
+                        node.decision_time_seconds,
                         node.observation_digest.clone(),
                         requests,
                         opportunities,
@@ -401,9 +409,17 @@ pub fn evaluate_nonanticipative_policy(
                     ),
                 );
             }
-            Some((observation, known_requests, known_opportunities, action, count)) => {
+            Some((
+                decision_time,
+                observation,
+                known_requests,
+                known_opportunities,
+                action,
+                count,
+            )) => {
                 *count += 1;
-                if *observation != node.observation_digest
+                if *decision_time != node.decision_time_seconds
+                    || *observation != node.observation_digest
                     || *known_requests != requests
                     || *known_opportunities != opportunities
                 {
@@ -531,7 +547,7 @@ pub fn evaluate_nonanticipative_policy(
     }
 
     let mut information_set_decisions = Vec::new();
-    for (digest, (observation, _, _, action, count)) in information_sets {
+    for (digest, (_, observation, _, _, action, count)) in information_sets {
         information_set_decisions.push(InformationSetDecision {
             information_set_digest: digest,
             observation_digest: observation,
@@ -705,6 +721,22 @@ mod tests {
         node.observation_digest = format!("sha256:{}", "e".repeat(64));
         let errors = evaluate_nonanticipative_policy(&input)
             .expect_err("same information set cannot refer to different observations");
+        assert!(errors.iter().any(|error| {
+            error.contains("information_set_digest_observation_mismatch")
+        }));
+    }
+
+    #[test]
+    fn shared_information_set_with_different_decision_time_is_rejected() {
+        let mut input = fixture();
+        input
+            .nodes
+            .iter_mut()
+            .find(|node| node.node_id == "blind-b")
+            .unwrap()
+            .decision_time_seconds = 61;
+        let errors = evaluate_nonanticipative_policy(&input)
+            .expect_err("equal information sets must have the same decision time");
         assert!(errors.iter().any(|error| {
             error.contains("information_set_digest_observation_mismatch")
         }));
