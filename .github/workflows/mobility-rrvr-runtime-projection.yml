@@ -58,6 +58,12 @@ jobs:
           jq empty "$INIT"
           jq empty "$TRACE_FIXTURE"
           jq empty "$RECOVERY_FIXTURE"
+          for FIXTURE in "$INIT" "$TRACE_FIXTURE" "$RECOVERY_FIXTURE"; do
+            jq -e '
+              all(.snapshots[].owner_evidence[];
+                (.raw_artifact_sha256 | test("^[a-fA-F0-9]{64}$")))
+            ' "$FIXTURE"
+          done
           jq -e '
             .version == "0.1"
             and .header.model_source_sha256 == "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81"
