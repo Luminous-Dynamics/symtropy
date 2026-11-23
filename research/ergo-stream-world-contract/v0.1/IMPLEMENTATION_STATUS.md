@@ -93,7 +93,7 @@ The branch now adds `src/atlas.rs`, exposed as `atlas`, and `TRANSFER_ATLAS_V0_1
 - The unique-incidence baseline must transfer the positive pair and abstain on the degree-matched negative pair.
 - A local evaluator distinguishes accepted transfer, correct abstention, missed transfer and false unification.
 
-This is still an in-process reference and **not a sealed hidden-world service or OS security boundary**. The two families do not yet cover matched higher-order marginals, intervention-divergent pairs, non-identifiable map sets, active probes, multiscale structure or stream-to-graph learning.
+This is still an in-process reference and **not a sealed hidden-world service or OS security boundary**. The three reference families do not yet cover matched higher-order marginals, active discriminating probes, non-identifiable map sets, multiscale structure or stream-to-graph learning. The intervention-divergent fixture uses supplied qualitative signs, not an authenticated intervention runner.
 
 **Verification for the latest stacked branch, including the paired-world atlas:** pending exact-head Rust 1.96 format, tests and strict Clippy. The previous run on head `187c9621c5a5a947629628ab1994bcbcc4a1db40` passed formatting but had 32/33 tests pass; the sole failure was an ambiguous graph-matcher test fixture, now corrected with uniquely identifiable unary relation incidence. The combined atlas extension is newer and has not yet been qualified.
 
