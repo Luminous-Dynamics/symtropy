@@ -497,10 +497,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     let expected_world_digest = match digest_ids(&case.expected_world_ids) {
         Ok(digest) => digest,
         Err(_) => {
-            return invalid_input(
-                case,
-                "planned physical-world inventory cannot be encoded",
-            );
+            return invalid_input(case, "planned physical-world inventory cannot be encoded");
         }
     };
     if expected_world_ids.len() != case.expected_world_ids.len()
@@ -519,16 +516,15 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
-    let expected_scenario_digest =
-        match digest_ids(&case.loss_model_set.expected_scenario_ids) {
-            Ok(digest) => digest,
-            Err(_) => {
-                return invalid_input(
-                    case,
-                    "planned joint loss-scenario inventory cannot be encoded",
-                );
-            }
-        };
+    let expected_scenario_digest = match digest_ids(&case.loss_model_set.expected_scenario_ids) {
+        Ok(digest) => digest,
+        Err(_) => {
+            return invalid_input(
+                case,
+                "planned joint loss-scenario inventory cannot be encoded",
+            );
+        }
+    };
     if expected_scenario_ids.len() != case.loss_model_set.expected_scenario_ids.len()
         || expected_scenario_ids.iter().any(|id| !valid_id(id))
         || expected_scenario_digest != case.loss_model_set.expected_scenario_ids_sha256
