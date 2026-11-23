@@ -27,6 +27,7 @@ pub enum QpErrorKind {
     InvalidContactId,
     DuplicateContactId,
     NonFiniteInput,
+    NonFiniteEvaluation,
     InvalidTolerance,
     AsymmetricMatrix,
     NotPositiveSemidefinite,
@@ -135,6 +136,7 @@ pub struct KktCertificate {
     pub maximum_primal_violation: f64,
     pub maximum_dual_violation: f64,
     pub maximum_complementarity_residual: f64,
+    pub maximum_omitted_impulse: f64,
     pub minimum_omitted_gradient: Option<f64>,
     pub worst_omitted_contact_id: Option<String>,
     pub gradient: Vec<f64>,
@@ -280,7 +282,7 @@ fn validate_qp(
         ));
     }
 
-    let matrix_scale = max_abs_matrix(&qp.delassus).max(1.0);
+    let matrix_scale = max_abs_matrix(&qp.delassus).max(f64::MIN_POSITIVE);
     let matrix_tolerance = tolerances.matrix_relative * matrix_scale;
     let mut maximum_symmetry_error = 0.0_f64;
     let mut symmetric = vec![vec![0.0_f64; dimension]; dimension];
@@ -322,7 +324,7 @@ fn validate_positive_semidefinite(
     relative_tolerance: f64,
 ) -> Result<(f64, f64), QpError> {
     let dimension = matrix.len();
-    let scale = max_abs_matrix(matrix).max(1.0);
+    let scale = max_abs_matrix(matrix).max(f64::MIN_POSITIVE);
     let tolerance = relative_tolerance * scale;
     let mut lower = vec![vec![0.0_f64; dimension]; dimension];
     let mut diagonal = vec![0.0_f64; dimension];
@@ -334,6 +336,12 @@ fn validate_positive_semidefinite(
             let mut residual = matrix[i][j];
             for k in 0..j {
                 residual -= lower[i][k] * lower[j][k] * diagonal[k];
+            }
+            if !residual.is_finite() {
+                return Err(QpError::new(
+                    QpErrorKind::NonFiniteEvaluation,
+                    "LDL factorization produced a non-finite residual",
+                ));
             }
             if diagonal[j].abs() <= tolerance {
                 if residual.abs() > tolerance {
@@ -351,6 +359,12 @@ fn validate_positive_semidefinite(
         let mut pivot = matrix[i][i];
         for k in 0..i {
             pivot -= lower[i][k] * lower[i][k] * diagonal[k];
+        }
+        if !pivot.is_finite() {
+            return Err(QpError::new(
+                QpErrorKind::NonFiniteEvaluation,
+                "LDL factorization produced a non-finite pivot",
+            ));
         }
         minimum_pivot = minimum_pivot.min(pivot);
         if pivot < -tolerance {
@@ -403,7 +417,7 @@ fn solve_dense(
 
     let original_matrix = matrix.clone();
     let original_rhs = rhs.clone();
-    let matrix_scale = max_abs_matrix(&matrix).max(1.0);
+    let matrix_scale = max_abs_matrix(&matrix).max(f64::MIN_POSITIVE);
     let pivot_tolerance = pivot_relative * matrix_scale;
 
     for column in 0..dimension {
@@ -459,6 +473,12 @@ fn solve_dense(
             .zip(&solution)
             .map(|(coefficient, value)| coefficient * value)
             .sum::<f64>();
+        if !predicted.is_finite() {
+            return Err(QpError::new(
+                QpErrorKind::NonFiniteEvaluation,
+                "linear-system residual evaluation is non-finite",
+            ));
+        }
         maximum_residual = maximum_residual.max((predicted - original_rhs[i]).abs());
     }
     if maximum_residual > solve_relative * residual_scale {
@@ -478,6 +498,11 @@ fn restricted_kkt_passes(
     tolerances: NumericTolerances,
 ) -> bool {
     let values = gradient(matrix, linear, impulses);
+    if !values.iter().all(|value| value.is_finite())
+        || !impulses.iter().all(|value| value.is_finite())
+    {
+        return false;
+    }
     retained.iter().all(|index| {
         impulses[*index] >= -tolerances.impulse_absolute
             && values[*index] >= -tolerances.gradient_absolute
@@ -617,8 +642,15 @@ fn solve_restricted_validated(
                 }
             })
             .collect::<Vec<_>>();
+        let objective_value = objective(&qp.matrix, &qp.linear, &impulses);
+        if !objective_value.is_finite() {
+            return Err(QpError::new(
+                QpErrorKind::NonFiniteEvaluation,
+                "restricted QP objective is non-finite",
+            ));
+        }
         let candidate = CandidateSolution {
-            objective: objective(&qp.matrix, &qp.linear, &impulses),
+            objective: objective_value,
             impulses,
             active_ids,
         };
@@ -702,9 +734,16 @@ fn verify_validated_kkt(
     }
 
     let dual = gradient(&qp.matrix, &qp.linear, &lambda);
+    if !dual.iter().all(|value| value.is_finite()) {
+        return Err(QpError::new(
+            QpErrorKind::NonFiniteEvaluation,
+            "full-patch KKT gradient is non-finite",
+        ));
+    }
     let mut primal_violation = 0.0_f64;
     let mut dual_violation = 0.0_f64;
     let mut complementarity = 0.0_f64;
+    let mut maximum_omitted_impulse = 0.0_f64;
     let mut minimum_omitted: Option<f64> = None;
     let mut worst_omitted: Option<String> = None;
 
@@ -714,6 +753,7 @@ fn verify_validated_kkt(
         complementarity = complementarity.max((lambda[i] * dual[i]).abs());
 
         if !retained.contains(qp.ids[i].as_str()) {
+            maximum_omitted_impulse = maximum_omitted_impulse.max(lambda[i].abs());
             let is_worse = minimum_omitted.is_none_or(|minimum| {
                 dual[i] < minimum
                     || (dual[i] == minimum
@@ -730,13 +770,15 @@ fn verify_validated_kkt(
 
     let passes = primal_violation <= tolerances.impulse_absolute
         && dual_violation <= tolerances.gradient_absolute
-        && complementarity <= tolerances.complementarity_absolute;
+        && complementarity <= tolerances.complementarity_absolute
+        && maximum_omitted_impulse <= tolerances.impulse_absolute;
 
     Ok(KktCertificate {
         globally_optimal_within_declared_qp: passes,
         maximum_primal_violation: primal_violation,
         maximum_dual_violation: dual_violation,
         maximum_complementarity_residual: complementarity,
+        maximum_omitted_impulse,
         minimum_omitted_gradient: minimum_omitted,
         worst_omitted_contact_id: worst_omitted,
         gradient: dual,
