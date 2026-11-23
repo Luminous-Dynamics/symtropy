@@ -80,6 +80,55 @@ pub enum MaritimeDependencyClass {
 }
 
 impl MaritimeDependencyClass {
+    pub const fn applies_to_stage(self, stage: MaritimeStage) -> bool {
+        match self {
+            Self::PhysicalAcquisition
+            | Self::PhysicalSensorOrReader
+            | Self::InstallationOrReadPoint => stage == MaritimeStage::Detection,
+            Self::MeasurementQualification
+            | Self::ClockOrTimeRoot
+            | Self::CalibrationOrMetrologyAuthority => {
+                matches!(stage, MaritimeStage::Detection | MaritimeStage::Interpretation)
+            }
+            Self::PowerSupplyOrUps => matches!(
+                stage,
+                MaritimeStage::Detection
+                    | MaritimeStage::Transport
+                    | MaritimeStage::PersistenceRetrieval
+            ),
+            Self::FirmwareOrConfiguration => {
+                matches!(stage, MaritimeStage::Detection | MaritimeStage::Transport)
+            }
+            Self::TransportFabric
+            | Self::GatewayRuntime
+            | Self::NetworkOrBackhaul
+            | Self::BrokerOrIntermediary => matches!(
+                stage,
+                MaritimeStage::Transport | MaritimeStage::PersistenceRetrieval
+            ),
+            Self::PersistenceRetrieval
+            | Self::DatabaseOrEventStore
+            | Self::ObjectStoreArchiveIndex
+            | Self::RetrievalOrExportPath => stage == MaritimeStage::PersistenceRetrieval,
+            Self::UpstreamSourceRegistry
+            | Self::ResolverOrTransformation
+            | Self::SchemaOrCodeList
+            | Self::VerifierImplementation => stage == MaritimeStage::Interpretation,
+            Self::RepositoryAuthority => matches!(
+                stage,
+                MaritimeStage::PersistenceRetrieval | MaritimeStage::GovernanceControl
+            ),
+            Self::ExecutionEnvironment => matches!(
+                stage,
+                MaritimeStage::Transport
+                    | MaritimeStage::PersistenceRetrieval
+                    | MaritimeStage::Interpretation
+                    | MaritimeStage::GovernanceControl
+            ),
+            Self::OperatorOrTenantControl | Self::SigningAuthority => true,
+        }
+    }
+
     pub const fn canonical_dimension(self) -> FaultDomainDimension {
         match self {
             Self::PhysicalAcquisition
@@ -382,6 +431,7 @@ pub enum ValidationError {
     DuplicateSharedAcceptance,
     UnobservedSharedAcceptance,
     DimensionClassMismatch,
+    DependencyClassStageMismatch,
     InvalidPathWitness,
     NonCurrentProjectionRevoked,
     NonCurrentProjectionContradictory,
@@ -521,6 +571,9 @@ fn validate_profile_and_projection(
                 for witness in witnesses {
                     if witness.class.canonical_dimension() != stage_dimension.dimension {
                         errors.insert(ValidationError::DimensionClassMismatch);
+                    }
+                    if !witness.class.applies_to_stage(stage_dimension.stage) {
+                        errors.insert(ValidationError::DependencyClassStageMismatch);
                     }
                     if !validate_path(&role.role_binding_node_id, witness) {
                         errors.insert(ValidationError::InvalidPathWitness);
@@ -1057,11 +1110,26 @@ mod tests {
             DependencyRelation::DerivedFrom,
             DependencyRelation::MirrorOrRepublish,
         ];
-        let (profile, projection) = projection(
+        let (mut profile, mut projection) = projection(
             DimensionInventory::Complete(vec![left]),
             DimensionInventory::Complete(vec![right]),
             dimension,
         );
+        let transport = StageDimension {
+            stage: MaritimeStage::Transport,
+            dimension,
+        };
+        profile.obligations = BTreeSet::from([transport]);
+        for role in projection.roles.values_mut() {
+            let inventory = role
+                .dimensions
+                .remove(&StageDimension {
+                    stage: MaritimeStage::Detection,
+                    dimension,
+                })
+                .unwrap();
+            role.dimensions.insert(transport, inventory);
+        }
         let result = assess(&profile, &projection);
         assert_eq!(
             result.findings[0].disposition,
@@ -1448,6 +1516,33 @@ mod tests {
             result.findings[1].disposition,
             SeparationDisposition::SeparatedForProfile
         );
+    }
+
+    #[test]
+    fn dependency_class_cannot_be_assigned_to_an_incompatible_stage() {
+        let dimension = FaultDomainDimension::SourceEvidenceLineage;
+        let (profile, projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                1,
+                MaritimeDependencyClass::DatabaseOrEventStore,
+                "source-binding",
+                "source-database",
+                "edge-source-db",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                2,
+                MaritimeDependencyClass::DatabaseOrEventStore,
+                "witness-binding",
+                "witness-database",
+                "edge-witness-db",
+            )]),
+            dimension,
+        );
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
+        assert!(result.validation_errors.contains(
+            &ValidationError::DependencyClassStageMismatch
+        ));
     }
 
     #[test]
