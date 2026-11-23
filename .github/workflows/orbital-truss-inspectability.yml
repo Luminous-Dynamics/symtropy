@@ -8,6 +8,8 @@ on:
       - "docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json"
       - "docs/research/orbital-truss/fixtures/planning-v0_2.json"
       - "docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json"
+      - "docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"
+      - "docs/research/orbital-truss/support_envelope_v0_1.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
   push:
     branches:
@@ -18,6 +20,8 @@ on:
       - "docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json"
       - "docs/research/orbital-truss/fixtures/planning-v0_2.json"
       - "docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json"
+      - "docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"
+      - "docs/research/orbital-truss/support_envelope_v0_1.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
 
 permissions:
