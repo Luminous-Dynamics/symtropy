@@ -598,9 +598,7 @@ fn build_policy(
             wait_and_see_regret: loss
                 .checked_sub(&wait_and_see_best)
                 .map_err(|error| format!("wait-and-see regret underflow: {error}"))?,
-            outcome_class_regret: loss
-                .checked_sub(&outcome_class_best)
-                .map_err(|error| format!("outcome-class regret underflow: {error}"))?,
+            outcome_class_regret: outcome_class_regret.clone(),
         });
     }
 
