@@ -90,6 +90,8 @@ pub struct AdmittedAcquisitionReliability {
     pub confidence_error_probability: f64,
     pub independent_campaign_block_count: usize,
     pub valid_qualified_success_block_count: usize,
+    pub failed_or_timed_out_block_count: usize,
+    pub acquired_but_invalid_block_count: usize,
     pub non_success_block_count: usize,
     pub unresolved_block_count: usize,
     pub empirical_valid_success_fraction: f64,
@@ -233,21 +235,28 @@ pub fn admit_active_evidence_reliability(
         }
 
         let mut successes = 0_usize;
+        let mut failed_or_timed_out = 0_usize;
+        let mut acquired_but_invalid = 0_usize;
         let mut unresolved = 0_usize;
         for block in &contract.campaign_blocks {
+            let count = |value: &mut usize| {
+                value.checked_add(1).ok_or(
+                    ActiveEvidenceReliabilityError::ArithmeticOverflow(*action_id),
+                )
+            };
             match block.outcome {
                 AcquisitionCampaignOutcome::ValidQualifiedSuccess => {
-                    successes = successes.checked_add(1).ok_or(
-                        ActiveEvidenceReliabilityError::ArithmeticOverflow(*action_id),
-                    )?;
+                    successes = count(&mut successes)?;
+                }
+                AcquisitionCampaignOutcome::FailedOrTimedOut => {
+                    failed_or_timed_out = count(&mut failed_or_timed_out)?;
+                }
+                AcquisitionCampaignOutcome::AcquiredButInvalid => {
+                    acquired_but_invalid = count(&mut acquired_but_invalid)?;
                 }
                 AcquisitionCampaignOutcome::UnknownOrUnreconciled => {
-                    unresolved = unresolved.checked_add(1).ok_or(
-                        ActiveEvidenceReliabilityError::ArithmeticOverflow(*action_id),
-                    )?;
+                    unresolved = count(&mut unresolved)?;
                 }
-                AcquisitionCampaignOutcome::FailedOrTimedOut
-                | AcquisitionCampaignOutcome::AcquiredButInvalid => {}
             }
         }
         let block_count = contract.campaign_blocks.len();
@@ -266,6 +275,8 @@ pub fn admit_active_evidence_reliability(
             confidence_error_probability: contract.confidence_error_probability,
             independent_campaign_block_count: block_count,
             valid_qualified_success_block_count: successes,
+            failed_or_timed_out_block_count: failed_or_timed_out,
+            acquired_but_invalid_block_count: acquired_but_invalid,
             non_success_block_count: non_successes,
             unresolved_block_count: unresolved,
             empirical_valid_success_fraction: empirical_fraction,
@@ -284,7 +295,8 @@ fn validate_policy(
     if policy.expected_domain_fingerprint_sha256.iter().all(|byte| *byte == 0)
         || policy.expected_acquisition_protocol_sha256.iter().all(|byte| *byte == 0)
         || !policy.minimum_probability_lower_bound.is_finite()
-        || !(0.0..=1.0).contains(&policy.minimum_probability_lower_bound)
+        || policy.minimum_probability_lower_bound <= 0.0
+        || policy.minimum_probability_lower_bound > 1.0
         || !policy.maximum_confidence_error_probability.is_finite()
         || policy.maximum_confidence_error_probability <= 0.0
         || policy.maximum_confidence_error_probability >= 1.0
@@ -409,6 +421,8 @@ mod tests {
         assert_eq!(admitted.action_id, 7);
         assert_eq!(admitted.independent_campaign_block_count, 4);
         assert_eq!(admitted.valid_qualified_success_block_count, 4);
+        assert_eq!(admitted.failed_or_timed_out_block_count, 0);
+        assert_eq!(admitted.acquired_but_invalid_block_count, 0);
         assert_eq!(admitted.non_success_block_count, 0);
         assert_eq!(admitted.empirical_valid_success_fraction, 1.0);
     }
@@ -466,6 +480,8 @@ mod tests {
         let admitted = result.admitted_actions[0];
         assert_eq!(admitted.valid_qualified_success_block_count, 3);
         assert_eq!(admitted.non_success_block_count, 1);
+        assert_eq!(admitted.failed_or_timed_out_block_count, 0);
+        assert_eq!(admitted.acquired_but_invalid_block_count, 0);
         assert_eq!(admitted.unresolved_block_count, 1);
         assert_eq!(admitted.empirical_valid_success_fraction, 0.75);
     }
