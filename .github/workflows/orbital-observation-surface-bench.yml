@@ -9,6 +9,7 @@ on:
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
       - research/orbital-regret-calibration-v0-1
+      - research/orbital-feasibility-regret-v0-1
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
@@ -16,6 +17,7 @@ on:
       - "research/orbital/DECISION_LOSS_REGRET_FRONTIER_BENCHMARK_V0_1.md"
       - "research/orbital/JOINT_LOSS_MODEL_SCENARIO_REGRET_BENCHMARK_V0_1.md"
       - "research/orbital/DECISION_ALIGNED_REGRET_CALIBRATION_BENCHMARK_V0_1.md"
+      - "research/orbital/JOINT_FEASIBILITY_AND_REGRET_BENCHMARK_V0_1.md"
       - ".github/workflows/orbital-observation-surface-bench.yml"
   push:
     branches:
@@ -24,6 +26,7 @@ on:
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
       - research/orbital-regret-calibration-v0-1
+      - research/orbital-feasibility-regret-v0-1
 
 permissions:
   contents: read
@@ -197,6 +200,37 @@ jobs:
               "artifacts/regret-calibration-${stem}-receipt-v0.1.json" \
               "artifacts/regret-calibration-${stem}-oracle-v0.1.json"
           done
+      - name: Validate joint feasibility-regret corpus
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/feasibility-regret-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json
+      - name: Generate joint feasibility-regret receipt
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json') != '' }}
+        run: |
+          mkdir -p artifacts
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin feasibility-regret -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/feasibility-regret-receipt-v0.1.json
+      - name: Run independent joint feasibility-regret oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/feasibility_regret_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json \
+            > artifacts/feasibility-regret-oracle-v0.1.json
+      - name: Validate joint feasibility-regret receipt
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/feasibility-regret-receipt.schema.json \
+            artifacts/feasibility-regret-receipt-v0.1.json
+      - name: Compare Rust feasibility-regret receipt with independent oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/feasibility-regret-cases.json') != '' }}
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_feasibility_regret_receipts.mjs \
+            artifacts/feasibility-regret-receipt-v0.1.json \
+            artifacts/feasibility-regret-oracle-v0.1.json
       - uses: actions/upload-artifact@v4
         with:
           name: orbital-observation-surface-v0.1-${{ github.sha }}
