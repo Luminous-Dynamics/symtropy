@@ -70,6 +70,20 @@ for (const item of corpus.cases) {
   if (!identityProjection && !normalizedProjection && !unsupportedProjectionControl) {
     throw new Error("unapproved loss-unit projection in " + item.case_id);
   }
+  const identityProjection = modelSet.projection_id === "exact-rational-to-integer-identity-v1"
+    && modelSet.source_loss_unit === item.loss_unit
+    && modelSet.projection_scale_numerator === 1
+    && modelSet.projection_scale_denominator === 1;
+  const normalizedProjection = modelSet.projection_id === "normalized-loss-times-1000-exact-v1"
+    && modelSet.source_loss_unit === "normalized_loss"
+    && item.loss_unit === "loss_micro_units"
+    && modelSet.projection_scale_numerator === 1000
+    && modelSet.projection_scale_denominator === 1;
+  const unsupportedProjectionControl = item.expected?.disposition === "INVALID_INPUT"
+    && item.expected?.trigger_reason === "unsupported loss unit projection contract";
+  if (!identityProjection && !normalizedProjection && !unsupportedProjectionControl) {
+    throw new Error("unapproved loss-unit projection in " + item.case_id);
+  }
   if (item.world_set_receipt_schema !== "luminous.orbital-decision-identifiability.receipt.v0.1"
     || item.world_set_claim_ceiling !== "exact-finite-world-decision-set-algebra-only"
     || !/^[0-9a-f]{40}$/.test(item.world_set_source_commit)
@@ -101,6 +115,7 @@ for (const item of corpus.cases) {
     scenarioIds.add(scenario.scenario_id);
     worldIds.add(scenario.world_id);
     const lossActionIds = new Set();
+    const lossActionIds = new Set();
     for (const row of scenario.losses) {
       if (!Number.isSafeInteger(row.loss) || row.loss < 0 || !row.action_id
         || !item.action_ids.includes(row.action_id) || lossActionIds.has(row.action_id)
@@ -129,9 +144,8 @@ for (const item of corpus.cases) {
         throw new Error("joint loss vector omits declared actions in " + item.case_id);
       }
     } else if (item.expected?.trigger_reason === "INCOMPLETE_LOSS_MATRIX") {
-      throw new Error("incomplete loss-matrix negative control is no longer incomplete");
-    }
-  }
+      throw new Error("incomplete loss matrix negative control is no longer incomplete");
+    }  }
   if (scenarioIds.size !== modelSet.expected_scenario_ids.length
     || modelSet.expected_scenario_ids.some(id => !scenarioIds.has(id))) {
     throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
