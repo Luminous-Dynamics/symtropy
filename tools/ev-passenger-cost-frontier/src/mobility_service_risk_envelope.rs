@@ -317,6 +317,8 @@ fn validate_probability_manifest(
                     .is_none_or(|(start, end)| start >= end)
                 || manifest.sample_count.unwrap_or(0) == 0
                 || manifest.effective_sample_size_milli.unwrap_or(0) == 0
+                || manifest.effective_sample_size_milli.unwrap_or(0)
+                    > manifest.sample_count.unwrap_or(0).saturating_mul(1_000)
             {
                 add_error(
                     &mut errors,
@@ -929,6 +931,86 @@ mod tests {
             return Err("probability_mass_does_not_sum_to_one".to_owned());
         }
         Ok(())
+    }
+
+    fn reference_tv_extreme_three_leaf(
+        weights: [u128; 3],
+        values: [u64; 3],
+        denominator: u128,
+        radius: u128,
+        minimize: bool,
+    ) -> u128 {
+        let mut best: Option<u128> = None;
+        for first in 0..=denominator {
+            for second in 0..=(denominator - first) {
+                let third = denominator - first - second;
+                let candidate = [first, second, third];
+                let moved_l1 = candidate
+                    .iter()
+                    .zip(weights)
+                    .map(|(next, original)| next.abs_diff(original))
+                    .sum::<u128>();
+                if moved_l1 > radius * 2 {
+                    continue;
+                }
+                let score = candidate
+                    .iter()
+                    .zip(values)
+                    .map(|(weight, value)| weight * u128::from(value))
+                    .sum::<u128>();
+                best = Some(match best {
+                    None => score,
+                    Some(current) if minimize => current.min(score),
+                    Some(current) => current.max(score),
+                });
+            }
+        }
+        best.expect("nominal distribution is always in the TV ball")
+    }
+
+    #[test]
+    fn tv_greedy_matches_exhaustive_three_leaf_probability_enumerator() {
+        let cases = [
+            ([1_u128, 2, 2], [4_u64, 2, 0]),
+            ([3_u128, 1, 1], [5_u64, 5, 1]),
+            ([2_u128, 2, 1], [0_u64, 3, 3]),
+            ([1_u128, 3, 1], [7_u64, 4, 2]),
+        ];
+        let denominator = 5_u128;
+        for (weights, values) in cases {
+            let leaves = vec![
+                leaf("a", weights[0], values[0], values[0], values[0], values[0]),
+                leaf("b", weights[1], values[1], values[1], values[1], values[1]),
+                leaf("c", weights[2], values[2], values[2], values[2], values[2]),
+            ];
+            for radius in 0..=denominator {
+                for minimize in [true, false] {
+                    let expected = reference_tv_extreme_three_leaf(
+                        weights,
+                        values,
+                        denominator,
+                        radius,
+                        minimize,
+                    );
+                    let actual = worst_case_tv_expectation(
+                        &leaves,
+                        denominator,
+                        radius,
+                        on_time,
+                        minimize,
+                    )
+                    .expect("TV evaluator");
+                    assert_eq!(
+                        actual,
+                        ExactRiskRatio {
+                            numerator: expected,
+                            denominator,
+                        },
+                        "weights={weights:?}, values={values:?}, radius={radius}, minimize={minimize}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
