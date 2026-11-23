@@ -373,6 +373,9 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
 
     let mut reason_codes = if !outside_reasons.is_empty() {
         outside_reasons
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
     } else if status == SupportStatus::CertifiedWithinSensingEnvelope {
         vec![
             "WHOLE_SUPPORT_RANGE_BOUNDS_PASS".to_owned(),
