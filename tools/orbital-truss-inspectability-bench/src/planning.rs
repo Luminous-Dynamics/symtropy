@@ -869,8 +869,6 @@ mod tests {
         );
     }
 }
-
-
 pub const PLANNING_CORPUS_SCHEMA: &str =
     "luminous.orbital-truss-inspectability.planning-corpus.v0.1";
 pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-001";
@@ -961,8 +959,7 @@ pub fn audit_planning_corpus(
         }
         receipts.push(PlanningCorpusCaseReceipt {
             case_id: case.case_id.clone(),
-            expected_candidate_geometry_disposition: case
-                .expected_candidate_geometry_disposition,
+            expected_candidate_geometry_disposition: case.expected_candidate_geometry_disposition,
             expected_planning_disposition: case.expected_planning_disposition,
             candidate_geometry_matches,
             planning_matches,
