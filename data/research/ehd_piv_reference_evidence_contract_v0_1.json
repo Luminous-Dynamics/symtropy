@@ -1,7 +1,7 @@
 {
   "contract_id": "ehd_piv_reference_evidence_v0_1",
   "version": "0.1.0",
-  "status": "prospective_contract_not_implemented",
+  "status": "prospective_contract_with_authored_reference_verifier_ci_pending",
   "scope": "content integrity, dependence-aware partitioning, reference qualification, common-mode uncertainty and receipt binding for EHD-PIV empirical covariance inputs",
   "claim_boundary": {
     "residual_estimand": "PIV_minus_reference_residual_covariance",
@@ -54,7 +54,15 @@
       "shared_source_asset"
     ],
     "cohort_component_overlap_allowed": false,
-    "acquisition_id_uniqueness_is_sufficient": false
+    "acquisition_id_uniqueness_is_sufficient": false,
+    "connected_component_algorithm": "union_find_over_asset_dependence_group_ids_and_explicit_shared_cause_edges",
+    "cohort_must_include_complete_component": true,
+    "checked_overlap_dimensions": [
+      "acquisition_id",
+      "dependence_component_id",
+      "asset_id",
+      "reference_evidence_id"
+    ]
   },
   "asset_manifest": {
     "hash_algorithm": "SHA-256",
@@ -64,25 +72,28 @@
     "required_asset_fields": [
       "asset_id",
       "role",
-      "locator",
+      "relative_path",
       "byte_length",
       "media_type",
       "sha256",
       "acquisition_id",
-      "dependence_cluster_id",
+      "dependence_group_ids",
+      "reference_evidence_id",
       "clock_domain",
-      "capture_timestamp"
+      "captured_at_utc"
     ],
     "required_manifest_fields": [
-      "manifest_id",
       "schema_version",
       "canonicalization_version",
-      "asset_inventory",
-      "dependency_graph_digest",
+      "manifest_id",
+      "source_release_id",
       "protocol_fingerprint",
       "reference_assessment_id",
       "observer_state_id",
-      "split_policy_digest"
+      "split_policy_digest",
+      "dependency_graph_sha256",
+      "assets",
+      "dependency_edges"
     ],
     "reject_on": [
       "missing_asset",
@@ -93,7 +104,17 @@
       "manifest_digest_mismatch",
       "invalid_locator",
       "path_escape"
-    ]
+    ],
+    "canonicalization_version": "serde_json_v1_sorted_inventory",
+    "portable_path_policy": {
+      "relative_paths_only": true,
+      "forward_slashes_only": true,
+      "reject_parent_or_current_components": true,
+      "reject_windows_drive_or_stream_colon": true,
+      "reject_symlink_components": true,
+      "reject_case_insensitive_path_collisions": true,
+      "reject_windows_reserved_components": true
+    }
   },
   "protocol_fingerprint": {
     "required_domains": [
@@ -246,5 +267,28 @@
     "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
     "ehd_observer_effect_air": "https://doi.org/10.1007/s00348-026-04322-y",
     "ehd_observer_effect_liquid": "https://doi.org/10.1016/j.elstat.2026.104261"
-  }
+  },
+  "implementation": {
+    "crate_path": "tools/ehd-piv-acquisition-evidence/",
+    "canonicalization_version": "serde_json_v1_sorted_inventory",
+    "source_asset_hashing": "streaming_sha256_and_byte_count_from_same_read_stream",
+    "manifest_verification": "manifest_digest_then_rehash_every_file_before_processing",
+    "cohort_partition": "union_find_dependency_components_and_pairwise_disjoint_roles",
+    "reference_claim_gate": "metadata_eligibility_only_not_authentication_or_deconvolution",
+    "authored_negative_control_count": 15,
+    "dedicated_workflow": ".github/workflows/ehd-piv-acquisition-evidence.yml",
+    "filesystem_threat_model": "symlink_and_path_escape_rejection; not race_hardened_against_concurrent_local_adversary",
+    "validation_state": {
+      "rust_format": "not_run",
+      "rust_compile": "not_run",
+      "rust_tests": "authored_not_run",
+      "clippy": "not_run",
+      "hosted_ci": "pending_or_not_yet_observed"
+    }
+  },
+  "nonclaims": [
+    "reference verifier Rust tests, compilation, rustfmt and Clippy have not yet passed in the authoring environment",
+    "file digest verification does not authenticate source authorship, custody, calibration validity or physical truth",
+    "filesystem path checks are not race-hardened against a concurrent hostile local writer"
+  ]
 }
