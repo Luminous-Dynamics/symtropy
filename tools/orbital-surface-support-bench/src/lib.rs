@@ -392,11 +392,12 @@ pub fn evaluate_bytes(
         .iter()
         .map(|feature| feature.feature_id.as_str())
         .collect();
-    if supports
+    let support_feature_ids: BTreeSet<&str> = supports
         .iter()
-        .any(|support| !feature_ids.contains(support.feature_id.as_str()))
-    {
-        return Err("SUPPORT_FEATURE_ID_NOT_PRESENT_IN_SOURCE_RECEIPT".to_owned());
+        .map(|support| support.feature_id.as_str())
+        .collect();
+    if support_feature_ids != feature_ids || support_feature_ids.len() != supports.len() {
+        return Err("SUPPORT_FEATURE_ID_SET_MUST_MATCH_SOURCE_SURFACE_FEATURES_EXACTLY".to_owned());
     }
     let pair_count = source_receipt
         .candidate_views
