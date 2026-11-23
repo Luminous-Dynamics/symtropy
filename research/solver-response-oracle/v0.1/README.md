@@ -2,7 +2,7 @@
 
 A dependency-free Rust comparator for measuring whether full-candidate and reduced-manifold solver runs produce similar body-level generalized responses and relative point-velocity changes at the same frozen full-patch contact probes.
 
-This crate does not implement a physics solver. It consumes snapshots produced by solver adapters.
+This crate does not implement a physics solver. It consumes snapshots produced by solver adapters. Version 0.1 is a 3D rigid-body comparison primitive (three linear and three angular components); higher-dimensional generalized responses require a separately versioned extension.
 
 ## Why common-space response matters
 
@@ -22,7 +22,10 @@ The full and reduced snapshots must match exactly on:
 - initial-state digest;
 - physics-model digest;
 - solver-configuration digest;
-- declared equal-work budget units.
+- work-unit schema digest;
+- declared equal-work budget ceiling.
+
+Each snapshot also records actual work consumed, solver iterations, submitted solver rows, and a typed termination disposition (converged, iteration limit, work-budget exhaustion, divergence, abort or unsupported). Consumed work may differ under the same budget ceiling; it is reported rather than hidden. A comparison with either solver not converged remains a measurement, not a promotion pass.
 
 Candidate-set and warm-start digests are recorded separately and may differ. The adapter must define its work-budget unit (for example, constraint-row visits or a deterministic operation count). Iteration count alone is not necessarily equal work when row counts differ.
 
@@ -51,7 +54,8 @@ The report includes:
 - maximum common-probe normal and tangent relative-velocity errors;
 - RMS common-probe relative-velocity error;
 - stable body/contact witness IDs;
-- exact scenario, state, model, solver, candidate-set, warm-start and work-budget identities.
+- exact scenario, state, model, solver, candidate-set, warm-start and work-budget identities;
+- each solver's actual work, iteration count, submitted row count and termination disposition.
 
 The example is a synthetic smoke tournament. It does not measure production Symtropy, Bullet, Jolt, Rapier, Newton or MuJoCo.
 
