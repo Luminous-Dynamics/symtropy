@@ -1,7 +1,7 @@
 //! Finite-world incumbent decision adequacy gate.
 //!
 //! This module decides whether a supplied incumbent remains within a declared
-//! finite-world regret envelope. It never selects or executes a replacement action,
+//! finite-world common-action improvement envelope. It never selects or executes a replacement action,
 //! estimates probabilities, or grants operational authority.
 
 use serde::{Deserialize, Serialize};
@@ -740,7 +740,7 @@ mod tests {
             disposition: "INVALID_INPUT".to_owned(),
             trigger_reason: "materiality margin plus switching cost overflows loss units"
                 .to_owned(),
-            worst_case_regret: None,
+            worst_case_improvement: None,
         };
         let report = evaluate(&corpus).expect("overflow corpus evaluates");
         assert_eq!(
