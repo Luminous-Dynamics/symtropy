@@ -102,7 +102,7 @@ struct ProjectionAnswer {
     superseded_event_ids: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 struct Projection {
     decision_cut_id: String,
     cutoff_ms: u64,
