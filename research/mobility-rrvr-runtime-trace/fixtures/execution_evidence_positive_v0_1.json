@@ -35,7 +35,8 @@
     "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "observer_id": "sim-ground-truth-observer",
     "observer_fault_domain_id": "world-state-observer-domain-a",
-    "observer_binary_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "observer_binary_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "world_stats_topic": "/world/rrvr-reference-world/stats"
   },
   "reset": {
     "status": "confirmed",
