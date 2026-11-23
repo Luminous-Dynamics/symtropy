@@ -602,7 +602,7 @@ fn minimum_eigenvalue_symmetric<const N: usize>(
     }
 
     let residual = (0..N)
-        .flat_map(|row| ((row + 1)..N).map(move |column| input[row][column].abs()))
+        .flat_map(|row| ((row + 1)..N).map(move |column| matrix[row][column].abs()))
         .fold(0.0_f64, f64::max);
     if residual > 1.0e-12 {
         return Err(ReferenceUqError::EigenSolverDidNotConverge { dimension: N });
