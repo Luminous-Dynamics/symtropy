@@ -205,9 +205,7 @@ pub fn schedule_refinements(
 
 fn map_rational_error(error: SpaceTimePartitionError) -> RefinementScheduleError {
     match error {
-        SpaceTimePartitionError::ArithmeticOverflow => {
-            RefinementScheduleError::ArithmeticOverflow
-        }
+        SpaceTimePartitionError::ArithmeticOverflow => RefinementScheduleError::ArithmeticOverflow,
         SpaceTimePartitionError::InvalidRationalDivision => {
             RefinementScheduleError::InvalidRefinementCost
         }
@@ -259,8 +257,7 @@ mod tests {
             candidate(20, 5, 1),
             candidate(30, 7, 2),
         ];
-        let report =
-            schedule_refinements(scope(), Rational::from_integer(3), &candidates).unwrap();
+        let report = schedule_refinements(scope(), Rational::from_integer(3), &candidates).unwrap();
 
         assert_eq!(
             report
@@ -282,12 +279,9 @@ mod tests {
     fn unaffordable_high_priority_candidate_does_not_block_a_cheaper_one() {
         let expensive = candidate(1, 100, 10);
         let affordable = candidate(2, 5, 1);
-        let report = schedule_refinements(
-            scope(),
-            Rational::from_integer(1),
-            &[expensive, affordable],
-        )
-        .unwrap();
+        let report =
+            schedule_refinements(scope(), Rational::from_integer(1), &[expensive, affordable])
+                .unwrap();
 
         assert_eq!(report.selected_candidate_ids, [affordable.id]);
     }
@@ -296,12 +290,9 @@ mod tests {
     fn equal_priorities_use_stable_candidate_identity_as_tiebreak() {
         let larger_id = candidate(20, 4, 2);
         let smaller_id = candidate(10, 2, 1);
-        let report = schedule_refinements(
-            scope(),
-            Rational::from_integer(3),
-            &[larger_id, smaller_id],
-        )
-        .unwrap();
+        let report =
+            schedule_refinements(scope(), Rational::from_integer(3), &[larger_id, smaller_id])
+                .unwrap();
 
         assert_eq!(
             report
@@ -318,18 +309,12 @@ mod tests {
         let first = candidate(10, 2, 1);
         let second = candidate(20, 4, 2);
         let third = candidate(30, 9, 3);
-        let forward = schedule_refinements(
-            scope(),
-            Rational::from_integer(3),
-            &[first, second, third],
-        )
-        .unwrap();
-        let reverse = schedule_refinements(
-            scope(),
-            Rational::from_integer(3),
-            &[third, second, first],
-        )
-        .unwrap();
+        let forward =
+            schedule_refinements(scope(), Rational::from_integer(3), &[first, second, third])
+                .unwrap();
+        let reverse =
+            schedule_refinements(scope(), Rational::from_integer(3), &[third, second, first])
+                .unwrap();
 
         assert_eq!(forward, reverse);
     }
@@ -338,12 +323,8 @@ mod tests {
     fn selected_candidates_remain_in_the_unresolved_ledger() {
         let first = candidate(1, 10, 1);
         let second = candidate(2, 5, 1);
-        let report = schedule_refinements(
-            scope(),
-            Rational::from_integer(1),
-            &[first, second],
-        )
-        .unwrap();
+        let report =
+            schedule_refinements(scope(), Rational::from_integer(1), &[first, second]).unwrap();
 
         assert_eq!(report.selected_candidate_ids, [first.id]);
         assert_eq!(report.unresolved_candidate_ids.len(), 2);
@@ -354,12 +335,8 @@ mod tests {
     #[test]
     fn zero_width_candidate_is_retained_but_not_selected() {
         let zero_width = candidate(1, 0, 1);
-        let report = schedule_refinements(
-            scope(),
-            Rational::from_integer(10),
-            &[zero_width],
-        )
-        .unwrap();
+        let report =
+            schedule_refinements(scope(), Rational::from_integer(10), &[zero_width]).unwrap();
 
         assert!(report.selected_candidate_ids.is_empty());
         assert_eq!(report.unresolved_candidate_ids, [zero_width.id]);
@@ -368,11 +345,7 @@ mod tests {
     #[test]
     fn zero_refinement_cost_fails_closed() {
         assert_eq!(
-            schedule_refinements(
-                scope(),
-                Rational::from_integer(1),
-                &[candidate(1, 1, 0)],
-            ),
+            schedule_refinements(scope(), Rational::from_integer(1), &[candidate(1, 1, 0)],),
             Err(RefinementScheduleError::InvalidRefinementCost)
         );
     }
@@ -404,11 +377,7 @@ mod tests {
     fn duplicate_candidate_identity_fails_closed() {
         let duplicate = candidate(1, 2, 1);
         assert_eq!(
-            schedule_refinements(
-                scope(),
-                Rational::from_integer(2),
-                &[duplicate, duplicate],
-            ),
+            schedule_refinements(scope(), Rational::from_integer(2), &[duplicate, duplicate],),
             Err(RefinementScheduleError::DuplicateCandidateIdentity)
         );
     }
@@ -416,8 +385,7 @@ mod tests {
     #[test]
     fn zero_budget_selects_nothing_and_preserves_every_candidate() {
         let candidates = [candidate(1, 10, 1), candidate(2, 5, 2)];
-        let report =
-            schedule_refinements(scope(), Rational::from_integer(0), &candidates).unwrap();
+        let report = schedule_refinements(scope(), Rational::from_integer(0), &candidates).unwrap();
 
         assert!(report.selected_candidate_ids.is_empty());
         assert_eq!(report.remaining_budget, Rational::from_integer(0));
@@ -441,19 +409,14 @@ mod tests {
         };
 
         assert_eq!(
-            schedule_refinements(
-                scope(),
-                Rational::from_integer(1),
-                &[unrepresentable],
-            ),
+            schedule_refinements(scope(), Rational::from_integer(1), &[unrepresentable],),
             Err(RefinementScheduleError::ArithmeticOverflow)
         );
     }
 
     #[test]
     fn empty_candidate_set_returns_an_empty_replayable_report() {
-        let report =
-            schedule_refinements(scope(), Rational::from_integer(5), &[]).unwrap();
+        let report = schedule_refinements(scope(), Rational::from_integer(5), &[]).unwrap();
 
         assert!(report.ranked_candidates.is_empty());
         assert!(report.selected_candidate_ids.is_empty());
