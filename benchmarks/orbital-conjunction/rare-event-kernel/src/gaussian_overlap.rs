@@ -16,7 +16,7 @@
 //! The strict API never eigenvalue-clips or adds covariance jitter. A separately
 //! named fixed-time NASA compatibility API implements the pinned HBR-dependent
 //! eigenvalue-floor sequence and retains its raw/remediated spectral evidence.
- //! Neither API is a replacement for the iterative PeakOverlapPos state machine.
+//! Neither API is a replacement for the iterative PeakOverlapPos state machine.
 
 use crate::KernelError;
 use crate::conditional_velocity::Matrix3;
