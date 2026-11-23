@@ -157,7 +157,11 @@
               "source_loss_scenarios_sha256",
               "projected_scenarios_sha256",
               "joint_scenario_count",
-              "loss_model_ids"
+              "loss_model_ids",
+              "loss_model_source_unit",
+              "loss_projection_id",
+              "loss_projection_scale_numerator",
+              "loss_projection_scale_denominator"
             ],
             "properties": {
               "case_id": {
@@ -333,6 +337,22 @@
                   "type": "string"
                 },
                 "uniqueItems": true
+              },
+              "loss_model_source_unit": {
+                "type": "string"
+              },
+              "loss_projection_id": {
+                "type": "string"
+              },
+              "loss_projection_scale_numerator": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "loss_projection_scale_denominator": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
               }
             }
           }
