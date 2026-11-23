@@ -40,31 +40,29 @@ The tiny fixtures in Symtropy #7173 are contract-conformance tests only. The con
 
 ### Transfer-map semantics: from isomorphism to scoped morphisms
 
-The v0.1 validator deliberately accepts only total, one-to-one, relation-preserving correspondences over the supplied finite structures. Keep this strict contract as a conformance floor. Do not weaken it into silent partial matching.
+The v0.1 validator deliberately accepts only total, one-to-one correspondences over two complete finite structures. Keep this strict contract as the integrity floor.
 
-The v0.2 protocol should make the *kind* of transfer explicit:
+The first scope-aware implementation is now in `src/scoped.rs` and supports three finite map kinds:
+- **Isomorphism:** complete source and target structures.
+- **Induced embedding:** a selected source and target region, with all relations wholly inside each selected node set included.
+- **Subgraph embedding:** selected source and target subgraphs; additional target relations are allowed only when explicitly declared outside the target scope.
 
-| Map kind | Meaning | Required evidence / scope |
+Each side declares selected and excluded node/relation IDs. They must be disjoint, valid, unique and together partition the complete structure. The candidate mapping must be total over the selected substructures. The output reports the excluded context counts.
+
+The v0.2 schema `schemas/scoped_transfer_proposal_v0.schema.json` carries source/target episode IDs and evidence-prefix digests. It is a separate proposal sidecar, not an incompatible mutation of the existing #11060 AgentEpisode v0 schema.
+
+Other map kinds remain future work:
+
+| Map kind | Meaning | Required validator |
 |---|---|---|
-| **Isomorphism** | Bijective correspondence preserving all declared relations | Complete source and target scope; exact inverse and incidence checks |
-| **Embedding** | Injective map of a source substructure into a declared target region | Explicit source scope and target region; no claim that unmatched target context is irrelevant |
-| **Homomorphism** | Relation-preserving map that may identify multiple source entities | Declare which distinctions are collapsed and prove the relevant relation semantics survive |
-| **Quotient / coarse-graining** | Partition of fine states/entities into abstract equivalence classes | Partition, abstraction map, induced relations, and observables preserved at the coarse level |
-| **Simulation** | Every in-scope source transition is matched by a target transition | Directionality and action/state map; does not imply reverse behavior |
-| **Bisimulation** | Source and target mutually simulate each other over the declared scope | Both-direction transition coverage; stronger than one-way simulation |
-| **Approximate simulation / bisimulation** | Dynamics correspond within declared error bounds | Norm, tolerance, horizon, state/action support and uncertainty must be fixed before holdout |
-| **Conjugacy / semiconjugacy** | Continuous dynamics commute exactly or approximately under state/action/time maps | Explicit time map, flow support, event/reset semantics and trajectory-level validation |
+| Homomorphism | Relation-preserving many-to-one mapping | Explicitly declared collapsed distinctions and relation preservation |
+| Quotient / coarse-graining | Partition fine states/entities into abstract classes | Equivalence partition and induced abstract relations/observables |
+| Simulation | Every in-scope source transition is matched by a target transition | One-way action/state mapped transition coverage |
+| Bisimulation | Both systems mutually simulate each other | Forward and backward transition coverage |
+| Approximate simulation / bisimulation | Dynamics correspond within declared error bounds | Norm, tolerance, horizon, support and uncertainty fixed before holdout |
+| Conjugacy / semiconjugacy | Continuous dynamics commute under state/action/time maps | Clock map, flow support, hybrid event/reset semantics and trajectory-level validation |
 
-Every candidate map must carry:
-- correspondence kind and version;
-- source scope and target scope;
-- mapped and intentionally unmapped nodes / relations / states / actions;
-- assumptions and applicability conditions;
-- relation / action / time transformation;
-- uncertainty and alternative mappings;
-- counterexamples and known non-transfer boundaries.
-
-The evaluator must score the declared map kind, not silently upgrade an embedding to an isomorphism or a one-way simulation to a bisimulation. An omitted source relation must remain explicitly omitted, unsupported or unresolved. This is the main route from toy graph identity toward meaningful cross-domain transfer without turning partial overlap into an overclaim.
+The evaluator must score the declared map kind, not silently upgrade an embedding to an isomorphism or a one-way simulation to a bisimulation. This implementation is still a finite structural validator; it does not qualify mechanism or dynamics transfer by itself.
 
 ## 2. Evaluation custody and episode contract
 
