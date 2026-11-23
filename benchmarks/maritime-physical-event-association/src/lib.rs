@@ -339,23 +339,13 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
     };
 
     if !valid_profile(profile) {
-        return AssociationReport::new(
-            Disposition::NotEvaluable,
-            Vec::new(),
-            Vec::new(),
-            0,
-        );
+        return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
     }
 
     let source = match visible_observations(&case.source_events, profile) {
         Ok(events) => events,
         Err(()) => {
-            return AssociationReport::new(
-                Disposition::NotEvaluable,
-                Vec::new(),
-                Vec::new(),
-                0,
-            );
+            return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
         }
     };
     let witness = match visible_observations(&case.witness_events, profile) {
@@ -363,7 +353,10 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
         Err(()) => {
             return AssociationReport::new(
                 Disposition::NotEvaluable,
-                source.iter().map(|event| event.record_key.clone()).collect(),
+                source
+                    .iter()
+                    .map(|event| event.record_key.clone())
+                    .collect(),
                 Vec::new(),
                 0,
             );
@@ -412,10 +405,7 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                     operation_ref: source_event.operation_ref.clone(),
                     source_event_time: source_event.event_time.clone(),
                     witness_event_time: witness_event.event_time.clone(),
-                    interval_gap: interval_gap(
-                        &source_event.event_time,
-                        &witness_event.event_time,
-                    ),
+                    interval_gap: interval_gap(&source_event.event_time, &witness_event.event_time),
                     max_interval_gap: profile.max_interval_gap,
                 });
             }
@@ -656,16 +646,7 @@ mod tests {
             ),
             "unique_global" => case(
                 vec![
-                    observation(
-                        "src-A",
-                        "BOX-1",
-                        "GATE_OUT",
-                        "DGT-GATE-1",
-                        "OP-17",
-                        0,
-                        0,
-                        1,
-                    ),
+                    observation("src-A", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
                     observation(
                         "src-B",
                         "BOX-1",
@@ -678,16 +659,7 @@ mod tests {
                     ),
                 ],
                 vec![
-                    observation(
-                        "wit-X",
-                        "BOX-1",
-                        "GATE_OUT",
-                        "DGT-GATE-1",
-                        "OP-17",
-                        0,
-                        0,
-                        1,
-                    ),
+                    observation("wit-X", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
                     observation(
                         "wit-Y",
                         "BOX-1",
@@ -918,12 +890,7 @@ mod tests {
             let fields: Vec<&str> = line.split('|').collect();
             assert_eq!(fields.len(), 2, "malformed fixture row: {line}");
             let actual = evaluate(&known_case(fields[0]));
-            assert_eq!(
-                actual.disposition.as_str(),
-                fields[1],
-                "case {}",
-                fields[0]
-            );
+            assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
         assert_eq!(count, 22);
@@ -948,7 +915,11 @@ mod tests {
                 MatchingResult::Ambiguous => Disposition::Ambiguous,
                 MatchingResult::Unmatched => Disposition::Unmatched,
             };
-            assert_eq!(actual, exhaustive_oracle(&graph, node_count), "graph mask {mask}");
+            assert_eq!(
+                actual,
+                exhaustive_oracle(&graph, node_count),
+                "graph mask {mask}"
+            );
         }
     }
 
@@ -985,7 +956,10 @@ mod tests {
     fn widening_time_enclosures_can_reveal_ambiguity_but_not_hide_it() {
         let mut narrow = known_case("unique_global");
         narrow.profile.as_mut().unwrap().max_interval_gap = 0;
-        assert_eq!(evaluate(&narrow).disposition, Disposition::UniquelyAssociated);
+        assert_eq!(
+            evaluate(&narrow).disposition,
+            Disposition::UniquelyAssociated
+        );
         for event in &mut narrow.source_events {
             event.event_time.lower = 0;
             event.event_time.upper = 10;
@@ -1039,7 +1013,12 @@ mod tests {
 
     #[test]
     fn unqualified_or_incomparable_time_evidence_is_not_evaluable() {
-        for case_id in ["unqualified_source", "unqualified_witness", "time_basis_mismatch", "invalid_interval"] {
+        for case_id in [
+            "unqualified_source",
+            "unqualified_witness",
+            "time_basis_mismatch",
+            "invalid_interval",
+        ] {
             assert_eq!(
                 evaluate(&known_case(case_id)).disposition,
                 Disposition::NotEvaluable,
@@ -1050,20 +1029,38 @@ mod tests {
 
     #[test]
     fn duplicate_local_record_keys_are_rejected_within_each_source_namespace() {
-        assert_eq!(evaluate(&known_case("duplicate_source_key")).disposition, Disposition::NotEvaluable);
-        assert_eq!(evaluate(&known_case("duplicate_witness_key")).disposition, Disposition::NotEvaluable);
+        assert_eq!(
+            evaluate(&known_case("duplicate_source_key")).disposition,
+            Disposition::NotEvaluable
+        );
+        assert_eq!(
+            evaluate(&known_case("duplicate_witness_key")).disposition,
+            Disposition::NotEvaluable
+        );
     }
 
     #[test]
     fn publication_cannot_precede_the_earliest_possible_event_time() {
-        assert_eq!(evaluate(&known_case("published_before_event")).disposition, Disposition::NotEvaluable);
+        assert_eq!(
+            evaluate(&known_case("published_before_event")).disposition,
+            Disposition::NotEvaluable
+        );
     }
 
     #[test]
     fn outside_tolerance_and_cardinality_mismatch_remain_unmatched() {
-        assert_eq!(evaluate(&known_case("outside_tolerance")).disposition, Disposition::Unmatched);
-        assert_eq!(evaluate(&known_case("extra_source")).disposition, Disposition::Unmatched);
-        assert_eq!(evaluate(&known_case("no_perfect")).disposition, Disposition::Unmatched);
+        assert_eq!(
+            evaluate(&known_case("outside_tolerance")).disposition,
+            Disposition::Unmatched
+        );
+        assert_eq!(
+            evaluate(&known_case("extra_source")).disposition,
+            Disposition::Unmatched
+        );
+        assert_eq!(
+            evaluate(&known_case("no_perfect")).disposition,
+            Disposition::Unmatched
+        );
     }
 
     #[test]
