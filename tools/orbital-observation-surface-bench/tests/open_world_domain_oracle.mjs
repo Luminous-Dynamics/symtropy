@@ -6,6 +6,24 @@ const SCHEMA = "luminous.orbital-open-world-domain.corpus.v0.1";
 
 function fail(message) { throw new Error(message); }
 function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalize(value[key])]));
+  }
+  return value;
+}
+function domainSnapshotDigest(domain) {
+  const manifest = structuredClone(domain);
+  delete manifest.snapshot_sha256;
+  delete manifest.current_snapshot_sha256;
+  manifest.components.sort((a, b) => a.component_id < b.component_id ? -1 : a.component_id > b.component_id ? 1 : 0);
+  for (const component of manifest.components) component.capability_ids.sort();
+  manifest.operations.sort((a, b) => a.operation_id < b.operation_id ? -1 : a.operation_id > b.operation_id ? 1 : 0);
+  manifest.actors.sort((a, b) => a.actor_id < b.actor_id ? -1 : a.actor_id > b.actor_id ? 1 : 0);
+  for (const actor of manifest.actors) actor.role_ids.sort();
+  return sha256(JSON.stringify(canonicalize(manifest)));
+}
 function validId(value) {
   return typeof value === "string" && value.trim().length > 0 && /^[\x00-\x7F]+$/.test(value);
 }
@@ -71,6 +89,9 @@ function validateDomain(domain) {
       || !validId(operation.required_role_id) || !Number.isSafeInteger(operation.resource_required_milli)
       || !Number.isSafeInteger(operation.active_start_ms) || !Number.isSafeInteger(operation.active_end_ms)
       || operation.active_start_ms >= operation.active_end_ms) fail("invalid operation row");
+  }
+  if (domainSnapshotDigest(domain) !== domain.snapshot_sha256) {
+    fail("domain manifest content does not match its snapshot digest");
   }
   uniqueIds(domain.actors.map(x => x.actor_id), "actor IDs");
   for (const actor of domain.actors) {
