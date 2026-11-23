@@ -1198,9 +1198,11 @@ mod tests {
         let case: GsdCase = serde_json::from_slice(bytes).unwrap();
         let supports = surface_supports(&case).unwrap();
         assert!(!supports.is_empty());
-        assert!(supports
-            .iter()
-            .all(|support| support.half_extents_um.iter().all(|extent| *extent >= 1)));
+        assert!(
+            supports
+                .iter()
+                .all(|support| support.half_extents_um.iter().all(|extent| *extent >= 1))
+        );
         assert!(supports
             .iter()
             .all(|support| (0.0..=3_141_594).contains(&support.normal_cone_half_angle_microrad)));
