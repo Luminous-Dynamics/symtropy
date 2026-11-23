@@ -3,6 +3,7 @@
 
 const SCHEDULE_SIZE: usize = 25;
 const CALIBRATION_SCHEDULES: usize = 120;
+const BONFERRONI_FINITE_CALIBRATION_SCHEDULES: usize = 249;
 const TEST_SCHEDULES_PER_WINDOW: usize = 120;
 const MIN_CALIBRATION_SCHEDULES: usize = 40;
 const TARGET_ALPHA_MILLI: u16 = 100;
@@ -62,27 +63,32 @@ impl Window {
 enum Method {
     PerVesselJoint90,
     BonferroniSchedule90,
+    BonferroniSchedule90At249,
     ScheduleMaximumJoint90,
 }
 
 impl Method {
-    const ALL: [Self; 3] = [
+    const ALL: [Self; 4] = [
         Self::PerVesselJoint90,
         Self::BonferroniSchedule90,
+        Self::BonferroniSchedule90At249,
         Self::ScheduleMaximumJoint90,
     ];
 
     fn id(self) -> &'static str {
         match self {
             Self::PerVesselJoint90 => "PER_VESSEL_JOINT_90",
-            Self::BonferroniSchedule90 => "BONFERRONI_SCHEDULE_90",
+            Self::BonferroniSchedule90 => "BONFERRONI_SCHEDULE_90_N120",
+            Self::BonferroniSchedule90At249 => "BONFERRONI_SCHEDULE_90_N249",
             Self::ScheduleMaximumJoint90 => "SCHEDULE_MAX_JOINT_90",
         }
     }
 
     fn calibration_unit(self) -> &'static str {
         match self {
-            Self::PerVesselJoint90 | Self::BonferroniSchedule90 => "VESSEL_CALL",
+            Self::PerVesselJoint90
+            | Self::BonferroniSchedule90
+            | Self::BonferroniSchedule90At249 => "VESSEL_CALL",
             Self::ScheduleMaximumJoint90 => "WHOLE_SCHEDULE",
         }
     }
@@ -90,7 +96,16 @@ impl Method {
     fn target_alpha_milli(self) -> u16 {
         match self {
             Self::PerVesselJoint90 | Self::ScheduleMaximumJoint90 => TARGET_ALPHA_MILLI,
-            Self::BonferroniSchedule90 => BONFERRONI_ALPHA_PER_CALL_MILLI,
+            Self::BonferroniSchedule90 | Self::BonferroniSchedule90At249 => {
+                BONFERRONI_ALPHA_PER_CALL_MILLI
+            }
+        }
+    }
+
+    fn calibration_schedules(self) -> usize {
+        match self {
+            Self::BonferroniSchedule90At249 => BONFERRONI_FINITE_CALIBRATION_SCHEDULES,
+            _ => CALIBRATION_SCHEDULES,
         }
     }
 }
@@ -169,11 +184,15 @@ fn generate_schedule(rng: &mut SplitMix64, window: Window, schedule_index: usize
     }
 }
 
-fn generate_calibration(seed: u64) -> Vec<Schedule> {
+fn generate_calibration_with_count(seed: u64, count: usize) -> Vec<Schedule> {
     let mut rng = SplitMix64::new(seed);
-    (0..CALIBRATION_SCHEDULES)
+    (0..count)
         .map(|index| generate_schedule(&mut rng, Window::Stationary, index))
         .collect()
+}
+
+fn generate_calibration(seed: u64) -> Vec<Schedule> {
+    generate_calibration_with_count(seed, CALIBRATION_SCHEDULES)
 }
 
 fn generate_test_windows(seed: u64) -> [(Window, Vec<Schedule>); 3] {
@@ -194,7 +213,9 @@ struct CallBands {
 
 fn calibrate(method: Method, calibration: &[Schedule]) -> Option<CallBands> {
     match method {
-        Method::PerVesselJoint90 | Method::BonferroniSchedule90 => {
+        Method::PerVesselJoint90
+        | Method::BonferroniSchedule90
+        | Method::BonferroniSchedule90At249 => {
             let alpha = method.target_alpha_milli();
             let mut quantiles = [0; SCHEDULE_SIZE];
 
@@ -235,6 +256,23 @@ struct ScheduleMetrics {
 impl ScheduleMetrics {
     fn whole_schedule_coverage_pct(self) -> f64 {
         percentage(self.covered_schedules, self.total_schedules)
+    }
+
+    // Descriptive 95% Wilson interval over whole schedules (the independent
+    // evaluation unit), not over vessel calls clustered within schedules.
+    fn whole_schedule_wilson_95_pct(self) -> (f64, f64) {
+        if self.total_schedules == 0 {
+            return (0.0, 0.0);
+        }
+        let n = self.total_schedules as f64;
+        let p = self.covered_schedules as f64 / n;
+        let z = 1.959_963_984_540_054_f64;
+        let z2 = z * z;
+        let denominator = 1.0 + z2 / n;
+        let center = (p + z2 / (2.0 * n)) / denominator;
+        let half_width =
+            z * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt() / denominator;
+        ((center - half_width).max(0.0) * 100.0, (center + half_width).min(1.0) * 100.0)
     }
 
     fn per_call_coverage_pct(self) -> f64 {
@@ -305,6 +343,7 @@ fn evaluate(bands: Option<CallBands>, schedules: &[Schedule]) -> ScheduleMetrics
 #[derive(Clone, Debug)]
 struct MethodReport {
     method: Method,
+    calibration_schedules: usize,
     bands: Option<CallBands>,
     windows: [ScheduleMetrics; 3],
 }
@@ -332,17 +371,22 @@ impl MethodReport {
 }
 
 fn evaluate_suite() -> Vec<MethodReport> {
-    let calibration = generate_calibration(0x0025_CA11_2026);
+    let calibration = generate_calibration_with_count(
+        0x0025_CA11_2026,
+        BONFERRONI_FINITE_CALIBRATION_SCHEDULES,
+    );
     let windows = generate_test_windows(0x025C_E572_2026);
 
     Method::ALL
         .iter()
         .copied()
         .map(|method| {
-            let bands = calibrate(method, &calibration);
+            let calibration_schedules = method.calibration_schedules();
+            let bands = calibrate(method, &calibration[..calibration_schedules]);
             let metrics = std::array::from_fn(|index| evaluate(bands, &windows[index].1));
             MethodReport {
                 method,
+                calibration_schedules,
                 bands,
                 windows: metrics,
             }
@@ -352,7 +396,7 @@ fn evaluate_suite() -> Vec<MethodReport> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "method,calibration_unit,window,calibration_schedules,target_alpha_milli,test_schedules,covered_schedules,whole_schedule_coverage_pct,covered_calls,total_calls,per_call_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,quantile_min,quantile_max,status\n",
+        "method,calibration_unit,window,calibration_schedules,target_alpha_milli,test_schedules,covered_schedules,whole_schedule_coverage_pct,whole_schedule_wilson_95_low_pct,whole_schedule_wilson_95_high_pct,covered_calls,total_calls,per_call_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,quantile_min,quantile_max,status\n",
     );
 
     for report in evaluate_suite() {
@@ -362,6 +406,8 @@ pub fn render_csv() -> String {
             let (
                 covered_schedules,
                 whole_schedule_coverage,
+                whole_schedule_wilson_low,
+                whole_schedule_wilson_high,
                 covered_calls,
                 per_call_coverage,
                 arrival_width,
@@ -372,6 +418,14 @@ pub fn render_csv() -> String {
                 (
                     metrics.covered_schedules.to_string(),
                     format!("{:.1}", metrics.whole_schedule_coverage_pct()),
+                    {
+                        let (low, _) = metrics.whole_schedule_wilson_95_pct();
+                        format!("{low:.1}")
+                    },
+                    {
+                        let (_, high) = metrics.whole_schedule_wilson_95_pct();
+                        format!("{high:.1}")
+                    },
                     metrics.covered_calls.to_string(),
                     format!("{:.1}", metrics.per_call_coverage_pct()),
                     format!("{:.1}", metrics.mean_arrival_width_hours()),
@@ -393,15 +447,17 @@ pub fn render_csv() -> String {
                     "NA".to_owned(),
                     "NA".to_owned(),
                     "NA".to_owned(),
+                    "NA".to_owned(),
+                    "NA".to_owned(),
                 )
             };
 
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 report.method.id(),
                 report.method.calibration_unit(),
                 window.id(),
-                CALIBRATION_SCHEDULES,
+                report.calibration_schedules,
                 report.method.target_alpha_milli(),
                 metrics.total_schedules,
                 covered_schedules,
@@ -511,7 +567,7 @@ mod tests {
     #[test]
     fn deterministic_suite_contains_all_methods_and_windows() {
         let reports = evaluate_suite();
-        assert_eq!(reports.len(), Method::ALL.len());
+        assert_eq!(reports.len(), 4);
         for report in reports {
             assert_eq!(report.windows.len(), Window::ALL.len());
             assert_eq!(
@@ -523,6 +579,53 @@ mod tests {
                 TEST_SCHEDULES_PER_WINDOW * Window::ALL.len()
             );
         }
+    }
+
+    #[test]
+    fn schedule_level_wilson_interval_contains_empirical_coverage() {
+        let metrics = ScheduleMetrics {
+            total_schedules: 120,
+            covered_schedules: 108,
+            ..ScheduleMetrics::default()
+        };
+        let (low, high) = metrics.whole_schedule_wilson_95_pct();
+        let observed = metrics.whole_schedule_coverage_pct();
+
+        assert!(low < observed);
+        assert!(observed < high);
+    }
+
+    #[test]
+    fn wilson_interval_uses_schedules_not_call_count() {
+        let metrics = ScheduleMetrics {
+            total_schedules: 120,
+            covered_schedules: 108,
+            total_calls: 120 * SCHEDULE_SIZE,
+            covered_calls: 108 * SCHEDULE_SIZE,
+            ..ScheduleMetrics::default()
+        };
+        let schedule_interval = metrics.whole_schedule_wilson_95_pct();
+        let expected = ScheduleMetrics {
+            total_schedules: 120,
+            covered_schedules: 108,
+            ..ScheduleMetrics::default()
+        }
+        .whole_schedule_wilson_95_pct();
+
+        assert_eq!(schedule_interval, expected);
+    }
+
+    #[test]
+    fn bonferroni_249_sample_arm_is_evaluated() {
+        let reports = evaluate_suite();
+        let bonferroni = reports
+            .iter()
+            .find(|report| report.method == Method::BonferroniSchedule90At249)
+            .expect("249-schedule Bonferroni arm");
+
+        assert_eq!(bonferroni.calibration_schedules, 249);
+        assert_eq!(bonferroni.status(), "EVALUATED_SYNTHETIC");
+        assert!(bonferroni.bands.is_some());
     }
 
     #[test]
@@ -547,10 +650,10 @@ mod tests {
         let mut lines = output.lines();
         let header = lines.next().expect("CSV header");
         let width = header.split(',').count();
-        assert_eq!(width, 16);
+        assert_eq!(width, 18);
 
         let rows = lines.collect::<Vec<_>>();
-        assert_eq!(rows.len(), 9);
+        assert_eq!(rows.len(), 12);
         for row in &rows {
             assert_eq!(row.split(',').count(), width, "{row}");
         }
