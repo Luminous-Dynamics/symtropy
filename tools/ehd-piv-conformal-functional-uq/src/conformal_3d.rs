@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Three-component whole-field conformal calibration for stereoscopic / 3D PIV.
 //!
 //! This uses the same complete-field cluster maximum-score construction as
