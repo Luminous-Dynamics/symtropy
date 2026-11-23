@@ -155,7 +155,8 @@
         "fault_injector_revision",
         "fault_injector_sha256",
         "native_adapter_revision",
-        "runtime_monitor_revision"
+        "runtime_monitor_revision",
+        "fault_injector_fault_domain_id"
       ],
       "properties": {
         "platform_id": {
@@ -214,6 +215,10 @@
         "runtime_monitor_revision": {
           "type": "string",
           "minLength": 1
+        },
+        "fault_injector_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -264,7 +269,11 @@
         "target_component_id",
         "fault_domain_id",
         "kind",
-        "parameters_sha256"
+        "parameters_sha256",
+        "scheduled_simulation_step",
+        "target_revision",
+        "target_profile_sha256",
+        "expected_delivery_signature_sha256"
       ],
       "properties": {
         "sequence": {
@@ -294,6 +303,20 @@
           "$ref": "#/$defs/fault_kind"
         },
         "parameters_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scheduled_simulation_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expected_delivery_signature_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
