@@ -562,8 +562,8 @@ fn make_decision(
         if !candidate.is_finite() {
             return Err(KernelError::NumericalOverflow);
         }
-        if candidate <= snapshot.lower_time_limit_seconds
-            || candidate >= snapshot.upper_time_limit_seconds
+        if candidate < snapshot.lower_time_limit_seconds
+            || candidate > snapshot.upper_time_limit_seconds
         {
             continue;
         }
@@ -571,12 +571,18 @@ fn make_decision(
         {
             continue;
         }
+        let first_epoch = snapshot.epochs_seconds[0];
+        let last_epoch = snapshot.epochs_seconds[snapshot.epochs_seconds.len() - 1];
+        let is_lower_extension =
+            candidate >= snapshot.lower_time_limit_seconds && candidate < first_epoch;
+        let is_upper_extension =
+            candidate <= snapshot.upper_time_limit_seconds && candidate > last_epoch;
         let left = snapshot.epochs_seconds.partition_point(|value| *value < candidate);
         let is_between = left > 0
             && left < snapshot.epochs_seconds.len()
             && snapshot.epochs_seconds[left - 1] < candidate
             && candidate < snapshot.epochs_seconds[left];
-        if is_between {
+        if is_between || is_lower_extension || is_upper_extension {
             inserted.push(candidate);
         } else {
             resolution_limit = true;
