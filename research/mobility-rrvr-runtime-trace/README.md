@@ -70,9 +70,9 @@ When both physical-outcome and downstream-quiescence quorums are qualified, thei
 
 At initialization, both observer claims are `not_applicable`. The TLA variable `observerIndependent=TRUE` is an initial abstraction setting; it does not fabricate an already-observed physical quorum. Once an observed physical outcome is projected, the separate claim-specific observer proofs become mandatory. A disputed observation must project `observerIndependent=FALSE` and a disputed observer status.
 
-## v0.1 scope boundary
+## Base projection v0.1 scope boundary
 
-This version models one original physical-effect attempt (`attempt-1`) and one recovery-authority admission (`attempt-2`). It verifies the evidence required to admit that recovery command, including the captured admission facts. It does **not yet** project the subsequent physical outcome of `attempt-2`, a second nested recovery cycle, or repeated recovery attempts. Those require a new evidence-scope/version design so the recovery attempt's own physical outcome, persistence and downstream graph cannot be confused with the original attempt. The current CLI/fixture must not be used to claim multi-cycle recovery verification.
+This version models one original physical-effect attempt (`attempt-1`) and one recovery-authority admission (`attempt-2`). It verifies the evidence required to admit that recovery command, including the captured admission facts. It does **not yet** project the subsequent physical outcome of `attempt-2`, a second nested recovery cycle, or repeated recovery attempts. Those require a new evidence-scope/version design so the recovery attempt's own physical outcome, persistence and downstream graph cannot be confused with the original attempt. The original 43-field TLA runtime projection CLI/fixture must not be used to claim multi-cycle recovery verification. The separate attempt-lineage validator checks synthetic multi-attempt evidence structure, but its multi-cycle semantics still require the bounded TLA+ refinement tracked by #6985.
 
 ## Critical semantics
 
@@ -112,3 +112,19 @@ The synthetic three-attempt fixture and JSON Schema are:
 - schemas/attempt_lineage_v0_1.schema.json
 
 The Rust tests validate two NoEffect recovery edges followed by a terminal Applied attempt, and reject evidence replay, cross-attempt scope changes, incomplete persistence, epoch regression, wrong fence targets, and unsafe intermediate outcomes. This is a reference-contract test, not yet a Rust/TLA+ multi-cycle refinement proof or physical robotics result.
+
+
+## Paired fault campaign extension v0.1
+
+The separate campaign-manifest validator freezes the test conditions used to compare recovery-assurance arms. It requires exact platform/environment/reset/fault-model digests, policy/scene/action-prefix identities, seeds, pair IDs, ordered fault schedules, expected dispositions, failure signatures, and declared layer/cut coverage.
+
+The four-arm reference fixture includes a positive pair and a negative pair comparing full_rrvr with last_attempt_only; the same seed, task, policy digest, scene, action prefix, logical-effect ID and fault schedule are preserved within each pair. The synthetic negative schedule crosses process, observer, controller and firmware layers.
+
+- Validator: src/fault_campaign.rs
+- CLI: src/bin/rrvr_campaign_validate.rs
+- Schema: schemas/fault_campaign_v0_1.schema.json
+- Fixture: fixtures/fault_campaign_paired_v0_1.json
+- Specification: [FAULT_CAMPAIGN_V0.1.md](FAULT_CAMPAIGN_V0.1.md)
+- Tracking: [#7025](https://github.com/Luminous-Dynamics/symtropy/issues/7025)
+
+The campaign CLI emits exact input/profile digests, pair/scenario/control counts, declared and covered layers/cut points, and explicit false claim-ceiling fields. A PASS qualifies only the manifest as complete and internally comparable; it does not mean fault injection executed, platform inventory was authenticated, or physical safety was established.
