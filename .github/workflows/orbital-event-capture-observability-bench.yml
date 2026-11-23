@@ -1,0 +1,93 @@
+name: Orbital Event-Capture Observability Benchmark
+
+on:
+  push:
+    branches: ["research/orbital-event-capture-observability-v0-1"]
+    paths:
+      - "tools/orbital-event-capture-observability-bench/**"
+      - ".github/workflows/orbital-event-capture-observability-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-event-capture-observability-bench/**"
+      - ".github/workflows/orbital-event-capture-observability-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-event-capture-observability-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture-observability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen capture corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-event-capture-observability-bench/Cargo.toml -- \
+            tools/orbital-event-capture-observability-bench/fixtures/v0.1/capture-cases.json \
+            --source-commit "$actual_commit" > orbital-event-capture-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-event-capture.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-capture-reconciliation-only"
+            and .report.summary.case_count == 61
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.fit_acceptances == 0
+            and .report.summary.reliability_claims == 0
+            and .report.summary.physical_completeness_claims == 0
+            and .report.summary.authority_grants == 0
+            and .report.authority_granted == false
+            and .report.physical_completeness_claim_granted == false
+            and .report.cases[0].declared_evidence_bindings.qualified_scope.sensor_id == "sensor-qualification-coupon-01"
+            and .report.cases[0].declared_evidence_bindings.reference.available == true
+            and .report.cases[0].declared_evidence_bindings.derived_reference_event_rate_per_second == 1
+            and .report.cases[0].declared_evidence_bindings.calibration.valid_at_test_time == true
+            and .report.cases[0].declared_evidence_bindings.clock.synchronized == true
+          ' orbital-event-capture-receipt.json
+
+      - name: Run independent JavaScript reconciliation oracle
+        run: node tools/orbital-event-capture-observability-bench/tests/reference_oracle.mjs tools/orbital-event-capture-observability-bench/fixtures/v0.1/capture-cases.json
+
+      - name: Upload generated lockfile and reproducible capture receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-event-capture-observability-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/orbital-event-capture-observability-bench/Cargo.lock
+            orbital-event-capture-receipt.json
+          if-no-files-found: error
+          retention-days: 30
