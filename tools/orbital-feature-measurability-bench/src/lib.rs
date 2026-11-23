@@ -202,6 +202,17 @@ fn quantize_nonnegative(value: f64, scale: f64) -> Result<i64, String> {
     Ok(scaled as i64)
 }
 
+fn quantize_signed(value: f64, scale: f64) -> Result<i64, String> {
+    if !value.is_finite() {
+        return Err("FEATURE_INFORMATION_NUMERIC_INVALID".to_owned());
+    }
+    let scaled = (value * scale).round();
+    if scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
+        return Err("FEATURE_INFORMATION_NUMERIC_OVERFLOW".to_owned());
+    }
+    Ok(scaled as i64)
+}
+
 fn diagnostic(
     case: &FeatureCase,
     robust_only: bool,
@@ -253,7 +264,7 @@ fn diagnostic(
     for i in 0..3 {
         for j in 0..3 {
             information_matrix_q1e9[i][j] =
-                quantize_nonnegative(matrix[i][j].abs(), MATRIX_SCALE)?;
+                quantize_signed(matrix[i][j], MATRIX_SCALE)?;
         }
     }
     let eigenvalues_q1e9 = [
@@ -409,7 +420,7 @@ mod tests {
             feature_id: "HOLE-1".to_owned(),
             feature_model: FEATURE_MODEL.to_owned(),
             max_condition_number,
-            relative_rank_tolerance: 1e-9,
+            relative_rank_tolerance: 1e-7,
             observations,
             expected_nominal_status: QualityStatus::Measurable,
             expected_robust_status: QualityStatus::Measurable,
