@@ -54,7 +54,13 @@
       "expected_initial_state_sha256": "0404040404040404040404040404040404040404040404040404040404040404",
       "observed_initial_state_sha256": "0404040404040404040404040404040404040404040404040404040404040404",
       "simulation_step": 0,
-      "clock_id": "gazebo-iteration-clock"
+      "clock_id": "gazebo-iteration-clock",
+      "world_statistics_topic": "/world/rrvr-reference-world/stats",
+      "world_statistics_message_type": "gz.msgs.WorldStatistics",
+      "world_statistics_artifact_id": "reset-world-stats-artifact-001",
+      "world_statistics_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "world_statistics_capture_clock_id": "adapter-monotonic",
+      "world_statistics_received_monotonic_ns": 1000
     }
   },
   "events": [
@@ -180,7 +186,9 @@
         "world_epoch": "gazebo-world-epoch-001",
         "clock_id": "gazebo-iteration-clock",
         "iterations": 100,
-        "simulation_time_ns": 1000000000
+        "simulation_time_ns": 1000000000,
+        "capture_clock_id": "adapter-monotonic",
+        "received_monotonic_ns": 1100
       }
     },
     {
@@ -305,7 +313,9 @@
         "world_epoch": "gazebo-world-epoch-001",
         "clock_id": "gazebo-iteration-clock",
         "iterations": 200,
-        "simulation_time_ns": 2000000000
+        "simulation_time_ns": 2000000000,
+        "capture_clock_id": "adapter-monotonic",
+        "received_monotonic_ns": 1200
       }
     },
     {
@@ -430,7 +440,9 @@
         "world_epoch": "gazebo-world-epoch-001",
         "clock_id": "gazebo-iteration-clock",
         "iterations": 300,
-        "simulation_time_ns": 3000000000
+        "simulation_time_ns": 3000000000,
+        "capture_clock_id": "adapter-monotonic",
+        "received_monotonic_ns": 1300
       }
     },
     {
@@ -555,7 +567,9 @@
         "world_epoch": "gazebo-world-epoch-001",
         "clock_id": "gazebo-iteration-clock",
         "iterations": 400,
-        "simulation_time_ns": 4000000000
+        "simulation_time_ns": 4000000000,
+        "capture_clock_id": "adapter-monotonic",
+        "received_monotonic_ns": 1400
       }
     }
   ]
