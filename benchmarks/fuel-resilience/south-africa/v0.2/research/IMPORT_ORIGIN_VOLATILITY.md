@@ -17,6 +17,8 @@ The South African Energy Trade Report for Q2 2026 reports diesel imports of appr
 
 The top three contribute 63% and the top five 77% of the report's Q2 origin mix. The source is based on SARS customs data as reproduced in the published trade report.
 
+**Internal reconciliation warning:** the five country-level volumes printed in the report sum to **2.569 billion litres**. The five printed shares sum to **77%**; 77% of the report's rounded 3.3-billion-litre diesel total is **2.541 billion litres**, a **28-million-litre difference**. This may reflect rounding, aggregation or source-table inconsistency; the publication does not resolve it. The table therefore stores the source-reported shares and source-reported litres as separate observations. Do not recompute one field from the other or treat this as a calibrated probability distribution.
+
 ## Observation B — secondary monthly dashboard, September 2026
 
 Econo Energy Tools' public customs dashboard (updated 6 November 2026) reports approximately **1.048 billion litres** of diesel imports in September 2026, with a different origin mix:
