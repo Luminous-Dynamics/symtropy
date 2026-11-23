@@ -232,12 +232,17 @@ mod tests {
     }
 
     fn candidate(cell_id: u64, width: u128, cost: u128) -> RefinementCandidate {
+        let (parent_cell_id, generation) = if cell_id > 100 {
+            (Some(cell_id - 100), 1)
+        } else {
+            (None, 0)
+        };
         RefinementCandidate {
             scope: scope(),
             id: RefinementCandidateId {
                 cell_id,
-                parent_cell_id: (cell_id > 100).then_some(cell_id - 100),
-                generation: u32::from(cell_id > 100),
+                parent_cell_id,
+                generation,
             },
             contribution_bounds: NonnegativeRationalInterval {
                 lower: Rational::from_integer(0),
