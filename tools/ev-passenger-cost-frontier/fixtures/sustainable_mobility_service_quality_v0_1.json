@@ -1,0 +1,290 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001",
+  "site_id": "single-service-site-v01",
+  "site_configuration_digest": "sha256:service-site-v01",
+  "horizon_seconds": 28800,
+  "capacity_source": {
+    "source_report_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_architecture_id": "fixed_dock4_reference_profile",
+    "horizon_seconds": 28800,
+    "steady_state_cycle_capacity_upper_bound_per_hour": 4.444444444444445,
+    "initial_inventory_capacity_allowance_per_hour": 0.5,
+    "max_aerial_opportunities": 39
+  },
+  "requests": [
+    {
+      "request_id": "request-first-arrival",
+      "arrival_seconds": 0,
+      "accept_by_seconds": 100,
+      "deadline_seconds": 4000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-tight-deadline",
+      "arrival_seconds": 30,
+      "accept_by_seconds": 100,
+      "deadline_seconds": 1500,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "urgent",
+      "allowed_mode": "aerial_only"
+    },
+    {
+      "request_id": "request-fallback-only",
+      "arrival_seconds": 50,
+      "accept_by_seconds": 100,
+      "deadline_seconds": 1800,
+      "required_service_seconds": 900,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "fallback_only"
+    },
+    {
+      "request_id": "request-weather-blocked",
+      "arrival_seconds": 1700,
+      "accept_by_seconds": 1750,
+      "deadline_seconds": 4500,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "urgent",
+      "allowed_mode": "aerial_only"
+    },
+    {
+      "request_id": "request-maintenance-blocked",
+      "arrival_seconds": 7200,
+      "accept_by_seconds": 7200,
+      "deadline_seconds": 8000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "urgent",
+      "allowed_mode": "aerial_only"
+    },
+    {
+      "request_id": "request-fallback-after-no-go",
+      "arrival_seconds": 7200,
+      "accept_by_seconds": 7200,
+      "deadline_seconds": 10000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-unknown-permission",
+      "arrival_seconds": 11000,
+      "accept_by_seconds": 11000,
+      "deadline_seconds": 14000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-late-arrival",
+      "arrival_seconds": 101,
+      "accept_by_seconds": 100,
+      "deadline_seconds": 5000,
+      "required_service_seconds": 300,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-no-capacity",
+      "arrival_seconds": 24000,
+      "accept_by_seconds": 24000,
+      "deadline_seconds": 27000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "aerial_only"
+    },
+    {
+      "request_id": "request-later-fallback",
+      "arrival_seconds": 8500,
+      "accept_by_seconds": 8500,
+      "deadline_seconds": 12000,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "fallback_only"
+    }
+  ],
+  "aerial_opportunities": [
+    {
+      "opportunity_id": "aerial-early-01",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 600,
+      "max_service_duration_seconds": 600,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-01"
+    },
+    {
+      "opportunity_id": "aerial-early-02",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 1800,
+      "max_service_duration_seconds": 600,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-02"
+    },
+    {
+      "opportunity_id": "aerial-weather-01",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 3900,
+      "max_service_duration_seconds": 600,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-03"
+    },
+    {
+      "opportunity_id": "aerial-maintenance-01",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 7500,
+      "max_service_duration_seconds": 600,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-04"
+    },
+    {
+      "opportunity_id": "aerial-unknown-permission-01",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 12000,
+      "max_service_duration_seconds": 600,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-05"
+    }
+  ],
+  "fallback_opportunities": [
+    {
+      "opportunity_id": "fallback-van-early",
+      "fallback_resource_id": "van-01",
+      "fallback_mode": "ground_courier",
+      "start_seconds": 600,
+      "max_service_duration_seconds": 1200
+    },
+    {
+      "opportunity_id": "fallback-locker-early",
+      "fallback_resource_id": "locker-01",
+      "fallback_mode": "locker",
+      "start_seconds": 1800,
+      "max_service_duration_seconds": 900
+    },
+    {
+      "opportunity_id": "fallback-amr-weather",
+      "fallback_resource_id": "amr-01",
+      "fallback_mode": "amr",
+      "start_seconds": 3900,
+      "max_service_duration_seconds": 600
+    },
+    {
+      "opportunity_id": "fallback-van-after-no-go",
+      "fallback_resource_id": "van-01",
+      "fallback_mode": "ground_courier",
+      "start_seconds": 7500,
+      "max_service_duration_seconds": 1200
+    },
+    {
+      "opportunity_id": "fallback-locker-later",
+      "fallback_resource_id": "locker-01",
+      "fallback_mode": "locker",
+      "start_seconds": 9000,
+      "max_service_duration_seconds": 900
+    },
+    {
+      "opportunity_id": "fallback-van-unknown-permission",
+      "fallback_resource_id": "van-01",
+      "fallback_mode": "ground_courier",
+      "start_seconds": 12000,
+      "max_service_duration_seconds": 1200
+    }
+  ],
+  "flight_windows": [
+    {
+      "window_id": "flight-window-early",
+      "start_seconds": 0,
+      "end_seconds": 3600,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/early",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 0,
+        "valid_from_seconds": 0,
+        "valid_until_seconds": 3600
+      }
+    },
+    {
+      "window_id": "flight-window-weather-no-go",
+      "start_seconds": 3600,
+      "end_seconds": 7200,
+      "weather_state": "no_go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/weather-no-go",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 3590,
+        "valid_from_seconds": 3590,
+        "valid_until_seconds": 7200
+      }
+    },
+    {
+      "window_id": "flight-window-clear",
+      "start_seconds": 7200,
+      "end_seconds": 10800,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/clear",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 7190,
+        "valid_from_seconds": 7190,
+        "valid_until_seconds": 10800
+      }
+    },
+    {
+      "window_id": "flight-window-unknown-permission",
+      "start_seconds": 10800,
+      "end_seconds": 28800,
+      "weather_state": "go",
+      "permission_state": "unknown",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/unknown-permission",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 10790,
+        "valid_from_seconds": 10790,
+        "valid_until_seconds": 28800
+      }
+    }
+  ],
+  "blocked_intervals": [
+    {
+      "interval_id": "dock-maintenance-window",
+      "start_seconds": 7400,
+      "end_seconds": 8000,
+      "kind": "maintenance"
+    }
+  ],
+  "policies": [
+    "first_come_first_served",
+    "earliest_deadline_first"
+  ],
+  "claim_ceiling": "Deterministic request-to-prequalified-service-slot admission model only; aerial service opportunities and capacity source are supplied inputs. Weather/permission metadata is not authenticated. No route planning, flight/dispatch, physical, market, regulatory or customer-delivery authority."
+}
