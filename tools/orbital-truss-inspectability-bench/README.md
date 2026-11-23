@@ -252,7 +252,21 @@ The heuristic reproduces the paper's nominal visibility and capped-target select
 
 Run the sparse benchmark:
 
-    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-multicover-scale-bench -- docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json <40-hex-source-commit>
-    python3 tools/orbital-truss-inspectability-bench/tests/multicover_scale_reference_oracle.py docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json <40-hex-source-commit>
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-multicover-scale-bench -- docs/research/orbital-truss/fixtures/multicover-scale-v0_2.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/multicover_scale_reference_oracle.py docs/research/orbital-truss/fixtures/multicover-scale-v0_2.json <40-hex-source-commit>
 
 The 2,048-view fixture is a synthetic sparse scale-control, not an empirical reproduction of the paper's 3D candidate pool or a claim of superiority over ILP.
+
+
+## v0.2 — sequential overlap-pruning comparators
+
+The v0.2 sparse matrix includes an explicit synthetic \`vertical_order_rank\` so the paper's two overlap-pruning orderings can be replayed against exactly the same nominal visibility matrix:
+
+- bottom-to-top vertical rank;
+- descending nominal visibility count.
+
+Each is run at 50% and 70% overlap. The implementation uses the paper's strict rule \`overlap_fraction < threshold\` (a candidate at exactly the threshold is rejected), stable view-ID ties, and skips candidates with zero nominal visibility. It reports selection order, cardinality, union coverage, requested-k attainment, capped-target attainment and the full per-feature coverage diagnostics.
+
+The vertical rank is a frozen **synthetic ordering key**, not a measured z-coordinate or an orbital mesh. This is a discrete matrix-level comparator only. In particular, an overlap-pruned set may cover every feature once but fail k=3 or k=5. That failure remains visible in the receipt; this baseline is not relabelled as a k-cover algorithm.
+
+Run the v0.2 corpus with the same Rust CLI and independent Python oracle shown above. The receipt schema is v0.2 and carries all four overlap baseline outputs alongside the dynamic greedy result and LP-dual lower-bound certificate.
