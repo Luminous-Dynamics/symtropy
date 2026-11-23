@@ -29,7 +29,11 @@ pub struct PopOuterEpoch {
     /// Positive infinity is retained as a non-finite peak diagnostic and
     /// forces nonconvergence. NaN and negative values are invalid.
     pub ncdot_per_second: Option<f64>,
-    /// Effective surface Mahalanobis-squared diagnostic when POP converged.
+    /// Effective first-order surface-MD2 diagnostic when POP converged.
+    ///
+    /// This is NASA's MS2eff approximation, not a true squared norm; it may
+    /// therefore be negative. The source requires a finite value but does not
+    /// clamp it to zero.
     pub effective_surface_md2: Option<f64>,
 }
 
@@ -115,7 +119,7 @@ pub enum PopOuterConvergenceError {
     UnconvergedEpochCarriesDerivedValues,
     /// Ncdot is NaN or negative.
     InvalidNcdotValue,
-    /// Surface MD2 is non-finite or negative.
+    /// Surface MD2 is non-finite.
     InvalidSurfaceMd2,
     /// Ncdot reduction factor is not finite and in (0, 1].
     InvalidNcdotReductionFactor,
@@ -139,7 +143,7 @@ impl core::fmt::Display for PopOuterConvergenceError {
                 "an unconverged POP epoch carries stale derived values"
             }
             Self::InvalidNcdotValue => "Ncdot must be nonnegative and not NaN",
-            Self::InvalidSurfaceMd2 => "surface MD2 must be finite and nonnegative",
+            Self::InvalidSurfaceMd2 => "surface MD2 must be finite",
             Self::InvalidNcdotReductionFactor => {
                 "Ncdot reduction factor must be finite and lie in (0, 1]"
             }
@@ -334,7 +338,7 @@ fn validate_inputs(
             (true, None) => {
                 return Err(PopOuterConvergenceError::MissingConvergedEpochSurfaceMd2);
             }
-            (true, Some(value)) if !value.is_finite() || value < 0.0 => {
+            (true, Some(value)) if !value.is_finite() => {
                 return Err(PopOuterConvergenceError::InvalidSurfaceMd2);
             }
             (false, Some(_)) => {
@@ -634,6 +638,22 @@ mod tests {
             ),
             Err(PopOuterConvergenceError::InvalidEpochTimeOrder)
         );
+    }
+
+    #[test]
+    fn negative_first_order_surface_md2_is_preserved_without_clamping() {
+        let result = decide_pop_outer_convergence(
+            &[
+                epoch(1, 0.0, true, 0, Some(0.0), Some(-0.25)),
+                epoch(2, 1.0, false, 1, None, None),
+            ],
+            config(),
+        )
+        .unwrap();
+
+        assert!(!result.converged);
+        assert_eq!(result.minimum_surface_md2, Some(-0.25));
+        assert_eq!(result.reason, PopOuterConvergenceReason::PartialZeroRateUnresolved);
     }
 
     #[test]
