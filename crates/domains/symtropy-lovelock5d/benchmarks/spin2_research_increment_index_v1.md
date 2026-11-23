@@ -340,3 +340,30 @@ Artifacts:
 The Ma--Lü equal-spin kinematic map has also been replayed from its exact public source blob (Git blob SHA-1 5d17da9c52e0668d699d591c608a5bc18eb98efc, SHA-256 dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3); its inverse series passes through \(\nu^{11}\). The paper's printed \(\chi=a/\mu\) is retained literally, with a dimensional-convention caveat. The quantities \(q=a/r_h\) and \(\nu=\Omega_Hr_h\) agree only at leading slow-spin order.
 
 A new task, [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955), covers perturbative spin-uniformity. Wu--Lü, PRD 111, 104026 (2025), find rotation-dependent divergences in first-order quadratic-curvature thermodynamic corrections across ensembles, while cautioning that these may be perturbative artifacts rather than nonexistence in the full nonlinear theory. Therefore the Ma--Lü spin-series truncation error and coupling truncation error \(O(\epsilon_R^2)\) must be tracked separately. The metric/gauge comparison and thermodynamic matching remain open.
+
+
+## Fixed Symtropy horizon and physical angular velocity: Ma--Lü parameter conversion (23 November 2026)
+
+The benchmark now distinguishes the Ma--Lü Boyer--Lindquist horizon \(r_h\), \(\nu_h=\Omega_Hr_h\), from the Symtropy areal horizon \(R_H\), \(\nu_S=\Omega_HR_H\). At zero coupling, \(R_H^2=r_h^2+a^2\) and \(\nu_S=q/\sqrt{1+q^2}\); they are not the same spin variable.
+
+A local exact-symbolic first-coupling derivation gives, with \(\epsilon_S=\alpha_R/R_H^2\):
+\[
+R_H/r_h=1+5\epsilon_S/3+\nu_S^2/2+(277/90)\epsilon_S\nu_S^2+\cdots,
+\]
+\[
+q=\nu_S+\nu_S^3/2+\epsilon_S(7\nu_S-(3619/90)\nu_S^3)+\cdots,
+\]
+\[
+a/R_H=\nu_S+(16/3)\epsilon_S\nu_S-(2068/45)\epsilon_S\nu_S^3+\cdots,
+\]
+\[
+\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+(454/45)\epsilon_S\nu_S^2+\cdots.
+\]
+The last quantity is the converted background MP mass parameter, **not** the corrected ADM mass; ADM mass needs an independent asymptotic extraction including \(H_1\).
+
+Artifacts:
+- ma_lu_fixed_symtropy_boundary_map_v1.json
+- ma_lu_fixed_symtropy_boundary_map_v1.md
+- ma_lu_fixed_symtropy_boundary_map_replay_v1.json
+
+Issue [#6965](https://github.com/Luminous-Dynamics/symtropy/issues/6965) owns the parameter map and its independent verification. The exact transformed metric coefficient comparison remains open in #6915.
