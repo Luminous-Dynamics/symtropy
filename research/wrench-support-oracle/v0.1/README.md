@@ -42,7 +42,9 @@ For small candidate sets, the oracle enumerates every k-point subset and minimiz
 2. mean normalized directional support deficit;
 3. lexicographic retained stable IDs as deterministic tie-break.
 
-A configurable maximum-subset limit fails closed before enumeration. This gives an exact optimizer for the finite direction set and restricted physical model, suitable as a known-answer comparator for greedy/local-search reducers. It is not a scalable production reducer.
+A configurable maximum-subset limit fails closed before enumeration. This gives an exact optimizer for the finite direction set and restricted physical model.
+
+A deterministic greedy baseline is also included. It adds one point at a time, minimizing the same current max-deficit/mean-deficit/lexicographic tuple. It is intentionally not claimed to be globally optimal or to have a general approximation ratio; the exact selector measures its empirical optimality gap on small patches.
 
 The evaluate_retained_set function provides the common evaluation path for externally supplied retained IDs, so future Bullet/Jolt/Rapier/Symtropy adapters can be compared on the same candidate set and directions.
 
@@ -55,7 +57,8 @@ Compare on frozen identical candidate sets:
 - Jolt's bounded stable-manifold policy;
 - Rapier-style contact clustering with solver groups kept distinct from geometric manifolds;
 - exact small-set wrench-support subset oracle;
-- future deterministic greedy and branch-and-bound selectors.
+- deterministic greedy selector, directly scored against the exact result;
+- future branch-and-bound and direction-adaptive selectors.
 
 The industry descriptions are not matched performance results. Rapier documents that contact clustering can merge same-normal manifolds and solve at most four contacts per plane; when clustering applies, geometric manifold impulses are not the solver impulses. Jolt documents a four-point stable manifold and exposes reduction visualization. Bullet describes retaining the deepest point and maximizing area when reducing its persistent cache to four. These are architectural references; compare actual outputs with identical fixtures before claiming a win.
 
@@ -78,9 +81,11 @@ Sources:
 
 ## Tests
 
-The unit suite covers:
+The unit suite contains 15 tests and covers:
 - exact zero deficit for the full set;
 - a known two-point subset preserving both positive and negative moment extrema;
+- greedy agreement with exact selection on a symmetric known-answer patch;
+- exact-vs-greedy objective ordering and greedy evaluation guard;
 - loss from a one-point subset;
 - input/direction permutation invariance;
 - geometric scale invariance;
