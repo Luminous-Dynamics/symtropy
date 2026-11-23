@@ -1,0 +1,1244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:caem:0.1",
+  "title": "Conjunction Assessment Evidence Manifest (CAEM) v0.1",
+  "description": "Optional evidence sidecar bound to an unchanged CDM payload. It records provenance, result semantics, assurance dimensions and replay metadata; it is not a replacement CDM standard.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "issued_at",
+    "producer",
+    "cdm_binding",
+    "event",
+    "objects",
+    "assessment",
+    "results",
+    "assurance",
+    "qualification"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "$ref": "#/$defs/producer"
+    },
+    "cdm_binding": {
+      "$ref": "#/$defs/cdmBinding"
+    },
+    "event": {
+      "$ref": "#/$defs/event"
+    },
+    "objects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary",
+        "secondary"
+      ],
+      "properties": {
+        "primary": {
+          "$ref": "#/$defs/objectRecord"
+        },
+        "secondary": {
+          "$ref": "#/$defs/objectRecord"
+        }
+      }
+    },
+    "assessment": {
+      "$ref": "#/$defs/assessment"
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/probabilityResult"
+          },
+          {
+            "$ref": "#/$defs/expectedCountResult"
+          },
+          {
+            "$ref": "#/$defs/rateSeriesResult"
+          },
+          {
+            "$ref": "#/$defs/distributionResult"
+          },
+          {
+            "$ref": "#/$defs/otherQuantityResult"
+          }
+        ]
+      }
+    },
+    "assurance": {
+      "$ref": "#/$defs/assurance"
+    },
+    "qualification": {
+      "$ref": "#/$defs/qualification"
+    },
+    "decision_policy": {
+      "$ref": "#/$defs/decisionPolicy"
+    },
+    "consequence": {
+      "$ref": "#/$defs/consequence"
+    },
+    "evidence_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifactRef"
+      }
+    },
+    "supersedes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "attestations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attestation"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced profile extensions. Extension semantics must be versioned externally."
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "organization",
+        "system_id",
+        "manifest_generator_version"
+      ],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_generator_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contact_uri": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "sha256"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "media_type": {
+          "type": "string"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cdmBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_id",
+        "standard_version",
+        "payload_sha256",
+        "payload_media_type",
+        "message_id",
+        "originator",
+        "creation_date"
+      ],
+      "properties": {
+        "standard_id": {
+          "enum": [
+            "CCSDS 508.0-B-1",
+            "ISO 19389",
+            "other_declared"
+          ]
+        },
+        "standard_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "namespace_profile": {
+          "type": "string"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalization_profile": {
+          "enum": [
+            "raw-bytes",
+            "xml-c14n-1.1",
+            "other_declared"
+          ]
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "originator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "creation_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "schema_validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "passed",
+                "failed",
+                "not_run",
+                "unknown"
+              ]
+            },
+            "validator_id": {
+              "type": "string"
+            },
+            "validator_build_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "details_artifact": {
+              "$ref": "#/$defs/artifactRef"
+            }
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_revision",
+        "event_semantics",
+        "time_scale",
+        "reference_frame",
+        "hbr"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_semantics": {
+          "enum": [
+            "tca_snapshot",
+            "expected_collision_count_over_horizon",
+            "any_contact_probability_over_horizon",
+            "first_contact_time_distribution",
+            "collision_rate_time_series",
+            "other_declared"
+          ]
+        },
+        "tca": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "horizon_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "horizon_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_scale": {
+          "enum": [
+            "UTC",
+            "TAI",
+            "TT",
+            "TDB",
+            "UT1",
+            "other_declared"
+          ]
+        },
+        "time_scale_description": {
+          "type": "string"
+        },
+        "reference_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "central_body": {
+          "type": "string"
+        },
+        "hbr": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit",
+            "source"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uncertainty_artifact": {
+              "$ref": "#/$defs/artifactRef"
+            }
+          }
+        },
+        "event_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "objectRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_id",
+        "operational_status",
+        "ephemeris_source"
+      ],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalogue_id": {
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "operational_status": {
+          "enum": [
+            "active",
+            "inactive",
+            "unknown",
+            "other_declared"
+          ]
+        },
+        "ephemeris_source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_class",
+            "source_id",
+            "quality_status"
+          ],
+          "properties": {
+            "source_class": {
+              "enum": [
+                "owner_operator",
+                "provider_catalogue",
+                "external_catalogue",
+                "synthesized",
+                "unknown",
+                "other_declared"
+              ]
+            },
+            "source_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "artifact_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "retrieved_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "epoch": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "time_scale": {
+              "type": "string"
+            },
+            "reference_frame": {
+              "type": "string"
+            },
+            "coordinate_representation": {
+              "type": "string"
+            },
+            "state_artifact": {
+              "$ref": "#/$defs/artifactRef"
+            },
+            "covariance_artifact": {
+              "$ref": "#/$defs/artifactRef"
+            },
+            "quality_status": {
+              "enum": [
+                "passed",
+                "failed",
+                "incomplete",
+                "not_assessed",
+                "unknown"
+              ]
+            },
+            "quality_checks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/qualityCheck"
+              }
+            },
+            "notification_artifact": {
+              "$ref": "#/$defs/artifactRef"
+            }
+          }
+        },
+        "physical_properties_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        }
+      }
+    },
+    "qualityCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "status"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "inconclusive"
+          ]
+        },
+        "method_id": {
+          "type": "string"
+        },
+        "result_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        },
+        "details": {
+          "type": "string"
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_family",
+        "method_id",
+        "stage",
+        "software",
+        "model",
+        "input_artifact_digests"
+      ],
+      "properties": {
+        "method_family": {
+          "enum": [
+            "NASA_CARA_analytical",
+            "NASA_CARA_monte_carlo",
+            "cross_entropy_importance_sampling",
+            "surrogate_importance_sampling",
+            "brute_force_monte_carlo",
+            "other_declared"
+          ]
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage": {
+          "enum": [
+            "2D-Pc",
+            "3D-Pc",
+            "2D-Nc",
+            "3D-Nc",
+            "from-TCA-MC",
+            "SDMC",
+            "BFMC",
+            "CE-IS",
+            "Taylor-CE",
+            "other_declared"
+          ]
+        },
+        "implementation_reference": {
+          "type": "string"
+        },
+        "external_source_commit": {
+          "type": "string"
+        },
+        "usage_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/qualityCheck"
+          }
+        },
+        "escalation_reason": {
+          "type": "string"
+        },
+        "software": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version",
+            "git_commit",
+            "build_sha256"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{7,64}$"
+            },
+            "build_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_revision",
+            "model_sha256",
+            "target_distribution_sha256"
+          ],
+          "properties": {
+            "model_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "target_distribution_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "force_model_id": {
+              "type": "string"
+            },
+            "environment_model_id": {
+              "type": "string"
+            },
+            "covariance_model_id": {
+              "type": "string"
+            },
+            "cross_object_correlation_model_id": {
+              "type": "string"
+            },
+            "coordinate_transform_id": {
+              "type": "string"
+            }
+          }
+        },
+        "input_artifact_digests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "resultBase": {
+      "type": "object",
+      "required": [
+        "result_id",
+        "result_type",
+        "estimate",
+        "lower_bound",
+        "upper_bound",
+        "unit",
+        "event_definition_sha256",
+        "model_sha256"
+      ],
+      "properties": {
+        "result_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "estimate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lower_bound": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upper_bound": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_definition_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "assumption_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "details_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      }
+    },
+    "probabilityResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resultBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "result_id": {},
+            "result_type": {
+              "enum": [
+                "CollisionProbabilityAtTCA",
+                "AnyContactProbabilityOverHorizon"
+              ]
+            },
+            "estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "lower_bound": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "upper_bound": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "unit": {
+              "const": "probability"
+            },
+            "event_definition_sha256": {},
+            "model_sha256": {},
+            "assumption_digest": {},
+            "details_artifact": {}
+          }
+        }
+      ]
+    },
+    "expectedCountResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resultBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "result_id": {},
+            "result_type": {
+              "const": "ExpectedCollisionCountOverHorizon"
+            },
+            "estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lower_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "upper_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "const": "count"
+            },
+            "event_definition_sha256": {},
+            "model_sha256": {},
+            "assumption_digest": {},
+            "details_artifact": {}
+          }
+        }
+      ]
+    },
+    "rateSeriesResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resultBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "result_id": {},
+            "result_type": {
+              "const": "CollisionRateTimeSeries"
+            },
+            "estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lower_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "upper_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "const": "per_second"
+            },
+            "event_definition_sha256": {},
+            "model_sha256": {},
+            "assumption_digest": {},
+            "details_artifact": {}
+          }
+        }
+      ]
+    },
+    "distributionResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resultBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "result_id": {},
+            "result_type": {
+              "const": "FirstContactTimeDistribution"
+            },
+            "estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lower_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "upper_bound": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "const": "seconds"
+            },
+            "event_definition_sha256": {},
+            "model_sha256": {},
+            "assumption_digest": {},
+            "details_artifact": {}
+          }
+        }
+      ]
+    },
+    "otherQuantityResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resultBase"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "result_id": {},
+            "result_type": {
+              "const": "OtherDeclaredQuantity"
+            },
+            "quantity_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "estimate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "lower_bound": {
+              "type": "number"
+            },
+            "upper_bound": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "event_definition_sha256": {},
+            "model_sha256": {},
+            "assumption_digest": {},
+            "details_artifact": {}
+          },
+          "required": [
+            "quantity_name"
+          ]
+        }
+      ]
+    },
+    "assuranceDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "incomplete",
+            "not_assessed",
+            "not_applicable"
+          ]
+        },
+        "method_id": {
+          "type": "string"
+        },
+        "evidence_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statistical",
+        "event_coverage",
+        "numerical",
+        "physical_model",
+        "data_quality",
+        "replay"
+      ],
+      "properties": {
+        "statistical": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/assuranceDimension"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "estimator_id": {
+                  "type": "string"
+                },
+                "sample_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "confidence_method": {
+                  "type": "string"
+                },
+                "alpha": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "exclusiveMaximum": 1
+                },
+                "proposal_sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "sample_stream_sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            }
+          ]
+        },
+        "event_coverage": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/assuranceDimension"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "partition_witness_sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "discovered_mode_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unresolved_cell_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "residual_event_mass_upper_bound": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "residual_mass_model_sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            }
+          ]
+        },
+        "numerical": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/assuranceDimension"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enclosure_method": {
+                  "type": "string"
+                },
+                "arithmetic_policy": {
+                  "enum": [
+                    "heuristic",
+                    "outward_expanded",
+                    "independently_reviewed",
+                    "formally_verified",
+                    "unknown"
+                  ]
+                },
+                "approximation_remainder_artifact": {
+                  "$ref": "#/$defs/artifactRef"
+                }
+              }
+            }
+          ]
+        },
+        "physical_model": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/assuranceDimension"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "model_family_id": {
+                  "type": "string"
+                },
+                "declared_family_complete": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "common_mode_model_id": {
+                  "type": "string"
+                },
+                "model_scenarios_artifact": {
+                  "$ref": "#/$defs/artifactRef"
+                }
+              }
+            }
+          ]
+        },
+        "data_quality": {
+          "$ref": "#/$defs/assuranceDimension"
+        },
+        "replay": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/assuranceDimension"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "deterministic_replay_available": {
+                  "type": "boolean"
+                },
+                "replay_manifest_artifact": {
+                  "$ref": "#/$defs/artifactRef"
+                },
+                "unavailable_dependencies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "qualified_scope",
+        "abstention_reasons"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "QualifiedConditionalEstimate",
+            "QualifiedDeclaredModelFamilyEnvelope",
+            "DecisionBoundaryStraddled",
+            "Unqualified",
+            "AbstainedBudget",
+            "StaleEvidence"
+          ]
+        },
+        "qualified_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "abstention_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "qualification_evaluator_id": {
+          "type": "string"
+        }
+      }
+    },
+    "decisionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "policy_id",
+        "version",
+        "effective_date",
+        "event_type",
+        "threshold_value",
+        "threshold_unit"
+      ],
+      "properties": {
+        "authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threshold_value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "threshold_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      }
+    },
+    "consequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method_id"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "assessed",
+            "not_assessed",
+            "incomplete",
+            "not_applicable"
+          ]
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "estimate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lower_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_bound": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "evidence_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        },
+        "dependence_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signer_id",
+        "signer_role",
+        "signed_at",
+        "signature_algorithm",
+        "signature",
+        "trust_root_sha256"
+      ],
+      "properties": {
+        "signer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signer_role": {
+          "enum": [
+            "producer",
+            "independent_verifier",
+            "data_originator",
+            "operator_authority",
+            "other_declared"
+          ]
+        },
+        "signed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "signature_algorithm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trust_root_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signed_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
