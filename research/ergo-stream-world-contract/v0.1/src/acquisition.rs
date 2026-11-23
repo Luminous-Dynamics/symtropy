@@ -212,6 +212,20 @@ mod tests {
         assert_eq!(report.motif_equivalence.f1, Some(1.0));
     }
 
+
+    #[test]
+    fn baseline_recovers_structure_under_uniform_time_dilation() {
+        let world = WorldV0::generate(0x5EED, 64, [0, 1, 2, 3], 30, 20).unwrap();
+        let view = full_view(&world);
+        let snapshot = PassiveGapPatternBaselineV0.acquire(&view, true).unwrap();
+        let report = world.evaluate(&snapshot);
+
+        assert_eq!(report.unit_boundaries.f1, Some(1.0));
+        assert_eq!(report.unit_equivalence.f1, Some(1.0));
+        assert_eq!(report.motif_boundaries.f1, Some(1.0));
+        assert_eq!(report.motif_equivalence.f1, Some(1.0));
+    }
+
     #[test]
     fn baseline_does_not_promote_an_open_tail_to_a_completed_unit() {
         let world = WorldV0::generate(0x5EED, 64, [0, 1, 2, 3], 3, 2).unwrap();
