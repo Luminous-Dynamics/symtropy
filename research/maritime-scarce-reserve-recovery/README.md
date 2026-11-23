@@ -91,7 +91,7 @@ The test-only oracle takes a separate route:
 - compute each policy's worst-case regret;
 - select the lexicographically best full policy, including deterministic tie-breaking.
 
-There are 52 set partitions of five worlds. The test suite compares the production solver with exhaustive enumeration over every partition and the full three-action policy space. It also compares the three named observation policies with the independent oracle.
+There are 52 set partitions of five worlds. The test suite compares the production solver with exhaustive enumeration over every partition and the full three-action policy space. It also checks 64 deterministically generated five-world sets across all 52 partitions (3,328 generated-world/partition comparisons), in addition to the hand-authored known-answer worlds, and compares the three named observation policies with the independent oracle.
 
 ## Current owner boundaries
 
