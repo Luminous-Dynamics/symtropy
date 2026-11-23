@@ -55,7 +55,9 @@ The inherited final-evaluation recipe is enabled, with 2,048 outer samples and 1
 
 ## 4. Environment and execution protocol
 
-TestBED documents Python >=3.10 and PyTorch >=2.5. Its README notes that the Hydra 1.3 CLI does not support Python 3.14, so use Python 3.13 or earlier. Pin the full environment (including exact Torch build, CUDA, Hydra, NumPy, and transitive dependencies) before an official reproduction. A `pip install` range is not a reproducible lock.
+TestBED documents Python >=3.10 and PyTorch >=2.5. Its README notes that the Hydra 1.3 CLI does not support Python 3.14, so use Python 3.13 or earlier. **The pinned upstream commit has no `uv.lock`, `poetry.lock`, `requirements.txt` or `environment.yml`.** Its `pyproject.toml` only declares lower bounds: NumPy >=1.24, PyTorch >=2.5, PyYAML, tqdm and the training extra Hydra Core >=1.3. A source commit plus unbounded dependency ranges is not a reproducible environment. The exact environment-lock work is tracked in [#7099](https://github.com/Luminous-Dynamics/symtropy/issues/7099).
+
+Before training, generate a separate immutable environment lock containing exact Python, Torch, NumPy, Hydra, CUDA/CPU runtime, Triton and transitive package versions plus wheel hashes. Record container digest and GPU model/driver. A CPU smoke or a different GPU is useful for wiring but is not interchangeable with the TestBED paper's 12-hour NVIDIA GH200 protocol. Do not claim an official five-seed reproduction until the environment tuple and total training/final-evaluation compute are recorded.
 
 Official command:
 
