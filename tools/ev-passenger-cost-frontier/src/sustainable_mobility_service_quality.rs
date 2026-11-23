@@ -690,11 +690,9 @@ fn aerial_block_reason(
 
 fn request_priority(request: &ServiceRequest, policy: AdmissionPolicy) -> (u64, u64, String) {
     match policy {
-        AdmissionPolicy::FirstComeFirstServed => (
-            request.arrival_seconds,
-            0,
-            request.request_id.clone(),
-        ),
+        AdmissionPolicy::FirstComeFirstServed => {
+            (request.arrival_seconds, 0, request.request_id.clone())
+        }
         AdmissionPolicy::EarliestDeadlineFirst => (
             request.deadline_seconds,
             request.arrival_seconds,
@@ -1130,8 +1128,8 @@ pub fn evaluate_linked_service_quality(
         add_error(&mut errors, "linked_service_identity_or_bounds_invalid");
     }
 
-    let capacity_report = evaluate_sustainable_service_capacity(capacity_input)
-        .map_err(|capacity_errors| {
+    let capacity_report =
+        evaluate_sustainable_service_capacity(capacity_input).map_err(|capacity_errors| {
             capacity_errors
                 .into_iter()
                 .map(|error| format!("capacity_source_rejected:{error}"))
@@ -1142,7 +1140,10 @@ pub fn evaluate_linked_service_quality(
         || capacity_report.horizon_seconds != input.horizon_seconds
         || capacity_report.capacity_is_physical_performance_claim
     {
-        add_error(&mut errors, "capacity_source_report_identity_or_horizon_invalid");
+        add_error(
+            &mut errors,
+            "capacity_source_report_identity_or_horizon_invalid",
+        );
     }
 
     let selected: Vec<_> = capacity_report
@@ -1151,7 +1152,10 @@ pub fn evaluate_linked_service_quality(
         .filter(|result| result.architecture_id == input.source_architecture_id)
         .collect();
     if selected.len() != 1 {
-        add_error(&mut errors, "capacity_source_architecture_missing_or_ambiguous");
+        add_error(
+            &mut errors,
+            "capacity_source_architecture_missing_or_ambiguous",
+        );
     }
     let architectures: Vec<_> = capacity_input
         .architectures
@@ -1159,7 +1163,10 @@ pub fn evaluate_linked_service_quality(
         .filter(|architecture| architecture.architecture_id == input.source_architecture_id)
         .collect();
     if architectures.len() != 1 {
-        add_error(&mut errors, "capacity_source_configuration_missing_or_ambiguous");
+        add_error(
+            &mut errors,
+            "capacity_source_configuration_missing_or_ambiguous",
+        );
     }
     if !errors.is_empty() {
         errors.sort();
@@ -1173,14 +1180,20 @@ pub fn evaluate_linked_service_quality(
         || selected.service_opportunities.len() as u64 != selected.completed_sorties
         || selected.service_opportunities.len() > MAX_AERIAL_OPPORTUNITIES
     {
-        add_error(&mut errors, "capacity_service_opportunity_count_or_horizon_invalid");
+        add_error(
+            &mut errors,
+            "capacity_service_opportunity_count_or_horizon_invalid",
+        );
     }
 
     let source_report_bytes = serde_json::to_vec(&capacity_report)
         .map_err(|error| vec![format!("capacity_report_serialization_failed:{error}")])?;
     let source_report_digest = sha256_digest(&source_report_bytes);
-    let configuration_bytes = serde_json::to_vec(architecture)
-        .map_err(|error| vec![format!("capacity_configuration_serialization_failed:{error}")])?;
+    let configuration_bytes = serde_json::to_vec(architecture).map_err(|error| {
+        vec![format!(
+            "capacity_configuration_serialization_failed:{error}"
+        )]
+    })?;
     let configuration_digest = sha256_digest(&configuration_bytes);
     let opportunity_bytes = serde_json::to_vec(&selected.service_opportunities)
         .map_err(|error| vec![format!("capacity_opportunity_serialization_failed:{error}")])?;
@@ -1204,7 +1217,10 @@ pub fn evaluate_linked_service_quality(
         {
             add_error(
                 &mut errors,
-                format!("capacity_receipt_identity_or_bounds_invalid:{}", opportunity.opportunity_id),
+                format!(
+                    "capacity_receipt_identity_or_bounds_invalid:{}",
+                    opportunity.opportunity_id
+                ),
             );
         }
         source_sequences
@@ -1246,7 +1262,10 @@ pub fn evaluate_linked_service_quality(
         else {
             add_error(
                 &mut errors,
-                format!("aerial_qualification_references_unknown_capacity_opportunity:{}", qualification.opportunity_id),
+                format!(
+                    "aerial_qualification_references_unknown_capacity_opportunity:{}",
+                    qualification.opportunity_id
+                ),
             );
             continue;
         };
@@ -1276,7 +1295,10 @@ pub fn evaluate_linked_service_quality(
         {
             add_error(
                 &mut errors,
-                format!("aerial_payload_qualification_invalid:{}", qualification.opportunity_id),
+                format!(
+                    "aerial_payload_qualification_invalid:{}",
+                    qualification.opportunity_id
+                ),
             );
         }
     }
@@ -1287,7 +1309,8 @@ pub fn evaluate_linked_service_quality(
         return Err(errors);
     }
 
-    let mut aerial_opportunities = Vec::with_capacity(input.aerial_opportunity_qualifications.len());
+    let mut aerial_opportunities =
+        Vec::with_capacity(input.aerial_opportunity_qualifications.len());
     for qualification in &input.aerial_opportunity_qualifications {
         let receipt = selected
             .service_opportunities
@@ -1305,7 +1328,11 @@ pub fn evaluate_linked_service_quality(
         });
     }
     aerial_opportunities.sort_by_key(|opportunity| {
-        (opportunity.start_seconds, opportunity.aircraft_id.clone(), opportunity.opportunity_id.clone())
+        (
+            opportunity.start_seconds,
+            opportunity.aircraft_id.clone(),
+            opportunity.opportunity_id.clone(),
+        )
     });
 
     let legacy_input = ServiceQualityInput {
@@ -1318,8 +1345,10 @@ pub fn evaluate_linked_service_quality(
             source_report_digest: source_report_digest.clone(),
             source_architecture_id: input.source_architecture_id.clone(),
             horizon_seconds: selected.horizon_seconds,
-            steady_state_cycle_capacity_upper_bound_per_hour: selected.steady_state_cycle_capacity_upper_bound_per_hour,
-            initial_inventory_capacity_allowance_per_hour: selected.initial_inventory_capacity_allowance_per_hour,
+            steady_state_cycle_capacity_upper_bound_per_hour: selected
+                .steady_state_cycle_capacity_upper_bound_per_hour,
+            initial_inventory_capacity_allowance_per_hour: selected
+                .initial_inventory_capacity_allowance_per_hour,
             max_aerial_opportunities: u32::try_from(aerial_opportunities.len())
                 .map_err(|_| vec!["qualified_opportunity_count_overflow".to_owned()])?,
         },
@@ -1487,14 +1516,23 @@ mod tests {
     #[test]
     fn linked_fixture_uses_event_derived_capacity_and_reports_bound_digests() {
         let report = linked_report();
-        assert_eq!(report.capacity_source_architecture_id, "fixed_dock4_reference_profile");
+        assert_eq!(
+            report.capacity_source_architecture_id,
+            "fixed_dock4_reference_profile"
+        );
         assert_eq!(report.capacity_opportunities_in_source, 38);
         assert_eq!(report.capacity_opportunities_qualified, 7);
         assert!(report.capacity_source_report_digest.starts_with("sha256:"));
         assert_eq!(report.capacity_source_report_digest.len(), 71);
-        assert!(report.capacity_service_opportunity_digest.starts_with("sha256:"));
-        assert_eq!(report.capacity_architecture_configuration_digest,
-            "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024");
+        assert!(
+            report
+                .capacity_service_opportunity_digest
+                .starts_with("sha256:")
+        );
+        assert_eq!(
+            report.capacity_architecture_configuration_digest,
+            "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024"
+        );
         assert_eq!(report.policy_results.len(), 2);
         assert_eq!(report.policy_results[0].completed_on_time, 6);
         assert_eq!(report.policy_results[0].completed_late, 2);
@@ -1509,16 +1547,44 @@ mod tests {
         let report = linked_report();
         let fcfs = &report.policy_results[0];
         let edf = &report.policy_results[1];
-        let fcfs_first = fcfs.outcomes.iter().find(|item| item.request_id == "request-first-arrival").unwrap();
-        let fcfs_urgent = fcfs.outcomes.iter().find(|item| item.request_id == "request-tight-deadline").unwrap();
-        let edf_first = edf.outcomes.iter().find(|item| item.request_id == "request-first-arrival").unwrap();
-        let edf_urgent = edf.outcomes.iter().find(|item| item.request_id == "request-tight-deadline").unwrap();
-        assert_eq!(fcfs_first.opportunity_id.as_deref(), Some("aircraft-00-mission-000000"));
-        assert_eq!(fcfs_urgent.opportunity_id.as_deref(), Some("aircraft-00-mission-000001"));
+        let fcfs_first = fcfs
+            .outcomes
+            .iter()
+            .find(|item| item.request_id == "request-first-arrival")
+            .unwrap();
+        let fcfs_urgent = fcfs
+            .outcomes
+            .iter()
+            .find(|item| item.request_id == "request-tight-deadline")
+            .unwrap();
+        let edf_first = edf
+            .outcomes
+            .iter()
+            .find(|item| item.request_id == "request-first-arrival")
+            .unwrap();
+        let edf_urgent = edf
+            .outcomes
+            .iter()
+            .find(|item| item.request_id == "request-tight-deadline")
+            .unwrap();
+        assert_eq!(
+            fcfs_first.opportunity_id.as_deref(),
+            Some("aircraft-00-mission-000000")
+        );
+        assert_eq!(
+            fcfs_urgent.opportunity_id.as_deref(),
+            Some("aircraft-00-mission-000001")
+        );
         assert_eq!(fcfs_first.service_start_seconds, Some(0));
         assert_eq!(fcfs_urgent.service_start_seconds, Some(345));
-        assert_eq!(edf_urgent.opportunity_id.as_deref(), Some("aircraft-00-mission-000000"));
-        assert_eq!(edf_first.opportunity_id.as_deref(), Some("aircraft-00-mission-000001"));
+        assert_eq!(
+            edf_urgent.opportunity_id.as_deref(),
+            Some("aircraft-00-mission-000000")
+        );
+        assert_eq!(
+            edf_first.opportunity_id.as_deref(),
+            Some("aircraft-00-mission-000001")
+        );
     }
 
     #[test]
@@ -1538,11 +1604,16 @@ mod tests {
         let input = linked_fixture();
         let capacity = capacity_fixture();
         let mut wrong_aircraft = linked_fixture();
-        wrong_aircraft.aerial_opportunity_qualifications[0].evidence.aircraft_id =
-            "aircraft-99".to_owned();
+        wrong_aircraft.aerial_opportunity_qualifications[0]
+            .evidence
+            .aircraft_id = "aircraft-99".to_owned();
         let errors = evaluate_linked_service_quality(&wrong_aircraft, &capacity)
             .expect_err("payload qualification is aircraft-bound");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
 
         let mut wrong_configuration = input;
         wrong_configuration.aerial_opportunity_qualifications[0]
@@ -1550,7 +1621,11 @@ mod tests {
             .architecture_configuration_digest = "sha256:stale-configuration".to_owned();
         let errors = evaluate_linked_service_quality(&wrong_configuration, &capacity)
             .expect_err("payload qualification is configuration-bound");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
@@ -1565,44 +1640,71 @@ mod tests {
         qualification.evidence.valid_until_seconds = 15_500;
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("evidence expires before mission plus turnaround ends");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
     fn payload_evidence_is_bound_to_the_exact_capacity_opportunity_id() {
         let mut input = linked_fixture();
-        input.aerial_opportunity_qualifications[1].evidence.capacity_opportunity_id =
-            input.aerial_opportunity_qualifications[0].opportunity_id.clone();
+        input.aerial_opportunity_qualifications[1]
+            .evidence
+            .capacity_opportunity_id = input.aerial_opportunity_qualifications[0]
+            .opportunity_id
+            .clone();
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("evidence receipt must name the exact source opportunity");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
     fn payload_evidence_is_bound_to_the_exact_site_configuration() {
         let mut input = linked_fixture();
-        input.aerial_opportunity_qualifications[0].evidence.site_id =
-            "another-site".to_owned();
+        input.aerial_opportunity_qualifications[0].evidence.site_id = "another-site".to_owned();
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("payload qualification cannot be replayed at another site");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
 
         let mut input = linked_fixture();
-        input.aerial_opportunity_qualifications[0].evidence.site_configuration_digest =
-            "sha256:another-site-config".to_owned();
+        input.aerial_opportunity_qualifications[0]
+            .evidence
+            .site_configuration_digest = "sha256:another-site-config".to_owned();
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("payload qualification cannot cross site configurations");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
     fn payload_evidence_reference_cannot_be_replayed_for_another_opportunity() {
         let mut input = linked_fixture();
-        input.aerial_opportunity_qualifications[1].evidence.evidence_reference =
-            input.aerial_opportunity_qualifications[0].evidence.evidence_reference.clone();
+        input.aerial_opportunity_qualifications[1]
+            .evidence
+            .evidence_reference = input.aerial_opportunity_qualifications[0]
+            .evidence
+            .evidence_reference
+            .clone();
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("one payload receipt cannot qualify two service opportunities");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
@@ -1611,15 +1713,21 @@ mod tests {
         input.source_architecture_id = "unmodelled-architecture".to_owned();
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("unknown architecture");
-        assert!(errors.iter().any(|error| {
-            error == "capacity_source_architecture_missing_or_ambiguous"
-        }));
+        assert!(
+            errors
+                .iter()
+                .any(|error| { error == "capacity_source_architecture_missing_or_ambiguous" })
+        );
 
         let mut input = linked_fixture();
         input.horizon_seconds -= 1;
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("capacity and request horizons must be identical");
-        assert!(errors.iter().any(|error| error == "linked_service_identity_or_bounds_invalid"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "linked_service_identity_or_bounds_invalid")
+        );
     }
 
     #[test]
@@ -1649,7 +1757,11 @@ mod tests {
         capacity.architectures[1].charge_duration_seconds += 60;
         let errors = evaluate_linked_service_quality(&input, &capacity)
             .expect_err("changing the architecture requires new payload qualification evidence");
-        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("aerial_payload_qualification_invalid"))
+        );
     }
 
     #[test]
