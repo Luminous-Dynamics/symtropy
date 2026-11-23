@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::sustainable_mobility_service_capacity::{
-    CapacityServiceOpportunity, SustainableServiceCapacityInput,
+    SustainableServiceCapacityInput,
     evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
@@ -241,6 +241,7 @@ pub struct NonanticipativeOracleReport {
 
 #[derive(Debug, Clone)]
 struct InformationSet {
+    digest: String,
     parent_digest: Option<String>,
     decision_time_seconds: u64,
     revealed_mask: u16,
@@ -915,6 +916,7 @@ fn clairvoyant_scenario_score(
             revealed_mask |= 1_u16 << index;
         }
         let info = InformationSet {
+            digest: node.information_set_digest.clone(),
             parent_digest: node.parent_information_set_digest.clone(),
             decision_time_seconds: node.decision_time_seconds,
             revealed_mask: node.revealed_request_ids.iter().filter_map(|id| requests.iter().position(|r| r.request_id == *id)).fold(0_u16, |mask, i| mask | (1_u16 << i)),
@@ -1231,6 +1233,7 @@ pub fn evaluate_nonanticipative_oracle(
             add_error(&mut errors, format!("observation_or_information_digest_mismatch:{}", node.node_id));
         }
         let group = InformationSet {
+            digest: node.information_set_digest.clone(),
             parent_digest: node.parent_information_set_digest.clone(),
             decision_time_seconds: node.decision_time_seconds,
             revealed_mask,
