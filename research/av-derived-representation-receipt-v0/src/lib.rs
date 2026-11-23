@@ -27,7 +27,9 @@ pub struct DerivedReceiptError {
 
 impl DerivedReceiptError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -468,7 +470,9 @@ pub fn validate_derived_receipt(
     decision_cutoff_tick: u64,
 ) -> Result<(), DerivedReceiptError> {
     if receipt.schema_version != DERIVED_REPRESENTATION_SCHEMA_V1 {
-        return Err(DerivedReceiptError::new("unsupported receipt schema version"));
+        return Err(DerivedReceiptError::new(
+            "unsupported receipt schema version",
+        ));
     }
     require_text(&receipt.artifact_id, "artifact_id")?;
     require_text(&receipt.encoder.encoder_id, "encoder_id")?;
@@ -479,7 +483,10 @@ pub fn validate_derived_receipt(
         &receipt.parent_acquisition_request_id,
         "parent_acquisition_request_id",
     )?;
-    validate_digest(&receipt.source.source_content_sha256, "source_content_sha256")?;
+    validate_digest(
+        &receipt.source.source_content_sha256,
+        "source_content_sha256",
+    )?;
     validate_digest(&receipt.encoder.build_sha256, "encoder.build_sha256")?;
     validate_digest(&receipt.encoder.config_sha256, "encoder.config_sha256")?;
     if let Some(digest) = &receipt.encoder.initialization_sha256 {
@@ -546,9 +553,11 @@ pub fn validate_derived_receipt(
             "cannot derive candidate evidence from a failed, unavailable, cancelled or late acquisition",
         ));
     }
-    if !parent.delivered_spans.iter().any(|delivered| {
-        span_is_covered_by(&receipt.source_span, delivered)
-    }) {
+    if !parent
+        .delivered_spans
+        .iter()
+        .any(|delivered| span_is_covered_by(&receipt.source_span, delivered))
+    {
         return Err(DerivedReceiptError::new(
             "derived source interval is not contained in an actual delivered parent interval",
         ));
@@ -564,7 +573,9 @@ pub fn validate_derived_receipt(
         ));
     }
     if receipt.artifact_content_sha256 != sha256_hex(payload) {
-        return Err(DerivedReceiptError::new("derived artifact content digest mismatch"));
+        return Err(DerivedReceiptError::new(
+            "derived artifact content digest mismatch",
+        ));
     }
 
     let mut unique_parents = BTreeSet::new();
@@ -606,7 +617,9 @@ pub fn validate_derived_receipt(
                 ));
             }
             if sealed_tick < receipt.created_tick {
-                return Err(DerivedReceiptError::new("evaluator seal predates artifact creation"));
+                return Err(DerivedReceiptError::new(
+                    "evaluator seal predates artifact creation",
+                ));
             }
         }
     }
@@ -620,13 +633,16 @@ pub fn require_candidate_visible(
 ) -> Result<u64, DerivedReceiptError> {
     match receipt.visibility {
         VisibilityV1::CandidateVisible { delivered_tick }
-            if delivered_tick <= decision_cutoff_tick => Ok(delivered_tick),
-        VisibilityV1::CandidateVisible { .. } => {
-            Err(DerivedReceiptError::new("candidate-visible artifact is post-cutoff"))
+            if delivered_tick <= decision_cutoff_tick =>
+        {
+            Ok(delivered_tick)
         }
-        VisibilityV1::EvaluatorOnly { .. } => {
-            Err(DerivedReceiptError::new("evaluator-only artifact is not candidate evidence"))
-        }
+        VisibilityV1::CandidateVisible { .. } => Err(DerivedReceiptError::new(
+            "candidate-visible artifact is post-cutoff",
+        )),
+        VisibilityV1::EvaluatorOnly { .. } => Err(DerivedReceiptError::new(
+            "evaluator-only artifact is not candidate evidence",
+        )),
     }
 }
 
@@ -670,7 +686,9 @@ pub fn representation_space_sha256(
         features: &receipt.features,
     };
     let canonical = serde_json::to_vec(&material).map_err(|error| {
-        DerivedReceiptError::new(format!("representation space serialization failed: {error}"))
+        DerivedReceiptError::new(format!(
+            "representation space serialization failed: {error}"
+        ))
     })?;
     Ok(sha256_hex(&canonical))
 }
@@ -683,10 +701,7 @@ fn validate_audio_span(span: &AudioSampleSpanV1) -> Result<(), DerivedReceiptErr
 }
 
 fn validate_video_span(span: &VideoFrameSpanV1) -> Result<(), DerivedReceiptError> {
-    if span.end_frame <= span.start_frame
-        || span.fps_numerator == 0
-        || span.fps_denominator == 0
-    {
+    if span.end_frame <= span.start_frame || span.fps_numerator == 0 || span.fps_denominator == 0 {
         return Err(DerivedReceiptError::new("invalid video frame span"));
     }
     Ok(())
@@ -697,7 +712,10 @@ fn validate_reproducibility(
     element_type: FeatureElementTypeV1,
 ) -> Result<(), DerivedReceiptError> {
     if let ReproducibilityModeV1::F32AbsoluteTolerance { tolerance_ppm } = mode {
-        if !matches!(element_type, FeatureElementTypeV1::F32Le | FeatureElementTypeV1::F16Le) {
+        if !matches!(
+            element_type,
+            FeatureElementTypeV1::F32Le | FeatureElementTypeV1::F16Le
+        ) {
             return Err(DerivedReceiptError::new(
                 "floating-point tolerance is only valid for floating-point payloads",
             ));
@@ -731,7 +749,9 @@ fn validate_digest(value: &str, field: &str) -> Result<(), DerivedReceiptError> 
 
 fn require_text(value: &str, field: &str) -> Result<(), DerivedReceiptError> {
     if value.trim().is_empty() {
-        return Err(DerivedReceiptError::new(format!("{field} must not be empty")));
+        return Err(DerivedReceiptError::new(format!(
+            "{field} must not be empty"
+        )));
     }
     Ok(())
 }
@@ -751,8 +771,14 @@ fn span_is_covered_by(derived: &SourceSpanV1, delivered: &SourceSpanV1) -> bool 
                 && a.end_frame <= b.end_frame
         }
         (
-            SourceSpanV1::Audiovisual { audio: da, video: dv },
-            SourceSpanV1::Audiovisual { audio: pa, video: pv },
+            SourceSpanV1::Audiovisual {
+                audio: da,
+                video: dv,
+            },
+            SourceSpanV1::Audiovisual {
+                audio: pa,
+                video: pv,
+            },
         ) => {
             span_is_covered_by(
                 &SourceSpanV1::AudioSamples(*da),
@@ -848,12 +874,15 @@ mod tests {
     #[test]
     fn valid_derived_receipt_replays_against_exact_parent_and_payload() {
         let payload = vec![0xA5; 256];
-        assert!(validate_derived_receipt(
-            &receipt(&payload),
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_ok());
+        assert!(
+            validate_derived_receipt(
+                &receipt(&payload),
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -862,12 +891,15 @@ mod tests {
         let receipt = receipt(&payload);
         let mut mutated = payload.clone();
         mutated[7] ^= 0x01;
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &mutated,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &mutated,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -875,12 +907,15 @@ mod tests {
         let payload = vec![0xA5; 256];
         let mut changed = receipt(&payload);
         changed.source.source_content_sha256 = digest(b"other-source");
-        assert!(validate_derived_receipt(
-            &changed,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &changed,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
 
         let mut changed = receipt(&payload);
         changed.source.clock_generation += 1;
@@ -927,12 +962,15 @@ mod tests {
             span.start_sample = 3_900;
             span.end_sample = 4_100;
         }
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Partial),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Partial),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -940,12 +978,15 @@ mod tests {
         let payload = vec![0xA5; 256];
         let mut receipt = receipt(&payload);
         receipt.visibility = VisibilityV1::CandidateVisible { delivered_tick: 21 };
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -954,12 +995,15 @@ mod tests {
         let mut receipt = receipt(&payload);
         receipt.visibility = VisibilityV1::EvaluatorOnly { sealed_tick: 12 };
         receipt.transcript_parent_head_sha256 = None;
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_ok());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_ok()
+        );
         assert!(require_candidate_visible(&receipt, 20).is_err());
     }
 
@@ -1059,7 +1103,10 @@ mod tests {
     #[test]
     fn normalization_variant_uses_schema_stable_snake_case() {
         let value = serde_json::to_value(NormalizationV1::PerFeatureZScore).unwrap();
-        assert_eq!(value, serde_json::Value::String("per_feature_z_score".to_string()));
+        assert_eq!(
+            value,
+            serde_json::Value::String("per_feature_z_score".to_string())
+        );
     }
 
     #[test]
