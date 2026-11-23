@@ -155,3 +155,8 @@ Run the new contract:
 
     cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
     python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle_v0_2.py docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
+
+
+## Benchmark and SOTA roadmap v0.2
+
+See `docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_2.md` for the direct 2026 GSD k-coverage and GPU multi-robot comparisons, matched benchmark protocol, candidate-pool shortfall semantics, prospective targets and portfolio integration sequence.
