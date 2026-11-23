@@ -1,0 +1,16 @@
+[package]
+name = "unilateral-contact-kkt-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Active-set and omitted-contact KKT oracle for frictionless unilateral contact QPs"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "adaptive_contact_tournament"
+path = "examples/adaptive_contact_tournament.rs"
+
+[workspace]
