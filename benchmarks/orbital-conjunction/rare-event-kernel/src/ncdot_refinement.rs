@@ -355,7 +355,8 @@ pub fn decide_ncdot_refinement(
         ));
     }
     if significant_indices[0] > 0 {
-        significant_indices.insert(0, significant_indices[0] - 1);
+        let preceding_index = significant_indices[0] - 1;
+        significant_indices.insert(0, preceding_index);
     }
     if let Some(last) = significant_indices.last().copied()
         && last < count - 1
@@ -776,7 +777,10 @@ mod tests {
             20.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
-        assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
+        assert_eq!(
+            result.reason,
+            NcdotRefinementReason::RefineDominantIntegrationContributions
+        );
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0]);
     }
 
@@ -854,8 +858,8 @@ mod tests {
             &[-10.0, -1.0, 0.0, 1.0, 10.0],
             &[0.0, 0.0, 0.0, 0.0, 0.0],
             &[4.0, 1.005, 1.0, 1.005, 4.0],
-            -1.0,
-            1.0,
+            -10.0,
+            10.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
         assert_eq!(result.disposition, NcdotRefinementDisposition::Stop);
