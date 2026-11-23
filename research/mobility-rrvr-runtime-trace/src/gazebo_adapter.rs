@@ -848,7 +848,9 @@ mod tests {
     fn rejects_profile_with_no_deterministic_stepping_interface() {
         let plan = plan();
         let mut profile = profile(&plan);
-        profile.capabilities.remove(&GazeboCapability::StepSimulation);
+        profile
+            .capabilities
+            .remove(&GazeboCapability::StepSimulation);
         assert_eq!(
             profile.validate_for_plan(&plan),
             Err(GazeboAdapterError::MissingSteppingMethod)
