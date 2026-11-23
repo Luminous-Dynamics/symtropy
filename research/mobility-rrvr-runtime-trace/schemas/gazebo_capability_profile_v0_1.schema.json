@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-gazebo-capability-profile-v0.1.json",
+  "title": "Gazebo Simulation Interfaces Capability Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "simulator_id",
+    "simulator_revision",
+    "ros_distribution",
+    "simulation_interfaces_revision",
+    "world_name",
+    "world_profile_sha256",
+    "reset_profile_sha256",
+    "scene_broadcaster_id",
+    "scene_broadcaster_revision",
+    "scene_broadcaster_sha256",
+    "scene_broadcaster_loaded",
+    "capabilities"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "simulator_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulator_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ros_distribution": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulation_interfaces_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "world_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "world_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "reset_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scene_broadcaster_id": {
+      "const": "gz::sim::systems::SceneBroadcaster"
+    },
+    "scene_broadcaster_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scene_broadcaster_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scene_broadcaster_loaded": {
+      "const": true
+    },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "capability": {
+      "enum": [
+        "get_simulator_features",
+        "reset_simulation",
+        "step_simulation",
+        "simulate_steps",
+        "get_simulation_state",
+        "set_simulation_state",
+        "get_entities",
+        "get_entity_state"
+      ]
+    }
+  }
+}
