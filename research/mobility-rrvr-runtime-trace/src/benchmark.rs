@@ -478,7 +478,7 @@ fn paired_comparison(
     for arms in grouped.values() {
         let full = arms.get(&BenchmarkArm::FullRrvr).expect("pair validation ensured full RRVR");
         let baseline = arms.get(&baseline_arm).expect("pair validation ensured baseline");
-        let task_delta = i64::from(full.native_task_success) - i64::from(baseline.native_task_success);
+        let task_delta = (full.native_task_success as i64) - (baseline.native_task_success as i64);
         task_deltas.push(task_delta * i64::from(RATE_SCALE));
         match task_delta.cmp(&0) {
             std::cmp::Ordering::Greater => task_wins += 1,
@@ -489,8 +489,8 @@ fn paired_comparison(
         if full.safety_verdict != SafetyVerdict::NotEvaluated
             && baseline.safety_verdict != SafetyVerdict::NotEvaluated
         {
-            let full_safe = i64::from(full.safety_verdict == SafetyVerdict::Safe);
-            let baseline_safe = i64::from(baseline.safety_verdict == SafetyVerdict::Safe);
+            let full_safe = (full.safety_verdict == SafetyVerdict::Safe) as i64;
+            let baseline_safe = (baseline.safety_verdict == SafetyVerdict::Safe) as i64;
             let delta = full_safe - baseline_safe;
             safety_deltas.push(delta * i64::from(RATE_SCALE));
             match delta.cmp(&0) {
@@ -502,7 +502,7 @@ fn paired_comparison(
 
         if full.recovery_attempted && baseline.recovery_attempted {
             recovery_deltas.push(
-                (i64::from(full.recovery_success) - i64::from(baseline.recovery_success))
+                ((full.recovery_success as i64) - (baseline.recovery_success as i64))
                     * i64::from(RATE_SCALE),
             );
         }
