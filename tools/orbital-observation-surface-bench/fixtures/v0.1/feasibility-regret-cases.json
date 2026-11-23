@@ -1,0 +1,882 @@
+{
+  "schema": "luminous.orbital-feasibility-regret.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-joint-feasibility-and-regret-algebra-only",
+  "cases": [
+    {
+      "case_id": "infeasible-zero-loss-comparator",
+      "decision_scope_id": "decision-scope-infeasible-zero-loss-comparator",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-infeasible-zero-loss-comparator",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-infeasible-zero-loss-comparator",
+        "scope_id": "decision-scope-infeasible-zero-loss-comparator",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "robust",
+          "conditional",
+          "unsafe_zero",
+          "prohibited"
+        ],
+        "expected_action_ids_sha256": "812243410f17ef57679743a1cf394f2d7bd1f5dd405786271687a753da45bf46"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-infeasible-zero-loss-comparator",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "5965dc1cab24ec78d6a17fe6a17395673c2a75bee83083c10bff2c59af86fa67",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "robust": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 4,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              },
+              "unsafe_zero": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 0,
+                  "denominator": 10
+                }
+              },
+              "prohibited": {
+                "feasibility_status": "prohibited",
+                "loss": null
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "robust": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 5,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              },
+              "unsafe_zero": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              },
+              "prohibited": {
+                "feasibility_status": "prohibited",
+                "loss": null
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "robust",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-robust",
+          "cost": {
+            "reference_trials": 3,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 50
+          }
+        },
+        {
+          "action_id": "conditional",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-conditional",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 5,
+            "elapsed_millis": 30
+          }
+        },
+        {
+          "action_id": "unsafe_zero",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-unsafe_zero",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 1,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "prohibited",
+          "eligibility_status": "prohibited",
+          "eligibility_receipt_id": "prohibition-prohibited",
+          "cost": {
+            "reference_trials": 0,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 0
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "action-rank-reversal",
+      "decision_scope_id": "decision-scope-action-rank-reversal",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-action-rank-reversal",
+        "world_ids_sha256": "a13934bf573d94c78094be5c688b33fb6ddb3701fa868c18b0c05719529d82b0",
+        "world_ids": [
+          "w0",
+          "w1"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-action-rank-reversal",
+        "scope_id": "decision-scope-action-rank-reversal",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "alpha",
+          "beta"
+        ],
+        "expected_action_ids_sha256": "138bf4722f7ae17122c7282d0eb156499d349940e129bd4cdf27c8ffdcbb3d25"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-action-rank-reversal",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "bc11fee34e8d5e54b1225907d9dd968bed6a9b839da37754ddb02cdf1527bd01",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "alpha": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              },
+              "beta": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 4,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w1",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "alpha": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 4,
+                  "denominator": 10
+                }
+              },
+              "beta": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "alpha",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-alpha",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 8,
+            "elapsed_millis": 40
+          }
+        },
+        {
+          "action_id": "beta",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-beta",
+          "cost": {
+            "reference_trials": 2,
+            "exposure_micro_units": 9,
+            "elapsed_millis": 35
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "disjoint-feasible-sets",
+      "decision_scope_id": "decision-scope-disjoint-feasible-sets",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-disjoint-feasible-sets",
+        "world_ids_sha256": "a13934bf573d94c78094be5c688b33fb6ddb3701fa868c18b0c05719529d82b0",
+        "world_ids": [
+          "w0",
+          "w1"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-disjoint-feasible-sets",
+        "scope_id": "decision-scope-disjoint-feasible-sets",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "a",
+          "b",
+          "prohibited"
+        ],
+        "expected_action_ids_sha256": "150af8a373d81add52ebaa5c6ba24eeb4b9a4a75e44fe3e022a453cdadad6851"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-disjoint-feasible-sets",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "9bf954750d662a6748a5ed9174718a7d09a8f2e6f1f3b310564ca9a7aac34f4c",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              },
+              "b": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              },
+              "prohibited": {
+                "feasibility_status": "prohibited",
+                "loss": null
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w1",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              },
+              "b": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              },
+              "prohibited": {
+                "feasibility_status": "prohibited",
+                "loss": null
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "a",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-a",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "b",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-b",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "prohibited",
+          "eligibility_status": "prohibited",
+          "eligibility_receipt_id": "prohibition-prohibited",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "indeterminate-feasibility",
+      "decision_scope_id": "decision-scope-indeterminate-feasibility",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-indeterminate-feasibility",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-indeterminate-feasibility",
+        "scope_id": "decision-scope-indeterminate-feasibility",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "robust",
+          "unknown"
+        ],
+        "expected_action_ids_sha256": "dbe7b99a491cd80e0b9cc56e15b71a4388c33aa3e0bbbd34811ca22ea1084bfe"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-indeterminate-feasibility",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "bcdc87455314a16bc303ea715e6f5e63b1dc033fc55ded8059c98dc20b3c77da",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "robust": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              },
+              "unknown": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "robust": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 3,
+                  "denominator": 10
+                }
+              },
+              "unknown": {
+                "feasibility_status": "indeterminate",
+                "loss": null
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "robust",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-robust",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "unknown",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-unknown",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "open-action-universe",
+      "decision_scope_id": "decision-scope-open-action-universe",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-open-action-universe",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-open-action-universe",
+        "scope_id": "decision-scope-open-action-universe",
+        "closure_kind": "open",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "a",
+          "b"
+        ],
+        "expected_action_ids_sha256": "0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-open-action-universe",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "9a1c66eda09f1f5bb5d66047617e2a0ee78d0bf1e1230b2f59d5ac42e4bae7a1",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              },
+              "b": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 3,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              },
+              "b": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "a",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-a",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "b",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-b",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "no-feasible-scenario",
+      "decision_scope_id": "decision-scope-no-feasible-scenario",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-no-feasible-scenario",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-no-feasible-scenario",
+        "scope_id": "decision-scope-no-feasible-scenario",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "a",
+          "b"
+        ],
+        "expected_action_ids_sha256": "0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-no-feasible-scenario",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "45d5d21517060c3e1e5f732d9852cff844e4700d6d9f06c2d720946fc377c80e",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              },
+              "b": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              },
+              "b": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "a",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-a",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "b",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-b",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "multi-world-multi-loss-model",
+      "decision_scope_id": "decision-scope-multi-world-multi-loss-model",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-multi-world-multi-loss-model",
+        "world_ids_sha256": "a13934bf573d94c78094be5c688b33fb6ddb3701fa868c18b0c05719529d82b0",
+        "world_ids": [
+          "w0",
+          "w1"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-multi-world-multi-loss-model",
+        "scope_id": "decision-scope-multi-world-multi-loss-model",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "always",
+          "conditional"
+        ],
+        "expected_action_ids_sha256": "9234735cc15a8f455592db90978dd4f6dc70afac461b4629f1aa3e3d0142d8a3"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-multi-world-multi-loss-model",
+        "expected_scenario_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ],
+        "expected_scenario_ids_sha256": "d01b059178cb2462ea1179c5243ff59c96b7c68e9ca514abddf8d5e122ac28cf",
+        "scenarios_sha256": "62bd39c99e641f2075c26511cd3953d5966f17f65e20dc48d7f7e79fc861d9d3",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "always": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "always": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 3,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              }
+            }
+          },
+          {
+            "scenario_id": "s3",
+            "world_id": "w1",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s3",
+            "action_outcomes": {
+              "always": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 4,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s4",
+            "world_id": "w1",
+            "loss_model_id": "m1",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s4",
+            "action_outcomes": {
+              "always": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 3,
+                  "denominator": 10
+                }
+              },
+              "conditional": {
+                "feasibility_status": "infeasible",
+                "loss": null
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "always",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-always",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        },
+        {
+          "action_id": "conditional",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-conditional",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "loss-model-out-of-profile",
+      "decision_scope_id": "decision-scope-loss-model-out-of-profile",
+      "compatible_world_set": {
+        "source_receipt_id": "world-set-loss-model-out-of-profile",
+        "world_ids_sha256": "943f2d34a075a06558c39cba876edb8e945bdac30014f3b0924bc7085ced918a",
+        "world_ids": [
+          "w0"
+        ]
+      },
+      "action_universe": {
+        "source_receipt_id": "action-universe-loss-model-out-of-profile",
+        "scope_id": "decision-scope-loss-model-out-of-profile",
+        "closure_kind": "finite_exhaustive",
+        "enumeration_method": "finite_domain_enumeration",
+        "evidence_status": "admissible",
+        "expected_action_ids": [
+          "a"
+        ],
+        "expected_action_ids_sha256": "0eb5b8d6f81bc677da8a08567cc4fa9a06a57e9ec8da85ed73a7f62727996002"
+      },
+      "scenario_manifest": {
+        "source_manifest_id": "scenario-manifest-loss-model-out-of-profile",
+        "expected_scenario_ids": [
+          "s1",
+          "s2"
+        ],
+        "expected_scenario_ids_sha256": "06394624f2cd704e4dd0d91ccd71790d2cf253c14308d9555bd2baeacda0df99",
+        "scenarios_sha256": "d1ab59ef2da6eba995395e423969df0b848922963e879b9f065cf1d814e97752",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "world_id": "w0",
+            "loss_model_id": "m0",
+            "evidence_status": "admissible",
+            "evidence_receipt_id": "scenario-receipt-s1",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 1,
+                  "denominator": 10
+                }
+              }
+            }
+          },
+          {
+            "scenario_id": "s2",
+            "world_id": "w0",
+            "loss_model_id": "m-ood",
+            "evidence_status": "out_of_profile",
+            "evidence_receipt_id": "scenario-receipt-s2",
+            "action_outcomes": {
+              "a": {
+                "feasibility_status": "feasible",
+                "loss": {
+                  "numerator": 2,
+                  "denominator": 10
+                }
+              }
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "action_id": "a",
+          "eligibility_status": "eligible",
+          "eligibility_receipt_id": "eligibility-a",
+          "cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 10,
+            "elapsed_millis": 10
+          }
+        }
+      ]
+    }
+  ]
+}
