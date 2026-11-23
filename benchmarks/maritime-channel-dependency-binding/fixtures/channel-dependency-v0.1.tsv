@@ -1,0 +1,21 @@
+# scenario_id|expected_profile_disposition|expected_dimension_disposition|notes
+complete_disjoint_current|ProfileObligationsMet|SeparatedForProfile|Both role inventories complete and current with disjoint canonical identities
+device_aliases_same_reader|ProfileObligationsNotMet|Shared|Different local device labels resolve to one canonical dependency
+transitive_common_ancestor|ProfileObligationsNotMet|Shared|Distinct immediate gateways lead to one shared upstream broker
+partial_known_overlap|ProfileObligationsNotMet|Shared|Known common dependency is retained despite unknown remainder
+partial_disjoint|ProfileIncomplete|Incomplete|Known sets are disjoint but one inventory has unknown remainder
+unknown_inventory|ProfileIndeterminate|Indeterminate|Unknown dependency inventory is not interpreted as disjoint
+stale_witness|ProfileIndeterminate|Indeterminate|A stale dependency witness cannot establish separation
+revoked_projection|ProfileInvalid|Invalid|Revoked graph/closure snapshot invalidates evaluation
+cyclic_path|ProfileInvalid|Invalid|Repeated path node is rejected
+dangling_path_shape|ProfileInvalid|Invalid|Path node/edge/relation count mismatch is rejected
+potentially_correlated_relation|ProfileIndeterminate|Indeterminate|Potential-correlation relation prevents separation
+dependency_unknown_relation|ProfileIndeterminate|Indeterminate|Unknown dependency relation prevents separation
+empty_partial_inventory|ProfileInvalid|Invalid|Partial inventory must preserve at least one known identity
+dimension_qualified_identity|ProfileObligationsMet|SeparatedForProfile|Equal digest bytes in different dimensions do not create same-dimension overlap
+duplicate_paths|ProfileObligationsNotMet|Shared|Duplicate path witnesses do not multiply identity cardinality
+profile_asof_mismatch|ProfileInvalid|Invalid|Profile and closure as-of bindings differ
+missing_required_dimension|ProfileIncomplete|Incomplete|Required role/dimension entry is absent
+not_applicable_required_dimension|ProfileIncomplete|NotApplicable|Rationale and accountable owner do not discharge mandatory obligation
+fine_grained_mapping|N/A|N/A|Maritime subtypes map to proposed owner-native dimensions without erasing subtype
+finite_identity_set_oracle|N/A|N/A|900 generated cases across 15x15 non-empty sets and four completeness combinations
