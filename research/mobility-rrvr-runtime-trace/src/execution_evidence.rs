@@ -1049,6 +1049,22 @@ mod tests {
     }
 
     #[test]
+    fn rejects_execution_receipt_from_a_non_pinned_injector() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0]
+            .execution
+            .receipt
+            .as_mut()
+            .unwrap()
+            .producer_id = "unlisted-injector".into();
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::InvalidReceipt)
+        );
+    }
+
+    #[test]
     fn rejects_observed_signature_that_does_not_match_planned_delivery() {
         let plan = plan();
         let mut evidence = bundle();
@@ -1084,8 +1100,17 @@ mod tests {
     fn rejects_receipt_replay_across_events() {
         let plan = plan();
         let mut evidence = bundle();
-        evidence.events[1].dispatch.receipt =
-            evidence.events[0].dispatch.receipt.clone();
+        let mut replay = evidence.events[0].dispatch.receipt.clone().unwrap();
+        let second_fault = &evidence.events[1].planned_fault;
+        replay.fault_id = second_fault.fault_id.clone();
+        replay.fault_sequence = second_fault.sequence;
+        replay.cut_point = second_fault.cut_point;
+        replay.target_id = evidence.events[1]
+            .target_resolution
+            .resolved_target_id
+            .clone()
+            .unwrap();
+        evidence.events[1].dispatch.receipt = Some(replay);
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::DuplicateEvidenceIdentity)
