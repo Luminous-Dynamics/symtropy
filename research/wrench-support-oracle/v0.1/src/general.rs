@@ -292,6 +292,328 @@ pub fn evaluate_support(
     })
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct DirectionalSetSupport {
+    pub direction_id: String,
+    pub full_patch_support: f64,
+    pub retained_patch_support: f64,
+    pub normalized_deficit: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContactSetReport {
+    pub retained_contact_ids: Vec<String>,
+    pub directions: Vec<DirectionalSetSupport>,
+    pub maximum_normalized_deficit: f64,
+    pub mean_normalized_deficit: f64,
+    pub support_evaluations: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ExactContactSelectorConfig {
+    pub keep: usize,
+    pub maximum_subsets: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GreedyContactSelectorConfig {
+    pub keep: usize,
+    pub maximum_evaluations: u64,
+}
+
+fn subset_count(n: usize, k: usize) -> Result<u64, OracleError> {
+    let reduced_k = k.min(n - k);
+    let mut value = 1_u128;
+    for index in 1..=reduced_k {
+        let numerator = (n - reduced_k + index) as u128;
+        let product = value
+            .checked_mul(numerator)
+            .ok_or_else(|| OracleError::new("contact subset count exceeds u128"))?;
+        value = product / index as u128;
+        if value > u64::MAX as u128 {
+            return Err(OracleError::new("contact subset count exceeds u64"));
+        }
+    }
+    Ok(value as u64)
+}
+
+fn sorted_contacts_by_id(contacts: &[ContactFrame]) -> Vec<ContactFrame> {
+    let mut result = contacts.to_vec();
+    result.sort_by(|left, right| left.id.cmp(&right.id));
+    result
+}
+
+fn subset_model(
+    model: &ContactWrenchModel,
+    retained_ids: &[String],
+) -> Result<ContactWrenchModel, OracleError> {
+    if retained_ids.is_empty() {
+        return Err(OracleError::new("retained contact set must not be empty"));
+    }
+    let mut requested = BTreeSet::new();
+    for id in retained_ids {
+        if id.trim().is_empty() || !requested.insert(id.as_str()) {
+            return Err(OracleError::new(
+                "retained contact IDs must be non-empty and unique",
+            ));
+        }
+    }
+
+    let all_ids = model
+        .contacts
+        .iter()
+        .map(|contact| contact.id.as_str())
+        .collect::<BTreeSet<_>>();
+    if requested.iter().any(|id| !all_ids.contains(id)) {
+        return Err(OracleError::new("retained set contains an unknown contact ID"));
+    }
+    for contact in &model.contacts {
+        if !requested.contains(contact.id.as_str()) && contact.min_normal_fraction > 0.0 {
+            return Err(OracleError::new(
+                "cannot remove a contact with a mandatory positive minimum normal-load fraction",
+            ));
+        }
+    }
+
+    let contacts = sorted_contacts_by_id(
+        &model
+            .contacts
+            .iter()
+            .filter(|contact| requested.contains(contact.id.as_str()))
+            .cloned()
+            .collect::<Vec<_>>(),
+    );
+    Ok(ContactWrenchModel {
+        contacts,
+        cone_sides: model.cone_sides,
+        characteristic_length: model.characteristic_length,
+    })
+}
+
+/// Evaluate one retained contact set over a frozen finite wrench-direction set.
+/// The full model is always the reference; every reduced model uses the same
+/// friction discretization and characteristic-length convention.
+pub fn evaluate_retained_contact_set(
+    model: &ContactWrenchModel,
+    retained_contact_ids: &[String],
+    directions: &[WrenchDirection],
+    support_floor: f64,
+) -> Result<ContactSetReport, OracleError> {
+    validate_model(model)?;
+    if directions.is_empty() {
+        return Err(OracleError::new("at least one wrench direction is required"));
+    }
+    if !support_floor.is_finite() || support_floor <= 0.0 {
+        return Err(OracleError::new("support floor must be finite and positive"));
+    }
+
+    let full_model = ContactWrenchModel {
+        contacts: sorted_contacts_by_id(&model.contacts),
+        cone_sides: model.cone_sides,
+        characteristic_length: model.characteristic_length,
+    };
+    let reduced_model = subset_model(&full_model, retained_contact_ids)?;
+    let retained_contact_ids = reduced_model
+        .contacts
+        .iter()
+        .map(|contact| contact.id.clone())
+        .collect::<Vec<_>>();
+
+    let mut direction_ids = BTreeSet::new();
+    let mut reports = Vec::with_capacity(directions.len());
+    let mut maximum_normalized_deficit = 0.0_f64;
+    let mut deficit_sum = 0.0_f64;
+    let mut support_evaluations = 0_u64;
+
+    let mut ordered_directions = directions.to_vec();
+    ordered_directions.sort_by(|left, right| left.id.cmp(&right.id));
+    for direction in &ordered_directions {
+        if direction.id.trim().is_empty() || !direction_ids.insert(direction.id.as_str()) {
+            return Err(OracleError::new("direction IDs must be non-empty and unique"));
+        }
+        let full_support = evaluate_support(&full_model, direction)?.support_value;
+        let retained_support = evaluate_support(&reduced_model, direction)?.support_value;
+        support_evaluations = support_evaluations
+            .checked_add(2)
+            .ok_or_else(|| OracleError::new("support evaluation counter overflow"))?;
+        let raw_deficit = (full_support - retained_support).max(0.0);
+        let normalized_deficit = raw_deficit / full_support.abs().max(support_floor);
+        if !normalized_deficit.is_finite() {
+            return Err(OracleError::new("normalized contact-set deficit is non-finite"));
+        }
+        maximum_normalized_deficit = maximum_normalized_deficit.max(normalized_deficit);
+        deficit_sum += normalized_deficit;
+        reports.push(DirectionalSetSupport {
+            direction_id: direction.id.clone(),
+            full_patch_support: full_support,
+            retained_patch_support: retained_support,
+            normalized_deficit,
+        });
+    }
+
+    let mean_normalized_deficit = deficit_sum / reports.len() as f64;
+    if !mean_normalized_deficit.is_finite() {
+        return Err(OracleError::new("mean contact-set deficit is non-finite"));
+    }
+    Ok(ContactSetReport {
+        retained_contact_ids,
+        directions: reports,
+        maximum_normalized_deficit,
+        mean_normalized_deficit,
+        support_evaluations,
+    })
+}
+
+fn compare_contact_set_reports(left: &ContactSetReport, right: &ContactSetReport) -> std::cmp::Ordering {
+    left.maximum_normalized_deficit
+        .total_cmp(&right.maximum_normalized_deficit)
+        .then_with(|| left.mean_normalized_deficit.total_cmp(&right.mean_normalized_deficit))
+        .then_with(|| left.retained_contact_ids.cmp(&right.retained_contact_ids))
+}
+
+fn visit_contact_combinations<F>(
+    contacts: &[ContactFrame],
+    keep: usize,
+    start: usize,
+    current_ids: &mut Vec<String>,
+    visit: &mut F,
+) -> Result<(), OracleError>
+where
+    F: FnMut(&[String]) -> Result<(), OracleError>,
+{
+    if current_ids.len() == keep {
+        return visit(current_ids);
+    }
+    let needed = keep - current_ids.len();
+    let final_start = contacts.len() - needed;
+    for index in start..=final_start {
+        current_ids.push(contacts[index].id.clone());
+        visit_contact_combinations(contacts, keep, index + 1, current_ids, visit)?;
+        current_ids.pop();
+    }
+    Ok(())
+}
+
+/// Exact k-contact selector for the declared polyhedral cone model and finite
+/// direction set. It is exponential by design and refuses work above its cap.
+pub fn select_exact_contact_subset(
+    model: &ContactWrenchModel,
+    directions: &[WrenchDirection],
+    support_floor: f64,
+    config: ExactContactSelectorConfig,
+) -> Result<ContactSetReport, OracleError> {
+    validate_model(model)?;
+    let contacts = sorted_contacts_by_id(&model.contacts);
+    if config.keep == 0 || config.keep > contacts.len() {
+        return Err(OracleError::new("keep must be in 1..=candidate contact count"));
+    }
+    let required_contacts = contacts
+        .iter()
+        .filter(|contact| contact.min_normal_fraction > 0.0)
+        .count();
+    if config.keep < required_contacts {
+        return Err(OracleError::new(
+            "keep is smaller than the number of contacts with mandatory positive minimum load",
+        ));
+    }
+    if config.maximum_subsets == 0 {
+        return Err(OracleError::new("maximum_subsets must be positive"));
+    }
+    let total = subset_count(contacts.len(), config.keep)?;
+    if total > config.maximum_subsets {
+        return Err(OracleError::new(format!(
+            "exact contact search requires {total} subsets, exceeding configured maximum {}",
+            config.maximum_subsets
+        )));
+    }
+
+    let mut best: Option<ContactSetReport> = None;
+    let mut current_ids = Vec::with_capacity(config.keep);
+    visit_contact_combinations(
+        &contacts,
+        config.keep,
+        0,
+        &mut current_ids,
+        &mut |ids| {
+            let candidate =
+                evaluate_retained_contact_set(model, ids, directions, support_floor)?;
+            if best.as_ref().is_none_or(|incumbent| {
+                compare_contact_set_reports(&candidate, incumbent).is_lt()
+            }) {
+                best = Some(candidate);
+            }
+            Ok(())
+        },
+    )?;
+    best.ok_or_else(|| OracleError::new("exact contact selector produced no candidate"))
+}
+
+/// Deterministic greedy contact selector. This is a baseline, not a general
+/// approximation guarantee; exact search measures its gap on tractable sets.
+pub fn select_greedy_contact_subset(
+    model: &ContactWrenchModel,
+    directions: &[WrenchDirection],
+    support_floor: f64,
+    config: GreedyContactSelectorConfig,
+) -> Result<ContactSetReport, OracleError> {
+    validate_model(model)?;
+    let contacts = sorted_contacts_by_id(&model.contacts);
+    if config.keep == 0 || config.keep > contacts.len() {
+        return Err(OracleError::new("keep must be in 1..=candidate contact count"));
+    }
+    if config.maximum_evaluations == 0 {
+        return Err(OracleError::new("maximum_evaluations must be positive"));
+    }
+    let required_ids = contacts
+        .iter()
+        .filter(|contact| contact.min_normal_fraction > 0.0)
+        .map(|contact| contact.id.clone())
+        .collect::<Vec<_>>();
+    if required_ids.len() > config.keep {
+        return Err(OracleError::new(
+            "keep is smaller than the number of contacts with mandatory positive minimum load",
+        ));
+    }
+
+    let mut selected = required_ids;
+    let mut evaluations = 0_u64;
+    while selected.len() < config.keep {
+        let mut best: Option<(ContactSetReport, Vec<String>)> = None;
+        for contact in &contacts {
+            if selected.iter().any(|id| id == &contact.id) {
+                continue;
+            }
+            if evaluations >= config.maximum_evaluations {
+                return Err(OracleError::new(
+                    "greedy contact evaluation count exceeds configured maximum",
+                ));
+            }
+            let mut trial = selected.clone();
+            trial.push(contact.id.clone());
+            let report = evaluate_retained_contact_set(model, &trial, directions, support_floor)?;
+            evaluations += 1;
+            if best.as_ref().is_none_or(|(incumbent, _)| {
+                compare_contact_set_reports(&report, incumbent).is_lt()
+            }) {
+                best = Some((report, trial));
+            }
+        }
+        let (_, ids) = best
+            .ok_or_else(|| OracleError::new("greedy contact selector found no candidate"))?;
+        selected = ids;
+    }
+
+    let mut result =
+        evaluate_retained_contact_set(model, &selected, directions, support_floor)?;
+    result.support_evaluations = result
+        .support_evaluations
+        .checked_add(evaluations.checked_mul(directions.len() as u64 * 2).ok_or_else(|| {
+            OracleError::new("greedy support evaluation counter overflow")
+        })?)
+        .ok_or_else(|| OracleError::new("greedy support evaluation counter overflow"))?;
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
