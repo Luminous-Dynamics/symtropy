@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PLANNING_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-receipt.v0.1";
+    "luminous.orbital-truss-inspectability.planning-receipt.v0.2";
 pub const MAX_EXACT_VIEWS: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -19,7 +19,19 @@ pub enum PlanningDisposition {
 #[serde(deny_unknown_fields)]
 pub struct PlanningFeature {
     pub feature_id: String,
+    pub required_view_count: usize,
     pub required_failure_domains: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FeatureCoverage {
+    pub feature_id: String,
+    pub required_view_count: usize,
+    pub nominal_view_count: usize,
+    pub robust_view_count: usize,
+    pub required_failure_domains: usize,
+    pub nominal_failure_domain_count: usize,
+    pub robust_failure_domain_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -50,6 +62,9 @@ pub struct PlanSolution {
     pub selected_view_count: usize,
     pub robustly_covered: bool,
     pub uncovered_feature_ids: Vec<String>,
+    pub undercovered_view_count_feature_ids: Vec<String>,
+    pub undercovered_failure_domain_feature_ids: Vec<String>,
+    pub feature_coverage: Vec<FeatureCoverage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -63,6 +78,7 @@ pub struct PlanningReceipt {
     pub candidate_geometry_disposition: Disposition,
     pub planning_disposition: PlanningDisposition,
     pub candidate_view_count: usize,
+    pub candidate_pool_coverage: Vec<FeatureCoverage>,
     pub max_selected_views: usize,
     pub max_total_cost_units: u64,
     pub subsets_evaluated: u64,
@@ -93,6 +109,8 @@ struct ViewCoverage {
 struct SearchState {
     nominal_domain_refs: Vec<Vec<u8>>,
     robust_domain_refs: Vec<Vec<u8>>,
+    nominal_view_counts: Vec<usize>,
+    robust_view_counts: Vec<usize>,
     nominal_distinct: Vec<usize>,
     robust_distinct: Vec<usize>,
     selected_mask: u32,
@@ -113,7 +131,8 @@ struct SearchResults {
 struct ExactSearch<'a> {
     problem: &'a PlanningProblem,
     views: Vec<ViewCoverage>,
-    required: Vec<usize>,
+    required_view_counts: Vec<usize>,
+    required_failure_domains: Vec<usize>,
     view_ids: Vec<String>,
     results: SearchResults,
 }
@@ -122,6 +141,7 @@ impl<'a> ExactSearch<'a> {
     fn add_view(&self, state: &mut SearchState, index: usize) {
         let view = &self.views[index];
         for feature in &view.nominal_features {
+            state.nominal_view_counts[*feature] += 1;
             let references = &mut state.nominal_domain_refs[*feature][view.domain_index];
             if *references == 0 {
                 state.nominal_distinct[*feature] += 1;
@@ -129,6 +149,7 @@ impl<'a> ExactSearch<'a> {
             *references += 1;
         }
         for feature in &view.robust_features {
+            state.robust_view_counts[*feature] += 1;
             let references = &mut state.robust_domain_refs[*feature][view.domain_index];
             if *references == 0 {
                 state.robust_distinct[*feature] += 1;
@@ -143,6 +164,7 @@ impl<'a> ExactSearch<'a> {
     fn remove_view(&self, state: &mut SearchState, index: usize) {
         let view = &self.views[index];
         for feature in &view.nominal_features {
+            state.nominal_view_counts[*feature] -= 1;
             let references = &mut state.nominal_domain_refs[*feature][view.domain_index];
             *references -= 1;
             if *references == 0 {
@@ -150,6 +172,7 @@ impl<'a> ExactSearch<'a> {
             }
         }
         for feature in &view.robust_features {
+            state.robust_view_counts[*feature] -= 1;
             let references = &mut state.robust_domain_refs[*feature][view.domain_index];
             *references -= 1;
             if *references == 0 {
@@ -170,14 +193,42 @@ impl<'a> ExactSearch<'a> {
             .map(|(_, view_id)| view_id.clone())
             .collect::<Vec<_>>();
         selected_view_ids.sort();
-        let uncovered_feature_ids: Vec<String> = self
+
+        let mut uncovered_feature_ids = Vec::new();
+        let mut undercovered_view_count_feature_ids = Vec::new();
+        let mut undercovered_failure_domain_feature_ids = Vec::new();
+        let feature_coverage = self
             .problem
             .features
             .iter()
             .enumerate()
-            .filter(|(index, _)| state.robust_distinct[*index] < self.required[*index])
-            .map(|(_, feature)| feature.feature_id.clone())
-            .collect();
+            .map(|(index, feature)| {
+                let nominal_failure_domain_count = state.nominal_distinct[index];
+                let robust_failure_domain_count = state.robust_distinct[index];
+                let nominal_view_count = state.nominal_view_counts[index];
+                let robust_view_count = state.robust_view_counts[index];
+                if robust_view_count < self.required_view_counts[index] {
+                    undercovered_view_count_feature_ids.push(feature.feature_id.clone());
+                }
+                if robust_failure_domain_count < self.required_failure_domains[index] {
+                    undercovered_failure_domain_feature_ids.push(feature.feature_id.clone());
+                }
+                if robust_view_count < self.required_view_counts[index]
+                    || robust_failure_domain_count < self.required_failure_domains[index]
+                {
+                    uncovered_feature_ids.push(feature.feature_id.clone());
+                }
+                FeatureCoverage {
+                    feature_id: feature.feature_id.clone(),
+                    required_view_count: feature.required_view_count,
+                    nominal_view_count,
+                    robust_view_count,
+                    required_failure_domains: feature.required_failure_domains,
+                    nominal_failure_domain_count,
+                    robust_failure_domain_count,
+                }
+            })
+            .collect::<Vec<_>>();
 
         PlanSolution {
             selected_view_ids,
@@ -185,6 +236,9 @@ impl<'a> ExactSearch<'a> {
             selected_view_count: state.selected_count,
             robustly_covered: uncovered_feature_ids.is_empty(),
             uncovered_feature_ids,
+            undercovered_view_count_feature_ids,
+            undercovered_failure_domain_feature_ids,
+            feature_coverage,
         }
     }
 
@@ -199,15 +253,25 @@ impl<'a> ExactSearch<'a> {
 
             self.results.budget_eligible_subsets += 1;
             let nominally_feasible = state
-                .nominal_distinct
+                .nominal_view_counts
                 .iter()
-                .zip(&self.required)
-                .all(|(actual, required)| actual >= required);
+                .zip(&self.required_view_counts)
+                .all(|(actual, required)| actual >= required)
+                && state
+                    .nominal_distinct
+                    .iter()
+                    .zip(&self.required_failure_domains)
+                    .all(|(actual, required)| actual >= required);
             let robustly_feasible = state
-                .robust_distinct
+                .robust_view_counts
                 .iter()
-                .zip(&self.required)
-                .all(|(actual, required)| actual >= required);
+                .zip(&self.required_view_counts)
+                .all(|(actual, required)| actual >= required)
+                && state
+                    .robust_distinct
+                    .iter()
+                    .zip(&self.required_failure_domains)
+                    .all(|(actual, required)| actual >= required);
 
             if nominally_feasible {
                 self.results.nominally_feasible_subsets += 1;
@@ -270,6 +334,7 @@ fn validate_problem(problem: &PlanningProblem) -> Result<(), String> {
     for feature in &problem.features {
         if feature.feature_id.trim().is_empty()
             || !feature_ids.insert(feature.feature_id.as_str())
+            || feature.required_view_count == 0
             || feature.required_failure_domains == 0
         {
             return Err("PLANNING_FEATURE_INVALID".to_owned());
@@ -346,6 +411,7 @@ pub fn problem_from_case(
         .iter()
         .map(|feature| PlanningFeature {
             feature_id: feature.feature_id.clone(),
+            required_view_count: 1,
             required_failure_domains: feature.minimum_distinct_failure_domains,
         })
         .collect();
@@ -385,12 +451,11 @@ pub fn problem_from_case(
     Ok(problem)
 }
 
-fn coverage_domain_sets<'a>(
-    problem: &'a PlanningProblem,
-    selected: &[bool],
-    robust: bool,
-) -> Vec<BTreeSet<&'a str>> {
-    let mut domains = vec![BTreeSet::new(); problem.features.len()];
+fn coverage_records(problem: &PlanningProblem, selected: &[bool]) -> Vec<FeatureCoverage> {
+    let mut nominal_view_counts = vec![0_usize; problem.features.len()];
+    let mut robust_view_counts = vec![0_usize; problem.features.len()];
+    let mut nominal_domains = vec![BTreeSet::<&str>::new(); problem.features.len()];
+    let mut robust_domains = vec![BTreeSet::<&str>::new(); problem.features.len()];
     let feature_indices: BTreeMap<&str, usize> = problem
         .features
         .iter()
@@ -402,18 +467,101 @@ fn coverage_domain_sets<'a>(
         if !is_selected {
             continue;
         }
-        let covered = if robust {
-            &view.robust_feature_ids
-        } else {
-            &view.nominal_feature_ids
-        };
-        for feature_id in covered {
-            if let Some(index) = feature_indices.get(feature_id.as_str()) {
-                domains[*index].insert(view.failure_domain_id.as_str());
-            }
+        for feature_id in &view.nominal_feature_ids {
+            let index = *feature_indices
+                .get(feature_id.as_str())
+                .expect("validated feature id");
+            nominal_view_counts[index] += 1;
+            nominal_domains[index].insert(view.failure_domain_id.as_str());
+        }
+        for feature_id in &view.robust_feature_ids {
+            let index = *feature_indices
+                .get(feature_id.as_str())
+                .expect("validated feature id");
+            robust_view_counts[index] += 1;
+            robust_domains[index].insert(view.failure_domain_id.as_str());
         }
     }
-    domains
+
+    problem
+        .features
+        .iter()
+        .enumerate()
+        .map(|(index, feature)| FeatureCoverage {
+            feature_id: feature.feature_id.clone(),
+            required_view_count: feature.required_view_count,
+            nominal_view_count: nominal_view_counts[index],
+            robust_view_count: robust_view_counts[index],
+            required_failure_domains: feature.required_failure_domains,
+            nominal_failure_domain_count: nominal_domains[index].len(),
+            robust_failure_domain_count: robust_domains[index].len(),
+        })
+        .collect()
+}
+
+fn total_robust_deficit(coverage: &[FeatureCoverage]) -> usize {
+    coverage
+        .iter()
+        .map(|feature| {
+            feature
+                .required_view_count
+                .saturating_sub(feature.robust_view_count)
+                + feature
+                    .required_failure_domains
+                    .saturating_sub(feature.robust_failure_domain_count)
+        })
+        .sum()
+}
+
+fn solution_from_selection(problem: &PlanningProblem, selected: &[bool]) -> PlanSolution {
+    let feature_coverage = coverage_records(problem, selected);
+    let undercovered_view_count_feature_ids = feature_coverage
+        .iter()
+        .filter(|feature| feature.robust_view_count < feature.required_view_count)
+        .map(|feature| feature.feature_id.clone())
+        .collect::<Vec<_>>();
+    let undercovered_failure_domain_feature_ids = feature_coverage
+        .iter()
+        .filter(|feature| {
+            feature.robust_failure_domain_count < feature.required_failure_domains
+        })
+        .map(|feature| feature.feature_id.clone())
+        .collect::<Vec<_>>();
+    let mut uncovered_feature_ids = undercovered_view_count_feature_ids.clone();
+    uncovered_feature_ids.extend(
+        undercovered_failure_domain_feature_ids
+            .iter()
+            .filter(|id| !uncovered_feature_ids.contains(id))
+            .cloned(),
+    );
+    uncovered_feature_ids.sort();
+
+    let mut selected_view_ids = problem
+        .views
+        .iter()
+        .zip(selected)
+        .filter(|(_, include)| **include)
+        .map(|(view, _)| view.view_id.clone())
+        .collect::<Vec<_>>();
+    selected_view_ids.sort();
+    let total_cost_units = problem
+        .views
+        .iter()
+        .zip(selected)
+        .filter(|(_, include)| **include)
+        .map(|(view, _)| view.cost_units)
+        .sum();
+
+    PlanSolution {
+        selected_view_count: selected_view_ids.len(),
+        selected_view_ids,
+        total_cost_units,
+        robustly_covered: uncovered_feature_ids.is_empty(),
+        uncovered_feature_ids,
+        undercovered_view_count_feature_ids,
+        undercovered_failure_domain_feature_ids,
+        feature_coverage,
+    }
 }
 
 fn greedy_solution(problem: &PlanningProblem, use_ratio: bool) -> PlanSolution {
@@ -422,15 +570,9 @@ fn greedy_solution(problem: &PlanningProblem, use_ratio: bool) -> PlanSolution {
     let mut total_cost = 0_u64;
 
     loop {
-        let current = coverage_domain_sets(problem, &selected, true);
-        if current
-            .iter()
-            .zip(&problem.features)
-            .all(|(domains, feature)| domains.len() >= feature.required_failure_domains)
-        {
-            break;
-        }
-        if selected_count >= problem.max_selected_views {
+        let current_coverage = coverage_records(problem, &selected);
+        let current_deficit = total_robust_deficit(&current_coverage);
+        if current_deficit == 0 || selected_count >= problem.max_selected_views {
             break;
         }
 
@@ -442,20 +584,10 @@ fn greedy_solution(problem: &PlanningProblem, use_ratio: bool) -> PlanSolution {
                 continue;
             }
 
-            let mut gain = 0_usize;
-            for feature_id in &view.robust_feature_ids {
-                let feature_index = problem
-                    .features
-                    .iter()
-                    .position(|feature| feature.feature_id == *feature_id)
-                    .expect("validated feature id");
-                let feature = &problem.features[feature_index];
-                if current[feature_index].len() < feature.required_failure_domains
-                    && !current[feature_index].contains(view.failure_domain_id.as_str())
-                {
-                    gain += 1;
-                }
-            }
+            selected[index] = true;
+            let next_deficit = total_robust_deficit(&coverage_records(problem, &selected));
+            selected[index] = false;
+            let gain = current_deficit.saturating_sub(next_deficit);
             if gain == 0 {
                 continue;
             }
@@ -490,29 +622,7 @@ fn greedy_solution(problem: &PlanningProblem, use_ratio: bool) -> PlanSolution {
         total_cost += problem.views[best_index].cost_units;
     }
 
-    let domains = coverage_domain_sets(problem, &selected, true);
-    let uncovered_feature_ids = domains
-        .iter()
-        .zip(&problem.features)
-        .filter(|(covered, feature)| covered.len() < feature.required_failure_domains)
-        .map(|(_, feature)| feature.feature_id.clone())
-        .collect::<Vec<_>>();
-    let mut selected_view_ids = problem
-        .views
-        .iter()
-        .zip(&selected)
-        .filter(|(_, include)| **include)
-        .map(|(view, _)| view.view_id.clone())
-        .collect::<Vec<_>>();
-    selected_view_ids.sort();
-
-    PlanSolution {
-        selected_view_ids,
-        total_cost_units: total_cost,
-        selected_view_count: selected_count,
-        robustly_covered: uncovered_feature_ids.is_empty(),
-        uncovered_feature_ids,
-    }
+    solution_from_selection(problem, &selected)
 }
 
 pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
@@ -565,7 +675,12 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         });
     }
 
-    let required = problem
+    let required_view_counts = problem
+        .features
+        .iter()
+        .map(|feature| feature.required_view_count)
+        .collect::<Vec<_>>();
+    let required_failure_domains = problem
         .features
         .iter()
         .map(|feature| feature.required_failure_domains)
@@ -573,7 +688,8 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
     let mut search = ExactSearch {
         problem,
         views,
-        required: required.clone(),
+        required_view_counts,
+        required_failure_domains,
         view_ids: problem
             .views
             .iter()
@@ -584,6 +700,8 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
     let mut state = SearchState {
         nominal_domain_refs: vec![vec![0; domains.len()]; problem.features.len()],
         robust_domain_refs: vec![vec![0; domains.len()]; problem.features.len()],
+        nominal_view_counts: vec![0; problem.features.len()],
+        robust_view_counts: vec![0; problem.features.len()],
         nominal_distinct: vec![0; problem.features.len()],
         robust_distinct: vec![0; problem.features.len()],
         ..SearchState::default()
@@ -591,19 +709,18 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
     search.visit(0, &mut state);
 
     let all_selected = vec![true; problem.views.len()];
-    let all_nominal = coverage_domain_sets(problem, &all_selected, false);
-    let all_robust = coverage_domain_sets(problem, &all_selected, true);
-    let candidate_geometry_disposition = if all_nominal
-        .iter()
-        .zip(&problem.features)
-        .any(|(covered, feature)| covered.len() < feature.required_failure_domains)
-    {
+    let candidate_pool_coverage = coverage_records(problem, &all_selected);
+    let nominal_candidate_shortfall = candidate_pool_coverage.iter().any(|feature| {
+        feature.nominal_view_count < feature.required_view_count
+            || feature.nominal_failure_domain_count < feature.required_failure_domains
+    });
+    let robust_candidate_shortfall = candidate_pool_coverage.iter().any(|feature| {
+        feature.robust_view_count < feature.required_view_count
+            || feature.robust_failure_domain_count < feature.required_failure_domains
+    });
+    let candidate_geometry_disposition = if nominal_candidate_shortfall {
         Disposition::Infeasible
-    } else if all_robust
-        .iter()
-        .zip(&problem.features)
-        .any(|(covered, feature)| covered.len() < feature.required_failure_domains)
-    {
+    } else if robust_candidate_shortfall {
         Disposition::Indeterminate
     } else {
         Disposition::Feasible
@@ -656,6 +773,7 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         candidate_geometry_disposition,
         planning_disposition,
         candidate_view_count: problem.views.len(),
+        candidate_pool_coverage,
         max_selected_views: problem.max_selected_views,
         max_total_cost_units: problem.max_total_cost_units,
         subsets_evaluated: search.results.subsets_evaluated,
@@ -710,10 +828,15 @@ mod tests {
         }
     }
 
-    fn feature(id: &str, required: usize) -> PlanningFeature {
+    fn feature(
+        id: &str,
+        required_view_count: usize,
+        required_failure_domains: usize,
+    ) -> PlanningFeature {
         PlanningFeature {
             feature_id: id.to_owned(),
-            required_failure_domains: required,
+            required_view_count,
+            required_failure_domains,
         }
     }
 
@@ -737,12 +860,12 @@ mod tests {
     fn exact_optimizer_defeats_a_greedy_trap() {
         let problem = problem(
             vec![
-                feature("F1", 1),
-                feature("F2", 1),
-                feature("F3", 1),
-                feature("F4", 1),
-                feature("F5", 1),
-                feature("F6", 1),
+                feature("F1", 1, 1),
+                feature("F2", 1, 1),
+                feature("F3", 1, 1),
+                feature("F4", 1, 1),
+                feature("F5", 1, 1),
+                feature("F6", 1, 1),
             ],
             vec![
                 view(
@@ -786,7 +909,7 @@ mod tests {
     #[test]
     fn duplicate_declared_domains_do_not_satisfy_two_path_requirement() {
         let problem = problem(
-            vec![feature("F1", 2)],
+            vec![feature("F1", 2, 2)],
             vec![
                 view("VIEW-A", "SHARED-CALIBRATION", 1, &["F1"], &["F1"]),
                 view("VIEW-B", "SHARED-CALIBRATION", 1, &["F1"], &["F1"]),
@@ -810,7 +933,7 @@ mod tests {
     #[test]
     fn nominal_only_coverage_is_indeterminate_not_feasible() {
         let problem = problem(
-            vec![feature("F1", 2)],
+            vec![feature("F1", 2, 2)],
             vec![
                 view("VIEW-A", "DOMAIN-A", 1, &["F1"], &["F1"]),
                 view("VIEW-B", "DOMAIN-B", 1, &["F1"], &[]),
@@ -836,7 +959,7 @@ mod tests {
     #[test]
     fn budget_failure_is_separate_from_geometric_infeasibility() {
         let problem = problem(
-            vec![feature("F1", 2)],
+            vec![feature("F1", 2, 2)],
             vec![
                 view("VIEW-A", "DOMAIN-A", 1, &["F1"], &["F1"]),
                 view("VIEW-B", "DOMAIN-B", 1, &["F1"], &["F1"]),
@@ -858,6 +981,68 @@ mod tests {
     }
 
     #[test]
+    fn k_view_coverage_is_distinct_from_failure_domain_diversity() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 2, 1)],
+            vec![
+                view("VIEW-A", "SAME-SENSOR-SYSTEM", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "SAME-SENSOR-SYSTEM", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Feasible);
+        let optimum = receipt.exact_optimum.unwrap();
+        assert_eq!(optimum.selected_view_count, 2);
+        assert_eq!(optimum.feature_coverage[0].robust_view_count, 2);
+        assert_eq!(optimum.feature_coverage[0].robust_failure_domain_count, 1);
+        assert!(optimum.robustly_covered);
+    }
+
+    #[test]
+    fn failure_domain_diversity_is_distinct_from_k_view_requirement() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 1, 2)],
+            vec![
+                view("VIEW-A", "DOMAIN-A", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "DOMAIN-B", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        let optimum = receipt.exact_optimum.unwrap();
+        assert_eq!(optimum.selected_view_count, 2);
+        assert_eq!(optimum.feature_coverage[0].robust_view_count, 2);
+        assert_eq!(optimum.feature_coverage[0].robust_failure_domain_count, 2);
+        assert_eq!(optimum.feature_coverage[0].required_view_count, 1);
+        assert_eq!(optimum.feature_coverage[0].required_failure_domains, 2);
+    }
+
+    #[test]
+    fn requested_k_is_not_silently_capped_to_candidate_pool_size() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 3, 1)],
+            vec![
+                view("VIEW-A", "DOMAIN-A", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "DOMAIN-A", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Infeasible);
+        assert!(receipt.exact_optimum.is_none());
+        assert_eq!(receipt.candidate_pool_coverage[0].required_view_count, 3);
+        assert_eq!(receipt.candidate_pool_coverage[0].robust_view_count, 2);
+        assert_eq!(receipt.candidate_pool_coverage[0].robust_failure_domain_count, 1);
+    }
+
+    #[test]
     fn exact_search_covers_the_full_twenty_view_boundary() {
         let views = (0..MAX_EXACT_VIEWS)
             .map(|index| {
@@ -872,7 +1057,7 @@ mod tests {
                 }
             })
             .collect();
-        let problem = problem(vec![feature("F1", 1)], views, MAX_EXACT_VIEWS, 20);
+        let problem = problem(vec![feature("F1", 1, 1)], views, MAX_EXACT_VIEWS, 20);
 
         let receipt = solve(&problem).unwrap();
         let all_subsets = 1_u64 << MAX_EXACT_VIEWS;
@@ -901,7 +1086,7 @@ mod tests {
                 }
             })
             .collect();
-        let problem = problem(vec![feature("F1", 1)], views, MAX_EXACT_VIEWS + 1, 21);
+        let problem = problem(vec![feature("F1", 1, 1)], views, MAX_EXACT_VIEWS + 1, 21);
 
         assert_eq!(
             solve(&problem),
@@ -912,7 +1097,7 @@ mod tests {
     #[test]
     fn input_rejects_robust_visibility_not_present_in_nominal_set() {
         let problem = problem(
-            vec![feature("F1", 1)],
+            vec![feature("F1", 1, 1)],
             vec![view("VIEW-A", "DOMAIN-A", 1, &[], &["F1"])],
             1,
             1,
@@ -924,11 +1109,11 @@ mod tests {
     }
 }
 pub const PLANNING_CORPUS_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-corpus.v0.1";
-pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-001";
+    "luminous.orbital-truss-inspectability.planning-corpus.v0.2";
+pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-002";
 pub const PLANNING_CORPUS_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.1";
-pub const PLANNING_CASE_COUNT: usize = 5;
+    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.2";
+pub const PLANNING_CASE_COUNT: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
