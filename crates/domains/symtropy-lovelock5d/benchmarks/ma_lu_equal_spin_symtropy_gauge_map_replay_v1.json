@@ -29,5 +29,5 @@
     },
     "frame_dragging": "Ma-Lu transformed w/a_S and Symtropy W1 agree at O(nu_S^0); difference begins O(nu_S^2) in W1/a_S, hence O(a^3) in w and beyond the O(a^2) equations."
   },
-  "claim_ceiling": "The original even-sector row expressions were locally evaluated as exact rational identities. The committed fixture-driven verifier has not been replayed byte-for-byte from its public source. H5/H6 angular-diagonal components, ADM mass, finite-coupling branch, interval existence, and hyperbolicity remain open. No CI pass is claimed."
+  "claim_ceiling": "Local exact-rational evaluation of the four original action-row expressions gives zero for each row. The current fixture-driven verifier and radial/time-sector script are committed, but byte-for-byte local replay of those latest public blobs remains pending. H5/H6 angular-diagonal components, ADM mass, finite-coupling branch, interval existence and hyperbolicity remain open."
 }
