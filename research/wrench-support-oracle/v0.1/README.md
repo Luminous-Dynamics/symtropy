@@ -8,7 +8,7 @@ This is intentionally a small, auditable model. It does not implement a general 
 
 The model has:
 - 3D contact points relative to an explicitly declared wrench origin;
-- one shared contact normal, fixed to +Z;
+- one shared contact normal, fixed to +Z, with all points required to be coplanar in a plane parallel to XY;
 - unit total normal load, distributed arbitrarily across nonnegative contact loads;
 - a Coulomb friction disk at each point, with common coefficient mu;
 - no torsional spin moment at an individual point;
@@ -44,7 +44,7 @@ For small candidate sets, the oracle enumerates every k-point subset and minimiz
 
 A configurable maximum-subset limit fails closed before enumeration. This gives an exact optimizer for the finite direction set and restricted physical model.
 
-A deterministic greedy baseline is also included. It adds one point at a time, minimizing the same current max-deficit/mean-deficit/lexicographic tuple. It is intentionally not claimed to be globally optimal or to have a general approximation ratio; the exact selector measures its empirical optimality gap on small patches.
+A deterministic greedy baseline is also included. It adds one point at a time, minimizing the same current max-deficit/mean-deficit/lexicographic tuple. It is intentionally not claimed to be globally optimal or to have a general approximation ratio; the exact selector measures its empirical optimality gap on small patches. A five-point synthetic counterexample demonstrates a real local-choice gap: the exact three-point subset preserves all nine frozen axis directions (zero sampled deficit), while the greedy three-point set loses more than 40% in its worst normalized direction.
 
 The evaluate_retained_set function provides the common evaluation path for externally supplied retained IDs, so future Bullet/Jolt/Rapier/Symtropy adapters can be compared on the same candidate set and directions.
 
@@ -81,11 +81,13 @@ Sources:
 
 ## Tests
 
-The unit suite contains 15 tests and covers:
+The unit suite contains 17 tests and covers:
 - exact zero deficit for the full set;
 - a known two-point subset preserving both positive and negative moment extrema;
 - greedy agreement with exact selection on a symmetric known-answer patch;
 - exact-vs-greedy objective ordering and greedy evaluation guard;
+- a five-point local-choice counterexample exposing a greedy optimality gap;
+- rejection of non-coplanar points in the shared-normal model;
 - loss from a one-point subset;
 - input/direction permutation invariance;
 - geometric scale invariance;
