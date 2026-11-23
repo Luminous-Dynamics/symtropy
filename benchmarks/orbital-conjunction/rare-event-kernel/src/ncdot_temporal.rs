@@ -240,8 +240,7 @@ pub fn integrate_ncdot_time_series(
             || sample.report.collision_rate_underflowed
                 != (sample.report.log_collision_rate.is_finite()
                     && sample.report.collision_rate == 0.0)
-            || sample.report.collision_rate_overflowed
-                != sample.report.collision_rate.is_infinite()
+            || sample.report.collision_rate_overflowed != sample.report.collision_rate.is_infinite()
         {
             return Err(KernelError::InvalidTemporalRate);
         }
@@ -256,7 +255,10 @@ pub fn integrate_ncdot_time_series(
         upstream_qualified &= sample.upstream_qualified && sample.report.adequacy_satisfied;
     }
 
-    let last_epoch = samples.last().ok_or(KernelError::InsufficientTemporalSamples)?.epoch_seconds;
+    let last_epoch = samples
+        .last()
+        .ok_or(KernelError::InsufficientTemporalSamples)?
+        .epoch_seconds;
     if last_epoch != horizon.end_seconds {
         return Err(KernelError::TemporalHorizonEndpointMismatch);
     }
@@ -278,28 +280,27 @@ pub fn integrate_ncdot_time_series(
         let log_rate_lower = log_rates[index];
         let log_rate_upper = log_rates[index + 1];
         let log_trapezoid_scale = (0.5 * delta).ln();
-        let interval_log = log_trapezoid_scale
-            + log_add_exp(log_rate_lower, log_rate_upper);
+        let interval_log = log_trapezoid_scale + log_add_exp(log_rate_lower, log_rate_upper);
         interval_log_contributions.push(interval_log);
 
         let lower_weighted = add_log_count(log_rate_lower, significant_nodes[index]);
         let upper_weighted = add_log_count(log_rate_upper, significant_nodes[index + 1]);
-        weighted_node_log_contributions.push(
-            log_trapezoid_scale + log_add_exp(lower_weighted, upper_weighted)
-        );
+        weighted_node_log_contributions
+            .push(log_trapezoid_scale + log_add_exp(lower_weighted, upper_weighted));
     }
 
     let log_expected_collision_count = log_sum_exp(&interval_log_contributions)?;
     let log_weighted_significant_nodes = log_sum_exp(&weighted_node_log_contributions)?;
-    let rate_weighted_average_significant_nodes = if log_expected_collision_count == f64::NEG_INFINITY {
-        None
-    } else {
-        let value = (log_weighted_significant_nodes - log_expected_collision_count).exp();
-        if !value.is_finite() || value < 0.0 {
-            return Err(KernelError::NumericalOverflow);
-        }
-        Some(value)
-    };
+    let rate_weighted_average_significant_nodes =
+        if log_expected_collision_count == f64::NEG_INFINITY {
+            None
+        } else {
+            let value = (log_weighted_significant_nodes - log_expected_collision_count).exp();
+            if !value.is_finite() || value < 0.0 {
+                return Err(KernelError::NumericalOverflow);
+            }
+            Some(value)
+        };
 
     let mut cumulative_log_expected_collision_count = Vec::with_capacity(samples.len());
     cumulative_log_expected_collision_count.push(f64::NEG_INFINITY);
@@ -315,9 +316,8 @@ pub fn integrate_ncdot_time_series(
 
     let horizon_complete =
         horizon.coverage_claim == TemporalHorizonCoverageClaim::CallerDeclaredComplete;
-    let qualified = horizon_complete
-        && intervals_requiring_refinement.is_empty()
-        && upstream_qualified;
+    let qualified =
+        horizon_complete && intervals_requiring_refinement.is_empty() && upstream_qualified;
 
     Ok(NcdotTemporalReport {
         identity: identity.clone(),
@@ -376,10 +376,22 @@ fn find_sampled_extrema(
             };
 
             if is_maximum {
-                extrema.push(extremum(samples, start, end, value, NcdotTemporalExtremumKind::Maximum));
+                extrema.push(extremum(
+                    samples,
+                    start,
+                    end,
+                    value,
+                    NcdotTemporalExtremumKind::Maximum,
+                ));
             }
             if is_minimum {
-                extrema.push(extremum(samples, start, end, value, NcdotTemporalExtremumKind::Minimum));
+                extrema.push(extremum(
+                    samples,
+                    start,
+                    end,
+                    value,
+                    NcdotTemporalExtremumKind::Minimum,
+                ));
             }
         }
         start = end + 1;
@@ -495,13 +507,6 @@ fn validate_digest(value: &str) -> Result<(), KernelError> {
         Ok(())
     }
 }
-
-fn log_fraction(log_numerator: f64, log_denominator: f64) -> f64 {
-    if log_numerator == f64::NEG_INFINITY || log_denominator == f64::NEG_INFINITY {
-        0.0
-    } else {
-        (log_numerator - log_denominator).exp().clamp(0.0, 1.0)
-    }
 
 #[cfg(test)]
 mod tests {
@@ -682,7 +687,10 @@ mod tests {
         let result = integrate_ncdot_time_series(&identity(), declared, &samples)
             .expect("partial aggregation can still be recorded");
         assert!(!result.qualified);
-        assert_eq!(result.coverage_claim, TemporalHorizonCoverageClaim::KnownIncomplete);
+        assert_eq!(
+            result.coverage_claim,
+            TemporalHorizonCoverageClaim::KnownIncomplete
+        );
     }
 
     #[test]
@@ -708,7 +716,10 @@ mod tests {
         ];
         let result = integrate_ncdot_time_series(&identity(), horizon(10.0, 10.0), &samples)
             .expect("rare positive rate");
-        assert!((result.log_expected_collision_count - (-900.0_f64 + 10.0_f64.ln())).abs() < 1.0e-12);
+        assert!(
+            (result.log_expected_collision_count - (-900.0_f64 + 10.0_f64.ln())).abs()
+                < 1.0e-12
+        );
         assert_eq!(result.expected_collision_count, 0.0);
         assert!(result.collision_count_underflowed);
         assert_eq!(result.rate_weighted_average_significant_nodes, Some(3.0));
@@ -794,4 +805,3 @@ mod tests {
     }
 }
 
-}
