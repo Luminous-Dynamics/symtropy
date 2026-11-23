@@ -86,3 +86,18 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # Standalone metrology tools are intentionally outside the heavyweight
+    # application workspace. Validate this evidence crate explicitly when it
+    # exists so it receives the same pinned three-OS PR gate.
+    - name: Format EHD-PIV Acquisition Evidence
+      if: ${{ hashFiles('tools/ehd-piv-acquisition-evidence/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml -- --check
+
+    - name: Test EHD-PIV Acquisition Evidence
+      if: ${{ hashFiles('tools/ehd-piv-acquisition-evidence/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml
+
+    - name: Clippy EHD-PIV Acquisition Evidence
+      if: ${{ hashFiles('tools/ehd-piv-acquisition-evidence/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml --all-targets -- -D warnings
