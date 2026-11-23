@@ -951,6 +951,30 @@ mod tests {
     }
 
     #[test]
+    fn field_covariance_target_requires_high_resolution_regions_and_reference() {
+        let report = schedule_diagnostics(
+            EvidenceTarget::FieldCovariance,
+            &snapshot(),
+            &config(),
+            &catalog(),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
+        let capabilities: BTreeSet<_> = report
+            .selected_actions
+            .iter()
+            .flat_map(|action| action.capabilities.iter().copied())
+            .collect();
+        for required in [
+            DiagnosticCapability::HighResolutionPiv,
+            DiagnosticCapability::SpatialRegionCoverage,
+            DiagnosticCapability::ReferenceQualification,
+        ] {
+            assert!(capabilities.contains(&required));
+        }
+    }
+
+    #[test]
     fn unqualified_reference_triggers_reference_requalification() {
         let mut sample = snapshot();
         sample.reference_evidence_qualified = false;
