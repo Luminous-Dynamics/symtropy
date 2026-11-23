@@ -302,7 +302,13 @@
         "expected_initial_state_sha256",
         "observed_initial_state_sha256",
         "simulation_step",
-        "clock_id"
+        "clock_id",
+        "world_statistics_topic",
+        "world_statistics_message_type",
+        "world_statistics_artifact_id",
+        "world_statistics_artifact_sha256",
+        "world_statistics_capture_clock_id",
+        "world_statistics_received_monotonic_ns"
       ],
       "properties": {
         "evidence_id": {
@@ -352,6 +358,28 @@
         "clock_id": {
           "type": "string",
           "minLength": 1
+        },
+        "world_statistics_topic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_statistics_message_type": {
+          "const": "gz.msgs.WorldStatistics"
+        },
+        "world_statistics_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_statistics_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "world_statistics_capture_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_statistics_received_monotonic_ns": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -912,7 +940,9 @@
         "world_epoch",
         "clock_id",
         "iterations",
-        "simulation_time_ns"
+        "simulation_time_ns",
+        "capture_clock_id",
+        "received_monotonic_ns"
       ],
       "properties": {
         "topic": {
@@ -960,6 +990,14 @@
         "simulation_time_ns": {
           "type": "integer",
           "minimum": 0
+        },
+        "capture_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "received_monotonic_ns": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     }
