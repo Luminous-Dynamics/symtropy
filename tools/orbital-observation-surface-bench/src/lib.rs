@@ -1,3 +1,4 @@
+pub mod assurance_budget;
 pub mod decision_identifiability;
 pub mod joint_loss_scenarios;
 pub mod regret_calibration;
