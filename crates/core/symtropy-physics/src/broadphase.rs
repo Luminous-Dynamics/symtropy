@@ -788,8 +788,12 @@ mod tests {
                 1.0,
             ),
         ];
-        // Body 2 is filtered from the default-group statics, while bodies 2
-        // and 3 share a matching group/mask pair and still overlap.
+        // Bodies 0/1 use group 1, so body 2 is filtered from them. Bodies
+        // 2/3 share group 2 and still overlap, exercising an accepted pair.
+        bodies[0].collision_group = 1;
+        bodies[0].collision_mask = 1;
+        bodies[1].collision_group = 1;
+        bodies[1].collision_mask = 1;
         bodies[2].collision_group = 2;
         bodies[2].collision_mask = 2;
         bodies[3].collision_group = 2;
