@@ -1089,17 +1089,35 @@ mod tests {
     fn receipts_preserve_profile_revision_and_input_artifact_digests() {
         let report = evaluate(&known_case("single_exact"));
         let receipt = &report.receipts[0];
-        assert_eq!(receipt.profile_sha256, "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        assert_eq!(
+            receipt.profile_sha256,
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        );
         assert_eq!(receipt.source_revision_id, "rev-1");
         assert_eq!(receipt.witness_revision_id, "rev-1");
-        assert_eq!(receipt.source_payload_sha256, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assert_eq!(receipt.witness_payload_sha256, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assert_eq!(
+            receipt.source_payload_sha256,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
+        assert_eq!(
+            receipt.witness_payload_sha256,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
     }
 
     #[test]
     fn malformed_profile_or_input_digests_and_missing_revisions_fail_closed() {
-        for case_id in ["invalid_profile_digest", "invalid_source_digest", "invalid_witness_digest", "missing_revision"] {
-            assert_eq!(evaluate(&known_case(case_id)).disposition, Disposition::NotEvaluable, "{case_id}");
+        for case_id in [
+            "invalid_profile_digest",
+            "invalid_source_digest",
+            "invalid_witness_digest",
+            "missing_revision",
+        ] {
+            assert_eq!(
+                evaluate(&known_case(case_id)).disposition,
+                Disposition::NotEvaluable,
+                "{case_id}"
+            );
         }
     }
 
