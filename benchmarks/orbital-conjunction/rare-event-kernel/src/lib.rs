@@ -44,11 +44,11 @@ pub use conditional_velocity::{
     ZeroConditionalVarianceMode,
 };
 pub use gaussian_overlap::{
-    CovarianceConditionDiagnostics, GaussianOverlapConfig, GaussianOverlapCovariancePolicy,
-    CovarianceDefiniteness, GaussianOverlapReport, GaussianPositionDistribution3,
+    CovarianceConditionDiagnostics, CovarianceDefiniteness, GaussianOverlapConfig,
+    GaussianOverlapCovariancePolicy, GaussianOverlapReport, GaussianPositionDistribution3,
     NasaCovarianceClipReport, NasaPeakOverlapConfig, NasaPeakOverlapReport,
-    gaussian_position_overlap, nasa_covariance_eigenvalue_clip,
-    nasa_peak_overlap_compatibility, overlap_step_mahalanobis_squared,
+    gaussian_position_overlap, nasa_covariance_eigenvalue_clip, nasa_peak_overlap_compatibility,
+    overlap_step_mahalanobis_squared,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
