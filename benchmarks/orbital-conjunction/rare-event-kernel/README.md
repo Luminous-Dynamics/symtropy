@@ -34,7 +34,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
 
-- A strict fixed-size 3D Gaussian product-overlap kernel with source covariance/condition diagnostics, a separate HBR-remediated convergence metric, and an explicit no-clipping/no-jitter `StrictSpd` policy. The Mahalanobis-step helper validates the remediated covariance rather than trusting a caller-supplied inverse.
+- A strict fixed-size 3D Gaussian product-overlap kernel with source, product and HBR-remediated covariance condition diagnostics; the report preserves its exact numerical policy/configuration. The HBR-remediated convergence metric is kept distinct from the raw product covariance. Its Mahalanobis-step helper validates the supplied metric's symmetry, positive definiteness and configured condition limit rather than trusting a caller-supplied inverse. The explicit `StrictSpd` mode never clips or adds jitter.
 
 ## Run the isolated tests
 
@@ -49,7 +49,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 153 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, and 13 in `gaussian_overlap.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; the 123-test scalar Gaussian head passed exact-head workflow #270; the conditional model and Ncdot sphere additions require their own exact-head workflows.
+The current authored test corpus contains 155 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, and 13 in `gaussian_overlap.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; the 123-test scalar Gaussian head passed exact-head workflow #270; the conditional model and Ncdot sphere additions require their own exact-head workflows.
 
 ## Important limitations
 
