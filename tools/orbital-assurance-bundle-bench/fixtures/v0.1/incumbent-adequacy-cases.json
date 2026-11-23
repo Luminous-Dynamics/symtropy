@@ -180,7 +180,7 @@
       "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
       "model_family_state": "ADEQUATE",
       "evidence_state": "CURRENT",
-      "materiality_margin": 4,
+      "materiality_margin": 3,
       "switching_cost": 0,
       "expected": {
         "disposition": "RETAIN_INCUMBENT",
