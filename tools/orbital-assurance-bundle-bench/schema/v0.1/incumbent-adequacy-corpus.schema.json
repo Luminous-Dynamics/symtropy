@@ -43,6 +43,8 @@
       "additionalProperties": false,
       "required": [
         "action_id",
+        "source_numerator",
+        "source_denominator",
         "loss"
       ],
       "properties": {
@@ -52,6 +54,16 @@
         "loss": {
           "type": "integer",
           "minimum": 0
+        },
+        "source_numerator": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "source_denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       }
     },
@@ -113,7 +125,8 @@
             "null"
           ]
         }
-      }
+      },
+      "maxItems": 16384
     },
     "expected": {
       "type": "object",
@@ -288,6 +301,10 @@
         "source_case_id",
         "source_manifest_id",
         "source_scenarios_sha256",
+        "source_loss_unit",
+        "projection_id",
+        "projection_scale_numerator",
+        "projection_scale_denominator",
         "expected_scenario_ids",
         "expected_scenario_ids_sha256",
         "projected_scenarios_sha256"
@@ -338,6 +355,22 @@
         },
         "projected_scenarios_sha256": {
           "$ref": "#/$defs/sha"
+        },
+        "source_loss_unit": {
+          "$ref": "#/$defs/id"
+        },
+        "projection_id": {
+          "$ref": "#/$defs/id"
+        },
+        "projection_scale_numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "projection_scale_denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       }
     }
