@@ -63,7 +63,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -80,7 +81,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -116,7 +118,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -135,7 +138,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -147,7 +151,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -236,7 +241,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -253,7 +259,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -289,7 +296,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -308,7 +316,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -320,7 +329,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -419,7 +429,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -436,7 +447,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -472,7 +484,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -491,7 +504,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -503,7 +517,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -597,7 +612,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -614,7 +630,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -650,7 +667,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -669,7 +687,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -681,7 +700,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -772,7 +792,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -789,7 +810,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -825,7 +847,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -844,7 +867,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -856,7 +880,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -960,7 +985,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ]
         },
@@ -977,7 +1003,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -1013,7 +1040,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -1032,7 +1060,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -1044,7 +1073,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
@@ -1149,7 +1179,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             },
             {
               "node_id": "closure",
@@ -1171,7 +1202,8 @@
             },
             {
               "node_id": "domain_oracle",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
             }
           ],
           "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -1207,7 +1239,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -1226,7 +1259,8 @@
             },
             {
               "node_id": "loss_model",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
           ]
         },
@@ -1238,7 +1272,8 @@
           "dependencies": [
             {
               "node_id": "query_policy",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "expected_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
             },
             {
               "node_id": "regret",
