@@ -1091,6 +1091,29 @@ mod tests {
     }
 
     #[test]
+    fn ascii_case_collisions_are_rejected_for_windows_portability() {
+        let mut value = manifest();
+        value.assets[1].relative_path = "RAW/ACQ-A.BIN".to_owned();
+        value.assets[0].relative_path = "raw/acq-a.bin".to_owned();
+        assert!(matches!(
+            value.validate(),
+            Err(EvidenceError::DuplicateRelativePath(_))
+        ));
+    }
+
+    #[test]
+    fn windows_reserved_and_trailing_dot_paths_are_rejected() {
+        for path in ["raw/CON.txt", "raw/NUL", "raw/trace."] {
+            let mut value = manifest();
+            value.assets[0].relative_path = path.to_owned();
+            assert!(matches!(
+                value.validate(),
+                Err(EvidenceError::InvalidRelativePath(_))
+            ));
+        }
+    }
+
+    #[test]
     fn directory_verifier_rehashes_source_bytes_and_binds_manifest() {
         let root = temp_root();
         fs::create_dir_all(root.join("raw")).unwrap();
