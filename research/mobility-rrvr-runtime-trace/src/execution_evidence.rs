@@ -972,6 +972,14 @@ mod tests {
     }
 
     #[test]
+    fn observer_quorum_receipts_are_counted_separately_from_delivery_events() {
+        let plan = plan();
+        let summary = bundle().validate_against_plan(&plan).unwrap();
+        assert_eq!(summary.delivery_confirmed_count, 4);
+        assert_eq!(summary.delivery_observer_receipt_count, 8);
+    }
+
+    #[test]
     fn dispatch_acceptance_alone_cannot_confirm_delivery() {
         let plan = plan();
         let mut evidence = bundle();
@@ -1017,17 +1025,11 @@ mod tests {
     fn rejects_receipt_chronology_that_moves_backwards_between_fault_events() {
         let plan = plan();
         let mut evidence = bundle();
-        evidence.events[0]
-            .delivery_observation
+        evidence.events[0].delivery_observation.members[0]
             .receipt
-            .as_mut()
-            .unwrap()
             .simulation_step = 250;
-        evidence.events[0]
-            .delivery_observation
+        evidence.events[0].delivery_observation.members[0]
             .receipt
-            .as_mut()
-            .unwrap()
             .simulation_time_ns = 2_500_000_000;
         assert_eq!(
             evidence.validate_against_plan(&plan),
