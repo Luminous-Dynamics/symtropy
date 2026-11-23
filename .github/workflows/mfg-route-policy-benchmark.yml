@@ -1,0 +1,99 @@
+name: MFG Route Policy Benchmark
+on:
+  pull_request:
+    paths:
+      - "tools/mfg-route-policy-benchmark/**"
+      - "schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_policy_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-policy-benchmark.yml"
+  push:
+    branches:
+      - research/mfg-route-robust-benchmark-v0-1
+    paths:
+      - "tools/mfg-route-policy-benchmark/**"
+      - "schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_policy_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-policy-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  route-policy-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Validate frozen fixture identities
+        run: |
+          jq empty schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json
+          jq empty fixtures/manufacturing/mfg_route_policy_cases_v0_1.json
+          jq empty fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-ROBUST-001"
+            and .evidence_class == "synthetic"
+            and .case_count == 120
+            and (.family_manifest | length) == 6
+            and (.cases | length) == 120
+            and all(.family_manifest[]; .case_count == 20 and (.replication_seeds | length) == 20)
+          ' fixtures/manufacturing/mfg_route_policy_cases_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-ROBUST-001"
+            and .evidence_class == "synthetic"
+            and .case_count == 120
+            and (.cases | length) == 120
+          ' fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json
+      - name: Apply rustfmt and check
+        run: |
+          cargo fmt --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml
+          cargo fmt --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml -- --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-policy-rustfmt-source
+          path: tools/mfg-route-policy-benchmark/src/main.rs
+          if-no-files-found: error
+      - name: Run known-answer and adversarial tests
+        run: cargo test --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml
+      - name: Run benchmark and validate report
+        run: |
+          cargo run --quiet --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml -- fixtures/manufacturing/mfg_route_policy_cases_v0_1.json > mfg-route-policy-report.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-ROBUST-001"
+            and .evidence_class == "synthetic"
+            and .family_count == 6
+            and .case_count == 120
+            and (.policy_ids | length) == 5
+            and (.case_reports | length) == 120
+            and (.family_summaries | length) == 30
+            and .results_are_synthetic
+            and (.physical_acceptance_claimed == false)
+            and (.production_release_authorized == false)
+            and all(.case_reports[]; all(.policies[]; .selected_route_was_owner_admissible))
+          ' mfg-route-policy-report.json
+      - name: Negative controls - future evidence and corrupt probability
+        run: |
+          jq '.cases[0].route_candidates[0].evidence_observed_hour = 1' fixtures/manufacturing/mfg_route_policy_cases_v0_1.json > invalid-future-evidence.json
+          jq '.cases[0].route_candidates[0].route_failure_probability_ppm = 1000001' fixtures/manufacturing/mfg_route_policy_cases_v0_1.json > invalid-probability.json
+          for invalid in invalid-future-evidence.json invalid-probability.json; do
+            if cargo run --quiet --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid route-policy fixture unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash source, fixtures, known answers and output
+        run: |
+          sha256sum             tools/mfg-route-policy-benchmark/Cargo.toml             tools/mfg-route-policy-benchmark/src/main.rs             schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json             fixtures/manufacturing/mfg_route_policy_cases_v0_1.json             fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json             mfg-route-policy-report.json > mfg-route-policy.sha256
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-route-policy-benchmark/Cargo.toml --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-policy-benchmark-report
+          path: |
+            mfg-route-policy-report.json
+            mfg-route-policy.sha256
+          if-no-files-found: error
