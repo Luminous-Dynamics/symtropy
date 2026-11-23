@@ -138,6 +138,30 @@ impl DynamicEpisodeTube2d {
         let dy = truth_position_m[1] - center[1];
         dx.hypot(dy) <= self.radius_m
     }
+
+    /// Score the complete episode. A missing, truncated or non-finite truth
+    /// trajectory is an evaluator error, never a successful partial hit.
+    pub fn contains_complete_trajectory(
+        &self,
+        truth_positions_m: &[[f64; DIM]],
+    ) -> Result<bool, DynamicEpisodeSetError> {
+        if truth_positions_m.len() != self.centers_m.len() {
+            return Err(DynamicEpisodeSetError::TruthPositionCountMismatch {
+                expected: self.centers_m.len(),
+                observed: truth_positions_m.len(),
+            });
+        }
+        if let Some(index) = truth_positions_m
+            .iter()
+            .position(|position| !position.iter().all(|value| value.is_finite()))
+        {
+            return Err(DynamicEpisodeSetError::InvalidTruthPosition(index));
+        }
+        Ok(truth_positions_m
+            .iter()
+            .enumerate()
+            .all(|(index, position)| self.contains_position(index, *position)))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -159,6 +183,11 @@ pub enum DynamicEpisodeSetError {
     ScoreDefinitionMismatch,
     EmptyPredictedTrajectory,
     InvalidPredictedPosition(usize),
+    TruthPositionCountMismatch {
+        expected: usize,
+        observed: usize,
+    },
+    InvalidTruthPosition(usize),
     MissingDecisionSequence,
     MissingDecisionReceipt,
     ArithmeticOverflow,
@@ -184,6 +213,8 @@ impl fmt::Display for DynamicEpisodeSetError {
             Self::ScoreDefinitionMismatch => write!(f, "evaluation score definition differs from the frozen calibration score"),
             Self::EmptyPredictedTrajectory => write!(f, "evaluation prediction trajectory must not be empty"),
             Self::InvalidPredictedPosition(index) => write!(f, "evaluation predicted position {index} is non-finite"),
+            Self::TruthPositionCountMismatch { expected, observed } => write!(f, "truth trajectory has {observed} positions but prediction has {expected}"),
+            Self::InvalidTruthPosition(index) => write!(f, "truth position {index} is non-finite"),
             Self::MissingDecisionSequence => write!(f, "decision sequence ID must be nonzero"),
             Self::MissingDecisionReceipt => write!(f, "decision receipt commitment is missing"),
             Self::ArithmeticOverflow => write!(f, "conformal family arithmetic overflowed"),
@@ -538,6 +569,77 @@ mod tests {
         assert_eq!(tube.decision_receipt_sha256(), [0xD4; SHA256_BYTES]);
         assert!(tube.contains_position(0, [0.5, 0.0]));
         assert!(!tube.contains_position(2, [3.0, 3.0]));
+    }
+
+    #[test]
+    fn whole_episode_scoring_requires_every_truth_position() {
+        let family = family(99);
+        let outcome = family
+            .build_episode_tube(
+                500,
+                20_500,
+                &[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]],
+                0.01,
+                [0xB2; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                501,
+                [0xD4; SHA256_BYTES],
+            )
+            .unwrap();
+        let DynamicEpisodeSetOutcome::Bounded(tube) = outcome else {
+            panic!("expected a bounded tube");
+        };
+        assert!(tube
+            .contains_complete_trajectory(&[[0.1, 0.0], [1.0, 1.1], [2.0, 2.0]])
+            .unwrap());
+        assert!(!tube
+            .contains_complete_trajectory(&[[0.1, 0.0], [1.0, 1.1], [4.0, 4.0]])
+            .unwrap());
+        assert_eq!(
+            tube.contains_complete_trajectory(&[[0.1, 0.0], [1.0, 1.1]]),
+            Err(DynamicEpisodeSetError::TruthPositionCountMismatch {
+                expected: 3,
+                observed: 2
+            })
+        );
+        assert_eq!(
+            tube.contains_complete_trajectory(&[[0.1, 0.0], [f64::NAN, 1.1], [2.0, 2.0]]),
+            Err(DynamicEpisodeSetError::InvalidTruthPosition(1))
+        );
+    }
+
+    #[test]
+    fn dynamic_radius_is_monotone_in_requested_miscoverage() {
+        let family = family(199);
+        let mut previous = f64::INFINITY;
+        for eta in [0.005, 0.01, 0.02, 0.05, 0.10, 0.20, 0.40] {
+            let selected = family.select_radius(eta).unwrap().unwrap();
+            assert!(selected.radius_m <= previous);
+            previous = selected.radius_m;
+        }
+    }
+
+    #[test]
+    fn missing_calibration_commitments_fail_closed() {
+        let data = episodes(10);
+        let mut cfg = config();
+        cfg.calibration_cohort_sha256 = [0; SHA256_BYTES];
+        assert_eq!(
+            DynamicEpisodeConformalFamily2d::fit(&data, cfg),
+            Err(DynamicEpisodeSetError::MissingCalibrationCohortCommitment)
+        );
+        cfg = config();
+        cfg.predictor_sha256 = [0; SHA256_BYTES];
+        assert_eq!(
+            DynamicEpisodeConformalFamily2d::fit(&data, cfg),
+            Err(DynamicEpisodeSetError::MissingPredictorCommitment)
+        );
+        cfg = config();
+        cfg.score_definition_sha256 = [0; SHA256_BYTES];
+        assert_eq!(
+            DynamicEpisodeConformalFamily2d::fit(&data, cfg),
+            Err(DynamicEpisodeSetError::MissingScoreDefinitionCommitment)
+        );
     }
 
     #[test]
