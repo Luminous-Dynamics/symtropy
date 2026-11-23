@@ -320,6 +320,7 @@ mod tests {
         counts.candidate_admission_limit = 5;
         counts.candidate_admission_capacity_rejected = 2;
         counts.support_candidates_admitted = 4;
+        counts.candidate_pool_count_before_reduction = 5;
         counts.perturbations_requested = 9;
         counts.perturbations_valid = 9;
         counts.support_queries_completed = 9;
@@ -345,7 +346,7 @@ mod tests {
         counts.candidate_pool_count_before_reduction = 8;
         counts.best_n_reduced_count = 4;
         let report = counts.validate().expect("8 total admission, 16 backing");
-        assert_eq!(report.support_candidates_admitted, 5);
+        assert_eq!(report.support_candidates_admitted, 7);
         assert!(!report.evidence_complete);
     }
 
