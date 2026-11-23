@@ -199,6 +199,7 @@ pub fn decide_ncdot_refinement(
             snapshot,
             policy,
             iteration,
+            expansion_step,
             rate_cutoff,
             significant_region_sample_count,
         );
@@ -405,6 +406,7 @@ fn zero_rate_refinement(
     snapshot: &NcdotRefinementSnapshot,
     policy: NcdotRefinementPolicy,
     iteration: usize,
+    expansion_step: f64,
     rate_cutoff: f64,
     significant_region_sample_count: usize,
 ) -> Result<NcdotRefinementDecision, KernelError> {
@@ -415,6 +417,36 @@ fn zero_rate_refinement(
         .iter()
         .position(|value| *value == minimum_md2)
         .ok_or(KernelError::InvalidNcdotRefinementSnapshot)?;
+
+    // CARA replaces the sampled Ncdot maximum index with the minimum-MD2
+    // index when every rate is zero, but its boundary-extension branches still
+    // run before the interior MD2 fallback.
+    if minimum_index == 0 && epochs[0] > snapshot.lower_time_limit_seconds {
+        let target = (epochs[0] - expansion_step).max(snapshot.lower_time_limit_seconds);
+        return make_decision(
+            snapshot,
+            iteration,
+            NcdotRefinementReason::ExtendLowerBoundary,
+            vec![target],
+            rate_cutoff,
+            significant_region_sample_count,
+        );
+    }
+    if minimum_index == epochs.len() - 1
+        && epochs[epochs.len() - 1] < snapshot.upper_time_limit_seconds
+    {
+        let target = (epochs[epochs.len() - 1] + expansion_step)
+            .min(snapshot.upper_time_limit_seconds);
+        return make_decision(
+            snapshot,
+            iteration,
+            NcdotRefinementReason::ExtendUpperBoundary,
+            vec![target],
+            rate_cutoff,
+            significant_region_sample_count,
+        );
+    }
+
     let middle = minimum_index.clamp(1, epochs.len() - 2);
     let lower = middle - 1;
     let upper = middle + 1;
@@ -867,6 +899,34 @@ mod tests {
             NcdotRefinementReason::RefineSignificantRateSpacing
         );
         assert!(result.inserted_epochs_seconds.contains(&60.0));
+    }
+
+    #[test]
+    fn zero_rate_minimum_md2_at_lower_boundary_extends_before_interior_refinement() {
+        let input = snapshot(
+            &[-10.0, 0.0, 10.0],
+            &[0.0, 0.0, 0.0],
+            &[1.0, 2.0, 3.0],
+            -40.0,
+            40.0,
+        );
+        let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
+        assert_eq!(result.reason, NcdotRefinementReason::ExtendLowerBoundary);
+        assert_eq!(result.inserted_epochs_seconds, vec![-20.0]);
+    }
+
+    #[test]
+    fn zero_rate_minimum_md2_at_upper_boundary_extends_before_interior_refinement() {
+        let input = snapshot(
+            &[-10.0, 0.0, 10.0],
+            &[0.0, 0.0, 0.0],
+            &[3.0, 2.0, 1.0],
+            -40.0,
+            40.0,
+        );
+        let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
+        assert_eq!(result.reason, NcdotRefinementReason::ExtendUpperBoundary);
+        assert_eq!(result.inserted_epochs_seconds, vec![20.0]);
     }
 
     #[test]
