@@ -233,3 +233,26 @@ This helper is intentionally labelled FLOAT64 with a coordinate-scale margin, no
 ## Benchmark and SOTA roadmap v0.4
 
 The expanded comparison of 2026 GSD k-coverage, support envelopes, TU Wien spatial sampling density and photometric visibility, feature-measurement-quality and multi-robot inspection is documented in `docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_4.md`. The matched benchmark ladder keeps all metrics separate.
+
+
+## Sparse large-pool k-multicover v0.1
+
+The stacked research branch \`research/orbital-k-coverage-scale-v0-1\` adds a sparse nominal k-multicover path for candidate pools larger than the exact \`<=20\` subset oracle:
+
+- frozen 2,048-candidate / 128-feature sparse visibility matrix (over 30,000 nominal visibility edges);
+- source-independent Rust implementation of the paper-style nominal globally informed greedy selection with deterministic fixed-point exponential weights and deterministic view-ID ties;
+- cleanup pass preserving each feature's attainable capped target \`min(requested_k, nominal candidate availability)\`;
+- robust visibility and failure-domain counts retained as diagnostics, not mixed into the published nominal k-coverage objective;
+- a feasible LP-dual lower-bound certificate, with every feature dual weight, denominator, maximum candidate-column load, and lower-bound floor/ceiling included in the receipt;
+- independent standard-library Python oracle, byte-stable Rust replay, exact receipt comparison and retained exact-head evidence.
+
+The dual certificate is a **lower bound**, not an optimum proof. It is valid only because every candidate-column dual load is checked against the unit capacity. \`minimum_cardinality_optimum_certified\` is hard-coded false: a matching exact ILP/MIP certificate is required before reporting a true optimality gap. The reported selected-minus-dual-bound excess is therefore a bound-based gap indicator, not the paper's certified optimum gap.
+
+The heuristic reproduces the paper's nominal visibility and capped-target selection semantics at the *discrete matrix* layer. Its fixed-point exponential and deterministic cleanup ordering are explicit implementation choices. It does not reproduce GSD candidate generation, the paper's source models, voxelization, overlap pruning, or its ILP solver. Candidate availability, requested-k shortfall, robust diagnostics and domain diversity remain separate.
+
+Run the sparse benchmark:
+
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-multicover-scale-bench -- docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/multicover_scale_reference_oracle.py docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json <40-hex-source-commit>
+
+The 2,048-view fixture is a synthetic sparse scale-control, not an empirical reproduction of the paper's 3D candidate pool or a claim of superiority over ILP.

@@ -1,0 +1,187 @@
+name: Orbital Sparse k-Multicover Scale Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-truss-inspectability-bench/**"
+      - "docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json"
+      - "docs/research/orbital-truss/multicover_scale_v0_1.schema.json"
+      - ".github/workflows/orbital-k-coverage-scale.yml"
+  push:
+    branches:
+      - "research/orbital-k-coverage-scale-v0-1"
+    paths:
+      - "tools/orbital-truss-inspectability-bench/**"
+      - "docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json"
+      - "docs/research/orbital-truss/multicover_scale_v0_1.schema.json"
+      - ".github/workflows/orbital-k-coverage-scale.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Sparse multicover, exact receipts and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate frozen sparse corpus and schema envelope
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/multicover_scale_v0_1.schema.json").read_text())
+          problem = fixture["problem"]
+          assert fixture["schema"] == "luminous.orbital-truss.multicover-scale-corpus.v0.1"
+          assert fixture["benchmark_id"] == "ORBITAL-MULTICOVER-SCALE-001"
+          assert fixture["evidence_class"] == "synthetic"
+          assert fixture["claim_ceiling"] == "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
+          assert len(problem["views"]) == 2048
+          assert len(problem["features"]) == 128
+          assert len({view["view_id"] for view in problem["views"]}) == len(problem["views"])
+          assert len({feature["feature_id"] for feature in problem["features"]}) == len(problem["features"])
+          known = {feature["feature_id"] for feature in problem["features"]}
+          assert all(set(view["nominal_feature_ids"]) <= known for view in problem["views"])
+          assert all(set(view["robust_feature_ids"]) <= set(view["nominal_feature_ids"]) for view in problem["views"])
+          assert schema["properties"]["views"]["maxItems"] == 100000
+          assert schema["properties"]["features"]["maxItems"] == 250000
+          assert schema["properties"]["problem"]["$ref"] == "#/$defs/Problem"
+          print(f"frozen sparse multicover corpus: {len(problem['views'])} candidates, {len(problem['features'])} features")
+          PY
+
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml -- --check
+
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Deterministic sparse multicover receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-multicover-scale-bench -- docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json "$GITHUB_SHA" > /tmp/multicover-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-multicover-scale-bench -- docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json "$GITHUB_SHA" > /tmp/multicover-b.json
+          cmp /tmp/multicover-a.json /tmp/multicover-b.json
+          jq -e '
+            .schema == "luminous.orbital-truss.multicover-scale-receipt.v0.1" and
+            .benchmark_id == "ORBITAL-MULTICOVER-SCALE-001" and
+            .candidate_view_count == 2048 and .feature_count == 128 and
+            .selected_attainable_targets_fully_covered == true and
+            .candidate_pool_requested_k_fully_available == false and
+            .selected_requested_k_fully_covered == false and
+            .selected_robust_requested_k_fully_covered == false and
+            .dual_bound.dual_constraints_verified == true and
+            .dual_bound.minimum_cardinality_optimum_certified == false and
+            .dual_bound.lower_bound_ceiling <= .selected_view_count and
+            .authority_granted == false and .physical_validation == "NOT_ASSESSED"
+          ' /tmp/multicover-a.json
+
+      - name: Independent sparse multicover oracle
+        run: |
+          python3 tools/orbital-truss-inspectability-bench/tests/multicover_scale_reference_oracle.py docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json "$GITHUB_SHA" > /tmp/multicover-oracle.json
+
+      - name: Compare Rust receipt with independent oracle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          rust = json.loads(Path("/tmp/multicover-a.json").read_text())
+          oracle = json.loads(Path("/tmp/multicover-oracle.json").read_text())
+          assert rust == oracle
+
+          assert rust["candidate_view_count"] == 2048
+          assert rust["feature_count"] == 128
+          assert rust["nominal_visibility_edge_count"] > 20000
+          assert rust["selected_attainable_targets_fully_covered"] is True
+          assert rust["candidate_pool_requested_k_fully_available"] is False
+          assert rust["selected_requested_k_fully_covered"] is False
+          assert rust["selected_robust_requested_k_fully_covered"] is False
+
+          shortfall = next(item for item in rust["feature_coverage"] if item["feature_id"] == "F-127")
+          assert shortfall["requested_k"] == 4
+          assert shortfall["available_nominal_candidate_views"] == 2
+          assert shortfall["available_robust_candidate_views"] == 1
+          assert shortfall["attainable_capped_target"] == 2
+          assert shortfall["selected_nominal_views"] == 2
+          assert shortfall["selected_robust_views"] == 1
+          assert shortfall["requested_k_met"] is False
+          assert shortfall["attainable_target_met"] is True
+          assert shortfall["robust_requested_k_met"] is False
+
+          dual = rust["dual_bound"]
+          assert dual["dual_constraints_verified"] is True
+          assert dual["maximum_candidate_constraint_load_numerator"] <= dual["objective_denominator"]
+          assert dual["minimum_cardinality_optimum_certified"] is False
+          assert dual["lower_bound_ceiling"] <= rust["selected_view_count"]
+          assert rust["selected_minus_dual_lower_bound"] == (
+              rust["selected_view_count"] - dual["lower_bound_ceiling"]
+          )
+          assert len(rust["selection_order_view_ids"]) == len(set(rust["selection_order_view_ids"]))
+          assert set(rust["selected_view_ids"]).isdisjoint(set(rust["cleanup_removed_view_ids"]))
+          print("Rust sparse multicover receipt exactly matches independent Python oracle; dual feasibility and requested-k shortfall controls passed")
+          PY
+
+      - name: Create exact-head evidence manifest
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          rust_bytes = Path("/tmp/multicover-a.json").read_bytes()
+          oracle_bytes = Path("/tmp/multicover-oracle.json").read_bytes()
+          receipt = json.loads(rust_bytes)
+          manifest = {
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "benchmark_id": receipt["benchmark_id"],
+              "input_sha256": receipt["input_sha256"],
+              "fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json").read_bytes()).hexdigest(),
+              "schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/multicover_scale_v0_1.schema.json").read_bytes()).hexdigest(),
+              "rust_receipt_sha256": hashlib.sha256(rust_bytes).hexdigest(),
+              "oracle_receipt_sha256": hashlib.sha256(oracle_bytes).hexdigest(),
+              "candidate_view_count": receipt["candidate_view_count"],
+              "feature_count": receipt["feature_count"],
+              "nominal_visibility_edge_count": receipt["nominal_visibility_edge_count"],
+              "selected_view_count": receipt["selected_view_count"],
+              "dual_lower_bound_floor": receipt["dual_bound"]["lower_bound_floor"],
+              "dual_lower_bound_ceiling": receipt["dual_bound"]["lower_bound_ceiling"],
+              "dual_constraints_verified": receipt["dual_bound"]["dual_constraints_verified"],
+              "minimum_cardinality_optimum_certified": receipt["dual_bound"]["minimum_cardinality_optimum_certified"],
+              "requested_k_fully_available": receipt["candidate_pool_requested_k_fully_available"],
+              "selected_attainable_targets_fully_covered": receipt["selected_attainable_targets_fully_covered"],
+              "authority_granted": receipt["authority_granted"],
+              "physical_validation": receipt["physical_validation"],
+          }
+          Path("/tmp/multicover-evidence-manifest.json").write_text(
+              json.dumps(manifest, sort_keys=True, indent=2) + "\n"
+          )
+          PY
+
+      - name: Retain sparse multicover evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-k-coverage-scale-evidence
+          path: |
+            /tmp/multicover-a.json
+            /tmp/multicover-oracle.json
+            /tmp/multicover-evidence-manifest.json
+            docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json
+            docs/research/orbital-truss/multicover_scale_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
