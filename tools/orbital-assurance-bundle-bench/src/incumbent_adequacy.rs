@@ -136,7 +136,17 @@ fn valid_gate_states(case: &Case) -> bool {
         )
         && matches!(
             case.dependency_graph_state.as_str(),
-            "COMPLETE_WITHIN_DECLARED_GRAMMAR" | "INADEQUATE" | "STALE" | "INDETERMINATE"
+            "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+                | "MISSING_DEPENDENCY_EDGE"
+                | "COMMON_MODE_DEPENDENCY_OMISSION"
+                | "CONSUMER_MANIFEST_OMISSION"
+                | "UNDECLARED_DEPENDENCY_EDGE"
+                | "DEPENDENCY_MODEL_INADEQUATE"
+                | "DEPENDENCY_SOURCE_UNAVAILABLE"
+                | "DEPENDENCY_SCOPE_MISMATCH"
+                | "INVALID_GRAPH"
+                | "STALE"
+                | "INDETERMINATE"
         )
         && matches!(case.model_family_state.as_str(), "ADEQUATE" | "INADEQUATE")
         && matches!(
@@ -239,7 +249,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
     if case.domain_closure_state == "INADEQUATE" || case.model_family_state == "INADEQUATE" {
         return abstain(case, "MODEL_FAMILY_INADEQUATE", Some(retention_threshold));
     }
-    if case.dependency_graph_state == "INADEQUATE" {
+    if case.dependency_graph_state != "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+        && case.dependency_graph_state != "STALE"
+        && case.dependency_graph_state != "INDETERMINATE"
+    {
         return abstain(case, "DEPENDENCY_GRAPH_INADEQUATE", Some(retention_threshold));
     }
     if case.dependency_graph_state == "STALE" {
