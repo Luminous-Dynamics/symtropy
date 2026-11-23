@@ -62,7 +62,8 @@
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_regret": 5
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "decision_irrelevant_shift",
@@ -123,7 +124,8 @@
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_regret": 0
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "opposite_optima_within_margin",
@@ -184,7 +186,8 @@
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_regret": 4
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "threshold_exceeded",
@@ -226,7 +229,8 @@
         "disposition": "REOPTIMIZATION_WARRANTED",
         "trigger_reason": "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD",
         "worst_case_regret": 20
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "threshold_equality",
@@ -268,7 +272,8 @@
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_regret": 10
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "incumbent_infeasible",
@@ -324,7 +329,8 @@
         "disposition": "REOPTIMIZATION_WARRANTED",
         "trigger_reason": "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "no_surviving_worlds",
@@ -346,7 +352,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "NO_SURVIVING_WORLDS",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "domain_open",
@@ -388,7 +395,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "DOMAIN_NOT_CLOSED",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "stale_evidence",
@@ -430,7 +438,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "STALE_EVIDENCE",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "incomplete_loss_matrix",
@@ -468,7 +477,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "INCOMPLETE_LOSS_MATRIX",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "duplicate_loss_row",
@@ -514,7 +524,8 @@
         "disposition": "INVALID_INPUT",
         "trigger_reason": "loss row is malformed, duplicated or not feasible in its world",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "scope_mismatch",
@@ -556,7 +567,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "SCOPE_MISMATCH",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "model_inadequate",
@@ -598,7 +610,8 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "MODEL_FAMILY_INADEQUATE",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
     {
       "case_id": "loss_unit_mismatch",
@@ -659,7 +672,70 @@
         "disposition": "ABSTAIN",
         "trigger_reason": "LOSS_UNIT_MISMATCH",
         "worst_case_regret": null
-      }
+      },
+      "dependency_graph_state": "COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "dependency_graph_inadequate",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "DEPENDENCY_GRAPH_INADEQUATE",
+        "worst_case_regret": null
+      },
+      "dependency_graph_state": "INADEQUATE"
     }
   ]
 }
