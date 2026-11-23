@@ -1,0 +1,154 @@
+{
+  "analyticity_certificate": {
+    "all_coefficient_values_vanish_at_horizon": true,
+    "all_rows_affine_in_field_jets": true,
+    "denominators": {
+      "b": "2*Q**2*rho**3*(Q + rho**2)**6",
+      "g": "Q**4*rho**5*(Q + rho**2)**8",
+      "h": "2*Q**3*rho**5*(Q + rho**2)**7"
+    },
+    "no_Delta_bar_denominator": true,
+    "no_fractional_powers_after_scaling": true,
+    "reason": "Qbar is positive real-analytic on rho>=1, lambda>=0; all denominator factors Qbar, rho, Qbar+rho^2 are strictly positive. Thus each complete scaled row is real-analytic through the horizon for analytic fields."
+  },
+  "artifact_kind": "5d_egb_spin2_all_even_rows_horizon_regularization",
+  "claim_ceiling": "This derives analytic extensions and exact controls for E_b,E_g,E_h after row scaling. The coupled horizon Frobenius recurrence, finite-alpha BVP, interval enclosure, and existence/uniqueness theorem remain open.",
+  "definitions": {
+    "Delta_bar": "rho^2+Qbar-lambda-2",
+    "Delta_bar_positive": "Delta_bar(1)=0; derivative=2*rho+2*rho^3/Qbar>0",
+    "F0": "Delta_bar/(Qbar+rho^2)",
+    "Qbar": "sqrt(lambda^2+2*lambda+rho^4)",
+    "lambda": "alpha/r_H^2",
+    "rho": "r/r_H"
+  },
+  "regularized_rows": {
+    "b": {
+      "affine_jet_names": [
+        "B2",
+        "B2_prime",
+        "B2_second",
+        "F2",
+        "F2_prime",
+        "H2",
+        "H2_prime",
+        "H2_second"
+      ],
+      "common_denominator": "2*Q**2*rho**3*(Q + rho**2)**6",
+      "equivalent_multiplier": "Delta_bar^4/(Qbar+rho^2)^2",
+      "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "first_nonzero_order": 3,
+        "fixed_horizon_leading_coefficient": "-4*(lambda+2)^2/(lambda+1)^4*(3*(lambda+1)^2*Fhat2_prime(1)-2*lambda*Hhat2(1)+(lambda+1)*Hhat2_prime(1)+2*(lambda+2)^2)",
+        "same_compatibility_as_Ef": true
+      },
+      "jet_monomial_count": 7,
+      "jet_polynomial_degree": 1,
+      "myers_perry_exact_zero": true,
+      "positive_denominator_factors": [
+        "Qbar",
+        "rho",
+        "Qbar+rho^2"
+      ],
+      "row_scaling": "F0^2*Delta_bar^2*E_b^(2)",
+      "wrong_sign_F2_negative_control_rejected": true
+    },
+    "g": {
+      "affine_jet_names": [
+        "B2",
+        "B2_prime",
+        "B2_second",
+        "F2",
+        "F2_prime",
+        "H2",
+        "H2_prime",
+        "H2_second"
+      ],
+      "common_denominator": "Q**4*rho**5*(Q + rho**2)**8",
+      "equivalent_multiplier": "Delta_bar^3/(Qbar+rho^2)^2",
+      "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "first_nonzero_order_at_least": 3,
+        "first_order_coefficient": "4*(lambda+2)/(lambda+1)^2*(Fhat2(1)-Bhat2(1))",
+        "order_one_condition_satisfied_by_fixed_horizon": true,
+        "order_two_cancellation_after_fixed_horizon_data": true
+      },
+      "jet_monomial_count": 9,
+      "jet_polynomial_degree": 1,
+      "myers_perry_exact_zero": true,
+      "positive_denominator_factors": [
+        "Qbar",
+        "rho",
+        "Qbar+rho^2"
+      ],
+      "row_scaling": "F0^2*Delta_bar^1*E_g^(2)",
+      "wrong_sign_F2_negative_control_rejected": true
+    },
+    "h": {
+      "affine_jet_names": [
+        "B2",
+        "B2_prime",
+        "B2_second",
+        "F2",
+        "F2_prime",
+        "H2",
+        "H2_prime",
+        "H2_second"
+      ],
+      "common_denominator": "2*Q**3*rho**5*(Q + rho**2)**7",
+      "equivalent_multiplier": "Delta_bar^3/(Qbar+rho^2)^2",
+      "horizon_row_value": "identically zero coefficient-by-coefficient",
+      "horizon_valuation": {
+        "first_nonzero_order": "not yet derived"
+      },
+      "jet_monomial_count": 7,
+      "jet_polynomial_degree": 1,
+      "myers_perry_exact_zero": true,
+      "positive_denominator_factors": [
+        "Qbar",
+        "rho",
+        "Qbar+rho^2"
+      ],
+      "row_scaling": "F0^2*Delta_bar^1*E_h^(2)",
+      "wrong_sign_F2_negative_control_rejected": true
+    }
+  },
+  "row_scaling": {
+    "E_b": "F0^2*Delta_bar^2*E_b^(2)",
+    "E_f": "Delta_bar^2*E_f^(2) (verified separately in spin2_scaled_ef_horizon_row_v1.json)",
+    "E_g": "F0^2*Delta_bar*E_g^(2)",
+    "E_h": "F0^2*Delta_bar*E_h^(2)",
+    "all_multipliers_positive_open_exterior": true
+  },
+  "schema_version": 1,
+  "source": {
+    "equation_generator": "derive_slow_rotation_second_order.py --emit-equations",
+    "equation_srepr_sha256": {
+      "b": "cf3f62d0ea589e3dbfcc2ac4eedce259f5759cb1c372da03d45c2930ebc832ff",
+      "f": "a564d56086c0ece50305622591f22b27b0028f693f60fa25848c7cf894bc7daa",
+      "g": "9a0a56db534806aef37b42c41895d5dd54ab00586ea72e77d6735c64fcba015c",
+      "h": "6b874e5b02dc1a7314242a42ba39275f6ab93f5031d652b516ccc4db8567dc0d"
+    },
+    "equation_text_sha256": {
+      "b": "47e9f330a3d13ad1527dc8acccdc2e2b670495b144799753b0764bf99c53b1f8",
+      "f": "31f83c37a9536ff49193a6b48ac325e8b6bbb114b869b25dfaed3b18f822b8f5",
+      "g": "8a6b1ee6df529fa2be2009a0757db2caca3aeb086f0ba243e154019e6949dbee",
+      "h": "5dcbb3e55cd409b5a34bf15f90064db616076716c5fa7352a514acef11ac78e1"
+    },
+    "provenance": "Local equation emission is a SymPy reconstruction matching the public equation fingerprints. Byte-for-byte clean-checkout execution of the public generator remains outstanding.",
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "status": "all_four_even_equations_have_analytic_horizon_row_forms",
+  "validation": {
+    "eb_cubic_horizon_condition_matches_ef_exactly": true,
+    "eb_first_horizon_derivative_vanishes_exactly": true,
+    "eg_first_horizon_coefficient_exact": true,
+    "eg_quadratic_horizon_coefficient_cancels_exactly": true,
+    "exact_myers_perry_controls_for_b_g_h": true,
+    "exact_positive_denominators": true,
+    "full_scaled_rows_affine_degree_one": true,
+    "horizon_coefficient_values_exact_zero": true,
+    "source_equation_fingerprints_match": true,
+    "wrong_sign_F2_negative_controls_rejected": true
+  }
+}

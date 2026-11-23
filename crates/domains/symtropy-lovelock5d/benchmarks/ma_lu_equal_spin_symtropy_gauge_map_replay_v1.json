@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_symtropy_full_metric_comparison_replay",
+  "status": "exact_public_source_replays_passed_for_full_VOR_comparator_original_rows_fixed_boundary_and_spin10_charge_benchmarks",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "version": "JHEP version of record, 2026-05-08",
+    "equations": [
+      "(2.8)",
+      "(2.9)",
+      "(2.12)",
+      "(3.3)",
+      "(3.4)"
+    ]
+  },
+  "local_reconstruction": {
+    "path": "/mnt/data/ma_lu_version_record_replay.py",
+    "sha256": "0a1928c166aa4e03ac6444fef510832a8301aafa22171e91c755e20c52116476",
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "checks": {
+      "H2_equals_H3": true,
+      "H5_direct_Eq2_12": true,
+      "H6_direct_Eq2_12": true,
+      "dpsi2_component": true,
+      "dphi2_component": true,
+      "dphi_dpsi_component": true,
+      "axis_regular": true,
+      "negative_controls": true,
+      "fixed_boundary_all_coefficients": true
+    },
+    "result": "PASS"
+  },
+  "adm_mass": {
+    "script": "verify_ma_lu_equal_spin_adm_mass.py",
+    "git_blob_sha1": "32d91014925518358ad92395ca6aec020d383d6d",
+    "sha256": "1217a123bacc48643fe3e91b7420e6ec5699dd92c1ec9e936d4963748712f245",
+    "exact_public_blob_replayed_locally": true,
+    "check": "(3*pi/8)*(16/3-188*chi^2/15) == 2*pi-47*pi*chi^2/10"
+  },
+  "parameter_map": {
+    "script": "derive_ma_lu_equal_spin_parameter_map.py",
+    "git_blob_sha1": "30616c178a051f0a2fd120aba8a9d03dfc8c865e",
+    "sha256": "a015c8572071d109d14995f0743453412bfd90100b49dcf53c8e6e9bd0907efd",
+    "exact_public_blob_replayed_locally": true
+  },
+  "fixed_boundary_map": {
+    "script": "verify_ma_lu_fixed_symtropy_boundary_map.py",
+    "git_blob_sha1": "f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9",
+    "sha256": "b4ee4ad64b9dbc87893260b4a804216462871a638e4bc592d2498250a41ece67",
+    "exact_public_blob_replayed_locally": true
+  },
+  "original_symtropy_rows": {
+    "source": "Public action-row fixture spin2_boundary_map_lambda1_action_rows_v1.json",
+    "local_exact_rational_result": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0"
+    },
+    "EF_reconstruction": "0",
+    "cB": "0",
+    "cH": "0",
+    "B21_prime_at_horizon": "106/9",
+    "H21_at_horizon": "-14/3",
+    "fixture_driven_public_verifier_exact_blob_replay": "pending"
+  },
+  "full_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
+    "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
+    "sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+    "exact_blob_replay": true,
+    "local_execution": "Python 3.13.5 / SymPy 1.14.0. Exact source blob replay passed angular H5/H6 direct reductions, dpsi2/dphi2/dphi_dpsi components, axis regularity, fixed-boundary coefficients, ADM mass chi^2 and action normalization."
+  },
+  "claim_ceiling": "Exact first-coupling equal-spin O(chi^2) metric comparison: full angular block, fixed-boundary map, ADM mass coefficient and all four original Symtropy even-sector rows. A separate exact-source benchmark verifies Ma-Lu equal-spin Eq. (3.4) DeltaM and Eq. (3.9) horizon mass-parameter through chi^10; in Symtropy nu_S this direct observable correction is checked through nu_S^10. Total fixed-boundary ADM mass is only claimed through O(epsilon_S*nu_S^2) and angular momentum through O(epsilon_S*nu_S^3). No finite-coupling branch, interval existence/uniqueness or hyperbolicity result is claimed.",
+  "full_version_of_record_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
+    "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
+    "sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+    "exact_bytes_match": true,
+    "local_execution": "Python 3.13.5 / SymPy 1.14.0; full angular block, fixed-boundary series, negative controls and Eq. (3.4) ADM mass match pass."
+  },
+  "full_verifier_exact_replay": true,
+  "original_row_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_boundary_spin2_original_rows.py",
+    "git_blob_sha1": "d2210a8490e4442ffaf44c38bcb7a66a7e61d765",
+    "sha256": "91a1a21e843fe208d37f6fb17c461b83ac0debbb4ecf7b25e3307a7c298bad7b",
+    "fixture_git_blob_sha1": "0c3388caf7d78460124c0d930eafa6a2313a0c60",
+    "exact_public_source_and_fixture_replay": true,
+    "results": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0",
+      "Ef_reconstruction": "0"
+    },
+    "negative_controls": {
+      "tangent_as_mode_offset_rejected": true,
+      "mutated_H1_rejected": true
+    }
+  },
+  "angular_diagonal_standalone_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_angular_diagonal.py",
+    "git_blob_sha1": "deead0bb33bf47eb8e9be9fd923cbe3126dfb085",
+    "sha256": "pending exact local blob replay",
+    "source": "JHEP version of record Eqs. (2.8),(2.9),(2.12)",
+    "status": "corrected_to_canonical_VOR; redundant with full verifier"
+  },
+  "thermodynamic_charge_series": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_thermodynamic_charge_series.py",
+    "git_blob_sha1": "e75dcd96941dadbc1f5f0940521d959060dbc776",
+    "sha256": "038f21d147e07da45e1e3bb68e73b9bba8b3f5e102b2e05e250a068b09e31242",
+    "exact_public_blob_replay": true,
+    "results": {
+      "Eq3_9_mu_equal_spin_through_chi10": true,
+      "Eq3_4_DeltaM_equal_spin_through_chi10": true,
+      "DeltaM_reexpanded_in_nuS_through_nu10": true,
+      "H1_asymptotic_ADM_mass_matches_Eq3_4_through_chi2": true,
+      "fixed_boundary_total_M_through_epsilon_nu2": true,
+      "fixed_boundary_J_through_epsilon_nu3": true,
+      "negative_controls": true
+    },
+    "scope_note": "Total fixed-boundary M is known only through O(epsilon_S*nu_S^2); direct alpha*DeltaM correction is checked through nu_S^10."
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "algebraic_pivot": {
+    "Delta_bar_derivative": "2*rho+2*rho^3/Qbar > 0 for rho>=1, lambda>=0",
+    "P_horizon_value": "2*(lambda+1)*(lambda+2)^3",
+    "positive_domain_factors": [
+      "rho",
+      "Qbar",
+      "Qbar+rho^2",
+      "Delta_bar^2"
+    ],
+    "positive_for": "rho>1, lambda>=0",
+    "positive_numerator_representative_P": "2*rho**2*(Qbar*(lambda**3 + lambda**2*rho**2 + 4*lambda**2 + 2*lambda*rho**2 + 4*lambda + 4*rho**6) + lambda**3*rho**2 + 3*lambda**2*rho**4 + 4*lambda**2*rho**2 + 6*lambda*rho**4 + 4*lambda*rho**2 + 4*rho**8)",
+    "relation": "Qbar^2=lambda^2+2*lambda+rho^4",
+    "scaled_horizon_value": "3*(lambda+2)^2",
+    "unscaled_Ef_F2_coefficient": "3*P/[2*Qbar*rho*(Qbar+rho^2)*Delta_bar^2]"
+  },
+  "artifact_kind": "5d_egb_spin2_reduced_principal_horizon_operator",
+  "claim_ceiling": "This proves the general-lambda horizon value and first radial jet of the reduced principal matrix, including a rank-one horizon limit and a simple zero of its determinant. It does not prove the full-exterior determinant has no additional zeros, the complete reduced system is Fuchsian, the boundary index, a finite-coupling BVP solution, interval validation, or physical hyperbolicity.",
+  "controls": {
+    "M0_general_lambda_identity": true,
+    "M1_general_lambda_identity": true,
+    "algebraic_pivot_positive_representative_exact": true,
+    "all_four_source_equation_lengths_and_hashes_match_public_metadata": true,
+    "determinant_linear_coefficient_exactly_one_half": true,
+    "no_fractional_powers_in_reduced_principal_matrix": true,
+    "null_vector_exact": true
+  },
+  "execution": {
+    "arithmetic": "exact symbolic algebra in lambda, rho and Qbar",
+    "elapsed_seconds": 9.622503,
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "horizon_expansion": {
+    "M0": [
+      [
+        "3*(lambda + 1)**2/4",
+        "-(lambda + 1)/4"
+      ],
+      [
+        "-(lambda + 1)/4",
+        "1/12"
+      ]
+    ],
+    "M0_factorization": "(1/12)*[3*(lambda+1),-1]^T*[3*(lambda+1),-1]",
+    "M1": [
+      [
+        "-3*(lambda**2 - 3)/4",
+        "(lambda + 1)/4"
+      ],
+      [
+        "(lambda + 1)/4",
+        "-(lambda**2 + 4*lambda - 3)/(12*(lambda + 1)**2)"
+      ]
+    ],
+    "det_M": "(1/2)*y + O(y^2)",
+    "det_M0": "0",
+    "det_M_first_y_coefficient": "1/2",
+    "rank_M0": 1,
+    "right_null_vector": [
+      "1",
+      "3*(lambda+1)"
+    ]
+  },
+  "provenance": {
+    "equation_generator_provenance": "The JSON input was emitted by a local SymPy reconstruction that matches all four public equation lengths, symbolic fingerprints, and emitted text SHA-256 digests. It is not yet a byte-for-byte clean-checkout replay of the public generator.",
+    "local_development_script_sha256": "aaff3e4be6926e9e8ad2d619abdb9c8f75a551203a5508e0e70988b5622271f7",
+    "public_script_exact_blob_replay": "pending",
+    "public_script_git_blob_sha1": "9f14de9f87e973f5bb7dabef2e84811c41e5011d",
+    "public_script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_spin2_reduced_principal_horizon.py"
+  },
+  "reduced_principal_matrix_denominators_mod_radical_relation": [
+    "4*rho**2*(Qbar*(lambda**3 + lambda**2*rho**2 + 4*lambda**2 + 2*lambda*rho**2 + 4*lambda + 4*rho**6) + lambda**3*rho**2 + 3*lambda**2*rho**4 + 4*lambda**2*rho**2 + 6*lambda*rho**4 + 4*lambda*rho**2 + 4*rho**8)",
+    "4*rho**3*(Qbar + rho**2)*(Qbar*(lambda**3 + lambda**2*rho**2 + 4*lambda**2 + 2*lambda*rho**2 + 4*lambda + 4*rho**6) + lambda**3*rho**2 + 3*lambda**2*rho**4 + 4*lambda**2*rho**2 + 6*lambda*rho**4 + 4*lambda*rho**2 + 4*rho**8)",
+    "4*rho**3*(Qbar + rho**2)*(Qbar*(lambda**3 + lambda**2*rho**2 + 4*lambda**2 + 2*lambda*rho**2 + 4*lambda + 4*rho**6) + lambda**3*rho**2 + 3*lambda**2*rho**4 + 4*lambda**2*rho**2 + 6*lambda*rho**4 + 4*lambda*rho**2 + 4*rho**8)",
+    "12*Qbar*rho**5*(Qbar + rho**2)**3*(Qbar*(lambda**3 + lambda**2*rho**2 + 4*lambda**2 + 2*lambda*rho**2 + 4*lambda + 4*rho**6) + lambda**3*rho**2 + 3*lambda**2*rho**4 + 4*lambda**2*rho**2 + 6*lambda*rho**4 + 4*lambda*rho**2 + 4*rho**8)"
+  ],
+  "reduction": {
+    "affine_jet_counts": {
+      "E_b": 7,
+      "E_h": 7,
+      "scaled_E_f": 6
+    },
+    "algebraic_row": "Delta_bar^2*E_f^(2)=0",
+    "differential_rows": [
+      "E_b^(2)=0",
+      "E_h^(2)=0"
+    ],
+    "differential_state": [
+      "Bhat2",
+      "Hhat2"
+    ],
+    "eliminated_algebraic_field": "Fhat2",
+    "equation_json_sha256": "b4b9d891c47e91d1e1e2541a1be39c005ed77b840b1f02874c599085f1200dba",
+    "matrix_definition": "M = coefficient matrix of (Bhat2'',Hhat2'') after E_f algebraically eliminates Fhat2 and differentiating its reconstruction for Fhat2'",
+    "principal_unknowns": [
+      "Bhat2_second_derivative",
+      "Hhat2_second_derivative"
+    ],
+    "source_equation_fingerprints_checked": true
+  },
+  "schema_version": 1,
+  "status": "exact_general_lambda_horizon_principal_block_derived",
+  "variables": {
+    "Qbar": "sqrt(lambda^2+2*lambda+rho^4)",
+    "lambda": "alpha/r_H^2",
+    "rho": "r/r_H",
+    "y": "rho-1"
+  }
+}

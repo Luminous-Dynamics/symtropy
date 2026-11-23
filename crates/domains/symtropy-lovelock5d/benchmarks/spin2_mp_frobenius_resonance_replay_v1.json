@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_mp_frobenius_resonance_replay_receipt",
+  "status": "committed_verifier_and_fixture_replayed_against_semantic_residue_input",
+  "committed_inputs": {
+    "verifier_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_frobenius_resonance.py",
+    "verifier_git_blob_sha1": "5465ade29c58b4b52a70b971fe211e04a81672b0",
+    "fixture_path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_frobenius_resonance_v1.json",
+    "fixture_git_blob_sha1": "11a0402d739f15883a8c914f41ecda1d198ebf4e",
+    "source_indicial_artifact_path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_horizon_indicial_v1.json",
+    "source_indicial_artifact_git_blob_sha1": "c323e46bffbaba7602c40151db48926cfac3b180"
+  },
+  "replay": {
+    "interpreter": "Python 3 standard library only",
+    "command": "python -S verify_spin2_mp_frobenius_resonance.py --indicial spin2_mp_horizon_indicial_v1.json --output spin2_mp_frobenius_resonance_v1.json",
+    "verifier_bytes": "The local verifier copy, after removing only its terminal LF, has the exact committed Git blob SHA-1.",
+    "fixture_bytes": "The local expected fixture copy, after removing only its terminal LF, has the exact committed Git blob SHA-1.",
+    "generated_output_sha256_with_terminal_lf": "e3569767a53e5dc24b66adbd2dcd56badedaa42ee921722f52dcc9e700d2dc7b",
+    "generated_output_sha256_without_terminal_lf": "7b5e59d0c0a66c71074e1fdd709b67a301f91772cd6dc40b3f1589d05b720454",
+    "generated_output_matches_committed_fixture_after_terminal_lf_normalization": true,
+    "projector_and_recurrence_checks_passed": true,
+    "diagonal_horizon_adapted_basis_checks_passed": true
+  },
+  "negative_controls": {
+    "principal_residue_mutation": {
+      "mutation": "residue_A0[1][2]: 2 -> 3",
+      "expected": "reject",
+      "observed": "rejected",
+      "passed": true
+    },
+    "inhomogeneous_source_mutation": {
+      "mutation": "inhomogeneous_g0[1]: -8/3 -> -3",
+      "expected": "reject",
+      "observed": "rejected",
+      "passed": true
+    }
+  },
+  "source_boundary": {
+    "input_mode": "semantic snapshot containing the public residue_A0 and inhomogeneous_g0 values",
+    "source_indicial_artifact_byte_identity_verified": false,
+    "clean_checkout_equation_generator_replay": false,
+    "ci_status": "not_run",
+    "claim_ceiling": "The exact committed verifier and output fixture reproduce the rational projector/Frobenius reduction and exact diagonalizing basis from the supplied A0 and g0 data. This receipt does not certify byte identity of the full public indicial JSON input, a clean equation-generator replay, CI, A1, or the logarithmic status of the singular branch."
+  }
+}

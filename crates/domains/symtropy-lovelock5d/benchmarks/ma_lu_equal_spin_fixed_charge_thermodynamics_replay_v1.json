@@ -1,0 +1,10 @@
+{
+  "schema_version":1,
+  "artifact_kind":"ma_lu_equal_spin_fixed_charge_thermodynamics_replay",
+  "status":"exact_public_source_blob_replayed_locally",
+  "script_path":"crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_fixed_charge_thermodynamics.py",
+  "source":{"git_blob_sha1":"9fab7f906d066df8b9c1468521d95e0d25f9ea44","sha256":"012bac1a59e38d7b09782a231e75aef2809a2f9849835ebd1c06d7b86072f5e5","exact_bytes_match":true},
+  "environment":{"python":"3.13.5","sympy":"1.14.0"},
+  "execution":{"command":"python3 verify_ma_lu_equal_spin_fixed_charge_thermodynamics.py","result":"ALL_EXACT_SYMBOLIC_CHECKS_PASS","checks":{"Eq3_22_equal_spin_parameter_redefinition":true,"Eq3_23_delta_T_equal_spin":true,"Eq3_23_delta_S_equal_spin_VOR_prefactor":true,"Eq3_24_delta_Omega_equal_spin":true,"Eq3_26_delta_G_equal_spin":true,"fixed_charge_Gibbs_Legendre_identity_through_spin10":true,"negative_control_one_angular_plane_only_rejected":true,"negative_control_wrong_entropy_prefactor_rejected":true},"legendre_residual_through_q10":"0","first_possible_unchecked_order":"q^12"},
+  "claim_ceiling":"Exact publisher-formula equal-spin specialization and fixed-charge Gibbs Legendre identity through spin^10. Not an independent differential-form first-law derivation from the metric."
+}

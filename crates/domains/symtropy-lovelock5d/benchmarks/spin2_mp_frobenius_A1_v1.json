@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_next_frobenius_coefficient",
+  "status": "exact_alpha_zero_A1_extracted",
+  "conventions": {
+    "dimension": 5,
+    "alpha": "0",
+    "r_H": "1",
+    "y": "r/r_H - 1",
+    "state": [
+      "Bhat2",
+      "Bhat2_prime",
+      "Hhat2",
+      "Hhat2_prime"
+    ],
+    "reduced_rows": [
+      "E_b^(2)",
+      "E_h^(2)"
+    ],
+    "algebraic_row": "E_f^(2) reconstructs Fhat2",
+    "gauge_order": "vary b,f,g,h,w independently, then impose g=r^2"
+  },
+  "residue_A0": [
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "2",
+      "-1/3"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "6",
+      "-1"
+    ]
+  ],
+  "next_coefficient_A1": [
+    [
+      "0",
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "-3",
+      "-23/3",
+      "1/2"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "1"
+    ],
+    [
+      "0",
+      "0",
+      "-7",
+      "5/2"
+    ]
+  ],
+  "source_g0": [
+    "0",
+    "-8/3",
+    "0",
+    "-8"
+  ],
+  "source_g1": [
+    "0",
+    "116/3",
+    "0",
+    "36"
+  ],
+  "projectors": {
+    "regular": "P0=I+A0",
+    "singular": "Pminus=-A0",
+    "regular_rank": 3,
+    "singular_rank": 1
+  },
+  "singular_exponent_minus_one": {
+    "eigenvector": [
+      "0",
+      "1",
+      "0",
+      "3"
+    ],
+    "forced_log_coefficient": [
+      "1",
+      "2",
+      "3",
+      "18"
+    ],
+    "log_free": false,
+    "local_form": "U(y)=y^(-1)*u + c_log*log(y) + O(1)"
+  },
+  "analytic_horizon_branch": {
+    "free_data_after_Bhat2_1_zero": [
+      "Bhat2_prime(1)",
+      "Hhat2(1)"
+    ],
+    "compatibility": "Hhat2_prime(1)=6*Hhat2(1)-8",
+    "U0": [
+      "0",
+      "b1",
+      "h0",
+      "6*h0-8"
+    ],
+    "U1": [
+      "b1",
+      "24 - 3*b1",
+      "6*h0 - 8",
+      "22*h0 - 16"
+    ],
+    "implied_second_derivatives": {
+      "Bhat2_second_1": "24-3*Bhat2_prime(1)",
+      "Hhat2_second_1": "22*Hhat2(1)-16"
+    }
+  },
+  "myers_perry_control": {
+    "U0": [
+      "0",
+      "-4",
+      "1",
+      "-2"
+    ],
+    "U1": [
+      "-4",
+      "36",
+      "-2",
+      "6"
+    ],
+    "reduced_Eb_Eh_residuals": "exact zero",
+    "Ef_reconstruction_error": "exact zero",
+    "order_zero_and_order_one_recurrences": "exact zero"
+  },
+  "checks": {
+    "A0_matches_public_indicial_result": true,
+    "g0_matches_public_indicial_result": true,
+    "singular_eigenvector_exact": true,
+    "projectors_idempotent_and_orthogonal": true,
+    "log_coefficient_in_regular_eigenspace": true,
+    "analytic_first_recurrence_exact": true,
+    "myers_perry_reduced_equations_exact": true
+  },
+  "sympy_version": "1.14.0",
+  "claim_ceiling": "Exact next Frobenius coefficient at alpha=0, independently derived from the alpha-specialized five-dimensional reduced action. This does not determine finite-coupling residues, infinity modes, the global boundary map, a finite-coupling BVP, interval existence, or PDE hyperbolicity."
+}

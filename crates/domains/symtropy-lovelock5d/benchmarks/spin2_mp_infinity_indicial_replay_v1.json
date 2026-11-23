@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_infinity_indicial_replay_receipt",
+  "status": "passed_exact_committed_fixture_and_verifier_replay",
+  "local_action_specialized_derivation_source_sha256": "527def539b76a8cf7b11b0df39b7902228310242ca6550418d7f470ae6d556f2",
+  "local_derivation_output_sha256": "0adce50d77d98cddad7ebd89f685ccb6835eee89a25a6bb1073e06be2e91d76f",
+  "committed_public_derivation_source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_spin2_mp_horizon_frobenius_A3.py",
+    "git_blob_sha1": "4df6fe3d70cfe01dc7abc44f5df22ae7adf5ffef",
+    "exact_blob_replay": "pending"
+  },
+  "committed_public_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_infinity_indicial_v1.json",
+    "git_blob_sha1": "431d9df53f24c23fefcf68ee26bf87562ad3381b",
+    "local_exact_copy_sha256": "c0d28eb1c32ccfca2f3704d450ca2efc11ec109ef6246661e9a79cc2c8802da3",
+    "exact_blob_match": true
+  },
+  "committed_public_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_infinity_indicial.py",
+    "git_blob_sha1": "91430b7ced047417463d80e2283ef07df775159f",
+    "local_exact_copy_sha256": "264dba754a1cee578f0e374f48c1740b7e7c617f81dd55d5ac4dc1aa6edf4694",
+    "exact_blob_match": true,
+    "execution": "passed_exact_rational_infinity_replay"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "checks": {
+    "infinity_matrix_extracted_from_Einstein_limit_reduction": true,
+    "leading_source_zero": true,
+    "characteristic_polynomial_sigma_sigma_minus4_sigma_plus2_squared": true,
+    "eigenvector_basis_det_minus12": true,
+    "diagonalization_exact": true,
+    "repeated_minus2_semisimple": true
+  },
+  "evidence_boundary": "The local action-specialized alpha=0 reduction produced the asymptotic matrix. The committed fixture and verifier were both fetched by exact Git blob and replayed locally; characteristic polynomial, all four eigenvectors, determinant, and diagonalization passed. The public derivation source was updated to include the infinity extraction but has not yet been byte-for-byte replayed. This does not establish the full asymptotic recurrence, source/response map, global Fredholm index, finite-coupling infinity modes, BVP, interval theorem, or PDE hyperbolicity."
+}

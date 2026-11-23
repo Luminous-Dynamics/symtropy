@@ -1,0 +1,61 @@
+{
+  "acceptance": {
+    "all_rational_residuals_exact_zero": true,
+    "projection_overlap_not_misclassified_as_fold": true,
+    "true_fold_control_detected": true
+  },
+  "artifact_kind": "branch_atlas_projection_overlap_control",
+  "claim_ceiling": "Exact synthetic controls only; no Akribeia reproduction, no target EGB branch event, and no branch completeness claim.",
+  "projection_overlap": {
+    "classification": "observable_projection_self_overlap_not_a_BVP_fold",
+    "d_lambda_ds": "1",
+    "det_DU_F": "1",
+    "distinct_full_states": true,
+    "equations": [
+      "u-lambda=0",
+      "v-lambda^2=0"
+    ],
+    "nodes": [
+      {
+        "lambda": "-1/2",
+        "original_residual": [
+          "0",
+          "0"
+        ],
+        "u": "-1/2",
+        "v": "1/4"
+      },
+      {
+        "lambda": "1/2",
+        "original_residual": [
+          "0",
+          "0"
+        ],
+        "u": "1/2",
+        "v": "1/4"
+      }
+    ],
+    "same_scalar_projection": true
+  },
+  "schema_version": 1,
+  "status": "executed_exact_rational_reference",
+  "true_fold": {
+    "classification": "simple_parameter_fold",
+    "d2lambda_du2": "2",
+    "dF_dlambda_at_fold": "-1",
+    "dF_du_at_fold": "0",
+    "equation": "u^2-lambda=0",
+    "fold": {
+      "lambda": "0",
+      "u": "0"
+    },
+    "roots_at_lambda_1_4": [
+      "-1/2",
+      "1/2"
+    ],
+    "tangent": {
+      "dlambda_ds": "0",
+      "du_ds": "1"
+    }
+  }
+}

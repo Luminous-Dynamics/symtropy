@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_parameter_map_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
+  "source": {
+    "git_blob_sha1": "30616c178a051f0a2fd120aba8a9d03dfc8c865e",
+    "sha256": "a015c8572071d109d14995f0743453412bfd90100b49dcf53c8e6e9bd0907efd",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "command": "python3 derive_ma_lu_equal_spin_parameter_map.py --output ma_lu_equal_spin_parameter_map_v1.json",
+    "checks": {
+      "inverse_q_through_nu11": true,
+      "chi_sqrt2_nu_through_nu11": true,
+      "Eq3_9_mass_through_chi6": true,
+      "action_normalization": true
+    },
+    "result": "ALL_EXACT_SYMBOLIC_CHECKS_PASS",
+    "q_of_nu_h": "nu_h+nu_h^3+2*nu_h^5+5*nu_h^7+14*nu_h^9+42*nu_h^11+O(nu_h^13)",
+    "chi": "sqrt(2)*nu_h exactly",
+    "mass_series": "mu/r_h^2=1/2+chi^2/2+5chi^4/8+7chi^6/8+O(chi^8)"
+  },
+  "claim_ceiling": "Exact equal-spin MP kinematics, version-of-record spin convention, Eq. (3.9) series and first-coupling normalization only."
+}

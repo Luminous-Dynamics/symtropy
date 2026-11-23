@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_MP_horizon_indicial_control",
+  "status": "exact_lambda_zero_reduced_horizon_residue_derived",
+  "lambda": "0",
+  "variables": {
+    "y": "rho-1",
+    "Qbar": "rho^2",
+    "Delta_bar": "2*(rho^2-1)",
+    "F0": "1-rho^(-2)"
+  },
+  "input_equation_json_sha256": "b4b9d891c47e91d1e1e2541a1be39c005ed77b840b1f02874c599085f1200dba",
+  "row_valuations": {
+    "scaled_Eb": 4,
+    "scaled_Eh": 3,
+    "scaled_Ef_algebraic": 0
+  },
+  "row_scaling_leading_coefficients": {
+    "F0^2*Delta_bar^2": "64*y^4+O(y^5)",
+    "F0^2*Delta_bar": "16*y^3+O(y^4)"
+  },
+  "reduced_system": {
+    "differential_rows": ["E_b^(2)", "E_h^(2)"],
+    "algebraic_row": "Delta_bar^2*E_f^(2)",
+    "algebraically_reconstructed_field": "Fhat2",
+    "first_order_state": ["Bhat2", "Bhat2_prime", "Hhat2", "Hhat2_prime"]
+  },
+  "principal_M0": [
+    ["3/4", "-1/4"],
+    ["-1/4", "1/12"]
+  ],
+  "lower_coefficient_C0": [
+    ["0", "9/4", "-2", "5/4"],
+    ["0", "-3/4", "-10/3", "1/4"]
+  ],
+  "source_s0": ["-12", "28/3"],
+  "first_order_system": "y*dU/dy=A0*U+g0+O(y)",
+  "residue_A0": [
+    ["0", "0", "0", "0"],
+    ["0", "0", "2", "-1/3"],
+    ["0", "0", "0", "0"],
+    ["0", "0", "6", "-1"]
+  ],
+  "inhomogeneous_g0": ["0", "-8/3", "0", "-8"],
+  "indicial_polynomial": "s**3*(s+1)",
+  "indicial_exponents": [
+    {"value": 0, "algebraic_multiplicity": 3, "geometric_multiplicity": 3},
+    {"value": -1, "algebraic_multiplicity": 1, "geometric_multiplicity": 1}
+  ],
+  "residue_rank": 1,
+  "residue_trace": "-1",
+  "minimal_polynomial": "s*(s+1)",
+  "diagonalizable": true,
+  "regular_horizon_compatibility": "6*Hhat2(1)-Hhat2_prime(1)-8=0",
+  "equivalent_horizon_jet": "Hhat2_prime(1)=6*Hhat2(1)-8",
+  "duplicate_residue_compatibility_rows": true,
+  "compatibility_matches_Eg_minus_2Eh_cubic_at_lambda_zero": true,
+  "singular_mode": {
+    "exponent": -1,
+    "regularity": "excluded by analytic horizon regularity",
+    "resonance_gap_to_regular_exponent": 1,
+    "logarithmic_compatibility_test": "open; requires next Frobenius recurrence"
+  },
+  "controls": {
+    "all_four_source_equation_lengths_and_hashes_match_public_metadata": true,
+    "scaled_reduced_coefficients_cancel_below_row_valuations": true,
+    "Myers_Perry_horizon_values_satisfy_compatibility": true,
+    "fixed_horizon_Bhat2_zero_leaves_two_local_free_data_at_this_order": true
+  },
+  "execution": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "elapsed_seconds": 2.122255,
+    "arithmetic": "exact rational Taylor-jet algebra"
+  },
+  "provenance": {
+    "local_development_script_sha256": "02482fa91a6e429771e6a6a16884b9d847ee0f3c9eb1495c9bbb681f03285b37",
+    "local_development_script_git_blob_sha1": "bde079cd12938f299fa6e5f7620db9814ca0bfa0",
+    "public_script_git_blob_sha1": "99fbd2df408e2a25e13883adaf19d89ae3d38329",
+    "public_script_exact_blob_replay": "pending",
+    "equation_generator_provenance": "Input JSON came from a local action-level SymPy reconstruction that matches all four public equation lengths, symbolic fingerprints, and emitted equation text SHA-256 digests. This is not a byte-for-byte clean-checkout replay of the public generator."
+  },
+  "claim_ceiling": "Exact Einstein-limit horizon residue and indicial polynomial only. This does not establish finite-lambda exponents, the singular-branch logarithm test, infinity mode counts, global boundary index, a finite-coupling BVP, interval validation, or physical hyperbolicity."
+}

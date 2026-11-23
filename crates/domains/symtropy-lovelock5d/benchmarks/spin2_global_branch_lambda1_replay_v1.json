@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_lambda1_branch_replay_receipt",
+  "status": "passed_local_exact_action_coefficient_extraction_and_rational_row_replay",
+  "source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_spin2_global_branch_lambda1.py",
+    "git_blob_sha1": "fe4197aefec4e9f6198f165c94976b5a2b64a210",
+    "bytes": 8874,
+    "exact_git_blob_execution": "pending"
+  },
+  "fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_global_branch_lambda1_v1.json",
+    "git_blob_sha1": "02f4f1fc118713770127035f1c0dd4a152c837d3",
+    "bytes": 4338,
+    "fetched_from_exact_git_blob": true
+  },
+  "verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_global_branch_lambda1.py",
+    "git_blob_sha1": "253cc4f7d5efa45c3aa32da852689e98ac9db777",
+    "bytes": 2620,
+    "replay": "passed_exact_rational_equation_row_replay",
+    "negative_control": "H21 sign flip rejected; all four rows become nonzero"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "results": {
+    "original_order_lambda_rows": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0"
+    },
+    "horizon_sensitivities": {
+      "b1_lambda": "106/9",
+      "h0_lambda": "-14/3"
+    },
+    "other_horizon_jets": {
+      "F21_prime": "-8/3",
+      "H21_prime": "16"
+    },
+    "asymptotic_coefficients": {
+      "r2_B21": "11/9",
+      "r2_F21": "11/9",
+      "r2_H21": "-11/6"
+    },
+    "asymptotically_flat_horizon_data": {
+      "b1": "-4+(106/9)*lambda+O(lambda^2)",
+      "h0": "1-(14/3)*lambda+O(lambda^2)"
+    }
+  },
+  "evidence_boundary": "The local symbolic calculation varied the full Einstein+Gauss-Bonnet reduced action with five independent radial fields, imposed g=r^2 only after variation, and extracted the coefficient of lambda*a^2. The four original rows were identically zero after substitution. The committed fixture/verifier blobs were fetched and their exact equation-row payload was replayed with exact rational SymPy arithmetic, including a wrong-sign negative control. The committed derivation file itself has not yet been run byte-for-byte and CI remains pending. This is a first derivative at lambda=0, not a finite-lambda solution or interval theorem."
+}

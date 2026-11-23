@@ -1,0 +1,46 @@
+{
+  "artifact_kind": "5d_egb_spin2_boundary_map_lambda1_action_rows",
+  "checks": {
+    "Ef_pivot_exact_and_positive_for_r_gt_1": true,
+    "Ef_reconstruction_substituted_into_Eb_Eh": true,
+    "Ew_first_order_lambda_row": "not re-expanded in this artifact; W1 is an exact action-derived lower-order control",
+    "all_four_original_even_rows_extracted": true,
+    "five_fields_varied_before_gauge_fixing": true,
+    "linear_spin_first_lambda_coefficient": true,
+    "static_background_first_lambda_coefficient": true
+  },
+  "claim_ceiling": "Action-derived coefficient rows only. The endpoint Jacobian derivative is computed by the separate Green-Lagrange verifier; no finite-lambda BVP or existence theorem follows.",
+  "conventions": {
+    "Einstein_limit_modes": {
+      "b1": ["(1-r^-2)/2", "0", "0"],
+      "h0": ["0", "-2*r^2+3-r^-2", "2*r^4-r^2"]
+    },
+    "dimension": 5,
+    "fields_varied_independently": ["b", "f", "g", "h", "w"],
+    "horizon_coordinates": "cB=delta(B2_prime(1)); cH=delta(H2(1))",
+    "lambda": "alpha/r_H^2",
+    "r_H": 1,
+    "radial_gauge_imposed_after_variation": "g=r^2",
+    "spin_order": "O(a^2)"
+  },
+  "ef_algebraic_pivot": "3*r**5/((r - 1)**2*(r + 1)**2)",
+  "ef_reconstruction_F21": "(3*cB*r**10 - 9*cB*r**6 + 6*cB*r**4 + 16*cH*r**12 - 10*cH*r**10 - 18*cH*r**6 + 12*cH*r**4 - 6*r**13*Derivative(B1(r), r) + 6*r**11*Derivative(B1(r), r) - 4*r**11*Derivative(H1(r), r) + 12*r**10*B1(r) + 4*r**10*H1(r) + 6*r**9*Derivative(H1(r), r) - 8*r**8*H1(r) - 2*r**7*Derivative(H1(r), r) + 4*r**6*H1(r) - 50*r**6 + 76*r**4 + 14*r**2 - 40)/(12*r**12)",
+  "equation_rows_lambda_a2": {
+    "b": "-(-8*cH*r**10 - 12*cH*r**6 + 12*cH*r**4 + 3*r**11*Derivative(F21(r), r) + 6*r**10*F21(r) + r**10*Derivative(H1(r), (r, 2)) - r**8*Derivative(H1(r), (r, 2)) + r**7*Derivative(H1(r), r) + 16*r**4 - 24)/(2*r**7*(r - 1)*(r + 1))",
+    "f": "(-3*cB*r**10 + 9*cB*r**6 - 6*cB*r**4 - 16*cH*r**12 + 10*cH*r**10 + 18*cH*r**6 - 12*cH*r**4 + 6*r**13*Derivative(B1(r), r) + 12*r**12*F21(r) - 6*r**11*Derivative(B1(r), r) + 4*r**11*Derivative(H1(r), r) - 12*r**10*B1(r) - 4*r**10*H1(r) - 6*r**9*Derivative(H1(r), r) + 8*r**8*H1(r) + 2*r**7*Derivative(H1(r), r) - 4*r**6*H1(r) + 50*r**6 - 76*r**4 - 14*r**2 + 40)/(4*r**7*(r - 1)**2*(r + 1)**2)",
+    "g": "-(cB*r**12 - 15*cB*r**8 + 26*cB*r**6 - 12*cB*r**4 - 8*cH*r**14 - 14*cH*r**12 + 64*cH*r**10 - 70*cH*r**8 + 44*cH*r**6 - 16*cH*r**4 + 2*r**16*Derivative(B1(r), (r, 2)) + 4*r**15*Derivative(B1(r), r) + 4*r**15*Derivative(F21(r), r) + 4*r**14*F21(r) - 4*r**14*Derivative(B1(r), (r, 2)) + 2*r**14*Derivative(H1(r), (r, 2)) - 10*r**13*Derivative(B1(r), r) - 6*r**13*Derivative(F21(r), r) - 2*r**13*Derivative(H1(r), r) + 4*r**12*B1(r) - 12*r**12*F21(r) - 4*r**12*H1(r) + 2*r**12*Derivative(B1(r), (r, 2)) - 6*r**12*Derivative(H1(r), (r, 2)) + 6*r**11*Derivative(B1(r), r) + 2*r**11*Derivative(F21(r), r) + 10*r**11*Derivative(H1(r), r) + 4*r**10*F21(r) + 6*r**10*Derivative(H1(r), (r, 2)) - 14*r**9*Derivative(H1(r), r) + 12*r**8*H1(r) - 2*r**8*Derivative(H1(r), (r, 2)) - 78*r**8 + 6*r**7*Derivative(H1(r), r) - 8*r**6*H1(r) + 180*r**6 - 30*r**4 - 168*r**2 + 96)/(2*r**11*(r - 1)**2*(r + 1)**2)",
+    "h": "-(cB*r**12 - 15*cB*r**8 + 26*cB*r**6 - 12*cB*r**4 + 66*cH*r**12 - 144*cH*r**10 + 74*cH*r**8 + 20*cH*r**6 - 16*cH*r**4 + 2*r**16*Derivative(B1(r), (r, 2)) + 4*r**15*Derivative(B1(r), r) + 4*r**15*Derivative(F21(r), r) + 4*r**14*F21(r) - 4*r**14*Derivative(B1(r), (r, 2)) - 10*r**13*Derivative(B1(r), r) - 6*r**13*Derivative(F21(r), r) + 4*r**12*B1(r) - 12*r**12*F21(r) + 12*r**12*H1(r) + 2*r**12*Derivative(B1(r), (r, 2)) + 6*r**11*Derivative(B1(r), r) + 2*r**11*Derivative(F21(r), r) + 4*r**10*F21(r) - 24*r**10*H1(r) + 12*r**8*H1(r) - 94*r**8 + 340*r**6 - 238*r**4 - 168*r**2 + 160)/(4*r**11*(r - 1)**2*(r + 1)**2)"
+  },
+  "provenance": {
+    "arithmetic": "exact symbolic arithmetic over rational functions",
+    "python": "3.13.5",
+    "source_sha256": "3fe5da27ce7bcada7efd3013b432966a58688c5826247609407a9b05aa7b9a98",
+    "sympy": "1.14.0"
+  },
+  "reduced_rows_after_ef": {
+    "b": "(-18*cB*r**4 + 24*cH*r**6 - 36*cH*r**4 + 3*r**12*Derivative(B1(r), (r, 2)) + 9*r**11*Derivative(B1(r), r) - r**8*Derivative(H1(r), (r, 2)) + 5*r**7*Derivative(H1(r), r) - 8*r**6*H1(r) - 132*r**4 + 96*r**2 + 200)/(4*r**9)",
+    "h": "-(-18*cB*r**4 + 16*cH*r**12 + 192*cH*r**10 - 48*cH*r**8 + 24*cH*r**6 - 36*cH*r**4 + 3*r**12*Derivative(B1(r), (r, 2)) - 4*r**12*Derivative(H1(r), (r, 2)) + 9*r**11*Derivative(B1(r), r) + 4*r**11*Derivative(H1(r), r) + 32*r**10*H1(r) + 4*r**10*Derivative(H1(r), (r, 2)) - 12*r**9*Derivative(H1(r), r) + 16*r**8*H1(r) - r**8*Derivative(H1(r), (r, 2)) + 5*r**7*Derivative(H1(r), r) - 8*r**6*H1(r) - 32*r**6 + 124*r**4 + 224*r**2 + 200)/(12*r**13)"
+  },
+  "schema_version": 1,
+  "status": "action_derived_exact_lambda_a2_coefficient_rows_for_two_horizon_modes"
+}

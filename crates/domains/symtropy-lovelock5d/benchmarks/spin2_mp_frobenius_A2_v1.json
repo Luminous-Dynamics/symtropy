@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_second_order_frobenius_recurrence",
+  "status": "exact_alpha_zero_A2_extracted",
+  "conventions": {
+    "dimension": 5,
+    "alpha": "0",
+    "r_H": "1",
+    "y": "r/r_H - 1",
+    "state": [
+      "Bhat2",
+      "Bhat2_prime",
+      "Hhat2",
+      "Hhat2_prime"
+    ],
+    "reduced_rows": [
+      "E_b^(2)",
+      "E_h^(2)"
+    ],
+    "algebraic_row": "E_f^(2) reconstructs Fhat2",
+    "gauge_order": "vary b,f,g,h,w independently, then impose g=r^2"
+  },
+  "A0": [
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "2",
+      "-1/3"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "6",
+      "-1"
+    ]
+  ],
+  "A1": [
+    [
+      "0",
+      "1",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "-3",
+      "-23/3",
+      "1/2"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "1"
+    ],
+    [
+      "0",
+      "0",
+      "-7",
+      "5/2"
+    ]
+  ],
+  "A2": [
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "3",
+      "33/2",
+      "3/4"
+    ],
+    [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "0",
+      "0",
+      "19/2",
+      "-11/4"
+    ]
+  ],
+  "g0": [
+    "0",
+    "-8/3",
+    "0",
+    "-8"
+  ],
+  "g1": [
+    "0",
+    "116/3",
+    "0",
+    "36"
+  ],
+  "g2": [
+    "0",
+    "-706/3",
+    "0",
+    "-98"
+  ],
+  "regular_branch": {
+    "compatibility": "h1 = 6*h0 - 8",
+    "free_data_after_Bhat2_1_zero": [
+      "b1=Bhat2_prime(1)",
+      "h0=Hhat2(1)"
+    ],
+    "U0": [
+      "0",
+      "b1",
+      "h0",
+      "6*h0-8"
+    ],
+    "U1": [
+      "b1",
+      "24-3*b1",
+      "6*h0-8",
+      "22*h0-16"
+    ],
+    "U2": [
+      "12-3*b1/2",
+      "6*b1-132",
+      "11*h0-8",
+      "24*h0-36"
+    ]
+  },
+  "singular_branch": {
+    "exponent": -1,
+    "eigenvector": [
+      "0",
+      "1",
+      "0",
+      "3"
+    ],
+    "forced_log_coefficient": [
+      "1",
+      "2",
+      "3",
+      "18"
+    ],
+    "log_free": false
+  },
+  "myers_perry": {
+    "U0": [
+      "0",
+      "-4",
+      "1",
+      "-2"
+    ],
+    "U1": [
+      "-4",
+      "36",
+      "-2",
+      "6"
+    ],
+    "U2": [
+      "18",
+      "-156",
+      "3",
+      "-12"
+    ],
+    "reduced_Eb_Eh_residuals": "exact zero",
+    "Ef_reconstruction_error": "exact zero",
+    "recurrences_n0_n1_n2": "exact zero"
+  },
+  "checks": {
+    "A0_and_g0_match_previous_public_indicial_fixture": true,
+    "A1_matches_previous_local_exact_derivation": true,
+    "A2_exactly_extracted": true,
+    "analytic_recurrence_n0_n1_n2": true,
+    "singular_log_obstruction_nonzero": true,
+    "myers_perry_full_reduced_equations_exact": true,
+    "myers_perry_recurrence_n0_n1_n2": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "claim_ceiling": "Exact Einstein-limit horizon expansion through the y^2 coefficient, plus the first nonzero logarithmic obstruction of the excluded y^-1 homogeneous branch. No finite-coupling residue, infinity modes, global boundary map, finite-coupling BVP, interval existence, validated continuation, or PDE hyperbolicity is established."
+}

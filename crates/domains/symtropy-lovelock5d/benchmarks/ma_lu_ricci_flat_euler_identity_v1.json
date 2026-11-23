@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_ricci_flat_euler_tensor_equivalence",
+  "status": "exact_background_identity_derived",
+  "background": {
+    "family": "five-dimensional Myers-Perry",
+    "zeroth_order_equations": "R_mu_nu=0",
+    "consequences": [
+      "R=0",
+      "L_GB=Riemann^2",
+      "nabla^alpha R_mu_alpha_nu_beta=0"
+    ]
+  },
+  "euler_tensors": {
+    "gauss_bonnet": "2*(R*R_mu_nu-2*R_mu_alpha*R_nu^alpha-2*R^alpha_beta*R_mu_alpha_nu_beta+R_mu^alpha_beta_gamma*R_nu_alpha_beta_gamma)-(1/2)*g_mu_nu*L_GB",
+    "riemann_squared": "2*R_mu^alpha_beta_gamma*R_nu_alpha_beta_gamma-(1/2)*g_mu_nu*Riemann^2-4*nabla^alpha*nabla^beta*R_mu_alpha_nu_beta",
+    "common_ricci_flat_reduction": "2*R_mu^alpha_beta_gamma*R_nu_alpha_beta_gamma-(1/2)*g_mu_nu*Riemann^2"
+  },
+  "action_normalization": {
+    "symtropy": "R+alpha_GB*L_GB/4",
+    "ma_lu": "R+alpha_R*Riemann^2",
+    "first_order_coupling_map": "alpha_R=alpha_GB/4",
+    "dimensionless_map_for_same_horizon": "alpha_R/r_h^2=lambda/4"
+  },
+  "scope": {
+    "validity": "First-order coupling field-equation source evaluated on Ricci-flat MP",
+    "not_implied": [
+      "finite-coupling theories are identical on generic metrics",
+      "metric ansatz gauges are already matched",
+      "global corrected solutions exist for all spins/couplings",
+      "PDE hyperbolicity or dynamical stability"
+    ]
+  },
+  "claim_ceiling": "Exact equality of curvature-squared Euler tensors on the Ricci-flat MP background and the resulting first-coupling normalization map only."
+}

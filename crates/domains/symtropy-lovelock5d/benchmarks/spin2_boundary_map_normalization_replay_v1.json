@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "spin2_boundary_map_normalization_replay",
+  "status": "local_exact_blob_replay_passed",
+  "source_git_blob_sha1": "13b1665d5c6fa816dbdb81b7b115f77eb24070ef",
+  "source_sha256": "d0e7d19334fbe62b29b6bccdf73803c4cbbbd5346d6e091289021b1213a5e6c9",
+  "python": "3.13.5",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "command": "python /tmp/verify_spin2_boundary_map_normalization_from_public.py",
+  "checks": [
+    "raw Euclidean condition number changes under output basis rescaling",
+    "determinant covariance under a non-diagonal exact-rational basis change",
+    "first-order transformation law for parameter-dependent endpoint bases",
+    "generalized singular-value invariants under metric-coordinate transformation"
+  ],
+  "result": "PASS",
+  "claim_ceiling": "Exact-rational coordinate-covariance and metric-transformation checks only; no action re-derivation, finite-coupling J1, BVP, interval existence theorem, or hyperbolicity claim."
+}

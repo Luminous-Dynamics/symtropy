@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_frobenius_A3_replay_receipt",
+  "status": "passed_exact_committed_fixture_and_verifier_replay",
+  "local_action_specialized_derivation": {
+    "path": "/mnt/data/derive_spin2_mp_horizon_frobenius_A3.py",
+    "sha256": "49fb0cb536a5f0a8acd588e4c36f94badca63585dc144203fb9d336c19b60fca",
+    "generated_fixture_sha256": "80ce3b7cdca5fb224551ba6f4f7bc8b8b3dd3f2b0fe103129e840faa4db1dcff",
+    "executed": true
+  },
+  "committed_public_derivation_source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_spin2_mp_horizon_frobenius_A3.py",
+    "git_blob_sha1": "99cdde11f0de3f17d8e8fdc1e96ba37d77c11f1c",
+    "exact_blob_replay": "pending"
+  },
+  "committed_public_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_mp_frobenius_A3_v1.json",
+    "git_blob_sha1": "e767e43c011813a1fc43f11c0fdd90e88e6b5023",
+    "local_exact_copy_sha256": "18443badbadbf46e7b1cb7b249949e0c7c798edcb931fa34a869b00bcb14e609",
+    "exact_blob_match": true
+  },
+  "committed_public_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_spin2_mp_frobenius_A3.py",
+    "git_blob_sha1": "27593d46e97a76ab6d81857bc51318627f821b99",
+    "local_exact_copy_sha256": "a5e6aafc17ad2d01b342c41332b47ceaebdfb7b0a17e1057b68ffc245ae0236d",
+    "exact_blob_match": true,
+    "execution": "passed_exact_rational_recurrence_replay"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "checks": {
+    "A0_A1_A2_recovered": true,
+    "A3_g3_extracted_from_local_action_specialized_source": true,
+    "analytic_recurrences_n0_n3": true,
+    "singular_log_obstruction_nonzero": true,
+    "Myers_Perry_full_reduced_Eb_Eh_and_Ef_reconstruction_exact": true,
+    "Myers_Perry_recurrences_n0_n3": true
+  },
+  "evidence_boundary": "The local action-specialized alpha=0 source ran and generated the recorded A3 fixture. The committed fixture and recurrence verifier were both fetched by exact Git blob and replayed locally; exact rational recurrences n=0..3 passed. The committed public derivation source was fetched but not yet executed byte-for-byte. No CI or finite-coupling result is claimed."
+}

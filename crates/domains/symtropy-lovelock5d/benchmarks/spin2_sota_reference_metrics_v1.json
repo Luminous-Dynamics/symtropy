@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "2026_spin2_sota_reference_metrics",
+  "snapshot": "2026-11-22",
+  "references": [
+    {
+      "id": "akribeia_2026",
+      "dimension": "5D/7D",
+      "theory": "EGB and cubic Lovelock",
+      "coupling_regime": "full nonlinear stationary ODE profiles",
+      "spin_regime": "finite rotation in equal-angular-momenta ansatz",
+      "reported": {
+        "total_7d_equation_residual": "~1e-80 at N=500",
+        "exact_MP_relative_L2_profile_error": "1e-85 at 300-digit precision",
+        "fiveD_discovery_wall_time": "~15-120 minutes",
+        "fiveD_spectral_refinement": "~1 minute per solution at N=200 on single CPU core"
+      },
+      "sources": [
+        "https://arxiv.org/abs/2607.07418v2",
+        "https://doi.org/10.1103/3kz2-6dvv"
+      ],
+      "caveat": "The 1e-85 metric is an exact-control profile error; the 1e-80 metric is a summed 7D equation residual. Neither is an interval existence certificate."
+    },
+    {
+      "id": "lam_chung_yunes_2026",
+      "dimension": "4D",
+      "theory": "quadratic EFT: dCS, scalar-Gauss-Bonnet, axidilaton",
+      "coupling_regime": "leading order in couplings",
+      "spin_regime": "generic Kerr spin including near-extremal",
+      "reported": {
+        "metric_error": "below machine precision for a<=0.9",
+        "near_extremal_error": "<=~1e-8 for a<=0.999",
+        "method": "spectral/pseudospectral expansion in radius and polar angle"
+      },
+      "sources": [
+        "https://arxiv.org/abs/2510.05208",
+        "https://doi.org/10.1103/txxb-z8bx"
+      ],
+      "caveat": "Not a finite-coupling nonlinear solution; different 4D Kerr problem class."
+    },
+    {
+      "id": "li_hu_yunes_2026",
+      "dimension": "4D",
+      "theory": "six purely metric curvature interactions of cubic, quartic and quintic order",
+      "coupling_regime": "leading order in coupling",
+      "spin_regime": "generic subextremal Kerr spin",
+      "reported": {
+        "method": "sourced stationary Teukolsky equations plus metric reconstruction",
+        "closed_form": "closed-form generic-subextremal-spin metrics without mode decomposition in the new construction"
+      },
+      "sources": [
+        "https://arxiv.org/abs/2610.37515"
+      ],
+      "caveat": "Perturbative in coupling and 4D Kerr; not a finite-coupling 5D Lovelock branch."
+    }
+  ],
+  "symtropy_current": {
+    "dimension": "5D",
+    "theory": "equal-angular-momenta EGB",
+    "coupling_regime": "exact alpha=0 O(a^2) global family and exact first derivative at lambda=0",
+    "spin_regime": "slow rotation O(a^2)",
+    "exact_global_map_at_alpha_zero": {
+      "jacobian": [
+        [
+          "1/2",
+          "0"
+        ],
+        [
+          "0",
+          "2"
+        ]
+      ],
+      "determinant": "1",
+      "condition_number": "4",
+      "unique_asymptotically_flat_root": {
+        "b1": "-4",
+        "h0": "1"
+      }
+    },
+    "first_coupling_tangent": {
+      "B21": "(r^2-1)*(11*r^6+11*r^4+22*r^2+9)/(9*r^10)",
+      "F21": "(r^2-1)*(22*r^4-11*r^2-35)/(18*r^8)",
+      "H21": "-(11*r^4+14*r^2+3)/(6*r^6)",
+      "horizon_sensitivities": {
+        "b1_lambda": "106/9",
+        "h0_lambda": "-14/3"
+      },
+      "original_order_lambda_rows": [
+        "Eb",
+        "Ef",
+        "Eg",
+        "Eh"
+      ],
+      "residuals": [
+        "0",
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    "claim_ceiling": "The first coupling derivative of one selected asymptotically flat O(a^2) branch is exact. No finite-lambda corrected BVP, full boundary-map derivative, all-spin profile, interval branch or hyperbolicity theorem is yet established."
+  },
+  "comparative_policy": "Do not rank across different dimensions, symmetries, coupling truncations, spin domains, or residual definitions. Freeze matched subsets and publish per-row residuals, held-out validation, observables, resource cost, branch coverage and mathematical qualification separately."
+}

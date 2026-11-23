@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "einstein_limit_exact_global_boundary_map_replay_receipt",
+  "status": "passed_local_action_derivation_and_exact_rational_map_replay_public_blob_execution_pending",
+  "local_derivation_source_sha256": "7a62a78e344cf024d474a3d226f0762f7b2095e8256ec7b1cc098f04486f8fe0",
+  "public_derivation_source": {
+    "git_blob_sha1": "abb1bfd3502fa48743fedfb2bd2e13624cab035c",
+    "sha256": "ce1a7238ba1e6627f09667d34dbb10378e76760fda130ee906d675bfbfe3dec8",
+    "bytes": 9348,
+    "exact_public_source_execution": "pending"
+  },
+  "committed_fixture": {
+    "git_blob_sha1": "554c7aba2d5af206861a97a4829fa4026232fe48",
+    "regenerated_after_source_provenance_correction": true,
+    "sha256": "80e8484b5fb752026b3c0b709b61206862292c49cacc6703f534d3dc04430a4a"
+  },
+  "public_verifier": {
+    "git_blob_sha1": "1b993c028068425c6b735592a4da37a0b6e9fe69",
+    "sha256": "e610566c9aa46a220da24c91e7dd9a751ace77cec22c7aa8e0b861bc70b9213b",
+    "bytes": 3562,
+    "local_verifier_sha256": "e7258d2b0b542678bd3a60296f85c9513ec79f40c9d5ef35122e2f6c9177f766",
+    "exact_public_verifier_execution": "pending"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "local_results": {
+    "original_even_rows": {
+      "Eb": "exact zero",
+      "Ef": "exact zero",
+      "Eg": "exact zero",
+      "Eh": "exact zero"
+    },
+    "principal_determinant": "(r^2-1)/4, strictly positive for r>1",
+    "algebraic_Ef_pivot": "3*r^5/(r^2-1)^2, strictly positive for r>1",
+    "global_boundary_jacobian": [
+      [
+        "1/2",
+        "0"
+      ],
+      [
+        "0",
+        "2"
+      ]
+    ],
+    "global_map_determinant": "1",
+    "singular_values": [
+      "1/2",
+      "2"
+    ],
+    "euclidean_condition_number": "4",
+    "asymptotically_flat_data": {
+      "b1": "-4",
+      "h0": "1"
+    },
+    "negative_control": "wrong-sign H r^2 mode rejected with exact nonzero reduced-row defect"
+  },
+  "evidence_boundary": "The local action-derived script and local exact-rational verifier both passed. The committed source, fixture and verifier are identified by Git blob SHA. The committed source's exact-byte execution and CI have not yet been performed. Claim applies only to the alpha=0, five-dimensional, O(a^2) perturbative system with the stated horizon normalization and asymptotic conditions."
+}

@@ -1,0 +1,110 @@
+{
+  "analyticity_certificate": {
+    "Delta_bar_occurs_in_any_denominator": false,
+    "coefficient_denominators": {
+      "B2": "2*Qbar*rho*(Qbar + rho**2)",
+      "B2_prime": "2",
+      "F2": "2*Qbar*rho*(Qbar + rho**2)",
+      "H2": "2*Qbar*rho**3*(Qbar + rho**2)**2",
+      "H2_prime": "2*Qbar*rho**2*(Qbar + rho**2)**2"
+    },
+    "conclusion": "All coefficients and the source of the complete scaled E_f row are rational in (rho,lambda,Qbar), with denominators strictly positive on the closed exterior. Qbar is positive real-analytic there, so the complete scaled row extends real-analytically to the horizon for analytic fields.",
+    "positivity_domain": "rho>=1, lambda>=0: Qbar>0, rho>0, Qbar+rho^2>0",
+    "source_denominator": "Qbar**2*rho**3*(Qbar + rho**2)**4"
+  },
+  "artifact_kind": "5d_egb_spin2_full_scaled_Ef_horizon_row",
+  "claim_ceiling": "The complete scaled algebraic E_f^(2) row is analytically regular at the horizon and its first nontrivial horizon compatibility condition is derived. This is not the coupled Frobenius recurrence, a finite-alpha BVP solution, an interval enclosure, or an existence/uniqueness theorem.",
+  "first_nontrivial_horizon_compatibility": {
+    "Bhat2_prime_cancels": true,
+    "assumptions": [
+      "Bhat2(1)=0",
+      "Fhat2(1)=0",
+      "analytic Bhat2,Fhat2,Hhat2"
+    ],
+    "interpretation": "One horizon compatibility condition from E_f only; E_b/E_h recurrence and independent E_g constraint remain open.",
+    "myers_perry_alpha_zero_control": {
+      "Fhat2_prime_horizon": -2,
+      "Hhat2_horizon": 1,
+      "Hhat2_prime_horizon": -2,
+      "compatibility_residual": "0",
+      "lambda": 0,
+      "passed": true
+    },
+    "negative_control_wrong_sign_Hhat2_prime": {
+      "compatibility_residual": "4/3",
+      "mutated_Hhat2_prime": 2,
+      "rejected": true
+    },
+    "reduced": "F2pH - 2*H2H*lambda/(3*(lambda + 1)**2) + H2pH/(3*lambda + 3) + 2*(lambda + 2)**2/(3*(lambda + 1)**2)",
+    "triangular_reconstruction": {
+      "b1_cancels_at_order_one": true,
+      "order_one_fixed_horizon": "f1=2*lambda*h0/(3*(lambda+1)^2)-h1/(3*(lambda+1))-2*(lambda+2)^2/(3*(lambda+1)^2)",
+      "order_zero": "f0=b0",
+      "recurrence_denominator": "3*(lambda+2)^2"
+    },
+    "unreduced": "3*(lambda+2)^2*Fhat2'(1)-2*lambda*(lambda+2)^2/(lambda+1)^2*Hhat2(1)+(lambda+2)^2/(lambda+1)*Hhat2'(1)+2*(lambda+2)^4/(lambda+1)^2=0"
+  },
+  "horizon_jet": {
+    "coefficient_slopes": {
+      "B2": "-3*(lambda + 2)**2*(lambda + 3)/(lambda + 1)",
+      "B2_prime": "3*(lambda + 2)**2",
+      "F2": "3*(lambda + 2)**2*(lambda**2 + 4*lambda + 5)/(lambda + 1)**2",
+      "H2": "-2*lambda*(lambda + 2)**2/(lambda + 1)**2",
+      "H2_prime": "(lambda + 2)**2/(lambda + 1)"
+    },
+    "coefficient_values": {
+      "B2": "-3*(lambda + 2)**2",
+      "B2_prime": "0",
+      "F2": "3*(lambda + 2)**2",
+      "H2": "0",
+      "H2_prime": "0"
+    },
+    "coordinate": "y=rho-1",
+    "source_slope": "2*(lambda + 2)**4/(lambda + 1)**2",
+    "source_value": "0"
+  },
+  "row_scaling": {
+    "Delta_bar": "rho^2+Qbar-lambda-2",
+    "Qbar": "sqrt(lambda^2+2*lambda+rho^4)",
+    "full_affine_decomposition_exact": true,
+    "no_F2_derivative": true,
+    "no_second_derivatives": true,
+    "original_equation": "E_f^(2)=0",
+    "positive_radical_rewrite": "sqrt(1+lambda*(lambda+2)/rho^4)=Qbar/rho^2",
+    "reduced_unknown_jets": [
+      "Fhat2",
+      "Bhat2",
+      "dBhat2/drho",
+      "Hhat2",
+      "dHhat2/drho"
+    ],
+    "scaled_equation": "G_f^(2)=Delta_bar^2*E_f^(2)=0"
+  },
+  "schema_version": 1,
+  "source": {
+    "dimensionless_fields": "Bhat2=r_H^2*B2, Fhat2=r_H^2*F2, Hhat2=H2",
+    "dimensionless_variables": "rho=r/r_H, lambda=alpha/r_H^2",
+    "equation_chars": 8174,
+    "equation_generator": "derive_slow_rotation_second_order.py --emit-equations",
+    "equation_key": "equation_system.equations.f",
+    "equation_srepr_sha256_from_generator": "a564d56086c0ece50305622591f22b27b0028f693f60fa25848c7cf894bc7daa",
+    "equation_text_sha256": "31f83c37a9536ff49193a6b48ac325e8b6bbb114b869b25dfaed3b18f822b8f5"
+  },
+  "status": "full_scaled_algebraic_row_analytic_extension_symbolically_verified",
+  "validation": {
+    "all_denominators_exact_and_positive": true,
+    "all_horizon_slopes_exact": true,
+    "all_horizon_values_exact": true,
+    "equation_text_sha256": "31f83c37a9536ff49193a6b48ac325e8b6bbb114b869b25dfaed3b18f822b8f5",
+    "first_order_horizon_compatibility_exact": true,
+    "full_scaled_row_decomposition_exact": true,
+    "generator_equation_fingerprint_matches_pinned_source": true,
+    "myers_perry_horizon_control_exact": true,
+    "order_one_Bhat2_prime_cancellation_exact": true,
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "triangular_Fhat2_order_one_reconstruction_exact": true,
+    "triangular_Fhat2_order_zero_reconstruction_exact": true,
+    "wrong_sign_horizon_negative_control_rejected": true
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "5d_egb_spin2_cubic_horizon_coefficients",
+  "status": "exact_Eg_and_Eh_cubic_coefficients_derived",
+  "definitions": {
+    "y": "rho-1",
+    "b1": "Bhat2'(1)",
+    "b2": "Bhat2''(1)",
+    "f1": "Fhat2'(1)",
+    "f2": "Fhat2''(1)",
+    "h0": "Hhat2(1)",
+    "h1": "Hhat2'(1)"
+  },
+  "row_scalings": {
+    "g": "F0^2*Delta_bar*E_g^(2)",
+    "h": "F0^2*Delta_bar*E_h^(2)"
+  },
+  "common_denominators": {
+    "g": "Q^4*rho^5*(Q+rho^2)^8",
+    "h": "2*Q^3*rho^5*(Q+rho^2)^7"
+  },
+  "horizon_valuation": {
+    "g": {
+      "first_nonzero_order_after_fixed_horizon_values": 3,
+      "quadratic_coefficient": "0"
+    },
+    "h": {
+      "first_nonzero_order_after_fixed_horizon_values": 3,
+      "quadratic_coefficient": "0",
+      "cubic_Hhat2_value_coefficient": "-24*(lambda+2)*(3*lambda^2+6*lambda+1)/(lambda+1)^6",
+      "cubic_Hhat2_value_coefficient_nonzero_for_lambda_ge_0": true
+    }
+  },
+  "cubic_coefficients": {
+    "g": "2*(lambda+2)/(lambda+1)^6*(Pb*b1-3*(lambda+1)^4*b2-Pf*f1-(lambda+1)^4*f2+8*(3*lambda^2+8*lambda+3)*h0-8*(lambda+1)*h1+8*(3*lambda^4+18*lambda^3+37*lambda^2+28*lambda+4))",
+    "h": "(lambda+2)/(lambda+1)^6*(Pb*b1-3*(lambda+1)^4*b2-Pf*f1-(lambda+1)^4*f2-24*(3*lambda^2+6*lambda+1)*h0-24*(lambda^4+4*lambda^3+3*lambda^2-4*lambda-4))"
+  },
+  "polynomial_shorthands": {
+    "Pb": "3*lambda^4+6*lambda^3-6*lambda^2-18*lambda-9",
+    "Pf": "3*lambda^4+6*lambda^3+10*lambda^2+14*lambda+7"
+  },
+  "cross_equation_combination": {
+    "expression": "coefficient_y3(R_g)-2*coefficient_y3(R_h)",
+    "value": "16*(lambda+2)/(lambda+1)^6*(12*lambda^2*h0+26*lambda*h0+6*h0-(lambda+1)*h1+6*lambda^4+30*lambda^3+46*lambda^2+16*lambda-8)",
+    "unknown_radial_derivatives_cancel": true,
+    "interpretation": "A horizon compatibility combination. Its independence must be classified using the full radial Noether identity and the coupled recurrence; do not impose it as an extra boundary condition without that analysis."
+  },
+  "controls": {
+    "source_equation_fingerprints_match": true,
+    "fixed_horizon_linear_and_quadratic_coefficients_cancel": true,
+    "myers_perry_g_and_h_cubic_coefficients_zero": true,
+    "wrong_sign_horizon_derivative_rejected": true,
+    "myers_perry_data": {
+      "lambda": 0,
+      "b1": -4,
+      "b2": 36,
+      "f1": -2,
+      "f2": 14,
+      "h0": 1,
+      "h1": -2
+    },
+    "wrong_sign_mutation": {
+      "h1": -1,
+      "g_cubic_nonzero": true
+    }
+  },
+  "source": {
+    "generator": "derive_slow_rotation_second_order.py --emit-equations",
+    "equation_text_sha256": {
+      "b": "47e9f330a3d13ad1527dc8acccdc2e2b670495b144799753b0764bf99c53b1f8",
+      "f": "31f83c37a9536ff49193a6b48ac325e8b6bbb114b869b25dfaed3b18f822b8f5",
+      "g": "8a6b1ee6df529fa2be2009a0757db2caca3aeb086f0ba243e154019e6949dbee",
+      "h": "5dcbb3e55cd409b5a34bf15f90064db616076716c5fa7352a514acef11ac78e1"
+    },
+    "equation_srepr_sha256": {
+      "b": "cf3f62d0ea589e3dbfcc2ac4eedce259f5759cb1c372da03d45c2930ebc832ff",
+      "f": "a564d56086c0ece50305622591f22b27b0028f693f60fa25848c7cf894bc7daa",
+      "g": "9a0a56db534806aef37b42c41895d5dd54ab00586ea72e77d6735c64fcba015c",
+      "h": "6b874e5b02dc1a7314242a42ba39275f6ab93f5031d652b516ccc4db8567dc0d"
+    }
+  },
+  "claim_ceiling": "Exact cubic horizon coefficients and controls for the scaled E_g and E_h rows. The complete coupled Frobenius recurrence, boundary index, finite-coupling BVP, and existence/uniqueness theorem remain open."
+}

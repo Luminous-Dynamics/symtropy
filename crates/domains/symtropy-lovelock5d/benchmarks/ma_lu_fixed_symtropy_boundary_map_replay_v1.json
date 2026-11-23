@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_fixed_symtropy_boundary_map_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_symtropy_boundary_map.py",
+  "source": {
+    "git_blob_sha1": "f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9",
+    "sha256": "b4ee4ad64b9dbc87893260b4a804216462871a638e4bc592d2498250a41ece67",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "command": "python3 verify_ma_lu_fixed_symtropy_boundary_map.py --output ma_lu_fixed_symtropy_boundary_map_v1.json",
+    "checks": {
+      "horizon_H2_H4_H7": true,
+      "nuS_and_radius_series": true,
+      "inverse_q_series": true,
+      "fixed_boundary_all_coefficients": true,
+      "GR_limit": true,
+      "negative_control_omit_H7": true,
+      "negative_control_omit_H2_H4": true,
+      "negative_control_nu_h_vs_nu_S": true,
+      "negative_control_truncated_spin_chi": true
+    },
+    "result": "ALL_FIXED_BOUNDARY_EXACT_SYMBOLIC_CHECKS_PASS"
+  },
+  "claim_ceiling": "Exact first-order-coupling fixed-(R_H,Omega_H) parameter conversion using the JHEP version-of-record chi=a/sqrt(mu). mu_background/R_H^2 is not corrected ADM mass. No finite-coupling result."
+}
