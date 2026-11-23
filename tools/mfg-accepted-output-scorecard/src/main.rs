@@ -18,6 +18,8 @@ const PPM_SCALE: u128 = 1_000_000;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Corpus {
+    #[serde(rename = "$schema")]
+    json_schema: String,
     schema_id: String,
     benchmark_id: String,
     evidence_class: String,
@@ -129,6 +131,8 @@ struct Report {
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct KnownAnswerFile {
+    #[serde(rename = "$schema")]
+    json_schema: String,
     schema_id: String,
     benchmark_id: String,
     evidence_class: String,
@@ -223,7 +227,8 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
 }
 
 fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
-    if corpus.schema_id != "mfg-accepted-output-scorecard-cases-v0.1"
+    if corpus.json_schema != "https://json-schema.org/draft/2020-12/schema"
+        || corpus.schema_id != "mfg-accepted-output-scorecard-cases-v0.1"
         || corpus.benchmark_id != "MFG-ACCEPTED-OUTPUT-SCORECARD-001"
         || corpus.evidence_class != "synthetic_offline"
         || corpus.claim_ceiling.trim().is_empty()
@@ -457,7 +462,8 @@ fn verify_known_answers(corpus: &Corpus, report: &Report) -> Result<(), String> 
     let answer_file: KnownAnswerFile = serde_json::from_value(answers_value)
         .map_err(|error| fail(format!("known_answers_deserialize:{error}")))?;
 
-    if answer_file.schema_id != "mfg-accepted-output-scorecard-known-answers-v0.1"
+    if answer_file.json_schema != "https://json-schema.org/draft/2020-12/schema"
+        || answer_file.schema_id != "mfg-accepted-output-scorecard-known-answers-v0.1"
         || answer_file.benchmark_id != corpus.benchmark_id
         || answer_file.evidence_class != corpus.evidence_class
         || answer_file.claim_ceiling.trim().is_empty()
