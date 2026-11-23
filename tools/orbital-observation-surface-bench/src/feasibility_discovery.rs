@@ -501,11 +501,11 @@ fn build_policy(
         let options = class_options
             .get(outcome_id)
             .ok_or_else(|| format!("missing common action set for {outcome_id}"))?;
-        let mut best_worst_class_loss: Option<Rational> = None;
+        let mut best_worst_class_regret: Option<Rational> = None;
         let branch_action_id = branches
             .get(outcome_id)
             .ok_or_else(|| format!("policy omitted observable outcome {outcome_id}"))?;
-        let mut selected_worst_class_loss: Option<Rational> = None;
+        let mut selected_worst_class_regret: Option<Rational> = None;
 
         for action_id in options {
             let mut worst_for_action: Option<Rational> = None;
@@ -513,47 +513,47 @@ fn build_policy(
                 let loss = row
                     .action_outcomes
                     .get(action_id)
+                    .filter(|outcome| outcome.feasibility_status == "feasible")
                     .and_then(|outcome| outcome.loss.as_ref())
-                    .filter(|_| {
-                        row.action_outcomes
-                            .get(action_id)
-                            .is_some_and(|outcome| outcome.feasibility_status == "feasible")
-                    })
                     .ok_or_else(|| {
                         format!(
                             "class action {action_id} is not feasible throughout observation {outcome_id}"
                         )
                     })?
                     .canonicalized();
+                let scenario_best = scenario_best_loss(row)?;
+                let regret = loss
+                    .checked_sub(&scenario_best)
+                    .map_err(|error| format!("class action regret underflow: {error}"))?;
                 if worst_for_action
                     .as_ref()
-                    .is_none_or(|current| loss.compare_exact(current) == Ordering::Greater)
+                    .is_none_or(|current| regret.compare_exact(current) == Ordering::Greater)
                 {
-                    worst_for_action = Some(loss);
+                    worst_for_action = Some(regret);
                 }
             }
             let worst_for_action = worst_for_action.ok_or_else(|| {
                 format!("observation class {outcome_id} has no linked scenarios")
             })?;
             if action_id == branch_action_id {
-                selected_worst_class_loss = Some(worst_for_action.clone());
+                selected_worst_class_regret = Some(worst_for_action.clone());
             }
-            if best_worst_class_loss
+            if best_worst_class_regret
                 .as_ref()
                 .is_none_or(|current| worst_for_action.compare_exact(current) == Ordering::Less)
             {
-                best_worst_class_loss = Some(worst_for_action);
+                best_worst_class_regret = Some(worst_for_action);
             }
         }
 
-        let selected_worst_class_loss = selected_worst_class_loss.ok_or_else(|| {
+        let selected_worst_class_regret = selected_worst_class_regret.ok_or_else(|| {
             format!("selected action {branch_action_id} is absent from class {outcome_id}")
         })?;
-        let best_worst_class_loss = best_worst_class_loss.ok_or_else(|| {
-            format!("observation class {outcome_id} has no robust comparator action")
+        let best_worst_class_regret = best_worst_class_regret.ok_or_else(|| {
+            format!("observation class {outcome_id} has no minimax-regret comparator action")
         })?;
-        let class_regret = selected_worst_class_loss
-            .checked_sub(&best_worst_class_loss)
+        let class_regret = selected_worst_class_regret
+            .checked_sub(&best_worst_class_regret)
             .map_err(|error| format!("outcome-class regret underflow: {error}"))?;
         outcome_class_regret_by_observation.insert(outcome_id.clone(), class_regret);
     }
