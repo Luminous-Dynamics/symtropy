@@ -3,7 +3,7 @@
 
 use std::collections::BTreeSet;
 
-const WORLD_COUNT: usize = 5;
+const WORLD_COUNT: usize = 6;
 const MAX_ACQUISITION_BUDGET_SERVICE_UNITS: u32 = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -59,7 +59,28 @@ const WORLDS: [World; WORLD_COUNT] = [
         a_authorized: true,
         b_authorized: false,
     },
+    World {
+        id: "a_critical_reserve_ready_sensor_only_fault",
+        critical: Participant::A,
+        reserve_available: true,
+        a_authorized: true,
+        b_authorized: true,
+    },
 ];
+
+// Evaluator-only hidden causes. These values are emitted only in the adjudication
+// receipt; they are not fields on World and are not passed into solve_policy.
+// The same observed MISSING token can arise from a common-cause physical outage
+// or a sensor-only fault while reserve capacity is actually available.
+const EVALUATOR_MISSINGNESS_CAUSES: [&str; WORLD_COUNT] = [
+    "NOT_MISSING",
+    "NOT_MISSING",
+    "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE",
+    "NOT_MISSING",
+    "NOT_MISSING",
+    "SENSOR_ONLY_FAILURE_RESERVE_READY",
+];
+
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum Action {
@@ -193,7 +214,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-tos-snapshot",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 0, 0, 1],
+        outcome_partitions: [0, 1, 2, 0, 1, 2],
         energy_kwh: 2,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -216,7 +237,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-independent-inspection",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 3,
         service_units_per_kwh: 1,
         latency_ticks: 2,
@@ -237,7 +258,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-capture-claimed",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -258,7 +279,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -279,7 +300,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -300,7 +321,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -321,7 +342,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -342,7 +363,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:stale-field-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -363,7 +384,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:partial-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 0,
         service_units_per_kwh: 1,
         latency_ticks: 0,
@@ -384,7 +405,7 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-independent-capture",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4],
+        outcome_partitions: [0, 1, 2, 3, 4, 5],
         energy_kwh: 5,
         service_units_per_kwh: 1,
         latency_ticks: 3,
@@ -960,7 +981,7 @@ fn authorization_disposition(world: &World) -> &'static str {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "sensor_id,status,mode,worst_missed_deadline_regret,worst_service_loss_units,acquisition_cost_service_units,recommended,outcome_partition,world_id,selected_action,reserve_used,a_service_units,b_service_units,missed_critical_participant,reserve_available,a_authorized,b_authorized,authorization_disposition,world_missed_deadline_regret,world_service_loss_units,partition_missed_deadline_regret,partition_service_loss_units,evidence_receipts\n",
+        "sensor_id,status,mode,worst_missed_deadline_regret,worst_service_loss_units,acquisition_cost_service_units,recommended,outcome_partition,observed_outcome_label,world_id,selected_action,reserve_used,a_service_units,b_service_units,missed_critical_participant,reserve_available,a_authorized,b_authorized,authorization_disposition,world_missed_deadline_regret,world_service_loss_units,partition_missed_deadline_regret,partition_service_loss_units,evidence_receipts,evaluator_missingness_cause\n",
     );
 
     for result in evaluate_benchmark() {
@@ -983,7 +1004,7 @@ pub fn render_csv() -> String {
 
         if result.world_decisions.is_empty() {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{}\n",
+                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{},NA\n",
                 result.id,
                 result.status,
                 result.mode.id(),
@@ -1023,8 +1044,19 @@ pub fn render_csv() -> String {
                 |regret| regret.service_loss_units.to_string(),
             );
 
+            let observed_outcome_label = if result.id == "shared_tos_signal" {
+                match decision.partition {
+                    0 => "A_PRIORITY",
+                    1 => "B_PRIORITY",
+                    2 => "MISSING",
+                    _ => "UNKNOWN_PARTITION",
+                }
+            } else {
+                "QUALIFIED_RESULT"
+            };
+
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 result.id,
                 result.status,
                 result.mode.id(),
@@ -1033,6 +1065,7 @@ pub fn render_csv() -> String {
                 acquisition_cost,
                 result.recommended,
                 decision.partition,
+                observed_outcome_label,
                 world.id,
                 decision.action.id(),
                 decision.outcome.reserve_used,
@@ -1047,7 +1080,8 @@ pub fn render_csv() -> String {
                 decision.regret.service_loss_units,
                 partition_misses,
                 partition_service_loss,
-                result.evidence_receipts
+                result.evidence_receipts,
+                EVALUATOR_MISSINGNESS_CAUSES[decision.world_index]
             ));
         }
     }
@@ -1118,7 +1152,7 @@ mod tests {
         let shared = candidate(&results, "shared_tos_signal");
         let solution = shared.solution.as_ref().expect("evaluated advisory signal");
 
-        assert_eq!(solution.actions_by_partition.len(), 2);
+        assert_eq!(solution.actions_by_partition.len(), 3);
         assert!(
             solution
                 .actions_by_partition
@@ -1155,6 +1189,7 @@ mod tests {
                 (2, Action::Hold),
                 (3, Action::ReserveToB),
                 (4, Action::ReserveToA),
+                (5, Action::ReserveToA),
             ]
         );
 
@@ -1216,6 +1251,32 @@ mod tests {
     }
 
     #[test]
+    fn same_missing_token_hides_distinct_common_cause_and_sensor_only_worlds() {
+        let shared = &SENSORS[0];
+
+        assert_eq!(shared.outcome_partitions[2], shared.outcome_partitions[5]);
+        assert_eq!(EVALUATOR_MISSINGNESS_CAUSES[2], "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE");
+        assert_eq!(EVALUATOR_MISSINGNESS_CAUSES[5], "SENSOR_ONLY_FAILURE_RESERVE_READY");
+        assert!(!WORLDS[2].reserve_available);
+        assert!(WORLDS[5].reserve_available);
+
+        // The policy receives the same MISSING partition for both worlds;
+        // the evaluator-only cause is not part of the policy input.
+        let shared_solution = solve_policy(
+            &WORLDS,
+            &shared.outcome_partitions,
+            shared.mode,
+            acquisition_cost(shared).expect("valid shared-source cost"),
+        ).expect("advisory signal remains evaluable");
+        let missing_partition_action = shared_solution.actions_by_partition
+            .iter()
+            .find(|(partition, _)| *partition == shared.outcome_partitions[2])
+            .map(|(_, action)| *action)
+            .expect("missing observation partition");
+        assert_eq!(missing_partition_action, Action::Hold);
+    }
+
+    #[test]
     fn independent_observation_is_the_only_recommendation() {
         let results = evaluate_benchmark();
         let selected = results
@@ -1230,7 +1291,7 @@ mod tests {
     #[test]
     fn production_partition_solver_matches_independent_exhaustive_policy_oracle() {
         let partitions = all_partitions(WORLD_COUNT);
-        assert_eq!(partitions.len(), 52);
+        assert_eq!(partitions.len(), 203);
 
         for partition in partitions {
             let labels: [usize; WORLD_COUNT] = partition
