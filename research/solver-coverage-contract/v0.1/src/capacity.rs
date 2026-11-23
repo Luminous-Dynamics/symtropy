@@ -954,8 +954,8 @@ mod tests {
             pair_id: "pair-0".into(),
             identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: Some("policy-0".into()),
-            candidate_buffer_capacity: None,
-            manifold_point_capacity: Some(4),
+            candidate_buffer_capacity: Some(4),
+            manifold_point_capacity: Some(2),
             generated_points: vec![GeometricPointRecord {
                 point_id: "p0".into(),
                 disposition: GeometricPointDisposition::ReducedByPolicy,
@@ -1070,17 +1070,17 @@ mod tests {
             solver_contacts: vec![],
             aggregate_counts: Some(AggregateManifoldCounts {
                 generated_points: 5,
-                retained_points: 3,
+                retained_points: 2,
                 reduced_by_policy: 1,
                 candidate_buffer_capacity_dropped: 1,
-                    manifold_capacity_dropped: 0,
+                manifold_capacity_dropped: 1,
                 invalid_points: 0,
                 unsupported_points: 0,
                 solver_contact_groups: 2,
                 solver_solved_points: 1,
                 solver_not_converged_points: 0,
                 solver_sleeping_skipped_points: 0,
-                solver_capacity_dropped_points: 2,
+                solver_capacity_dropped_points: 1,
                 solver_unsupported_points: 0,
                 solver_not_submitted_points: 0,
                 solver_aborted_points: 0,
@@ -1089,12 +1089,13 @@ mod tests {
         };
         let report = lineage.validate().expect("aggregate-only lineage");
         assert_eq!(report.generated_points, 5);
-        assert_eq!(report.retained_points, 3);
+        assert_eq!(report.retained_points, 2);
         assert_eq!(report.reduced_by_policy, 1);
         assert_eq!(report.candidate_buffer_capacity_dropped, 1);
+        assert_eq!(report.manifold_capacity_dropped, 1);
         assert_eq!(report.solver_groups, 2);
         assert_eq!(report.solver_solved_points, 1);
-        assert_eq!(report.solver_capacity_dropped_points, 2);
+        assert_eq!(report.solver_capacity_dropped_points, 1);
         assert!(!report.solver_mapping_complete);
     }
 
