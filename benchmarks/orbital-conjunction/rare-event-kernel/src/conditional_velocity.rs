@@ -46,15 +46,19 @@ pub struct RelativePositionVelocityCovarianceBlocks {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConditionalVelocityConfig {
     /// Relative symmetry tolerance for A, C and the computed Schur complement.
+    /// Must not exceed 1e-6.
     pub symmetry_relative_tolerance: f64,
     /// Relative tolerance for small negative eigenvalues of Q2 from roundoff.
     ///
-    /// This never repairs Q2. It only controls whether a tiny negative
-    /// directional variance is treated as a zero-variance limit at evaluation.
+    /// Must not exceed 1e-6. This never repairs Q2. It only controls whether a
+    /// tiny negative directional variance is treated as a zero-variance limit.
     pub conditional_psd_relative_tolerance: f64,
     /// Tolerance for checking that a supplied direction has unit norm.
+    /// Must not exceed 1e-6.
     pub unit_direction_tolerance: f64,
 }
+
+const MAX_RELATIVE_VALIDATION_TOLERANCE: f64 = 1.0e-6;
 
 impl Default for ConditionalVelocityConfig {
     fn default() -> Self {
@@ -349,10 +353,9 @@ fn validate_config(config: ConditionalVelocityConfig) -> Result<(), KernelError>
         config.conditional_psd_relative_tolerance,
         config.unit_direction_tolerance,
     ];
-    if tolerances
-        .iter()
-        .any(|value| !value.is_finite() || *value < 0.0)
-    {
+    if tolerances.iter().any(|value| {
+        !value.is_finite() || *value < 0.0 || *value > MAX_RELATIVE_VALIDATION_TOLERANCE
+    }) {
         return Err(KernelError::InvalidCovarianceTolerance);
     }
     Ok(())
@@ -579,6 +582,7 @@ fn max_abs_matrix(matrix: Matrix3) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::normal_positive_part::gaussian_negative_part_expectation;
 
     fn identity_matrix() -> Matrix3 {
         [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
@@ -652,6 +656,62 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn directional_mean_and_mahalanobis_match_independent_block_reference() {
+        let position = [[4.0, 0.0, 0.0], [0.0, 9.0, 0.0], [0.0, 0.0, 16.0]];
+        let regression = [[0.1, 0.02, 0.0], [0.0, -0.1, 0.03], [0.04, 0.0, 0.05]];
+        let conditional = [[1.0, 0.1, 0.0], [0.1, 2.0, 0.2], [0.0, 0.2, 3.0]];
+        let blocks = covariance_from_a_q1_q2(position, regression, conditional);
+        let distribution = ConditionalVelocityDistribution::new(
+            blocks,
+            ConditionalVelocityConfig::default(),
+        )
+        .expect("valid covariance");
+
+        let report = distribution
+            .evaluate_direction(
+                [0.4, 0.0, 0.0],
+                [-0.1, 0.0, 0.0],
+                1.0,
+                [1.0, 0.0, 0.0],
+                2.0,
+                ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit,
+            )
+            .expect("directional conditional state");
+
+        let expected_dr = [0.6, 0.0, 0.0];
+        let expected_mean = -0.1 + 0.1 * 0.6;
+        let expected_variance = 1.0;
+        let expected_md2 = 0.6_f64.powi(2) / 4.0;
+        let expected_speed = gaussian_negative_part_expectation(expected_mean, expected_variance.sqrt())
+            .expect("scalar positive-part reference")
+            .expectation;
+        assert!((report.position_offset[0] - expected_dr[0]).abs() < 1.0e-14);
+        assert!((report.conditional_normal_mean - expected_mean).abs() < 1.0e-14);
+        assert!((report.conditional_normal_variance - expected_variance).abs() < 1.0e-14);
+        assert!((report.mahalanobis_distance_squared - expected_md2).abs() < 1.0e-14);
+        assert!((report.expected_inward_normal_speed - expected_speed).abs() < 1.0e-14);
+    }
+
+    #[test]
+    fn excessive_user_validation_tolerances_are_rejected() {
+        let config = ConditionalVelocityConfig {
+            conditional_psd_relative_tolerance: 1.0e-3,
+            ..ConditionalVelocityConfig::default()
+        };
+        assert_eq!(
+            ConditionalVelocityDistribution::new(
+                RelativePositionVelocityCovarianceBlocks {
+                    position: identity_matrix(),
+                    velocity_position: [[0.0; 3]; 3],
+                    velocity: identity_matrix(),
+                },
+                config
+            ),
+            Err(KernelError::InvalidCovarianceTolerance)
+        );
     }
 
     #[test]
