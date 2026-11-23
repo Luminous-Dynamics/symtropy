@@ -190,7 +190,7 @@ pub enum RequestDisposition {
     Unserved,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FulfilmentMode {
     Aerial,
@@ -949,7 +949,7 @@ fn evaluate_policy(
         .iter()
         .filter_map(|outcome| outcome.latency_seconds)
         .collect();
-    let mut waits: Vec<u64> = outcomes
+    let waits: Vec<u64> = outcomes
         .iter()
         .filter_map(|outcome| outcome.queue_wait_seconds)
         .collect();
@@ -1130,6 +1130,7 @@ mod tests {
                 aircraft_id: "a1".to_owned(),
                 start_seconds: 900,
                 max_service_duration_seconds: 600,
+                max_payload_units: 100,
                 turnaround_seconds: 100,
                 capacity_reference: "synthetic://capacity/second".to_owned(),
             },
