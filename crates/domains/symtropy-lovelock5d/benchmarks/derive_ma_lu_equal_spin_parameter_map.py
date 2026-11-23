@@ -19,7 +19,7 @@ def derive():
     if len(sols)!=1: raise AssertionError("inverse q series is not unique")
     qnu=sp.expand(qs.subs(sols[0]))
     zero("inverse q(nu)",sp.series(qnu/(1+qnu**2)-nu,nu,0,12).removeO())
-    zero("chi=sqrt(2)*nu",chq.subs(q,qnu)-sp.sqrt(2)*nu)
+    zero("chi=sqrt(2)*nu through nu^11",sp.series(chq.subs(q,qnu)-sp.sqrt(2)*nu,nu,0,12).removeO())
     qchi=chi/sp.sqrt(2)+chi**3/(2*sp.sqrt(2))+chi**5/(2*sp.sqrt(2))+5*chi**7/(8*sp.sqrt(2))
     mus=sp.series(mu.subs(q,qchi),chi,0,8).removeO()
     zero("Eq3.9 equal-spin mass",sp.series(mus-(sp.Rational(1,2)+chi**2/2+sp.Rational(5,8)*chi**4+sp.Rational(7,8)*chi**6),chi,0,8).removeO())
