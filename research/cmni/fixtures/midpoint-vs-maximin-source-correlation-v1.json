@@ -1,0 +1,80 @@
+{
+  "schema_version": "cmni.two_source_dependence_robust_design.v1",
+  "benchmark_id": "midpoint-vs-maximin-source-correlation-v1",
+  "status": "synthetic_analytic_regression",
+  "shared_source_pair": [
+    "detector-calibration",
+    "reference-evaluation"
+  ],
+  "joint_model_receipt_id": "receipt:detector-reference-correlation-v1",
+  "correlation_interval": [
+    -0.75,
+    0.75
+  ],
+  "prior_parameter_variance": 1,
+  "independent_observation_noise_variances": [
+    0.25,
+    0.25
+  ],
+  "source_standard_deviations": [
+    1,
+    1
+  ],
+  "candidates": [
+    {
+      "candidate_id": "nominal-favourite",
+      "observation_sensitivities": [
+        3,
+        3
+      ],
+      "source_jacobians": [
+        [
+          -1,
+          0
+        ],
+        [
+          0,
+          -1
+        ]
+      ],
+      "midpoint_correlation_eig_nats": 1.3671837547097918,
+      "worst_case_correlation": 0.75,
+      "worst_case_eig_nats": 1.151292546497023,
+      "nominal_rank": 1,
+      "robust_rank": 2
+    },
+    {
+      "candidate_id": "dependence-stable",
+      "observation_sensitivities": [
+        1,
+        3
+      ],
+      "source_jacobians": [
+        [
+          -1,
+          0
+        ],
+        [
+          -1,
+          0
+        ]
+      ],
+      "midpoint_correlation_eig_nats": 1.2650816206880606,
+      "worst_case_eig_nats": 1.2650816206880606,
+      "nominal_rank": 2,
+      "robust_rank": 1
+    }
+  ],
+  "expected_winner": {
+    "nominal_midpoint": "nominal-favourite",
+    "maximin": "dependence-stable",
+    "explanation": "Candidate A has higher midpoint EIG but loses more under the upper correlation bound; candidate B is insensitive to the uncertain correlation because both measurements load only the first source.",
+    "eig_gap": 0.11378907419103768
+  },
+  "non_claims": [
+    "Not an empirical detector calibration",
+    "Receipt ID is illustrative and does not authenticate source dependence",
+    "The analytic extrema are evaluated with f64 and are not directed-rounded or machine-certified",
+    "The benchmark does not establish superiority over Sibson-alpha maximin or PAC-Bayes robust OED"
+  ]
+}
