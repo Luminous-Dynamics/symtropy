@@ -269,7 +269,8 @@
         "event_semantics",
         "time_scale",
         "reference_frame",
-        "hbr"
+        "hbr",
+        "event_definition_sha256"
       ],
       "properties": {
         "event_id": {
