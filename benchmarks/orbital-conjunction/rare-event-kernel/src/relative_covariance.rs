@@ -156,11 +156,10 @@ pub fn dcp_secondary_primary_cross_covariance(
     }
 
     let mut covariance = [[0.0; 6]; 6];
-    for i in 0..6 {
-        for j in 0..6 {
-            covariance[i][j] =
-                scale * inputs.secondary_sensitivity[i] * inputs.primary_sensitivity[j];
-            if !covariance[i][j].is_finite() {
+    for (i, row) in covariance.iter_mut().enumerate() {
+        for (j, value) in row.iter_mut().enumerate() {
+            *value = scale * inputs.secondary_sensitivity[i] * inputs.primary_sensitivity[j];
+            if !value.is_finite() {
                 return Err(KernelError::NumericalOverflow);
             }
         }
