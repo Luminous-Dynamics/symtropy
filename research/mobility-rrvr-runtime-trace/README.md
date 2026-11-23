@@ -28,7 +28,7 @@ cargo run --locked \
   /tmp/rrvr-runtime-provenance.json
 ```
 
-The CLI reports `projection_validation=passed` and `tla_conformance=not_run`. The workflow then runs the emitted NDJSON through `RestartSafeEffectContinuityTrace.tla` with the pinned TLC jar. A formal conformance PASS is reported only when every named action can produce the exact recorded successor state and the full trace is consumed. The wrong-action negative control must fail `TraceNotStuck`. The CLI's projection result and TLC's conformance result remain separate.
+The CLI reports `projection_validation=passed` and `tla_conformance=not_run`. The workflow then runs the emitted NDJSON through `RestartSafeEffectContinuityTrace.tla` with the pinned TLC jar. A separate `formal-conformance-manifest.json` is emitted only after both valid traces pass and the wrong-action negative control fails `TraceNotStuck`. The manifest binds the exact model, trace harness, config, jar and three TLC logs by SHA-256. The CLI's projection result and TLC's conformance result remain separate.
 
 ## Formal trace validation
 
