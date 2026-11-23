@@ -28,7 +28,11 @@
     "fault_injector_fault_domain_id": "injector-control-plane-a",
     "native_adapter_id": "rrvr-gazebo-adapter",
     "native_adapter_revision": "native-adapter-6749-fixture",
-    "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1"
+    "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1",
+    "simulation_interfaces_revision": "simulation_interfaces-fixture-v0.1",
+    "scene_broadcaster_id": "gz::sim::systems::SceneBroadcaster",
+    "scene_broadcaster_revision": "gazebo-build-2026.11.23",
+    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   "reset": {
     "status": "confirmed",
