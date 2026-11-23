@@ -113,6 +113,9 @@ pub enum GazeboAdapterError {
     TargetRevisionMismatch,
     TargetProfileMismatch,
     TargetFaultDomainMismatch,
+    InvalidObserverEvidence,
+    ObserverIdentityMismatch,
+    FaultSignatureMismatch,
     InvalidIdempotencyContext,
     TransportFailure,
 }
@@ -542,6 +545,8 @@ pub fn reconcile_fault_dispatch<T: GazeboFaultInjectorTransport>(
 #[serde(deny_unknown_fields)]
 pub struct ObservedFaultSignature {
     pub observer_id: String,
+    pub fault_id: String,
+    pub target_id: String,
     pub observer_revision: String,
     pub observer_fault_domain_id: String,
     /// Digest of the signature computed from observed state, not supplied by
@@ -580,6 +585,8 @@ pub fn validate_blinded_observation(
     session: &GazeboAdapterSession,
 ) -> Result<(), GazeboAdapterError> {
     if !nonempty(&observed.observer_id)
+        || !nonempty(&observed.fault_id)
+        || !nonempty(&observed.target_id)
         || !nonempty(&observed.observer_revision)
         || !nonempty(&observed.observer_fault_domain_id)
         || !nonempty(&observed.raw_artifact_id)
@@ -588,13 +595,18 @@ pub fn validate_blinded_observation(
         || !valid_sha256(&observed.observed_signature_sha256)
         || !valid_sha256(&observed.raw_artifact_sha256)
     {
-        return Err(GazeboAdapterError::InvalidTargetBinding);
+        return Err(GazeboAdapterError::InvalidObserverEvidence);
     }
-    if observed.observer_id == plan.platform.fault_injector_id
+    if observed.observer_id != plan.platform.observer_id
+        || observed.observer_id == plan.platform.fault_injector_id
         || observed.observer_revision != plan.platform.observer_stack_revision
+        || observed.observer_fault_domain_id != plan.platform.observer_fault_domain_id
         || observed.observer_fault_domain_id == plan.platform.fault_injector_fault_domain_id
     {
-        return Err(GazeboAdapterError::TargetFaultDomainMismatch);
+        return Err(GazeboAdapterError::ObserverIdentityMismatch);
+    }
+    if observed.fault_id != fault.fault_id || observed.target_id != target.target_id {
+        return Err(GazeboAdapterError::InvalidObserverEvidence);
     }
     if observed.world_epoch != session.world_epoch || observed.world_epoch != target.world_epoch {
         return Err(GazeboAdapterError::WrongWorldEpoch);
@@ -602,11 +614,11 @@ pub fn validate_blinded_observation(
     if observed.clock_id != session.clock_id {
         return Err(GazeboAdapterError::InvalidClock);
     }
-    if observed.simulation_step < fault.scheduled_simulation_step {
+    if observed.simulation_step != fault.scheduled_simulation_step {
         return Err(GazeboAdapterError::SimulationStepNotReached);
     }
     if observed.observed_signature_sha256 != fault.expected_delivery_signature_sha256 {
-        return Err(GazeboAdapterError::WorldStateDigestMismatch);
+        return Err(GazeboAdapterError::FaultSignatureMismatch);
     }
     Ok(())
 }
@@ -1153,6 +1165,145 @@ mod tests {
         assert_ne!(
             first,
             dispatch_idempotency_key(&plan, scenario, fault, "run-2", "epoch-1")
+        );
+    }
+
+    fn observed_signature(
+        plan: &CompiledCampaignPlan,
+        fault: &FaultInjection,
+        target: &GazeboTargetBinding,
+        session: &GazeboAdapterSession,
+    ) -> ObservedFaultSignature {
+        ObservedFaultSignature {
+            observer_id: plan.platform.observer_id.clone(),
+            fault_id: fault.fault_id.clone(),
+            target_id: target.target_id.clone(),
+            observer_revision: plan.platform.observer_stack_revision.clone(),
+            observer_fault_domain_id: plan.platform.observer_fault_domain_id.clone(),
+            observed_signature_sha256: fault.expected_delivery_signature_sha256.clone(),
+            raw_artifact_id: "observer-artifact-001".into(),
+            raw_artifact_sha256: "f".repeat(64),
+            world_epoch: session.world_epoch.clone(),
+            clock_id: session.clock_id.clone(),
+            simulation_step: fault.scheduled_simulation_step,
+            simulation_time_ns: fault.scheduled_simulation_step * 10_000_000,
+        }
+    }
+
+    #[test]
+    fn blind_observer_confirmation_uses_actual_signature_and_pinned_domain() {
+        let plan = plan();
+        let profile = profile(&plan);
+        let session = GazeboAdapterSession {
+            profile,
+            stepping_method: SteppingMethod::StepSimulationService,
+            world_epoch: "world-epoch-1".into(),
+            clock_id: "sim-clock".into(),
+        };
+        let fault = &plan.scenarios[0].fault_events[0];
+        let target = GazeboTargetBinding {
+            world_name: session.profile.world_name.clone(),
+            world_epoch: session.world_epoch.clone(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-model-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+        assert_eq!(
+            validate_blinded_observation(
+                &observed_signature(&plan, fault, &target, &session),
+                &plan,
+                fault,
+                &target,
+                &session
+            ),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn blinded_observer_rejects_expected_signature_mismatch_and_identity_drift() {
+        let plan = plan();
+        let profile = profile(&plan);
+        let session = GazeboAdapterSession {
+            profile,
+            stepping_method: SteppingMethod::StepSimulationService,
+            world_epoch: "world-epoch-1".into(),
+            clock_id: "sim-clock".into(),
+        };
+        let fault = &plan.scenarios[0].fault_events[0];
+        let target = GazeboTargetBinding {
+            world_name: session.profile.world_name.clone(),
+            world_epoch: session.world_epoch.clone(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-model-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+
+        let mut wrong_signature = observed_signature(&plan, fault, &target, &session);
+        wrong_signature.observed_signature_sha256 = "a".repeat(64);
+        assert_eq!(
+            validate_blinded_observation(
+                &wrong_signature,
+                &plan,
+                fault,
+                &target,
+                &session
+            ),
+            Err(GazeboAdapterError::FaultSignatureMismatch)
+        );
+
+        let mut wrong_observer = observed_signature(&plan, fault, &target, &session);
+        wrong_observer.observer_id = "unlisted-observer".into();
+        assert_eq!(
+            validate_blinded_observation(
+                &wrong_observer,
+                &plan,
+                fault,
+                &target,
+                &session
+            ),
+            Err(GazeboAdapterError::ObserverIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn blinded_observer_never_accepts_injector_fault_domain_or_stale_epoch() {
+        let plan = plan();
+        let profile = profile(&plan);
+        let session = GazeboAdapterSession {
+            profile,
+            stepping_method: SteppingMethod::StepSimulationService,
+            world_epoch: "world-epoch-1".into(),
+            clock_id: "sim-clock".into(),
+        };
+        let fault = &plan.scenarios[0].fault_events[0];
+        let target = GazeboTargetBinding {
+            world_name: session.profile.world_name.clone(),
+            world_epoch: session.world_epoch.clone(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-model-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+
+        let mut common_cause = observed_signature(&plan, fault, &target, &session);
+        common_cause.observer_fault_domain_id =
+            plan.platform.fault_injector_fault_domain_id.clone();
+        assert_eq!(
+            validate_blinded_observation(&common_cause, &plan, fault, &target, &session),
+            Err(GazeboAdapterError::ObserverIdentityMismatch)
+        );
+
+        let mut stale = observed_signature(&plan, fault, &target, &session);
+        stale.world_epoch = "old-epoch".into();
+        assert_eq!(
+            validate_blinded_observation(&stale, &plan, fault, &target, &session),
+            Err(GazeboAdapterError::WrongWorldEpoch)
         );
     }
 
