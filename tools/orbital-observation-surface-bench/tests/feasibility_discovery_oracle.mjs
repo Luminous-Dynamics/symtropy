@@ -379,58 +379,6 @@ function validateCorpus(input){
     validateQueryUniverse(item,baseInfo);
   }
 }
-function validateBase(base){
-  const worlds=[...base.compatible_world_set.world_ids].sort(strCmp);
-  if(!validId(base.compatible_world_set.source_receipt_id)||!worlds.length||
-     new Set(worlds).size!==worlds.length||base.compatible_world_set.world_ids_sha256!==digestIds(worlds)) fail("world set invalid");
-  const universe=base.action_universe;
-  if(universe.scope_id!==base.decision_scope_id||!validId(universe.source_receipt_id)||!validId(universe.enumeration_method)) fail("action universe scope invalid");
-  if(!["finite_exhaustive","open","indeterminate"].includes(universe.closure_kind)||!["admissible","indeterminate","out_of_scope"].includes(universe.evidence_status)) fail("action universe status invalid");
-  const expectedActions=[...universe.expected_action_ids].sort(strCmp);
-  if(!expectedActions.length||new Set(expectedActions).size!==expectedActions.length||universe.expected_action_ids_sha256!==digestIds(expectedActions)) fail("action ID digest mismatch");
-  const actions=[...base.actions].sort((a,b)=>strCmp(a.action_id,b.action_id)),actionMap=new Map(actions.map(a=>[a.action_id,a]));
-  if(actionMap.size!==actions.length||JSON.stringify(actions.map(a=>a.action_id))!==JSON.stringify(expectedActions)) fail("action universe incomplete");
-  for(const a of actions){if(!validId(a.eligibility_receipt_id)||!["eligible","prohibited","indeterminate"].includes(a.eligibility_status))fail("invalid action eligibility");validateCost(a.cost,"action cost");}
-  const manifest=base.scenario_manifest;
-  const planned=[...manifest.expected_scenario_ids].sort(strCmp);
-  if(!validId(manifest.source_manifest_id)||!planned.length||new Set(planned).size!==planned.length||manifest.expected_scenario_ids_sha256!==digestIds(planned)) fail("scenario ID plan invalid");
-  const scenarios=[...manifest.scenarios].sort((a,b)=>strCmp(a.scenario_id,b.scenario_id));
-  if(JSON.stringify(scenarios.map(s=>s.scenario_id))!==JSON.stringify(planned)) fail("scenario inventory mismatch");
-  const covered=new Set();
-  for(const s of scenarios){
-    if(!validId(s.scenario_id)||!worlds.includes(s.world_id)||!validId(s.loss_model_id)||!["admissible","indeterminate","out_of_profile"].includes(s.evidence_status))fail("invalid scenario");
-    if(s.evidence_status==="admissible"&&!validId(s.evidence_receipt_id))fail("missing scenario receipt");
-    covered.add(s.world_id);
-    if(JSON.stringify(Object.keys(s.action_outcomes).sort(strCmp))!==JSON.stringify(expectedActions))fail("scenario outcomes incomplete");
-    for(const a of actions){
-      const r=s.action_outcomes[a.action_id];
-      if(a.eligibility_status==="prohibited"){
-        if(r.feasibility_status!=="prohibited"||r.loss!==null) fail("prohibited action outcome invalid");
-      }else if(a.eligibility_status==="indeterminate"){
-        if(r.feasibility_status!=="indeterminate"||r.loss!==null) fail("indeterminate action outcome invalid");
-      }else if(r.feasibility_status==="feasible"){
-        if(r.loss===null)fail("feasible action has no loss");rat(r.loss,"loss");
-      }else if(r.feasibility_status==="infeasible"||r.feasibility_status==="indeterminate"){
-        if(r.loss!==null)fail("infeasible action has loss");
-      }else fail("invalid action feasibility status");
-    }
-  }
-  if(JSON.stringify([...covered].sort(strCmp))!==JSON.stringify(worlds))fail("world scenario coverage incomplete");
-  if(manifest.scenarios_sha256!==sha(canonical([...manifest.scenarios].sort((a,b)=>strCmp(a.scenario_id,b.scenario_id)))) )fail("scenario digest mismatch");
-  let status;
-  if(universe.closure_kind==="open")status="ACTION_UNIVERSE_OPEN";
-  else if(universe.closure_kind==="indeterminate"||universe.evidence_status!=="admissible")status="ACTION_UNIVERSE_INDETERMINATE";
-  else if(actions.some(a=>a.eligibility_status==="indeterminate"))status="ACTION_ADMISSIBILITY_INDETERMINATE";
-  else if(scenarios.some(s=>s.evidence_status==="out_of_profile"))status="OUT_OF_PROFILE";
-  else if(scenarios.some(s=>s.evidence_status!=="admissible"))status="LOSS_MODEL_INDETERMINATE";
-  else if(scenarios.some(s=>actions.some(a=>a.eligibility_status==="eligible"&&s.action_outcomes[a.action_id].feasibility_status==="indeterminate")))status="FEASIBILITY_INDETERMINATE";
-  else if(scenarios.some(s=>!actions.some(a=>a.eligibility_status==="eligible"&&s.action_outcomes[a.action_id].feasibility_status==="feasible")))status="NO_FEASIBLE_ACTION_IN_SCENARIO";
-  else{
-    const common=actions.filter(a=>a.eligibility_status==="eligible"&&scenarios.every(s=>s.action_outcomes[a.action_id].feasibility_status==="feasible"));
-    status=common.length?"ROBUST_FEASIBLE_DECISION_SET_AVAILABLE":"NO_ROBUST_FEASIBLE_ACTION";
-  }
-  return {worldIds:worlds,actions,scenarios,status};
-}
 function evaluate(input){
   validateCorpus(input);
   const cases=input.cases.map(evaluateCase).sort((a,b)=>strCmp(a.case_id,b.case_id));
