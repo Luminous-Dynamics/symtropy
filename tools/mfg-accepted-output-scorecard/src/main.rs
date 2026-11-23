@@ -75,7 +75,7 @@ enum EvidenceDisposition {
     Conflicted,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct CaseScore {
     case_id: String,
@@ -91,7 +91,7 @@ struct CaseScore {
     accepted_quality_yield_ppm: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct FamilyScore {
     scenario_family_id: String,
@@ -109,7 +109,7 @@ struct FamilyScore {
     worst_time_to_recovery_target_ms: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct Report {
     benchmark_id: String,
