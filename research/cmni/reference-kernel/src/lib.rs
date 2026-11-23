@@ -9,6 +9,12 @@
 
 use std::fmt;
 
+mod dependence_robust_design;
+pub use dependence_robust_design::{
+    rank_two_source_dependence_robust_designs, DependenceRobustDesignCandidate,
+    DependenceRobustDesignScore, NumericalDependenceRobustRanking,
+};
+
 mod dependence_envelope;
 pub use dependence_envelope::{
     bound_two_source_dependence, TwoSourceDependenceEnvelope, TwoSourceDependenceProblem,
