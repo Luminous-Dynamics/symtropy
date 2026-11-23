@@ -71,6 +71,24 @@ jobs:
           assert all(case["problem"]["features"] for case in planning["cases"])
           print("frozen geometry corpus: 12 unique cases; frozen planning corpus: 5 unique cases")
           PY
+      - name: Validate support-envelope corpus and schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/support-envelope-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/support_envelope_v0_1.schema.json").read_text())
+          assert fixture["schema"] == "luminous.orbital-truss-support-envelope.corpus.v0.1"
+          assert fixture["benchmark_id"] == "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001"
+          assert fixture["evidence_class"] == "synthetic"
+          assert fixture["claim_ceiling"] == "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed"
+          assert len(fixture["cases"]) == 13
+          assert len({case["case_id"] for case in fixture["cases"]}) == 13
+          assert schema["properties"]["cases"]["minItems"] == 13
+          assert schema["properties"]["cases"]["maxItems"] == 13
+          assert all(case["length_unit"] == "METRE" for case in fixture["cases"])
+          print("frozen support-envelope corpus/schema: 13 unique cases")
+          PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml -- --check
       - name: Rust tests
@@ -182,6 +200,37 @@ jobs:
           assert [(item["total_cost_units"], item["selected_view_count"]) for item in pareto] == [(2, 2), (3, 1)]
           print("Rust exact planner and independent Python oracle agree on eight frozen cases, including orthogonal k-view and failure-domain controls")
           PY
+      - name: Deterministic Rust support-envelope receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-support-envelope-bench -- docs/research/orbital-truss/fixtures/support-envelope-v0_1.json "$GITHUB_SHA" > /tmp/support-envelope-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-support-envelope-bench -- docs/research/orbital-truss/fixtures/support-envelope-v0_1.json "$GITHUB_SHA" > /tmp/support-envelope-b.json
+          cmp /tmp/support-envelope-a.json /tmp/support-envelope-b.json
+          jq -e '
+            .schema == "luminous.orbital-truss-support-envelope.receipt.v0.1" and
+            .case_count == 13 and .expected_outcome_matches == 13 and
+            .expected_outcome_mismatches == 0 and .authority_granted == false and
+            .occlusion_assessed == false and .physical_validation == "NOT_ASSESSED" and
+            all(.cases[]; .full_support_visibility_certified == false and .may_count_toward_full_support_coverage == false)
+          ' /tmp/support-envelope-a.json
+      - name: Independent support-envelope oracle
+        run: |
+          python3 tools/orbital-truss-inspectability-bench/tests/support_envelope_reference_oracle.py docs/research/orbital-truss/fixtures/support-envelope-v0_1.json "$GITHUB_SHA" > /tmp/support-envelope-oracle.json
+      - name: Compare Rust support-envelope receipt with independent oracle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/support-envelope-a.json").read_text())
+          oracle = json.loads(Path("/tmp/support-envelope-oracle.json").read_text())
+          assert rust == oracle
+          assert rust["expected_outcome_matches"] == rust["case_count"] == 13
+          by_id = {case["case_id"]: case for case in rust["cases"]}
+          assert by_id["SE-001-WHOLE-SUPPORT-PASS"]["status"] == "CERTIFIED_WITHIN_SENSING_ENVELOPE"
+          assert by_id["SE-004-ALL-SUPPORT-OUTSIDE-FOV"]["status"] == "PROVEN_OUTSIDE_SENSING_ENVELOPE"
+          assert by_id["SE-005-FOV-BOUND-INDETERMINATE"]["status"] == "INDETERMINATE"
+          assert all(not case["full_support_visibility_certified"] for case in rust["cases"])
+          print("Rust support-envelope certificates match the independent Python oracle on all 13 frozen controls")
+          PY
       - name: Create exact-head evidence manifest
         if: success()
         run: |
@@ -219,6 +268,14 @@ jobs:
               "planning_case_count": planning_rust["case_count"],
               "planning_expected_outcome_matches": planning_rust["expected_outcome_matches"],
               "planning_expected_outcome_mismatches": planning_rust["expected_outcome_mismatches"],
+              "support_envelope_benchmark_id": "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001",
+              "support_envelope_fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/support-envelope-v0_1.json").read_bytes()).hexdigest(),
+              "support_envelope_schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/support_envelope_v0_1.schema.json").read_bytes()).hexdigest(),
+              "support_envelope_rust_receipt_sha256": hashlib.sha256(Path("/tmp/support-envelope-a.json").read_bytes()).hexdigest(),
+              "support_envelope_oracle_receipt_sha256": hashlib.sha256(Path("/tmp/support-envelope-oracle.json").read_bytes()).hexdigest(),
+              "support_envelope_case_count": 13,
+              "support_envelope_expected_outcome_matches": 13,
+              "support_envelope_occlusion_assessed": False,
           }
           Path("/tmp/inspectability-evidence-manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
           PY
@@ -237,5 +294,9 @@ jobs:
             /tmp/planning-oracle.json
             docs/research/orbital-truss/fixtures/planning-v0_2.json
             docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json
+            /tmp/support-envelope-a.json
+            /tmp/support-envelope-oracle.json
+            docs/research/orbital-truss/fixtures/support-envelope-v0_1.json
+            docs/research/orbital-truss/support_envelope_v0_1.schema.json
           if-no-files-found: error
           retention-days: 30

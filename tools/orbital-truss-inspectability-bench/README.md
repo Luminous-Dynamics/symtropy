@@ -204,3 +204,17 @@ For larger candidate pools this subset oracle is not intended to scale; use a so
 
 - [Benchmark and SOTA roadmap v0.3](../../../docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_3.md): source-aware 2026 comparisons and support-certification direction.
 - [Surface-support certification v0.1](../../../docs/research/orbital-truss/surface-support-certification-v0_1.md): proposed conservative full-patch FOV/GSD/incidence/occlusion contract (#7136).
+
+
+## Support-envelope certificate v0.1 — distinct from centre-ray visibility
+
+A first implementation increment for #7136 adds an enclosing-ball certificate for the entire declared support. Given a proven support ball and a proven normal cone, it derives conservative distance, ray-direction, FOV, incidence and GSD bounds. Results are fixed-point encoded for exact cross-language comparison. The 13-case corpus covers an envelope pass, provable whole-support failures, conservative-bound indeterminacy, missing support/normal proof, sensor-inside-support and malformed axis input.
+
+This is deliberately not a full-visibility certificate. Occlusion remains NOT_ASSESSED; even CERTIFIED_WITHIN_SENSING_ENVELOPE has full_support_visibility_certified=false and may_count_toward_full_support_coverage=false. A subsequent increment must add conservative support-ray/occlusion reasoning and explicit tangency, blocker, target-cell and partial-support semantics.
+
+Reproduce:
+
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-support-envelope-bench -- docs/research/orbital-truss/fixtures/support-envelope-v0_1.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/support_envelope_reference_oracle.py docs/research/orbital-truss/fixtures/support-envelope-v0_1.json <40-hex-source-commit>
+
+The certificate proves only that the entire declared enclosing support lies inside the idealized range/FOV/incidence/GSD envelope. It does not prove unoccluded rays, physical calibration, sensor performance or defect detection.
