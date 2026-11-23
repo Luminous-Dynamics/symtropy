@@ -250,6 +250,79 @@ mod tests {
         }
     }
 
+    fn exhaustive_best_subset(
+        candidates: &[RefinementCandidate],
+        budget: Rational,
+    ) -> (Rational, Rational, Vec<RefinementCandidateId>) {
+        assert!(candidates.len() <= 20);
+        let mut best_width = Rational::from_integer(0);
+        let mut best_cost = Rational::from_integer(0);
+        let mut best_ids = Vec::new();
+        let subset_count = 1_u64 << candidates.len();
+
+        for mask in 0..subset_count {
+            let mut width = Rational::from_integer(0);
+            let mut cost = Rational::from_integer(0);
+            let mut ids = Vec::new();
+            let mut feasible = true;
+
+            for (index, candidate) in candidates.iter().enumerate() {
+                if mask & (1_u64 << index) != 0 {
+                    width = width
+                        .checked_add(
+                            candidate
+                                .contribution_bounds
+                                .upper
+                                .checked_sub(candidate.contribution_bounds.lower)
+                                .unwrap(),
+                        )
+                        .unwrap();
+                    cost = cost
+                        .checked_add(candidate.estimated_refinement_cost)
+                        .unwrap();
+                    ids.push(candidate.id);
+                    if cost > budget {
+                        feasible = false;
+                        break;
+                    }
+                }
+            }
+
+            ids.sort();
+            if feasible
+                && (width > best_width
+                    || (width == best_width && (cost < best_cost
+                        || (cost == best_cost && ids < best_ids))))
+            {
+                best_width = width;
+                best_cost = cost;
+                best_ids = ids;
+            }
+        }
+
+        (best_width, best_cost, best_ids)
+    }
+
+    fn selected_width(
+        candidates: &[RefinementCandidate],
+        selected: &[RefinementCandidateId],
+    ) -> Rational {
+        candidates
+            .iter()
+            .filter(|candidate| selected.contains(&candidate.id))
+            .map(|candidate| {
+                candidate
+                    .contribution_bounds
+                    .upper
+                    .checked_sub(candidate.contribution_bounds.lower)
+                    .unwrap()
+            })
+            .try_fold(Rational::from_integer(0), |total, width| {
+                total.checked_add(width)
+            })
+            .unwrap()
+    }
+
     #[test]
     fn priority_is_exact_contribution_width_divided_by_estimated_cost() {
         let candidates = [
@@ -412,6 +485,56 @@ mod tests {
             schedule_refinements(scope(), Rational::from_integer(1), &[unrepresentable],),
             Err(RefinementScheduleError::ArithmeticOverflow)
         );
+    }
+
+    #[test]
+    fn exhaustive_knapsack_oracle_quantifies_greedy_scheduler_regret() {
+        // The highest width/cost item (6/4) is locally preferred, but the two
+        // lower-ratio items (10/7 each) jointly produce a better budget fill.
+        let candidates = [
+            candidate(1, 6, 4),
+            candidate(2, 10, 7),
+            candidate(3, 10, 7),
+        ];
+        let budget = Rational::from_integer(14);
+        let greedy =
+            schedule_refinements(scope(), budget, &candidates).unwrap();
+        let greedy_width = selected_width(&candidates, &greedy.selected_candidate_ids);
+        let (optimal_width, optimal_cost, optimal_ids) =
+            exhaustive_best_subset(&candidates, budget);
+
+        assert_eq!(greedy_width, Rational::from_integer(16));
+        assert_eq!(greedy.selected_estimated_cost, Rational::from_integer(11));
+        assert_eq!(optimal_width, Rational::from_integer(20));
+        assert_eq!(optimal_cost, Rational::from_integer(14));
+        assert_eq!(optimal_ids, [candidates[1].id, candidates[2].id]);
+        assert_eq!(
+            optimal_width.checked_sub(greedy_width).unwrap(),
+            Rational::from_integer(4)
+        );
+        assert_eq!(
+            optimal_width
+                .checked_sub(greedy_width)
+                .unwrap()
+                .checked_div(optimal_width)
+                .unwrap(),
+            rational(1, 5)
+        );
+    }
+
+    #[test]
+    fn exact_oracle_never_selects_a_subset_over_budget() {
+        let candidates = [
+            candidate(1, 13, 8),
+            candidate(2, 9, 6),
+            candidate(3, 7, 5),
+            candidate(4, 3, 2),
+        ];
+        let budget = Rational::from_integer(10);
+        let (optimal_width, optimal_cost, ids) = exhaustive_best_subset(&candidates, budget);
+
+        assert!(optimal_cost <= budget);
+        assert_eq!(selected_width(&candidates, &ids), optimal_width);
     }
 
     #[test]
