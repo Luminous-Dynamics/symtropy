@@ -1,0 +1,39 @@
+{
+  "schema": "luminous.orbital-gsd-kcoverage.case.v0.1",
+  "benchmark_id": "ORBITAL-GSD-KCOVER-VOXEL-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_3d_voxel_surface_candidate_view_visibility_only",
+  "case_id": "SUPPORT-002-CENTRE-PASS-SUPPORT-BOUND-ABSTAIN",
+  "coordinate_frame_id": "SUPPORT-TEST-XYZ-METRES",
+  "grid": {
+    "origin_m": [
+      0,
+      0,
+      0
+    ],
+    "voxel_size_m": 0.1,
+    "dimensions": [
+      3,
+      3,
+      3
+    ],
+    "occupied_cells": [
+      [
+        1,
+        1,
+        1
+      ]
+    ]
+  },
+  "camera": {
+    "horizontal_fov_rad": 1.0471975511965976,
+    "horizontal_pixel_count": 100,
+    "gsd_max_m_per_pixel": 0.0005,
+    "max_oblique_angle_rad": 0.7853981633974483
+  },
+  "augmentation": {
+    "requested_k": 1,
+    "tilt_angles_deg": [],
+    "azimuth_angles_deg": []
+  }
+}

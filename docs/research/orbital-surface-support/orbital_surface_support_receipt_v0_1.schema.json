@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital Surface Support Certificate v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "source_commit",
+    "source_case_id",
+    "coordinate_frame_id",
+    "source_input_sha256",
+    "evidence_class",
+    "claim_ceiling",
+    "source_candidate_view_count",
+    "source_surface_support_count",
+    "candidate_support_pair_count",
+    "centre_visible_pair_count",
+    "centre_not_visible_pair_count",
+    "certified_visible_pair_count",
+    "indeterminate_pair_count",
+    "authority_granted",
+    "structural_acceptance_authorized",
+    "flight_authorized",
+    "physical_validation",
+    "certificates"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-surface-support.receipt.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-SURFACE-SUPPORT-VOXEL-001"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "source_case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_3d_voxel_surface_support_envelope_and_conservative_occlusion_only"
+    },
+    "source_candidate_view_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_surface_support_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "candidate_support_pair_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "centre_visible_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "centre_not_visible_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "certified_visible_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "indeterminate_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "structural_acceptance_authorized": {
+      "const": false
+    },
+    "flight_authorized": {
+      "const": false
+    },
+    "physical_validation": {
+      "const": "NOT_ASSESSED"
+    },
+    "certificates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Certificate"
+      }
+    }
+  },
+  "$defs": {
+    "Certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_id",
+        "feature_id",
+        "source_cell",
+        "view_id",
+        "centre_visible_in_upstream_model",
+        "disposition",
+        "reason_codes",
+        "support_radius_um_upper",
+        "centre_distance_um",
+        "minimum_distance_um_lower",
+        "maximum_distance_um_upper",
+        "direction_variation_microrad_upper",
+        "centre_fov_microrad",
+        "support_fov_microrad_upper",
+        "centre_incidence_microrad",
+        "support_incidence_microrad_upper",
+        "gsd_microm_per_pixel_upper",
+        "derived_slant_range_um_upper_limit",
+        "occlusion_disposition",
+        "occlusion_candidate_cells"
+      ],
+      "properties": {
+        "support_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_cell": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "centre_visible_in_upstream_model": {
+          "type": "boolean"
+        },
+        "disposition": {
+          "enum": [
+            "CERTIFIED_VISIBLE",
+            "INDETERMINATE",
+            "CENTRE_NOT_VISIBLE"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "support_radius_um_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "centre_distance_um": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "minimum_distance_um_lower": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maximum_distance_um_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "direction_variation_microrad_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "centre_fov_microrad": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "support_fov_microrad_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "centre_incidence_microrad": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "support_incidence_microrad_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "gsd_microm_per_pixel_upper": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "derived_slant_range_um_upper_limit": {
+          "type": "integer"
+        },
+        "occlusion_disposition": {
+          "type": "string"
+        },
+        "occlusion_candidate_cells": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  }
+}
