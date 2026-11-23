@@ -775,15 +775,48 @@ mod tests {
             case_id: "TOY-PRIMAL-DUAL".to_owned(),
             coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
             features: vec![
-                MultiCoverFeature { feature_id: "F1".to_owned(), requested_k: 2 },
-                MultiCoverFeature { feature_id: "F2".to_owned(), requested_k: 1 },
-                MultiCoverFeature { feature_id: "F3".to_owned(), requested_k: 1 },
+                MultiCoverFeature {
+                    feature_id: "F1".to_owned(),
+                    requested_k: 2,
+                },
+                MultiCoverFeature {
+                    feature_id: "F2".to_owned(),
+                    requested_k: 1,
+                },
+                MultiCoverFeature {
+                    feature_id: "F3".to_owned(),
+                    requested_k: 1,
+                },
             ],
             views: vec![
-                MultiCoverView { view_id: "V1".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 0, nominal_feature_ids: vec!["F1".to_owned(), "F2".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F2".to_owned()] },
-                MultiCoverView { view_id: "V2".to_owned(), failure_domain_id: "D2".to_owned(), vertical_order_rank: 1, nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()] },
-                MultiCoverView { view_id: "V3".to_owned(), failure_domain_id: "D3".to_owned(), vertical_order_rank: 2, nominal_feature_ids: vec!["F2".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F2".to_owned(), "F3".to_owned()] },
-                MultiCoverView { view_id: "V4".to_owned(), failure_domain_id: "D4".to_owned(), vertical_order_rank: 3, nominal_feature_ids: vec!["F1".to_owned()], robust_feature_ids: vec!["F1".to_owned()] },
+                MultiCoverView {
+                    view_id: "V1".to_owned(),
+                    failure_domain_id: "D1".to_owned(),
+                    vertical_order_rank: 0,
+                    nominal_feature_ids: vec!["F1".to_owned(), "F2".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned(), "F2".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "V2".to_owned(),
+                    failure_domain_id: "D2".to_owned(),
+                    vertical_order_rank: 1,
+                    nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "V3".to_owned(),
+                    failure_domain_id: "D3".to_owned(),
+                    vertical_order_rank: 2,
+                    nominal_feature_ids: vec!["F2".to_owned(), "F3".to_owned()],
+                    robust_feature_ids: vec!["F2".to_owned(), "F3".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "V4".to_owned(),
+                    failure_domain_id: "D4".to_owned(),
+                    vertical_order_rank: 3,
+                    nominal_feature_ids: vec!["F1".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned()],
+                },
             ],
         }
     }
@@ -795,7 +828,12 @@ mod tests {
         assert!(receipt.feature_count >= 20);
         assert!(receipt.selected_attainable_targets_fully_covered);
         assert!(receipt.dual_bound.dual_constraints_verified);
-        assert!(receipt.dual_bound.maximum_candidate_constraint_load_numerator <= FIXED_SCALE);
+        assert!(
+            receipt
+                .dual_bound
+                .maximum_candidate_constraint_load_numerator
+                <= FIXED_SCALE
+        );
         assert!(receipt.dual_bound.lower_bound_ceiling <= receipt.selected_view_count as u64);
         assert!(!receipt.dual_bound.minimum_cardinality_optimum_certified);
         assert!(!receipt.authority_granted);
@@ -813,15 +851,30 @@ mod tests {
                     continue;
                 }
                 for feature in &view.nominal_feature_ids {
-                    let feature_index = problem.features.iter().position(|f| f.feature_id == *feature).unwrap();
+                    let feature_index = problem
+                        .features
+                        .iter()
+                        .position(|f| f.feature_id == *feature)
+                        .unwrap();
                     counts[feature_index] += 1;
                 }
             }
-            if counts.iter().zip(&problem.features).all(|(count, feature)| {
-                *count >= feature.requested_k.min(
-                    problem.views.iter().filter(|view| view.nominal_feature_ids.contains(&feature.feature_id)).count()
-                )
-            }) {
+            if counts
+                .iter()
+                .zip(&problem.features)
+                .all(|(count, feature)| {
+                    *count
+                        >= feature.requested_k.min(
+                            problem
+                                .views
+                                .iter()
+                                .filter(|view| {
+                                    view.nominal_feature_ids.contains(&feature.feature_id)
+                                })
+                                .count(),
+                        )
+                })
+            {
                 exact = exact.min(mask.count_ones() as usize);
             }
         }
@@ -835,10 +888,25 @@ mod tests {
         let problem = MultiCoverProblem {
             case_id: "K-SHORTFALL-ROBUSTNESS".to_owned(),
             coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
-            features: vec![MultiCoverFeature { feature_id: "SURFACE".to_owned(), requested_k: 3 }],
+            features: vec![MultiCoverFeature {
+                feature_id: "SURFACE".to_owned(),
+                requested_k: 3,
+            }],
             views: vec![
-                MultiCoverView { view_id: "VIEW-A".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 0, nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec!["SURFACE".to_owned()] },
-                MultiCoverView { view_id: "VIEW-B".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 1, nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec![] },
+                MultiCoverView {
+                    view_id: "VIEW-A".to_owned(),
+                    failure_domain_id: "D1".to_owned(),
+                    vertical_order_rank: 0,
+                    nominal_feature_ids: vec!["SURFACE".to_owned()],
+                    robust_feature_ids: vec!["SURFACE".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "VIEW-B".to_owned(),
+                    failure_domain_id: "D1".to_owned(),
+                    vertical_order_rank: 1,
+                    nominal_feature_ids: vec!["SURFACE".to_owned()],
+                    robust_feature_ids: vec![],
+                },
             ],
         };
         let receipt = solve_multicover(&problem).unwrap();
@@ -858,9 +926,18 @@ mod tests {
             case_id: "OVERLAP-STRICT-THRESHOLD".to_owned(),
             coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
             features: vec![
-                MultiCoverFeature { feature_id: "F1".to_owned(), requested_k: 1 },
-                MultiCoverFeature { feature_id: "F2".to_owned(), requested_k: 1 },
-                MultiCoverFeature { feature_id: "F3".to_owned(), requested_k: 1 },
+                MultiCoverFeature {
+                    feature_id: "F1".to_owned(),
+                    requested_k: 1,
+                },
+                MultiCoverFeature {
+                    feature_id: "F2".to_owned(),
+                    requested_k: 1,
+                },
+                MultiCoverFeature {
+                    feature_id: "F3".to_owned(),
+                    requested_k: 1,
+                },
             ],
             views: vec![
                 MultiCoverView {
