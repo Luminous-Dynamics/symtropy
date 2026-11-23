@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/cmni-symtropy-v0/research/cmni/schemas/pfns-archive-admission.schema.json",
+  "title": "AIACHNE 2025 PFNS supplementary archive admission manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "study",
+    "source_page",
+    "access_audit",
+    "artifacts",
+    "ingestion_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "study": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "doi",
+        "publication_year"
+      ],
+      "properties": {
+        "title": {
+          "const": "Re-evaluating the prompt fission neutron spectrum of spontaneously fissioning 252Cf"
+        },
+        "doi": {
+          "const": "10.1051/epjn/2025061"
+        },
+        "publication_year": {
+          "const": 2025
+        }
+      }
+    },
+    "source_page": {
+      "type": "string",
+      "format": "uri"
+    },
+    "access_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checked_utc",
+        "publisher_supplement_endpoint",
+        "browser_access",
+        "container_download_access",
+        "mirror_search",
+        "notes"
+      ],
+      "properties": {
+        "checked_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "publisher_supplement_endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "browser_access": {
+          "enum": [
+            "accessible",
+            "failed",
+            "not_checked"
+          ]
+        },
+        "container_download_access": {
+          "enum": [
+            "accessible",
+            "failed",
+            "not_checked"
+          ]
+        },
+        "mirror_search": {
+          "enum": [
+            "provenance_verified_mirror_found",
+            "no_provenance_verified_mirror_located",
+            "not_checked"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "scientific_role",
+          "file_name",
+          "sha256",
+          "byte_length",
+          "retrieved_utc",
+          "validation_state",
+          "sha256_verified",
+          "notes"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string"
+          },
+          "scientific_role": {
+            "enum": [
+              "updated_evaluation_pointwise_spectrum",
+              "updated_evaluation_correlation_or_covariance",
+              "mannhart_compatible_pointwise_spectrum",
+              "mannhart_compatible_correlation_or_covariance",
+              "experimental_inputs_database_1",
+              "experimental_inputs_database_2",
+              "smoothed_normalized_spectrum"
+            ]
+          },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "byte_length": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "retrieved_utc": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "validation_state": {
+            "enum": [
+              "not_accessible",
+              "downloaded_unverified",
+              "sha256_verified",
+              "content_validated",
+              "rejected"
+            ]
+          },
+          "sha256_verified": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "validation_state": {
+                  "const": "not_accessible"
+                }
+              },
+              "required": [
+                "validation_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "file_name": {
+                  "type": "null"
+                },
+                "sha256": {
+                  "type": "null"
+                },
+                "byte_length": {
+                  "type": "null"
+                },
+                "retrieved_utc": {
+                  "type": "null"
+                },
+                "sha256_verified": {
+                  "const": false
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "validation_state": {
+                  "enum": [
+                    "sha256_verified",
+                    "content_validated"
+                  ]
+                }
+              },
+              "required": [
+                "validation_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "file_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "byte_length": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "retrieved_utc": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "sha256_verified": {
+                  "const": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "ingestion_status": {
+      "enum": [
+        "not_started",
+        "partial",
+        "all_artifacts_hash_verified",
+        "all_artifacts_content_validated"
+      ]
+    }
+  }
+}

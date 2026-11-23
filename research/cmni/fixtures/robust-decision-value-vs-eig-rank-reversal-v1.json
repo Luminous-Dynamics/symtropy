@@ -1,0 +1,147 @@
+{
+  "schema_version": "cmni-robust-decision-value-fixture-v1",
+  "fixture_kind": "analytic_synthetic_rank_reversal",
+  "claim_boundary": "Finite-state analytic control; not physical data or validation.",
+  "decision_problem": {
+    "state_ids": [
+      "state-0",
+      "state-1"
+    ],
+    "state_probabilities": [
+      0.5,
+      0.5
+    ],
+    "action_ids": [
+      "choose-0",
+      "choose-1"
+    ],
+    "action_utilities_action_major": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "utility_interpretation": "1 for selecting the correct state, 0 otherwise"
+  },
+  "dependence_scope_receipt_id": "receipt:shared-source-ambiguity-fixture-v1",
+  "admitted_scenarios": [
+    "calibration-forward",
+    "calibration-reversed"
+  ],
+  "resource_policy": {
+    "remaining_resource_budget": 1,
+    "cost_to_utility_rate": 1,
+    "candidate_resource_cost": 0.05
+  },
+  "candidates": [
+    {
+      "candidate_id": "ambiguous-perfect-sensor",
+      "outcome_ids": [
+        "reading-0",
+        "reading-1"
+      ],
+      "scenario_likelihoods_state_major": [
+        {
+          "scenario_id": "calibration-forward",
+          "likelihoods": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "scenario_id": "calibration-reversed",
+          "likelihoods": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "eig_nats_per_scenario": [
+          0.6931471805599453,
+          0.6931471805599453
+        ],
+        "worst_case_robust_post_information_utility": 0.5,
+        "robust_evsi": 0,
+        "clairvoyant_upper_bound": 1,
+        "non_anticipativity_gap": 0.5,
+        "net_robust_decision_value": -0.05
+      }
+    },
+    {
+      "candidate_id": "stable-80-percent-sensor",
+      "outcome_ids": [
+        "reading-0",
+        "reading-1"
+      ],
+      "scenario_likelihoods_state_major": [
+        {
+          "scenario_id": "calibration-forward",
+          "likelihoods": [
+            [
+              0.8,
+              0.2
+            ],
+            [
+              0.2,
+              0.8
+            ]
+          ]
+        },
+        {
+          "scenario_id": "calibration-reversed",
+          "likelihoods": [
+            [
+              0.8,
+              0.2
+            ],
+            [
+              0.2,
+              0.8
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "eig_nats_per_scenario": [
+          0.1927447570217574,
+          0.1927447570217574
+        ],
+        "worst_case_robust_post_information_utility": 0.8,
+        "robust_evsi": 0.3,
+        "clairvoyant_upper_bound": 0.8,
+        "non_anticipativity_gap": 0,
+        "net_robust_decision_value": 0.25
+      }
+    }
+  ],
+  "expected_ranking": {
+    "eig_only_preferred": "ambiguous-perfect-sensor",
+    "robust_decision_value_preferred": "stable-80-percent-sensor",
+    "deterministic_policies_per_candidate": 4,
+    "total_policy_evaluations": 8
+  },
+  "limits": [
+    "Finite supplied scenario set only",
+    "Deterministic outcome-to-action policies only",
+    "Ordinary floating-point arithmetic",
+    "Receipt identifier is not authenticated by this fixture",
+    "No physical validation"
+  ]
+}

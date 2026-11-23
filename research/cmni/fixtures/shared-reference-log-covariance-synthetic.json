@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "shared-reference-log-covariance-synthetic-v0",
+  "provenance_kind": "synthetic",
+  "quantity": "log_relative_yield_covariance",
+  "units": "dimensionless_log_variance",
+  "construction": {
+    "numerator_energy_cm_kev": [
+      0.5,
+      1,
+      2
+    ],
+    "numerator_count_variances_log": [
+      0.01,
+      0.04,
+      0.1
+    ],
+    "shared_reference_energy_cm_kev": 6.5,
+    "shared_reference_count_variance_log": 0.0025,
+    "formula": "Sigma = diag(v_i) + v_ref * ones(n,n)"
+  },
+  "covariance_matrix": [
+    [
+      0.0125,
+      0.0025,
+      0.0025
+    ],
+    [
+      0.0025,
+      0.0425,
+      0.0025
+    ],
+    [
+      0.0025,
+      0.0025,
+      0.1025
+    ]
+  ],
+  "checks": {
+    "symmetric": true,
+    "positive_definite": true,
+    "off_diagonal_terms_from_shared_reference": true,
+    "numerical_source": "synthetic example; not measured data"
+  },
+  "limitations": [
+    "Assumes independent numerator count measurements and one independent common reference measurement.",
+    "Does not include correlated beam-charge, loading, detector, background, or target-state systematic terms.",
+    "Reference point itself is not included as an independent normalized observation."
+  ]
+}
