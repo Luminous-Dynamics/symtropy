@@ -1070,6 +1070,74 @@ mod tests {
         );
     }
 
+    fn fixture_leaf_ids() -> BTreeSet<&'static str> {
+        BTreeSet::from(["high-demand", "low-demand"])
+    }
+
+    #[test]
+    fn valid_historical_frequency_manifest_passes_provenance_contract() {
+        let tree = tree_fixture();
+        let mut manifest = risk_fixture().probability_manifest;
+        manifest.probability_basis = ProbabilityBasis::HistoricalFrequencyEstimate;
+        manifest.source_dataset_digest =
+            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        manifest.calibration_report_digest =
+            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.sample_count = Some(100);
+        manifest.effective_sample_size_milli = Some(80_000);
+        manifest.training_cutoff_seconds = Some(500);
+        manifest.evaluation_window_start_seconds = Some(600);
+        manifest.evaluation_window_end_seconds = Some(900);
+        validate_probability_manifest(
+            &manifest,
+            &tree,
+            &fixture_leaf_ids(),
+            &canonical_tree_digest(&tree).expect("canonical tree digest"),
+        )
+        .expect("chronologically held-out historical frequency manifest");
+    }
+
+    #[test]
+    fn valid_forecast_manifest_passes_provenance_contract() {
+        let tree = tree_fixture();
+        let mut manifest = risk_fixture().probability_manifest;
+        manifest.probability_basis = ProbabilityBasis::ForecastModel;
+        manifest.source_dataset_digest =
+            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        manifest.calibration_report_digest =
+            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.training_cutoff_seconds = Some(100);
+        manifest.forecast_issue_time_seconds = Some(200);
+        manifest.evaluation_window_start_seconds = Some(200);
+        manifest.evaluation_window_end_seconds = Some(400);
+        manifest.sample_count = Some(50);
+        manifest.effective_sample_size_milli = Some(40_000);
+        validate_probability_manifest(
+            &manifest,
+            &tree,
+            &fixture_leaf_ids(),
+            &canonical_tree_digest(&tree).expect("canonical tree digest"),
+        )
+        .expect("forecast manifest with no training/holdout leakage");
+    }
+
+    #[test]
+    fn valid_expert_elicitation_manifest_passes_provenance_contract() {
+        let tree = tree_fixture();
+        let mut manifest = risk_fixture().probability_manifest;
+        manifest.probability_basis = ProbabilityBasis::ExpertElicitation;
+        manifest.expert_panel_count = Some(7);
+        manifest.elicitation_protocol_reference =
+            Some("protocol://structured-calibration-panel/v1".to_owned());
+        validate_probability_manifest(
+            &manifest,
+            &tree,
+            &fixture_leaf_ids(),
+            &canonical_tree_digest(&tree).expect("canonical tree digest"),
+        )
+        .expect("expert elicitation with panel and protocol");
+    }
+
     #[test]
     fn historical_frequency_requires_holdout_after_training_cutoff() {
         let mut risk = risk_fixture();
