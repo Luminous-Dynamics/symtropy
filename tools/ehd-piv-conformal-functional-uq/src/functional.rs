@@ -226,7 +226,7 @@ pub(crate) fn validate_functional_covariance(
             }
 
             let denominator = standard_deviations[left] * standard_deviations[right];
-            let normalized = (upper + lower) * 0.5 / denominator;
+            let normalized = (upper * 0.5 + lower * 0.5) / denominator;
             if !normalized.is_finite() {
                 return Err(FunctionalUqError::NonFiniteDerivedValue);
             }
