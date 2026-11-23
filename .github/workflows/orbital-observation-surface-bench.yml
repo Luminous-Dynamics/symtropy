@@ -8,12 +8,14 @@ on:
       - research/orbital-decision-identifiability-v0-1
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
+      - research/orbital-regret-calibration-v0-1
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/OBSERVATION_SURFACE_IDENTIFIABILITY_BENCHMARK_V0_3.md"
       - "research/orbital/DECISION_IDENTIFIABILITY_BENCHMARK_V0_1.md"
       - "research/orbital/DECISION_LOSS_REGRET_FRONTIER_BENCHMARK_V0_1.md"
       - "research/orbital/JOINT_LOSS_MODEL_SCENARIO_REGRET_BENCHMARK_V0_1.md"
+      - "research/orbital/DECISION_ALIGNED_REGRET_CALIBRATION_BENCHMARK_V0_1.md"
       - ".github/workflows/orbital-observation-surface-bench.yml"
   push:
     branches:
@@ -21,6 +23,7 @@ on:
       - research/orbital-decision-identifiability-v0-1
       - research/orbital-loss-regret-frontier-v0-1
       - research/orbital-joint-loss-scenario-v0-1
+      - research/orbital-regret-calibration-v0-1
 
 permissions:
   contents: read
@@ -160,6 +163,40 @@ jobs:
           node tools/orbital-observation-surface-bench/tests/compare_joint_loss_receipts.mjs \
             artifacts/joint-loss-scenario-receipt-v0.1.json \
             artifacts/joint-loss-scenario-oracle-v0.1.json
+      - name: Validate regret calibration corpora
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          for stem in multi-regime small-no-support small-support-bound; do
+            node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+              tools/orbital-observation-surface-bench/schema/v0.1/regret-calibration-corpus.schema.json \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-${stem}.json"
+          done
+      - name: Generate regret calibration receipts and independent oracles
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          for stem in multi-regime small-no-support small-support-bound; do
+            cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin regret-calibration -- \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-${stem}.json" \
+              --source-commit "${GITHUB_SHA}" > "artifacts/regret-calibration-${stem}-receipt-v0.1.json"
+            node tools/orbital-observation-surface-bench/tests/regret_calibration_oracle.mjs \
+              "tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-${stem}.json" \
+              > "artifacts/regret-calibration-${stem}-oracle-v0.1.json"
+          done
+      - name: Validate regret calibration receipts and compare Rust with oracle
+        if: ${{ hashFiles('tools/orbital-observation-surface-bench/fixtures/v0.1/regret-calibration-*.json') != '' }}
+        run: |
+          set -euo pipefail
+          for stem in multi-regime small-no-support small-support-bound; do
+            node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+              tools/orbital-observation-surface-bench/schema/v0.1/regret-calibration-receipt.schema.json \
+              "artifacts/regret-calibration-${stem}-receipt-v0.1.json"
+            node tools/orbital-observation-surface-bench/tests/compare_regret_calibration_receipts.mjs \
+              "artifacts/regret-calibration-${stem}-receipt-v0.1.json" \
+              "artifacts/regret-calibration-${stem}-oracle-v0.1.json"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: orbital-observation-surface-v0.1-${{ github.sha }}

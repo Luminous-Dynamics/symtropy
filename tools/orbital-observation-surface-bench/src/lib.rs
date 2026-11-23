@@ -1,5 +1,6 @@
 pub mod decision_identifiability;
 pub mod joint_loss_scenarios;
+pub mod regret_calibration;
 pub mod robust_decision;
 
 use serde::{Deserialize, Serialize};

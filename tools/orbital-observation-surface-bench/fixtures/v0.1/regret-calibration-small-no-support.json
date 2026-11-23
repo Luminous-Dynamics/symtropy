@@ -1,0 +1,58 @@
+{
+  "schema": "luminous.orbital-regret-calibration.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-split-conformal-regret-rank-algebra-only",
+  "calibration_split_id": "split-small-no-support",
+  "score_contract_id": "audited-regret-upper-bound-v0",
+  "score_contract_receipt_id": "synthetic-score-contract-receipt-v0",
+  "selection_status": "predeclared",
+  "stopping_rule": "fixed",
+  "alpha": {
+    "numerator": 1,
+    "denominator": 10
+  },
+  "score_support_upper_bound": null,
+  "score_support_receipt_id": null,
+  "expected_regime_ids": [
+    "sparse"
+  ],
+  "expected_regime_ids_sha256": "2537dad425f07d21dad9f38ead30afe88af38ecd04d2351537c786f51ddb6ba8",
+  "regimes": [
+    {
+      "regime_id": "sparse",
+      "expected_sample_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "expected_sample_ids_sha256": "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15",
+      "samples_sha256": "61db185e9a484ff8180bcc47f4a7742df661e3a0e6b43690a17ab0894d968150",
+      "samples": [
+        {
+          "sample_id": "s1",
+          "replication_unit_id": "su1",
+          "regret_upper_bound_score": {
+            "numerator": 1,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "s2",
+          "replication_unit_id": "su2",
+          "regret_upper_bound_score": {
+            "numerator": 2,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "s3",
+          "replication_unit_id": "su3",
+          "regret_upper_bound_score": {
+            "numerator": 3,
+            "denominator": 10
+          }
+        }
+      ]
+    }
+  ]
+}

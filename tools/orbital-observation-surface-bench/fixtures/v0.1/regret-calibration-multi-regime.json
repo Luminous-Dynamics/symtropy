@@ -1,0 +1,95 @@
+{
+  "schema": "luminous.orbital-regret-calibration.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-split-conformal-regret-rank-algebra-only",
+  "calibration_split_id": "split-multi-regime",
+  "score_contract_id": "audited-regret-upper-bound-v0",
+  "score_contract_receipt_id": "synthetic-score-contract-receipt-v0",
+  "selection_status": "predeclared",
+  "stopping_rule": "fixed",
+  "alpha": {
+    "numerator": 1,
+    "denominator": 4
+  },
+  "score_support_upper_bound": null,
+  "score_support_receipt_id": null,
+  "expected_regime_ids": [
+    "dry",
+    "wet"
+  ],
+  "expected_regime_ids_sha256": "f024fe5f8280df0985fcd9a09126757693ef8c4f3621ba49b3bd97747392cb6b",
+  "regimes": [
+    {
+      "regime_id": "wet",
+      "expected_sample_ids": [
+        "w1",
+        "w2",
+        "w3"
+      ],
+      "expected_sample_ids_sha256": "98c5cdd8e4520e0faa1a8a3c4dbc4e01795849e42e561577f764308cf8ade462",
+      "samples_sha256": "66aff5bb7adb306197c0590ed915ed547dae27306724b9c7e33792648a00fdec",
+      "samples": [
+        {
+          "sample_id": "w1",
+          "replication_unit_id": "wu1",
+          "regret_upper_bound_score": {
+            "numerator": 1,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "w2",
+          "replication_unit_id": "wu2",
+          "regret_upper_bound_score": {
+            "numerator": 3,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "w3",
+          "replication_unit_id": "wu3",
+          "regret_upper_bound_score": {
+            "numerator": 7,
+            "denominator": 10
+          }
+        }
+      ]
+    },
+    {
+      "regime_id": "dry",
+      "expected_sample_ids": [
+        "d1",
+        "d2",
+        "d3"
+      ],
+      "expected_sample_ids_sha256": "808923504d2120e177a4555278f2a4f24c0b817ddde483445f2659062e34df46",
+      "samples_sha256": "a71305c028cc1c171e9f3bd3be698995baa8550ab24efb2477b5d4185ac63dc6",
+      "samples": [
+        {
+          "sample_id": "d1",
+          "replication_unit_id": "du1",
+          "regret_upper_bound_score": {
+            "numerator": 1,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "d2",
+          "replication_unit_id": "du2",
+          "regret_upper_bound_score": {
+            "numerator": 4,
+            "denominator": 10
+          }
+        },
+        {
+          "sample_id": "d3",
+          "replication_unit_id": "du3",
+          "regret_upper_bound_score": {
+            "numerator": 8,
+            "denominator": 10
+          }
+        }
+      ]
+    }
+  ]
+}
