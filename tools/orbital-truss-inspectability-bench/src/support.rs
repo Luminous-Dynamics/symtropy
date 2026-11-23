@@ -20,7 +20,7 @@ const GSD_SCALE: f64 = 1.0e12;
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SupportStatus {
     ConditionalWithinSensingEnvelope,
-    ConditionallyOutsideSensingEnvelope,
+    ConditionalOutsideSensingEnvelope,
     Indeterminate,
     InvalidInput,
 }
@@ -448,7 +448,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
     }
 
     let status = if !outside_reasons.is_empty() {
-        SupportStatus::ConditionallyOutsideSensingEnvelope
+        SupportStatus::ConditionalOutsideSensingEnvelope
     } else {
         let distance_passes = minimum_distance >= sensor.minimum_range_m - GEOMETRY_EPS
             && maximum_distance <= sensor.maximum_range_m + GEOMETRY_EPS;
