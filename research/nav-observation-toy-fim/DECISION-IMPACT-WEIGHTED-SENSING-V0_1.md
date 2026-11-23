@@ -30,7 +30,7 @@ The evaluator requires exactly one weight for every unordered class pair in the 
 
 The score is deliberately class-pair normalized. A class pair with 20 hypothesis combinations does not receive 20 times the influence of a class pair with one combination solely because its hypothesis inventory is larger.
 
-The existing #7082 admitted acquisition reliability interval [p_L,p_U] can be composed separately:
+The existing #7082 admitted acquisition reliability interval [p_L,p_U], carried in the exact #7165 plan with its domain/protocol commitments, can be composed separately:
 
 - expected resolved-impact fraction: [p_L * R, p_U * R];
 - expected residual-impact fraction: [1 - p_U * R, 1 - p_L * R].
@@ -56,7 +56,7 @@ The large difference is intentional: the impact model declares that the one unre
 
 ## Tests authored
 
-The module contains ten focused tests covering:
+The module contains eleven focused tests covering:
 
 - severe unresolved pair not being hidden by many low-impact resolved pairs;
 - normalization against hypothesis-count imbalance within a class pair;
