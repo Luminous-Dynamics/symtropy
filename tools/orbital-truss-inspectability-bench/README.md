@@ -210,7 +210,7 @@ For larger candidate pools this subset oracle is not intended to scale; use a so
 
 A first implementation increment for #7136 adds an enclosing-ball certificate for the entire declared support. Given a input-asserted support ball and a input-asserted normal cone, it derives conservative distance, ray-direction, FOV, incidence and GSD bounds. Results are fixed-point encoded for exact cross-language comparison. The 13-case corpus covers an envelope pass, provable whole-support failures, conservative-bound indeterminacy, missing support/normal proof, sensor-inside-support and malformed axis input.
 
-This is deliberately not a full-visibility certificate. Occlusion remains NOT_ASSESSED; even CERTIFIED_WITHIN_SENSING_ENVELOPE has full_support_visibility_certified=false and may_count_toward_full_support_coverage=false. A subsequent increment must add conservative support-ray/occlusion reasoning and explicit tangency, blocker, target-cell and partial-support semantics.
+This is deliberately not a full-visibility certificate. Occlusion remains NOT_ASSESSED; even CONDITIONAL_WITHIN_SENSING_ENVELOPE has full_support_visibility_certified=false and may_count_toward_full_support_coverage=false. A subsequent increment must add conservative support-ray/occlusion reasoning and explicit tangency, blocker, target-cell and partial-support semantics.
 
 Reproduce:
 
