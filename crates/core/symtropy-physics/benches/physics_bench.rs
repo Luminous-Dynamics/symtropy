@@ -333,7 +333,6 @@ fn exhaustive_aabb_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
     pairs
 }
 
-
 #[derive(Clone, Copy)]
 struct BenchStaticEntry {
     body_index: usize,
@@ -388,11 +387,7 @@ impl BenchStaticBvh {
         tree
     }
 
-    fn build_node(
-        &mut self,
-        entries: &mut [BenchStaticEntry],
-        bodies: &[RigidBody<3>],
-    ) -> usize {
+    fn build_node(&mut self, entries: &mut [BenchStaticEntry], bodies: &[RigidBody<3>]) -> usize {
         let mut bounds = entries[0].aabb;
         for entry in &entries[1..] {
             bounds = oracle_aabb_union(&bounds, &entry.aabb);
@@ -429,9 +424,11 @@ impl BenchStaticBvh {
         entries.sort_by(|a, b| {
             let center_a = (a.aabb.min[axis] + a.aabb.max[axis]) * 0.5;
             let center_b = (b.aabb.min[axis] + b.aabb.max[axis]) * 0.5;
-            center_a
-                .total_cmp(&center_b)
-                .then_with(|| bodies[a.body_index].handle.cmp(&bodies[b.body_index].handle))
+            center_a.total_cmp(&center_b).then_with(|| {
+                bodies[a.body_index]
+                    .handle
+                    .cmp(&bodies[b.body_index].handle)
+            })
         });
 
         let middle = entries.len() / 2;
@@ -523,8 +520,7 @@ fn oracle_aabb_union(a: &OracleAabb, b: &OracleAabb) -> OracleAabb {
 }
 
 fn should_collide_bench(a: &RigidBody<3>, b: &RigidBody<3>) -> bool {
-    (a.collision_group & b.collision_mask != 0)
-        && (b.collision_group & a.collision_mask != 0)
+    (a.collision_group & b.collision_mask != 0) && (b.collision_group & a.collision_mask != 0)
 }
 
 fn canonical_broadphase_pair(a: BodyHandle, b: BodyHandle) -> BroadphasePair {
@@ -571,16 +567,10 @@ fn bench_broadphase_static_bvh_tournament(c: &mut Criterion) {
         let mut flat_cache = StaticBroadphase::new();
         flat_cache.rebuild(&bodies);
         let flat_pairs = broadphase::find_pairs_incremental(&bodies, &flat_cache);
-        assert_eq!(
-            flat_pairs, expected,
-            "flat-cache mismatch in {scenario}"
-        );
+        assert_eq!(flat_pairs, expected, "flat-cache mismatch in {scenario}");
 
         let full_pairs = broadphase::find_pairs(&bodies);
-        assert_eq!(
-            full_pairs, expected,
-            "full LBVH mismatch in {scenario}"
-        );
+        assert_eq!(full_pairs, expected, "full LBVH mismatch in {scenario}");
 
         group.bench_function(
             BenchmarkId::new("static_bvh_query_only", &scenario),
