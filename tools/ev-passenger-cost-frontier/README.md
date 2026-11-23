@@ -330,11 +330,19 @@ Exact-head Actions run [#45068027684](https://github.com/Luminous-Dynamics/symtr
 
 The request-quality extension of [#6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909) is tracked in [#6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921).
 
-Run the frozen request stream:
+The legacy v0.1 fixture remains available for reproduction:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- --legacy \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
+```
+
+The preferred linked mode takes a request/payload-evidence fixture and the exact capacity architecture input separately:
 
 ```bash
 cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \
-  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
 ```
 
 This is a deterministic single-site request-to-service-opportunity evaluator. It consumes a declared #6909 capacity envelope and prequalified time-bounded aerial/fallback service opportunities. It does not run routes or charging simulation, and it does not select strategic operating modes.
@@ -376,3 +384,20 @@ The report publishes a canonical `service_opportunity_digest` (SHA-256 over the 
 The next adapter step is to make #6921 consume these exact upstream records, rather than accepting user-authored aircraft/time/duration slots. The digest detects inconsistency against the supplied report bytes; it is not an authenticated producer signature or proof of field performance.
 
 Runner verification is pending on the current branch. Do not treat source-level receipt generation as verified until exact-head formatting, Rust tests, deterministic report assertions and artifact upload pass.
+
+
+### Linked capacity-receipt mode — #6999
+
+The linked input deliberately contains **only** each aerial opportunity ID, maximum qualified payload and an aircraft/configuration-bound payload evidence envelope. It does not accept aircraft IDs, mission start times, mission duration or turnaround values.
+
+The CLI re-runs the #6909 capacity event evaluator on the second input, selects the exact architecture, verifies each emitted mission sequence and turnaround relationship, recomputes the canonical receipt digest and resolves every qualification ID to one source receipt. It derives the aerial service schedule from that receipt sequence, then evaluates FCFS and EDF on the same requests, weather/permission windows, maintenance blocks and fallback opportunities.
+
+Payload evidence must identify the exact aircraft and SHA-256 architecture-configuration digest; it must be observed no later than the mission start and remain valid through mission plus turnaround. Replayed evidence references, duplicate or unknown receipt IDs, gaps in per-aircraft sequence, stale configuration, source-horizon mismatch and overlapping source receipts are rejected. The capacity report is generated internally from the architecture input rather than accepted as a user-authored schedule or trusted report digest.
+
+The linked evaluator's new synthetic fixture references seven out of 38 event-derived opportunities from the one-aircraft Dock-shaped capacity profile. It compares the true arrival-ordered FCFS policy (deadline-independent ties) with EDF, while weather no-go, maintenance, unknown permission, fallback, a late completion and unavailable capacity remain explicit outcomes.
+
+Strict schema: `schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json`; fixture: `fixtures/sustainable_mobility_service_quality_linked_v0_1.json`; source capacity input: `fixtures/sustainable_mobility_service_capacity_v0_1.json`.
+
+The linked report carries the derived capacity-report digest, opportunity digest and configuration digest. This proves internal consistency between the supplied architecture input and the event model's deterministic outputs; it does not authenticate the producer or turn synthetic evidence into physical truth. No flight, dispatch, customer delivery, regulatory or market authority is granted.
+
+Research dossier: `docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md`.
