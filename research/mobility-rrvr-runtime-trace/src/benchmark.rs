@@ -261,6 +261,53 @@ pub struct PairedComparison {
     pub mean_recovery_success_delta_ppm: Option<i64>,
 }
 
+pub const MIN_BOOTSTRAP_CLUSTERS: usize = 5;
+pub const MIN_BOOTSTRAP_REPLICATES: u32 = 1_000;
+pub const MAX_BOOTSTRAP_REPLICATES: u32 = 200_000;
+pub const BOOTSTRAP_VERSION: &str = "cluster-bootstrap-v0.1";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InferenceError {
+    InvalidCorpus,
+    TooFewClusters,
+    InvalidReplicateCount,
+    InsufficientMetricClusters,
+    SerializationFailure,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BootstrapInterval {
+    /// Mean full-RRVR minus baseline effect, with clusters equally weighted.
+    pub estimate_mean_delta_ppm: i64,
+    pub lower_95_ppm: i64,
+    pub upper_95_ppm: i64,
+    pub contributing_cluster_count: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClusterBootstrapComparison {
+    pub baseline_arm: BenchmarkArm,
+    pub task_success_delta: Option<BootstrapInterval>,
+    pub safety_delta: Option<BootstrapInterval>,
+    pub recovery_success_delta: Option<BootstrapInterval>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClusterBootstrapReport {
+    pub version: String,
+    pub method: String,
+    pub source_corpus_sha256: String,
+    pub bootstrap_seed_sha256: String,
+    pub cluster_count: usize,
+    pub matched_pair_count: usize,
+    pub replicate_count: u32,
+    pub comparisons: Vec<ClusterBootstrapComparison>,
+    pub claim_note: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BenchmarkReport {
@@ -506,6 +553,75 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
     }
 }
 
+fn hex_sha256(bytes: &[u8]) -> String {
+    let mut output = String::with_capacity(64);
+    for byte in bytes {
+        output.push_str(&format!("{byte:02x}"));
+    }
+    output
+}
+
+fn bootstrap_interval(
+    cluster_means: &[Option<i64>],
+    replicate_count: u32,
+    seed: &[u8; 32],
+    counter: &mut u64,
+) -> Result<Option<BootstrapInterval>, InferenceError> {
+    let available: Vec<i64> = cluster_means.iter().flatten().copied().collect();
+    if available.len() < MIN_BOOTSTRAP_CLUSTERS {
+        return Ok(None);
+    }
+    let estimate = mean_delta_ppm(&available).ok_or(InferenceError::InsufficientMetricClusters)?;
+    let mut replicate_means = Vec::with_capacity(replicate_count as usize);
+    for _ in 0..replicate_count {
+        let mut sample = Vec::with_capacity(available.len());
+        for _ in 0..available.len() {
+            let index = deterministic_index(seed, counter, available.len())?;
+            sample.push(available[index]);
+        }
+        if let Some(mean) = mean_delta_ppm(&sample) {
+            replicate_means.push(mean);
+        }
+    }
+    if replicate_means.len() != replicate_count as usize {
+        return Err(InferenceError::InsufficientMetricClusters);
+    }
+    replicate_means.sort_unstable();
+    let lower_index = (replicate_means.len() * 25).div_ceil(1_000).saturating_sub(1);
+    let upper_index = (replicate_means.len() * 975).div_ceil(1_000).saturating_sub(1);
+    Ok(Some(BootstrapInterval {
+        estimate_mean_delta_ppm: estimate,
+        lower_95_ppm: replicate_means[lower_index],
+        upper_95_ppm: replicate_means[upper_index],
+        contributing_cluster_count: available.len(),
+    }))
+}
+
+fn deterministic_index(
+    seed: &[u8; 32],
+    counter: &mut u64,
+    upper_bound: usize,
+) -> Result<usize, InferenceError> {
+    if upper_bound == 0 {
+        return Err(InferenceError::InsufficientMetricClusters);
+    }
+    let upper = u64::try_from(upper_bound).map_err(|_| InferenceError::InsufficientMetricClusters)?;
+    let limit = (1u128 << 64) - ((1u128 << 64) % u128::from(upper));
+    loop {
+        let mut hasher = Sha256::new();
+        hasher.update(seed);
+        hasher.update(counter.to_le_bytes());
+        *counter = counter.wrapping_add(1);
+        let digest = hasher.finalize();
+        let mut raw = [0u8; 8];
+        raw.copy_from_slice(&digest[..8]);
+        let value = u64::from_le_bytes(raw);
+        if u128::from(value) < limit {
+            return Ok((value % upper) as usize);
+        }
+    }
+}
+
 fn mean_delta_ppm(deltas: &[i64]) -> Option<i64> {
     if deltas.is_empty() {
         None
@@ -582,6 +698,176 @@ fn paired_comparison(
 }
 
 impl BenchmarkCorpus {
+    /// Compute percentile intervals by resampling whole scenario clusters.
+    ///
+    /// Each sampled cluster contributes all of its matched pairs, with the
+    /// five experimental arms kept together. Cluster means are equally
+    /// weighted so a large cluster cannot dominate simply by containing more
+    /// episodes. This is a nonparametric percentile bootstrap, not a
+    /// hierarchical model or a substitute for preregistered study design.
+    pub fn cluster_bootstrap(
+        &self,
+        source_corpus_sha256: &str,
+        replicate_count: u32,
+    ) -> Result<ClusterBootstrapReport, InferenceError> {
+        self.validate_and_score(source_corpus_sha256)
+            .map_err(|_| InferenceError::InvalidCorpus)?;
+        if !(MIN_BOOTSTRAP_REPLICATES..=MAX_BOOTSTRAP_REPLICATES)
+            .contains(&replicate_count)
+        {
+            return Err(InferenceError::InvalidReplicateCount);
+        }
+
+        let mut grouped: BTreeMap<String, BTreeMap<BenchmarkArm, &BenchmarkEpisode>> =
+            BTreeMap::new();
+        let mut pair_cluster: BTreeMap<String, String> = BTreeMap::new();
+        let mut clusters: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for episode in &self.episodes {
+            grouped
+                .entry(episode.matched_pair_id.clone())
+                .or_default()
+                .insert(episode.arm, episode);
+            pair_cluster
+                .entry(episode.matched_pair_id.clone())
+                .or_insert_with(|| episode.cluster_id.clone());
+        }
+        for (pair_id, cluster_id) in &pair_cluster {
+            clusters
+                .entry(cluster_id.clone())
+                .or_default()
+                .push(pair_id.clone());
+        }
+        if clusters.len() < MIN_BOOTSTRAP_CLUSTERS {
+            return Err(InferenceError::TooFewClusters);
+        }
+
+        let seed_material = format!(
+            "{BOOTSTRAP_VERSION}:{source_corpus_sha256}:{replicate_count}"
+        );
+        let seed_digest = Sha256::digest(seed_material.as_bytes());
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&seed_digest);
+        let bootstrap_seed_sha256 = hex_sha256(&seed);
+
+        let mut comparisons = Vec::new();
+        for baseline_arm in [
+            BenchmarkArm::TaskOnly,
+            BenchmarkArm::RestartOnly,
+            BenchmarkArm::LoggingOnly,
+            BenchmarkArm::TraceOnly,
+        ] {
+            let mut task_by_cluster: BTreeMap<String, Vec<i64>> = BTreeMap::new();
+            let mut safety_by_cluster: BTreeMap<String, Vec<i64>> = BTreeMap::new();
+            let mut recovery_by_cluster: BTreeMap<String, Vec<i64>> = BTreeMap::new();
+
+            for (pair_id, arms) in &grouped {
+                let cluster_id = pair_cluster
+                    .get(pair_id)
+                    .ok_or(InferenceError::InvalidCorpus)?;
+                let full = arms
+                    .get(&BenchmarkArm::FullRrvr)
+                    .ok_or(InferenceError::InvalidCorpus)?;
+                let baseline = arms
+                    .get(&baseline_arm)
+                    .ok_or(InferenceError::InvalidCorpus)?;
+
+                let task_delta = (full.native_task_success as i64)
+                    - (baseline.native_task_success as i64);
+                task_by_cluster
+                    .entry(cluster_id.clone())
+                    .or_default()
+                    .push(task_delta * i64::from(RATE_SCALE));
+
+                if full.safety_verdict != SafetyVerdict::NotEvaluated
+                    && baseline.safety_verdict != SafetyVerdict::NotEvaluated
+                {
+                    let full_safe = (full.safety_verdict == SafetyVerdict::Safe) as i64;
+                    let baseline_safe = (baseline.safety_verdict == SafetyVerdict::Safe) as i64;
+                    safety_by_cluster
+                        .entry(cluster_id.clone())
+                        .or_default()
+                        .push((full_safe - baseline_safe) * i64::from(RATE_SCALE));
+                }
+
+                if full.recovery_attempted && baseline.recovery_attempted {
+                    recovery_by_cluster
+                        .entry(cluster_id.clone())
+                        .or_default()
+                        .push(
+                            ((full.recovery_success as i64)
+                                - (baseline.recovery_success as i64))
+                                * i64::from(RATE_SCALE),
+                        );
+                }
+            }
+
+            let cluster_ids: Vec<String> = clusters.keys().cloned().collect();
+            let task_cluster_means: Vec<Option<i64>> = cluster_ids
+                .iter()
+                .map(|cluster| {
+                    task_by_cluster
+                        .get(cluster)
+                        .and_then(|values| mean_delta_ppm(values))
+                })
+                .collect();
+            let safety_cluster_means: Vec<Option<i64>> = cluster_ids
+                .iter()
+                .map(|cluster| {
+                    safety_by_cluster
+                        .get(cluster)
+                        .and_then(|values| mean_delta_ppm(values))
+                })
+                .collect();
+            let recovery_cluster_means: Vec<Option<i64>> = cluster_ids
+                .iter()
+                .map(|cluster| {
+                    recovery_by_cluster
+                        .get(cluster)
+                        .and_then(|values| mean_delta_ppm(values))
+                })
+                .collect();
+
+            let mut counter = 0u64;
+            let task_success_delta = bootstrap_interval(
+                &task_cluster_means,
+                replicate_count,
+                &seed,
+                &mut counter,
+            )?;
+            let safety_delta = bootstrap_interval(
+                &safety_cluster_means,
+                replicate_count,
+                &seed,
+                &mut counter,
+            )?;
+            let recovery_success_delta = bootstrap_interval(
+                &recovery_cluster_means,
+                replicate_count,
+                &seed,
+                &mut counter,
+            )?;
+
+            comparisons.push(ClusterBootstrapComparison {
+                baseline_arm,
+                task_success_delta,
+                safety_delta,
+                recovery_success_delta,
+            });
+        }
+
+        Ok(ClusterBootstrapReport {
+            version: "0.1".to_owned(),
+            method: "nonparametric_percentile_bootstrap_over_scenario_clusters; all_matched_pairs_and_five_arms_preserved_within_each_resampled_cluster; cluster_means_equally_weighted".to_owned(),
+            source_corpus_sha256: source_corpus_sha256.to_owned(),
+            bootstrap_seed_sha256,
+            cluster_count: clusters.len(),
+            matched_pair_count: grouped.len(),
+            replicate_count,
+            comparisons,
+            claim_note: "Intervals quantify resampling variability across the supplied scenario clusters only. Five clusters is a minimum execution gate, not a guarantee of adequate statistical power or population representativeness. The scorer does not authenticate cluster independence, adjudicate ground truth or establish physical safety. Repeated episodes within one cluster are never counted as independent clusters.".to_owned(),
+        })
+    }
+
     pub fn validate_and_score(
         &self,
         source_corpus_sha256: &str,
