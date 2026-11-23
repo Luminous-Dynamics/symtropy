@@ -313,7 +313,14 @@
                   "const": "physical_outcome_observer_quorum"
                 },
                 "asserted_value": {
-                  "const": "no_effect"
+                  "enum": [
+                    "not_observed",
+                    "applied",
+                    "no_effect",
+                    "partial",
+                    "unknown",
+                    "disputed"
+                  ]
                 }
               },
               "required": [
@@ -523,6 +530,16 @@
             },
             "observer_quorum": {
               "type": "null"
+            },
+            "status": {
+              "enum": [
+                "current",
+                "confirmed",
+                "refuted",
+                "insufficient_evidence",
+                "unknown",
+                "disputed"
+              ]
             }
           },
           "required": [
