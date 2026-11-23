@@ -29,7 +29,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         },
         {
           "world_id": "w2",
@@ -47,7 +48,8 @@
               "action_id": "B",
               "loss": 78
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -88,7 +90,8 @@
               "action_id": "B",
               "loss": 101
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         },
         {
           "world_id": "high_demand",
@@ -106,7 +109,8 @@
               "action_id": "B",
               "loss": 76
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -147,7 +151,8 @@
               "action_id": "B",
               "loss": 104
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         },
         {
           "world_id": "world_prefers_B",
@@ -165,7 +170,8 @@
               "action_id": "B",
               "loss": 100
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -206,7 +212,8 @@
               "action_id": "B",
               "loss": 80
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -247,7 +254,8 @@
               "action_id": "B",
               "loss": 0
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -288,7 +296,8 @@
               "action_id": "B",
               "loss": 3
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         },
         {
           "world_id": "incumbent_removed",
@@ -301,7 +310,8 @@
               "action_id": "B",
               "loss": 2
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -364,7 +374,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -405,7 +416,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -442,7 +454,8 @@
               "action_id": "A",
               "loss": 100
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -487,7 +500,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -528,7 +542,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -569,7 +584,8 @@
               "action_id": "B",
               "loss": 95
             }
-          ]
+          ],
+          "loss_unit": "cost_micro_units"
         }
       ],
       "world_set_state": "CURRENT",
@@ -581,6 +597,67 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "MODEL_FAMILY_INADEQUATE",
+        "worst_case_regret": null
+      }
+    },
+    {
+      "case_id": "loss_unit_mismatch",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "energy_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_UNIT_MISMATCH",
         "worst_case_regret": null
       }
     }
