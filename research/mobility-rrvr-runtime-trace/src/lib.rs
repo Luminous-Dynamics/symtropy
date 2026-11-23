@@ -1166,10 +1166,9 @@ impl RuntimeProjectionRecording {
             if let (Some(a), Some(b)) = (
                 physical_outcome_observer.claim_id.as_deref(),
                 downstream_observer.claim_id.as_deref(),
-            ) {
-                if a == b {
-                    return Err(ProjectionError::DuplicateObserverClaim);
-                }
+            ) && a == b
+            {
+                return Err(ProjectionError::DuplicateObserverClaim);
             }
             let independent = bool_field(&s.state_s, "observerIndependent")?;
             match state_effect_evidence {
@@ -1231,14 +1230,13 @@ impl RuntimeProjectionRecording {
                 }
             }
 
-            if let Some(clock) = &s.source_clock {
-                if !nonempty(&clock.clock_id)
+            if let Some(clock) = &s.source_clock
+                && (!nonempty(&clock.clock_id)
                     || !nonempty(&clock.boot_epoch_id)
                     || !nonempty(&clock.unit)
-                    || clock.resolution == 0
-                {
-                    return Err(ProjectionError::InvalidSourceClock);
-                }
+                    || clock.resolution == 0)
+            {
+                return Err(ProjectionError::InvalidSourceClock);
             }
         }
         Ok(())
