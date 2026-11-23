@@ -68,6 +68,7 @@ fn run() -> Result<(), String> {
         "environment_artifact_sha256": manifest.platform.environment_artifact_sha256,
         "fault_injector_revision": manifest.platform.fault_injector_revision,
         "fault_injector_sha256": manifest.platform.fault_injector_sha256,
+        "fault_injector_fault_domain_id": manifest.platform.fault_injector_fault_domain_id,
         "native_adapter_revision": manifest.platform.native_adapter_revision,
         "runtime_monitor_revision": manifest.platform.runtime_monitor_revision,
         "reset_profile_sha256": manifest.reset.profile_sha256,
