@@ -512,9 +512,7 @@ mod tests {
 
     // Independent analytical AABBs for spheres and capsules. This oracle
     // intentionally does not use support_aabb or Aabb::from_body.
-    fn independent_sphere_capsule_aabb(
-        body: &RigidBody<3>,
-    ) -> (SVector<f64, 3>, SVector<f64, 3>) {
+    fn independent_sphere_capsule_aabb(body: &RigidBody<3>) -> (SVector<f64, 3>, SVector<f64, 3>) {
         if let Some(sphere) = body.collider.as_any().downcast_ref::<Sphere<3>>() {
             let center = body.transform.transform_point(&sphere.center).0;
             let radius = SVector::from_element(sphere.radius);
@@ -527,10 +525,7 @@ mod tests {
             for sign in [-1.0, 1.0] {
                 let mut local = [0.0; 3];
                 local[capsule.axis] = sign * capsule.half_height;
-                let endpoint = body
-                    .transform
-                    .transform_point(&Point::new(local))
-                    .0;
+                let endpoint = body.transform.transform_point(&Point::new(local)).0;
                 for axis in 0..3 {
                     min[axis] = min[axis].min(endpoint[axis]);
                     max[axis] = max[axis].max(endpoint[axis]);
@@ -543,13 +538,8 @@ mod tests {
         panic!("sphere/capsule oracle received an unsupported collider");
     }
 
-    fn independent_sphere_capsule_pair_oracle(
-        bodies: &[RigidBody<3>],
-    ) -> Vec<BroadphasePair> {
-        let bounds: Vec<_> = bodies
-            .iter()
-            .map(independent_sphere_capsule_aabb)
-            .collect();
+    fn independent_sphere_capsule_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
+        let bounds: Vec<_> = bodies.iter().map(independent_sphere_capsule_aabb).collect();
         let mut pairs = Vec::new();
 
         for i in 0..bodies.len() {
@@ -590,10 +580,7 @@ mod tests {
         pairs
     }
 
-    fn sphere_capsule_scene(
-        static_count: usize,
-        dynamic_count: usize,
-    ) -> Vec<RigidBody<3>> {
+    fn sphere_capsule_scene(static_count: usize, dynamic_count: usize) -> Vec<RigidBody<3>> {
         let mut bodies = Vec::with_capacity(static_count + dynamic_count);
         for index in 0..static_count {
             let position = Point::new([
@@ -601,10 +588,8 @@ mod tests {
                 (index / 8) as f64 * 1.4,
                 (index % 3) as f64 * 0.15,
             ]);
-            let rotation = Rotor::from_plane_angle(
-                &Bivector::unit_plane(0, 1),
-                (index % 5) as f64 * 0.17,
-            );
+            let rotation =
+                Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), (index % 5) as f64 * 0.17);
             let transform = Transform {
                 translation: position,
                 rotation,
@@ -634,10 +619,8 @@ mod tests {
                 (anchor / 8) as f64 * 1.4 + 0.1,
                 (anchor % 3) as f64 * 0.15 + 0.1,
             ]);
-            let rotation = Rotor::from_plane_angle(
-                &Bivector::unit_plane(0, 1),
-                (index % 7) as f64 * 0.13,
-            );
+            let rotation =
+                Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), (index % 7) as f64 * 0.13);
             let transform = Transform {
                 translation: position,
                 rotation,
@@ -675,10 +658,7 @@ mod tests {
 
         let mut static_cache = StaticBroadphase::new();
         static_cache.rebuild(&bodies);
-        assert_eq!(
-            find_pairs_incremental(&bodies, &static_cache),
-            expected
-        );
+        assert_eq!(find_pairs_incremental(&bodies, &static_cache), expected);
 
         // Pair identities/order must not depend on body storage order.
         let reversed: Vec<_> = bodies.into_iter().rev().collect();
