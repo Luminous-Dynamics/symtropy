@@ -261,18 +261,11 @@ mod tests {
             [correlation * sigma_1 * sigma_2, sigma_2 * sigma_2],
         ];
         let mut observation_covariance = [
-            [
-                problem.independent_observation_noise_variances[0],
-                0.0,
-            ],
-            [
-                0.0,
-                problem.independent_observation_noise_variances[1],
-            ],
+            [problem.independent_observation_noise_variances[0], 0.0],
+            [0.0, problem.independent_observation_noise_variances[1]],
         ];
-        for source_left in 0..2 {
-            for source_right in 0..2 {
-                let covariance = source_covariance[source_left][source_right];
+        for (source_left, covariance_row) in source_covariance.iter().enumerate() {
+            for (source_right, covariance) in covariance_row.iter().enumerate() {
                 observation_covariance[0][0] += problem.source_jacobians[0][source_left]
                     * covariance
                     * problem.source_jacobians[0][source_right];
@@ -292,8 +285,7 @@ mod tests {
         let r_22 = observation_covariance[1][1];
         let determinant = r_11 * r_22 - r_12 * r_12;
         let information =
-            (h_1 * h_1 * r_22 - 2.0 * h_1 * h_2 * r_12 + h_2 * h_2 * r_11)
-                / determinant;
+            (h_1 * h_1 * r_22 - 2.0 * h_1 * h_2 * r_12 + h_2 * h_2 * r_11) / determinant;
         0.5 * (1.0 + problem.prior_parameter_variance * information).ln()
     }
 
