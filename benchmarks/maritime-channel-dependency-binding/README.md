@@ -35,7 +35,7 @@ Important: #6121 is a **draft PR stacked on #5696**, and #6124 has not yet publi
 - The adapter's copy of the 15 `FaultDomainDimension` variants is pinned to #6121's reviewed draft revision, not a stable dependency. Any upstream change must trigger explicit compatibility review and fixture updates.
 - The maritime-to-generic dimension mapping below is proposed adapter policy. It requires owner review before it can be used in a real integration.
 
-The graph owner must provide stable canonical identities, graph/snapshot/profile digests, role bindings, exact node/edge path witnesses, currentness and per-role/dimension inventory completeness. The adapter only evaluates the supplied projection. It does not infer hidden dependencies from device names, vendor labels, IP ranges or organizational names.
+The graph owner must provide stable canonical identities, graph/snapshot/profile digests, role bindings, exact node/edge path witnesses, currentness and per-role × stage × dimension inventory completeness. The adapter only evaluates the supplied projection. It does not infer hidden dependencies from device names, vendor labels, IP ranges or organizational names.
 
 ## Proposed dimension mapping
 
@@ -65,7 +65,7 @@ The projection binds:
 - an explicit as-of timestamp and projection currentness;
 - exact source and witness role IDs and their binding nodes;
 - all known dependency identities, maritime classes and stable node/edge path witnesses;
-- `Complete`, `Partial`, `Unknown`, or `NotApplicable` inventory state for each role/dimension;
+- `Complete`, `Partial`, `Unknown`, or `NotApplicable` inventory state for each role × stage × dimension;
 - current, stale, revoked, or superseded witness state.
 
 A path witness must start at its role binding, terminate at the named dependency node, have consistent node/edge/relation counts, contain no repeated nodes, and not use an independence conclusion as a dependency edge. Unknown and potentially-correlated path relations remain valid *uncertainty evidence* and prevent a separation result.
@@ -74,9 +74,9 @@ A `NotApplicable` declaration includes both a rationale and an accountable owner
 
 ### Per-dimension outcomes
 
-- `SeparatedForProfile` — both role inventories are complete and current, their exact owner-native identity sets are disjoint for this dimension, and no unknown/potential-correlation path relation is present.
+- `SeparatedForProfile` — both role inventories for the same exact stage and dimension are complete and current, their exact owner-native identity sets are disjoint,  and no unknown/potential-correlation path relation is present.
 - `Shared` — at least one current exact dependency identity overlaps. This takes precedence over a partial remainder: the known common cause is still reported.
-- `Incomplete` — a known inventory is partial, or the required dimension is absent.
+- `Incomplete` — a known inventory is partial, or the required stage/dimension inventory is absent.
 - `Indeterminate` — a dependency is unknown, stale, superseded, or connected by a potentially-correlated/unknown relation, or the closure is not current.
 - `NotApplicable` — an owner-backed exclusion is declared. It blocks a mandatory v0.1 obligation.
 - `Invalid` — profile/schema binding, path shape, role binding, or projection is malformed, revoked, or contradictory.
@@ -85,7 +85,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 23 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 24 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
@@ -99,7 +99,8 @@ That is 900 deterministic identity-set cases. Additional tests cover:
 - partial disjoint inventory, unknown inventory and stale witnesses;
 - revoked or contradictory projection; malformed/cyclic path;
 - `PotentiallyCorrelated` and `DependencyUnknown` relations;
-- duplicate paths without duplicate identity counting; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
+- duplicate paths without duplicate identity counting;
+- separate inventory comparisons for the same generic dimension at different evidence stages; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
 - profile/as-of mismatch, missing required dimension and owner-backed non-applicability;
 - fine-grained maritime component mapping and dimension-qualified identity equality.
 
@@ -144,7 +145,7 @@ All targets below are prospective.
 |---|---|---|
 | P0 synthetic contract | Exact independent finite oracle; adversarial fixtures | 100% exact agreement; zero false `SeparatedForProfile` for shared, unknown, partial, stale, or potentially-correlated inputs; 100% preservation of known overlap and unknown remainder |
 | P1 owner contract integration | Exact #6124 closure schema + #6121 receiving schema, versioned and reviewed | No silent dimension loss; exact snapshot/profile/source binding; 100% direct mapping conformance |
-| P2 independent inventory audit | Independently reviewed dependency inventories and blind adjudication across distinct facilities | Measure false-separation and missed-dependency rates, with clustered effective sample sizes; aspirational corpus of ≥3,000 role × dimension decisions, not 3,000 duplicated rows |
+| P2 independent inventory audit | Independently reviewed dependency inventories and blind adjudication across distinct facilities | Measure false-separation and missed-dependency rates, with clustered effective sample sizes; aspirational corpus of ≥3,000 role × stage × dimension decisions, not 3,000 duplicated rows |
 | P3 read-only shadow | Rights-cleared terminal, rail or inland-depot observation under OT review | Capture completeness, dependency-discovery rate, unknown fraction, correction/staleness lag, p50/p95/p99 latency, memory and deterministic replay |
 | P4 controlled outcome evaluation | Matched lanes/sites, preregistered intervention and independent outcome adjudication | Test whether better evidence reduces exception backlog and p90 delay without harming safety, essential-cargo prioritization, fairness, energy or emissions |
 | P5 end-to-end delivery | Independent receiver evidence and custody-chain audit | False-delivery rate, unresolved handoffs, delivery completeness and durable end-to-end evidence |
