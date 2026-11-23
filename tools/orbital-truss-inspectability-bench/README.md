@@ -228,3 +228,8 @@ The certificate proves only that the entire declared enclosing support lies insi
 The function derive_planar_triangle_support now derives a candidate centroid, enclosing-ball radius and constant planar normal from three non-degenerate triangle vertices. The radius is the maximum centroid-to-vertex distance plus a 128-ULP-scaled coordinate margin; convexity of the triangle gives a geometric enclosure for every barycentric point. The returned derivation records that the support enclosure and planar normal cone were computed from the vertices, but also records that outward winding was still a caller assertion.
 
 This helper is intentionally labelled FLOAT64 with a coordinate-scale margin, not formal interval arithmetic. It does not verify that the supplied vertices identify the physical component, that the face winding is truly outward, or that a mesh is watertight. The frozen unit tests sample a deterministic barycentric grid, reject degenerate triangles and require an explicit outward-winding assertion. The envelope receipt continues to say precondition_proofs_verified_independently=false; these helper outputs do not silently upgrade the full-support certificate.
+
+
+## Benchmark and SOTA roadmap v0.4
+
+The expanded comparison of 2026 GSD k-coverage, support envelopes, TU Wien spatial sampling density and photometric visibility, feature-measurement-quality and multi-robot inspection is documented in `docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_4.md`. The matched benchmark ladder keeps all metrics separate.
