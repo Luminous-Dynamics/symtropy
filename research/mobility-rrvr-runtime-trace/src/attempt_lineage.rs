@@ -256,8 +256,10 @@ fn validate_recovery_handoff(
         return Err(LineageError::ParentOutcomeNotRetryable);
     }
 
-    if parent.persistence.outcome != PersistenceOutcome::DefinitelyNotCommitted
-        || parent.persistence.verdict != OwnerEvidenceStatus::Confirmed
+    if !matches!(
+        parent.persistence.outcome,
+        PersistenceOutcome::DefinitelyNotCommitted | PersistenceOutcome::Committed
+    ) || parent.persistence.verdict != OwnerEvidenceStatus::Confirmed
     {
         return Err(LineageError::PersistenceUnresolved);
     }
@@ -391,6 +393,13 @@ mod tests {
             recording.validate(),
             Err(LineageError::PersistenceUnresolved)
         );
+    }
+
+    #[test]
+    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect() {
+        let mut recording = valid_recording();
+        recording.attempts[0].persistence.outcome = PersistenceOutcome::Committed;
+        assert!(recording.validate().is_ok());
     }
 
     #[test]
