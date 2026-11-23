@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-route-recourse-known-answers-v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "answer_count",
+    "answers"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-route-recourse-known-answers-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ROUTE-RECOURSE-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "answer_count": {
+      "const": 600
+    },
+    "answers": {
+      "type": "array",
+      "minItems": 600,
+      "maxItems": 600,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "decision_id",
+          "recommendation",
+          "oracle_recommendation",
+          "recommendation_objective_units",
+          "oracle_objective_units"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "decision_id": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "object"
+          },
+          "oracle_recommendation": {
+            "type": "object"
+          },
+          "recommendation_objective_units": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "oracle_objective_units": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
