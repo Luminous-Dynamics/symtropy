@@ -20,7 +20,9 @@ pub struct OracleError {
 
 impl OracleError {
     fn new(reason: impl Into<String>) -> Self {
-        Self { reason: reason.into() }
+        Self {
+            reason: reason.into(),
+        }
     }
 }
 
@@ -86,26 +88,38 @@ fn is_finite_vector(values: &[f64]) -> bool {
 }
 
 fn stable_norm(values: &[f64]) -> f64 {
-    values.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
+    values
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 fn validate_patch(
     patch: &ContactPatch,
 ) -> Result<(Vec<ContactPoint>, Vec<WrenchDirection>), OracleError> {
     if !patch.friction_coefficient.is_finite() || patch.friction_coefficient < 0.0 {
-        return Err(OracleError::new("friction coefficient must be finite and non-negative"));
+        return Err(OracleError::new(
+            "friction coefficient must be finite and non-negative",
+        ));
     }
     if !patch.characteristic_length.is_finite() || patch.characteristic_length <= 0.0 {
-        return Err(OracleError::new("characteristic length must be finite and positive"));
+        return Err(OracleError::new(
+            "characteristic length must be finite and positive",
+        ));
     }
     if !patch.support_floor.is_finite() || patch.support_floor <= 0.0 {
-        return Err(OracleError::new("support floor must be finite and positive"));
+        return Err(OracleError::new(
+            "support floor must be finite and positive",
+        ));
     }
     if patch.points.is_empty() {
-        return Err(OracleError::new("contact patch must contain at least one point"));
+        return Err(OracleError::new(
+            "contact patch must contain at least one point",
+        ));
     }
     if patch.directions.is_empty() {
-        return Err(OracleError::new("at least one wrench direction is required"));
+        return Err(OracleError::new(
+            "at least one wrench direction is required",
+        ));
     }
 
     let mut points = patch.points.clone();
@@ -125,14 +139,18 @@ fn validate_patch(
     let mut direction_ids = BTreeSet::new();
     for direction in &directions {
         if direction.id.trim().is_empty() || !direction_ids.insert(direction.id.as_str()) {
-            return Err(OracleError::new("direction IDs must be non-empty and unique"));
+            return Err(OracleError::new(
+                "direction IDs must be non-empty and unique",
+            ));
         }
         let direction_norm = stable_norm(&direction.components);
         if !is_finite_vector(&direction.components)
             || direction_norm == 0.0
             || !direction_norm.is_finite()
         {
-            return Err(OracleError::new("wrench directions must have finite non-zero norm"));
+            return Err(OracleError::new(
+                "wrench directions must have finite non-zero norm",
+            ));
         }
     }
 
@@ -182,7 +200,9 @@ fn support_for_points(
         ));
     }
     if !support.is_finite() {
-        return Err(OracleError::new("support evaluation produced a non-finite value"));
+        return Err(OracleError::new(
+            "support evaluation produced a non-finite value",
+        ));
     }
     Ok(support)
 }
@@ -257,7 +277,9 @@ pub fn evaluate_retained_set(
     let mut requested = BTreeSet::new();
     for id in retained_point_ids {
         if id.trim().is_empty() || !requested.insert(id.as_str()) {
-            return Err(OracleError::new("retained point IDs must be non-empty and unique"));
+            return Err(OracleError::new(
+                "retained point IDs must be non-empty and unique",
+            ));
         }
     }
     let indices = points
@@ -266,7 +288,9 @@ pub fn evaluate_retained_set(
         .filter_map(|(index, point)| requested.contains(point.id.as_str()).then_some(index))
         .collect::<Vec<_>>();
     if indices.len() != requested.len() {
-        return Err(OracleError::new("retained set contains an unknown point ID"));
+        return Err(OracleError::new(
+            "retained set contains an unknown point ID",
+        ));
     }
     build_report(patch, &points, &directions, &indices, 1)
 }
@@ -290,7 +314,10 @@ fn combination_count(n: usize, k: usize) -> Result<u64, OracleError> {
 fn compare_reports(left: &WrenchSupportReport, right: &WrenchSupportReport) -> Ordering {
     left.maximum_normalized_deficit
         .total_cmp(&right.maximum_normalized_deficit)
-        .then_with(|| left.mean_normalized_deficit.total_cmp(&right.mean_normalized_deficit))
+        .then_with(|| {
+            left.mean_normalized_deficit
+                .total_cmp(&right.mean_normalized_deficit)
+        })
         .then_with(|| left.retained_point_ids.cmp(&right.retained_point_ids))
 }
 
@@ -326,7 +353,9 @@ pub fn select_exact_subset(
 ) -> Result<WrenchSupportReport, OracleError> {
     let (points, directions) = validate_patch(patch)?;
     if config.keep == 0 || config.keep > points.len() {
-        return Err(OracleError::new("keep must be in 1..=candidate point count"));
+        return Err(OracleError::new(
+            "keep must be in 1..=candidate point count",
+        ));
     }
     if config.maximum_subsets == 0 {
         return Err(OracleError::new("maximum_subsets must be positive"));
@@ -342,23 +371,17 @@ pub fn select_exact_subset(
     let mut best: Option<WrenchSupportReport> = None;
     let mut current = Vec::with_capacity(config.keep);
     let mut evaluated = 0_u64;
-    visit_combinations(
-        points.len(),
-        config.keep,
-        0,
-        &mut current,
-        &mut |indices| {
-            let candidate = build_report(patch, &points, &directions, indices, 0)?;
-            evaluated += 1;
-            if best
-                .as_ref()
-                .is_none_or(|incumbent| compare_reports(&candidate, incumbent).is_lt())
-            {
-                best = Some(candidate);
-            }
-            Ok(())
-        },
-    )?;
+    visit_combinations(points.len(), config.keep, 0, &mut current, &mut |indices| {
+        let candidate = build_report(patch, &points, &directions, indices, 0)?;
+        evaluated += 1;
+        if best
+            .as_ref()
+            .is_none_or(|incumbent| compare_reports(&candidate, incumbent).is_lt())
+        {
+            best = Some(candidate);
+        }
+        Ok(())
+    })?;
 
     let mut result =
         best.ok_or_else(|| OracleError::new("exact subset search produced no candidate"))?;
@@ -373,14 +396,32 @@ mod tests {
     fn patch() -> ContactPatch {
         ContactPatch {
             points: vec![
-                ContactPoint { id: "north-east".into(), position: [1.0, 1.0, 0.0] },
-                ContactPoint { id: "south-west".into(), position: [-1.0, -1.0, 0.0] },
-                ContactPoint { id: "north-west".into(), position: [-1.0, 1.0, 0.0] },
-                ContactPoint { id: "south-east".into(), position: [1.0, -1.0, 0.0] },
+                ContactPoint {
+                    id: "north-east".into(),
+                    position: [1.0, 1.0, 0.0],
+                },
+                ContactPoint {
+                    id: "south-west".into(),
+                    position: [-1.0, -1.0, 0.0],
+                },
+                ContactPoint {
+                    id: "north-west".into(),
+                    position: [-1.0, 1.0, 0.0],
+                },
+                ContactPoint {
+                    id: "south-east".into(),
+                    position: [1.0, -1.0, 0.0],
+                },
             ],
             directions: vec![
-                WrenchDirection { id: "positive-mx".into(), components: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0] },
-                WrenchDirection { id: "negative-mx".into(), components: [0.0, 0.0, 0.0, -1.0, 0.0, 0.0] },
+                WrenchDirection {
+                    id: "positive-mx".into(),
+                    components: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                },
+                WrenchDirection {
+                    id: "negative-mx".into(),
+                    components: [0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
+                },
             ],
             friction_coefficient: 0.5,
             characteristic_length: 1.0,
@@ -391,7 +432,11 @@ mod tests {
     #[test]
     fn retaining_all_points_has_zero_support_deficit() {
         let source = patch();
-        let ids = source.points.iter().map(|point| point.id.clone()).collect::<Vec<_>>();
+        let ids = source
+            .points
+            .iter()
+            .map(|point| point.id.clone())
+            .collect::<Vec<_>>();
         let report = evaluate_retained_set(&source, &ids).expect("full set");
         assert_eq!(report.maximum_normalized_deficit, 0.0);
         assert_eq!(report.mean_normalized_deficit, 0.0);
@@ -399,39 +444,82 @@ mod tests {
 
     #[test]
     fn exact_two_point_subset_preserves_both_moment_extremes() {
-        let report = select_exact_subset(&patch(), ExactSelectorConfig { keep: 2, maximum_subsets: 100 })
-            .expect("exact two-point subset");
+        let report = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("exact two-point subset");
         assert_eq!(report.maximum_normalized_deficit, 0.0);
-        assert!(report.retained_point_ids.iter().any(|id| id.starts_with("north")));
-        assert!(report.retained_point_ids.iter().any(|id| id.starts_with("south")));
+        assert!(
+            report
+                .retained_point_ids
+                .iter()
+                .any(|id| id.starts_with("north"))
+        );
+        assert!(
+            report
+                .retained_point_ids
+                .iter()
+                .any(|id| id.starts_with("south"))
+        );
         assert_eq!(report.subsets_evaluated, 6);
     }
 
     #[test]
     fn single_point_subset_cannot_preserve_both_moment_extremes() {
-        let report = select_exact_subset(&patch(), ExactSelectorConfig { keep: 1, maximum_subsets: 10 })
-            .expect("exact one-point subset");
+        let report = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 1,
+                maximum_subsets: 10,
+            },
+        )
+        .expect("exact one-point subset");
         assert!(report.maximum_normalized_deficit > 0.0);
         assert_eq!(report.subsets_evaluated, 4);
     }
 
     #[test]
     fn point_and_direction_permutations_do_not_change_selection() {
-        let first = select_exact_subset(&patch(), ExactSelectorConfig { keep: 2, maximum_subsets: 100 })
-            .expect("first result");
+        let first = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("first result");
         let mut reordered = patch();
         reordered.points.reverse();
         reordered.directions.reverse();
-        let second = select_exact_subset(&reordered, ExactSelectorConfig { keep: 2, maximum_subsets: 100 })
-            .expect("permuted result");
+        let second = select_exact_subset(
+            &reordered,
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("permuted result");
         assert_eq!(first.retained_point_ids, second.retained_point_ids);
-        assert_eq!(first.maximum_normalized_deficit, second.maximum_normalized_deficit);
+        assert_eq!(
+            first.maximum_normalized_deficit,
+            second.maximum_normalized_deficit
+        );
     }
 
     #[test]
     fn geometric_scaling_with_characteristic_length_is_invariant() {
-        let first = select_exact_subset(&patch(), ExactSelectorConfig { keep: 2, maximum_subsets: 100 })
-            .expect("unit patch");
+        let first = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("unit patch");
         let mut scaled = patch();
         for point in &mut scaled.points {
             for coordinate in &mut point.position {
@@ -439,16 +527,27 @@ mod tests {
             }
         }
         scaled.characteristic_length *= 100.0;
-        let second = select_exact_subset(&scaled, ExactSelectorConfig { keep: 2, maximum_subsets: 100 })
-            .expect("scaled patch");
+        let second = select_exact_subset(
+            &scaled,
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("scaled patch");
         assert_eq!(first.retained_point_ids, second.retained_point_ids);
-        assert!((first.maximum_normalized_deficit - second.maximum_normalized_deficit).abs() < 1.0e-12);
+        assert!(
+            (first.maximum_normalized_deficit - second.maximum_normalized_deficit).abs() < 1.0e-12
+        );
     }
 
     #[test]
     fn friction_direction_has_position_independent_support_for_shared_normal() {
         let mut source = patch();
-        source.directions = vec![WrenchDirection { id: "positive-fx".into(), components: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0] }];
+        source.directions = vec![WrenchDirection {
+            id: "positive-fx".into(),
+            components: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        }];
         let report = evaluate_retained_set(&source, &["north-east".into()]).expect("one contact");
         assert!((report.directions[0].full_patch_support - 0.5).abs() < 1.0e-12);
         assert!((report.directions[0].retained_patch_support - 0.5).abs() < 1.0e-12);
@@ -456,23 +555,43 @@ mod tests {
 
     #[test]
     fn direction_magnitude_does_not_change_normalized_report() {
-        let first = select_exact_subset(&patch(), ExactSelectorConfig { keep: 1, maximum_subsets: 10 })
-            .expect("unit direction");
+        let first = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 1,
+                maximum_subsets: 10,
+            },
+        )
+        .expect("unit direction");
         let mut doubled = patch();
         for direction in &mut doubled.directions {
             for component in &mut direction.components {
                 *component *= 100.0;
             }
         }
-        let second = select_exact_subset(&doubled, ExactSelectorConfig { keep: 1, maximum_subsets: 10 })
-            .expect("scaled directions");
+        let second = select_exact_subset(
+            &doubled,
+            ExactSelectorConfig {
+                keep: 1,
+                maximum_subsets: 10,
+            },
+        )
+        .expect("scaled directions");
         assert_eq!(first.retained_point_ids, second.retained_point_ids);
-        assert!((first.maximum_normalized_deficit - second.maximum_normalized_deficit).abs() < 1.0e-12);
+        assert!(
+            (first.maximum_normalized_deficit - second.maximum_normalized_deficit).abs() < 1.0e-12
+        );
     }
 
     #[test]
     fn exact_search_refuses_combinatorial_explosion() {
-        let result = select_exact_subset(&patch(), ExactSelectorConfig { keep: 2, maximum_subsets: 5 });
+        let result = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 5,
+            },
+        );
         assert!(result.is_err());
     }
 
@@ -480,7 +599,16 @@ mod tests {
     fn invalid_or_duplicate_point_ids_are_rejected() {
         let mut source = patch();
         source.points[1].id = source.points[0].id.clone();
-        assert!(select_exact_subset(&source, ExactSelectorConfig { keep: 2, maximum_subsets: 100 }).is_err());
+        assert!(
+            select_exact_subset(
+                &source,
+                ExactSelectorConfig {
+                    keep: 2,
+                    maximum_subsets: 100
+                }
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -492,7 +620,16 @@ mod tests {
     fn invalid_patch_parameters_are_rejected() {
         let mut source = patch();
         source.friction_coefficient = f64::NAN;
-        assert!(select_exact_subset(&source, ExactSelectorConfig { keep: 2, maximum_subsets: 100 }).is_err());
+        assert!(
+            select_exact_subset(
+                &source,
+                ExactSelectorConfig {
+                    keep: 2,
+                    maximum_subsets: 100
+                }
+            )
+            .is_err()
+        );
     }
 
     #[test]
