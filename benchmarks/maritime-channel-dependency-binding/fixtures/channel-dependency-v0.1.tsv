@@ -20,3 +20,4 @@ missing_required_dimension|ProfileIncomplete|Incomplete|Required role/dimension 
 not_applicable_required_dimension|ProfileIncomplete|NotApplicable|Rationale and accountable owner do not discharge mandatory obligation
 fine_grained_mapping|N/A|N/A|Maritime subtypes map to proposed owner-native dimensions without erasing subtype
 finite_identity_set_oracle|N/A|N/A|900 generated cases across 15x15 non-empty sets and four completeness combinations
+same_dimension_distinct_stages|ProfileObligationsNotMet|Shared+SeparatedForProfile|One generic dimension is shared at detection but disjoint at persistence/retrieval
