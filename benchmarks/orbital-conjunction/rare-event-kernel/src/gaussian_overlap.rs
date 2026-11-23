@@ -792,4 +792,393 @@ mod tests {
         );
     }
 
+
+/// Input covariance definiteness before NASA-style eigenvalue remediation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CovarianceDefiniteness {
+    /// At least one raw eigenvalue was negative.
+    Indefinite,
+    /// The minimum raw eigenvalue was exactly zero and none was negative.
+    PositiveSemidefinite,
+    /// Every raw eigenvalue was strictly positive.
+    PositiveDefinite,
+}
+
+/// Reproducible record of one NASA-style covariance eigenvalue clipping operation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NasaCovarianceClipReport {
+    /// Eigenvalues of the symmetrized, unremediated covariance, in ascending order.
+    pub raw_eigenvalues: [f64; 3],
+    /// Eigenvalues after applying max(lambda, clip_floor), in matching order.
+    pub remediated_eigenvalues: [f64; 3],
+    /// Eigenvectors as columns, corresponding to the eigenvalue arrays.
+    pub eigenvectors: Matrix3,
+    /// Definiteness classification before any clipping.
+    pub input_definiteness: CovarianceDefiniteness,
+    /// True exactly when one or more raw eigenvalues were strictly below the floor.
+    pub clipping_applied: bool,
+    /// Nonnegative eigenvalue floor used by the NASA compatibility calculation.
+    pub clip_floor: f64,
+    /// Reconstructed remediated covariance (or the symmetrized input when unchanged).
+    pub remediated_covariance: Matrix3,
+    /// Inverse of the remediated covariance.
+    pub remediated_covariance_inverse: Matrix3,
+    /// Log determinant of the remediated covariance.
+    pub remediated_log_determinant: f64,
+    /// Infinity-norm condition estimate of the remediated covariance.
+    pub remediated_condition: CovarianceConditionDiagnostics,
+}
+
+/// Parameters for the pinned NASA CARA PeakOverlapPos covariance policy.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NasaPeakOverlapConfig {
+    /// NASA's dimensionless eigenvalue clipping factor. The pinned source defaults to 1e-4.
+    pub fclip: f64,
+    /// Relative symmetry tolerance applied before the deterministic eigensolve.
+    pub symmetry_relative_tolerance: f64,
+}
+
+impl Default for NasaPeakOverlapConfig {
+    fn default() -> Self {
+        Self {
+            fclip: 1.0e-4,
+            symmetry_relative_tolerance: 1.0e-12,
+        }
+    }
+}
+
+/// Fixed-time overlap using the pinned NASA PeakOverlapPos eigenvalue-floor semantics.
+///
+/// This is intentionally separate from the strict gaussian_position_overlap function,
+/// which never repairs covariance. The compatibility path applies the same
+/// Lclip = (HBR * Fclip)^2 floor to both object position covariances and to the
+/// summed relative precision matrix, as the pinned CARA source does. Its report
+/// preserves all three raw/remediated eigenvalue sets and each clipping decision.
+///
+/// This implements only the fixed-time Gaussian overlap step. It does not perform
+/// the iterative center-of-linearity update, orbital-energy adjustment,
+/// equinoctial conversion, covariance/Jacobian re-evaluation, or oscillation logic.
+pub fn nasa_peak_overlap_compatibility(
+    primary: GaussianPositionDistribution3,
+    secondary: GaussianPositionDistribution3,
+    hard_body_radius: f64,
+    config: NasaPeakOverlapConfig,
+) -> Result<NasaPeakOverlapReport, KernelError> {
+    if !finite_vector(primary.mean_position)
+        || !finite_vector(secondary.mean_position)
+        || !hard_body_radius.is_finite()
+    {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if hard_body_radius <= 0.0
+        || !config.fclip.is_finite()
+        || config.fclip < 0.0
+        || !config.symmetry_relative_tolerance.is_finite()
+        || config.symmetry_relative_tolerance < 0.0
+        || config.symmetry_relative_tolerance > 1.0e-6
+    {
+        return Err(KernelError::InvalidNasaPeakOverlapConfig);
+    }
+
+    let scaled_floor = hard_body_radius * config.fclip;
+    let clip_floor = scaled_floor * scaled_floor;
+    if !scaled_floor.is_finite() || !clip_floor.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+
+    let primary_remediation = nasa_covariance_eigenvalue_clip(
+        primary.covariance,
+        clip_floor,
+        config.symmetry_relative_tolerance,
+    )?;
+    let secondary_remediation = nasa_covariance_eigenvalue_clip(
+        secondary.covariance,
+        clip_floor,
+        config.symmetry_relative_tolerance,
+    )?;
+
+    let raw_precision_sum = add_matrix(
+        primary_remediation.remediated_covariance_inverse,
+        secondary_remediation.remediated_covariance_inverse,
+    );
+    if !finite_matrix(raw_precision_sum) {
+        return Err(KernelError::NumericalOverflow);
+    }
+    // CARA applies the same eigenvalue floor to the summed precision matrix
+    // before inverting it to obtain the overlap covariance. This is not the
+    // same operation as clipping the overlap covariance itself.
+    let precision_remediation = nasa_covariance_eigenvalue_clip(
+        raw_precision_sum,
+        clip_floor,
+        config.symmetry_relative_tolerance,
+    )?;
+    let overlap_covariance = precision_remediation.remediated_covariance_inverse;
+
+    let primary_precision_mean = matrix_vector(
+        primary_remediation.remediated_covariance_inverse,
+        primary.mean_position,
+    );
+    let secondary_precision_mean = matrix_vector(
+        secondary_remediation.remediated_covariance_inverse,
+        secondary.mean_position,
+    );
+    let overlap_position = matrix_vector(
+        overlap_covariance,
+        add_vector(primary_precision_mean, secondary_precision_mean),
+    );
+    if !finite_vector(overlap_position) {
+        return Err(KernelError::NumericalOverflow);
+    }
+
+    let hbr_squared = hard_body_radius * hard_body_radius;
+    if !hbr_squared.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let mut remediated_metric_covariance = overlap_covariance;
+    for (axis, row) in remediated_metric_covariance.iter_mut().enumerate() {
+        row[axis] += hbr_squared;
+    }
+    let (remediated_metric_inverse, remediated_metric_condition) =
+        inverse_and_condition(remediated_metric_covariance)?;
+
+    Ok(NasaPeakOverlapReport {
+        overlap_position,
+        overlap_covariance,
+        remediated_metric_covariance,
+        remediated_metric_inverse,
+        primary_remediation,
+        secondary_remediation,
+        precision_remediation,
+        remediated_metric_condition,
+        hard_body_radius,
+        fclip: config.fclip,
+        clip_floor,
+    })
+}
+
+/// Apply the pinned CARA CovRemEigValClip eigenvalue-floor operation to a 3x3 covariance.
+///
+/// The input is symmetrized only after its asymmetry has passed the declared
+/// tolerance. The definiteness status is captured before clipping. The function
+/// requires every remediated eigenvalue to be strictly positive because this
+/// Rust report always includes an inverse; a zero floor that leaves a zero
+/// eigenvalue therefore fails closed instead of returning an infinite inverse.
+pub fn nasa_covariance_eigenvalue_clip(
+    raw_covariance: Matrix3,
+    clip_floor: f64,
+    symmetry_relative_tolerance: f64,
+) -> Result<NasaCovarianceClipReport, KernelError> {
+    if !finite_matrix(raw_covariance) || !clip_floor.is_finite() {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if clip_floor < 0.0
+        || !symmetry_relative_tolerance.is_finite()
+        || symmetry_relative_tolerance < 0.0
+        || symmetry_relative_tolerance > 1.0e-6
+    {
+        return Err(KernelError::InvalidNasaPeakOverlapConfig);
+    }
+
+    let (symmetric_raw, _) = checked_symmetric(raw_covariance, symmetry_relative_tolerance)?;
+    let (raw_eigenvalues, eigenvectors) = symmetric_eigendecomposition(symmetric_raw)?;
+    let minimum = raw_eigenvalues[0];
+    let input_definiteness = if minimum < 0.0 {
+        CovarianceDefiniteness::Indefinite
+    } else if minimum == 0.0 {
+        CovarianceDefiniteness::PositiveSemidefinite
+    } else {
+        CovarianceDefiniteness::PositiveDefinite
+    };
+
+    let remediated_eigenvalues = raw_eigenvalues.map(|value| value.max(clip_floor));
+    let clipping_applied = raw_eigenvalues
+        .iter()
+        .any(|value| *value < clip_floor);
+    if remediated_eigenvalues.iter().any(|value| *value <= 0.0) {
+        return Err(KernelError::NotPositiveDefinite);
+    }
+
+    let remediated_covariance = if clipping_applied {
+        reconstruct_symmetric(eigenvectors, remediated_eigenvalues)?
+    } else {
+        symmetric_raw
+    };
+    let inverse_eigenvalues = remediated_eigenvalues.map(|value| value.recip());
+    if inverse_eigenvalues.iter().any(|value| !value.is_finite()) {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let remediated_covariance_inverse =
+        reconstruct_symmetric(eigenvectors, inverse_eigenvalues)?;
+    let remediated_log_determinant: f64 =
+        remediated_eigenvalues.iter().map(|value| value.ln()).sum();
+    if !remediated_log_determinant.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let covariance_infinity_norm = infinity_norm(remediated_covariance);
+    let inverse_infinity_norm = infinity_norm(remediated_covariance_inverse);
+    let condition_estimate = covariance_infinity_norm * inverse_infinity_norm;
+    if !condition_estimate.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+
+    Ok(NasaCovarianceClipReport {
+        raw_eigenvalues,
+        remediated_eigenvalues,
+        eigenvectors,
+        input_definiteness,
+        clipping_applied,
+        clip_floor,
+        remediated_covariance,
+        remediated_covariance_inverse,
+        remediated_log_determinant,
+        remediated_condition: CovarianceConditionDiagnostics {
+            covariance_infinity_norm,
+            inverse_infinity_norm,
+            condition_estimate,
+        },
+    })
+}
+
+fn symmetric_eigendecomposition(
+    mut matrix: Matrix3,
+) -> Result<([f64; 3], Matrix3), KernelError> {
+    let mut eigenvectors = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+    let mut converged = false;
+
+    for _ in 0..96 {
+        let mut p = 0;
+        let mut q = 1;
+        let mut maximum = matrix[0][1].abs();
+        for (i, j) in [(0, 2), (1, 2)] {
+            if matrix[i][j].abs() > maximum {
+                maximum = matrix[i][j].abs();
+                p = i;
+                q = j;
+            }
+        }
+        let scale = max_abs_matrix(matrix);
+        if maximum <= 32.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE) {
+            converged = true;
+            break;
+        }
+
+        let off_diagonal = matrix[p][q];
+        let tau = (matrix[q][q] - matrix[p][p]) / (2.0 * off_diagonal);
+        if !tau.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
+        let t = if tau >= 0.0 {
+            1.0 / (tau + tau.hypot(1.0))
+        } else {
+            -1.0 / (-tau + tau.hypot(1.0))
+        };
+        let cosine = 1.0 / (1.0 + t * t).sqrt();
+        let sine = t * cosine;
+        let diagonal_shift = t * off_diagonal;
+        matrix[p][p] -= diagonal_shift;
+        matrix[q][q] += diagonal_shift;
+        matrix[p][q] = 0.0;
+        matrix[q][p] = 0.0;
+
+        for k in 0..3 {
+            if k != p && k != q {
+                let old_kp = matrix[k][p];
+                let old_kq = matrix[k][q];
+                let new_kp = cosine * old_kp - sine * old_kq;
+                let new_kq = sine * old_kp + cosine * old_kq;
+                matrix[k][p] = new_kp;
+                matrix[p][k] = new_kp;
+                matrix[k][q] = new_kq;
+                matrix[q][k] = new_kq;
+            }
+
+            let old_vp = eigenvectors[k][p];
+            let old_vq = eigenvectors[k][q];
+            eigenvectors[k][p] = cosine * old_vp - sine * old_vq;
+            eigenvectors[k][q] = sine * old_vp + cosine * old_vq;
+        }
+
+        if !finite_matrix(matrix) || !finite_matrix(eigenvectors) {
+            return Err(KernelError::NumericalOverflow);
+        }
+    }
+
+    if !converged {
+        let mut maximum: f64 = 0.0;
+        for (i, j) in [(0, 1), (0, 2), (1, 2)] {
+            maximum = maximum.max(matrix[i][j].abs());
+        }
+        let scale = max_abs_matrix(matrix).max(f64::MIN_POSITIVE);
+        if maximum > 128.0 * f64::EPSILON * scale {
+            return Err(KernelError::EigenDecompositionDidNotConverge);
+        }
+    }
+
+    let mut eigenvalues = [matrix[0][0], matrix[1][1], matrix[2][2]];
+    // Deterministic ascending eigenvalue order; eigenvector columns follow.
+    for i in 0..3 {
+        for j in (i + 1)..3 {
+            if eigenvalues[j] < eigenvalues[i] {
+                eigenvalues.swap(i, j);
+                for row in &mut eigenvectors {
+                    row.swap(i, j);
+                }
+            }
+        }
+    }
+    if eigenvalues.iter().any(|value| !value.is_finite()) || !finite_matrix(eigenvectors) {
+        return Err(KernelError::NumericalOverflow);
+    }
+    Ok((eigenvalues, eigenvectors))
+}
+
+fn reconstruct_symmetric(
+    eigenvectors: Matrix3,
+    eigenvalues: [f64; 3],
+) -> Result<Matrix3, KernelError> {
+    let mut matrix = [[0.0; 3]; 3];
+    for row in 0..3 {
+        for column in 0..3 {
+            let mut value = 0.0;
+            for axis in 0..3 {
+                value += eigenvectors[row][axis]
+                    * eigenvalues[axis]
+                    * eigenvectors[column][axis];
+            }
+            matrix[row][column] = value;
+        }
+    }
+    if !finite_matrix(matrix) {
+        return Err(KernelError::NumericalOverflow);
+    }
+    Ok(matrix)
+}
+
+/// Fixed-time NASA-compatible overlap result, with every covariance floor preserved.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NasaPeakOverlapReport {
+    /// Product-Gaussian overlap position.
+    pub overlap_position: [f64; 3],
+    /// Product covariance after NASA's clipping of the summed precision matrix.
+    pub overlap_covariance: Matrix3,
+    /// HBR-remediated convergence covariance: overlap covariance + HBR² I.
+    pub remediated_metric_covariance: Matrix3,
+    /// Inverse of the HBR-remediated convergence covariance.
+    pub remediated_metric_inverse: Matrix3,
+    /// Eigenvalue-clipping evidence for the primary position covariance.
+    pub primary_remediation: NasaCovarianceClipReport,
+    /// Eigenvalue-clipping evidence for the secondary position covariance.
+    pub secondary_remediation: NasaCovarianceClipReport,
+    /// Eigenvalue-clipping evidence for the summed relative precision matrix.
+    pub precision_remediation: NasaCovarianceClipReport,
+    /// Condition diagnostics for the HBR-remediated metric.
+    pub remediated_metric_condition: CovarianceConditionDiagnostics,
+    /// Hard-body radius in the same length units as the positions.
+    pub hard_body_radius: f64,
+    /// Dimensionless eigenvalue clipping factor from the NASA parameters.
+    pub fclip: f64,
+    /// Lclip = (HBR * Fclip)^2, applied to both source covariances and their precision sum.
+    pub clip_floor: f64,
+};
+
 }
