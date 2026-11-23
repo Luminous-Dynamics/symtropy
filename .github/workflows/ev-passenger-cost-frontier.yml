@@ -149,6 +149,9 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_oracle_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json '
             . as $input
             | ($schema[0].required | sort) as $required
@@ -160,6 +163,18 @@ jobs:
             and all($input.aerial_opportunity_qualifications[]; has("opportunity_id") and (has("aircraft_id") | not) and (has("start_seconds") | not) and (has("mission_duration_seconds") | not) and (has("turnaround_seconds") | not))
             and all($input.aerial_opportunity_qualifications[]; .evidence.capacity_opportunity_id == .opportunity_id and .evidence.site_id == $input.site_id and .evidence.site_configuration_digest == $input.site_configuration_digest)
           ' tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_oracle_v0_1.schema.json '
+            . as $tree
+            | (($tree | keys | sort) == ($schema[0].required | sort))
+            and ($tree.benchmark_id == "NONANTICIPATIVE-SERVICE-ORACLE-001")
+            and (($tree.nodes | length) == 3)
+            and (($tree.nodes | map(.node_id) | unique | length) == 3)
+            and ($tree.nodes[0].node_id == "root" and $tree.nodes[0].conditional_probability_ppm == 1000000)
+            and ([ $tree.nodes[] | select(.parent_node_id == "root") | .conditional_probability_ppm ] | add) == 1000000
+            and ($tree.nodes[0].aerial_reveals[0].opportunity_id == "aircraft-00-mission-000000")
+            and ($tree.nodes[1].request_reveals[0].request_id == "request-hidden-later")
+            and ($tree.nodes[1].decision_time_seconds > $tree.nodes[0].decision_time_seconds)
+          ' tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
 
             . as $queue
@@ -634,6 +649,32 @@ jobs:
             and ([.exact_oracle.policy_gaps[] | select(.policy == "earliest_deadline_first") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds] == [0,0,0,0])
           ' sustainable-mobility-service-quality-exact-oracle-report.json
           cat sustainable-mobility-service-quality-exact-oracle-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin nonanticipative_service_oracle_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+            > nonanticipative-service-oracle-report.json
+          jq -e '
+            .benchmark_id == "NONANTICIPATIVE-SERVICE-ORACLE-001"
+            and .status == "evaluated"
+            and .information_model == "nonanticipative_policy_by_revealed_information_set"
+            and .nonanticipativity_enforced_by_shared_information_nodes == true
+            and .deployable_online_policy == false
+            and .node_count == 3
+            and .leaf_count == 2
+            and .maximum_tree_depth == 1
+            and (.transitions > 0 and .transitions <= 1000000)
+            and (.policy | length) == 3
+            and ([.policy[] | select(.node_id == "root") | .assignments[0].request_id] == ["request-visible-early"])
+            and ([.leaf_results[] | select(.leaf_node_id == "high-demand") | .on_time_services, .clairvoyant_on_time_services] == [1,2])
+            and ([.leaf_results[] | select(.leaf_node_id == "low-demand") | .on_time_services, .clairvoyant_on_time_services] == [1,1])
+            and (.value_of_perfect_information.additional_on_time_services_numerator > 0)
+            and (.expected_clairvoyant_full_information.on_time_services_numerator > .expected_nonanticipative.on_time_services_numerator)
+            and .ledger_or_physical_mutation_performed == false
+            and .flight_authority_granted == false
+            and .market_or_dispatch_authority_granted == false
+          ' nonanticipative-service-oracle-report.json
+          cat nonanticipative-service-oracle-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -684,6 +725,13 @@ jobs:
             sustainable-mobility-service-quality-linked-report.json \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json \
             sustainable-mobility-service-quality-exact-oracle-report.json \
+            tools/ev-passenger-cost-frontier/src/nonanticipative_service_oracle.rs \
+            tools/ev-passenger-cost-frontier/src/bin/nonanticipative_service_oracle_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_oracle_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json \
+            docs/research/NONANTICIPATIVE_SERVICE_ORACLE_BENCHMARK_V0_1.md \
+            nonanticipative-service-oracle-report.json \
             docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/sustainable_mobility_service_quality_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json \
@@ -739,6 +787,11 @@ jobs:
             sustainable-mobility-service-quality-report.json
             sustainable-mobility-service-quality-linked-report.json
             sustainable-mobility-service-quality-exact-oracle-report.json
+            nonanticipative-service-oracle-report.json
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json
+            tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_oracle_v0_1.schema.json
+            docs/research/NONANTICIPATIVE_SERVICE_ORACLE_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
             docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
