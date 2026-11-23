@@ -293,11 +293,11 @@ fn validate_qp(
     let matrix_tolerance = tolerances.matrix_relative * matrix_scale;
     let mut maximum_symmetry_error = 0.0_f64;
     let mut symmetric = vec![vec![0.0_f64; dimension]; dimension];
-    for i in 0..dimension {
-        for j in 0..dimension {
+    for (i, row) in symmetric.iter_mut().enumerate() {
+        for (j, value) in row.iter_mut().enumerate() {
             let difference = (qp.delassus[i][j] - qp.delassus[j][i]).abs();
             maximum_symmetry_error = maximum_symmetry_error.max(difference);
-            symmetric[i][j] = 0.5 * (qp.delassus[i][j] + qp.delassus[j][i]);
+            *value = 0.5 * (qp.delassus[i][j] + qp.delassus[j][i]);
         }
     }
     if maximum_symmetry_error > matrix_tolerance {
