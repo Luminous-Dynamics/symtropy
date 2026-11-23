@@ -19,6 +19,44 @@ use crate::gjk;
 use crate::integrator;
 use crate::manifold_gen;
 
+/// Failure to assign a stable network identity without violating the
+/// body's unique NetId ownership relation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NetIdAssignmentError {
+    /// The requested body handle does not resolve to a live body.
+    BodyNotFound { handle: BodyHandle },
+    /// The handle resolves through the index, but the indexed body has a
+    /// different identity.
+    InconsistentBodyIndex { handle: BodyHandle },
+    /// Another live body or the reverse index already claims this NetId.
+    DuplicateNetId { net_id: NetId, owner: BodyHandle },
+    /// The target body's current NetId and reverse index already disagree.
+    InconsistentNetIdIndex { handle: BodyHandle },
+}
+
+impl std::fmt::Display for NetIdAssignmentError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BodyNotFound { handle } => write!(formatter, "body {handle:?} not found"),
+            Self::InconsistentBodyIndex { handle } => {
+                write!(formatter, "body index for {handle:?} is inconsistent")
+            }
+            Self::DuplicateNetId { net_id, owner } => {
+                write!(
+                    formatter,
+                    "NetId({}) is already owned by {owner:?}",
+                    net_id.0
+                )
+            }
+            Self::InconsistentNetIdIndex { handle } => {
+                write!(formatter, "NetId index for {handle:?} is inconsistent")
+            }
+        }
+    }
+}
+
+impl std::error::Error for NetIdAssignmentError {}
+
 /// Relative approach speed (units/sec) below which restitution is not
 /// applied, to avoid tiny resting-contact jitter being amplified into a
 /// perpetual micro-bounce. Mirrors Box2D's `b2_velocityThreshold` default.
@@ -357,18 +395,83 @@ impl<const D: usize> PhysicsWorld<D> {
         self.body(handle).and_then(|b| b.net_id)
     }
 
-    /// Assign a stable network identifier to a body.
+    /// Assign a stable network identifier to a body without risking a
+    /// duplicate-owner or partial-update inconsistency.
+    ///
+    /// The method checks both the reverse index and the body storage because
+    /// `RigidBody::net_id` remains publicly mutable for source compatibility.
+    /// A duplicate discovered in either representation rejects the operation
+    /// before changing the target body or either index.
+    pub fn try_set_net_id(
+        &mut self,
+        handle: BodyHandle,
+        net_id: NetId,
+    ) -> Result<(), NetIdAssignmentError> {
+        let index = self
+            .handle_to_index
+            .get(&handle)
+            .copied()
+            .ok_or(NetIdAssignmentError::BodyNotFound { handle })?;
+        let body = self
+            .bodies
+            .get(index)
+            .filter(|body| body.handle == handle)
+            .ok_or(NetIdAssignmentError::InconsistentBodyIndex { handle })?;
+
+        // Reject stale/conflicting reverse-index ownership.
+        if let Some(owner) = self.net_id_map.get(&net_id).copied()
+            && owner != handle
+        {
+            return Err(NetIdAssignmentError::DuplicateNetId { net_id, owner });
+        }
+
+        // Public body fields can be changed without updating net_id_map.
+        // Scan authoritative storage as a defensive guard until identity
+        // mutation is fully encapsulated by the PhysicsWorld API.
+        if let Some(owner) = self
+            .bodies
+            .iter()
+            .find(|other| other.handle != handle && other.net_id == Some(net_id))
+            .map(|other| other.handle)
+        {
+            return Err(NetIdAssignmentError::DuplicateNetId { net_id, owner });
+        }
+
+        // Refuse to build on an already inconsistent mapping. Silently
+        // repairing it here would make the operation appear authoritative
+        // without proving that the existing state was valid.
+        if let Some(old_id) = body.net_id
+            && self.net_id_map.get(&old_id).copied() != Some(handle)
+        {
+            return Err(NetIdAssignmentError::InconsistentNetIdIndex { handle });
+        }
+        if self
+            .net_id_map
+            .iter()
+            .any(|(indexed_id, owner)| *owner == handle && Some(*indexed_id) != body.net_id)
+        {
+            return Err(NetIdAssignmentError::InconsistentNetIdIndex { handle });
+        }
+
+        let old_id = body.net_id;
+        if old_id == Some(net_id) {
+            return Ok(());
+        }
+
+        if let Some(old_id) = old_id {
+            self.net_id_map.remove(&old_id);
+        }
+        self.bodies[index].net_id = Some(net_id);
+        self.net_id_map.insert(net_id, handle);
+        Ok(())
+    }
+
+    /// Compatibility wrapper for callers that do not yet handle assignment
+    /// errors. Conflicting assignments fail closed without modifying the
+    /// world. New code should use `try_set_net_id` to observe and handle the
+    /// specific error.
     pub fn set_net_id(&mut self, handle: BodyHandle, net_id: NetId) {
-        let old_id = self.body(handle).and_then(|b| b.net_id);
-
-        if let Some(old) = old_id {
-            self.net_id_map.remove(&old);
-        }
-
-        if let Some(body) = self.body_mut(handle) {
-            body.net_id = Some(net_id);
-            self.net_id_map.insert(net_id, handle);
-        }
+        let _ = self.try_set_net_id(handle, net_id);
     }
 
     /// Add a constraint between two bodies.
@@ -2559,5 +2662,103 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod net_id_assignment_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    #[test]
+    fn duplicate_net_id_assignment_is_atomic() {
+        let mut world = PhysicsWorld::<3>::default();
+        let first = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
+        let second = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+
+        world.try_set_net_id(first, NetId(11)).unwrap();
+        world.try_set_net_id(second, NetId(22)).unwrap();
+
+        let error = world.try_set_net_id(second, NetId(11)).unwrap_err();
+        assert_eq!(
+            error,
+            NetIdAssignmentError::DuplicateNetId {
+                net_id: NetId(11),
+                owner: first,
+            }
+        );
+
+        // A failed reassignment must preserve both body values and both sides
+        // of the reverse mapping.
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(11)));
+        assert_eq!(world.net_id_for_handle(second), Some(NetId(22)));
+        assert_eq!(world.handle_for_net_id(NetId(11)), Some(first));
+        assert_eq!(world.handle_for_net_id(NetId(22)), Some(second));
+        assert_eq!(world.net_id_map.len(), 2);
+        assert_eq!(world.net_id_map.get(&NetId(11)), Some(&first));
+        assert_eq!(world.net_id_map.get(&NetId(22)), Some(&second));
+    }
+
+    #[test]
+    fn assignment_detects_duplicate_body_field_even_when_reverse_index_was_bypassed() {
+        let mut world = PhysicsWorld::<3>::default();
+        let first = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
+        let second = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+
+        // Simulate the current public-field bypass: the body claims a NetId
+        // without publishing the matching reverse-index entry.
+        world.body_mut(first).unwrap().net_id = Some(NetId(41));
+
+        assert_eq!(
+            world.try_set_net_id(second, NetId(41)),
+            Err(NetIdAssignmentError::DuplicateNetId {
+                net_id: NetId(41),
+                owner: first,
+            })
+        );
+        assert_eq!(world.body(second).unwrap().net_id, None);
+        assert_eq!(world.net_id_map.get(&NetId(41)), None);
+    }
+
+    #[test]
+    fn same_owner_reassignment_is_idempotent_and_replacement_updates_both_sides() {
+        let mut world = PhysicsWorld::<3>::default();
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+
+        world.try_set_net_id(handle, NetId(7)).unwrap();
+        world.try_set_net_id(handle, NetId(7)).unwrap();
+        world.try_set_net_id(handle, NetId(8)).unwrap();
+
+        assert_eq!(world.net_id_for_handle(handle), Some(NetId(8)));
+        assert_eq!(world.handle_for_net_id(NetId(7)), None);
+        assert_eq!(world.handle_for_net_id(NetId(8)), Some(handle));
+        assert_eq!(world.net_id_map.len(), 1);
+    }
+
+    #[test]
+    fn unknown_body_is_rejected_without_creating_a_reverse_mapping() {
+        let mut world = PhysicsWorld::<3>::default();
+        let missing = BodyHandle(999);
+
+        assert_eq!(
+            world.try_set_net_id(missing, NetId(9)),
+            Err(NetIdAssignmentError::BodyNotFound { handle: missing })
+        );
+        assert!(world.net_id_map.is_empty());
+    }
+
+    #[test]
+    fn legacy_setter_fails_closed_on_duplicate_without_stealing_ownership() {
+        let mut world = PhysicsWorld::<3>::default();
+        let first = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
+        let second = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        world.try_set_net_id(first, NetId(13)).unwrap();
+
+        // The compatibility API retains its signature but cannot steal the ID.
+        world.set_net_id(second, NetId(13));
+
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(13)));
+        assert_eq!(world.net_id_for_handle(second), None);
+        assert_eq!(world.handle_for_net_id(NetId(13)), Some(first));
     }
 }
