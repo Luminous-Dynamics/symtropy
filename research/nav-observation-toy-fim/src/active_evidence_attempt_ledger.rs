@@ -851,7 +851,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_cannot_be_reconciled_to_another_unknown() {
+    fn invalid_reconciliation_receipt_keeps_unknown_blocked() {
         let mut ledger = ActiveEvidenceAttemptLedger::new(policy(2)).unwrap();
         ledger.begin_attempt(request(7, 100)).unwrap();
         ledger.record_outcome(100, unknown(), state()).unwrap();
