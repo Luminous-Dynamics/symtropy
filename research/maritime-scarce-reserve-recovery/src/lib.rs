@@ -1200,6 +1200,24 @@ mod tests {
         assert_eq!(revoked_b.action, Action::ReserveToA);
         assert_eq!(authorization_disposition(&WORLDS[4]), "B_REVOKED");
 
+        // Absolute deadline misses remain visible in worlds where no
+        // consent-respecting feasible action can serve the critical party.
+        // They are not additional regret relative to the feasible oracle.
+        assert_eq!(
+            inspection
+                .world_decisions
+                .iter()
+                .filter(|decision| decision.outcome.missed_critical_deadlines > 0)
+                .count(),
+            3
+        );
+        assert!(
+            inspection
+                .world_decisions
+                .iter()
+                .all(|decision| decision.regret.additional_critical_deadlines_missed == 0)
+        );
+
         assert!(inspection.recommended);
     }
 
