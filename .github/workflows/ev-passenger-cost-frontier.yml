@@ -154,9 +154,10 @@ jobs:
             | (($input | keys | sort) == $required)
             and all($input.aerial_opportunity_qualifications[];
               (. | keys | sort) == ["evidence", "max_payload_units", "opportunity_id"]
-              and ((.evidence | keys | sort) == ["aircraft_id", "architecture_configuration_digest", "evidence_class", "evidence_reference", "method_id", "observed_at_seconds", "producer_id", "valid_from_seconds", "valid_until_seconds"])
+              and ((.evidence | keys | sort) == ["aircraft_id", "architecture_configuration_digest", "capacity_opportunity_id", "evidence_class", "evidence_reference", "method_id", "observed_at_seconds", "producer_id", "site_configuration_digest", "site_id", "valid_from_seconds", "valid_until_seconds"])
             )
             and all($input.aerial_opportunity_qualifications[]; has("opportunity_id") and (has("aircraft_id") | not) and (has("start_seconds") | not) and (has("mission_duration_seconds") | not) and (has("turnaround_seconds") | not))
+            and all($input.aerial_opportunity_qualifications[]; .evidence.capacity_opportunity_id == .opportunity_id and .evidence.site_id == $input.site_id and .evidence.site_configuration_digest == $input.site_configuration_digest)
           ' tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
 
