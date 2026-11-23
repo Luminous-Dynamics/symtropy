@@ -1011,6 +1011,27 @@ mod tests {
     }
 
     #[test]
+    fn world_statistics_stream_is_the_independent_iteration_oracle() {
+        let plan = plan();
+        let profile = profile(&plan);
+        let mut world = mock_transport(&plan).world;
+        assert_eq!(world.validate_against_profile(&profile), Ok(()));
+
+        world.world_statistics.iterations += 1;
+        assert_eq!(
+            world.validate_against_profile(&profile),
+            Err(GazeboAdapterError::WorldStatisticsMismatch)
+        );
+
+        let mut wrong_topic = profile.clone();
+        wrong_topic.world_stats_topic = "/world/other/stats".into();
+        assert_eq!(
+            wrong_topic.validate_for_plan(&plan),
+            Err(GazeboAdapterError::InvalidCapabilityProfile)
+        );
+    }
+
+    #[test]
     fn rejects_unresolved_world_identity_and_invalid_snapshot_digest() {
         let plan = plan();
         let profile = profile(&plan);
