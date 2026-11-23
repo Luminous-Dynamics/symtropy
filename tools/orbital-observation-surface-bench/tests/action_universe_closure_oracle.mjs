@@ -35,6 +35,11 @@ function evaluateCase(item) {
   if (digestActionPayloads(item.actions) !== item.expected_action_payloads_sha256) {
     throw new Error(`${item.case_id}: action payload digest mismatch`);
   }
+  for (const enumerator of item.enumerators) {
+    if (digestIds(enumerator.dependency_ids) !== enumerator.dependency_ids_sha256) {
+      throw new Error(`${item.case_id}: dependency inventory digest mismatch`);
+    }
+  }
 
   const expectedPartitions = asSet(item.expected_partition_ids);
   const observedPartitions = asSet(item.partitions.map(partition => partition.partition_id));
@@ -96,6 +101,7 @@ function evaluateCase(item) {
 
   if (!exclusionInventoryMatches) {
     unwitnessedExclusionIds.push(...difference(expectedExclusions, observedExclusions));
+    unwitnessedExclusionIds.push(...difference(observedExclusions, expectedExclusions));
   }
   const uniqueUnwitnessed = [...new Set(unwitnessedExclusionIds)].sort();
 
@@ -140,6 +146,9 @@ function evaluateCase(item) {
     && methods.size === item.enumerators.length
     && algorithms.size === item.enumerators.length
     && registries.size === item.enumerators.length
+    && item.enumerators.every(enumerator =>
+      enumerator.dependency_inventory_receipt_id.trim().length > 0
+      && enumerator.dependency_ids.length > 0)
     && commonDependencies.size === 0;
   const enumeratorAgreement = enumeratorSets.length > 0
     && enumeratorSets.every(set => equalSet(set, expectedActions))
