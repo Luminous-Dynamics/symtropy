@@ -29,14 +29,16 @@
       "required_external_evidence": [
         "density_ratio_estimator_id",
         "finite_ratio_evidence",
+        "conditional_law_stability_evidence_id",
         "conditional_law_stability_evidence_id"
       ],
       "required_thresholds": [
         "minimum_effective_sample_size",
-        "maximum_normalized_weight",
+        "maximum_normalized_weight_at_least_1",
         "minimum_overlap_fraction"
       ],
-      "does_not_prove": "covariate shift or conditional outcome-law stability"
+      "does_not_prove": "covariate shift or conditional outcome-law stability",
+      "weight_convention": "weights are normalized to mean one over the calibration cohort; maximum normalized weight must be >=1"
     },
     "rolling_split_conformal": {
       "supported_by_v0": false
@@ -142,5 +144,6 @@
     "weighted_conformal_preprint": "https://arxiv.org/abs/2611.20052",
     "piv_roadmap": "https://doi.org/10.1088/1361-6501/ad774b",
     "holodrops": "https://doi.org/10.5194/amt-19-6973-2026"
-  }
+  },
+  "v0_tests_authored": 15
 }
