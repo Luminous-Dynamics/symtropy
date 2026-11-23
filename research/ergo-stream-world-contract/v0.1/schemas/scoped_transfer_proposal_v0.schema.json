@@ -108,6 +108,7 @@
       "required": [
         "episode_id",
         "evidence_prefix_sha256",
+        "structure",
         "scope"
       ],
       "properties": {
@@ -121,6 +122,9 @@
         },
         "scope": {
           "$ref": "#/$defs/scope"
+        },
+        "structure": {
+          "$ref": "#/$defs/structure_snapshot"
         }
       }
     },
@@ -217,6 +221,99 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/relation_mapping"
+          }
+        }
+      }
+    },
+    "node_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "relation_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "orientation",
+        "participants",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "orientation": {
+          "enum": [
+            "directed",
+            "undirected"
+          ]
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "structure_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "relations"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node_snapshot"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_snapshot"
           }
         }
       }
