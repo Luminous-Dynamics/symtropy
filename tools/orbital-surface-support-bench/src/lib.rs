@@ -79,10 +79,18 @@ struct Vec3 {
 
 impl Vec3 {
     fn from_array(values: [f64; 3]) -> Self {
-        Self { x: values[0], y: values[1], z: values[2] }
+        Self {
+            x: values[0],
+            y: values[1],
+            z: values[2],
+        }
     }
     fn sub(self, other: Self) -> Self {
-        Self { x: self.x - other.x, y: self.y - other.y, z: self.z - other.z }
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+        }
     }
     fn norm(self) -> f64 {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
@@ -90,7 +98,9 @@ impl Vec3 {
     fn normalized(self) -> Option<Self> {
         let norm = self.norm();
         (norm.is_finite() && norm > 1.0e-12).then(|| Self {
-            x: self.x / norm, y: self.y / norm, z: self.z / norm,
+            x: self.x / norm,
+            y: self.y / norm,
+            z: self.z / norm,
         })
     }
     fn dot(self, other: Self) -> f64 {
@@ -152,7 +162,11 @@ fn ceil_scaled(value: f64, scale: f64) -> Option<i64> {
         .then(|| scaled.ceil() as i64)
 }
 
-fn occlusion_aabb_candidates(case: &GsdCase, support: &SurfaceSupport, sensor: Vec3) -> Vec<[usize; 3]> {
+fn occlusion_aabb_candidates(
+    case: &GsdCase,
+    support: &SurfaceSupport,
+    sensor: Vec3,
+) -> Vec<[usize; 3]> {
     let centre = Vec3::from_array([
         support.centre_um[0] as f64 / 1.0e6,
         support.centre_um[1] as f64 / 1.0e6,
@@ -168,7 +182,8 @@ fn occlusion_aabb_candidates(case: &GsdCase, support: &SurfaceSupport, sensor: V
     let voxel = case.grid.voxel_size_m;
     let mut occupied = case.grid.occupied_cells.clone();
     occupied.sort_unstable();
-    occupied.into_iter()
+    occupied
+        .into_iter()
         .filter(|cell| *cell != support.cell)
         .filter(|cell| {
             let min = [
@@ -182,7 +197,11 @@ fn occlusion_aabb_candidates(case: &GsdCase, support: &SurfaceSupport, sensor: V
         .collect()
 }
 
-fn centre_not_visible(support: &SurfaceSupport, candidate: &CandidateView, slant_limit_um: i64) -> SupportCertificate {
+fn centre_not_visible(
+    support: &SurfaceSupport,
+    candidate: &CandidateView,
+    slant_limit_um: i64,
+) -> SupportCertificate {
     SupportCertificate {
         support_id: support.support_id.clone(),
         feature_id: support.feature_id.clone(),
@@ -207,7 +226,12 @@ fn centre_not_visible(support: &SurfaceSupport, candidate: &CandidateView, slant
     }
 }
 
-fn evaluate_pair(case: &GsdCase, receipt: &GsdReceipt, support: &SurfaceSupport, candidate: &CandidateView) -> SupportCertificate {
+fn evaluate_pair(
+    case: &GsdCase,
+    receipt: &GsdReceipt,
+    support: &SurfaceSupport,
+    candidate: &CandidateView,
+) -> SupportCertificate {
     let slant_limit_um = receipt.slant_range_max_um;
     if !candidate.visible_feature_ids.contains(&support.feature_id) {
         return centre_not_visible(support, candidate, slant_limit_um);
@@ -254,8 +278,12 @@ fn evaluate_pair(case: &GsdCase, receipt: &GsdReceipt, support: &SurfaceSupport,
     let mut gsd_nano_upper = None;
     let radius_um = ceil_scaled(radius, 1.0e6);
 
-    if !radius.is_finite() || !distance.is_finite() || radius <= 0.0
-        || !normal_cone.is_finite() || normal_cone < 0.0 || normal_cone > std::f64::consts::PI
+    if !radius.is_finite()
+        || !distance.is_finite()
+        || radius <= 0.0
+        || !normal_cone.is_finite()
+        || normal_cone < 0.0
+        || normal_cone > std::f64::consts::PI
     {
         reasons.push("SUPPORT_GEOMETRY_BOUND_INVALID".to_owned());
     } else if distance <= radius + BOUND_EPS {
@@ -290,11 +318,11 @@ fn evaluate_pair(case: &GsdCase, receipt: &GsdReceipt, support: &SurfaceSupport,
             } else if alpha_upper > case.camera.max_oblique_angle_rad + BOUND_EPS {
                 reasons.push("SUPPORT_INCIDENCE_UPPER_BOUND_EXCEEDS_LIMIT".to_owned());
             } else {
-                let gsd_upper = d_max
-                    * (2.0 * (case.camera.horizontal_fov_rad * 0.5).tan())
+                let gsd_upper = d_max * (2.0 * (case.camera.horizontal_fov_rad * 0.5).tan())
                     / (f64::from(case.camera.horizontal_pixel_count) * alpha_upper.cos());
                 gsd_nano_upper = ceil_scaled(gsd_upper, 1.0e9);
-                if !gsd_upper.is_finite() || gsd_upper > case.camera.gsd_max_m_per_pixel + BOUND_EPS {
+                if !gsd_upper.is_finite() || gsd_upper > case.camera.gsd_max_m_per_pixel + BOUND_EPS
+                {
                     reasons.push("SUPPORT_GSD_UPPER_BOUND_EXCEEDS_LIMIT".to_owned());
                 }
             }
@@ -345,7 +373,10 @@ fn evaluate_pair(case: &GsdCase, receipt: &GsdReceipt, support: &SurfaceSupport,
     }
 }
 
-pub fn evaluate_bytes(source_case_bytes: &[u8], source_commit: &str) -> Result<SupportReceipt, String> {
+pub fn evaluate_bytes(
+    source_case_bytes: &[u8],
+    source_commit: &str,
+) -> Result<SupportReceipt, String> {
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
     }
@@ -356,12 +387,21 @@ pub fn evaluate_bytes(source_case_bytes: &[u8], source_commit: &str) -> Result<S
     if supports.is_empty() || source_receipt.candidate_views.is_empty() {
         return Err("SOURCE_GEOMETRY_HAS_NO_SUPPORTS_OR_CANDIDATES".to_owned());
     }
-    let feature_ids: BTreeSet<&str> = source_receipt.surface_features.iter()
-        .map(|feature| feature.feature_id.as_str()).collect();
-    if supports.iter().any(|support| !feature_ids.contains(support.feature_id.as_str())) {
+    let feature_ids: BTreeSet<&str> = source_receipt
+        .surface_features
+        .iter()
+        .map(|feature| feature.feature_id.as_str())
+        .collect();
+    if supports
+        .iter()
+        .any(|support| !feature_ids.contains(support.feature_id.as_str()))
+    {
         return Err("SUPPORT_FEATURE_ID_NOT_PRESENT_IN_SOURCE_RECEIPT".to_owned());
     }
-    let pair_count = source_receipt.candidate_views.len().checked_mul(supports.len())
+    let pair_count = source_receipt
+        .candidate_views
+        .len()
+        .checked_mul(supports.len())
         .ok_or_else(|| "SUPPORT_PAIR_COUNT_OVERFLOW".to_owned())?;
     if pair_count > 500_000 {
         return Err("SUPPORT_PAIR_LIMIT_EXCEEDED".to_owned());
@@ -372,13 +412,19 @@ pub fn evaluate_bytes(source_case_bytes: &[u8], source_commit: &str) -> Result<S
             certificates.push(evaluate_pair(&case, &source_receipt, support, candidate));
         }
     }
-    let centre_visible_pair_count = certificates.iter()
-        .filter(|row| row.centre_visible_in_upstream_model).count();
+    let centre_visible_pair_count = certificates
+        .iter()
+        .filter(|row| row.centre_visible_in_upstream_model)
+        .count();
     let centre_not_visible_pair_count = certificates.len() - centre_visible_pair_count;
-    let certified_visible_pair_count = certificates.iter()
-        .filter(|row| row.disposition == SupportDisposition::CertifiedVisible).count();
-    let indeterminate_pair_count = certificates.iter()
-        .filter(|row| row.disposition == SupportDisposition::Indeterminate).count();
+    let certified_visible_pair_count = certificates
+        .iter()
+        .filter(|row| row.disposition == SupportDisposition::CertifiedVisible)
+        .count();
+    let indeterminate_pair_count = certificates
+        .iter()
+        .filter(|row| row.disposition == SupportDisposition::Indeterminate)
+        .count();
     if centre_visible_pair_count + centre_not_visible_pair_count != pair_count
         || certified_visible_pair_count + indeterminate_pair_count != centre_visible_pair_count
     {
@@ -393,7 +439,8 @@ pub fn evaluate_bytes(source_case_bytes: &[u8], source_commit: &str) -> Result<S
         coordinate_frame_id: case.coordinate_frame_id,
         source_input_sha256: sha256(source_case_bytes),
         evidence_class: "synthetic".to_owned(),
-        claim_ceiling: "synthetic_3d_voxel_surface_support_envelope_and_conservative_occlusion_only".to_owned(),
+        claim_ceiling:
+            "synthetic_3d_voxel_surface_support_envelope_and_conservative_occlusion_only".to_owned(),
         source_candidate_view_count: source_receipt.candidate_views.len(),
         source_surface_support_count: supports.len(),
         candidate_support_pair_count: pair_count,
@@ -445,14 +492,24 @@ mod tests {
 
     #[test]
     fn conservative_ray_enclosure_overlap_includes_boundary_contact() {
-        let left = Aabb { min: [0.0, 0.0, 0.0], max: [1.0, 1.0, 1.0] };
-        let touching = Aabb { min: [1.0, 0.5, 0.5], max: [2.0, 0.75, 0.75] };
+        let left = Aabb {
+            min: [0.0, 0.0, 0.0],
+            max: [1.0, 1.0, 1.0],
+        };
+        let touching = Aabb {
+            min: [1.0, 0.5, 0.5],
+            max: [2.0, 0.75, 0.75],
+        };
         assert!(left.intersects(touching));
     }
 
     #[test]
     fn support_ball_radius_contains_every_declared_box_corner() {
-        let half = Vec3 { x: 0.05, y: 0.05, z: 0.0 };
+        let half = Vec3 {
+            x: 0.05,
+            y: 0.05,
+            z: 0.0,
+        };
         let radius = half.norm();
         for x in [-0.05, 0.05] {
             for y in [-0.05, 0.05] {
