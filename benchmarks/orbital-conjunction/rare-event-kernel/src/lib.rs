@@ -38,6 +38,7 @@ pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
 pub mod refinement_scheduler;
+pub mod risk_semantics;
 pub mod residual;
 pub mod sequential;
 pub mod space_time_partition;
@@ -85,6 +86,13 @@ pub use pop_convergence::{
 pub use refinement_scheduler::{
     RankedRefinementCandidate, RefinementCandidate, RefinementCandidateId, RefinementScheduleError,
     RefinementScheduleReport, schedule_refinements,
+};
+pub use risk_semantics::{
+    CollisionDetectionCondition, CollisionDetectionProbability, CollisionNullHypothesis,
+    CollisionNullPValue, CollisionNullTestDecision, CollisionNullTestReport,
+    ConditionalCollisionProbability, EventDependenceMode, ExpectedCollisionCount,
+    MissionCollisionRiskReport, MissionConjunctionEvent, MissionRiskScope, RiskSemanticsError,
+    aggregate_mission_collision_risk,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
