@@ -14,8 +14,8 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 use av_action_argument_replay_v0::{
-    ActionParameterForecastV1, ActionParametersV1, ActionResultStatusV1, RequestAcceptanceV1,
-    ActionResultV1, validate_action_lifecycle,
+    ActionParameterForecastV1, ActionParametersV1, ActionResultStatusV1, ActionResultV1,
+    RequestAcceptanceV1, validate_action_lifecycle,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -1040,12 +1040,8 @@ mod tests {
     #[test]
     fn audio_parent_evidence_is_derived_from_validated_acquisition_lifecycle() {
         let (forecast, acceptance, result) = accepted_audio_action_lifecycle();
-        let parent = parent_audio_evidence_from_action_lifecycle(
-            &forecast,
-            &acceptance,
-            &result,
-        )
-        .unwrap();
+        let parent =
+            parent_audio_evidence_from_action_lifecycle(&forecast, &acceptance, &result).unwrap();
         assert_eq!(parent.request_id, "request-a1");
         assert_eq!(parent.result_event_sha256, result.result_event_sha256);
         assert_eq!(
@@ -1067,12 +1063,7 @@ mod tests {
         let (forecast, acceptance, mut result) = accepted_audio_action_lifecycle();
         result.request_id = "mutated-request".to_string();
         assert!(
-            parent_audio_evidence_from_action_lifecycle(
-                &forecast,
-                &acceptance,
-                &result,
-            )
-            .is_err()
+            parent_audio_evidence_from_action_lifecycle(&forecast, &acceptance, &result,).is_err()
         );
     }
 
