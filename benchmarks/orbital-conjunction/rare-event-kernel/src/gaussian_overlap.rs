@@ -480,8 +480,7 @@ pub fn nasa_peak_overlap_compatibility(
         || !config.fclip.is_finite()
         || config.fclip < 0.0
         || !config.symmetry_relative_tolerance.is_finite()
-        || config.symmetry_relative_tolerance < 0.0
-        || config.symmetry_relative_tolerance > 1.0e-6
+        || !(0.0..=1.0e-6).contains(&config.symmetry_relative_tolerance)
     {
         return Err(KernelError::InvalidNasaPeakOverlapConfig);
     }
@@ -579,8 +578,7 @@ pub fn nasa_covariance_eigenvalue_clip(
     }
     if clip_floor < 0.0
         || !symmetry_relative_tolerance.is_finite()
-        || symmetry_relative_tolerance < 0.0
-        || symmetry_relative_tolerance > 1.0e-6
+        || !(0.0..=1.0e-6).contains(&symmetry_relative_tolerance)
     {
         return Err(KernelError::InvalidNasaPeakOverlapConfig);
     }
@@ -1019,11 +1017,9 @@ mod tests {
         ];
         for axis in 0..3 {
             assert!((result.overlap_position[axis] - expected_mean[axis]).abs() < 2.0e-12);
-            for column in 0..3 {
+            for (column, expected_value) in expected_covariance[axis].iter().enumerate() {
                 assert!(
-                    (result.overlap_covariance[axis][column] - expected_covariance[axis][column])
-                        .abs()
-                        < 2.0e-12
+                    (result.overlap_covariance[axis][column] - expected_value).abs() < 2.0e-12
                 );
             }
         }
@@ -1084,9 +1080,9 @@ mod tests {
             config(),
         )
         .unwrap();
-        for axis in 0..3 {
+        for (axis, shift_value) in shift.iter().enumerate() {
             assert!(
-                (moved.overlap_position[axis] - base.overlap_position[axis] - shift[axis]).abs()
+                (moved.overlap_position[axis] - base.overlap_position[axis] - shift_value).abs()
                     < 2.0e-12
             );
             for column in 0..3 {
@@ -1151,11 +1147,9 @@ mod tests {
         let expected_covariance = rotate_matrix(original.overlap_covariance);
         for axis in 0..3 {
             assert!((rotated.overlap_position[axis] - expected_mean[axis]).abs() < 2.0e-12);
-            for column in 0..3 {
+            for (column, expected_value) in expected_covariance[axis].iter().enumerate() {
                 assert!(
-                    (rotated.overlap_covariance[axis][column] - expected_covariance[axis][column])
-                        .abs()
-                        < 2.0e-12
+                    (rotated.overlap_covariance[axis][column] - expected_value).abs() < 2.0e-12
                 );
             }
         }
@@ -1351,11 +1345,10 @@ mod tests {
         let clipped = nasa_covariance_eigenvalue_clip(original, 0.5, 1.0e-12).unwrap();
         let rotated = nasa_covariance_eigenvalue_clip(rotate(original), 0.5, 1.0e-12).unwrap();
         let expected = rotate(covariance([0.5, 2.0, 3.0]));
-        for row in 0..3 {
-            for column in 0..3 {
+        for (row, expected_row) in expected.iter().enumerate() {
+            for (column, expected_value) in expected_row.iter().enumerate() {
                 assert!(
-                    (rotated.remediated_covariance[row][column] - expected[row][column]).abs()
-                        < 2.0e-12
+                    (rotated.remediated_covariance[row][column] - expected_value).abs() < 2.0e-12
                 );
             }
         }
