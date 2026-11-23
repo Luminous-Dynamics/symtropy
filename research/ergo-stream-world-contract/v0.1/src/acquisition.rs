@@ -212,7 +212,6 @@ mod tests {
         assert_eq!(report.motif_equivalence.f1, Some(1.0));
     }
 
-
     #[test]
     fn baseline_recovers_structure_under_uniform_time_dilation() {
         let world = WorldV0::generate(0x5EED, 64, [0, 1, 2, 3], 30, 20).unwrap();
