@@ -89,6 +89,13 @@ pub struct ContactProbe {
     pub normal: [f64; 3],
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContactProbeSet {
+    /// Digest of the canonical common full-patch probe geometry and IDs.
+    pub digest: String,
+    pub probes: Vec<ContactProbe>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ResponseScales {
     pub characteristic_length: f64,
@@ -102,7 +109,12 @@ pub struct ResponseComparison {
     pub initial_state_digest: String,
     pub physics_model_digest: String,
     pub solver_config_digest: String,
+    pub work_unit_schema_digest: String,
     pub work_budget_units: u64,
+    pub probe_set_digest: String,
+    pub characteristic_length: f64,
+    pub velocity_scale: f64,
+    pub impulse_scale: f64,
     pub full_work_consumed_units: u64,
     pub reduced_work_consumed_units: u64,
     pub full_solver_iterations: u64,
@@ -250,18 +262,21 @@ fn validate_pair<'a, 'b>(
 }
 
 fn validate_probes(
-    probes: &[ContactProbe],
+    probe_set: &ContactProbeSet,
     bodies: &BodyIndex<'_>,
 ) -> Result<Vec<ValidatedProbe>, ResponseError> {
-    if probes.is_empty() {
+    if probe_set.digest.trim().is_empty() {
+        return Err(ResponseError::new("probe-set digest must be non-empty"));
+    }
+    if probe_set.probes.is_empty() {
         return Err(ResponseError::new(
             "at least one common full-patch contact probe is required",
         ));
     }
 
     let mut ids = BTreeSet::new();
-    let mut validated = Vec::with_capacity(probes.len());
-    for probe in probes {
+    let mut validated = Vec::with_capacity(probe_set.probes.len());
+    for probe in &probe_set.probes {
         if probe.contact_id.trim().is_empty() || !ids.insert(probe.contact_id.as_str()) {
             return Err(ResponseError::new(
                 "contact probe IDs must be non-empty and unique",
@@ -311,11 +326,11 @@ fn update_maximum(current: f64, current_witness: &str, value: f64, witness: &str
 /// Compare two snapshots using identical common-patch probes.
 ///
 /// The candidate-set and warm-start digests are recorded but may differ. Scenario,
-/// state, model, solver configuration and adapter-defined work budget must match.
+/// state, model, solver configuration, work-unit schema and budget must match.
 pub fn compare_responses(
     full: &SolverResponseSnapshot,
     reduced: &SolverResponseSnapshot,
-    probes: &[ContactProbe],
+    probe_set: &ContactProbeSet,
     scales: ResponseScales,
 ) -> Result<ResponseComparison, ResponseError> {
     if !scales.characteristic_length.is_finite()
@@ -331,7 +346,7 @@ pub fn compare_responses(
     }
 
     let (full_bodies, reduced_bodies) = validate_pair(full, reduced)?;
-    let validated_probes = validate_probes(probes, &full_bodies)?;
+    let validated_probes = validate_probes(probe_set, &full_bodies)?;
 
     let mut max_velocity_error = 0.0_f64;
     let mut velocity_witness = String::new();
@@ -395,7 +410,7 @@ pub fn compare_responses(
     let mut tangent_witness = String::new();
     let mut rms_accumulator = 0.0_f64;
 
-    for (probe, (lever_a, lever_b, normal)) in probes.iter().zip(&validated_probes) {
+    for (probe, (lever_a, lever_b, normal)) in probe_set.probes.iter().zip(&validated_probes) {
         let full_a = full_bodies[probe.body_a_id.as_str()];
         let full_b = full_bodies[probe.body_b_id.as_str()];
         let reduced_a = reduced_bodies[probe.body_a_id.as_str()];
@@ -437,7 +452,7 @@ pub fn compare_responses(
         rms_accumulator = rms_accumulator.hypot(combined_error);
     }
 
-    let rms_contact_velocity_error = rms_accumulator / (probes.len() as f64).sqrt();
+    let rms_contact_velocity_error = rms_accumulator / (probe_set.probes.len() as f64).sqrt();
     if !rms_contact_velocity_error.is_finite() {
         return Err(ResponseError::new(
             "RMS contact response error is non-finite",
@@ -449,7 +464,12 @@ pub fn compare_responses(
         initial_state_digest: full.initial_state_digest.clone(),
         physics_model_digest: full.physics_model_digest.clone(),
         solver_config_digest: full.solver_config_digest.clone(),
+        work_unit_schema_digest: full.work_unit_schema_digest.clone(),
         work_budget_units: full.work_budget_units,
+        probe_set_digest: probe_set.digest.clone(),
+        characteristic_length: scales.characteristic_length,
+        velocity_scale: scales.velocity_scale,
+        impulse_scale: scales.impulse_scale,
         full_work_consumed_units: full.work_consumed_units,
         reduced_work_consumed_units: reduced.work_consumed_units,
         full_solver_iterations: full.solver_iterations,
@@ -465,7 +485,7 @@ pub fn compare_responses(
         full_warm_start_digest: full.warm_start_digest.clone(),
         reduced_warm_start_digest: reduced.warm_start_digest.clone(),
         body_count: full_bodies.len(),
-        contact_probe_count: probes.len(),
+        contact_probe_count: probe_set.probes.len(),
         maximum_generalized_velocity_error: max_velocity_error,
         maximum_generalized_impulse_error: max_impulse_error,
         maximum_contact_normal_velocity_error: max_normal_error,
@@ -521,6 +541,13 @@ mod tests {
         }
     }
 
+    fn probe_set(probes: Vec<ContactProbe>) -> ContactProbeSet {
+        ContactProbeSet {
+            digest: "test-common-full-patch-probe-set-001".to_owned(),
+            probes,
+        }
+    }
+
     fn scales() -> ResponseScales {
         ResponseScales {
             characteristic_length: 1.0,
@@ -548,7 +575,7 @@ mod tests {
         ];
         let full = snapshot("full", bodies.clone());
         let reduced = snapshot("reduced", bodies);
-        let result = compare_responses(&full, &reduced, &[probe([0.0, 1.0, 0.0])], scales())
+        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales())
             .expect("valid comparison");
         assert_eq!(result.maximum_generalized_velocity_error, 0.0);
         assert_eq!(result.maximum_generalized_impulse_error, 0.0);
@@ -568,7 +595,7 @@ mod tests {
         );
         let (mut reduced, _) = zero_pair();
         reduced.candidate_set_digest = "reduced".to_owned();
-        let result = compare_responses(&full, &reduced, &[probe([0.0, 2.0, 0.0])], scales())
+        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 2.0, 0.0])]), scales())
             .expect("valid comparison");
         assert!((result.maximum_contact_normal_velocity_error - 1.0).abs() < 1.0e-12);
         assert_eq!(result.maximum_contact_tangent_velocity_error, 0.0);
@@ -584,7 +611,7 @@ mod tests {
             ],
         );
         let (reduced, _) = zero_pair();
-        let result = compare_responses(&full, &reduced, &[probe([0.0, 1.0, 0.0])], scales())
+        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales())
             .expect("valid comparison");
         assert!((result.maximum_contact_normal_velocity_error - 1.0).abs() < 1.0e-12);
         assert!((result.maximum_generalized_velocity_error - 1.0).abs() < 1.0e-12);
@@ -606,7 +633,7 @@ mod tests {
                 body("b", [0.0; 3], [0.0; 3], [0.0; 3]),
             ],
         );
-        let probes = vec![
+        let probes = probe_set(vec![
             probe([0.0, 1.0, 0.0]),
             ContactProbe {
                 contact_id: "contact-002".to_owned(),
@@ -616,13 +643,13 @@ mod tests {
                 lever_arm_b: [0.0, 0.0, -1.0],
                 normal: [1.0, 0.0, 0.0],
             },
-        ];
+        ]);
         let first = compare_responses(&full, &reduced, &probes, scales()).expect("first");
         let mut reversed_full = full.clone();
         reversed_full.bodies.reverse();
         let mut reversed_reduced = reduced.clone();
         reversed_reduced.bodies.reverse();
-        let reversed_probes = probes.into_iter().rev().collect::<Vec<_>>();
+        let reversed_probes = probe_set(probes.probes.clone().into_iter().rev().collect::<Vec<_>>());
         let second = compare_responses(
             &reversed_full,
             &reversed_reduced,
@@ -662,7 +689,7 @@ mod tests {
         reduced.solver_iterations = 12;
         reduced.solver_rows_submitted = 3;
         reduced.solver_termination = SolverTermination::IterationLimit;
-        let result = compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales())
+        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales())
             .expect("valid response comparison");
         assert_eq!(result.full_work_consumed_units, 100);
         assert_eq!(result.reduced_work_consumed_units, 72);
@@ -681,14 +708,14 @@ mod tests {
     fn work_unit_schema_must_match() {
         let (full, mut reduced) = zero_pair();
         reduced.work_unit_schema_digest = "different-unit-schema".to_owned();
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
     }
 
     #[test]
     fn consumed_work_cannot_exceed_budget() {
         let (full, mut reduced) = zero_pair();
         reduced.work_consumed_units = reduced.work_budget_units + 1;
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
     }
 
     #[test]
@@ -696,7 +723,7 @@ mod tests {
         let (full, mut reduced) = zero_pair();
         reduced.work_budget_units += 1;
         assert!(
-            compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales())
+            compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales())
                 .expect_err("unequal work must fail")
                 .reason
                 .contains("work budgets")
@@ -707,17 +734,17 @@ mod tests {
     fn mismatched_problem_identity_is_rejected() {
         let (full, mut reduced) = zero_pair();
         reduced.solver_config_digest = "different-solver".to_owned();
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
         reduced.solver_config_digest = full.solver_config_digest.clone();
         reduced.initial_state_digest = "other-state".to_owned();
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
     }
 
     #[test]
     fn body_sets_must_match() {
         let (full, _) = zero_pair();
         let reduced = snapshot("reduced", vec![body("a", [0.0; 3], [0.0; 3], [0.0; 3])]);
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
     }
 
     #[test]
@@ -736,18 +763,18 @@ mod tests {
                 body("b", [0.0; 3], [0.0; 3], [0.0; 3]),
             ],
         );
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
     }
 
     #[test]
     fn invalid_probe_and_non_positive_scales_are_rejected() {
         let (full, reduced) = zero_pair();
-        assert!(compare_responses(&full, &reduced, &[probe([0.0; 3])], scales()).is_err());
+        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([0.0; 3])]), scales()).is_err());
         assert!(
             compare_responses(
                 &full,
                 &reduced,
-                &[probe([1.0, 0.0, 0.0])],
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
                 ResponseScales {
                     velocity_scale: 0.0,
                     ..scales()
@@ -774,8 +801,8 @@ mod tests {
             ],
         );
         let unit =
-            compare_responses(&full, &reduced, &[probe([0.0, 1.0, 0.0])], scales()).expect("unit");
-        let scaled = compare_responses(&full, &reduced, &[probe([0.0, 17.0, 0.0])], scales())
+            compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales()).expect("unit");
+        let scaled = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 17.0, 0.0])]), scales())
             .expect("scaled");
         assert_eq!(
             unit.maximum_contact_normal_velocity_error,
