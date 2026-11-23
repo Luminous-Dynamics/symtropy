@@ -417,7 +417,7 @@ try{
   south.action_outcomes.alternate.loss={numerator:6,denominator:10};
   conflictCase.base_decision.scenario_manifest.scenarios_sha256=sha(
     canonical([...conflictCase.base_decision.scenario_manifest.scenarios]
-      .sort((a,b)=>cmpS(a.scenario_id,b.scenario_id)))
+      .sort((a,b)=>strCmp(a.scenario_id,b.scenario_id)))
   );
   const conflictResult=evaluate(nonAnticipative).cases.find(x=>x.case_id==="no_query_dominates_paid_query");
   const alternatePolicy=conflictResult.policy_metrics.find(x=>
