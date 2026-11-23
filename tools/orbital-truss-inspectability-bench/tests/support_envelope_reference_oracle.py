@@ -235,6 +235,7 @@ def evaluate(case):
                 reasons.append("GSD_UPPER_BOUND_NOT_CERTIFIED")
             reasons = sorted(set(reasons))
 
+    reasons = sorted(set(reasons))
     return {
         "case_id": case["case_id"],
         "support_id": support["support_id"],
