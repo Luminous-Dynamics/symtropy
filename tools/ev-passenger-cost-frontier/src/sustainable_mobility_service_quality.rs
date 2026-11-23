@@ -2536,10 +2536,7 @@ mod tests {
             "clairvoyant_full_horizon_offline_upper_bound"
         );
         assert!(!report.exact_oracle.deployable_online_policy);
-        assert_eq!(
-            report.exact_oracle.status,
-            ExactOracleStatus::Evaluated
-        );
+        assert_eq!(report.exact_oracle.status, ExactOracleStatus::Evaluated);
     }
 
     #[test]
