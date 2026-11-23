@@ -546,7 +546,11 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         let robust_features = view
             .robust_feature_ids
             .iter()
-            .map(|id| *feature_indices.get(id.as_str()).expect("validated feature id"))
+            .map(|id| {
+                *feature_indices
+                    .get(id.as_str())
+                    .expect("validated feature id")
+            })
             .collect();
         views.push(ViewCoverage {
             domain_index: *domain_indices
