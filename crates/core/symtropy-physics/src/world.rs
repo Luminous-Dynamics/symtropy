@@ -312,7 +312,7 @@ impl<const D: usize> PhysicsWorld<D> {
     /// not repair inconsistent state: contradictions are returned as errors
     /// so callers cannot mistake a rebuilt map for proof that the original
     /// world was valid.
-    #[cfg(any(test, debug_assertions))]
+    #[cfg(test)]
     fn validate_world_indices(&self) -> Result<(), String> {
         if self.bodies.len() != self.handle_to_index.len() {
             return Err(format!(
@@ -416,13 +416,13 @@ impl<const D: usize> PhysicsWorld<D> {
             }
         }
 
-        if let Some(max_handle) = max_handle {
-            if self.next_handle <= max_handle {
-                return Err(format!(
-                    "next_handle {} is not greater than live handle {}",
-                    self.next_handle, max_handle
-                ));
-            }
+        if let Some(max_handle) = max_handle
+            && self.next_handle <= max_handle
+        {
+            return Err(format!(
+                "next_handle {} is not greater than live handle {}",
+                self.next_handle, max_handle
+            ));
         }
 
         Ok(())
