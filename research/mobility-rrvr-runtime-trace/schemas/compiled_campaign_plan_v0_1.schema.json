@@ -177,8 +177,6 @@
         "runtime_monitor_revision",
         "fault_injector_fault_domain_id",
         "fault_injector_id",
-        "native_adapter_id",
-        "fault_injector_id",
         "native_adapter_id"
       ],
       "properties": {
