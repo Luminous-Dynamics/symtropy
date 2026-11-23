@@ -885,7 +885,7 @@ pub fn adaptive_refine(
                 maximum_dual_violation: certificate.maximum_dual_violation,
                 maximum_complementarity_residual: certificate.maximum_complementarity_residual,
                 minimum_omitted_gradient: certificate.minimum_omitted_gradient,
-                worst_omitted_contact_id: certificate.worst_omitted_contact_id,
+                worst_omitted_contact_id: certificate.worst_omitted_contact_id.clone(),
                 added_contact_id: Some(add_id.clone()),
             });
             retained.push(add_id);
@@ -900,7 +900,7 @@ pub fn adaptive_refine(
             maximum_dual_violation: certificate.maximum_dual_violation,
             maximum_complementarity_residual: certificate.maximum_complementarity_residual,
             minimum_omitted_gradient: certificate.minimum_omitted_gradient,
-            worst_omitted_contact_id: certificate.worst_omitted_contact_id,
+            worst_omitted_contact_id: certificate.worst_omitted_contact_id.clone(),
             added_contact_id: None,
         });
         return Ok(AdaptiveReport {
