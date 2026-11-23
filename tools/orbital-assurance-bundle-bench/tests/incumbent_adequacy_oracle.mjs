@@ -40,10 +40,10 @@ function result(item, disposition, triggerReason, threshold, metrics = {}, world
   };
 }
 function invalidInput(item, reason) {
-  return result(item, "INVALID_INPUT", reason, null, null);
+  return result(item, "INVALID_INPUT", reason, null, {});
 }
 function abstain(item, reason, threshold) {
-  return result(item, "ABSTAIN", reason, threshold, null);
+  return result(item, "ABSTAIN", reason, threshold, {});
 }
 function validGateStates(item) {
   return ["CURRENT", "STALE", "UNAVAILABLE"].includes(item.world_set_state)
