@@ -375,7 +375,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             }
         }
 
-        if feasible.iter().any(|action_id| !losses.contains_key(action_id)) {
+        if feasible
+            .iter()
+            .any(|action_id| !losses.contains_key(action_id))
+        {
             return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
         }
 
@@ -395,7 +398,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
             .iter()
             .map(|world| WorldAssessment {
                 world_id: world.world_id.clone(),
-                incumbent_feasible: world.feasible_action_ids.contains(&case.incumbent_action_id),
+                incumbent_feasible: world
+                    .feasible_action_ids
+                    .contains(&case.incumbent_action_id),
                 incumbent_loss: world.losses.get(&case.incumbent_action_id).copied(),
                 reference_common_action_loss: None,
                 incumbent_minus_reference_loss: None,
@@ -556,7 +561,9 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .count(),
         threshold_exceeded_cases: cases
             .iter()
-            .filter(|case| case.trigger_reason == "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD")
+            .filter(|case| {
+                case.trigger_reason == "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD"
+            })
             .count(),
         expected_result_mismatches: cases
             .iter()
