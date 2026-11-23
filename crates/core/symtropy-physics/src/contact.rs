@@ -1,13 +1,23 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use arrayvec::ArrayVec;
+use smallvec::SmallVec;
 use nalgebra::SVector;
 
 use crate::body::BodyHandle;
 
-/// Maximum contact points per manifold. D+1 covers all common cases up to 4D.
-pub const MAX_CONTACTS: usize = 8;
+/// Number of contact points stored inline before the manifold spills to the heap.
+pub const INLINE_CONTACT_POINTS: usize = 8;
+
+/// Legacy geometry-candidate budget used by the best-N generator.
+pub const MAX_CANDIDATE_CONTACTS: usize = 8;
+
+/// Compatibility alias for the legacy geometry-candidate budget.
+///
+/// This is not a hard limit on `ContactManifold::points`; manifolds now spill
+/// beyond the inline capacity instead of panicking when a higher-dimensional
+/// collision produces more contact points.
+pub const MAX_CONTACTS: usize = MAX_CANDIDATE_CONTACTS;
 
 /// A single contact point within a manifold.
 #[derive(Clone, Debug)]
@@ -53,6 +63,12 @@ pub struct SensorEvent {
     pub other: BodyHandle,
 }
 
+/// Inline-plus-spill contact point storage. The common case stores up to
+/// `INLINE_CONTACT_POINTS` points inline; larger manifolds allocate overflow
+/// storage without truncating or panicking.
+pub type ContactPointBuffer<const D: usize> =
+    SmallVec<[ContactPoint<D>; INLINE_CONTACT_POINTS]>;
+
 /// Contact information from a collision between two bodies.
 ///
 /// Holds one or more contact points. Multi-point manifolds arise from
@@ -65,8 +81,9 @@ pub struct ContactManifold<const D: usize> {
     pub body_b: BodyHandle,
     /// Contact normal pointing from A to B.
     pub normal: SVector<f64, D>,
-    /// Contact points (at least 1). Zero-heap via ArrayVec.
-    pub points: ArrayVec<ContactPoint<D>, MAX_CONTACTS>,
+    /// Contact points (at least 1), inline for common manifolds and spillable
+    /// for higher-dimensional or unusually dense contact patches.
+    pub points: ContactPointBuffer<D>,
     /// Material elasticity (Young's modulus in Pa) at the contact surface.
     pub elasticity: Option<f64>,
 }
@@ -80,7 +97,7 @@ impl<const D: usize> ContactManifold<D> {
         point: SVector<f64, D>,
         depth: f64,
     ) -> Self {
-        let mut points = ArrayVec::new();
+        let mut points = ContactPointBuffer::new();
         points.push(ContactPoint {
             position: point,
             depth,
@@ -248,7 +265,42 @@ mod tests {
             0.5,
         );
         assert_eq!(m.points.len(), 1);
+        assert!(!m.points.spilled(), "single-point manifolds remain inline");
         assert!((m.depth() - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn contact_points_spill_without_truncation_after_inline_capacity() {
+        let mut manifold = ContactManifold::<3>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 0.0]),
+            0.1,
+        );
+        for index in 1..INLINE_CONTACT_POINTS {
+            manifold.points.push(ContactPoint {
+                position: SVector::from([index as f64, 0.0, 0.0]),
+                depth: 0.1,
+                lambda: 0.0,
+                restitution_bias: 0.0,
+            });
+        }
+        assert_eq!(manifold.points.len(), INLINE_CONTACT_POINTS);
+        assert!(!manifold.points.spilled());
+
+        manifold.points.push(ContactPoint {
+            position: SVector::from([INLINE_CONTACT_POINTS as f64, 0.0, 0.0]),
+            depth: 0.1,
+            lambda: 0.0,
+            restitution_bias: 0.0,
+        });
+        assert_eq!(manifold.points.len(), INLINE_CONTACT_POINTS + 1);
+        assert!(manifold.points.spilled());
+        assert_eq!(
+            manifold.points[INLINE_CONTACT_POINTS].position[0],
+            INLINE_CONTACT_POINTS as f64
+        );
     }
 
     #[test]
