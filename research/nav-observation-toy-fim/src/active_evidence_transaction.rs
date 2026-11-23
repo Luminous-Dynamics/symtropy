@@ -476,6 +476,59 @@ mod tests {
     }
 
     #[test]
+    fn acquired_payload_cannot_be_laundered_across_attempt_or_action_ids() {
+        let mut ledger = ledger();
+        let result = record_selected_evidence_outcome(
+            &plan(),
+            &mut ledger,
+            request(2, 110),
+            qualified(),
+            PRE_STATE,
+            Some(binding(2, 999)),
+            Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+        ).unwrap();
+        assert_eq!(result.disposition, EvidenceTransactionDisposition::EvidenceBindingMismatch);
+        assert!(!result.eligible_for_independent_posterior_audit);
+        assert!(!result.posterior_updated);
+        assert!(!result.navigation_authorized);
+    }
+
+    #[test]
+    fn time_result_and_source_manifest_must_match_the_qualified_receipt_binding() {
+        let mut ledger = ledger();
+        let mut mismatched_time = time_input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        mismatched_time.result_id = 301;
+        let result = record_selected_evidence_outcome(
+            &plan(),
+            &mut ledger,
+            request(2, 111),
+            qualified(),
+            PRE_STATE,
+            Some(binding(2, 111)),
+            Some((time_policy(), mismatched_time)),
+        ).unwrap();
+        assert_eq!(result.disposition, EvidenceTransactionDisposition::EvidenceBindingMismatch);
+        assert!(!result.eligible_for_independent_posterior_audit);
+    }
+
+    #[test]
+    fn qualified_acquisition_without_payload_receipt_binding_is_not_time_gated() {
+        let mut ledger = ledger();
+        let result = record_selected_evidence_outcome(
+            &plan(),
+            &mut ledger,
+            request(2, 112),
+            qualified(),
+            PRE_STATE,
+            None,
+            Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+        ).unwrap();
+        assert_eq!(result.disposition, EvidenceTransactionDisposition::EvidenceBindingMissing);
+        assert!(result.time_report.is_none());
+        assert!(!result.eligible_for_independent_posterior_audit);
+    }
+
+    #[test]
     fn failure_invalidity_and_missing_time_never_become_audit_eligible() {
         let mut failed_ledger = ledger();
         let failed = record_selected_evidence_outcome(
