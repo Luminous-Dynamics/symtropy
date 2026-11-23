@@ -28,6 +28,81 @@ Published results:
 - A retrospective per-scenario best-of-six oracle reaches `95.63%` on RoboTwin and `91.80%` on LIBERO. This is an oracle upper reference, not a deployable policy.
 - LIBERO interventions raise direct `π0.5` recovery RSR from `64.4%` to `77.0%` with Monitor+Reversion; Monitor+Correction reaches `75.5%`. Reversion changes the starting state; Correction introduces a short external controller, so these are not like-for-like fixed-policy comparisons.
 
+### Safety baseline: SafeVLA-Bench
+
+SafeVLA-Bench demonstrates the complementary point that task completion and safety are separate dimensions. Its public leaderboard reports 24 policies, five evaluation suites, 22,500 episodes and eight safety specifications (last updated 26 September 2026). It ranks by the share of episodes satisfying every applicable specification, while reporting native task success (SR), successful-but-unsafe episodes (SBU) and violation severity (VSI) separately.
+
+Two examples make the measurement problem concrete:
+- On LIBERO, VLA-Adapter reports 97.6% task success alongside 82.0% safety and 17.0% successful-but-unsafe episodes.
+- On RoboCasa-365 Atomic-Seen, Xiaomi-Robotics-1 reports 81.9% task success, 50.1% safety and 37.7% successful-but-unsafe episodes.
+
+These are SafeVLA's own leaderboard quantities, not RRVR results. RRVR should preserve SafeVLA-style safety/task-success separation, then add a separate recovery-evidence dimension: did the system know what the previous attempt physically did, did every command-holding path become quiescent, and was the next attempt admitted only after those claims were independently supported? An unsafe-but-successful policy episode and a false-safe recovery admission are different failure classes and should be reported separately.
+
+Source: [SafeVLA-Bench leaderboard](https://safevla.org/leaderboard), including its definitions of SR, safety, SBU and VSI; leaderboard snapshot dated 26 September 2026.
+
+### Emerging evaluation gap: recovery state, safety, and evidence continuity
+
+Three 2026 results make the correct RRVR position clearer:
+
+1. **Policy recovery is now a benchmark dimension.** RoboRecover constructs execution-induced intermediate states by replaying action prefixes, then evaluates whether a policy can continue the original task. Its 2,000-scenario RoboTwin/LIBERO corpus is a strong policy substrate. It does not, by itself, answer whether a previous physical operation was durably reconciled, whether a stale command remained in a driver queue, or whether a new attempt was independently authorized. RRVR should overlay the same recovery points rather than create a competing policy score.
+2. **Safety is not task success.** SafeVLA-Bench reports SR, Safety, successful-but-unsafe (SBU) and violation severity separately. Its September 2026 leaderboard includes RoboCasa-365 Xiaomi-Robotics-1 at 81.9% SR, 50.1% Safety and 37.7% SBU; on LIBERO, VLA-Adapter reports 97.6% SR and 82.0% Safety. These are not RRVR comparisons; they demonstrate why a single completion metric cannot stand in for a safety verdict.
+3. **Fuzzing needs repeatable execution and diagnosable failures.** The July 2026 ROS-based robotics fuzzing survey screened 92 works and says results remain difficult to compare because tested ROS layers and failure definitions differ. It finds more visible progress in input modeling, feedback and oracle construction than in repeatable execution and diagnosable failure analysis. That is a direct opening for exact replay bundles and causal minimization—but only if RRVR reports the tested ROS/system layer and its evidence scope instead of flattening package crashes, middleware failures, simulator faults and physical-task failures into one category.
+
+The November 16, 2026 long-horizon manipulation survey adds a complementary measurement argument: binary task success can hide partial completion, error propagation, recovery cost and horizon-dependent degradation. RRVR should preserve an attempt-by-attempt physical-effect ledger and report how uncertainty, blocked progress and recovery cost accumulate over the complete physical interaction horizon.
+
+### Proposed RRVR diagnostic evidence package
+
+Every benchmark failure should produce a replayable package containing:
+
+- immutable run/episode ID, logical-effect ID, attempt ancestry and exact boot/controller epochs;
+- simulator, ROS distribution, middleware/DDS, controller, driver, firmware, calibration and model/config revisions;
+- exact injection schedule, random seed, event clock model and declared observation loss/reordering;
+- per-owner receipt IDs, scopes, raw artifact IDs/digests and the applicable fault-model revision;
+- the exact safety/recovery invariant, TLA action/state witness, and three-valued verdict;
+- minimized trace with the failure signature preserved, retained happens-before ancestors, the number of oracle calls, and a deterministic replay result;
+- explicit claim ceiling: simulated, model-checked, HIL, physical, independently reviewed, or not established.
+
+A minimized trace is not enough if it changes the failure. The minimizer must keep the exact invariant/property, violation class and witness event (or an explicitly defined equivalent signature), and the output must replay under the frozen oracle/configuration. Report:
+- **Replay-complete rate:** fraction of discovered failures reproduced from the published bundle in a clean environment;
+- **Signature-preserving reduction:** original events versus retained events, only for reductions that preserve the exact failure signature;
+- **Minimization determinism:** identical minimized bundle over repeated oracle runs;
+- **Diagnosis yield:** fraction of bundles that localize the failing layer/owner without manual reconstruction;
+- **Oracle budget:** calls, wall time and resource use per minimized failure.
+
+These are diagnostic-quality metrics, not safety scores. A benchmark may not claim "reproducible" merely because an event log exists.
+
+### Instrumentation and comparability
+
+ROS 2 REP 2014 recommends a grey-box, non-functional benchmarking approach that measures both individual nodes and complete computational graphs, using LTTng/ros2_tracing for architecture-neutral runtime instrumentation. RRVR should adopt that measurement discipline and add the semantic boundaries REP 2014 does not itself define: durable effect identity, per-attempt owner receipts, downstream physical command holders and independent physical observation. Publish raw traces and instrumentation overhead against a tracing-disabled baseline.
+
+Use a layered fault taxonomy so each result is comparable only to evidence at the same level:
+
+| Layer | Representative failures | Required evidence |
+|---|---|---|
+| Package/process | crash, restart, duplicate process | process/boot epoch and durable owner state |
+| ROS graph/runtime | executor delay, callback loss, lifecycle transition | node, callback, topic/service/action and clock trace |
+| Middleware/network | DDS partition, reconnect, duplicate/reordered delivery | transport identity, sequence and delivery receipts |
+| Controller/driver | queue retention, stale accepted command, watchdog reset | per-layer queue/epoch receipt and hardware counter |
+| Firmware/actuator | buffered command after host restart, latch/drive state | device-owned state/receipt and injected fault observation |
+| Physical task | partial contact, object moved, effect already applied | independent physical observer and mission predicate |
+
+A Confirmed result at one row must not be promoted to a claim about a lower or higher row without the corresponding receipt. In particular, a ROS topic being quiet is not proof that firmware has no buffered motion command, and a controller reporting "stopped" is not proof that a physical effect did not occur.
+
+Sources:
+- [RoboRecover, arXiv:2609.28952](https://arxiv.org/abs/2609.28952), 24 September 2026.
+- [SafeVLA-Bench leaderboard](https://safevla.org/leaderboard.html), snapshot 26 September 2026.
+- [Yang et al., A Survey of Fuzzing for ROS-Based Robotic Systems](https://doi.org/10.3390/app16147250), Applied Sciences 16(14), 7250, published 20 July 2026.
+- [Zheng et al., Long-horizon embodied manipulation: a survey of methods, trends, and challenges](https://doi.org/10.1007/s44336-026-00048-x), published 16 November 2026.
+- [ROS 2 REP 2014: Methodology for benchmarking performance in ROS 2](https://reps.openrobotics.org/rep-2014/).
+
+### Prior art: receipt-gated effectuation is not a new claim
+
+The October 2026 Internet-Draft [A Permit to Effect Once Is Not a Permit to Effect Permanently](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00) already discusses staged physical effectuation, single-use authority, receipts, anti-replay, independent observation and recovery from indeterminate/partial/conflicting outcomes. It is an active individual Internet-Draft with intended status Experimental, not an IETF-endorsed standard; the draft itself says it has no formal standing in the IETF standards process and expires 4 April 2027.
+
+Therefore RRVR should not claim novelty for receipt-gated or staged effectuation, one-shot permits, anti-replay, or distinguishing Applied/NoEffect/Partial/Unknown/Disputed. The narrower research hypothesis is whether these semantics can be made executable across separately owned robot persistence, mission resolution, controller queues, downstream driver/firmware graphs, independently qualified observers and the existing native authority boundary—with exact attempt lineage, model-trace conformance and reproducible fault-injection evidence. That integration claim also remains to be demonstrated against a real declared stack.
+
+Source: [IETF Datatracker, draft-das-safety-first-execution-finality-00](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00), published 1 October 2026, Experimental individual Internet-Draft.
+
 The key conclusion is not that RRVR must produce a higher RSR. It is that recovery success and recovery authorization are different questions. A controller can produce a successful trajectory from an execution-deviation state while the system still lacks evidence that an earlier physical effect did not occur or that an old command is quiescent. RRVR should report policy RSR and evidence-gate correctness separately.
 
 **Reproducibility/access qualification (checked 23 November 2026):** the [public RoboRecover repository](https://github.com/RUCKBReasoning/RoboRecover) documents replay adapters, fixed train/test starting-point splits and per-file SHA-256 checksums. Its README also states that the complete scenario archive is still being prepared for Hugging Face and that full evaluation currently requires an archive exported by the authors. The README lists six LIBERO adapters but only four included RoboTwin recovery adapters; FastWAM and LingBot-VA have configuration guidance while their RoboTwin recovery entrypoints are pending. Its dependency manifest lists source revisions but marks historical revision verification incomplete. Therefore the benchmark plan has an explicit access gate: obtain the authorised archive, verify the exact archive and per-scenario hashes, simulator/model revisions and licenses/terms, then smoke-test one LIBERO and one RoboTwin sample in clean pinned environments. No result may be called a RoboRecover reproduction until those steps succeed. If access remains unavailable, use a clearly separate synthetic RRVR fault overlay and report the external-data gap rather than substituting scenarios.
@@ -109,6 +184,31 @@ All arms must use the same model revision, action schedule, reset conditions, fa
 
 Do not collapse these into a weighted score. A higher success or throughput score cannot compensate for one false-safe acceptance.
 
+### Paired policy-plus-assurance evaluation
+
+Use RoboRecover-style reconstructed intermediate states as the recovery-policy substrate and SafeVLA-style trajectory specifications for physical-safety scoring. Keep the candidate policy, initial scene, action prefix, simulator revision, random seed and injected deviation identical between paired arms.
+
+| Arm | Recovery policy | Recovery admission | Purpose |
+|---|---|---|---|
+| P0 | Fixed policy | Original benchmark behavior | Native recovery-success reference |
+| P1 | Same policy | Blind/naive retry after process restart | Quantify why a policy-only retry is insufficient |
+| P2 | Same policy | Typed owner evidence, without independent observer/fence gates | Isolate the value of evidence structure |
+| P3 | Same policy | Full RRVR evidence, observer and graph-fence gate | Measure the incremental assurance effect |
+| P4 | Same policy | Full RRVR plus injected observer/common-cause and downstream queue faults | Test adversarial robustness, not just nominal replay |
+
+Do not silently count a blocked recovery as a successful task. Report (a) native policy RSR, (b) trajectory safety, (c) RRVR false-safe admissions, (d) RRVR false holds on valid positive controls, (e) duplicate physical effects, (f) stale commands after accepted quiescence, and (g) time/throughput costs. The desired result is not “RRVR has the highest RSR”; it is “the same recovery policy is prevented from making unsupported or duplicate physical mutations while valid, independently evidenced recovery remains available.”
+
+### Statistical qualification
+
+A one-sided 95% upper confidence bound below 0.1% after zero observed failures requires approximately 2,995 independent representative Bernoulli trials. This is a planning reference under an IID assumption, not a blanket safety demonstration. Robotics campaigns commonly contain clustered observations: repeated rollouts may share a controller build, firmware, sensor, calibration, environment, simulator seed family or power/clock failure domain. Treating every correlated rollout as independent would overstate the evidence.
+
+Therefore:
+- publish exact denominators and the unit of independence (episode, hardware unit, controller/firmware build, campaign, or independent fault realization);
+- stratify by platform, controller/driver/firmware revision, sensor family, calibration, environment, fault class and common-cause domain;
+- report per-stratum results and cluster-aware intervals alongside pooled estimates;
+- use model checking, exhaustive declared cut coverage, adversarial fault injection and mutation controls for rare structural failures; do not try to establish their absence by random trials alone;
+- preserve zero-tolerance requirements for false-safe admissions and duplicate effects even when performance intervals are reported.
+
 ## 4. Fault campaign
 
 Build a reproducible factorial fault matrix around the actual RRVR lifecycle:
@@ -133,6 +233,10 @@ For each fault family, publish the exact injected schedule, frozen state/config,
 - 0 acceptance of evidence whose logical-effect/attempt/epoch scope does not match.
 - 0 observer quorum qualifications with overlapping declared common-cause domains or reused observer/artifact identities.
 - 100% deterministic output for identical recording bytes and context.
+- At least 99.9% admission of valid positive controls within a declared platform profile, reported separately from safety failures.
+- 100% coverage of declared crash cuts, command-holding graph nodes, observer fault scenarios and recovery transitions in the frozen campaign.
+- Zero false-safe admissions and zero duplicate physical effects across the frozen negative-control corpus.
+- A stretch target of at least 25% lower verified mission makespan through safe concurrency, measured only after every hard safety and evidence gate passes; no latency gain may compensate for an invalid admission.
 
 ### Formal conformance
 - 100% of the frozen valid action schedules pass the independent `tla.trace`/TLC replay gate.
@@ -168,3 +272,45 @@ RRVR software evidence is not ISO conformity assessment, a risk assessment, a sa
 v0.1 covers one original effect attempt plus one recovery-authority admission. It does not yet qualify the physical outcome of the recovery attempt itself or nested/multiple recovery cycles. The next semantic increment must give each successive attempt its own physical-outcome, persistence, mission, controller-queue and downstream-graph evidence domains while preserving the original effect lineage.
 
 A passing Rust fixture establishes only the projection contract over supplied synthetic inputs. A Reflow/TLC trace pass establishes only that the recorded state/action sequence is a behavior of the pinned abstraction. Neither proves event capture is complete, owner artifacts are authentic, observer independence holds outside the declared fault model, or the TLA abstraction matches physical hardware. Those require independent owner authentication, fault campaigns, simulator/HIL/physical evidence and safety review.
+
+
+## 8. Multi-attempt recovery as a distinct benchmark dimension
+
+The v0.1 runtime projection has a disclosed one-recovery-admission ceiling. A robot that safely reaches a second attempt has not yet demonstrated safe recovery if that second attempt itself crashes or produces an ambiguous effect. The attempt-lineage reference contract adds a separately measurable dimension: preservation of one logical-effect identity across repeated, individually evidenced attempts.
+
+### Benchmark arms
+
+| Arm | Recovery-history representation | What it can miss |
+|---|---|---|
+| L0 | Last-attempt-only record | Prior effects and stale attempts are discarded |
+| L1 | Flat attempt list without parent links | Evidence can be attached to the wrong predecessor |
+| L2 | Parent-linked attempts with logical-effect ID | Does not necessarily qualify persistence and graph fences |
+| L3 | RRVR attempt lineage with per-attempt scoped receipts plus two fault-model-qualified observer quorums for each retryable parent | Higher validation and evidence-retention cost; still depends on owner completeness and authenticity |
+
+All arms receive the same frozen chain, epoch changes, physical outcomes, persistence states, and injected faults. A policy-recovery score must remain separate from this evidence/authorization dimension.
+
+### Mandatory chain faults
+
+- A descendant follows Applied, Partial, Unknown, Disputed, or NotObserved.
+- A NoEffect claim is only InsufficientEvidence or is Refuted.
+- Persistence is InFlight or IndeterminateCommit (a resolved Committed result is admissible only alongside independently confirmed physical and mission NoEffect).
+- The child names the wrong parent, skips an ordinal, or reuses an attempt ID.
+- Evidence is replayed across attempts or carries the wrong logical-effect/attempt/epoch scope.
+- Physical-outcome observer evidence is absent for a confirmed outcome; or a retryable parent lacks separate downstream-quiescence observer evidence, has scope tampering, a different fault profile, shared declared common-cause dependencies, reuses an operational owner as an observer, or replays owner receipts, claim IDs, observation IDs or raw artifacts. Reusing a sensor across attempts with a new observation and raw artifact is a positive control, not a replay fault.
+- Boot/controller epochs regress or do not advance together.
+- Controller or downstream fence is missing, non-quiescent, unconfirmed, or targeted at a different child epoch.
+- The same logical effect is split across separate identifiers.
+
+### Proposed targets (not achieved)
+
+- Zero accepted descendant attempts after any non-NoEffect or unqualified NoEffect outcome.
+- Zero accepted retry edges with InFlight or IndeterminateCommit persistence.
+- Zero accepted evidence receipts with cross-attempt or cross-epoch scope leakage.
+- Zero retry edges admitted without both claim-specific observer quorums qualified under the same fault-model revision and independent across declared common-cause dependencies.
+- 100% rejection of the frozen unsafe-lineage controls and 100% acceptance of the frozen valid reference chains.
+- Validation cost grows linearly with attempt count; report p50/p95/p99 runtime and bytes per attempt rather than hiding cost in a composite score.
+- Report false holds separately from false-safe acceptance. No aggregate score may trade a false-safe admission for a better recovery-success rate.
+
+### Qualification boundary
+
+The current Rust contract is a bounded reference validator and its three-attempt fixture is synthetic. Every typed state is bound to the same OwnerEvidenceRef that supplies the owner, verdict, asserted value, exact scope and artifact digest; a mutated outcome without a matching owner assertion is rejected. It reuses the existing observer-quorum evaluator for NoEffect and downstream quiescence and verifies exact claim-scope commitments, but it does not yet refine the TLA+ state machine for nested restart/recovery or authenticate raw receipts. The next formal step is a bounded multi-attempt TLA+ model with a second recovery crash cut, followed by differential testing of Rust decisions against all reachable model traces. Only after that should the benchmark be adapted to a declared simulator and then an instrumented ROS/controller/driver stack.

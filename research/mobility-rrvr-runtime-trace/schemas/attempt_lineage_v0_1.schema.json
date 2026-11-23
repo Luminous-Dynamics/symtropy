@@ -1,0 +1,555 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-attempt-lineage-v0.1.json",
+  "title": "RRVR Multi-Attempt Physical-Effect Lineage with Observer Assurance v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "logical_effect_id",
+    "attempts",
+    "fault_profile_revision"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "logical_effect_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/attempt"
+      }
+    },
+    "fault_profile_revision": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "epoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boot_epoch",
+        "controller_epoch"
+      ],
+      "properties": {
+        "boot_epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "controller_epoch": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "evidence_status": {
+      "enum": [
+        "current",
+        "confirmed",
+        "refuted",
+        "insufficient_evidence",
+        "unknown",
+        "disputed",
+        "quorum_qualified",
+        "quorum_not_qualified",
+        "not_applicable"
+      ]
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "definitely_not_committed",
+            "committed",
+            "in_flight",
+            "indeterminate_commit"
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/regular_owner_evidence_ref"
+        }
+      }
+    },
+    "physical_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "not_observed",
+            "applied",
+            "no_effect",
+            "partial",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/regular_owner_evidence_ref"
+        }
+      }
+    },
+    "mission_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "no_effect",
+            "effect_predicate_satisfied",
+            "unresolved"
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/regular_owner_evidence_ref"
+        }
+      }
+    },
+    "fence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "target_epoch",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "quiescent",
+            "active",
+            "unknown"
+          ]
+        },
+        "target_epoch": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/epoch"
+            }
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/regular_owner_evidence_ref"
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "ordinal",
+        "parent_attempt_id",
+        "authorized_epoch",
+        "persistence",
+        "physical_outcome",
+        "mission_resolution",
+        "controller_queue_fence",
+        "downstream_quiescence",
+        "observer_assurance"
+      ],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parent_attempt_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "authorized_epoch": {
+          "$ref": "#/$defs/epoch"
+        },
+        "persistence": {
+          "$ref": "#/$defs/persistence"
+        },
+        "physical_outcome": {
+          "$ref": "#/$defs/physical_outcome"
+        },
+        "mission_resolution": {
+          "$ref": "#/$defs/mission_resolution"
+        },
+        "controller_queue_fence": {
+          "$ref": "#/$defs/fence"
+        },
+        "downstream_quiescence": {
+          "$ref": "#/$defs/fence"
+        },
+        "observer_assurance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/attempt_observer_assurance"
+            }
+          ]
+        }
+      }
+    },
+    "observer_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer_id",
+        "observer_revision",
+        "observation_id",
+        "common_cause_domains",
+        "raw_artifact_id",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "common_cause_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "observer_quorum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_model_revision",
+        "required_independent_members",
+        "members"
+      ],
+      "properties": {
+        "fault_model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_independent_members": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 32
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/observer_member"
+          }
+        }
+      }
+    },
+    "attempt_observer_assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_outcome",
+        "downstream_quiescence"
+      ],
+      "properties": {
+        "physical_outcome": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observer_owner_evidence_ref"
+            },
+            {
+              "properties": {
+                "domain": {
+                  "const": "physical_outcome_observer_quorum"
+                },
+                "asserted_value": {
+                  "enum": [
+                    "not_observed",
+                    "applied",
+                    "no_effect",
+                    "partial",
+                    "unknown",
+                    "disputed"
+                  ]
+                }
+              },
+              "required": [
+                "domain",
+                "asserted_value"
+              ]
+            }
+          ]
+        },
+        "downstream_quiescence": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observer_owner_evidence_ref"
+            }
+          ]
+        }
+      }
+    },
+    "observer_owner_evidence_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/owner_evidence_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "enum": [
+                "physical_outcome_observer_quorum",
+                "downstream_observer_quorum"
+              ]
+            },
+            "status": {
+              "const": "quorum_qualified"
+            },
+            "claim_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claim_scope_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "observer_quorum": {
+              "$ref": "#/$defs/observer_quorum"
+            }
+          },
+          "required": [
+            "domain",
+            "status",
+            "claim_id",
+            "claim_scope_sha256",
+            "observer_quorum"
+          ]
+        }
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_effect_id",
+        "attempt_id",
+        "subject_boot_epoch",
+        "subject_controller_epoch"
+      ],
+      "properties": {
+        "logical_effect_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_boot_epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "subject_controller_epoch": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "owner_evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "owner_id",
+        "owner_revision",
+        "evidence_id",
+        "status",
+        "asserted_value",
+        "scope",
+        "claim_id",
+        "claim_scope_sha256",
+        "observer_quorum",
+        "raw_artifact_id",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "domain": {
+          "enum": [
+            "process_epoch",
+            "persistence",
+            "physical_outcome",
+            "mission_resolution",
+            "controller_queue",
+            "downstream_execution_graph",
+            "physical_outcome_observer_quorum",
+            "downstream_observer_quorum",
+            "action_applicability",
+            "recovery_authority"
+          ]
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "asserted_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "claim_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "claim_scope_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          ]
+        },
+        "observer_quorum": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/observer_quorum"
+            }
+          ]
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "regular_owner_evidence_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/owner_evidence_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "enum": [
+                "persistence",
+                "physical_outcome",
+                "mission_resolution",
+                "controller_queue",
+                "downstream_execution_graph"
+              ]
+            },
+            "claim_id": {
+              "type": "null"
+            },
+            "claim_scope_sha256": {
+              "type": "null"
+            },
+            "observer_quorum": {
+              "type": "null"
+            },
+            "status": {
+              "enum": [
+                "current",
+                "confirmed",
+                "refuted",
+                "insufficient_evidence",
+                "unknown",
+                "disputed"
+              ]
+            }
+          },
+          "required": [
+            "domain",
+            "claim_id",
+            "claim_scope_sha256",
+            "observer_quorum"
+          ]
+        }
+      ]
+    }
+  }
+}

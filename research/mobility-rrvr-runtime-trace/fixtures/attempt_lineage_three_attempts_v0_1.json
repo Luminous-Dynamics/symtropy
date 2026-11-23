@@ -1,0 +1,629 @@
+{
+  "version": "0.1",
+  "logical_effect_id": "logical-effect-rrvr-0001",
+  "attempts": [
+    {
+      "attempt_id": "attempt-1",
+      "ordinal": 1,
+      "parent_attempt_id": null,
+      "authorized_epoch": {
+        "boot_epoch": 1,
+        "controller_epoch": 1
+      },
+      "persistence": {
+        "outcome": "definitely_not_committed",
+        "receipt": {
+          "domain": "persistence",
+          "owner_id": "persistence-owner-attempt-1",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-1-persistence-evidence",
+          "status": "confirmed",
+          "asserted_value": "definitely_not_committed",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-1-persistence-raw",
+          "raw_artifact_sha256": "f7952cb6c926b4c5ce5dcf20dfe751d73de96a6d404432bd551d24dc1425f9c6"
+        }
+      },
+      "physical_outcome": {
+        "outcome": "no_effect",
+        "receipt": {
+          "domain": "physical_outcome",
+          "owner_id": "physical-outcome-owner-attempt-1",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-1-physical-outcome-evidence",
+          "status": "confirmed",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-1-physical-outcome-raw",
+          "raw_artifact_sha256": "0919ec1b903d8d148ff3116972e10c5683a25d45c3287b0646784bdf25889926"
+        }
+      },
+      "mission_resolution": {
+        "outcome": "no_effect",
+        "receipt": {
+          "domain": "mission_resolution",
+          "owner_id": "mission-resolution-owner-attempt-1",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-1-mission-resolution-evidence",
+          "status": "confirmed",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-1-mission-resolution-raw",
+          "raw_artifact_sha256": "0a1309716eed56dd9d9dbebcb9ca834984720b2741683bbb6993766e994c1b9f"
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "quiescent",
+        "target_epoch": {
+          "boot_epoch": 2,
+          "controller_epoch": 2
+        },
+        "receipt": {
+          "domain": "controller_queue",
+          "owner_id": "controller-queue-owner-attempt-1",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-1-controller-queue-evidence",
+          "status": "confirmed",
+          "asserted_value": "quiescent;target_boot_epoch=2;target_controller_epoch=2",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-1-controller-queue-raw",
+          "raw_artifact_sha256": "a84bc40fe94e9f26e883d65d631edc8535efe50c2a3acaebfb41d7af56391e5d"
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "quiescent",
+        "target_epoch": {
+          "boot_epoch": 2,
+          "controller_epoch": 2
+        },
+        "receipt": {
+          "domain": "downstream_execution_graph",
+          "owner_id": "downstream-graph-owner-attempt-1",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-1-downstream-graph-evidence",
+          "status": "confirmed",
+          "asserted_value": "quiescent;target_boot_epoch=2;target_controller_epoch=2",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-1-downstream-graph-raw",
+          "raw_artifact_sha256": "41933a9add42c419d6f2efd70877f691281329cca09313722c9f9a238bf97938"
+        }
+      },
+      "observer_assurance": {
+        "physical_outcome": {
+          "domain": "physical_outcome_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-1-physical_outcome-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": "attempt-1-physical-outcome",
+          "claim_scope_sha256": "52492a3fdd5ce45efa99ab44e33e18234b5b9495bcaea8db30f405ecf554d655",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-1-physical-observer-1",
+                "observer_revision": "attempt-1-physical-sensor-stack-1@v1",
+                "observation_id": "attempt-1-physical-observation-1",
+                "common_cause_domains": [
+                  "attempt-1-physical-power-1",
+                  "attempt-1-physical-clock-1",
+                  "attempt-1-physical-host-1"
+                ],
+                "raw_artifact_id": "attempt-1-physical-raw-1",
+                "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              {
+                "observer_id": "attempt-1-physical-observer-2",
+                "observer_revision": "attempt-1-physical-sensor-stack-2@v1",
+                "observation_id": "attempt-1-physical-observation-2",
+                "common_cause_domains": [
+                  "attempt-1-physical-power-2",
+                  "attempt-1-physical-clock-2",
+                  "attempt-1-physical-host-2"
+                ],
+                "raw_artifact_id": "attempt-1-physical-raw-2",
+                "raw_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-1-physical_outcome-quorum-envelope",
+          "raw_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "downstream_quiescence": {
+          "domain": "downstream_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-1-downstream_quiescence-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "quiescent",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          },
+          "claim_id": "attempt-1-downstream-quiescence",
+          "claim_scope_sha256": "745d49885104343b646b1036c34f66714f715bf92a416dc08286bac049b02528",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-1-downstream-observer-1",
+                "observer_revision": "attempt-1-downstream-sensor-stack-1@v1",
+                "observation_id": "attempt-1-downstream-observation-1",
+                "common_cause_domains": [
+                  "attempt-1-downstream-power-1",
+                  "attempt-1-downstream-clock-1",
+                  "attempt-1-downstream-host-1"
+                ],
+                "raw_artifact_id": "attempt-1-downstream-raw-1",
+                "raw_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+              },
+              {
+                "observer_id": "attempt-1-downstream-observer-2",
+                "observer_revision": "attempt-1-downstream-sensor-stack-2@v1",
+                "observation_id": "attempt-1-downstream-observation-2",
+                "common_cause_domains": [
+                  "attempt-1-downstream-power-2",
+                  "attempt-1-downstream-clock-2",
+                  "attempt-1-downstream-host-2"
+                ],
+                "raw_artifact_id": "attempt-1-downstream-raw-2",
+                "raw_artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-1-downstream_quiescence-quorum-envelope",
+          "raw_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      }
+    },
+    {
+      "attempt_id": "attempt-2",
+      "ordinal": 2,
+      "parent_attempt_id": "attempt-1",
+      "authorized_epoch": {
+        "boot_epoch": 2,
+        "controller_epoch": 2
+      },
+      "persistence": {
+        "outcome": "definitely_not_committed",
+        "receipt": {
+          "domain": "persistence",
+          "owner_id": "persistence-owner-attempt-2",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-2-persistence-evidence",
+          "status": "confirmed",
+          "asserted_value": "definitely_not_committed",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-2-persistence-raw",
+          "raw_artifact_sha256": "8766cd9cd7eb40439a3b878b2ad724c29f9e9951b20e12da930cc84b92b08f4c"
+        }
+      },
+      "physical_outcome": {
+        "outcome": "no_effect",
+        "receipt": {
+          "domain": "physical_outcome",
+          "owner_id": "physical-outcome-owner-attempt-2",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-2-physical-outcome-evidence",
+          "status": "confirmed",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-2-physical-outcome-raw",
+          "raw_artifact_sha256": "3bac624da7f609ac71b3fcdf71fabb14d9c43e9dc8c88d821435638338a6f43f"
+        }
+      },
+      "mission_resolution": {
+        "outcome": "no_effect",
+        "receipt": {
+          "domain": "mission_resolution",
+          "owner_id": "mission-resolution-owner-attempt-2",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-2-mission-resolution-evidence",
+          "status": "confirmed",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-2-mission-resolution-raw",
+          "raw_artifact_sha256": "5a775ceff7e476af499a3e2cc76bc9e5ed0a76a7175637d1000d88762507084e"
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "quiescent",
+        "target_epoch": {
+          "boot_epoch": 3,
+          "controller_epoch": 3
+        },
+        "receipt": {
+          "domain": "controller_queue",
+          "owner_id": "controller-queue-owner-attempt-2",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-2-controller-queue-evidence",
+          "status": "confirmed",
+          "asserted_value": "quiescent;target_boot_epoch=3;target_controller_epoch=3",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-2-controller-queue-raw",
+          "raw_artifact_sha256": "0a1b2ddf6459b0869b02a83609f4b390b74252a370c308542c96fb8425b87226"
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "quiescent",
+        "target_epoch": {
+          "boot_epoch": 3,
+          "controller_epoch": 3
+        },
+        "receipt": {
+          "domain": "downstream_execution_graph",
+          "owner_id": "downstream-graph-owner-attempt-2",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-2-downstream-graph-evidence",
+          "status": "confirmed",
+          "asserted_value": "quiescent;target_boot_epoch=3;target_controller_epoch=3",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-2-downstream-graph-raw",
+          "raw_artifact_sha256": "da93a546e612515c1be805879b989ef15aacda67c6574ffef3e6eeefc1cce561"
+        }
+      },
+      "observer_assurance": {
+        "physical_outcome": {
+          "domain": "physical_outcome_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-2-physical_outcome-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "no_effect",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": "attempt-2-physical-outcome",
+          "claim_scope_sha256": "0a96b9d1c6746f7e64046ec293c7313ce2b87ea48364a736d08bef0ed55cc295",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-2-physical-observer-1",
+                "observer_revision": "attempt-2-physical-sensor-stack-1@v1",
+                "observation_id": "attempt-2-physical-observation-1",
+                "common_cause_domains": [
+                  "attempt-2-physical-power-1",
+                  "attempt-2-physical-clock-1",
+                  "attempt-2-physical-host-1"
+                ],
+                "raw_artifact_id": "attempt-2-physical-raw-1",
+                "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              },
+              {
+                "observer_id": "attempt-2-physical-observer-2",
+                "observer_revision": "attempt-2-physical-sensor-stack-2@v1",
+                "observation_id": "attempt-2-physical-observation-2",
+                "common_cause_domains": [
+                  "attempt-2-physical-power-2",
+                  "attempt-2-physical-clock-2",
+                  "attempt-2-physical-host-2"
+                ],
+                "raw_artifact_id": "attempt-2-physical-raw-2",
+                "raw_artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-2-physical_outcome-quorum-envelope",
+          "raw_artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "downstream_quiescence": {
+          "domain": "downstream_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-2-downstream_quiescence-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "quiescent",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          },
+          "claim_id": "attempt-2-downstream-quiescence",
+          "claim_scope_sha256": "1dd204befd576d75f03c778e14c34962698174b29ed2f1b833df63fbf767b9bd",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-2-downstream-observer-1",
+                "observer_revision": "attempt-2-downstream-sensor-stack-1@v1",
+                "observation_id": "attempt-2-downstream-observation-1",
+                "common_cause_domains": [
+                  "attempt-2-downstream-power-1",
+                  "attempt-2-downstream-clock-1",
+                  "attempt-2-downstream-host-1"
+                ],
+                "raw_artifact_id": "attempt-2-downstream-raw-1",
+                "raw_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+              },
+              {
+                "observer_id": "attempt-2-downstream-observer-2",
+                "observer_revision": "attempt-2-downstream-sensor-stack-2@v1",
+                "observation_id": "attempt-2-downstream-observation-2",
+                "common_cause_domains": [
+                  "attempt-2-downstream-power-2",
+                  "attempt-2-downstream-clock-2",
+                  "attempt-2-downstream-host-2"
+                ],
+                "raw_artifact_id": "attempt-2-downstream-raw-2",
+                "raw_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-2-downstream_quiescence-quorum-envelope",
+          "raw_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      }
+    },
+    {
+      "attempt_id": "attempt-3",
+      "ordinal": 3,
+      "parent_attempt_id": "attempt-2",
+      "authorized_epoch": {
+        "boot_epoch": 3,
+        "controller_epoch": 3
+      },
+      "persistence": {
+        "outcome": "committed",
+        "receipt": {
+          "domain": "persistence",
+          "owner_id": "persistence-owner-attempt-3",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-3-persistence-evidence",
+          "status": "confirmed",
+          "asserted_value": "committed",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-3-persistence-raw",
+          "raw_artifact_sha256": "0510801d7abd2415317c0bf277604522fbf804da161e54396b536b41bb4cebbc"
+        }
+      },
+      "physical_outcome": {
+        "outcome": "applied",
+        "receipt": {
+          "domain": "physical_outcome",
+          "owner_id": "physical-outcome-owner-attempt-3",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-3-physical-outcome-evidence",
+          "status": "confirmed",
+          "asserted_value": "applied",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-3-physical-outcome-raw",
+          "raw_artifact_sha256": "02d3ada90b1130ab8a61f5621421466c824a396ca5adb5783fb93091334e55ff"
+        }
+      },
+      "mission_resolution": {
+        "outcome": "effect_predicate_satisfied",
+        "receipt": {
+          "domain": "mission_resolution",
+          "owner_id": "mission-resolution-owner-attempt-3",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-3-mission-resolution-evidence",
+          "status": "confirmed",
+          "asserted_value": "effect_predicate_satisfied",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-3-mission-resolution-raw",
+          "raw_artifact_sha256": "c6e195c463af60cbf8e9b8cfc05d31b47b2b3a0ebf9adc76f90b2fe0d3f867a8"
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "unknown",
+        "target_epoch": null,
+        "receipt": {
+          "domain": "controller_queue",
+          "owner_id": "controller-queue-owner-attempt-3",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-3-controller-queue-evidence",
+          "status": "insufficient_evidence",
+          "asserted_value": "unknown;target_epoch=none",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-3-controller-queue-raw",
+          "raw_artifact_sha256": "2ee7963815d0d7e9de78d89a153f6abcf76e5a35a0813167c0bdc6abb362295d"
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "unknown",
+        "target_epoch": null,
+        "receipt": {
+          "domain": "downstream_execution_graph",
+          "owner_id": "downstream-graph-owner-attempt-3",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-3-downstream-graph-evidence",
+          "status": "insufficient_evidence",
+          "asserted_value": "unknown;target_epoch=none",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": null,
+          "claim_scope_sha256": null,
+          "observer_quorum": null,
+          "raw_artifact_id": "attempt-3-downstream-graph-raw",
+          "raw_artifact_sha256": "ffbfe9e3beb3a3079c87c8de267adf435e4d7d43c891024203b71bf673335b18"
+        }
+      },
+      "observer_assurance": {
+        "physical_outcome": {
+          "domain": "physical_outcome_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-3-physical-outcome-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "applied",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": "attempt-3-physical-outcome-applied",
+          "claim_scope_sha256": "da636ae5d67054737c5a9ee9df294fa19023c70804b16d1799831e40ef6197c0",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-3-applied-observer-1",
+                "observer_revision": "applied-sensor-stack-1@v1",
+                "observation_id": "attempt-3-applied-observation-1",
+                "common_cause_domains": [
+                  "attempt-3-applied-power-1",
+                  "attempt-3-applied-clock-1",
+                  "attempt-3-applied-host-1"
+                ],
+                "raw_artifact_id": "attempt-3-applied-raw-1",
+                "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+              },
+              {
+                "observer_id": "attempt-3-applied-observer-2",
+                "observer_revision": "applied-sensor-stack-2@v1",
+                "observation_id": "attempt-3-applied-observation-2",
+                "common_cause_domains": [
+                  "attempt-3-applied-power-2",
+                  "attempt-3-applied-clock-2",
+                  "attempt-3-applied-host-2"
+                ],
+                "raw_artifact_id": "attempt-3-applied-raw-2",
+                "raw_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-3-physical-outcome-quorum-envelope",
+          "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "downstream_quiescence": null
+      }
+    }
+  ],
+  "fault_profile_revision": "rrvr-lineage-fault-model-v0.1"
+}

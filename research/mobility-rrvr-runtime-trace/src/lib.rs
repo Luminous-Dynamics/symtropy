@@ -9,6 +9,8 @@
 //! JSONL trace plus a separate provenance sidecar. Missing fields are rejected;
 //! no owner fact is filled with an optimistic default.
 
+pub mod attempt_lineage;
+
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -81,7 +83,7 @@ pub enum OwnerEvidenceDomain {
 }
 
 impl OwnerEvidenceDomain {
-    fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::ProcessEpoch => "process_epoch",
             Self::Persistence => "persistence",
@@ -132,7 +134,7 @@ impl OwnerEvidenceStatus {
 pub struct EvidenceScope {
     /// Stable identity of the logical physical operation, independent of retries.
     pub logical_effect_id: String,
-    /// Exact attempt to which this evidence applies (for this model: attempt-1 or attempt-2).
+    /// Exact attempt to which this evidence applies; retry lineage may contain multiple attempts.
     pub attempt_id: String,
     /// Epoch in which the subject attempt was originally authorized.
     pub subject_boot_epoch: u64,
@@ -173,7 +175,7 @@ pub struct OwnerEvidenceRef {
     pub scope: EvidenceScope,
     /// Populated for claim-specific observer-quorum records.
     pub claim_id: Option<String>,
-    /// SHA-256 of domain + claim ID + typed evidence scope.
+    /// SHA-256 of domain + claim ID + asserted value + typed evidence scope.
     pub claim_scope_sha256: Option<String>,
     pub observer_quorum: Option<ObserverQuorumProof>,
     pub raw_artifact_id: String,
@@ -309,7 +311,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex(&digest)
 }
 
-fn claim_scope_digest(
+pub(crate) fn claim_scope_digest(
     domain: OwnerEvidenceDomain,
     claim_id: &str,
     asserted_value: &str,
@@ -330,7 +332,9 @@ fn claim_scope_digest(
     sha256_hex(&bytes)
 }
 
-fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
+pub(crate) fn observer_quorum_is_qualified(
+    proof: &ObserverQuorumProof,
+) -> Result<bool, ProjectionError> {
     if !nonempty(&proof.fault_model_revision)
         || proof.required_independent_members < 2
         || proof.required_independent_members > 32
@@ -375,7 +379,7 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
     Ok(pairwise_independent && proof.members.len() >= proof.required_independent_members)
 }
 
-fn observer_proofs_are_independent(
+pub(crate) fn observer_proofs_are_independent(
     physical_outcome: &ObserverQuorumProof,
     downstream: &ObserverQuorumProof,
 ) -> bool {

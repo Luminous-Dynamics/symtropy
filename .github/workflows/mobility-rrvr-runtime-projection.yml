@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/mobility-rrvr-runtime-projection-v0-1
+      - research/mobility-rrvr-attempt-lineage-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
@@ -126,11 +127,96 @@ jobs:
           diff -u "$RUNNER_TEMP/tla-fields.txt" "$RUNNER_TEMP/schema-fields.txt"
           test "$(wc -l < "$RUNNER_TEMP/tla-fields.txt" | tr -d ' ')" -eq 43
 
+      - name: Validate multi-attempt lineage fixture and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/attempt_lineage_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and (.logical_effect_id | length > 0)
+            and (.attempts | length == 3)
+            and .fault_profile_revision == "rrvr-lineage-fault-model-v0.1"
+            and ([.attempts[].ordinal] == [1, 2, 3])
+            and .attempts[0].observer_assurance.physical_outcome.asserted_value == "no_effect"
+            and .attempts[0].observer_assurance.downstream_quiescence.asserted_value == "quiescent"
+            and .attempts[1].observer_assurance.physical_outcome.asserted_value == "no_effect"
+            and .attempts[1].observer_assurance.downstream_quiescence.asserted_value == "quiescent"
+            and .attempts[0].observer_assurance.physical_outcome.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[0].observer_assurance.downstream_quiescence.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[1].observer_assurance.physical_outcome.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[1].observer_assurance.downstream_quiescence.observer_quorum.fault_model_revision == .fault_profile_revision
+            and (.attempts[0].observer_assurance.physical_outcome.observer_quorum.members | length == 2)
+            and (.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members | length == 2)
+            and (([.attempts[0].observer_assurance.physical_outcome.observer_quorum.members[].observer_id] + [.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[0].observer_assurance.physical_outcome.observer_quorum.members[].common_cause_domains[]] + [.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members[].common_cause_domains[]] | unique | length) == 12)
+            and (([.attempts[1].observer_assurance.physical_outcome.observer_quorum.members[].observer_id] + [.attempts[1].observer_assurance.downstream_quiescence.observer_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[1].observer_assurance.physical_outcome.observer_quorum.members[].common_cause_domains[]] + [.attempts[1].observer_assurance.downstream_quiescence.observer_quorum.members[].common_cause_domains[]] | unique | length) == 12)
+            and .attempts[2].observer_assurance.physical_outcome.asserted_value == "applied"
+            and .attempts[2].observer_assurance.physical_outcome.observer_quorum.fault_model_revision == .fault_profile_revision
+            and (.attempts[2].observer_assurance.physical_outcome.observer_quorum.members | length == 2)
+            and .attempts[2].observer_assurance.downstream_quiescence == null
+            and .attempts[0].parent_attempt_id == null
+            and .attempts[1].parent_attempt_id == .attempts[0].attempt_id
+            and .attempts[2].parent_attempt_id == .attempts[1].attempt_id
+            and .attempts[0].physical_outcome.outcome == "no_effect"
+            and .attempts[1].physical_outcome.outcome == "no_effect"
+            and .attempts[2].physical_outcome.outcome == "applied"
+            and .attempts[0].persistence.receipt.domain == "persistence"
+            and .attempts[0].persistence.receipt.asserted_value == .attempts[0].persistence.outcome
+            and .attempts[0].persistence.receipt.status == "confirmed"
+            and .attempts[0].physical_outcome.receipt.domain == "physical_outcome"
+            and .attempts[0].physical_outcome.receipt.asserted_value == .attempts[0].physical_outcome.outcome
+            and .attempts[0].physical_outcome.receipt.status == "confirmed"
+            and .attempts[0].mission_resolution.receipt.domain == "mission_resolution"
+            and .attempts[0].mission_resolution.receipt.asserted_value == .attempts[0].mission_resolution.outcome
+            and .attempts[0].mission_resolution.receipt.status == "confirmed"
+            and .attempts[0].controller_queue_fence.receipt.domain == "controller_queue"
+            and .attempts[0].controller_queue_fence.receipt.asserted_value == "quiescent;target_boot_epoch=2;target_controller_epoch=2"
+            and .attempts[0].controller_queue_fence.receipt.status == "confirmed"
+            and .attempts[0].downstream_quiescence.receipt.domain == "downstream_execution_graph"
+            and .attempts[0].downstream_quiescence.receipt.asserted_value == "quiescent;target_boot_epoch=2;target_controller_epoch=2"
+            and .attempts[0].downstream_quiescence.receipt.status == "confirmed"
+            and .attempts[1].controller_queue_fence.receipt.asserted_value == "quiescent;target_boot_epoch=3;target_controller_epoch=3"
+            and .attempts[1].downstream_quiescence.receipt.asserted_value == "quiescent;target_boot_epoch=3;target_controller_epoch=3"
+            and .attempts[2].physical_outcome.receipt.asserted_value == "applied"
+            and .attempts[0].controller_queue_fence.target_epoch == .attempts[1].authorized_epoch
+            and .attempts[0].downstream_quiescence.target_epoch == .attempts[1].authorized_epoch
+            and .attempts[1].controller_queue_fence.target_epoch == .attempts[2].authorized_epoch
+            and .attempts[1].downstream_quiescence.target_epoch == .attempts[2].authorized_epoch
+            and ([.. | objects | select(has("raw_artifact_sha256")) | .raw_artifact_sha256] | all(type == "string" and test("^[a-fA-F0-9]{64}$")))
+          ' "$FIXTURE"
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --check
 
       - name: Run runtime projection tests
         run: cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
+
+      - name: Run multi-attempt lineage CLI positive control
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
+          REPORT="$RUNNER_TEMP/rrvr-attempt-lineage-summary.json"
+          cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_attempt_lineage -- "$FIXTURE" "$REPORT"
+          jq -e '
+            .validation == "passed"
+            and .attempt_count == 3
+            and .recovery_edge_count == 2
+            and .applied_attempt_count == 1
+            and .head_attempt_id == "attempt-3"
+            and .head_physical_outcome == "applied"
+            and .head_outcome_verdict == "confirmed"
+            and .head_physical_observer_quorum_qualified == true
+            and .owner_authentication == "not_performed"
+            and .evidence_completeness == "not_established"
+            and .tla_refinement == "not_checked"
+            and .physical_safety == "not_established"
+            and .native_action_authority == "not_created"
+          ' "$REPORT"
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
