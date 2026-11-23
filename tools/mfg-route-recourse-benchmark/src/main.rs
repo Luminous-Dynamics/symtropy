@@ -545,91 +545,85 @@ fn greedy_recommendation(
     Ok(sorted_plan(assignments, abstentions))
 }
 
-fn exhaustive_visit(
-    case: &ScenarioCase,
-    jobs: &[Job],
-    index: usize,
-    state: &ObservedState,
-    remaining: &mut BTreeMap<String, u64>,
-    assignments: &mut Vec<Assignment>,
-    abstentions: &mut Vec<String>,
-    cost: u64,
-    best: &mut Option<(u64, String, Recommendation)>,
-) -> Result<(), String> {
-    if index == jobs.len() {
-        let action = sorted_plan(assignments.clone(), abstentions.clone());
-        let key = serde_json::to_string(&action)
-            .map_err(|error| format!("oracle_action_serialization_error:{error}"))?;
-        let replace = best
-            .as_ref()
-            .is_none_or(|(best_cost, best_key, _)| cost < *best_cost || (cost == *best_cost && key < *best_key));
-        if replace {
-            *best = Some((cost, key, action));
+struct OracleSearch<'a> {
+    case: &'a ScenarioCase,
+    jobs: &'a [Job],
+    state: &'a ObservedState,
+    remaining: BTreeMap<String, u64>,
+    assignments: Vec<Assignment>,
+    abstentions: Vec<String>,
+    best: Option<(u64, String, Recommendation)>,
+}
+
+impl OracleSearch<'_> {
+    fn visit(&mut self, index: usize, cost: u64) -> Result<(), String> {
+        if index == self.jobs.len() {
+            let action = sorted_plan(self.assignments.clone(), self.abstentions.clone());
+            let key = serde_json::to_string(&action)
+                .map_err(|error| format!("oracle_action_serialization_error:{error}"))?;
+            let replace = self.best.as_ref().is_none_or(|(best_cost, best_key, _)| {
+                cost < *best_cost || (cost == *best_cost && key < *best_key)
+            });
+            if replace {
+                self.best = Some((cost, key, action));
+            }
+            return Ok(());
         }
-        return Ok(());
-    }
 
-    let job = &jobs[index];
-    let mut routes: Vec<&Route> = case
-        .routes
-        .iter()
-        .filter(|route| {
-            route_fits_job(
-                route,
-                job,
-                state,
-                remaining.get(&route.route_id).copied().unwrap_or(0),
-            )
-        })
-        .collect();
-    routes.sort_by(|a, b| a.route_id.cmp(&b.route_id));
+        let job = self.jobs[index].clone();
+        let options: Vec<(String, u64)> = self
+            .case
+            .routes
+            .iter()
+            .filter(|route| {
+                route_fits_job(
+                    route,
+                    &job,
+                    self.state,
+                    self.remaining.get(&route.route_id).copied().unwrap_or(0),
+                )
+            })
+            .map(|route| (route.route_id.clone(), route.cost_per_unit))
+            .collect();
 
-    for route in routes {
-        let available = remaining
-            .get_mut(&route.route_id)
-            .ok_or_else(|| fail("oracle_route_missing_capacity_state"))?;
-        *available -= job.quantity_units;
-        assignments.push(Assignment {
-            job_id: job.job_id.clone(),
-            route_id: route.route_id.clone(),
-            quantity_units: job.quantity_units,
-        });
-        let route_cost = route.cost_per_unit
+        for (route_id, route_cost_per_unit) in options {
+            let available = self
+                .remaining
+                .get_mut(&route_id)
+                .ok_or_else(|| fail("oracle_route_missing_capacity_state"))?;
+            *available -= job.quantity_units;
+            self.assignments.push(Assignment {
+                job_id: job.job_id.clone(),
+                route_id: route_id.clone(),
+                quantity_units: job.quantity_units,
+            });
+            let route_cost = route_cost_per_unit
+                .checked_mul(job.quantity_units)
+                .ok_or_else(|| fail("oracle_route_cost_overflow"))?;
+            self.visit(
+                index + 1,
+                cost.checked_add(route_cost)
+                    .ok_or_else(|| fail("oracle_total_cost_overflow"))?,
+            )?;
+            self.assignments.pop();
+            *self
+                .remaining
+                .get_mut(&route_id)
+                .ok_or_else(|| fail("oracle_route_capacity_lost"))? += job.quantity_units;
+        }
+
+        self.abstentions.push(job.job_id.clone());
+        let penalty = UNFULFILLED_PENALTY_PER_UNIT
             .checked_mul(job.quantity_units)
-            .ok_or_else(|| fail("oracle_route_cost_overflow"))?;
-        exhaustive_visit(
-            case,
-            jobs,
+            .ok_or_else(|| fail("unserved_penalty_overflow"))?;
+        self.visit(
             index + 1,
-            state,
-            remaining,
-            assignments,
-            abstentions,
-            cost.checked_add(route_cost).ok_or_else(|| fail("oracle_total_cost_overflow"))?,
-            best,
+            cost.checked_add(penalty)
+                .ok_or_else(|| fail("oracle_total_cost_overflow"))?,
         )?;
-        assignments.pop();
-        *remaining.get_mut(&route.route_id)
-            .ok_or_else(|| fail("oracle_route_capacity_lost"))? += job.quantity_units;
+        self.abstentions.pop();
+        Ok(())
     }
-
-    abstentions.push(job.job_id.clone());
-    let penalty = UNFULFILLED_PENALTY_PER_UNIT
-        .checked_mul(job.quantity_units)
-        .ok_or_else(|| fail("unserved_penalty_overflow"))?;
-    exhaustive_visit(
-        case,
-        jobs,
-        index + 1,
-        state,
-        remaining,
-        assignments,
-        abstentions,
-        cost.checked_add(penalty).ok_or_else(|| fail("oracle_total_cost_overflow"))?,
-        best,
-    )?;
-    abstentions.pop();
-    Ok(())
 }
 
 fn exhaustive_oracle(
@@ -644,24 +638,23 @@ fn exhaustive_oracle(
     }
     let mut jobs = case.jobs.clone();
     jobs.sort_by(|a, b| a.job_id.cmp(&b.job_id));
-    let mut remaining: BTreeMap<String, u64> = case
+    let remaining: BTreeMap<String, u64> = case
         .routes
         .iter()
         .map(|route| (route.route_id.clone(), effective_capacity(route, &state)))
         .collect();
-    let mut best = None;
-    exhaustive_visit(
+    let mut search = OracleSearch {
         case,
-        &jobs,
-        0,
-        &state,
-        &mut remaining,
-        &mut Vec::new(),
-        &mut Vec::new(),
-        0,
-        &mut best,
-    )?;
-    best.map(|(_, _, action)| action)
+        jobs: &jobs,
+        state: &state,
+        remaining,
+        assignments: Vec::new(),
+        abstentions: Vec::new(),
+        best: None,
+    };
+    search.visit(0, 0)?;
+    search.best
+        .map(|(_, _, action)| action)
         .ok_or_else(|| fail("exhaustive_oracle_produced_no_plan"))
 }
 
