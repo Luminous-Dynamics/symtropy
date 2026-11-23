@@ -651,8 +651,7 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
     }
     // Freshness is required at permit issuance/admission. Once NativeAcceptRecovery
     // has captured admittedM1/admittedM2, later revocation is not retroactive.
-    if permit == "issued"
-        && (!bool_field(state, "m1Current")? || !bool_field(state, "m2Current")?)
+    if permit == "issued" && (!bool_field(state, "m1Current")? || !bool_field(state, "m2Current")?)
     {
         return Err(ProjectionError::RecoveryFromUnqualifiedOutcome);
     }
