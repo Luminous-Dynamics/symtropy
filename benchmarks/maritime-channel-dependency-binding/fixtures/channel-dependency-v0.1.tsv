@@ -3,6 +3,7 @@ complete_disjoint_current|ProfileObligationsMet|SeparatedForProfile|Both role in
 device_aliases_same_reader|ProfileObligationsNotMet|Shared|Different local device labels resolve to one canonical dependency
 transitive_common_ancestor|ProfileObligationsNotMet|Shared|Distinct immediate gateways lead to one shared upstream broker
 partial_known_overlap|ProfileObligationsNotMet|Shared|Known common dependency is retained despite unknown remainder
+accepted_shared_common|ProfileObligationsNotMet|Shared|Rationale impact and accountable owner are retained without waiving shared disposition
 partial_disjoint|ProfileIncomplete|Incomplete|Known sets are disjoint but one inventory has unknown remainder
 unknown_inventory|ProfileIndeterminate|Indeterminate|Unknown dependency inventory is not interpreted as disjoint
 stale_witness|ProfileIndeterminate|Indeterminate|A stale dependency witness cannot establish separation
