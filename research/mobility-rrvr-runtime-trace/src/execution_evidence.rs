@@ -405,6 +405,7 @@ impl ExecutionEvidenceBundle {
         let mut delivery_refuted_count = 0usize;
         let mut delivery_unknown_count = 0usize;
         let mut delivery_not_observed_count = 0usize;
+        let mut delivery_observer_receipt_count = 0usize;
         let mut reconcile_required = false;
         let mut previous_event_end: Option<(u64, u64)> = None;
 
