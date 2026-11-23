@@ -460,15 +460,52 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
 
+    // Source state outranks empty-set semantics: a stale empty set is not evidence
+    // that no worlds survive.
+    if case.world_set_state == "UNAVAILABLE" {
+        return abstain(case, "WORLD_SET_UNAVAILABLE", Some(retention_threshold));
+    }
+    if case.world_set_state == "STALE" {
+        return abstain(case, "STALE_WORLD_SET", Some(retention_threshold));
+    }
+    if case.loss_model_set.state == "STALE" {
+        return abstain(case, "STALE_LOSS_MODEL_SET", Some(retention_threshold));
+    }
+    if case.loss_model_set.state == "INDETERMINATE" {
+        return abstain(
+            case,
+            "INDETERMINATE_LOSS_MODEL_SET",
+            Some(retention_threshold),
+        );
+    }
+    if case.loss_model_set.state == "OUT_OF_PROFILE" {
+        return abstain(
+            case,
+            "LOSS_MODEL_SET_OUT_OF_PROFILE",
+            Some(retention_threshold),
+        );
+    }
+    if case.loss_model_set.state == "INADEQUATE" {
+        return abstain(case, "LOSS_MODEL_SET_INADEQUATE", Some(retention_threshold));
+    }
+
     let expected_world_ids = case
         .expected_world_ids
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
+    let expected_world_digest = match digest_ids(&case.expected_world_ids) {
+        Ok(digest) => digest,
+        Err(_) => {
+            return invalid_input(
+                case,
+                "planned physical-world inventory cannot be encoded",
+            );
+        }
+    };
     if expected_world_ids.len() != case.expected_world_ids.len()
         || expected_world_ids.iter().any(|id| !valid_id(id))
-        || digest_ids(&case.expected_world_ids).as_deref()
-            != Ok(case.expected_world_ids_sha256.as_str())
+        || expected_world_digest != case.expected_world_ids_sha256
     {
         return invalid_input(
             case,
@@ -482,10 +519,19 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
+    let expected_scenario_digest =
+        match digest_ids(&case.loss_model_set.expected_scenario_ids) {
+            Ok(digest) => digest,
+            Err(_) => {
+                return invalid_input(
+                    case,
+                    "planned joint loss-scenario inventory cannot be encoded",
+                );
+            }
+        };
     if expected_scenario_ids.len() != case.loss_model_set.expected_scenario_ids.len()
         || expected_scenario_ids.iter().any(|id| !valid_id(id))
-        || digest_ids(&case.loss_model_set.expected_scenario_ids).as_deref()
-            != Ok(case.loss_model_set.expected_scenario_ids_sha256.as_str())
+        || expected_scenario_digest != case.loss_model_set.expected_scenario_ids_sha256
     {
         return invalid_input(
             case,
@@ -534,33 +580,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
 
-    // External/producer state gates take precedence over numerical comparison.
-    if case.world_set_state == "UNAVAILABLE" {
-        return abstain(case, "WORLD_SET_UNAVAILABLE", Some(retention_threshold));
-    }
-    if case.world_set_state == "STALE" {
-        return abstain(case, "STALE_WORLD_SET", Some(retention_threshold));
-    }
-    if case.loss_model_set.state == "STALE" {
-        return abstain(case, "STALE_LOSS_MODEL_SET", Some(retention_threshold));
-    }
-    if case.loss_model_set.state == "INDETERMINATE" {
-        return abstain(
-            case,
-            "INDETERMINATE_LOSS_MODEL_SET",
-            Some(retention_threshold),
-        );
-    }
-    if case.loss_model_set.state == "OUT_OF_PROFILE" {
-        return abstain(
-            case,
-            "LOSS_MODEL_SET_OUT_OF_PROFILE",
-            Some(retention_threshold),
-        );
-    }
-    if case.loss_model_set.state == "INADEQUATE" {
-        return abstain(case, "LOSS_MODEL_SET_INADEQUATE", Some(retention_threshold));
-    }
+    // Remaining evidence and domain gates precede numeric comparison.
     if case.domain_closure_state == "OPEN" {
         return abstain(case, "DOMAIN_NOT_CLOSED", Some(retention_threshold));
     }
