@@ -25,6 +25,14 @@ def quantize(value, scale):
         raise ValueError("FEATURE_INFORMATION_NUMERIC_OVERFLOW")
     return scaled
 
+def quantize_signed(value, scale):
+    if not math.isfinite(value):
+        raise ValueError("FEATURE_INFORMATION_NUMERIC_INVALID")
+    scaled = math.floor(value * scale + 0.5) if value >= 0 else math.ceil(value * scale - 0.5)
+    if scaled < -(2**63) or scaled > 2**63 - 1:
+        raise ValueError("FEATURE_INFORMATION_NUMERIC_OVERFLOW")
+    return scaled
+
 
 def determinant(m):
     return (
