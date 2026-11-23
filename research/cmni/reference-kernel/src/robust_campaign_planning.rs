@@ -1280,6 +1280,44 @@ mod tests {
     }
 
     #[test]
+    fn stopping_policy_reports_zero_maximum_path_cost() {
+        let states = vec!["state-0".to_owned(), "state-1".to_owned()];
+        let probabilities = vec![0.5, 0.5];
+        let actions = vec!["choose-0".to_owned(), "choose-1".to_owned()];
+        let utilities = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        let option = RobustCampaignAcquisition {
+            option_id: "optional-sensor".to_owned(),
+            kind: InformationAcquisitionKind::IndependentCalibration,
+            cost: 1.0,
+            outcome_ids: vec!["reading-0".to_owned(), "reading-1".to_owned()],
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
+            scenarios: vec![
+                scenario("dependence-a", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+                scenario("dependence-b", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+            ],
+        };
+        let result = plan_non_anticipative_robust_campaign(
+            &states,
+            &probabilities,
+            &actions,
+            &utilities,
+            0.0,
+            &[option],
+            &RobustCampaignPlanningPolicy {
+                max_steps: 2,
+                remaining_resource_budget: 0.1,
+                cost_to_utility_rate: 1.0,
+                max_campaign_policy_trees: 8,
+            },
+        )
+        .expect("stop policy should remain feasible");
+        assert!(matches!(result.selected_plan, RobustCampaignPlanNode::Stop(_)));
+        assert_eq!(result.maximum_path_resource_cost, 0.0);
+        assert_eq!(result.pathwise_resource_budget, 0.1);
+        assert!(result.pathwise_budget_satisfied);
+    }
+
+    #[test]
     fn mismatched_dependence_scope_fails_closed() {
         let (states, probabilities, actions, utilities, options) = adaptive_fixture();
         let mut options = options;
