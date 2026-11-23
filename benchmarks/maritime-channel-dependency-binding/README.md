@@ -70,7 +70,7 @@ The projection binds:
 
 A path witness must start at its role binding, terminate at the named dependency node, have consistent node/edge/relation counts, contain no repeated nodes, and not use an independence conclusion as a dependency edge. Unknown and potentially-correlated path relations remain valid *uncertainty evidence* and prevent a separation result.
 
-A `NotApplicable` declaration includes both a rationale and an accountable owner. It does not discharge a mandatory v0.1 obligation. A known common dependency may be annotated as explicitly accepted with a rationale, impact statement, and accountable owner; the finding still remains `Shared` and the profile does not claim separation.
+A `NotApplicable` declaration includes both a rationale and an accountable owner. It does not discharge a mandatory v0.1 obligation; dependencies known on the other role remain visible in the same finding. A known common dependency may be annotated as explicitly accepted with a rationale, impact statement, and accountable owner; the finding still remains `Shared` and the profile does not claim separation.
 
 ### Per-dimension outcomes
 
