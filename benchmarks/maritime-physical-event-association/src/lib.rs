@@ -353,73 +353,47 @@ impl IntervalContextIndex {
         tree[node]
     }
 
-    fn query(
-        &self,
-        lower_limit: usize,
-        minimum_upper: i128,
-        candidates: &mut Vec<usize>,
-    ) -> usize {
+    fn query(&self, lower_limit: usize, minimum_upper: i128) -> (Vec<usize>, usize) {
         if lower_limit == 0 || self.by_lower.is_empty() {
-            return 0;
+            return (Vec::new(), 0);
         }
-        let mut nodes_visited = 0;
-        Self::query_node(
-            &self.by_lower,
-            &self.max_upper,
-            1,
-            0,
-            self.by_lower.len(),
+        let mut query = IntervalQuery {
+            index: self,
             lower_limit,
             minimum_upper,
-            candidates,
-            &mut nodes_visited,
-        );
-        nodes_visited
+            candidates: Vec::new(),
+            nodes_visited: 0,
+        };
+        query.visit(1, 0, self.by_lower.len());
+        (query.candidates, query.nodes_visited)
     }
+}
 
-    #[allow(clippy::too_many_arguments)]
-    fn query_node(
-        entries: &[(i64, i64, usize)],
-        tree: &[i64],
-        node: usize,
-        start: usize,
-        end: usize,
-        lower_limit: usize,
-        minimum_upper: i128,
-        candidates: &mut Vec<usize>,
-        nodes_visited: &mut usize,
-    ) {
-        *nodes_visited += 1;
-        if start >= lower_limit || i128::from(tree[node]) < minimum_upper {
+#[cfg(test)]
+struct IntervalQuery<'a> {
+    index: &'a IntervalContextIndex,
+    lower_limit: usize,
+    minimum_upper: i128,
+    candidates: Vec<usize>,
+    nodes_visited: usize,
+}
+
+#[cfg(test)]
+impl IntervalQuery<'_> {
+    fn visit(&mut self, node: usize, start: usize, end: usize) {
+        self.nodes_visited += 1;
+        if start >= self.lower_limit
+            || i128::from(self.index.max_upper[node]) < self.minimum_upper
+        {
             return;
         }
         if end - start == 1 {
-            candidates.push(entries[start].2);
+            self.candidates.push(self.index.by_lower[start].2);
             return;
         }
         let middle = start + (end - start) / 2;
-        Self::query_node(
-            entries,
-            tree,
-            node * 2,
-            start,
-            middle,
-            lower_limit,
-            minimum_upper,
-            candidates,
-            nodes_visited,
-        );
-        Self::query_node(
-            entries,
-            tree,
-            node * 2 + 1,
-            middle,
-            end,
-            lower_limit,
-            minimum_upper,
-            candidates,
-            nodes_visited,
-        );
+        self.visit(node * 2, start, middle);
+        self.visit(node * 2 + 1, middle, end);
     }
 }
 
@@ -461,8 +435,9 @@ fn candidate_graph_interval_indexed(
             .partition_point(|(lower, _, _)| *lower <= source_event.event_time.upper);
         let minimum_upper =
             i128::from(source_event.event_time.lower) - i128::from(profile.max_interval_gap);
-        let mut possible_witnesses = Vec::new();
-        index_nodes_visited += context.query(lower_limit, minimum_upper, &mut possible_witnesses);
+        let (mut possible_witnesses, nodes_visited) =
+            context.query(lower_limit, minimum_upper);
+        index_nodes_visited += nodes_visited;
         possible_witnesses.sort_unstable();
 
         let mut source_edges = Vec::new();
