@@ -113,3 +113,8 @@ A later adapter must emit the separate execution bundle described in [EXECUTION_
 The platform digest now includes the ROS 2 Simulation Interfaces package revision and the exact SceneBroadcaster system ID, build revision and binary digest. The Gazebo capability preflight compares these values, plus simulator build, ROS distribution, environment/world profile and reset profile, against the captured capability report. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
 
 The preflight CLI is deliberately offline and labelled as a captured-profile check. A real simulator transport must discover the live feature set and verify state/reset behavior before any event can be scheduled.
+
+
+## ROS/Gazebo compatibility binding
+
+The compiled platform binding includes the explicit Gazebo release label and the Simulation Interfaces package revision, alongside the exact simulator build and plugin digests. The campaign validator currently accepts the supported LTS pairs Jazzy/Harmonic and Lyrical/Jetty and rejects cross-pair or unknown combinations. The captured capability profile must match the exact plan. The reference fixture is synthetic, not a digest capture from live hardware or Gazebo. See Gazebo installation compatibility: https://gazebosim.org/docs/latest/ros_installation/ and GAZEBO_ADAPTER_V0.1.md.
