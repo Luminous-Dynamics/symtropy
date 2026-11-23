@@ -605,10 +605,7 @@ impl BenchPcaSap {
     }
 
     fn build(bodies: &[RigidBody<3>]) -> Self {
-        let aabbs: Vec<_> = bodies
-            .iter()
-            .map(broadphase::Aabb::from_body)
-            .collect();
+        let aabbs: Vec<_> = bodies.iter().map(broadphase::Aabb::from_body).collect();
         let centers: Vec<_> = aabbs
             .iter()
             .map(|aabb| (aabb.min + aabb.max) * 0.5)
@@ -662,9 +659,7 @@ impl BenchPcaSap {
                 let body_a = &bodies[previous.body_index];
                 let body_b = &bodies[current.body_index];
 
-                if body_a.body_type == BodyType::Static
-                    && body_b.body_type == BodyType::Static
-                {
+                if body_a.body_type == BodyType::Static && body_b.body_type == BodyType::Static {
                     continue;
                 }
                 if (body_a.collision_group & body_b.collision_mask == 0)
@@ -742,23 +737,17 @@ fn bench_broadphase_static_bvh_tournament(c: &mut Criterion) {
             pca_sap.axis
         );
 
-        group.bench_function(
-            BenchmarkId::new("pca_sap_query_only", &scenario),
-            |bench| {
-                bench.iter(|| {
-                    black_box(pca_sap.query_pairs(black_box(&bodies)));
-                });
-            },
-        );
+        group.bench_function(BenchmarkId::new("pca_sap_query_only", &scenario), |bench| {
+            bench.iter(|| {
+                black_box(pca_sap.query_pairs(black_box(&bodies)));
+            });
+        });
 
-        group.bench_function(
-            BenchmarkId::new("pca_sap_build_only", &scenario),
-            |bench| {
-                bench.iter(|| {
-                    black_box(BenchPcaSap::build(black_box(&bodies)));
-                });
-            },
-        );
+        group.bench_function(BenchmarkId::new("pca_sap_build_only", &scenario), |bench| {
+            bench.iter(|| {
+                black_box(BenchPcaSap::build(black_box(&bodies)));
+            });
+        });
 
         group.bench_function(
             BenchmarkId::new("pca_sap_build_plus_query", &scenario),
