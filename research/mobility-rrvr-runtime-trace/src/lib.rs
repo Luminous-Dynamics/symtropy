@@ -11,6 +11,7 @@
 
 pub mod attempt_lineage;
 pub mod campaign_plan;
+pub mod execution_evidence;
 pub mod fault_campaign;
 
 use serde::Deserialize;

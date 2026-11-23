@@ -7,6 +7,7 @@ on:
       - research/mobility-rrvr-attempt-lineage-v0-1
       - research/mobility-rrvr-fault-campaign-v0-1
       - research/mobility-rrvr-plan-compiler-v0-1
+      - research/mobility-rrvr-execution-evidence-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
@@ -206,7 +207,10 @@ jobs:
             and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.platform.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.fault_injector_id | length > 0)
+            and (.platform.fault_injector_fault_domain_id | length > 0)
             and (.platform.fault_injector_revision | length > 0)
+            and (.platform.native_adapter_id | length > 0)
             and (.platform.native_adapter_revision | length > 0)
             and (.reset.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.reset.expected_initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
@@ -217,6 +221,10 @@ jobs:
             and ([.scenarios[] | select(.arm == "last_attempt_only" and .expected_disposition == "measure")] | length == 2)
             and ([.scenarios[].faults[]] | length == 8)
             and ([.scenarios[].faults[].parameters_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.scenarios[].faults[].target_profile_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.scenarios[].faults[].expected_delivery_signature_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.scenarios[].faults[].target_revision] | map(length > 0) | all)
+            and ([.scenarios[].faults[].scheduled_simulation_step] | length == 8)
           ' "$FIXTURE"
 
       - name: Check formatting
@@ -275,6 +283,7 @@ jobs:
           ' "$REPORT"
 
       - name: Compile, deterministically replay and verify the RRVR campaign plan
+        id: compiled_plan
         shell: bash
         run: |
           set -euo pipefail
@@ -339,6 +348,112 @@ jobs:
             exit 1
           fi
           echo "Expected negative control rejected: tampered compiled plan."
+
+          echo "plan_sha=$EXPECTED_PLAN_SHA" >> "$GITHUB_OUTPUT"
+          echo "plan_path=$PLAN_A" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$EXPECTED_SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Validate plan-bound fault execution evidence and uncertainty controls
+        shell: bash
+        env:
+          PLAN_PATH: ${{ steps.compiled_plan.outputs.plan_path }}
+          PLAN_SHA: ${{ steps.compiled_plan.outputs.plan_sha }}
+          SOURCE_SHA: ${{ steps.compiled_plan.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          SOURCE="$ROOT/fixtures/fault_campaign_paired_v0_1.json"
+          SCHEMA="$ROOT/schemas/execution_evidence_bundle_v0_1.schema.json"
+          FIXTURE="$ROOT/fixtures/execution_evidence_positive_v0_1.json"
+          BUNDLE="$RUNNER_TEMP/rrvr-execution-evidence.json"
+          REPORT="$RUNNER_TEMP/rrvr-execution-evidence-report.json"
+          DISPATCH_ONLY="$RUNNER_TEMP/rrvr-dispatch-only.json"
+          UNKNOWN="$RUNNER_TEMP/rrvr-unknown-dispatch.json"
+          TAMPERED="$RUNNER_TEMP/rrvr-tampered-delivery-signature.json"
+
+          jq empty "$SCHEMA"
+          jq --arg plan "$PLAN_SHA" --arg source "$SOURCE_SHA" '
+            .plan_sha256 = $plan
+            | .source_manifest_sha256 = $source
+          ' "$FIXTURE" > "$BUNDLE"
+
+          jq -e '
+            .version == "0.1"
+            and (.plan_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.source_manifest_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.events | length == 4)
+            and ([.events[].dispatch.status] | all(. == "accepted"))
+            and ([.events[].execution.status] | all(. == "executed"))
+            and ([.events[].delivery_observation.verdict] | all(. == "confirmed"))
+            and ([.events[].planned_fault.expected_delivery_signature_sha256] == [.events[].delivery_observation.observed_fault_signature_sha256])
+            and ([.events[].target_resolution.receipt.evidence_id, .events[].dispatch.receipt.evidence_id, .events[].execution.receipt.evidence_id, .events[].delivery_observation.receipt.evidence_id] | length == 16)
+          ' "$BUNDLE"
+
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$BUNDLE" "$REPORT"
+          jq -e '
+            .validation == "passed"
+            and .planned_fault_count == 4
+            and .dispatch_accepted_count == 4
+            and .executed_count == 4
+            and .delivery_confirmed_count == 4
+            and .reconcile_required == false
+            and .retry_permitted == false
+            and .native_authority_created == false
+            and .producer_authentication_performed == false
+            and .physical_observer_independence_proven == false
+            and .physical_safety_established == false
+          ' "$REPORT"
+
+          jq '
+            .events[0].execution.status = "unknown"
+            | .events[0].execution.receipt = null
+            | .events[0].delivery_observation.verdict = "unknown"
+            | .events[0].delivery_observation.observer_id = null
+            | .events[0].delivery_observation.observer_revision = null
+            | .events[0].delivery_observation.observer_fault_domain_id = null
+            | .events[0].delivery_observation.observed_fault_signature_sha256 = null
+            | .events[0].delivery_observation.receipt = null
+          ' "$BUNDLE" > "$DISPATCH_ONLY"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$DISPATCH_ONLY" "$RUNNER_TEMP/rrvr-dispatch-only-report.json" > /dev/null
+          jq -e '
+            .dispatch_accepted_count == 4
+            and .executed_count == 3
+            and .delivery_confirmed_count == 3
+            and .reconcile_required == true
+            and .retry_permitted == false
+          ' "$RUNNER_TEMP/rrvr-dispatch-only-report.json"
+
+          jq '
+            .events[1].dispatch.status = "unknown"
+            | .events[1].dispatch.receipt = null
+            | .events[1].execution.status = "unknown"
+            | .events[1].execution.receipt = null
+            | .events[1].delivery_observation.verdict = "unknown"
+            | .events[1].delivery_observation.observer_id = null
+            | .events[1].delivery_observation.observer_revision = null
+            | .events[1].delivery_observation.observer_fault_domain_id = null
+            | .events[1].delivery_observation.observed_fault_signature_sha256 = null
+            | .events[1].delivery_observation.receipt = null
+          ' "$BUNDLE" > "$UNKNOWN"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$UNKNOWN" "$RUNNER_TEMP/rrvr-unknown-report.json" > /dev/null
+          jq -e '
+            .dispatch_unknown_count == 1
+            and .execution_unknown_count == 1
+            and .delivery_unknown_count == 1
+            and .reconcile_required == true
+            and .retry_permitted == false
+          ' "$RUNNER_TEMP/rrvr-unknown-report.json"
+
+          jq '.events[0].delivery_observation.observed_fault_signature_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"' "$BUNDLE" > "$TAMPERED"
+          set +e
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$TAMPERED" > "$RUNNER_TEMP/rrvr-execution-tamper.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Execution evidence validator accepted a mismatched observed fault signature."
+            exit 1
+          fi
+          echo "Expected negative control rejected: delivery signature mismatch."
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings

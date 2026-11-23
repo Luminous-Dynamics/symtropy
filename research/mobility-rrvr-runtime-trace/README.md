@@ -149,3 +149,17 @@ The compiler CLI is rrvr_campaign_compile. The companion rrvr_campaign_verify CL
 - Tracking: [#7027](https://github.com/Luminous-Dynamics/symtropy/issues/7027)
 
 CI compiles the same source twice and compares exact bytes, verifies the compiled plan and rejects a mutated fault event. A verified plan remains an instruction artifact only: it does not run the injector, create native authority, or establish physical safety.
+
+
+## Plan-bound fault execution evidence v0.1
+
+The compiled plan now has a separate execution-evidence contract. It distinguishes target resolution, adapter dispatch, injector execution and independent delivery observation. A Confirmed delivery requires the exact target revision/profile, accepted adapter dispatch, a pinned injector execution receipt at the planned simulation step and a separate observer artifact/domain reporting the exact expected fault signature.
+
+- Validator: src/execution_evidence.rs
+- CLI: src/bin/rrvr_execution_validate.rs
+- Schema: schemas/execution_evidence_bundle_v0_1.schema.json
+- Fixture: fixtures/execution_evidence_positive_v0_1.json
+- Specification: [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md)
+- Tracking: [#7051](https://github.com/Luminous-Dynamics/symtropy/issues/7051)
+
+Unknown dispatch, execution or delivery states require reconciliation; the report never grants retry permission. Reset and all event receipts share one simulation clock, while evidence IDs, artifact IDs/digests, dispatch IDs and idempotency keys cannot be replayed within a bundle. The CLI validates records only—it does not run Gazebo, ROS, HIL or physical fault injection.

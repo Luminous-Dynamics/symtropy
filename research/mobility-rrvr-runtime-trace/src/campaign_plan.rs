@@ -40,8 +40,11 @@ pub struct CompiledPlatformBinding {
     pub firmware_revision: String,
     pub calibration_revision: String,
     pub observer_stack_revision: String,
+    pub fault_injector_id: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
+    pub fault_injector_fault_domain_id: String,
+    pub native_adapter_id: String,
     pub native_adapter_revision: String,
     pub runtime_monitor_revision: String,
 }
@@ -332,8 +335,14 @@ impl CompiledCampaignPlan {
             firmware_revision: manifest.platform.firmware_revision.clone(),
             calibration_revision: manifest.platform.calibration_revision.clone(),
             observer_stack_revision: manifest.platform.observer_stack_revision.clone(),
+            fault_injector_id: manifest.platform.fault_injector_id.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
             fault_injector_sha256: manifest.platform.fault_injector_sha256.clone(),
+            fault_injector_fault_domain_id: manifest
+                .platform
+                .fault_injector_fault_domain_id
+                .clone(),
+            native_adapter_id: manifest.platform.native_adapter_id.clone(),
             native_adapter_revision: manifest.platform.native_adapter_revision.clone(),
             runtime_monitor_revision: manifest.platform.runtime_monitor_revision.clone(),
         };
@@ -608,6 +617,7 @@ mod tests {
                 scenario.faults.swap(0, 1);
                 for (index, fault) in scenario.faults.iter_mut().enumerate() {
                     fault.sequence = index as u32 + 1;
+                    fault.scheduled_simulation_step = (index as u64 + 1) * 100;
                 }
             }
         }

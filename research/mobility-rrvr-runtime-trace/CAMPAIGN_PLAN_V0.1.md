@@ -99,3 +99,10 @@ A verified plan establishes only that the execution instruction artifact is dete
 - robot safety has been established.
 
 The next engineering increment is a simulator adapter that emits injection receipts without changing plan identity, followed by ROS graph/controller/driver integration and a separate HIL qualification programme.
+
+
+## Delivery commitments and execution evidence
+
+Each planned fault now includes its scheduled simulation step, target revision and target-profile digest, plus an expected delivery-signature SHA-256. The platform binding pins the fault-injector ID/revision/binary digest/fault domain and native-adapter ID/revision. These fields are included in the fault schedule digest, pair commitment and top-level plan hash.
+
+A later adapter must emit the separate execution bundle described in [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md). It must not write execution receipts back into the plan. Unknown delivery or dispatch outcomes cannot be converted into a new injection without reconciliation.

@@ -361,3 +361,10 @@ The manifest is the experiment definition; the compiled plan is the immutable in
 A top-level plan hash binds the full body, while the compiled file itself has a separate artifact digest. The verifier requires both the exact source-manifest bytes and an externally pinned expected plan hash. This prevents a consumer from accepting an internally self-consistent but substituted plan merely because it carries its own newly computed digest.
 
 The first compiler campaign is a software known-answer fixture. It must not be confused with execution of any fault injector. A later simulator adapter must emit per-injection receipts bound to plan SHA, pair/scenario/fault IDs and exact injector revision; ROS/controller/driver/HIL adapters must preserve that identity. Report plan validation, injection delivery, event observation, physical effect and safety review as distinct gates.
+
+
+## 11. Delivery evidence between planned faults and observed failures
+
+A deterministic scenario plan is not an executed experiment. The next qualification boundary is the execution receipt chain: target resolution -> native adapter dispatch -> injector execution -> independent target observation. Each phase has separate producer identity/revision, artifact digest, run/world epoch, cut point and clock coordinate. A delivery is Confirmed only when the pinned injector's execution receipt and a distinct observer artifact both bind to the planned event and the observed signature matches the signature committed in the compiled plan.
+
+This directly operationalizes the 2026 ROS-fuzzing survey's finding that repeatable execution/reset and diagnosable failure analysis are less mature than input modelling, feedback and oracle construction. It also composes with Gazebo's simulator-agnostic ROS 2 Simulation Interfaces for reset, stepping and state queries, and the ROS 2 tracing guidance for graph-level instrumentation. None of these tools alone proves fault delivery; that requires the receipt/observation linkage.

@@ -1,0 +1,738 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-execution-evidence-v0.1.json",
+  "title": "RRVR Fault Execution Evidence Bundle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "campaign_id",
+    "plan_sha256",
+    "source_manifest_sha256",
+    "pair_id",
+    "scenario_id",
+    "arm",
+    "run_id",
+    "run_epoch",
+    "world_epoch",
+    "seed",
+    "platform",
+    "reset",
+    "events"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "source_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "pair_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "arm": {
+      "$ref": "#/$defs/arm"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_epoch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "world_epoch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "profile_sha256",
+        "environment_artifact_sha256",
+        "simulator_revision",
+        "ros_distribution",
+        "middleware_revision",
+        "controller_revision",
+        "driver_revision",
+        "firmware_revision",
+        "calibration_revision",
+        "observer_stack_revision",
+        "fault_injector_revision",
+        "fault_injector_sha256",
+        "native_adapter_revision",
+        "runtime_monitor_revision",
+        "fault_injector_fault_domain_id",
+        "fault_injector_id",
+        "native_adapter_id",
+        "fault_injector_id",
+        "native_adapter_id"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "simulator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ros_distribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "middleware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "driver_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_stack_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "native_adapter_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_monitor_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_adapter_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reset": {
+      "$ref": "#/$defs/reset_observation"
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/fault_execution_event"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "arm": {
+      "enum": [
+        "last_attempt_only",
+        "flat_history",
+        "owner_receipts",
+        "full_rrvr"
+      ]
+    },
+    "cut_point": {
+      "enum": [
+        "after_effect_reservation",
+        "after_native_acceptance_before_effect",
+        "after_possible_effect_before_persistence_ack",
+        "after_persistence_ack_before_observation",
+        "after_observation_before_controller_fence",
+        "after_controller_fence_before_downstream_fence",
+        "after_permit_consumption_before_ack",
+        "during_restart_recovery",
+        "after_second_attempt_possible_effect"
+      ]
+    },
+    "reset_kind": {
+      "enum": [
+        "cold_start",
+        "process_restart",
+        "controller_reset",
+        "simulator_snapshot_restore",
+        "hardware_power_cycle"
+      ]
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "fault_id",
+        "cut_point",
+        "target_layer",
+        "target_component_id",
+        "fault_domain_id",
+        "kind",
+        "parameters_sha256",
+        "scheduled_simulation_step",
+        "target_revision",
+        "target_profile_sha256",
+        "expected_delivery_signature_sha256"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "fault_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cut_point": {
+          "$ref": "#/$defs/cut_point"
+        },
+        "target_layer": {
+          "$ref": "#/$defs/fault_layer"
+        },
+        "target_component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/fault_kind"
+        },
+        "parameters_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scheduled_simulation_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expected_delivery_signature_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reset_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "producer_id",
+        "producer_revision",
+        "raw_artifact_id",
+        "raw_artifact_sha256",
+        "run_id",
+        "run_epoch",
+        "world_epoch",
+        "reset_profile_sha256",
+        "expected_initial_state_sha256",
+        "observed_initial_state_sha256",
+        "simulation_step",
+        "clock_id"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reset_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expected_initial_state_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observed_initial_state_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "simulation_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reset_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "confirmed",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reset_receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "fault_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "evidence_id",
+        "producer_id",
+        "producer_revision",
+        "raw_artifact_id",
+        "raw_artifact_sha256",
+        "run_id",
+        "run_epoch",
+        "world_epoch",
+        "fault_id",
+        "fault_sequence",
+        "cut_point",
+        "target_id",
+        "clock_id",
+        "simulation_step",
+        "simulation_time_ns"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "target_resolution",
+            "dispatch",
+            "execution",
+            "delivery_observation"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cut_point": {
+          "$ref": "#/$defs/cut_point"
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simulation_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulation_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "target_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "logical_component_id",
+        "resolved_target_id",
+        "resolved_target_revision",
+        "resolved_target_profile_sha256",
+        "resolved_fault_domain_id",
+        "receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "resolved",
+            "not_resolved",
+            "unknown"
+          ]
+        },
+        "logical_component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolved_target_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_target_revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_target_profile_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolved_fault_domain_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "dispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "dispatch_id",
+        "idempotency_key",
+        "receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "dispatch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "executed",
+            "not_executed",
+            "unknown"
+          ]
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "delivery_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "observer_id",
+        "observer_revision",
+        "observer_fault_domain_id",
+        "observed_fault_signature_sha256",
+        "receipt"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "confirmed",
+            "refuted",
+            "unknown",
+            "not_observed"
+          ]
+        },
+        "observer_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observer_revision": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observer_fault_domain_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_fault_signature_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "fault_execution_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned_fault",
+        "target_resolution",
+        "dispatch",
+        "execution",
+        "delivery_observation"
+      ],
+      "properties": {
+        "planned_fault": {
+          "$ref": "#/$defs/fault"
+        },
+        "target_resolution": {
+          "$ref": "#/$defs/target_resolution"
+        },
+        "dispatch": {
+          "$ref": "#/$defs/dispatch"
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
+        },
+        "delivery_observation": {
+          "$ref": "#/$defs/delivery_observation"
+        }
+      }
+    },
+    "fault_layer": {
+      "enum": [
+        "process",
+        "ros_runtime",
+        "middleware",
+        "controller",
+        "driver",
+        "firmware",
+        "actuator",
+        "observer",
+        "persistence",
+        "mission",
+        "native_authority"
+      ]
+    },
+    "fault_kind": {
+      "enum": [
+        "process_crash",
+        "controller_restart",
+        "message_drop",
+        "message_delay",
+        "message_duplicate",
+        "message_reorder",
+        "queue_retention",
+        "stale_epoch",
+        "power_loss",
+        "clock_reset",
+        "observer_loss",
+        "common_cause_failure",
+        "artifact_replay",
+        "persistence_ambiguity",
+        "partial_effect",
+        "permit_replay"
+      ]
+    }
+  }
+}

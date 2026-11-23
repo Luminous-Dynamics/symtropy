@@ -217,8 +217,11 @@ pub struct PlatformProfile {
     pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
+    pub fault_injector_id: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
+    pub fault_injector_fault_domain_id: String,
+    pub native_adapter_id: String,
     pub native_adapter_revision: String,
     pub runtime_monitor_revision: String,
     pub ros_distribution: String,
@@ -244,13 +247,17 @@ pub struct ResetProfile {
 #[serde(deny_unknown_fields)]
 pub struct FaultInjection {
     pub sequence: u32,
+    pub scheduled_simulation_step: u64,
     pub fault_id: String,
     pub cut_point: FaultCutPoint,
     pub target_layer: FaultLayer,
     pub target_component_id: String,
+    pub target_revision: String,
+    pub target_profile_sha256: String,
     pub fault_domain_id: String,
     pub kind: FaultKind,
     pub parameters_sha256: String,
+    pub expected_delivery_signature_sha256: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -354,7 +361,10 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     for value in [
         platform.platform_id.as_str(),
         platform.simulator_revision.as_str(),
+        platform.fault_injector_id.as_str(),
         platform.fault_injector_revision.as_str(),
+        platform.fault_injector_fault_domain_id.as_str(),
+        platform.native_adapter_id.as_str(),
         platform.native_adapter_revision.as_str(),
         platform.runtime_monitor_revision.as_str(),
         platform.ros_distribution.as_str(),
@@ -452,9 +462,11 @@ fn validate_scenario(scenario: &CampaignScenario) -> Result<(), CampaignError> {
     }
     let mut fault_ids = BTreeSet::new();
     let mut covered_sequence = 0u32;
+    let mut previous_scheduled_step = None;
     for fault in &scenario.faults {
         if !nonempty(&fault.fault_id)
             || !nonempty(&fault.target_component_id)
+            || !nonempty(&fault.target_revision)
             || !nonempty(&fault.fault_domain_id)
         {
             return Err(CampaignError::InvalidFaultInjection);
@@ -463,10 +475,16 @@ fn validate_scenario(scenario: &CampaignScenario) -> Result<(), CampaignError> {
             return Err(CampaignError::DuplicateFaultIdentity);
         }
         covered_sequence += 1;
-        if fault.sequence != covered_sequence {
+        if fault.sequence != covered_sequence
+            || previous_scheduled_step
+                .is_some_and(|previous| fault.scheduled_simulation_step < previous)
+        {
             return Err(CampaignError::FaultSequenceDiscontinuity);
         }
+        previous_scheduled_step = Some(fault.scheduled_simulation_step);
         require_sha256(&fault.parameters_sha256)?;
+        require_sha256(&fault.target_profile_sha256)?;
+        require_sha256(&fault.expected_delivery_signature_sha256)?;
     }
     Ok(())
 }
@@ -710,6 +728,16 @@ mod tests {
         assert_eq!(
             native.validate(),
             Err(CampaignError::InvalidPlatformProfile)
+        );
+    }
+
+    #[test]
+    fn rejects_non_monotonic_scheduled_simulation_steps() {
+        let mut manifest = valid_manifest();
+        manifest.scenarios[2].faults[1].scheduled_simulation_step = 50;
+        assert_eq!(
+            manifest.validate(),
+            Err(CampaignError::FaultSequenceDiscontinuity)
         );
     }
 
