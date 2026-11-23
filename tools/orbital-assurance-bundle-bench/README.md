@@ -111,7 +111,32 @@ Prospective targets, not measured achievements:
 
 Measure performance at 10, 100, 1,000 and 10,000 claims/edges. Report p50/p95/p99, memory, blocker count, longest dependency path and evidence fan-in. Compare manual SACM/GSN review, structural-only checking, untyped JSON validation and adversarial graph mutation at identical scope. Reviewer effort and missed-blocker rate must be measured separately; runtime alone is not evidence of risk reduction.
 
+## Dependency-scoped invalidation v0.1
+
+The assurance-bundle crate now includes a separate dependency-invalidation adapter. It extends this existing typed-claim owner rather than creating a second evidence graph or receipt authority.
+
+Each node binds:
+- its produced artifact digest and currently observed artifact digest;
+- the scope digest under which it was produced and the currently observed scope digest;
+- exact dependency pins to upstream node content and scope digests.
+
+The evaluator distinguishes `SOURCE_CHANGED`, `SCOPE_CHANGED`, `DEPENDENCY_VERSION_MISMATCH`, and `UPSTREAM_INVALIDATED`. It propagates invalidation only along declared dependency edges. A source mutation can therefore force requalification of dependent claims without invalidating unrelated evidence.
+
+The seven frozen synthetic cases cover:
+1. unchanged baseline graph;
+2. action-domain snapshot content change, invalidating closure, independent domain oracle, feasibility, query policy, loss model, regret, calibration and decision frontier;
+3. loss-model change, invalidating regret/calibration/frontier while preserving feasibility and query-policy evidence;
+4. unrelated evidence change, which must not invalidate the decision frontier;
+5. scope-only change with unchanged content digest;
+6. missing dependency, which fails closed;
+7. dependency cycle, which fails closed.
+
+The Rust unit tests include input-permutation invariance and an always-false authority invariant. The CLI emits a source-pinned receipt; a separately authored JavaScript evaluator and exact field comparison provide a second implementation path.
+
+**Claim ceiling:** this verifies dependency-graph invalidation semantics over a declared synthetic graph. It does not authenticate source receipts, prove that the dependency graph is complete, or grant authority. Omitted dependency edges remain an open-world assurance risk and require independent graph-authoring review.
+
 ## Commands
+
 
 ~~~bash
 cargo fmt --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- --check
@@ -122,6 +147,12 @@ cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- \
   --source-commit <40-lowercase-hex-commit>
 node tools/orbital-assurance-bundle-bench/tests/reference_oracle.mjs \
   tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json
+
+cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin dependency-invalidation -- \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json \
+  --source-commit <40-lowercase-hex-commit>
+node tools/orbital-assurance-bundle-bench/tests/dependency_invalidation_oracle.mjs \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json
 ~~~
 
 ## Ownership
