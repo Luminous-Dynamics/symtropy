@@ -90,6 +90,7 @@ fn run() -> Result<(), String> {
         "world_epoch": bundle.world_epoch,
         "reset_status": summary.reset_status.as_str(),
         "planned_fault_count": summary.planned_fault_count,
+        "world_statistics_verified_count": summary.world_statistics_verified_count,
         "dispatch_accepted_count": summary.dispatch_accepted_count,
         "dispatch_rejected_count": summary.dispatch_rejected_count,
         "dispatch_unknown_count": summary.dispatch_unknown_count,
