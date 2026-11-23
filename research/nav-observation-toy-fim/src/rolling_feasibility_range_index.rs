@@ -77,6 +77,27 @@ impl OutwardInterval {
         Ok(Self { lower, upper })
     }
 
+    /// Expand both endpoints by an absolute error allowance, with one more
+    /// outward rounding step. The allowance must cover any caller-side
+    /// evaluation-order discrepancy not already enclosed by interval arithmetic.
+    pub fn expanded_by_absolute_error(
+        self,
+        error: f64,
+    ) -> Result<Self, OutwardIntervalError> {
+        if !error.is_finite() {
+            return Err(OutwardIntervalError::NonFiniteValue);
+        }
+        if error < 0.0 {
+            return Err(OutwardIntervalError::NegativeScale);
+        }
+        if error == 0.0 {
+            return Ok(self);
+        }
+        let lower = outward_down(self.lower - error)?;
+        let upper = outward_up(self.upper + error)?;
+        Self::new(lower, upper)
+    }
+
     /// Enclose an integer converted to f64. Integers up to 2^53 are exact.
     pub fn from_u64(value: u64) -> Result<Self, OutwardIntervalError> {
         let converted = value as f64;
