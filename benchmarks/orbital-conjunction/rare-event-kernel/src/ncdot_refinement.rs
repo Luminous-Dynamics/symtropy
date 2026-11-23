@@ -777,10 +777,7 @@ mod tests {
             20.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
-        assert_eq!(
-            result.reason,
-            NcdotRefinementReason::RefineDominantIntegrationContributions
-        );
+        assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0]);
     }
 
@@ -807,7 +804,7 @@ mod tests {
             10.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
-        assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
+        assert_eq!(result.reason, NcdotRefinementReason::RefineDominantIntegrationContributions);
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0]);
     }
 
