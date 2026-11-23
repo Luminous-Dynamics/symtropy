@@ -1,0 +1,43 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/av-action-space-evsi-workload-v1.schema.json",
+  "title":"AV Action-Space EVSI Workload v1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema_version","benchmark_id","episodes"],
+  "properties":{
+    "schema_version":{"const":1},
+    "benchmark_id":{"const":"av-action-space-evsi-v0"},
+    "episodes":{
+      "type":"array","minItems":1,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["episode_id","transcript_head_sha256","current_tick","deadline_tick","cost_weight","budget_cost_units","action_catalogue"],
+        "properties":{
+          "episode_id":{"type":"string","minLength":1},
+          "transcript_head_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+          "current_tick":{"type":"integer","minimum":0},
+          "deadline_tick":{"type":"integer","minimum":0},
+          "cost_weight":{"type":"number","minimum":0},
+          "budget_cost_units":{"type":"number","minimum":0},
+          "action_catalogue":{
+            "type":"array","minItems":1,
+            "items":{
+              "type":"object","additionalProperties":false,
+              "required":["action_id","modality","description","cost_units","arrival_tick","source_dependency_group","information_gain_proxy"],
+              "properties":{
+                "action_id":{"type":"string","minLength":1},
+                "modality":{"enum":["audio","video","other"]},
+                "description":{"type":"string","minLength":1},
+                "cost_units":{"type":"number","minimum":0},
+                "arrival_tick":{"type":"integer","minimum":0},
+                "source_dependency_group":{"type":"string","minLength":1},
+                "information_gain_proxy":{"type":"number","minimum":0}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

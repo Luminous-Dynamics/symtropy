@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-action-space-evsi-v0",
+  "policy_id": "reference-decision-value",
+  "run_id": "synthetic-reference-v1",
+  "totals": {
+    "episode_count": 3,
+    "forecast_count": 9,
+    "action_space_coverage": 1,
+    "gross_evsi_mae": 0.044444444444,
+    "gross_evsi_signed_bias": -0.022222222222,
+    "net_evsi_mae": 0.044444444444,
+    "net_evsi_signed_bias": -0.022222222222,
+    "forecast_interval_coverage": 1,
+    "pairwise_rank_accuracy": 1,
+    "pairwise_rank_pairs": 9,
+    "missed_best_action_count": 0,
+    "decision_regret_total": 0,
+    "decision_regret_mean": 0,
+    "oracle_action_selection_accuracy": 1,
+    "forecast_interval_alpha": 0.1,
+    "forecast_interval_mean_width": 0.266666666667,
+    "forecast_interval_winkler_score": 0.266666666667
+  },
+  "episodes": [
+    {
+      "episode_id": "evsi-001-high-eig-zero-value",
+      "selected_action_id": "__stop__",
+      "oracle_best_action_ids": [
+        "__stop__"
+      ],
+      "selected_action_feasible": true,
+      "missed_best_action": false,
+      "decision_regret": 0,
+      "best_feasible_net_evsi": 0
+    },
+    {
+      "episode_id": "evsi-002-low-eig-high-value",
+      "selected_action_id": "listen-short-alarm-cue",
+      "oracle_best_action_ids": [
+        "listen-short-alarm-cue"
+      ],
+      "selected_action_feasible": true,
+      "missed_best_action": false,
+      "decision_regret": 0,
+      "best_feasible_net_evsi": 1.75
+    },
+    {
+      "episode_id": "evsi-003-correlated-versus-late",
+      "selected_action_id": "__stop__",
+      "oracle_best_action_ids": [
+        "__stop__"
+      ],
+      "selected_action_feasible": true,
+      "missed_best_action": false,
+      "decision_regret": 0,
+      "best_feasible_net_evsi": 0
+    }
+  ]
+}

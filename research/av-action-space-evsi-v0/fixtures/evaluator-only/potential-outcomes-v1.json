@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-action-space-evsi-v0",
+  "warning": "Evaluator-only expected potential outcomes. Public fixture is not a blind benchmark split.",
+  "episodes": [
+    {"episode_id":"evsi-001-high-eig-zero-value","potential_outcomes":{
+      "zoom-detail":{"expected_gross_evsi":0.0,"lower_gross_evsi":0.0,"upper_gross_evsi":0.0},
+      "relisten-same-source":{"expected_gross_evsi":0.1,"lower_gross_evsi":0.0,"upper_gross_evsi":0.2}
+    }},
+    {"episode_id":"evsi-002-low-eig-high-value","potential_outcomes":{
+      "listen-short-alarm-cue":{"expected_gross_evsi":2.0,"lower_gross_evsi":1.6,"upper_gross_evsi":2.4},
+      "zoom-busy-dashboard":{"expected_gross_evsi":0.1,"lower_gross_evsi":0.0,"upper_gross_evsi":0.2}
+    }},
+    {"episode_id":"evsi-003-correlated-versus-late","potential_outcomes":{
+      "repeat-correlated-microphone":{"expected_gross_evsi":0.05,"lower_gross_evsi":0.0,"upper_gross_evsi":0.1},
+      "independent-visual-check":{"expected_gross_evsi":1.2,"lower_gross_evsi":0.8,"upper_gross_evsi":1.6}
+    }}
+  ]
+}
