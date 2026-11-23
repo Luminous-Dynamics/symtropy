@@ -83,6 +83,12 @@ pub struct ExactSelectorConfig {
     pub maximum_subsets: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GreedySelectorConfig {
+    pub keep: usize,
+    pub maximum_evaluations: u64,
+}
+
 fn is_finite_vector(values: &[f64]) -> bool {
     values.iter().all(|value| value.is_finite())
 }
@@ -344,6 +350,62 @@ where
     Ok(())
 }
 
+/// Deterministic greedy baseline. At each step it adds the point that gives
+/// the best current (max deficit, mean deficit, stable-ID) tuple.
+/// Unlike the exact selector, this is not globally optimal in general.
+pub fn select_greedy_subset(
+    patch: &ContactPatch,
+    config: GreedySelectorConfig,
+) -> Result<WrenchSupportReport, OracleError> {
+    let (points, directions) = validate_patch(patch)?;
+    if config.keep == 0 || config.keep > points.len() {
+        return Err(OracleError::new("keep must be in 1..=candidate point count"));
+    }
+    if config.maximum_evaluations == 0 {
+        return Err(OracleError::new("maximum_evaluations must be positive"));
+    }
+
+    let mut selected_indices = Vec::with_capacity(config.keep);
+    let mut evaluation_count = 0_u64;
+    let mut selected_report: Option<WrenchSupportReport> = None;
+
+    while selected_indices.len() < config.keep {
+        let mut best_candidate: Option<(WrenchSupportReport, Vec<usize>)> = None;
+        for candidate_index in 0..points.len() {
+            if selected_indices.contains(&candidate_index) {
+                continue;
+            }
+            if evaluation_count >= config.maximum_evaluations {
+                return Err(OracleError::new(
+                    "greedy evaluation count exceeds configured maximum",
+                ));
+            }
+            let mut trial_indices = selected_indices.clone();
+            trial_indices.push(candidate_index);
+            trial_indices.sort_unstable();
+            let candidate_report =
+                build_report(patch, &points, &directions, &trial_indices, 0)?;
+            evaluation_count += 1;
+
+            if best_candidate.as_ref().is_none_or(|(incumbent, _)| {
+                compare_reports(&candidate_report, incumbent).is_lt()
+            }) {
+                best_candidate = Some((candidate_report, trial_indices));
+            }
+        }
+
+        let (report, indices) = best_candidate
+            .ok_or_else(|| OracleError::new("greedy selector found no remaining candidate"))?;
+        selected_indices = indices;
+        selected_report = Some(report);
+    }
+
+    let mut result = selected_report
+        .ok_or_else(|| OracleError::new("greedy selector produced no retained set"))?;
+    result.subsets_evaluated = evaluation_count;
+    Ok(result)
+}
+
 /// Exhaustively selects the k-point subset minimizing worst normalized
 /// directional support loss, then mean loss, then lexicographic point IDs.
 /// Exact only for the declared finite direction set and restricted contact model.
@@ -581,6 +643,62 @@ mod tests {
         assert!(
             (first.maximum_normalized_deficit - second.maximum_normalized_deficit).abs() < 1.0e-12
         );
+    }
+
+    #[test]
+    fn greedy_matches_exact_on_the_symmetric_known_answer_patch() {
+        let exact = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("exact selector");
+        let greedy = select_greedy_subset(
+            &patch(),
+            GreedySelectorConfig {
+                keep: 2,
+                maximum_evaluations: 100,
+            },
+        )
+        .expect("greedy selector");
+        assert_eq!(greedy.retained_point_ids, exact.retained_point_ids);
+        assert_eq!(greedy.maximum_normalized_deficit, exact.maximum_normalized_deficit);
+        assert_eq!(greedy.subsets_evaluated, 7);
+    }
+
+    #[test]
+    fn exact_selector_is_never_worse_than_greedy_on_same_finite_objective() {
+        let exact = select_exact_subset(
+            &patch(),
+            ExactSelectorConfig {
+                keep: 1,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("exact selector");
+        let greedy = select_greedy_subset(
+            &patch(),
+            GreedySelectorConfig {
+                keep: 1,
+                maximum_evaluations: 100,
+            },
+        )
+        .expect("greedy selector");
+        assert!(exact.maximum_normalized_deficit <= greedy.maximum_normalized_deficit);
+    }
+
+    #[test]
+    fn greedy_evaluation_limit_fails_closed() {
+        let result = select_greedy_subset(
+            &patch(),
+            GreedySelectorConfig {
+                keep: 2,
+                maximum_evaluations: 6,
+            },
+        );
+        assert!(result.is_err());
     }
 
     #[test]
