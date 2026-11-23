@@ -435,8 +435,8 @@ fn zero_rate_refinement(
     if minimum_index == epochs.len() - 1
         && epochs[epochs.len() - 1] < snapshot.upper_time_limit_seconds
     {
-        let target = (epochs[epochs.len() - 1] + expansion_step)
-            .min(snapshot.upper_time_limit_seconds);
+        let target =
+            (epochs[epochs.len() - 1] + expansion_step).min(snapshot.upper_time_limit_seconds);
         return make_decision(
             snapshot,
             iteration,
