@@ -277,7 +277,6 @@
     "cohort_partition": "union_find_dependency_components_and_pairwise_disjoint_roles",
     "reference_claim_gate": "metadata_eligibility_only_not_authentication_or_deconvolution",
     "authored_negative_control_count": 19,
-    "dedicated_workflow": ".github/workflows/ehd-piv-acquisition-evidence.yml",
     "filesystem_threat_model": "symlink_and_path_escape_rejection; not race_hardened_against_concurrent_local_adversary",
     "validation_state": {
       "rust_format": "not_run",
@@ -285,6 +284,15 @@
       "rust_tests": "authored_not_run",
       "clippy": "not_run",
       "hosted_ci": "pending_or_not_yet_observed"
+    },
+    "ci_integration": {
+      "workflow": ".github/workflows/ci.yml",
+      "mode": "conditional_three_os_steps_when_standalone_cargo_manifest_exists",
+      "commands": [
+        "cargo fmt --manifest-path ... -- --check",
+        "cargo test --manifest-path ...",
+        "cargo clippy --manifest-path ... --all-targets -- -D warnings"
+      ]
     }
   },
   "nonclaims": [
