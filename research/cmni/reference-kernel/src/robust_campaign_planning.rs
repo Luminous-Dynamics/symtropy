@@ -1086,7 +1086,7 @@ mod tests {
             &actions,
             &utilities,
             0.0,
-            &[option.clone()],
+            std::slice::from_ref(&option),
             &RobustCampaignPlanningPolicy {
                 max_steps: 1,
                 remaining_resource_budget: 0.05,
