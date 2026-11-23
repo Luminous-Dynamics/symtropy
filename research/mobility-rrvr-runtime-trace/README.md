@@ -99,3 +99,16 @@ These fixtures are synthetic conformance inputs, not observations of a real robo
 ## Claim ceiling
 
 A projection PASS establishes only that a supplied recording satisfies this crate's typed shape, scope, provenance and selected invariant checks. It does **not** authenticate owner artifacts, prove that an event inventory is complete, establish model transition conformance, prove physical causality, qualify hardware, or establish a safety case. Use independent owner authentication, the pinned TLC trace harness, ROS/simulator/HIL/physical campaigns and applicable safety standards for those claims.
+
+
+## Multi-attempt lineage extension v0.1
+
+The separate attempt-lineage validator now checks a linear chain of up to 64 attempts for one stable logical effect. Every retry edge must join the preceding attempt's confirmed NoEffect physical outcome, confirmed NoEffect mission resolution, definitely-not-committed persistence result, controller-queue fence, and downstream-quiescence receipt to the exact new boot/controller epoch.
+
+The validator does not issue permits or replace owner authority. It is intentionally a separate contract because the pinned v0.1 TLA projection remains limited to one original attempt and one recovery admission. See [ATTEMPT_LINEAGE_V0.1.md](ATTEMPT_LINEAGE_V0.1.md) for the exact semantics, claim ceiling, negative controls, and next formal-refinement step.
+
+The synthetic three-attempt fixture and JSON Schema are:
+- fixtures/attempt_lineage_three_attempts_v0_1.json
+- schemas/attempt_lineage_v0_1.schema.json
+
+The Rust tests validate two NoEffect recovery edges followed by a terminal Applied attempt, and reject evidence replay, cross-attempt scope changes, incomplete persistence, epoch regression, wrong fence targets, and unsafe intermediate outcomes. This is a reference-contract test, not yet a Rust/TLA+ multi-cycle refinement proof or physical robotics result.
