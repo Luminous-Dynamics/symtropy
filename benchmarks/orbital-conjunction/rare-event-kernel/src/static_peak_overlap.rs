@@ -278,7 +278,14 @@ mod tests {
         for (actual, expected) in report.overlap_position.iter().zip([3.0, 4.0, 5.0]) {
             assert!((actual - expected).abs() < 1.0e-13);
         }
-        assert_eq!(report.overlap_covariance, diagonal(2.0, 2.0, 2.0));
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!(
+                    (report.overlap_covariance[i][j] - diagonal(2.0, 2.0, 2.0)[i][j]).abs()
+                        < 1.0e-13
+                );
+            }
+        }
         let expected = -0.5 * (3.0 * TAU.ln() + (8.0_f64.powi(3)).ln() + 6.0);
         assert!((report.log_integral_of_density_product - expected).abs() < 1.0e-13);
     }
