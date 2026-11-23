@@ -69,6 +69,7 @@ pub struct ExpectedHitCount {
 pub struct ElementViewHitCount {
     pub element_id: String,
     pub mesh_revision_id: String,
+    pub area_um2: u64,
     pub view_id: String,
     pub hit_pixel_count: u64,
     pub expected_hit_pixel_count: u64,
@@ -248,7 +249,8 @@ fn evaluate_case(c:&GeometryCase)->Result<GeometryCaseReceipt,String>{
         for e in &elements{
             let actual=*counts.get(&e.element_id).unwrap_or(&0);let want=*expected.get(&(e.element_id.as_str(),camera.view_id.as_str())).expect("complete expected-hit matrix");
             hit_rows.push(ElementViewHitCount{element_id:e.element_id.clone(),mesh_revision_id:e.mesh_revision_id.clone(),
-                view_id:camera.view_id.clone(),hit_pixel_count:actual,expected_hit_pixel_count:want,expected_matches:actual==want});
+                area_um2:e.area_um2,view_id:camera.view_id.clone(),hit_pixel_count:actual,
+                expected_hit_pixel_count:want,expected_matches:actual==want});
         }
         view_rows.push(summary);
     }
@@ -279,4 +281,66 @@ pub fn audit_geometry_corpus(bytes:&[u8],source_commit:&str)->Result<GeometryCor
         source_commit:source_commit.to_ascii_lowercase(),fixture_sha256:hash,evidence_class:corpus.evidence_class,
         claim_ceiling:corpus.claim_ceiling,case_count:cases.len(),expected_outcome_matches:matches,
         expected_outcome_mismatches:cases.len()-matches,authority_granted:false,physical_validation:"NOT_ASSESSED".into(),cases})
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const FIXTURE: &str =
+        include_str!("../../../docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json");
+
+    #[test]
+    fn frozen_pixel_centre_ray_corpus_matches_all_analytic_counts() {
+        let receipt = audit_geometry_corpus(FIXTURE.as_bytes(), &"a".repeat(40)).unwrap();
+        assert_eq!(receipt.case_count, CASE_COUNT);
+        assert_eq!(receipt.expected_outcome_matches, CASE_COUNT);
+        assert_eq!(receipt.expected_outcome_mismatches, 0);
+        assert_eq!(receipt.cases[0].total_hit_pixels, 5);
+        assert_eq!(receipt.cases[1].total_hit_pixels, 5);
+        assert_eq!(receipt.cases[2].total_hit_pixels, 10);
+        assert_eq!(receipt.cases[3].total_hit_pixels, 4);
+        assert_eq!(receipt.cases[3].total_tie_pixels, 2);
+    }
+
+    #[test]
+    fn non_orthonormal_camera_basis_is_rejected() {
+        let mut corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        corpus.cases[0].cameras[0].right_axis = [0.9, 0.0, 0.0];
+        assert_eq!(
+            validate_camera(&corpus.cases[0].cameras[0]),
+            Err("CAMERA_BASIS_MUST_BE_ORTHONORMAL_AND_RIGHT_HANDED".to_owned())
+        );
+    }
+
+    #[test]
+    fn degenerate_triangle_is_rejected() {
+        let mut corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        corpus.cases[0].elements[0].triangles[0].vertices_m =
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
+        assert_eq!(
+            validate_case(&corpus.cases[0]),
+            Err("TRIANGLE_DEGENERATE".to_owned())
+        );
+    }
+
+    #[test]
+    fn declared_area_is_preserved_for_downstream_density_accounting() {
+        let corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let receipt = evaluate_case(&corpus.cases[0]).unwrap();
+        assert_eq!(receipt.element_view_hits[0].area_um2, 2_000_000_000_000);
+        assert_eq!(receipt.element_view_hits[0].hit_pixel_count, 5);
+    }
+
+    #[test]
+    fn element_triangle_and_camera_ordering_do_not_change_receipt() {
+        let mut corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let original = evaluate_case(&corpus.cases[3]).unwrap();
+        corpus.cases[3].elements.reverse();
+        corpus.cases[3].cameras.reverse();
+        for element in &mut corpus.cases[3].elements {
+            element.triangles.reverse();
+        }
+        assert_eq!(evaluate_case(&corpus.cases[3]).unwrap(), original);
+    }
 }
