@@ -93,6 +93,7 @@ The implementation includes tests for:
 - Scenario order mismatch.
 - Non-stochastic likelihood rows.
 - Fail-closed policy-enumeration limits.
+- Nuisance-only information: the observation reveals a nuisance coordinate independent of the decision-relevant state, yielding EIG = ln(2) but zero robust EVSI and no positive net recommendation.
 
 Required next checks are exact-head formatting, Clippy, unit tests and the three-platform workspace matrix. The branch is stacked on #6455 and must not be merged ahead of its core dependency.
 
@@ -118,6 +119,8 @@ Always report EIG, robust EVSI, expected utility, regret, clairvoyant gap, cost,
 - **Robust Bayesian OED:** recent maximin work uses information-theoretic ambiguity sets, Sibson alpha-mutual information and PAC-Bayes lower bounds. CMNI's finite robust decision oracle is complementary: it directly optimizes declared downstream decision utility under a finite ambiguity set, rather than replacing the robust-MI objective. [Abdulsamad et al., 2026](https://arxiv.org/abs/2603.14094)
 - **Constrained sequential BED:** COPEx combines amortized policy/posterior models with online multi-step scenario-tree planning for dynamic budgets and physical constraints. CMNI's exact finite-policy utility can serve as a small decision-value oracle and as a leaf/terminal-value reference for a future scenario-tree planner. [Guo et al., ICML 2026](https://proceedings.mlr.press/v306/guo26g.html)
 - **Multifidelity EIG:** approximate control variates can reduce estimator variance while preserving an unbiased high-fidelity mean under their assumptions. CMNI should use such methods to estimate expensive likelihoods/utilities, while keeping the final decision comparison and stopping rule separately qualified. [Coons & Huan, 2025](https://doi.org/10.1137/25M1731812)
+- **Risk-aware goal-oriented OED:** Jakeman et al. compose risk at three levels: posterior predictive uncertainty, risk across the prediction domain, and risk across datasets. CMNI should keep these layers distinct and test decisions on rare high-consequence predictions rather than compressing them into one CVaR score. [Jakeman et al., 2026](https://arxiv.org/abs/2609.08023)
+- **Continuous batch design:** Mäkinen, Duncan and Helin relax Bayesian batch A-optimal design to finite positive measures and optimize via Wasserstein gradient flow with regularization that encourages discrete supports. CMNI should reproduce the relaxation, then quantify the loss and feasibility gap after discrete rounding with the full joint-source covariance. [Mäkinen et al., 2026](https://link.springer.com/article/10.1007/s11222-026-11022-4)
 - **AI-designed physics experiments:** current review work emphasizes expressive design spaces, reliable simulators, scientific objectives, and exploration over discrete and continuous choices. The natural CMNI extension is to optimize apparatus configuration, calibration, controls, simulator fidelity and scientific decision utility jointly, not only select from a fixed list of observations. [Klimesch et al., Nature, 2026](https://doi.org/10.1038/s41586-026-10898-6)
 
 ## 8. Next research increments
