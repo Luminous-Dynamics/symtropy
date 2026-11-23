@@ -56,11 +56,13 @@ pub struct MultiCoverFeatureCoverage {
     pub available_nominal_candidate_views: usize,
     pub available_robust_candidate_views: usize,
     pub attainable_capped_target: usize,
+    pub robust_attainable_capped_target: usize,
     pub selected_nominal_views: usize,
     pub selected_robust_views: usize,
     pub requested_k_met: bool,
     pub attainable_target_met: bool,
     pub robust_requested_k_met: bool,
+    pub robust_attainable_target_met: bool,
     pub nominal_failure_domain_count_available: usize,
     pub robust_failure_domain_count_available: usize,
     pub nominal_failure_domain_count_selected: usize,
@@ -97,6 +99,26 @@ pub struct OverlapPruningBaseline {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RobustSelectionCompanion {
+    pub algorithm: String,
+    pub selected_view_ids: Vec<String>,
+    pub selection_order_view_ids: Vec<String>,
+    pub cleanup_removed_view_ids: Vec<String>,
+    pub nominal_only_view_ids: Vec<String>,
+    pub robust_only_view_ids: Vec<String>,
+    pub nominal_selected_view_count: usize,
+    pub robust_selected_view_count: usize,
+    pub view_count_delta_vs_nominal: i64,
+    pub candidate_pool_requested_k_fully_available: bool,
+    pub selected_requested_k_fully_covered: bool,
+    pub selected_attainable_targets_fully_covered: bool,
+    pub feature_coverage: Vec<MultiCoverFeatureCoverage>,
+    pub dual_bound: DualBoundCertificate,
+    pub selected_minus_dual_lower_bound: u64,
+    pub relative_excess_over_dual_lower_bound_basis_points: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MultiCoverReceipt {
     pub schema: String,
     pub benchmark_id: String,
@@ -119,6 +141,7 @@ pub struct MultiCoverReceipt {
     pub selected_attainable_targets_fully_covered: bool,
     pub selected_robust_requested_k_fully_covered: bool,
     pub feature_coverage: Vec<MultiCoverFeatureCoverage>,
+    pub robust_selection_companion: RobustSelectionCompanion,
     pub overlap_pruning_baselines: Vec<OverlapPruningBaseline>,
     pub dual_bound: DualBoundCertificate,
     pub selected_minus_dual_lower_bound: u64,
@@ -137,6 +160,7 @@ struct IndexedProblem {
     nominal_by_view: Vec<Vec<usize>>,
     robust_by_view: Vec<Vec<usize>>,
     feature_to_views: Vec<Vec<usize>>,
+    robust_feature_to_views: Vec<Vec<usize>>,
     nominal_candidate_counts: Vec<usize>,
     robust_candidate_counts: Vec<usize>,
     nominal_available_domains: Vec<BTreeSet<String>>,
@@ -174,6 +198,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
     let mut nominal_by_view = Vec::with_capacity(problem.views.len());
     let mut robust_by_view = Vec::with_capacity(problem.views.len());
     let mut feature_to_views = vec![Vec::new(); problem.features.len()];
+    let mut robust_feature_to_views = vec![Vec::new(); problem.features.len()];
     let mut nominal_candidate_counts = vec![0_usize; problem.features.len()];
     let mut robust_candidate_counts = vec![0_usize; problem.features.len()];
     let mut nominal_available_domains = vec![BTreeSet::new(); problem.features.len()];
@@ -225,6 +250,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
             robust.push(index);
             robust_candidate_counts[index] += 1;
             robust_available_domains[index].insert(view.failure_domain_id.clone());
+            robust_feature_to_views[index].push(view_index);
         }
         nominal.sort_unstable();
         robust.sort_unstable();
@@ -254,6 +280,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
         nominal_by_view,
         robust_by_view,
         feature_to_views,
+        robust_feature_to_views,
         nominal_candidate_counts,
         robust_candidate_counts,
         nominal_available_domains,
@@ -319,16 +346,29 @@ struct GreedySelection {
     cleanup_removed: Vec<usize>,
 }
 
-fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> {
+fn select_greedily(
+    indexed: &IndexedProblem,
+    robust_relation: bool,
+) -> Result<GreedySelection, String> {
+    let view_features = if robust_relation {
+        &indexed.robust_by_view
+    } else {
+        &indexed.nominal_by_view
+    };
+    let candidate_counts = if robust_relation {
+        &indexed.robust_candidate_counts
+    } else {
+        &indexed.nominal_candidate_counts
+    };
     let target = indexed
         .requested_k
         .iter()
-        .zip(&indexed.nominal_candidate_counts)
+        .zip(candidate_counts)
         .map(|(requested, available)| (*requested).min(*available))
         .collect::<Vec<_>>();
-    let mut remaining = indexed.nominal_candidate_counts.clone();
+    let mut remaining = candidate_counts.clone();
     let mut covered = vec![0_usize; indexed.feature_ids.len()];
-    let mut selected = vec![false; indexed.nominal_by_view.len()];
+    let mut selected = vec![false; view_features.len()];
     let mut selection_order = Vec::new();
     let exp_table = exponential_decay_table();
 
@@ -342,7 +382,7 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> 
         }
         let weights = weight_vector(indexed, &target, &covered, &remaining, &exp_table);
         let mut best: Option<(usize, u128)> = None;
-        for (view_index, feature_indices) in indexed.nominal_by_view.iter().enumerate() {
+        for (view_index, feature_indices) in view_features.iter().enumerate() {
             if selected[view_index] {
                 continue;
             }
@@ -374,7 +414,7 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> 
         }
         selected[best_index] = true;
         selection_order.push(best_index);
-        for feature_index in &indexed.nominal_by_view[best_index] {
+        for feature_index in &view_features[best_index] {
             covered[*feature_index] += 1;
             remaining[*feature_index] = remaining[*feature_index]
                 .checked_sub(1)
@@ -390,7 +430,7 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> 
             if !selected[*view_index] {
                 continue;
             }
-            let removable = indexed.nominal_by_view[*view_index]
+            let removable = view_features[*view_index]
                 .iter()
                 .all(|feature_index| {
                     covered[*feature_index].saturating_sub(1) >= target[*feature_index]
@@ -398,7 +438,7 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> 
             if removable {
                 selected[*view_index] = false;
                 cleanup_removed.push(*view_index);
-                for feature_index in &indexed.nominal_by_view[*view_index] {
+                for feature_index in &view_features[*view_index] {
                     covered[*feature_index] -= 1;
                 }
                 changed = true;
@@ -426,13 +466,20 @@ fn build_dual_for_order(
     indexed: &IndexedProblem,
     target: &[usize],
     ordering: &'static str,
+    robust_relation: bool,
 ) -> Result<DualCandidate, String> {
+    let feature_to_views = if robust_relation {
+        &indexed.robust_feature_to_views
+    } else {
+        &indexed.feature_to_views
+    };
+    let candidate_view_count = indexed.view_ids.len();
     let mut order = (0..indexed.feature_ids.len())
-        .filter(|index| target[*index] > 0 && !indexed.feature_to_views[*index].is_empty())
+        .filter(|index| target[*index] > 0 && !feature_to_views[*index].is_empty())
         .collect::<Vec<_>>();
     order.sort_by(|left, right| {
-        let left_degree = indexed.feature_to_views[*left].len();
-        let right_degree = indexed.feature_to_views[*right].len();
+        let left_degree = feature_to_views[*left].len();
+        let right_degree = feature_to_views[*right].len();
         let comparison = match ordering {
             "DEMAND_PER_CANDIDATE_DESC" => {
                 let left_product = (target[*left] as u128) * (right_degree as u128);
@@ -447,11 +494,11 @@ fn build_dual_for_order(
     });
 
     let mut weights = vec![0_u64; indexed.feature_ids.len()];
-    let mut candidate_loads = vec![0_u64; indexed.nominal_by_view.len()];
+    let mut candidate_loads = vec![0_u64; candidate_view_count];
     let mut objective_numerator = 0_u128;
     for feature_index in order {
         let mut slack = FIXED_SCALE;
-        for view_index in &indexed.feature_to_views[feature_index] {
+        for view_index in &feature_to_views[feature_index] {
             slack = slack.min(FIXED_SCALE.saturating_sub(candidate_loads[*view_index]));
         }
         weights[feature_index] = slack;
@@ -461,7 +508,7 @@ fn build_dual_for_order(
         objective_numerator = objective_numerator
             .checked_add(objective_term)
             .ok_or_else(|| "MULTICOVER_DUAL_OBJECTIVE_OVERFLOW".to_owned())?;
-        for view_index in &indexed.feature_to_views[feature_index] {
+        for view_index in &feature_to_views[feature_index] {
             candidate_loads[*view_index] = candidate_loads[*view_index]
                 .checked_add(slack)
                 .ok_or_else(|| "MULTICOVER_DUAL_LOAD_OVERFLOW".to_owned())?;
@@ -477,11 +524,19 @@ fn build_dual_for_order(
     })
 }
 
-fn dual_certificate(indexed: &IndexedProblem) -> Result<DualBoundCertificate, String> {
+fn dual_certificate(
+    indexed: &IndexedProblem,
+    robust_relation: bool,
+) -> Result<DualBoundCertificate, String> {
+    let candidate_counts = if robust_relation {
+        &indexed.robust_candidate_counts
+    } else {
+        &indexed.nominal_candidate_counts
+    };
     let target = indexed
         .requested_k
         .iter()
-        .zip(&indexed.nominal_candidate_counts)
+        .zip(candidate_counts)
         .map(|(requested, available)| (*requested).min(*available))
         .collect::<Vec<_>>();
     let mut candidates = Vec::new();
@@ -490,7 +545,12 @@ fn dual_certificate(indexed: &IndexedProblem) -> Result<DualBoundCertificate, St
         "CANDIDATE_SCARCITY_ASC",
         "DEMAND_DESC",
     ] {
-        candidates.push(build_dual_for_order(indexed, &target, ordering)?);
+        candidates.push(build_dual_for_order(
+            indexed,
+            &target,
+            ordering,
+            robust_relation,
+        )?);
     }
     let best = candidates
         .into_iter()
@@ -508,14 +568,18 @@ fn dual_certificate(indexed: &IndexedProblem) -> Result<DualBoundCertificate, St
     let lower_bound_ceiling =
         lower_bound_floor + u64::from(best.objective_numerator % denominator != 0);
     Ok(DualBoundCertificate {
-        method: "FEASIBLE_SET_MULTICOVER_LP_DUAL_V0_1".to_owned(),
+        method: if robust_relation {
+            "FEASIBLE_ROBUST_SET_MULTICOVER_LP_DUAL_V0_1".to_owned()
+        } else {
+            "FEASIBLE_NOMINAL_SET_MULTICOVER_LP_DUAL_V0_1".to_owned()
+        },
         ordering: best.ordering.to_owned(),
         objective_numerator: best.objective_numerator,
         objective_denominator: FIXED_SCALE,
         lower_bound_floor,
         lower_bound_ceiling,
         maximum_candidate_constraint_load_numerator: best.max_constraint_load,
-        candidate_constraint_count: indexed.nominal_by_view.len(),
+        candidate_constraint_count: candidate_view_count,
         dual_feature_weight_numerators: best.weights,
         dual_constraints_verified: true,
         minimum_cardinality_optimum_certified: false,
@@ -551,17 +615,20 @@ fn build_feature_coverage(
             let requested_k = indexed.requested_k[index];
             let available_nominal = indexed.nominal_candidate_counts[index];
             let attainable = requested_k.min(available_nominal);
+            let robust_attainable = requested_k.min(indexed.robust_candidate_counts[index]);
             MultiCoverFeatureCoverage {
                 feature_id: indexed.feature_ids[index].clone(),
                 requested_k,
                 available_nominal_candidate_views: available_nominal,
                 available_robust_candidate_views: indexed.robust_candidate_counts[index],
                 attainable_capped_target: attainable,
+                robust_attainable_capped_target: robust_attainable,
                 selected_nominal_views: selected_nominal[index],
                 selected_robust_views: selected_robust[index],
                 requested_k_met: selected_nominal[index] >= requested_k,
                 attainable_target_met: selected_nominal[index] >= attainable,
                 robust_requested_k_met: selected_robust[index] >= requested_k,
+                robust_attainable_target_met: selected_robust[index] >= robust_attainable,
                 nominal_failure_domain_count_available: indexed.nominal_available_domains[index]
                     .len(),
                 robust_failure_domain_count_available: indexed.robust_available_domains[index]
@@ -667,8 +734,12 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     let selected = nominal_selection.selected;
     let selection_order = nominal_selection.selection_order;
     let cleanup_removed = nominal_selection.cleanup_removed;
-    let mut dual_bound = dual_certificate(&indexed)?;
+    let mut dual_bound = dual_certificate(&indexed, false)?;
     let feature_coverage = build_feature_coverage(&indexed, &selected);
+    let robust_selection = select_greedily(&indexed, true)?;
+    let robust_feature_coverage =
+        build_feature_coverage(&indexed, &robust_selection.selected);
+    let mut robust_dual_bound = dual_certificate(&indexed, true)?;
     let mut overlap_pruning_baselines = Vec::with_capacity(4);
     for threshold in [50_u8, 70_u8] {
         for ordering in ["VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING"] {
@@ -705,6 +776,79 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     }
     dual_bound.minimum_cardinality_optimum_certified = dual_bound.dual_constraints_verified
         && dual_bound.lower_bound_ceiling == selected_count as u64;
+
+    let robust_selected_view_ids = problem
+        .views
+        .iter()
+        .zip(&robust_selection.selected)
+        .filter(|(_, include)| **include)
+        .map(|(view, _)| view.view_id.clone())
+        .collect::<Vec<_>>();
+    let mut robust_selected_view_ids = robust_selected_view_ids;
+    robust_selected_view_ids.sort();
+    let robust_selection_order_view_ids = robust_selection
+        .selection_order
+        .iter()
+        .map(|index| problem.views[*index].view_id.clone())
+        .collect::<Vec<_>>();
+    let robust_cleanup_removed_view_ids = robust_selection
+        .cleanup_removed
+        .iter()
+        .map(|index| problem.views[*index].view_id.clone())
+        .collect::<Vec<_>>();
+    let robust_selected_count = robust_selected_view_ids.len();
+    let robust_selected_attainable_targets_fully_covered = robust_feature_coverage
+        .iter()
+        .all(|feature| feature.robust_attainable_target_met);
+    if !robust_selected_attainable_targets_fully_covered {
+        return Err("MULTICOVER_ROBUST_PRIMAL_INCUMBENT_DOES_NOT_MEET_CAPPED_TARGETS".to_owned());
+    }
+    if robust_dual_bound.lower_bound_ceiling > robust_selected_count as u64 {
+        return Err("MULTICOVER_ROBUST_DUAL_LOWER_BOUND_EXCEEDS_FEASIBLE_INCUMBENT".to_owned());
+    }
+    robust_dual_bound.minimum_cardinality_optimum_certified =
+        robust_dual_bound.dual_constraints_verified
+            && robust_dual_bound.lower_bound_ceiling == robust_selected_count as u64;
+    let nominal_selected_set = selected_view_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let robust_selected_set = robust_selected_view_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let nominal_only_view_ids = nominal_selected_set
+        .difference(&robust_selected_set)
+        .cloned()
+        .collect::<Vec<_>>();
+    let robust_only_view_ids = robust_selected_set
+        .difference(&nominal_selected_set)
+        .cloned()
+        .collect::<Vec<_>>();
+    let robust_candidate_pool_requested_k_fully_available = robust_feature_coverage
+        .iter()
+        .all(|feature| feature.available_robust_candidate_views >= feature.requested_k);
+    let robust_selected_requested_k_fully_covered = robust_feature_coverage
+        .iter()
+        .all(|feature| feature.robust_requested_k_met);
+    let robust_excess = robust_selected_count as u64 - robust_dual_bound.lower_bound_ceiling;
+    let robust_relative_excess_basis_points =
+        (robust_dual_bound.lower_bound_ceiling > 0).then(|| {
+            let numerator = (robust_excess as u128) * 10_000_u128;
+            numerator.div_ceil(robust_dual_bound.lower_bound_ceiling as u128) as u64
+        });
+    let robust_selection_companion = RobustSelectionCompanion {
+        algorithm: "ROBUST_VISIBILITY_GLOBALLY_INFORMED_GREEDY_K_VARIANT_V0_1".to_owned(),
+        selected_view_count: robust_selected_count,
+        selected_view_ids: robust_selected_view_ids,
+        selection_order_view_ids: robust_selection_order_view_ids,
+        cleanup_removed_view_ids: robust_cleanup_removed_view_ids,
+        nominal_selected_view_count: selected_count,
+        nominal_only_view_ids,
+        robust_only_view_ids,
+        view_count_delta_vs_nominal: robust_selected_count as i64 - selected_count as i64,
+        candidate_pool_requested_k_fully_available: robust_candidate_pool_requested_k_fully_available,
+        selected_requested_k_fully_covered: robust_selected_requested_k_fully_covered,
+        selected_attainable_targets_fully_covered: robust_selected_attainable_targets_fully_covered,
+        feature_coverage: robust_feature_coverage,
+        selected_minus_dual_lower_bound: robust_excess,
+        relative_excess_over_dual_lower_bound_basis_points: robust_relative_excess_basis_points,
+        dual_bound: robust_dual_bound,
+    };
 
     let candidate_pool_requested_k_fully_available = feature_coverage
         .iter()
@@ -748,6 +892,7 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         selected_attainable_targets_fully_covered,
         selected_robust_requested_k_fully_covered,
         feature_coverage,
+        robust_selection_companion,
         overlap_pruning_baselines,
         dual_bound,
         selected_minus_dual_lower_bound: excess,
