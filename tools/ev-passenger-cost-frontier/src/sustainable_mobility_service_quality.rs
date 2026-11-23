@@ -28,7 +28,7 @@ const MAX_HORIZON_SECONDS: u64 = 7 * 24 * 60 * 60;
 const MAX_SERVICE_SECONDS: u32 = 24 * 60 * 60;
 const MAX_PAYLOAD_UNITS: u16 = 10_000;
 const MAX_OPPORTUNITIES_FROM_CAPACITY: u32 = 2_048;
-const CLAIM_CEILING: &str = "Deterministic request-to-prequalified-service-slot admission model only; aerial service opportunities and capacity source are supplied inputs. Weather/permission metadata is not authenticated. No route planning, flight/dispatch, physical, market, regulatory or customer-delivery authority.";
+const CLAIM_CEILING: &str = "Deterministic request-to-service-slot admission model only. Legacy mode accepts supplied opportunities; linked mode derives aerial schedule fields from a re-evaluated synthetic capacity event model. Payload/weather/permission evidence is supplied and unauthenticated. No route planning, flight/dispatch, physical, market, regulatory or customer-delivery authority.";
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -689,7 +689,7 @@ fn request_priority(request: &ServiceRequest, policy: AdmissionPolicy) -> (u64, 
     match policy {
         AdmissionPolicy::FirstComeFirstServed => (
             request.arrival_seconds,
-            request.deadline_seconds,
+            0,
             request.request_id.clone(),
         ),
         AdmissionPolicy::EarliestDeadlineFirst => (
@@ -1234,7 +1234,7 @@ pub fn evaluate_linked_service_quality(
     }
 
     let mut qualification_ids = BTreeSet::new();
-    let mut qualifications = BTreeMap::new();
+    let mut payload_evidence_references = BTreeSet::new();
     for qualification in &input.aerial_opportunity_qualifications {
         let Some(receipt) = selected
             .service_opportunities
@@ -1261,14 +1261,12 @@ pub fn evaluate_linked_service_quality(
             || evidence.producer_id.trim().is_empty()
             || evidence.method_id.trim().is_empty()
             || evidence.evidence_reference.trim().is_empty()
+            || !payload_evidence_references.insert(evidence.evidence_reference.as_str())
             || evidence.evidence_class == EvidenceClass::Unknown
             || evidence.valid_from_seconds > evidence.observed_at_seconds
             || evidence.observed_at_seconds > receipt.start_seconds
             || evidence.valid_from_seconds > receipt.start_seconds
             || occupancy_end.is_none_or(|end| evidence.valid_until_seconds < end)
-            || qualifications
-                .insert(qualification.opportunity_id.as_str(), qualification)
-                .is_some()
         {
             add_error(
                 &mut errors,
@@ -1390,6 +1388,75 @@ mod tests {
             .expect("fixture must evaluate")
             .policy_results
             .remove(0)
+    }
+
+    #[test]
+    fn fcfs_uses_arrival_order_not_deadline_order_for_same_arrival() {
+        let mut input = fixture();
+        input.requests = vec![
+            ServiceRequest {
+                request_id: "a-later-deadline".to_owned(),
+                arrival_seconds: 0,
+                accept_by_seconds: 0,
+                deadline_seconds: 2_000,
+                required_service_seconds: 600,
+                payload_units: 1,
+                service_class: "standard".to_owned(),
+                allowed_mode: ServiceMode::AerialOnly,
+            },
+            ServiceRequest {
+                request_id: "z-earlier-deadline".to_owned(),
+                arrival_seconds: 0,
+                accept_by_seconds: 0,
+                deadline_seconds: 500,
+                required_service_seconds: 600,
+                payload_units: 1,
+                service_class: "urgent".to_owned(),
+                allowed_mode: ServiceMode::AerialOnly,
+            },
+        ];
+        input.aerial_opportunities = vec![
+            AerialServiceOpportunity {
+                opportunity_id: "slot-0".to_owned(),
+                aircraft_id: "aircraft-01".to_owned(),
+                start_seconds: 0,
+                max_service_duration_seconds: 600,
+                max_payload_units: 100,
+                turnaround_seconds: 45,
+                capacity_reference: "synthetic://slot-0".to_owned(),
+            },
+            AerialServiceOpportunity {
+                opportunity_id: "slot-1".to_owned(),
+                aircraft_id: "aircraft-01".to_owned(),
+                start_seconds: 700,
+                max_service_duration_seconds: 600,
+                max_payload_units: 100,
+                turnaround_seconds: 45,
+                capacity_reference: "synthetic://slot-1".to_owned(),
+            },
+        ];
+        input.fallback_opportunities.clear();
+        input.capacity_source.max_aerial_opportunities = 2;
+
+        let fcfs = {
+            input.policies = vec![AdmissionPolicy::FirstComeFirstServed];
+            evaluate_service_quality(&input)
+                .expect("FCFS")
+                .policy_results
+                .remove(0)
+        };
+        let edf = {
+            input.policies = vec![AdmissionPolicy::EarliestDeadlineFirst];
+            evaluate_service_quality(&input)
+                .expect("EDF")
+                .policy_results
+                .remove(0)
+        };
+        assert_eq!(fcfs.outcomes[0].request_id, "a-later-deadline");
+        assert_eq!(fcfs.outcomes[0].opportunity_id.as_deref(), Some("slot-0"));
+        assert_eq!(edf.outcomes[0].request_id, "a-later-deadline");
+        assert_eq!(edf.outcomes[1].request_id, "z-earlier-deadline");
+        assert_eq!(edf.outcomes[1].opportunity_id.as_deref(), Some("slot-0"));
     }
 
     #[test]
