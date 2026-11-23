@@ -71,7 +71,7 @@ pub enum Admission {
 impl Admission {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::SupportedV2_2 => "SUPPORTED_V2_2",
+            Self::SupportedV2_2 => "SUPPORTED_V2_2_PROFILE_ONLY",
             Self::SupportedV3ProfileOnly => "SUPPORTED_V3_PROFILE_ONLY",
             Self::AccessRequired => "ACCESS_REQUIRED",
             Self::ArtifactsNotPinned => "ARTIFACTS_NOT_PINNED",
