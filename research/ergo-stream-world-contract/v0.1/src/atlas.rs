@@ -47,7 +47,6 @@ pub struct TransferAtlasReportV0 {
 /// The expected-transfer flag is intentionally private and absent from the
 /// learner-facing policy view. The evaluate method is evaluator-only and must
 /// not be exposed across an untrusted process boundary.
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransferAtlasWorldV0 {
     policy_view: TransferAtlasPolicyViewV0,
     transfer_expected: bool,
