@@ -54,6 +54,21 @@ Consequently, this module must not be cited as a fix for the whole #7023 theorem
 
 Freeze and identify the supported floating-point profile per target/build. Add tests for signed zero, subnormals, cancellation, exact representable results, non-finite inputs, overflow, and compiler configurations. Any profile that cannot uphold the arithmetic preconditions must return unprunable/unsupported.
 
+### Stage B0 — affine AABB enclosure over represented matrix inputs
+
+The interval module now exposes `transform_aabb_affine_outward`. It accepts a finite, ordered local AABB, a finite binary64 matrix, and a finite binary64 translation. It evaluates each output coordinate as an interval dot product plus translation, widening every multiplication and addition.
+
+The result encloses the exact affine image of every point in the represented local box under the **represented matrix and translation values**, subject to the arithmetic profile in Section 2. The test suite checks identity, negative coefficients, degenerate axes, rotation/shear-like matrices, all transformed corners, invalid inputs, and overflow.
+
+This is a strictly narrower claim than enclosing a `Transform<D>` generated from a `Rotor<D>`:
+
+- It does not prove the represented matrix is itself an enclosure of an ideal rotation or of the rotor's construction error.
+- It does not prove `Rotor::reverse`, `Rotor::rotate_vector`, or any trigonometric/normalization path.
+- It does not supply local bounds for arbitrary `Shape<D>` implementations.
+- It is not connected to `support_aabb`, `Aabb::from_body`, or production pruning.
+
+The next integration step is an optional shape-local bounds contract and an explicit bridge from a represented `Transform` matrix/translation to this affine enclosure, with unsupported shapes remaining unprunable.
+
 ### Stage B — conservative transformed primitives
 
 Add typed bound providers that return either a certified finite enclosure or an explicit unprunable/unsupported outcome. Start with primitives whose geometry admits direct interval formulas (sphere, capsule, and hyperbox). Do not route an arbitrary `Shape<D>` through a nominally conservative default.
