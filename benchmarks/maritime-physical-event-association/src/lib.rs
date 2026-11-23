@@ -160,6 +160,8 @@ fn valid_profile(profile: &CorrelationProfile) -> bool {
         && !profile.witness_channel_id.trim().is_empty()
         && profile.source_channel_id != profile.witness_channel_id
         && !profile.time_basis_id.trim().is_empty()
+        && profile.source_time_role == TimeRole::BusinessEventTime
+        && profile.witness_time_role == TimeRole::SensorObservationTime
         && profile.max_interval_gap >= 0
         && profile.source_channel_qualified
         && profile.witness_channel_qualified
@@ -1026,6 +1028,11 @@ mod tests {
                 test.profile.as_mut().unwrap().profile_sha256 = "not-a-digest".to_owned();
                 test
             }
+            "unsupported_time_role_profile" => {
+                let mut test = case(source, witness);
+                test.profile.as_mut().unwrap().source_time_role = TimeRole::SensorObservationTime;
+                test
+            }
             "source_time_role_mismatch" => {
                 let mut test = case(source, witness);
                 test.source_events[0].event_time.role = TimeRole::SensorObservationTime;
@@ -1109,7 +1116,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 30);
+        assert_eq!(count, 31);
     }
 
     #[test]
@@ -1327,14 +1334,17 @@ mod tests {
 
     #[test]
     fn mismatched_temporal_roles_fail_closed() {
-        assert_eq!(
-            evaluate(&known_case("source_time_role_mismatch")).disposition,
-            Disposition::NotEvaluable
-        );
-        assert_eq!(
-            evaluate(&known_case("witness_time_role_mismatch")).disposition,
-            Disposition::NotEvaluable
-        );
+        for case_id in [
+            "source_time_role_mismatch",
+            "witness_time_role_mismatch",
+            "unsupported_time_role_profile",
+        ] {
+            assert_eq!(
+                evaluate(&known_case(case_id)).disposition,
+                Disposition::NotEvaluable,
+                "{case_id}"
+            );
+        }
     }
 
     #[test]
