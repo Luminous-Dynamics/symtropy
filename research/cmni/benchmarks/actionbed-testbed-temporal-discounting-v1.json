@@ -68,7 +68,17 @@
     "stochastic_design_policy": false,
     "downstream_loss": "LogMSELoss",
     "use_raw_history": true,
-    "note": "This is a task-driven expected-future-loss training recipe. It does not optimize EIG directly."
+    "note": "This is a task-driven expected-future-loss training recipe. It does not optimize EIG directly.",
+    "loss_formula": "elementwise mse + log(mse + epsilon), then configured reduction",
+    "loss_default_transforms": {
+      "transform_input": false,
+      "transform_target": false
+    },
+    "paper_variant_mapping": {
+      "likely": "ActionBED MSE-L (log-augmented MSE)",
+      "verification_required": "Confirm exact nomenclature against the camera-ready appendix before calling it a reproduced MSE-L result.",
+      "warning": "Not raw MSE, CMSE, or TrueLogMSELoss."
+    }
   },
   "training": {
     "seeds": [
@@ -165,5 +175,71 @@
     "independent_review": "not_run",
     "physical_validation": "not_applicable"
   },
-  "claim_boundary": "Pinned external baseline specification only. This is not a reproduction result, training run, performance result, physical validation, or superiority claim."
+  "claim_boundary": "Pinned external baseline specification only. This is not a reproduction result, training run, performance result, physical validation, or superiority claim.",
+  "paper_reported_temporal_discounting_results": {
+    "source": "TestBED arXiv:2611.06633",
+    "sample_count": 5,
+    "summary": "mean ± standard error",
+    "actionbed_variants": [
+      {
+        "variant": "MSE",
+        "mse": 1.264,
+        "mse_se": 0.019,
+        "cmse": -0.546,
+        "cmse_se": 0.029
+      },
+      {
+        "variant": "CMSE",
+        "mse": 0.233,
+        "mse_se": 0.004,
+        "cmse": -4.773,
+        "cmse_se": 0.035
+      },
+      {
+        "variant": "MSE-L",
+        "mse": 0.157,
+        "mse_se": 0.004,
+        "cmse": -4.053,
+        "cmse_se": 0.093
+      },
+      {
+        "variant": "CMSE-L",
+        "mse": 0.29,
+        "mse_se": 0.011,
+        "cmse": -5.011,
+        "cmse_se": 0.04
+      }
+    ],
+    "comparators": [
+      {
+        "method": "DAD",
+        "mse": 0.29,
+        "mse_se": 0.009,
+        "cmse": -4.918,
+        "cmse_se": 0.059
+      },
+      {
+        "method": "JointVarPost (m=1)",
+        "mse": 0.287,
+        "mse_se": 0.009,
+        "cmse": -4.974,
+        "cmse_se": 0.046
+      },
+      {
+        "method": "Static",
+        "mse": 0.613,
+        "mse_se": 0.1,
+        "cmse": -2.569,
+        "cmse_se": 0.015
+      },
+      {
+        "method": "Random",
+        "mse": 0.725,
+        "mse_se": 0.009,
+        "cmse": -1.435,
+        "cmse_se": 0.009
+      }
+    ],
+    "warning": "Paper-reported baseline figures only; not reproduced by CMNI. Do not select a favorable loss variant post hoc."
+  }
 }
