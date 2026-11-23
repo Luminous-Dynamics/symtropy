@@ -375,3 +375,16 @@ This directly operationalizes the 2026 ROS-fuzzing survey's finding that repeata
 The Gazebo integration must use the standard ROS 2 Simulation Interfaces rather than timing sleeps or ad hoc ROS topic commands. Gazebo documents ResetSimulation, StepSimulation, SimulateSteps (action with feedback/cancellation), Get/SetSimulationState, GetSimulatorFeatures, GetEntities and GetEntityState. It also documents that SceneBroadcaster is required for state synchronization/reset detection; paused/running state updates are throttled and state-dependent calls can time out if its update rate is misconfigured. This supports three strict RRVR rules: pin the API and plugin build, negotiate required capabilities before mutation, and verify the exact simulation iteration/world epoch after every reset and step. See [Gazebo's current ROS 2 Simulation Interfaces](https://gazebosim.org/docs/latest/ros2_sim_interfaces/) and its [dependency/timeout notes](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/).
 
 The first RRVR adapter code is transport-neutral and mock-tested. It does not yet contact Gazebo. The next validation target is a concrete, version-pinned ROS 2 service/action client, then a named simulation world with independent target observation. The results remain simulation-only and must be reported separately from HIL/physical evidence.
+
+## 12. Fault-delivery observer quorum and common-cause benchmark
+
+The fault-delivery layer must not repeat the mistake the original observer assurance work was designed to avoid: treating different observer names as independence. The campaign profile now pins observer binary identities and explicit dependency sets. A delivery verdict is qualified only with a multi-member quorum whose common-cause domains are pairwise disjoint and separate from the injector domain under the declared fault model.
+
+Publish:
+- observer quorum qualification rate by common-cause stratum;
+- false-quorum rate under injected shared host/power/clock/network/firmware/calibration failures;
+- valid positive-control quorum admission and safe-hold rate;
+- observer evidence loss, stale observation and epoch mismatch rates;
+- observer binary/revision drift rejection rate.
+
+A more demanding benchmark should deliberately inject common-cause cuts across two nominally different observers and compare naive distinct-ID logic against dependency-qualified quorum logic. The target is zero false quorum qualifications in the frozen common-cause negative controls, alongside complete admission of valid positive controls. This is a target, not an achieved empirical rate.
