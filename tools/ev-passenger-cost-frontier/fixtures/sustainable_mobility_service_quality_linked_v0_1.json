@@ -140,7 +140,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 0,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 345
+        "valid_until_seconds": 345,
+        "capacity_opportunity_id": "aircraft-00-mission-000000",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -155,7 +158,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 345,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 690
+        "valid_until_seconds": 690,
+        "capacity_opportunity_id": "aircraft-00-mission-000001",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -170,7 +176,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 690,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 1035
+        "valid_until_seconds": 1035,
+        "capacity_opportunity_id": "aircraft-00-mission-000002",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -185,7 +194,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 3930,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 4275
+        "valid_until_seconds": 4275,
+        "capacity_opportunity_id": "aircraft-00-mission-000007",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -200,7 +212,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 8790,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 9135
+        "valid_until_seconds": 9135,
+        "capacity_opportunity_id": "aircraft-00-mission-000013",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -215,7 +230,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 12030,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 12375
+        "valid_until_seconds": 12375,
+        "capacity_opportunity_id": "aircraft-00-mission-000017",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     },
     {
@@ -230,7 +248,10 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 15270,
         "valid_from_seconds": 0,
-        "valid_until_seconds": 15615
+        "valid_until_seconds": 15615,
+        "capacity_opportunity_id": "aircraft-00-mission-000021",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
       }
     }
   ],
