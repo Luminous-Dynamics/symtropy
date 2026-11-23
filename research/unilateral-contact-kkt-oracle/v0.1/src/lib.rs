@@ -430,8 +430,8 @@ fn solve_dense(
     for column in 0..dimension {
         let mut pivot_row = column;
         let mut pivot_value = matrix[column][column].abs();
-        for row in (column + 1)..dimension {
-            let candidate = matrix[row][column].abs();
+        for (row, values) in matrix.iter().enumerate().skip(column + 1) {
+            let candidate = values[column].abs();
             if candidate > pivot_value {
                 pivot_value = candidate;
                 pivot_row = row;
@@ -446,13 +446,23 @@ fn solve_dense(
         }
 
         let pivot = matrix[column][column];
-        for row in (column + 1)..dimension {
-            let factor = matrix[row][column] / pivot;
-            matrix[row][column] = 0.0;
-            for j in (column + 1)..dimension {
-                matrix[row][j] -= factor * matrix[column][j];
+        let pivot_row_values = matrix[column].clone();
+        let pivot_rhs = rhs[column];
+        for (row_values, rhs_value) in matrix
+            .iter_mut()
+            .skip(column + 1)
+            .zip(rhs.iter_mut().skip(column + 1))
+        {
+            let factor = row_values[column] / pivot;
+            row_values[column] = 0.0;
+            for (value, pivot_value) in row_values
+                .iter_mut()
+                .skip(column + 1)
+                .zip(pivot_row_values.iter().skip(column + 1))
+            {
+                *value -= factor * pivot_value;
             }
-            rhs[row] -= factor * rhs[column];
+            *rhs_value -= factor * pivot_rhs;
         }
     }
 
