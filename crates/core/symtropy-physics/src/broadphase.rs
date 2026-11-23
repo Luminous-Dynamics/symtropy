@@ -755,7 +755,11 @@ mod tests {
                 body_type,
                 transform,
                 collider,
-                if body_type == BodyType::Dynamic { 1.0 } else { 0.0 },
+                if body_type == BodyType::Dynamic {
+                    1.0
+                } else {
+                    0.0
+                },
                 if body_type == BodyType::Dynamic {
                     SVector::from_element(1.0)
                 } else {
