@@ -26,10 +26,7 @@ impl<const D: usize> LocalAabb<D> {
     ///
     /// Callers are responsible for ensuring that the supplied endpoints
     /// enclose their shape. This constructor validates representation only.
-    pub fn from_conservative_endpoints(
-        min: SVector<f64, D>,
-        max: SVector<f64, D>,
-    ) -> Option<Self> {
+    pub fn from_conservative_endpoints(min: SVector<f64, D>, max: SVector<f64, D>) -> Option<Self> {
         if min.iter().any(|value| !value.is_finite())
             || max.iter().any(|value| !value.is_finite())
             || (0..D).any(|axis| min[axis] > max[axis])
@@ -60,10 +57,7 @@ impl<const D: usize> LocalAabb<D> {
     /// by one representable step outward. Overflow, invalid radius, or
     /// non-finite center values return None.
     pub fn from_center_radius(center: &Point<D>, radius: f64) -> Option<Self> {
-        if !radius.is_finite()
-            || radius < 0.0
-            || center.0.iter().any(|value| !value.is_finite())
-        {
+        if !radius.is_finite() || radius < 0.0 || center.0.iter().any(|value| !value.is_finite()) {
             return None;
         }
 
@@ -126,9 +120,7 @@ impl<const D: usize> LocalAabb<D> {
 
         let min = rounded_min.map(next_down);
         let max = rounded_max.map(next_up);
-        if min.iter().any(|value| !value.is_finite())
-            || max.iter().any(|value| !value.is_finite())
-        {
+        if min.iter().any(|value| !value.is_finite()) || max.iter().any(|value| !value.is_finite()) {
             return None;
         }
 
@@ -299,7 +291,11 @@ mod tests {
         ]);
         let hull_bounds = hull.local_aabb().unwrap();
         assert_eq!(hull_bounds, LocalAabb::from_points(&hull.vertices).unwrap());
-        assert!(hull.vertices.iter().all(|vertex| hull_bounds.contains(vertex)));
+        assert!(
+            hull.vertices
+                .iter()
+                .all(|vertex| hull_bounds.contains(vertex))
+        );
 
         let plane = HalfSpace::<3>::ground(1, 0.0);
         assert!(plane.local_aabb().is_none());
