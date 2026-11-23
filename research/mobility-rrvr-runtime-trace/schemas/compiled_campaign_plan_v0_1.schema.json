@@ -161,7 +161,7 @@
       "additionalProperties": false,
       "required": [
         "platform_id",
-        "platform_profile_sha256",
+        "profile_sha256",
         "environment_artifact_sha256",
         "simulator_revision",
         "ros_distribution",
@@ -181,7 +181,7 @@
           "type": "string",
           "minLength": 1
         },
-        "platform_profile_sha256": {
+        "profile_sha256": {
           "$ref": "#/$defs/sha256"
         },
         "environment_artifact_sha256": {
