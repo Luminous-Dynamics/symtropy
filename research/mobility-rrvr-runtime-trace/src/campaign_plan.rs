@@ -23,13 +23,14 @@ pub enum PlanCompileError {
     InvalidSourceManifestDigest,
     ManifestRejected(CampaignError),
     SerializationFailure,
+    CommitmentMismatch,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CompiledPlatformBinding {
     pub platform_id: String,
-    pub platform_profile_sha256: String,
+    pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
     pub ros_distribution: String,
@@ -112,8 +113,8 @@ struct PairCommitment<'a> {
     control_class: ControlClass,
     fault_model_revision: &'a str,
     fault_model_sha256: &'a str,
-    platform: &'a crate::fault_campaign::PlatformProfile,
-    reset: &'a crate::fault_campaign::ResetProfile,
+    platform: &'a CompiledPlatformBinding,
+    reset: &'a CompiledResetBinding,
     task_id: &'a str,
     policy_id: &'a str,
     policy_sha256: &'a str,
@@ -169,6 +170,142 @@ fn valid_sha256(value: &str) -> bool {
 }
 
 impl CompiledCampaignPlan {
+    fn body(&self) -> CompiledCampaignPlanBody<'_> {
+        CompiledCampaignPlanBody {
+            version: &self.version,
+            canonicalization: &self.canonicalization,
+            campaign_id: &self.campaign_id,
+            source_manifest_sha256: &self.source_manifest_sha256,
+            fault_model_revision: &self.fault_model_revision,
+            fault_model_sha256: &self.fault_model_sha256,
+            platform: &self.platform,
+            reset: &self.reset,
+            required_layers: &self.required_layers,
+            required_cut_points: &self.required_cut_points,
+            pairs: &self.pairs,
+            scenarios: &self.scenarios,
+        }
+    }
+
+    /// Verify all nested schedule/pair commitments and the top-level plan hash.
+    ///
+    /// This proves byte-level integrity relative to the supplied plan, not
+    /// authenticity of its source manifest or proof of physical execution.
+    pub fn verify_integrity(&self) -> Result<(), PlanCompileError> {
+        if self.version != COMPILED_PLAN_VERSION
+            || self.canonicalization != CANONICALIZATION_ID
+            || !valid_sha256(&self.source_manifest_sha256)
+            || !valid_sha256(&self.fault_model_sha256)
+            || !valid_sha256(&self.plan_sha256)
+        {
+            return Err(PlanCompileError::CommitmentMismatch);
+        }
+
+        let mut scenario_ids = BTreeSet::new();
+        let mut grouped: BTreeMap<&str, Vec<&CompiledScenario>> = BTreeMap::new();
+        let mut covered_layers = BTreeSet::new();
+        let mut covered_cuts = BTreeSet::new();
+
+        for scenario in &self.scenarios {
+            if !scenario_ids.insert(scenario.scenario_id.as_str())
+                || digest_serializable(&scenario.fault_events)? != scenario.schedule_sha256
+            {
+                return Err(PlanCompileError::CommitmentMismatch);
+            }
+            for (index, fault) in scenario.fault_events.iter().enumerate() {
+                if fault.sequence != index as u32 + 1 {
+                    return Err(PlanCompileError::CommitmentMismatch);
+                }
+                covered_layers.insert(fault.target_layer);
+                covered_cuts.insert(fault.cut_point);
+            }
+            grouped
+                .entry(scenario.pair_id.as_str())
+                .or_default()
+                .push(scenario);
+        }
+
+        let pair_ids: BTreeSet<&str> = self.pairs.iter().map(|pair| pair.pair_id.as_str()).collect();
+        if pair_ids.len() != self.pairs.len() || pair_ids.len() != grouped.len() {
+            return Err(PlanCompileError::CommitmentMismatch);
+        }
+
+        for pair in &self.pairs {
+            let members = grouped
+                .get(pair.pair_id.as_str())
+                .ok_or(PlanCompileError::CommitmentMismatch)?;
+            let reference = members
+                .first()
+                .ok_or(PlanCompileError::CommitmentMismatch)?;
+            let mut expected_ids: Vec<String> =
+                members.iter().map(|scenario| scenario.scenario_id.clone()).collect();
+            expected_ids.sort();
+            let expected_arms: BTreeSet<BenchmarkArm> =
+                members.iter().map(|scenario| scenario.arm).collect();
+            if pair.scenario_ids != expected_ids
+                || pair.arms != expected_arms.iter().copied().collect::<Vec<_>>()
+            {
+                return Err(PlanCompileError::CommitmentMismatch);
+            }
+
+            for scenario in members.iter().skip(1) {
+                if scenario.control_class != reference.control_class
+                    || scenario.task_id != reference.task_id
+                    || scenario.policy_id != reference.policy_id
+                    || scenario.policy_sha256 != reference.policy_sha256
+                    || scenario.scene_sha256 != reference.scene_sha256
+                    || scenario.action_prefix_sha256 != reference.action_prefix_sha256
+                    || scenario.seed != reference.seed
+                    || scenario.logical_effect_id != reference.logical_effect_id
+                    || scenario.fault_events != reference.fault_events
+                {
+                    return Err(PlanCompileError::CommitmentMismatch);
+                }
+            }
+
+            let commitment = PairCommitment {
+                campaign_id: &self.campaign_id,
+                pair_id: &pair.pair_id,
+                control_class: reference.control_class,
+                fault_model_revision: &self.fault_model_revision,
+                fault_model_sha256: &self.fault_model_sha256,
+                platform: &self.platform,
+                reset: &self.reset,
+                task_id: &reference.task_id,
+                policy_id: &reference.policy_id,
+                policy_sha256: &reference.policy_sha256,
+                scene_sha256: &reference.scene_sha256,
+                action_prefix_sha256: &reference.action_prefix_sha256,
+                seed: reference.seed,
+                logical_effect_id: &reference.logical_effect_id,
+                faults: &reference.fault_events,
+            };
+            let expected_pair_digest = digest_serializable(&commitment)?;
+            if pair.pair_commitment_sha256 != expected_pair_digest
+                || members.iter().any(|scenario| {
+                    scenario.pair_commitment_sha256 != expected_pair_digest
+                })
+            {
+                return Err(PlanCompileError::CommitmentMismatch);
+            }
+        }
+
+        let required_layers: BTreeSet<FaultLayer> =
+            self.required_layers.iter().copied().collect();
+        let required_cuts: BTreeSet<FaultCutPoint> =
+            self.required_cut_points.iter().copied().collect();
+        if !required_layers.is_subset(&covered_layers)
+            || !required_cuts.is_subset(&covered_cuts)
+        {
+            return Err(PlanCompileError::CommitmentMismatch);
+        }
+
+        if digest_serializable(&self.body())? != self.plan_sha256 {
+            return Err(PlanCompileError::CommitmentMismatch);
+        }
+        Ok(())
+    }
+
     /// Compile a validated manifest into a deterministic, non-authoritative plan.
     pub fn compile(
         manifest: &FaultCampaignManifest,
@@ -183,7 +320,7 @@ impl CompiledCampaignPlan {
 
         let platform = CompiledPlatformBinding {
             platform_id: manifest.platform.platform_id.clone(),
-            platform_profile_sha256: manifest.platform.profile_sha256.clone(),
+            profile_sha256: manifest.platform.profile_sha256.clone(),
             environment_artifact_sha256: manifest.platform.environment_artifact_sha256.clone(),
             simulator_revision: manifest.platform.simulator_revision.clone(),
             ros_distribution: manifest.platform.ros_distribution.clone(),
@@ -227,8 +364,8 @@ impl CompiledCampaignPlan {
                 control_class: reference.control_class,
                 fault_model_revision: &manifest.fault_model_revision,
                 fault_model_sha256: &manifest.fault_model_sha256,
-                platform: &manifest.platform,
-                reset: &manifest.reset,
+                platform: &platform,
+                reset: &reset,
                 task_id: &reference.task_id,
                 policy_id: &reference.policy_id,
                 policy_sha256: &reference.policy_sha256,
@@ -301,21 +438,8 @@ impl CompiledCampaignPlan {
             scenarios,
             plan_sha256: String::new(),
         };
-        let body = CompiledCampaignPlanBody {
-            version: &plan.version,
-            canonicalization: &plan.canonicalization,
-            campaign_id: &plan.campaign_id,
-            source_manifest_sha256: &plan.source_manifest_sha256,
-            fault_model_revision: &plan.fault_model_revision,
-            fault_model_sha256: &plan.fault_model_sha256,
-            platform: &plan.platform,
-            reset: &plan.reset,
-            required_layers: &plan.required_layers,
-            required_cut_points: &plan.required_cut_points,
-            pairs: &plan.pairs,
-            scenarios: &plan.scenarios,
-        };
-        plan.plan_sha256 = digest_serializable(&body)?;
+        plan.plan_sha256 = digest_serializable(&plan.body())?;
+        plan.verify_integrity()?;
         Ok(plan)
     }
 
@@ -346,6 +470,7 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.canonical_bytes().unwrap(), second.canonical_bytes().unwrap());
         assert!(valid_sha256(&first.plan_sha256));
+        assert_eq!(first.verify_integrity(), Ok(()));
     }
 
     #[test]
@@ -363,6 +488,26 @@ mod tests {
         );
         assert_ne!(positive[0].scenario_id, positive[1].scenario_id);
         assert_ne!(positive[0].arm, positive[1].arm);
+    }
+
+    #[test]
+    fn verifier_rejects_tampered_schedule_or_platform_binding() {
+        let valid = CompiledCampaignPlan::compile(&manifest(), &"a".repeat(64)).unwrap();
+
+        let mut changed_schedule = valid.clone();
+        changed_schedule.scenarios[0].fault_events[0].kind =
+            crate::fault_campaign::FaultKind::PowerLoss;
+        assert_eq!(
+            changed_schedule.verify_integrity(),
+            Err(PlanCompileError::CommitmentMismatch)
+        );
+
+        let mut changed_platform = valid;
+        changed_platform.platform.controller_revision = "untracked-controller".into();
+        assert_eq!(
+            changed_platform.verify_integrity(),
+            Err(PlanCompileError::CommitmentMismatch)
+        );
     }
 
     #[test]
