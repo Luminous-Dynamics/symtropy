@@ -341,10 +341,7 @@ fn augment_matching(
 }
 
 #[cfg(test)]
-fn hopcroft_karp_matching(
-    graph: &[Vec<usize>],
-    right_count: usize,
-) -> (usize, Vec<Option<usize>>) {
+fn hopcroft_karp_matching(graph: &[Vec<usize>], right_count: usize) -> (usize, Vec<Option<usize>>) {
     const UNREACHED: usize = usize::MAX;
 
     let left_count = graph.len();
