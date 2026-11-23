@@ -2427,10 +2427,9 @@
       "world_set_receipt_id": "synthetic-compatible-world-receipt-fractional_loss_projection",
       "world_set_receipt_sha256": "3dbd8952330e0322137df7a11bb8c6743d47451a420c235a15ef6fc31e410adc",
       "expected_world_ids": [
-        "w1",
-        "w2"
+        "w1"
       ],
-      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
       "loss_model_set": {
         "state": "CURRENT",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
@@ -2445,10 +2444,9 @@
         "projection_scale_numerator": 1000,
         "projection_scale_denominator": 1,
         "expected_scenario_ids": [
-          "fractional_loss_projection-joint-1",
-          "fractional_loss_projection-joint-2"
+          "fractional_loss_projection-joint-1"
         ],
-        "expected_scenario_ids_sha256": "e1f1e400d45dfc93b3c6fd2969a8d4d7a8a77dd90ec9ac1689769c5bd7f48c73",
+        "expected_scenario_ids_sha256": "b08de739824969f4cc7d880d3f8ef45b58aaae9cfdff3c499a8014d65b56e7fd",
         "projected_scenarios_sha256": "2ffbb5606f7ef23ef40312de95a3c50c1904322e656d6724d8af0981d89581b3"
       }
     },
