@@ -579,6 +579,11 @@ mod tests {
             .expect("valid comparison");
         assert_eq!(result.maximum_generalized_velocity_error, 0.0);
         assert_eq!(result.maximum_generalized_impulse_error, 0.0);
+        assert_eq!(result.probe_set_digest, "test-common-full-patch-probe-set-001");
+        assert_eq!(result.characteristic_length, 1.0);
+        assert_eq!(result.velocity_scale, 1.0);
+        assert_eq!(result.impulse_scale, 1.0);
+        assert_eq!(result.work_unit_schema_digest, full.work_unit_schema_digest);
         assert_eq!(result.maximum_contact_normal_velocity_error, 0.0);
         assert_eq!(result.maximum_contact_tangent_velocity_error, 0.0);
         assert_eq!(result.rms_contact_velocity_error, 0.0);
@@ -764,6 +769,14 @@ mod tests {
             ],
         );
         assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+    }
+
+    #[test]
+    fn empty_probe_set_digest_is_rejected() {
+        let (full, reduced) = zero_pair();
+        let mut probes = probe_set(vec![probe([1.0, 0.0, 0.0])]);
+        probes.digest.clear();
+        assert!(compare_responses(&full, &reduced, &probes, scales()).is_err());
     }
 
     #[test]
