@@ -135,3 +135,15 @@ jobs:
     - name: Clippy EHD OED Portfolio
       if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
       run: cargo clippy --manifest-path tools/ehd-oed-portfolio/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-reference-uq/Cargo.toml -- --check
+
+    - name: Test EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-reference-uq/Cargo.toml
+
+    - name: Clippy EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-reference-uq/Cargo.toml --all-targets -- -D warnings
