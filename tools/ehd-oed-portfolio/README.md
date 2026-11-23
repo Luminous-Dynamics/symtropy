@@ -33,7 +33,8 @@ The crate is a standalone Cargo workspace with no third-party dependencies.
 
 - Exactly two physical parameters, two nuisance parameters and three model hypotheses.
 - One scalar observation per candidate experiment.
-- Candidate measurement covariance must be symmetric positive definite; this v0.1 implementation rejects singular covariance instead of using a pseudoinverse.
+- Candidate measurement covariance must be symmetric positive definite and match the full candidate inventory; this v0.1 implementation rejects singular/mismatched covariance instead of using a pseudoinverse.
+- Physical sensitivity rows must be expressed in predeclared dimensionless scaled parameter coordinates so information scores are comparable across a fixed benchmark.
 - Local linear sensitivities and Gaussian errors only. Nonlinear profile likelihood, posterior expected information gain, adaptive optimal control and physical EHD equations remain out of scope.
 - The model owner is responsible for declaring nuisance directions and shared causes. The engine cannot discover omitted artifacts.
 - Synthetic unit tests are manufactured software controls, not measured EHD operating points.
