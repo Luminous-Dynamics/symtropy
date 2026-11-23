@@ -289,15 +289,23 @@ fn evaluate_case(case: &Case) -> CaseResult {
             ));
         }
         if let Some(receipt_id) = m.source_receipt_id.as_deref() {
-            if let Some(owner) = receipt_owners.insert(receipt_id, m.model_id.as_str()) {
-                if owner != m.model_id {
+            if let Some(owner) = receipt_owners.get(receipt_id).copied() {
+                if owner != m.model_id.as_str() {
+                    let (first, second) = if owner < m.model_id.as_str() {
+                        (owner, m.model_id.as_str())
+                    } else {
+                        (m.model_id.as_str(), owner)
+                    };
                     findings.push(finding(
                         "MODEL_RECEIPT_ALIAS",
-                        Some(&m.model_id),
+                        Some(first),
                         None,
-                        "one source receipt ID is reused for distinct consequence models",
+                        &format!("source receipt {receipt_id} is shared by models {first} and {second}"),
                     ));
+                    receipt_owners.insert(receipt_id, first);
                 }
+            } else {
+                receipt_owners.insert(receipt_id, m.model_id.as_str());
             }
         }
     }
