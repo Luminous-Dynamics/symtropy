@@ -221,3 +221,10 @@ The certificate proves only that the entire declared enclosing support lies insi
 
 
 **Input-precondition limitation:** enclosing_ball_asserted=true and normal_cone_asserted=true are caller assertions. This evaluator validates the provided numeric parameters but does not independently prove that the ball encloses the support or that the normal cone encloses every surface normal. Every certificate therefore reports precondition_proofs_verified_independently=false. A future evidence adapter must bind each assertion to a separately verified geometry/support proof before any stronger claim is made.
+
+
+### Planar triangle support-bound derivation helper
+
+The function derive_planar_triangle_support now derives a candidate centroid, enclosing-ball radius and constant planar normal from three non-degenerate triangle vertices. The radius is the maximum centroid-to-vertex distance plus a 128-ULP-scaled coordinate margin; convexity of the triangle gives a geometric enclosure for every barycentric point. The returned derivation records that the support enclosure and planar normal cone were computed from the vertices, but also records that outward winding was still a caller assertion.
+
+This helper is intentionally labelled FLOAT64 with a coordinate-scale margin, not formal interval arithmetic. It does not verify that the supplied vertices identify the physical component, that the face winding is truly outward, or that a mesh is watertight. The frozen unit tests sample a deterministic barycentric grid, reject degenerate triangles and require an explicit outward-winding assertion. The envelope receipt continues to say precondition_proofs_verified_independently=false; these helper outputs do not silently upgrade the full-support certificate.
