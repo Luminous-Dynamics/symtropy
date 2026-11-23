@@ -1,0 +1,35 @@
+name: Unilateral Contact KKT Oracle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/unilateral-contact-kkt-oracle/v0.1/**"
+      - ".github/workflows/unilateral-contact-kkt-oracle.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/unilateral-contact-kkt-oracle/v0.1/**"
+      - ".github/workflows/unilateral-contact-kkt-oracle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 unilateral KKT checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/unilateral-contact-kkt-oracle/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/unilateral-contact-kkt-oracle/v0.1/Cargo.toml --locked
+      - name: Run adaptive contact tournament
+        run: cargo run --manifest-path research/unilateral-contact-kkt-oracle/v0.1/Cargo.toml --example adaptive_contact_tournament --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/unilateral-contact-kkt-oracle/v0.1/Cargo.toml --locked --all-targets -- -D warnings
