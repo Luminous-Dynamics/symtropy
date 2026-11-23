@@ -18,13 +18,15 @@ Every resource-feasible action must have exactly one decision-projection report 
 - an action-specific outcome-model and feature-normalization commitment;
 - a report explicitly conditional on successful, valid acquisition.
 
-The wrapper independently revalidates the report:
+The wrapper independently revalidates the report and carries the evidence chain into its output:
 - complete assignment count and unique hypothesis IDs;
 - nonzero hypothesis and decision-class IDs;
 - exact same-class and cross-class pair counts;
 - exact unordered cross-decision pair set;
 - decision-class labels, finite nonnegative separation gaps and boolean consistency;
 - distinguishable/ambiguous counts and disposition.
+
+Each action assessment preserves its exact outcome-model and feature-normalization digests, the frozen decision-class assignment map is carried at plan level, and the separated/unresolved cross-decision hypothesis-pair IDs are included for independent review.
 
 A malformed or incomplete projection is not used to rank an action.
 
