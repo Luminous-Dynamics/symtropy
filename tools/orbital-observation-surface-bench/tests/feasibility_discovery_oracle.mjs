@@ -199,7 +199,7 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
         if(candidate.feasibility_status!=="feasible"||candidate.loss===null)
           fail("class comparator not feasible throughout outcome class");
         const loss=rat(candidate.loss,"outcome class loss");
-        const regret=subR(loss,bestScenarioLoss(scenario),"class action regret");
+        const regret=subR(loss,scenarioBest(scenario),"class action regret");
         if(worstForAction===null||cmpR(regret,worstForAction)>0) worstForAction=regret;
       }
       if(worstForAction===null) fail("empty outcome class");
@@ -219,7 +219,7 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
     if(row.feasibility_status!=="feasible"||row.loss===null)
       fail("policy action infeasible in scenario "+scenario.scenario_id);
     const loss=rat(row.loss,"policy loss");
-    const wsBest=bestScenarioLoss(scenario);
+    const wsBest=scenarioBest(scenario);
     const classRegret=classRegretByOutcome.get(outcomeId);
     if(!classRegret) fail("missing outcome-class regret");
     perScenario.push({
