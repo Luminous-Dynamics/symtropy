@@ -881,7 +881,7 @@ mod tests {
     }
 
     #[test]
-    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect() {
+    fn accepts_committed_when_independent_no_effect_is_confirmed() {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::Committed;
         recording.attempts[0].persistence.receipt.asserted_value = "committed".into();
