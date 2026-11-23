@@ -660,7 +660,12 @@ fn make_decision(
     ))
 }
 
-fn midpoint(lower: f64, upper: f64) -> Result<f64, KernelError> {
+fn midpoint(first: f64, second: f64) -> Result<f64, KernelError> {
+    let (lower, upper) = if first <= second {
+        (first, second)
+    } else {
+        (second, first)
+    };
     let value = 0.5 * lower + 0.5 * upper;
     if !value.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -778,6 +783,12 @@ mod tests {
 
     fn policy() -> NcdotRefinementPolicy {
         NcdotRefinementPolicy::default()
+    }
+
+    #[test]
+    fn midpoint_is_symmetric_in_endpoint_order() {
+        assert_eq!(midpoint(-10.0, 0.0).unwrap(), -5.0);
+        assert_eq!(midpoint(0.0, -10.0).unwrap(), -5.0);
     }
 
     #[test]
