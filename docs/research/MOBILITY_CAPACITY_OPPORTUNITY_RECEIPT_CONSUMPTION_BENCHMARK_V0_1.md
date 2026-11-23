@@ -64,7 +64,7 @@ At evaluation time it:
 4. Verifies the embedded opportunity digest from the capacity result.
 5. Checks receipt IDs are unique, mission sequences start at zero and are contiguous per aircraft, mission completion stays in the horizon, and the next mission begins no earlier than previous mission completion plus turnaround.
 6. Resolves each qualification ID to one source receipt; unknown or duplicated IDs fail closed.
-7. Requires the payload evidence to bind the exact aircraft and architecture-configuration digest, be non-unknown, have valid observation time, and cover mission plus turnaround.
+7. Requires the payload evidence to bind the exact opportunity ID, aircraft, site, site configuration and architecture-configuration digest, be non-unknown, have valid observation time, and cover mission plus turnaround.
 8. Derives the aerial service slots from the receipts; only payload limits/evidence are supplied by the consumer.
 9. Runs both FCFS and EDF with identical request, fallback, weather, permission and maintenance inputs.
 
