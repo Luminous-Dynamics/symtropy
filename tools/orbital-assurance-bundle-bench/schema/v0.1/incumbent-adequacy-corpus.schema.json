@@ -211,8 +211,15 @@
         },
         "dependency_graph_state": {
           "enum": [
-            "COMPLETE_WITHIN_DECLARED_GRAMMAR",
-            "INADEQUATE",
+            "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+            "MISSING_DEPENDENCY_EDGE",
+            "COMMON_MODE_DEPENDENCY_OMISSION",
+            "CONSUMER_MANIFEST_OMISSION",
+            "UNDECLARED_DEPENDENCY_EDGE",
+            "DEPENDENCY_MODEL_INADEQUATE",
+            "DEPENDENCY_SOURCE_UNAVAILABLE",
+            "DEPENDENCY_SCOPE_MISMATCH",
+            "INVALID_GRAPH",
             "STALE",
             "INDETERMINATE"
           ]
