@@ -744,7 +744,11 @@ mod tests {
             occupied_cells: vec![[1, 0, 0], [2, 0, 0]],
         })
         .unwrap();
-        let origin = Vec3 { x: -0.1, y: 0.05, z: 0.05 };
+        let origin = Vec3 {
+            x: -0.1,
+            y: 0.05,
+            z: 0.05,
+        };
         let target = grid.centre([2, 0, 0]);
         assert!(grid.ray_occluded(origin, target, [2, 0, 0]));
     }
