@@ -2673,7 +2673,7 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                     .zip(number_at(value, &["expected_e_optimal", "log_determinant_information"]))
                     .is_some_and(|(d, e)| d > e)
                 && text_at(value, &["claim_boundary"])
-                    .is_some_and(|claim| claim.contains("not EHD operating points")))
+                    .is_some_and(|claim| claim.contains("not EHD operating points"))
         }),
         "IDENTIFIABILITY_DESIGN_TOURNAMENT",
         "matched-budget D/E tournament outcomes, criteria and manufactured claim boundary must remain explicit",
