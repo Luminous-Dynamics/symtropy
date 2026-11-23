@@ -1,0 +1,136 @@
+{
+  "evidence_class": "synthetic",
+  "profile_id": "urn:luminous:symtropy:mfg-arch:opcua-machinery-1.04.2-reference",
+  "endpoint_id": "urn:luminous:test:opcua:machinery-server-001",
+  "server_application_uri": "urn:example:opcua:machinery-server",
+  "endpoint_certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "nodeset_source_sha256": "7b0e4132b83c8c8bdbf9d1a0d09ed67adc7c8aa9e97a4beac1622664b3096376",
+  "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+  "namespace_version": "1.04.2",
+  "namespace_publication_date": "2026-11-01",
+  "is_namespace_subset": true,
+  "namespace_array": [
+    "http://opcfoundation.org/UA/",
+    "http://opcfoundation.org/UA/Machinery/",
+    "http://opcfoundation.org/UA/DI/",
+    "http://opcfoundation.org/UA/IA/"
+  ],
+  "captured_at": "2026-11-21T00:00:00Z",
+  "read_only_probe": true,
+  "service_calls": [
+    "Browse",
+    "Read"
+  ],
+  "mutation_service_calls": 0,
+  "physical_qualification": false,
+  "expected_nodes": [
+    {
+      "node_id": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "identifier_type": "i",
+        "identifier": "1001"
+      },
+      "node_class": "Object",
+      "browse_name": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "name": "MachineryEquipment"
+      },
+      "data_type": null,
+      "value_rank": null,
+      "type_definition": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "58"
+      },
+      "modelling_rule": "mandatory",
+      "references": [
+        {
+          "reference_type": {
+            "namespace_uri": "http://opcfoundation.org/UA/",
+            "identifier_type": "i",
+            "identifier": "47"
+          },
+          "target": {
+            "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+            "identifier_type": "i",
+            "identifier": "1002"
+          },
+          "is_forward": true
+        }
+      ]
+    },
+    {
+      "node_id": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "identifier_type": "i",
+        "identifier": "1002"
+      },
+      "node_class": "Variable",
+      "browse_name": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "name": "OptionalTemperature"
+      },
+      "data_type": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "11"
+      },
+      "value_rank": -1,
+      "type_definition": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "63"
+      },
+      "modelling_rule": "optional",
+      "references": []
+    }
+  ],
+  "observed_nodes": [
+    {
+      "node_id": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "identifier_type": "i",
+        "identifier": "1001"
+      },
+      "node_class": "Object",
+      "browse_name": {
+        "namespace_uri": "http://opcfoundation.org/UA/Machinery/",
+        "name": "MachineryEquipment"
+      },
+      "data_type": null,
+      "value_rank": null,
+      "type_definition": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "58"
+      },
+      "modelling_rule": "mandatory",
+      "references": []
+    },
+    {
+      "node_id": {
+        "namespace_uri": "urn:vendor:extension",
+        "identifier_type": "s",
+        "identifier": "VendorStatus"
+      },
+      "node_class": "Variable",
+      "browse_name": {
+        "namespace_uri": "urn:vendor:extension",
+        "name": "VendorStatus"
+      },
+      "data_type": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "12"
+      },
+      "value_rank": -1,
+      "type_definition": {
+        "namespace_uri": "http://opcfoundation.org/UA/",
+        "identifier_type": "i",
+        "identifier": "63"
+      },
+      "modelling_rule": "none",
+      "references": []
+    }
+  ]
+}

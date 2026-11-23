@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "urn:luminous:symtropy:mfg-arch:i3x-1.0-reference",
+  "profile_name": "i3X 1.0 — reference-only contextual manufacturing API profile",
+  "profile_version": "0.1.0",
+  "created_at": "2026-11-21T00:00:00Z",
+  "execution_scope": "reference_only",
+  "source_class": "none",
+  "access_contract": {
+    "read": true,
+    "subscribe": true,
+    "write": false,
+    "command": false,
+    "product_release": false
+  },
+  "standard_references": [
+    {
+      "standard_ref_id": "i3x-1.0-reference",
+      "name": "i3X — Industrial Information Interoperability eXchange",
+      "publisher": "CESMII",
+      "edition": "1.0",
+      "role": "contextual_manufacturing_api",
+      "publication_state": "published_specification",
+      "reference_uri": "https://github.com/cesmii/i3X/tree/1.0"
+    }
+  ],
+  "layers": [
+    {
+      "layer_id": "primary-information-layer",
+      "layer_kind": "contextual_manufacturing_api",
+      "standard_ref_id": "i3x-1.0-reference",
+      "implementation": {
+        "implementation_id": "not-yet-implemented:i3x-1.0-reference",
+        "implementation_status": "not_implemented",
+        "name": "i3X — Industrial Information Interoperability eXchange reference profile",
+        "version": "not-implemented"
+      },
+      "access_contract": {
+        "read": true,
+        "subscribe": true,
+        "write": false,
+        "command": false,
+        "product_release": false
+      },
+      "semantic_contract": {
+        "required_fields_to_preserve": [
+          "object_id",
+          "object_type_id",
+          "object_type_schema",
+          "relationship_id",
+          "relationship_type_id",
+          "namespace_identity",
+          "value",
+          "quality",
+          "timestamp",
+          "history_range",
+          "subscription_client_id",
+          "sequence_acknowledgement"
+        ],
+        "preserved_fields": [],
+        "unsupported_fields": [
+          "runtime object and relationship payloads until a concrete server/client adapter is implemented",
+          "vendor-specific authorization and deployment controls until endpoint-specific review",
+          "optional update methods and all write-back behavior"
+        ],
+        "unknown_field_policy": "inconclusive",
+        "source_values_immutable": true
+      },
+      "admission": {
+        "status": "source_reviewed",
+        "evidence_refs": [
+          "https://github.com/cesmii/i3X/tree/1.0",
+          "https://github.com/cesmii/i3X/blob/1.0/conformance-tests/README.md"
+        ],
+        "claim_ceiling": [
+          "The official i3X 1.0 specification and upstream conformance-suite documentation have been source-reviewed only. No i3X server, endpoint, client, conformance test or subscription lifecycle has been executed."
+        ]
+      },
+      "intelligence_scope": "cross_layer"
+    }
+  ],
+  "input_contract": {
+    "source_class": "none",
+    "source_refs": [],
+    "evaluator_truth_separate": true,
+    "observable_cutoff_policy": "none"
+  },
+  "evaluation_status": "not_run",
+  "claim_ceiling": [
+    "Reference-only profile: no endpoint or implementation has been tested.",
+    "Read-only capability intent only; write, command and product-release methods are not admitted.",
+    "No protocol/vendor conformance, cybersecurity, functional safety, physical metrology, process capability or production claim is made."
+  ]
+}

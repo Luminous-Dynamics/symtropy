@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:tep-onset-input:0.1.0",
+  "title": "FoundryBench TEP Onset Evaluation Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evaluation_horizon_ns",
+    "records"
+  ],
+  "properties": {
+    "evaluation_horizon_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "records": {
+      "type": "array",
+      "minItems": 22,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "scenario_id",
+          "detection_delay_ns",
+          "diagnosis",
+          "normal_false_alarm_count",
+          "normal_exposure_ns"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\S(?:.*\\S)?$"
+          },
+          "scenario_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 21
+          },
+          "detection_delay_ns": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "diagnosis": {
+            "enum": [
+              "correct",
+              "confident_wrong",
+              "safe_deferral",
+              "not_attempted",
+              "not_applicable"
+            ]
+          },
+          "normal_false_alarm_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "normal_exposure_ns": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

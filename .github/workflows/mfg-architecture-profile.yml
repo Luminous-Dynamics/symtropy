@@ -1,0 +1,119 @@
+name: Manufacturing Architecture Profile Integrity
+
+on:
+  pull_request:
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+  push:
+    branches: ["main", "research/mfg-architecture-portability-v0-1"]
+    paths:
+      - "tools/manufacturing-architecture-portability/**"
+      - ".github/workflows/mfg-architecture-profile.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mfg-architecture-profile-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the PR head commit, not GitHub's synthetic pull_request merge commit.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            tools/manufacturing-architecture-portability/validator -> target
+
+      # Cargo.lock is committed and every dependency operation is locked.
+      - name: Check formatting
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo fmt --all -- --check
+
+      - name: Validate Draft 2020-12 schema and profile fixtures
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo test --locked
+
+      - name: Validate all committed profiles
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin mfg-architecture-profile-validator -- ../profile.schema.json \
+            ../profiles/uns-mqtt.synthetic.json \
+            ../profiles/i3x-1.0.reference.json \
+            ../profiles/opcua-machinery-1.04.2.reference.json \
+            ../profiles/opcua-robotics-1.02.reference.json
+
+      - name: Evaluate the explicit QIF inspection join fixture
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo run --locked --bin validate-inspection-join -- ../inspection-join.schema.json tests/fixtures/qif-cycle-join.candidate.json
+
+      - name: Fetch exact commit-pinned OPC UA NodeSet artifacts
+        run: |
+          set -euo pipefail
+          NODESET_COMMIT="ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error "https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/${NODESET_COMMIT}/Machinery/Opc.Ua.Machinery.NodeSet2.xml" -o /tmp/Opc.Ua.Machinery.NodeSet2.xml
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error "https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/${NODESET_COMMIT}/Robotics/Opc.Ua.Robotics.NodeSet2.xml" -o /tmp/Opc.Ua.Robotics.NodeSet2.xml
+          echo "7b0e4132b83c8c8bdbf9d1a0d09ed67adc7c8aa9e97a4beac1622664b3096376  /tmp/Opc.Ua.Machinery.NodeSet2.xml" | sha256sum --check
+          echo "487243c1ec85e0b747c087ed96c0e1d824629789055e74854f07d19099c08803  /tmp/Opc.Ua.Robotics.NodeSet2.xml" | sha256sum --check
+
+      - name: Admit pinned Machinery and Robotics NodeSets
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-machinery-1.04.2.nodeset.json /tmp/Opc.Ua.Machinery.NodeSet2.xml
+          cargo run --locked --bin opcua-nodeset-admission -- verify ../nodesets/opcua-robotics-1.02.nodeset.json /tmp/Opc.Ua.Robotics.NodeSet2.xml
+          cargo run --locked --bin opcua-nodeset-admission -- server ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-server-namespace-snapshot.schema.json ../nodesets/opcua-machinery-namespace-metadata.synthetic.json
+
+      - name: Expose cross-profile RequiredModel version skew
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin opcua-nodeset-admission -- bundle ../nodesets/opcua-machinery-1.04.2.nodeset.json ../nodesets/opcua-robotics-1.02.nodeset.json > /tmp/opcua-node-bundle.json
+          grep -F '"status": "requires_explicit_dependency_resolution"' /tmp/opcua-node-bundle.json
+          grep -F '"model_uri": "http://opcfoundation.org/UA/"' /tmp/opcua-node-bundle.json
+
+      - name: Evaluate feature-subset identity stability
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- feature-stability ../benchmarks/feature-stability-input.schema.json ../benchmarks/feature-stability.synthetic.json > /tmp/feature-stability.json
+          grep -F '"mean_jaccard"' /tmp/feature-stability.json
+          grep -F '"selected_feature_count_stddev": 0.0' /tmp/feature-stability.json
+
+      - name: Evaluate synthetic 21-scenario TEP onset metrics
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- tep-onset ../benchmarks/tep-onset-input.schema.json ../benchmarks/tep-onset.synthetic.json > /tmp/tep-onset.json
+          grep -F '"scenario_id": 21' /tmp/tep-onset.json
+          grep -F '"safe_deferral_count": 2' /tmp/tep-onset.json
+          grep -F '"confident_wrong_count": 1' /tmp/tep-onset.json
+
+      - name: Evaluate binary probability calibration
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- calibration ../benchmarks/binary-calibration-input.schema.json ../benchmarks/binary-calibration.synthetic.json > /tmp/binary-calibration.json
+          grep -F '"brier_score"' /tmp/binary-calibration.json
+          grep -F '"negative_log_likelihood"' /tmp/binary-calibration.json
+          grep -F '"expected_calibration_error"' /tmp/binary-calibration.json
+
+      - name: Verify run-level partition disjointness
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: |
+          cargo run --locked --bin foundrybench-metrics -- run-partitions ../benchmarks/run-partition-input.schema.json ../benchmarks/run-partitions.synthetic.json > /tmp/run-partitions.json
+          grep -F '"leakage_free": true' /tmp/run-partitions.json
+
+      - name: Clippy
+        working-directory: tools/manufacturing-architecture-portability/validator
+        run: cargo clippy --locked --all-targets -- -D warnings
+

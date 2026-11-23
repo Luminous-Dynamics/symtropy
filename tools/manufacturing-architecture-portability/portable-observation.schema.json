@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:portable-observation-projection:0.1.0",
+  "title": "Portable Manufacturing Observation Projection",
+  "description": "Strict canonical projection for one source-preserving manufacturing observation in the portability benchmark. This schema does not validate the original standard document or establish source truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projection_schema_version",
+    "adapter_profile_id",
+    "source_document_id",
+    "source_document_sha256",
+    "source_schema_version",
+    "schema_identifier",
+    "device_uuid",
+    "data_item_id",
+    "component_id",
+    "sequence",
+    "source_timestamp_ns",
+    "reference_timestamp_ns",
+    "reference_clock_id",
+    "clock_mapping_sha256",
+    "clock_uncertainty_ns",
+    "native_kind",
+    "native_unit",
+    "value_text",
+    "source_locator",
+    "opaque_extensions",
+    "evidence_class",
+    "calibration_disposition",
+    "calibration_reference_id",
+    "calibration_reference_sha256",
+    "measurement_uncertainty_disposition",
+    "measurement_uncertainty_reference_id",
+    "measurement_uncertainty_reference_sha256"
+  ],
+  "properties": {
+    "projection_schema_version": {
+      "const": "0.1.0"
+    },
+    "adapter_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "source_schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_identifier": {
+      "type": "string",
+      "format": "uri"
+    },
+    "device_uuid": {
+      "type": "string",
+      "format": "uri"
+    },
+    "data_item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "component_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_timestamp_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reference_timestamp_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reference_clock_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_mapping_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "clock_uncertainty_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "native_kind": {
+      "enum": [
+        "SAMPLE",
+        "EVENT",
+        "CONDITION"
+      ]
+    },
+    "native_unit": {
+      "type": "string"
+    },
+    "value_text": {
+      "type": "string"
+    },
+    "source_locator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "opaque_extensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "namespace",
+          "local_name",
+          "raw_payload_sha256",
+          "source_locator"
+        ],
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "minLength": 1
+          },
+          "local_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "raw_payload_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "source_locator": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded",
+        "physical_observation"
+      ]
+    },
+    "calibration_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "calibration_reference_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "calibration_reference_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "measurement_uncertainty_disposition": {
+      "enum": [
+        "not_applicable",
+        "qualified_reference",
+        "missing",
+        "stale",
+        "unknown",
+        "unsupported"
+      ]
+    },
+    "measurement_uncertainty_reference_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "measurement_uncertainty_reference_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "calibration_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "calibration_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "calibration_reference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration_reference_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "measurement_uncertainty_disposition": {
+            "const": "qualified_reference"
+          }
+        },
+        "required": [
+          "measurement_uncertainty_disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "measurement_uncertainty_reference_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measurement_uncertainty_reference_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

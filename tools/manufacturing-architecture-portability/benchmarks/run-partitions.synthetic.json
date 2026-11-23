@@ -1,0 +1,14 @@
+{
+  "training_run_ids": [
+    "train-01",
+    "train-02",
+    "train-03"
+  ],
+  "validation_run_ids": [
+    "validation-01"
+  ],
+  "test_run_ids": [
+    "test-01",
+    "test-02"
+  ]
+}

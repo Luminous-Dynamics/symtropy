@@ -1,0 +1,605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:mfg-architecture-profile:0.1.0",
+  "title": "Luminous Manufacturing Architecture Profile",
+  "description": "Versioned declaration of a read-only industrial information architecture composition for the MFG-ARCH-PORTABILITY benchmark. This schema does not establish standards conformance or physical qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "profile_name",
+    "profile_version",
+    "created_at",
+    "execution_scope",
+    "source_class",
+    "access_contract",
+    "standard_references",
+    "layers",
+    "input_contract",
+    "evaluation_status",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^urn:luminous:symtropy:mfg-arch:[a-z0-9][a-z0-9._:-]*$"
+    },
+    "profile_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "execution_scope": {
+      "enum": [
+        "reference_only",
+        "synthetic_fixture",
+        "recorded_replay",
+        "live_read_only"
+      ]
+    },
+    "source_class": {
+      "enum": [
+        "none",
+        "synthetic",
+        "recorded",
+        "physical_observation"
+      ]
+    },
+    "access_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read",
+        "subscribe",
+        "write",
+        "command",
+        "product_release"
+      ],
+      "properties": {
+        "read": {
+          "const": true
+        },
+        "subscribe": {
+          "type": "boolean"
+        },
+        "write": {
+          "const": false
+        },
+        "command": {
+          "const": false
+        },
+        "product_release": {
+          "const": false
+        }
+      }
+    },
+    "standard_references": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "standard_ref_id",
+          "name",
+          "publisher",
+          "edition",
+          "role",
+          "publication_state",
+          "reference_uri"
+        ],
+        "properties": {
+          "standard_ref_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "edition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "event_transport",
+              "machine_information_model",
+              "contextual_manufacturing_api",
+              "equipment_observation",
+              "semantic_context",
+              "digital_thread",
+              "mobile_fleet_interface",
+              "other"
+            ]
+          },
+          "publication_state": {
+            "enum": [
+              "published_standard",
+              "published_specification",
+              "published_profile",
+              "research_profile",
+              "local_contract"
+            ]
+          },
+          "reference_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "namespace_metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "namespace_uri",
+              "namespace_version",
+              "namespace_publication_date",
+              "nodeset_uri",
+              "nodeset_scope"
+            ],
+            "properties": {
+              "namespace_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "namespace_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "namespace_publication_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "nodeset_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "nodeset_scope": {
+                "enum": [
+                  "complete_namespace",
+                  "declared_subset",
+                  "not_admitted"
+                ]
+              }
+            }
+          },
+          "nodeset_artifact": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_admission_status",
+              "repository_url",
+              "source_commit_sha",
+              "source_path",
+              "git_blob_sha1",
+              "content_sha256",
+              "byte_length",
+              "namespace_uris",
+              "node_set_model",
+              "required_models"
+            ],
+            "properties": {
+              "artifact_admission_status": {
+                "const": "pinned_not_imported"
+              },
+              "repository_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "source_commit_sha": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{40}$"
+              },
+              "source_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "git_blob_sha1": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{40}$"
+              },
+              "content_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "byte_length": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "namespace_uris": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "node_set_model": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "model_uri",
+                  "version",
+                  "model_version",
+                  "publication_date"
+                ],
+                "properties": {
+                  "model_uri": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "model_version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "publication_date": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              },
+              "required_models": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "model_uri",
+                    "version",
+                    "publication_date"
+                  ],
+                  "properties": {
+                    "model_uri": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "publication_date": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "layer_id",
+          "layer_kind",
+          "standard_ref_id",
+          "implementation",
+          "access_contract",
+          "semantic_contract",
+          "admission",
+          "intelligence_scope"
+        ],
+        "properties": {
+          "layer_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "layer_kind": {
+            "enum": [
+              "event_transport",
+              "machine_information_model",
+              "contextual_manufacturing_api",
+              "equipment_observation",
+              "semantic_context",
+              "digital_thread",
+              "mobile_fleet_interface",
+              "other"
+            ]
+          },
+          "standard_ref_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "implementation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "implementation_id",
+              "implementation_status",
+              "name",
+              "version"
+            ],
+            "properties": {
+              "implementation_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "implementation_status": {
+                "enum": [
+                  "not_implemented",
+                  "fixture_only",
+                  "implemented"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "repository_uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          },
+          "access_contract": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "read",
+              "subscribe",
+              "write",
+              "command",
+              "product_release"
+            ],
+            "properties": {
+              "read": {
+                "const": true
+              },
+              "subscribe": {
+                "type": "boolean"
+              },
+              "write": {
+                "const": false
+              },
+              "command": {
+                "const": false
+              },
+              "product_release": {
+                "const": false
+              }
+            }
+          },
+          "semantic_contract": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required_fields_to_preserve",
+              "preserved_fields",
+              "unsupported_fields",
+              "unknown_field_policy",
+              "source_values_immutable"
+            ],
+            "properties": {
+              "preserved_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "unsupported_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "unknown_field_policy": {
+                "enum": [
+                  "preserve_and_report",
+                  "opaque_preserve_and_report",
+                  "reject",
+                  "inconclusive"
+                ]
+              },
+              "source_values_immutable": {
+                "const": true
+              },
+              "required_fields_to_preserve": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          },
+          "admission": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "evidence_refs",
+              "claim_ceiling"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_run",
+                  "fixture_only",
+                  "source_reviewed",
+                  "official_conformance_tested",
+                  "independently_verified"
+                ]
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "claim_ceiling": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "intelligence_scope": {
+            "enum": [
+              "asset",
+              "site_area",
+              "enterprise",
+              "cross_layer"
+            ]
+          }
+        }
+      }
+    },
+    "input_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_class",
+        "source_refs",
+        "evaluator_truth_separate",
+        "observable_cutoff_policy"
+      ],
+      "properties": {
+        "source_class": {
+          "enum": [
+            "none",
+            "synthetic",
+            "recorded",
+            "physical_observation"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evaluator_truth_separate": {
+          "const": true
+        },
+        "observable_cutoff_policy": {
+          "enum": [
+            "none",
+            "exact_source_time_and_sequence",
+            "declared_query_time",
+            "fixture_defined"
+          ]
+        }
+      }
+    },
+    "evaluation_status": {
+      "enum": [
+        "not_run",
+        "fixture_validation_only",
+        "conformance_tested",
+        "independently_evaluated"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution_scope": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "execution_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_class": {
+            "const": "synthetic"
+          },
+          "input_contract": {
+            "properties": {
+              "source_class": {
+                "const": "synthetic"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_scope": {
+            "const": "reference_only"
+          }
+        },
+        "required": [
+          "execution_scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_class": {
+            "const": "none"
+          },
+          "input_contract": {
+            "properties": {
+              "source_class": {
+                "const": "none"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

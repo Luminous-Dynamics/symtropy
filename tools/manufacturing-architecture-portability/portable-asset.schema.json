@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:symtropy:portable-mtconnect-asset-projection:0.1.0",
+  "title": "Portable MTConnect Asset Projection",
+  "description": "Separate top-level MTConnect asset projection. MTConnect Assets are not stream observations and must not be coerced into Sample, Event or Condition records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projection_schema_version",
+    "adapter_profile_id",
+    "device_uuid",
+    "asset_type",
+    "asset_id",
+    "source_document_id",
+    "source_document_sha256",
+    "source_uri",
+    "schema_version",
+    "schema_identifier",
+    "schema_bundle_sha256",
+    "validation_receipt_sha256",
+    "raw_asset_sha256",
+    "source_locator",
+    "evidence_class"
+  ],
+  "properties": {
+    "projection_schema_version": {
+      "const": "0.1.0"
+    },
+    "adapter_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_uuid": {
+      "type": "string",
+      "format": "uri"
+    },
+    "asset_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "source_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_identifier": {
+      "const": "https://schemas.mtconnect.org/schemas/MTConnectAssets_2.8.schema.json"
+    },
+    "schema_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "validation_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "raw_asset_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "source_locator": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "recorded",
+        "physical_observation"
+      ]
+    }
+  }
+}

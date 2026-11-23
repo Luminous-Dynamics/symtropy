@@ -1,0 +1,138 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "urn:luminous:symtropy:mfg-arch:opcua-robotics-1.02-reference",
+  "profile_name": "OPC UA for Robotics 1.02 — reference-only vertical integration profile",
+  "profile_version": "0.1.0",
+  "created_at": "2026-11-21T00:00:00Z",
+  "execution_scope": "reference_only",
+  "source_class": "none",
+  "access_contract": {
+    "read": true,
+    "subscribe": true,
+    "write": false,
+    "command": false,
+    "product_release": false
+  },
+  "standard_references": [
+    {
+      "standard_ref_id": "opcua-robotics-1.02-reference",
+      "name": "OPC UA for Robotics — Part 1: Vertical Integration",
+      "publisher": "OPC Foundation",
+      "edition": "1.02 (published 2025-09-08)",
+      "role": "machine_information_model",
+      "publication_state": "published_specification",
+      "reference_uri": "https://reference.opcfoundation.org/specs/OPC-40010-1",
+      "namespace_metadata": {
+        "namespace_uri": "http://opcfoundation.org/UA/Robotics/",
+        "namespace_version": "1.02",
+        "namespace_publication_date": "2025-09-08",
+        "nodeset_uri": "https://reference.opcfoundation.org/nodesets/?u=http://opcfoundation.org/UA/Robotics/&v=1.02&i=1",
+        "nodeset_scope": "complete_namespace"
+      },
+      "nodeset_artifact": {
+        "artifact_admission_status": "pinned_not_imported",
+        "repository_url": "https://github.com/OPCFoundation/UA-Nodeset",
+        "source_commit_sha": "ed0b821f6a6f1f0c440c442ed95a9146ae8b7f8d",
+        "source_path": "Robotics/Opc.Ua.Robotics.NodeSet2.xml",
+        "git_blob_sha1": "e97e9b88f335c8e7311531eb337e5103806c0a1a",
+        "content_sha256": "487243c1ec85e0b747c087ed96c0e1d824629789055e74854f07d19099c08803",
+        "byte_length": 387529,
+        "namespace_uris": [
+          "http://opcfoundation.org/UA/DI/",
+          "http://opcfoundation.org/UA/IA/",
+          "http://opcfoundation.org/UA/Robotics/"
+        ],
+        "node_set_model": {
+          "model_uri": "http://opcfoundation.org/UA/Robotics/",
+          "version": "1.02",
+          "model_version": "1.2",
+          "publication_date": "2025-09-08"
+        },
+        "required_models": [
+          {
+            "model_uri": "http://opcfoundation.org/UA/",
+            "version": "1.05.03",
+            "publication_date": "2023-12-15"
+          },
+          {
+            "model_uri": "http://opcfoundation.org/UA/DI/",
+            "version": "1.04.0",
+            "publication_date": "2022-11-03"
+          },
+          {
+            "model_uri": "http://opcfoundation.org/UA/IA/",
+            "version": "1.01.4",
+            "publication_date": "2025-05-23"
+          }
+        ]
+      }
+    }
+  ],
+  "layers": [
+    {
+      "layer_id": "primary-information-layer",
+      "layer_kind": "machine_information_model",
+      "standard_ref_id": "opcua-robotics-1.02-reference",
+      "implementation": {
+        "implementation_id": "not-yet-implemented:opcua-robotics-1.02-reference",
+        "implementation_status": "not_implemented",
+        "name": "OPC UA for Robotics — Part 1: Vertical Integration reference profile",
+        "version": "not-implemented"
+      },
+      "access_contract": {
+        "read": true,
+        "subscribe": true,
+        "write": false,
+        "command": false,
+        "product_release": false
+      },
+      "semantic_contract": {
+        "required_fields_to_preserve": [
+          "namespace_uri",
+          "namespace_version",
+          "robot_component_identity",
+          "controller_identity",
+          "robot_model_identity",
+          "axis_count",
+          "joint_identity",
+          "joint_state",
+          "coordinate_frame_identity",
+          "operational_state",
+          "task_state",
+          "source_timestamp",
+          "server_timestamp"
+        ],
+        "preserved_fields": [],
+        "unsupported_fields": [
+          "robot command and motion execution interfaces",
+          "safety-rated state semantics or protective-stop certification",
+          "vendor-specific robot extension semantics until admitted"
+        ],
+        "unknown_field_policy": "inconclusive",
+        "source_values_immutable": true
+      },
+      "admission": {
+        "status": "source_reviewed",
+        "evidence_refs": [
+          "https://reference.opcfoundation.org/specs/OPC-40010-1"
+        ],
+        "claim_ceiling": [
+          "OPC UA for Robotics 1.02 publication and namespace identity have been source-reviewed. No robotics server/client endpoint, NodeSet import, mapping or conformance test has been executed."
+        ]
+      },
+      "intelligence_scope": "asset"
+    }
+  ],
+  "input_contract": {
+    "source_class": "none",
+    "source_refs": [],
+    "evaluator_truth_separate": true,
+    "observable_cutoff_policy": "none"
+  },
+  "evaluation_status": "not_run",
+  "claim_ceiling": [
+    "Reference-only profile: no endpoint or implementation has been tested.",
+    "Read-only capability intent only; write, command and product-release methods are not admitted.",
+    "No protocol/vendor conformance, cybersecurity, functional safety, physical metrology, process capability or production claim is made."
+  ]
+}
