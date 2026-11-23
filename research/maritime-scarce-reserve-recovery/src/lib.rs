@@ -1299,6 +1299,15 @@ mod tests {
 
         assert_eq!(shared.outcome_partitions[2], shared.outcome_partitions[5]);
         assert_eq!(
+            SENSORS[1].outcome_partitions[0],
+            SENSORS[1].outcome_partitions[5]
+        );
+        let inspection = candidate(&evaluate_benchmark(), "independent_reserve_inspection");
+        assert_eq!(
+            inspection.world_decisions[0].action,
+            inspection.world_decisions[5].action
+        );
+        assert_eq!(
             EVALUATOR_MISSINGNESS_CAUSES[2],
             "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE"
         );
