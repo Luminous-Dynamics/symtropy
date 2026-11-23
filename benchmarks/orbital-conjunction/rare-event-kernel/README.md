@@ -70,3 +70,8 @@ The current authored test corpus contains 140 authored `#[test]` cases: 30 in `l
 ## Pinned NASA escalation regression
 
 The reference-case manifest at [`reference-cases/nasa-cara-omitron-test08-2d3d-escalation.json`](../reference-cases/nasa-cara-omitron-test08-2d3d-escalation.json) pins NASA CARA's Test 08 CDM and test implementation. It records the 2D Foster reference (2.2660816\times10^{-20}) versus Hall 3D-Nc (1.9271201\times10^{-5}), HBR=20 m and 0.1% relative tolerance. This is an explicit escalation/negative control, not a matched estimator comparison: the snapshot 2D-Pc and conjunction-integrated 3D-Nc are distinct quantities.
+
+ 
+## Pinned NASA escalation regression
+
+The [Test 08 2D/3D escalation manifest](../reference-cases/nasa-cara-omitron-test08-2d3d-escalation.json) pins NASA CARA's source commit and Omitron CDM blob. It records 2D Foster Pc `2.2660816e-20` and Hall 3D-Nc `1.9271201e-5`, HBR=20 m, and NASA's 0.1% relative tolerance. The two outputs are distinct quantities; the 2D estimate is an escalation comparator, not the 3D reference.
