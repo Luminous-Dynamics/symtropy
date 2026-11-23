@@ -155,7 +155,10 @@ function classMap(worldObservations){
   return new Map([...classes.entries()].sort((a,b)=>strCmp(a[0],b[0])));
 }
 function classScenarios(scenarios,worlds){
-  const ids=new Set(worlds);return scenarios.filter(s=>ids.has(s.world_id));
+  const ids=new Set(worlds);
+  return scenarios
+    .filter(s=>ids.has(s.world_id))
+    .sort((left,right)=>strCmp(left.scenario_id,right.scenario_id));
 }
 function commonActions(actions,rows){
   if(!rows.length) fail("outcome class lacks scenarios");
@@ -375,31 +378,6 @@ function validateCorpus(input){
     const baseInfo=validateBase(item.base_decision);
     validateQueryUniverse(item,baseInfo);
   }
-}
-function validateQueryUniverse(item,baseInfo){
-  const u=item.query_universe;
-  if(!validId(u.source_receipt_id)||u.scope_id!==item.base_decision.decision_scope_id||
-     !Array.isArray(u.queries)||!u.queries.length||u.queries.length>64||
-     !Array.isArray(u.expected_query_ids)||u.expected_query_ids.length!==u.queries.length) fail("invalid query universe");
-  const expected=[...u.expected_query_ids].sort(strCmp);
-  if(expected.some(x=>!validId(x))||new Set(expected).size!==expected.length||u.expected_query_ids_sha256!==digestIds(expected)) fail("query inventory/digest mismatch");
-  const seen=new Set();
-  for(const query of u.queries){
-    if(!validId(query.query_id)||seen.has(query.query_id)||query.query_kind!=="passive_observation"||
-       !["admissible","prohibited","indeterminate"].includes(query.admissibility_status)||
-       !["admissible","indeterminate","out_of_profile"].includes(query.evidence_status)) fail("invalid query");
-    seen.add(query.query_id);
-    if(query.admissibility_status==="admissible"&&query.evidence_status==="admissible"&&
-       (!validId(query.admissibility_receipt_id)||!validId(query.evidence_receipt_id))) fail("missing query receipt");
-    const worlds=[...query.expected_world_ids].sort(strCmp);
-    if(JSON.stringify(worlds)!==JSON.stringify(baseInfo.worldIds)||query.expected_world_ids_sha256!==digestIds(worlds)) fail("query world manifest mismatch");
-    const observationWorlds=Object.keys(query.world_observations).sort(strCmp);
-    if(JSON.stringify(observationWorlds)!==JSON.stringify(baseInfo.worldIds)) fail("query outcome map incomplete");
-    Object.values(query.world_observations).forEach(x=>{if(!validId(x))fail("invalid query outcome ID");});
-    validateCost(query.cost,"query cost");
-  }
-  if(JSON.stringify([...seen].sort(strCmp))!==JSON.stringify(expected)) fail("observed queries differ from plan");
-  if(u.queries_sha256!==sha(canonical([...u.queries].sort((a,b)=>strCmp(a.query_id,b.query_id)))) ) fail("query record digest mismatch");
 }
 function validateBase(base){
   const worlds=[...base.compatible_world_set.world_ids].sort(strCmp);
