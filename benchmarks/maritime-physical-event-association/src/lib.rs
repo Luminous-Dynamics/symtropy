@@ -1193,19 +1193,44 @@ mod tests {
 
     #[test]
     fn exact_context_blocking_avoids_cross_product_time_checks() {
-        let source = vec![
-            observation!("src-A", "BOX-1", "GATE_OUT", "GATE-1", "OP-1", 10, 10, 11),
-            observation!("src-B", "BOX-2", "GATE_OUT", "GATE-1", "OP-2", 20, 20, 21),
-        ];
-        let witness = vec![
-            observation!("wit-A", "BOX-1", "GATE_OUT", "GATE-1", "OP-1", 10, 10, 11),
-            observation!("wit-B", "BOX-2", "GATE_OUT", "GATE-1", "OP-2", 20, 20, 21),
-        ];
+        let mut source = Vec::new();
+        let mut witness = Vec::new();
+        for index in 0..128 {
+            let box_id = format!("BOX-{index}");
+            let operation = format!("OP-{index}");
+            let source_key = format!("src-{index}");
+            let witness_key = format!("wit-{index}");
+            source.push(observation!(
+                source_key.as_str(),
+                box_id.as_str(),
+                "GATE_OUT",
+                "GATE-1",
+                operation.as_str(),
+                10,
+                10,
+                11,
+            ));
+            witness.push(observation!(
+                witness_key.as_str(),
+                box_id.as_str(),
+                "GATE_OUT",
+                "GATE-1",
+                operation.as_str(),
+                10,
+                10,
+                11,
+            ));
+        }
+
         let report = evaluate(&case(source, witness));
         assert_eq!(report.disposition, Disposition::UniquelyAssociated);
-        assert_eq!(report.candidate_edge_count, 2);
-        assert_eq!(report.candidate_pair_evaluations, 2);
-        assert_eq!(report.receipts.len(), 2);
+        assert_eq!(report.source_visible_count, 128);
+        assert_eq!(report.witness_visible_count, 128);
+        assert_eq!(report.candidate_edge_count, 128);
+        assert_eq!(report.candidate_pair_evaluations, 128);
+        assert_eq!(report.receipts.len(), 128);
+        // A global scan would test 128 × 128 = 16,384 pairs. Exact-context
+        // blocking tests only the 128 pairs that can possibly form edges.
     }
 
     #[test]
