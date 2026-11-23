@@ -732,6 +732,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_monotonic_scheduled_simulation_steps() {
+        let mut manifest = valid_manifest();
+        manifest.scenarios[2].faults[1].scheduled_simulation_step = 50;
+        assert_eq!(
+            manifest.validate(),
+            Err(CampaignError::FaultSequenceDiscontinuity)
+        );
+    }
+
+    #[test]
     fn rejects_duplicate_scenario_and_fault_identities() {
         let mut scenario = valid_manifest();
         let duplicate_scenario_id = scenario.scenarios[0].scenario_id.clone();
