@@ -6,7 +6,7 @@ pub const PLANNING_RECEIPT_SCHEMA: &str =
     "luminous.orbital-truss-inspectability.planning-receipt.v0.1";
 pub const MAX_EXACT_VIEWS: usize = 20;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PlanningDisposition {
     Feasible,
