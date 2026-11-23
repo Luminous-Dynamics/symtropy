@@ -81,6 +81,8 @@ pub struct Enumerator {
     pub scope_id: String,
     pub scope_snapshot_sha256: String,
     pub execution_receipt_id: String,
+    pub dependency_inventory_receipt_id: String,
+    pub dependency_ids_sha256: String,
     pub dependency_ids: Vec<String>,
     pub action_ids: Vec<String>,
 }
@@ -324,6 +326,8 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
             || !valid_id(&enumerator.scope_id)
             || !valid_sha256(&enumerator.scope_snapshot_sha256)
             || !valid_id(&enumerator.execution_receipt_id)
+            || !valid_sha256(&enumerator.dependency_ids_sha256)
+            || digest_ids(&enumerator.dependency_ids)? != enumerator.dependency_ids_sha256
             || !enumerator_ids.insert(enumerator.enumerator_id.clone())
         {
             return Err(format!(
@@ -467,8 +471,8 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     }
 
     if !exclusion_inventory_matches {
-        let missing = set_difference(&expected_exclusions, &observed_exclusions);
-        unwitnessed_exclusion_ids.extend(missing);
+        unwitnessed_exclusion_ids.extend(set_difference(&expected_exclusions, &observed_exclusions));
+        unwitnessed_exclusion_ids.extend(set_difference(&observed_exclusions, &expected_exclusions));
     }
     unwitnessed_exclusion_ids.sort();
     unwitnessed_exclusion_ids.dedup();
@@ -536,6 +540,10 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
         && methods.len() == case.enumerators.len()
         && algorithms.len() == case.enumerators.len()
         && registries.len() == case.enumerators.len()
+        && case.enumerators.iter().all(|enumerator| {
+            valid_id(&enumerator.dependency_inventory_receipt_id)
+                && !enumerator.dependency_ids.is_empty()
+        })
         && common_dependencies.is_empty();
 
     let enumerator_agreement = !enumerator_sets.is_empty()
@@ -737,5 +745,28 @@ mod tests {
                 .iter()
                 .all(|case| !case.physical_qualification_granted && !case.authority_granted)
         );
+    }
+
+    #[test]
+    fn missing_dependency_inventory_evidence_blocks_independence() {
+        let result = evaluate(&fixture()).expect("fixture evaluates");
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "dependency_evidence_missing")
+            .expect("dependency evidence control exists");
+        assert_eq!(case.status, "COMMON_CAUSE_UNRESOLVED");
+    }
+
+    #[test]
+    fn extra_unplanned_exclusion_cannot_be_silently_accepted() {
+        let result = evaluate(&fixture()).expect("fixture evaluates");
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "extra_exclusion")
+            .expect("extra exclusion control exists");
+        assert_eq!(case.status, "NEGATIVE_SPACE_UNWITNESSED");
+        assert_eq!(case.unwitnessed_exclusion_ids, vec!["exclude-extra".to_owned()]);
     }
 }
