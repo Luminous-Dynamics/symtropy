@@ -384,6 +384,21 @@ Exact public-source local replays:
 - fixed-boundary map: Git blob SHA-1 f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9;
 - asymptotic mass check: Git blob SHA-1 32d91014925518358ad92395ca6aec020d383d6d.
 
-The full angular/fixed-boundary and ADM-mass checks now pass in the consolidated verifier replayed byte-for-byte from its public Git blob (SHA-1 b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd; SHA-256 e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f). The four original rows have exact local rational results; the separate fixture-driven row verifier's exact-blob replay remains pending.
+The full angular/fixed-boundary and ADM-mass checks now pass in the consolidated verifier replayed byte-for-byte from its public Git blob (SHA-1 b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd; SHA-256 e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f). The four original rows have exact rational zero and the fixture-driven row verifier has been replayed byte-for-byte with its exact public fixture; the angular block and fixed-boundary checks are included in the consolidated VOR verifier. The new spin-10 charge script independently replays Ma-Lü Eqs. (3.4) and (3.9) through chi^10.
 
 Still open: finite-positive-coupling corrected BVPs, finite-difference convergence of the full boundary map, interval existence/local uniqueness on a branch segment, and separate physical-principal-symbol/strong-hyperbolicity qualification. These first-coupling results are not finite-coupling existence, global uniqueness, or hyperbolicity results.
+
+
+## Ma–Lü equal-spin thermodynamic charges through tenth order
+
+Added exact-source verifier: verify_ma_lu_equal_spin_thermodynamic_charge_series.py (Git blob SHA-1 e75dcd96941dadbc1f5f0940521d959060dbc776; SHA-256 038f21d147e07da45e1e3bb68e73b9bba8b3f5e102b2e05e250a068b09e31242). Exact execution under Python 3.13.5 / SymPy 1.14.0 passes:
+- Eq. (3.9) \(\mu/r_h^2\) equal-spin coefficients through \(\chi^{10}\);
+- Eq. (3.4) \(\Delta M\) through \(\chi^{10}\);
+- re-expansion in the GR fixed-boundary spin \(\nu_S\) through \(\nu_S^{10}\);
+- independent \(H_1\)/Komar metric-mass agreement through \(\chi^2\);
+- total fixed-boundary \(M/R_H^2\) through \(O(\epsilon_S\nu_S^2)\);
+- each fixed-boundary \(J/R_H^3\) through \(O(\epsilon_S\nu_S^3)\).
+
+Do not claim total fixed-boundary mass to \(\nu_S^{10}\): the high-order fixed-boundary \(H_2/H_4/H_7\) reparameterization remains open. The \(\nu_S^{10}\) statement applies to the standalone \(\alpha_R\Delta M\) observable after the zero-coupling spin conversion.
+
+The benchmark landscape and scorecard now distinguish Ma–Lü's tenth-order perturbative spin series from Symtropy's current equal-spin metric/row match through \(O(\chi^2)\). Current evidence demonstrates an independent reproduction/qualification step, not a metric-order SOTA win.
