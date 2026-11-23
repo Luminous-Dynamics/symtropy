@@ -331,6 +331,22 @@ fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
     })
 }
 
+fn invalid_case_receipt(case: &SamplingCase, reason: String) -> CaseReceipt {
+    CaseReceipt {
+        case_id: case.case_id.clone(),
+        status: DensityStatus::InvalidInput,
+        reason_codes: vec![reason],
+        candidate_pool_sufficient: false,
+        selected_plan_sufficient: false,
+        selected_view_budget_met: false,
+        provenance_complete: false,
+        candidate_view_count: case.candidate_views.len(),
+        selected_view_count: case.selected_view_ids.len(),
+        max_selected_views: case.max_selected_views,
+        elements: Vec::new(),
+    }
+}
+
 pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String> {
     if source_commit.len() != 40 || !source_commit.bytes().all(|value| value.is_ascii_hexdigit()) {
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
@@ -353,7 +369,10 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         if !case_ids.insert(case.case_id.as_str()) {
             return Err("DUPLICATE_SAMPLING_CASE_ID".to_owned());
         }
-        let receipt = evaluate_case(case)?;
+        let receipt = match evaluate_case(case) {
+            Ok(receipt) => receipt,
+            Err(reason) => invalid_case_receipt(case, reason),
+        };
         if receipt.status == case.expected_status {
             expected_outcome_matches += 1;
         }
