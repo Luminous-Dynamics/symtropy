@@ -220,3 +220,15 @@ Do not report a single blended score that hides late/unserved requests or unsafe
 ## 8. Claim boundary
 
 The v0.1 request evaluator is a deterministic assignment model over supplied service opportunities and declared weather/permission evidence. It does not authenticate the evidence, model actual wind physics, estimate demand, solve routes, simulate battery charging, or authorize dispatch. The fixture's opportunities, service durations and fallback slots are synthetic. No field performance, regulatory eligibility, commercial savings, or SOTA superiority is claimed.
+
+## 9. Event-derived capacity receipt consumer — #6999
+
+The legacy request evaluator accepted manually authored aircraft/time/duration/turnaround rows. That could produce a plausible request schedule that did not exist in the upstream battery/charger event model.
+
+The preferred linked mode now takes a separate SustainableServiceCapacityInput and a request input containing only opportunity_id, max_payload_units and an aircraft/configuration-bound payload evidence envelope. It reruns the #6909 event evaluator, selects the exact architecture, recomputes SHA-256 for the capacity report/configuration/opportunity set, verifies contiguous per-aircraft sequences and turnaround, and derives the service-quality aerial schedule from those receipts. Unknown or replayed IDs, a different aircraft/configuration, expired evidence and a horizon mismatch are rejected.
+
+The legacy one-file CLI remains available explicitly as --legacy; new benchmarks should use the linked two-file mode. The linked fixture contains 12 requests and seven qualified opportunities from the Dock-shaped profile's 38 event-derived receipts. Its expected synthetic result is FCFS 6 on-time / 2 late / 3 unserved / 1 rejected and EDF 7 on-time / 1 late / 3 unserved / 1 rejected. FCFS ties are now arrival-first with a stable request-ID tie-break; EDF uses deadline first.
+
+The linked evaluator contains 24 focused Rust test definitions across legacy and linked modes, including source receipt resolution, unknown ID, aircraft/config mismatch, payload evidence expiry/replay, horizon mismatch and permutation invariance. Exact-head latest-head Actions run [#45167481748](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45167481748) at `64243673a6f92ca9240cd0038d11190d69942cb6` passed schema/fixture parsing, workspace formatting, Cargo tests, legacy and linked report assertions and artifact upload (219 tests passed, 0 failed across test binaries; 26 service-quality tests). Clippy remains unverified.
+
+Research dossier: MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md.
