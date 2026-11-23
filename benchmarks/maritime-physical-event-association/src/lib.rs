@@ -426,12 +426,16 @@ fn candidate_graph_interval_indexed(
     // and re-proving the candidate-window bounds.
     debug_assert_eq!(profile.source_time_role, TimeRole::BusinessEventTime);
     debug_assert_eq!(profile.witness_time_role, TimeRole::SensorObservationTime);
-    debug_assert!(source
-        .iter()
-        .all(|event| event.event_time.role == TimeRole::BusinessEventTime));
-    debug_assert!(witness
-        .iter()
-        .all(|event| event.event_time.role == TimeRole::SensorObservationTime));
+    debug_assert!(
+        source
+            .iter()
+            .all(|event| event.event_time.role == TimeRole::BusinessEventTime)
+    );
+    debug_assert!(
+        witness
+            .iter()
+            .all(|event| event.event_time.role == TimeRole::SensorObservationTime)
+    );
 
     let mut indexes = BTreeMap::<EventContext<'_>, IntervalContextIndex>::new();
     for (index, event) in witness.iter().enumerate() {
