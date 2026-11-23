@@ -485,13 +485,13 @@ pub fn validate_feature_descriptor(
             },
         ) => validate_quantization(bit_width, scale_nano)?,
         (
-            FeatureElementTypeV1::I8 | FeatureElementTypeV1::U8,
+            element_type @ (FeatureElementTypeV1::I8 | FeatureElementTypeV1::U8),
             QuantizationV1::AffineUniform {
                 bit_width,
                 scale_nano,
-                ..
+                zero_point,
             },
-        ) => validate_quantization(bit_width, scale_nano)?,
+        ) => validate_affine_quantization(element_type, bit_width, scale_nano, zero_point)?,
         (FeatureElementTypeV1::PackedBits, QuantizationV1::Binary { .. }) => {
             if features.layout != FeatureLayoutV1::PackedBitstream {
                 return Err(DerivedReceiptError::new(
@@ -786,6 +786,33 @@ fn validate_reproducibility(
                 "floating-point replay tolerance exceeds 10,000 ppm",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_affine_quantization(
+    element_type: FeatureElementTypeV1,
+    bit_width: u8,
+    scale_nano: u64,
+    zero_point: i64,
+) -> Result<(), DerivedReceiptError> {
+    validate_quantization(bit_width, scale_nano)?;
+    let (minimum, maximum) = match element_type {
+        FeatureElementTypeV1::I8 => {
+            let magnitude = 1_i64 << (bit_width - 1);
+            (-magnitude, magnitude - 1)
+        }
+        FeatureElementTypeV1::U8 => (0, (1_i64 << bit_width) - 1),
+        _ => {
+            return Err(DerivedReceiptError::new(
+                "affine quantization requires i8 or u8 elements",
+            ));
+        }
+    };
+    if !(minimum..=maximum).contains(&zero_point) {
+        return Err(DerivedReceiptError::new(
+            "affine quantization zero point is outside the declared element range",
+        ));
     }
     Ok(())
 }
@@ -1245,6 +1272,26 @@ mod tests {
             bit_order: BitOrderV1::LeastSignificantFirst,
         };
         assert!(require_compatible_representation(&first, &second).is_err());
+    }
+
+    #[test]
+    fn affine_zero_point_must_fit_declared_signed_or_unsigned_width() {
+        assert!(
+            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, -128)
+                .is_ok()
+        );
+        assert!(
+            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, 128)
+                .is_err()
+        );
+        assert!(
+            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, 255)
+                .is_ok()
+        );
+        assert!(
+            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, -1)
+                .is_err()
+        );
     }
 
     #[test]
