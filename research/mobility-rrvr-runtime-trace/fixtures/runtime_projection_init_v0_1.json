@@ -5,11 +5,11 @@
     "system_id": "synthetic-robot-a",
     "implementation_revision": "symtropy-runtime-projection-v0.1",
     "model_revision": "RestartSafeEffectContinuity.tla@908ddc1d",
-    "model_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "model_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "tla_tool_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_source_sha256": "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81",
+    "model_config_sha256": "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168",
+    "tla_tool_sha256": "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f",
     "fault_profile_revision": "synthetic-init-profile-v0.1",
-    "max_epoch": 4,
+    "max_epoch": 3,
     "naive_retry_enabled": false
   },
   "snapshots": [
@@ -82,7 +82,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-0",
-          "raw_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          "raw_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -100,7 +101,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-1",
-          "raw_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          "raw_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -118,7 +120,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-2",
-          "raw_artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          "raw_artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "asserted_value": "none"
         },
         {
           "domain": "mission_resolution",
@@ -136,7 +139,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-3",
-          "raw_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          "raw_artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -154,7 +158,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-4",
-          "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -172,7 +177,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-5",
-          "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+          "raw_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -190,7 +196,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-6",
-          "raw_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+          "raw_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -208,7 +215,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-7",
-          "raw_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          "raw_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -226,7 +234,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-8",
-          "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+          "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -244,7 +253,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-9",
-          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010"
+          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+          "asserted_value": "absent"
         }
       ]
     }
