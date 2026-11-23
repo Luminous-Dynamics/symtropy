@@ -176,3 +176,18 @@ The focused workflow run [#45268504387](https://github.com/Luminous-Dynamics/sym
 - strict `cargo clippy --all-targets -- -D warnings`: passed.
 
 After this verified code head, the branch has only documentation changes: `CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md`, the linked updates in `TRANSFER_ATLAS_V0_2_PROTOCOL.md`, and this implementation-status record. The current PR head is `957ae173f04a5b75138eaf99a7cb32385420d6d2`; those later commits do not modify executable Rust. This verification therefore applies to all executable source on the current branch. It is not an OS-sandbox, full blind evaluator, multi-family benchmark, or learner-performance result.
+
+## False-proposal versus abstention scoring correction
+
+The Atlas evaluator now distinguishes three different negative-pair outcomes:
+- `CorrectAbstention`: the learner submitted no candidate;
+- `RejectedFalseProposal`: the learner submitted a candidate mapping, but the independent structural validator rejected it;
+- `FalseUnification`: the proposed structure is a valid correspondence, but owner-side mechanism truth says transfer does not hold.
+
+This prevents an invalid candidate map from being misreported as an abstention.
+
+A fourth Atlas control, `IsomorphicObservationDifferentMechanism`, exposes the same policy-visible relabeled structure as the positive isomorphism case while keeping the non-transferable mechanism disposition evaluator-side. The unique-incidence baseline finds a valid graph map and is scored as `FalseUnification`. This shows why structural isomorphism must not automatically authorize mechanism transfer. In a real sealed episode, the correct result must remain unresolved until a permitted discriminating observation or intervention separates the hypotheses.
+
+The visible fixture flag is only a local reference oracle, not a process-isolated hidden evaluator or authenticated physical mechanism model. The simple matcher is intentionally expected to fail this semantic negative control.
+
+**Verification:** the above source/tests are newer than code head `bb11dc83015f63afbcddba6c00ee92fdce5fc23e`; their exact-head formatting, tests and strict Clippy are pending.
