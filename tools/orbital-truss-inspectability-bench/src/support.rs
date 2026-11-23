@@ -7,7 +7,7 @@ pub const SUPPORT_CORPUS_SCHEMA: &str = "luminous.orbital-truss-support-envelope
 pub const SUPPORT_RECEIPT_SCHEMA: &str = "luminous.orbital-truss-support-envelope.receipt.v0.1";
 pub const SUPPORT_BENCHMARK_ID: &str = "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001";
 pub const SUPPORT_CLAIM_CEILING: &str =
-    "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed";
+    "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed";
 pub const SUPPORT_CASE_COUNT: usize = 13;
 
 const UNIT_EPS: f64 = 1.0e-6;
@@ -58,10 +58,10 @@ pub struct SurfaceSupport {
     pub support_id: String,
     pub center_m: [f64; 3],
     pub enclosing_ball_radius_m: f64,
-    pub enclosing_ball_proven: bool,
+    pub enclosing_ball_asserted: bool,
     pub outward_normal_unit: [f64; 3],
     pub normal_cone_half_angle_rad: f64,
-    pub normal_cone_proven: bool,
+    pub normal_cone_asserted: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -95,8 +95,9 @@ pub struct SupportEnvelopeCertificate {
     pub incidence_angle_upper_bound_nrad: Option<u64>,
     pub gsd_lower_bound_pm_per_px: Option<u64>,
     pub gsd_upper_bound_pm_per_px: Option<u64>,
-    pub support_bound_proven: bool,
-    pub normal_cone_proven: bool,
+    pub support_bound_input_asserted: bool,
+    pub normal_cone_input_asserted: bool,
+    pub precondition_proofs_verified_independently: bool,
     pub occlusion_status: OcclusionStatus,
     pub full_support_visibility_certified: bool,
     pub may_count_toward_full_support_coverage: bool,
@@ -115,6 +116,7 @@ pub struct SupportEnvelopeReceipt {
     pub flight_authorized: bool,
     pub physical_validation: String,
     pub occlusion_assessed: bool,
+    pub precondition_proofs_verified_independently: bool,
     pub case_count: usize,
     pub expected_outcome_matches: usize,
     pub expected_outcome_mismatches: usize,
@@ -165,8 +167,9 @@ fn invalid_certificate(case: &SupportEnvelopeCase, reason: &str) -> SupportEnvel
         incidence_angle_upper_bound_nrad: None,
         gsd_lower_bound_pm_per_px: None,
         gsd_upper_bound_pm_per_px: None,
-        support_bound_proven: case.support.enclosing_ball_proven,
-        normal_cone_proven: case.support.normal_cone_proven,
+        support_bound_input_asserted: case.support.enclosing_ball_asserted,
+        normal_cone_input_asserted: case.support.normal_cone_asserted,
+        precondition_proofs_verified_independently: false,
         occlusion_status: OcclusionStatus::NotAssessed,
         full_support_visibility_certified: false,
         may_count_toward_full_support_coverage: false,
@@ -194,8 +197,9 @@ fn indeterminate_certificate(
         incidence_angle_upper_bound_nrad: None,
         gsd_lower_bound_pm_per_px: None,
         gsd_upper_bound_pm_per_px: None,
-        support_bound_proven: case.support.enclosing_ball_proven,
-        normal_cone_proven: case.support.normal_cone_proven,
+        support_bound_input_asserted: case.support.enclosing_ball_asserted,
+        normal_cone_input_asserted: case.support.normal_cone_asserted,
+        precondition_proofs_verified_independently: false,
         occlusion_status: OcclusionStatus::NotAssessed,
         full_support_visibility_certified: false,
         may_count_toward_full_support_coverage: false,
@@ -275,7 +279,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
     if let Err(reason) = validate_input(case) {
         return invalid_certificate(case, reason);
     }
-    if !case.support.enclosing_ball_proven {
+    if !case.support.enclosing_ball_asserted {
         return indeterminate_certificate(case, vec!["SUPPORT_ENCLOSING_BALL_UNPROVEN".to_owned()]);
     }
 
@@ -311,7 +315,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
     let mut incidence_upper = None;
     let mut gsd_lower = None;
     let mut gsd_upper = None;
-    if support.normal_cone_proven {
+    if support.normal_cone_asserted {
         let center_incidence = dot3(support.outward_normal_unit, toward_sensor)
             .clamp(-1.0, 1.0)
             .acos();
@@ -358,7 +362,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
         let distance_passes = minimum_distance >= sensor.minimum_range_m - GEOMETRY_EPS
             && maximum_distance <= sensor.maximum_range_m + GEOMETRY_EPS;
         let fov_passes = fov_upper <= sensor.horizontal_fov_rad / 2.0 + GEOMETRY_EPS;
-        let incidence_passes = support.normal_cone_proven
+        let incidence_passes = support.normal_cone_asserted
             && incidence_upper.is_some_and(|angle| {
                 angle <= sensor.maximum_obliquity_rad + GEOMETRY_EPS && angle < PI / 2.0
             });
@@ -394,7 +398,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
         if fov_upper > sensor.horizontal_fov_rad / 2.0 + GEOMETRY_EPS {
             reasons.push("FOV_UPPER_BOUND_NOT_CERTIFIED".to_owned());
         }
-        if !support.normal_cone_proven {
+        if !support.normal_cone_asserted {
             reasons.push("NORMAL_CONE_UNPROVEN".to_owned());
         } else if incidence_upper.is_none_or(|angle| {
             angle > sensor.maximum_obliquity_rad + GEOMETRY_EPS || angle >= PI / 2.0
@@ -426,8 +430,9 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
             .and_then(|value| fixed_nonnegative(value, ANGLE_SCALE)),
         gsd_lower_bound_pm_per_px: gsd_lower.and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
         gsd_upper_bound_pm_per_px: gsd_upper.and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
-        support_bound_proven: support.enclosing_ball_proven,
-        normal_cone_proven: support.normal_cone_proven,
+        support_bound_input_asserted: support.enclosing_ball_asserted,
+        normal_cone_input_asserted: support.normal_cone_asserted,
+        precondition_proofs_verified_independently: false,
         occlusion_status: OcclusionStatus::NotAssessed,
         full_support_visibility_certified: false,
         may_count_toward_full_support_coverage: false,
@@ -481,6 +486,7 @@ pub fn audit_support_corpus(
         flight_authorized: false,
         physical_validation: "NOT_ASSESSED".to_owned(),
         occlusion_assessed: false,
+        precondition_proofs_verified_independently: false,
         case_count: cases.len(),
         expected_outcome_matches,
         expected_outcome_mismatches,
