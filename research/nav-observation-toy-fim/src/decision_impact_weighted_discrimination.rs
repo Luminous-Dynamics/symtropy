@@ -426,7 +426,7 @@ pub fn assess_decision_impact_weighted_discrimination(
 /// Compose a consequence-weighted conditional score with the matching
 /// action-specific record in the #7165 reliability-aware plan. This keeps the
 /// plan's domain/protocol commitments and the admitted record's source/cohort/
-//// method commitments together in the resulting assessment. The probability
+/// method commitments together in the resulting assessment. The probability
 /// method and campaign independence remain externally qualified inputs.
 pub fn apply_acquisition_reliability_to_decision_impact(
     assessment: &DecisionImpactWeightedAssessment,
@@ -851,6 +851,35 @@ mod tests {
         assert_eq!(result.expected_residual_impact_fraction_lower_bound, 0.6);
         assert_eq!(result.expected_residual_impact_fraction_upper_bound, 0.75);
         assert_eq!(result.independent_campaign_block_count, 10);
+        assert_eq!(result.domain_fingerprint_sha256, [0x11; 32]);
+        assert_eq!(result.acquisition_protocol_sha256, [0x22; 32]);
+        assert_eq!(result.source_manifest_sha256, [0x61; 32]);
+        assert_eq!(result.calibration_cohort_sha256, [0x62; 32]);
+        assert_eq!(result.bound_method_sha256, [0x63; 32]);
+    }
+
+    #[test]
+    fn missing_plan_domain_or_protocol_commitment_rejects() {
+        let report = report_for_class_sizes(7, &[(1, 1), (2, 1)], &[(1, 2)], [0x44; 32]);
+        let conditional = assess_decision_impact_weighted_discrimination(
+            &report,
+            &policy(&[(1, 2, 5)]),
+        )
+        .unwrap();
+
+        let mut plan = reliable_plan(7, 0.5, 0.8);
+        plan.expected_domain_fingerprint_sha256 = [0; 32];
+        assert_eq!(
+            apply_acquisition_reliability_to_decision_impact(&conditional, &plan),
+            Err(DecisionImpactError::InvalidReport)
+        );
+
+        let mut plan = reliable_plan(7, 0.5, 0.8);
+        plan.expected_acquisition_protocol_sha256 = [0; 32];
+        assert_eq!(
+            apply_acquisition_reliability_to_decision_impact(&conditional, &plan),
+            Err(DecisionImpactError::InvalidReport)
+        );
     }
 
     #[test]
