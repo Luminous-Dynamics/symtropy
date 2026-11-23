@@ -27,7 +27,9 @@ fn main() {
         "{}",
         serde_json::to_string_pretty(&receipt).expect("multicover receipt serializes")
     );
-    if !receipt.selected_attainable_targets_fully_covered || !receipt.dual_bound.dual_constraints_verified {
+    if !receipt.selected_attainable_targets_fully_covered
+        || !receipt.dual_bound.dual_constraints_verified
+    {
         process::exit(1);
     }
 }
