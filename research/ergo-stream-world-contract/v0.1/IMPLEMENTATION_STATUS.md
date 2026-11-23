@@ -23,10 +23,11 @@ This directory contains a deliberately small, dependency-free Rust reference for
 
 ## Verification status
 
-- Twelve Rust unit tests are authored.
-- A focused GitHub Actions workflow runs `rustfmt --check`, locked tests and strict Clippy on matching PR/push changes.
-- The authoring environment has no `rustc` or `cargo`; no local compile, format, test or Clippy pass is claimed.
-- CI status must be checked against the exact PR head SHA. Queued/skipped workflows are not passes.
+- Twelve Rust unit tests passed (12 passed, 0 failed) on exact PR head `01fe2a3c3987a79611096f8e3827616500232fec`.
+- The focused GitHub Actions workflow passed `cargo fmt --check`, `cargo test --locked`, and strict `cargo clippy --all-targets -- -D warnings` using Rust 1.96.0.
+- Verified workflow run: [#45232056205](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45232056205), triggered by push at the exact PR head SHA.
+- The authoring environment itself has no `rustc` or `cargo`; all Rust qualification above is from the remote runner.
+- The repository-wide CI is a separate gate; its current status must be checked independently. Queued/skipped workflows are not passes.
 
 ## Reproduction
 
