@@ -2,20 +2,23 @@
   "artifact_kind": "ma_lu_equal_spin_parameter_map",
   "checks": {
     "angular_velocity_relation_exact": true,
+    "chi_equals_a_over_sqrt_mu": true,
+    "chi_equals_sqrt2_nu_exact": true,
     "coupling_coefficient_identity": true,
+    "eq_3_9_equal_spin_mass_series": true,
     "horizon_relation_exact": true,
-    "inverse_series_exact_through_nu11": true,
-    "printed_chi_relation_exact": true
+    "inverse_series_exact_through_nu11": true
   },
-  "claim_ceiling": "Exact kinematic parameter relations and a symbolic series inversion only. No corrected metric/gauge map, field-equation coefficient comparison, thermodynamic match, or finite-coupling EGB result is claimed.",
+  "claim_ceiling": "Exact kinematic map and coupling normalization only; no corrected metric/gauge comparison or finite-coupling EGB result is claimed.",
   "coupling_map": {
-    "candidate_first_coupling_map": "Eq(alpha_R,alpha_GB/4)",
-    "ma_lu_action": "R + alpha_R*Riemann^2",
-    "scope": "First-order correction about a Ricci-flat Myers-Perry background only",
-    "symtropy_action": "R + alpha_GB*L_GB/4"
+    "candidate_first_coupling_map": "alpha_R=alpha_GB/4",
+    "dimensionless_map_for_same_horizon": "alpha_R/r_h^2=lambda/4",
+    "ma_lu_action": "R+alpha_R*Riemann^2",
+    "scope": "First-order correction about Ricci-flat Myers-Perry only",
+    "symtropy_action": "R+alpha_GB*L_GB/4"
   },
   "definitions": {
-    "chi": "a/mu (paper's printed convention; do not silently replace)",
+    "chi": "a/sqrt(mu)",
     "nu": "Omega_H*r_h",
     "q": "a/r_h",
     "symtropy_spin": "a_S/r_H=Omega_H*r_H=nu"
@@ -25,25 +28,26 @@
     "sympy": "1.14.0"
   },
   "exact_equal_spin_relations": {
-    "chi_times_rh_of_q": "2*q/(q**2 + 1)**2",
+    "chi_of_nu": "sqrt(2)*nu",
+    "chi_of_q": "sqrt(2)*q/(q**2 + 1)",
     "mu_over_rh2": "(q**2 + 1)**2/2",
     "nu_of_q": "q/(q**2 + 1)",
     "q_of_nu_exact_small_root": "(1-sqrt(1-4*nu^2))/(2*nu)",
-    "valid_real_subextremal_branch": "0<=nu<1/2, 0<=q<1"
+    "valid_subextremal_branch": "0<=nu<1/2, 0<=q<1"
   },
   "schema_version": 1,
   "series_about_zero_spin": {
-    "chi_rh_minus_2nu_order": "O(nu^3)",
-    "chi_times_rh_of_nu_through_nu11": "-28*nu**11 - 10*nu**9 - 4*nu**7 - 2*nu**5 - 2*nu**3 + 2*nu",
+    "chi_of_nu_exact": "sqrt(2)*nu",
+    "mu_over_rh2_of_chi_through_chi6": "1/2+chi^2/2+5*chi^4/8+7*chi^6/8",
     "q_minus_nu_order": "O(nu^3)",
     "q_of_nu_through_nu11": "42*nu**11 + 14*nu**9 + 5*nu**7 + 2*nu**5 + nu**3 + nu"
   },
   "source_equations": {
-    "ma_lu_eq_16_printed": "chi=a/mu",
-    "ma_lu_eq_4": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
-    "ma_lu_eq_50_crosscheck": "mu=r_h^2/2+r_h^4*chi^2/4+9*r_h^6*chi^4/32+O(chi^6) for a=b",
-    "ma_lu_eq_6_equal_spin": "Omega_H=a/(r_h^2+a^2)"
+    "ma_lu_eq_2_1": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
+    "ma_lu_eq_2_2": "Omega_a=a/(r_h^2+a^2), Omega_b=b/(r_h^2+b^2)",
+    "ma_lu_eq_2_9": "chi_a=a/sqrt(mu), chi_b=b/sqrt(mu)",
+    "ma_lu_eq_3_9_equal_spin": "mu/r_h^2=1/2+chi^2/2+5*chi^4/8+7*chi^6/8+O(chi^8)"
   },
-  "source_sha256": "dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3",
+  "source_sha256": "2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a",
   "status": "exact_symbolic_parameter_relations_derived"
 }
