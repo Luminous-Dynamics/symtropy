@@ -125,3 +125,8 @@ The validated manifest is compiled into one immutable plan by [CAMPAIGN_PLAN_V0.
 The companion verifier checks the compiled plan against the exact source manifest and an externally pinned expected plan digest. An embedded self-hash is not a signature; the consumer must receive the expected digest through a trusted release record or authenticated channel.
 
 The compiled plan is intended to become the stable input to simulator/ROS/controller/driver/HIL adapters. These adapters must preserve fault order, cut point, target identity, fault-domain identity and parameter digest. They return separate execution receipts and may not rewrite the plan. A compiled plan is not proof that a fault was injected or delivered.
+
+
+## Execution receipt contract
+
+Every fault injection in a frozen campaign now binds an expected delivery-signature digest, target revision/profile digest and scheduled simulator step. The compiled plan also pins the injector identity, injector failure domain and native adapter identity. These are not descriptive labels: the execution evidence validator compares them against the target-resolution, dispatch, injector-execution and independent-observation receipts. See [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md).
