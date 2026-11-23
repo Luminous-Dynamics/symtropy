@@ -2626,15 +2626,55 @@ mod tests {
     }
 
     #[test]
-    fn linked_large_fixture_explicitly_skips_exact_oracle_above_bounds() {
+    fn linked_full_fixture_is_solved_by_bitmask_dynamic_programming() {
         let report = linked_report();
+        assert_eq!(report.exact_oracle.status, ExactOracleStatus::Evaluated);
+        let score = report.exact_oracle.best_score.expect("bounded exact DP score");
+        assert!(score.completed_on_time <= report.policy_results[0].accepted_requests);
         assert_eq!(
-            report.exact_oracle.status,
-            ExactOracleStatus::NotRunBoundsExceeded
+            score.completed_by_horizon,
+            score.completed_on_time + score.completed_late
         );
-        assert!(report.exact_oracle.best_score.is_none());
-        assert!(report.exact_oracle.best_assignments.is_empty());
-        assert!(report.exact_oracle.policy_gaps.is_empty());
+        assert!(report.exact_oracle.best_assignments.len() <= 12);
+        assert_eq!(report.exact_oracle.policy_gaps.len(), 2);
+        assert!(report.exact_oracle.dp_transitions > 0);
+        assert!(report.exact_oracle.dp_transitions <= MAX_EXACT_ORACLE_TRANSITIONS);
+    }
+
+    #[test]
+    fn exact_oracle_explicitly_abstains_above_request_or_opportunity_bounds() {
+        let mut too_many_requests = fixture();
+        while too_many_requests.requests.len() <= MAX_EXACT_ORACLE_REQUESTS {
+            let mut request = too_many_requests.requests[0].clone();
+            request.request_id = format!("extra-request-{}", too_many_requests.requests.len());
+            request.arrival_seconds = 0;
+            request.accept_by_seconds = 0;
+            too_many_requests.requests.push(request);
+        }
+        let request_skip = exact_assignment_oracle(&too_many_requests, &[])
+            .expect("over-bound request count returns an abstention report");
+        assert_eq!(request_skip.status, ExactOracleStatus::NotRunBoundsExceeded);
+        assert!(request_skip.best_score.is_none());
+
+        let mut too_many_opportunities = fixture();
+        while too_many_opportunities.aerial_opportunities.len()
+            + too_many_opportunities.fallback_opportunities.len()
+            <= MAX_EXACT_ORACLE_OPPORTUNITIES
+        {
+            let index = too_many_opportunities.fallback_opportunities.len();
+            too_many_opportunities.fallback_opportunities.push(FallbackServiceOpportunity {
+                opportunity_id: format!("extra-fallback-{index}"),
+                fallback_resource_id: format!("extra-resource-{index}"),
+                fallback_mode: FallbackMode::GroundCourier,
+                start_seconds: 0,
+                max_service_duration_seconds: 600,
+                max_payload_units: 100,
+            });
+        }
+        let opportunity_skip = exact_assignment_oracle(&too_many_opportunities, &[])
+            .expect("over-bound opportunity count returns an abstention report");
+        assert_eq!(opportunity_skip.status, ExactOracleStatus::NotRunBoundsExceeded);
+        assert_eq!(opportunity_skip.dp_transitions, 0);
     }
 
     #[test]
