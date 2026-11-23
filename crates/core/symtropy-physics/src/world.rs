@@ -297,19 +297,55 @@ impl<const D: usize> PhysicsWorld<D> {
     }
 
     /// Add a dynamic sphere body and return its handle.
+    ///
+    /// Panics only if the finite handle space is exhausted or the next
+    /// allocator value is already indexed. Use try_add_sphere when allocation
+    /// failure must be handled without panicking.
     pub fn add_sphere(&mut self, position: Point<D>, radius: f64, mass: f64) -> BodyHandle {
-        let handle = self.allocate_handle();
+        self.try_add_sphere(position, radius, mass)
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
+    }
+
+    /// Fallible variant of add_sphere.
+    ///
+    /// Allocation is checked before changing the body vector, indexes, or
+    /// broadphase state. This protects the single-body path from integer
+    /// wraparound; it does not repair arbitrary external mutation of the
+    /// public bodies vector.
+    pub fn try_add_sphere(
+        &mut self,
+        position: Point<D>,
+        radius: f64,
+        mass: f64,
+    ) -> Result<BodyHandle, String> {
+        let handle = self.try_allocate_handle()?;
         let body = RigidBody::dynamic_sphere(handle, position, radius, mass);
         let idx = self.bodies.len();
         self.bodies.push(body);
         self.handle_to_index.insert(handle, idx);
-        handle
+        Ok(handle)
     }
 
     /// Add a dynamic body with a custom collider.
-    pub fn add_body(&mut self, mut body: RigidBody<D>) -> BodyHandle {
+    ///
+    /// Panics only if the finite handle space is exhausted or the next
+    /// allocator value is already indexed. Use try_add_body when allocation
+    /// failure must be handled without panicking.
+    pub fn add_body(&mut self, body: RigidBody<D>) -> BodyHandle {
+        self.try_add_body(body)
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
+    }
+
+    /// Fallible variant of add_body.
+    ///
+    /// The handle is reserved before any body/index/broadphase mutation. An
+    /// allocation error therefore leaves those structures unchanged. This
+    /// does not repair arbitrary external mutation of the public bodies
+    /// vector; full topology encapsulation remains separate work.
+    pub fn try_add_body(&mut self, mut body: RigidBody<D>) -> Result<BodyHandle, String> {
         use crate::body::BodyType;
-        let handle = self.allocate_handle();
+
+        let handle = self.try_allocate_handle()?;
         body.handle = handle;
         if body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic {
             self.static_tree_dirty = true;
@@ -317,7 +353,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let idx = self.bodies.len();
         self.bodies.push(body);
         self.handle_to_index.insert(handle, idx);
-        handle
+        Ok(handle)
     }
 
     /// Add multiple bodies with stable network IDs in deterministic order.
@@ -1305,11 +1341,30 @@ impl<const D: usize> PhysicsWorld<D> {
         contact
     }
 
+    /// Reserve one handle without wrapping the allocator or overwriting an
+    /// existing reverse-index entry. The check is O(1); direct mutation of the
+    /// public body vector remains outside this allocator's authority boundary.
+    #[inline]
+    fn try_allocate_handle(&mut self) -> Result<BodyHandle, String> {
+        let next_handle = self
+            .next_handle
+            .checked_add(1)
+            .ok_or_else(|| "BodyHandle space exhausted".to_string())?;
+        let handle = BodyHandle(self.next_handle);
+        if self.handle_to_index.contains_key(&handle) {
+            return Err(format!(
+                "BodyHandle({}) is already present in the handle index",
+                handle.0
+            ));
+        }
+        self.next_handle = next_handle;
+        Ok(handle)
+    }
+
     #[inline]
     fn allocate_handle(&mut self) -> BodyHandle {
-        let handle = BodyHandle(self.next_handle);
-        self.next_handle += 1;
-        handle
+        self.try_allocate_handle()
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
     }
 
     #[inline]
@@ -2752,6 +2807,46 @@ mod deterministic_bulk_insertion_tests {
         assert!(world.static_tree_dirty);
         assert_eq!(world.body_count(), 1);
         assert_eq!(world.handle_for_net_id(NetId(50)), Some(BodyHandle(0)));
+    }
+
+    #[test]
+    fn single_body_insertions_reject_handle_exhaustion_without_mutation() {
+        let mut world = PhysicsWorld::<3> {
+            next_handle: usize::MAX,
+            ..Default::default()
+        };
+
+        let sphere_result = world.try_add_sphere(Point::origin(), 0.5, 1.0);
+        assert!(sphere_result.unwrap_err().contains("space exhausted"));
+
+        let body_result = world.try_add_body(dynamic_body(0.0));
+        assert!(body_result.unwrap_err().contains("space exhausted"));
+
+        assert_eq!(world.body_count(), 0);
+        assert_eq!(world.next_handle, usize::MAX);
+        assert!(world.handle_to_index.is_empty());
+        assert!(world.net_id_map.is_empty());
+        assert!(!world.static_tree_dirty);
+    }
+
+    #[test]
+    fn single_body_insertions_reject_index_collision_before_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.next_handle = existing.0;
+
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(999),
+            Point::new([2.0, 0.0, 0.0]),
+            Box::new(symtropy_math::Sphere::unit()),
+        );
+        let result = world.try_add_body(static_body);
+
+        assert!(result.unwrap_err().contains("already present"));
+        assert_eq!(world.body_count(), 1);
+        assert_eq!(world.next_handle, existing.0);
+        assert_eq!(world.body(existing).unwrap().handle, existing);
+        assert!(!world.static_tree_dirty);
     }
 
     #[test]
