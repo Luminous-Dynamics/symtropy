@@ -2567,7 +2567,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod deterministic_bulk_broadphase_invalidation_tests {
     use super::*;
@@ -2578,11 +2577,8 @@ mod deterministic_bulk_broadphase_invalidation_tests {
         world.static_broadphase.rebuild(&world.bodies);
         world.static_tree_dirty = false;
 
-        let static_body = RigidBody::static_body(
-            BodyHandle(100),
-            Point::origin(),
-            Box::new(Sphere::unit()),
-        );
+        let static_body =
+            RigidBody::static_body(BodyHandle(100), Point::origin(), Box::new(Sphere::unit()));
         let kinematic_body = RigidBody::new(
             BodyHandle(101),
             crate::body::BodyType::Kinematic,
@@ -2593,10 +2589,7 @@ mod deterministic_bulk_broadphase_invalidation_tests {
         );
 
         let handles = world
-            .add_bodies_deterministic(vec![
-                (NetId(20), kinematic_body),
-                (NetId(10), static_body),
-            ])
+            .add_bodies_deterministic(vec![(NetId(20), kinematic_body), (NetId(10), static_body)])
             .expect("distinct NetIds should insert");
 
         assert_eq!(handles, vec![BodyHandle(0), BodyHandle(1)]);
@@ -2614,12 +2607,7 @@ mod deterministic_bulk_broadphase_invalidation_tests {
         world
             .add_bodies_deterministic(vec![(
                 NetId(10),
-                RigidBody::dynamic_sphere(
-                    BodyHandle(100),
-                    Point::origin(),
-                    0.5,
-                    1.0,
-                ),
+                RigidBody::dynamic_sphere(BodyHandle(100), Point::origin(), 0.5, 1.0),
             )])
             .expect("unique NetId should insert");
 
