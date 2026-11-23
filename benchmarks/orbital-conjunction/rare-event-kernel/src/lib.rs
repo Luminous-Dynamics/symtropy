@@ -38,8 +38,8 @@ pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
 pub mod refinement_scheduler;
-pub mod risk_semantics;
 pub mod residual;
+pub mod risk_semantics;
 pub mod sequential;
 pub mod space_time_partition;
 pub mod stats;
@@ -87,17 +87,17 @@ pub use refinement_scheduler::{
     RankedRefinementCandidate, RefinementCandidate, RefinementCandidateId, RefinementScheduleError,
     RefinementScheduleReport, schedule_refinements,
 };
+pub use residual::{
+    AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
+    AffineResidualMassReport, AffineUnionResidualMassConfig,
+    affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
 pub use risk_semantics::{
     CollisionDetectionCondition, CollisionDetectionProbability, CollisionNullHypothesis,
     CollisionNullPValue, CollisionNullTestDecision, CollisionNullTestReport,
     ConditionalCollisionProbability, EventDependenceMode, ExpectedCollisionCount,
     MissionCollisionRiskReport, MissionConjunctionEvent, MissionRiskScope, RiskSemanticsError,
     aggregate_mission_collision_risk,
-};
-pub use residual::{
-    AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
-    AffineResidualMassReport, AffineUnionResidualMassConfig,
-    affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use space_time_partition::{
