@@ -50,6 +50,7 @@ pub enum FaultDomainDimension {
 /// remains attached to every witness so the adapter never erases that detail.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum MaritimeDependencyClass {
+    /// Aggregate compatibility labels; prefer the finer-grained variants below.
     PhysicalAcquisition,
     MeasurementQualification,
     TransportFabric,
@@ -63,16 +64,42 @@ pub enum MaritimeDependencyClass {
     OperatorOrTenantControl,
     SigningAuthority,
     ExecutionEnvironment,
+    /// Specific maritime acquisition / metrology dependencies.
+    PhysicalSensorOrReader,
+    InstallationOrReadPoint,
+    PowerSupplyOrUps,
+    ClockOrTimeRoot,
+    CalibrationOrMetrologyAuthority,
+    FirmwareOrConfiguration,
+    /// Specific transport and persistence dependencies.
+    NetworkOrBackhaul,
+    BrokerOrIntermediary,
+    DatabaseOrEventStore,
+    ObjectStoreArchiveIndex,
+    RetrievalOrExportPath,
 }
 
 impl MaritimeDependencyClass {
     pub const fn canonical_dimension(self) -> FaultDomainDimension {
         match self {
-            Self::PhysicalAcquisition => FaultDomainDimension::InputAcquisition,
-            Self::MeasurementQualification | Self::PersistenceRetrieval
+            Self::PhysicalAcquisition
+            | Self::PhysicalSensorOrReader
+            | Self::InstallationOrReadPoint
+            | Self::PowerSupplyOrUps => FaultDomainDimension::InputAcquisition,
+            Self::MeasurementQualification
+            | Self::ClockOrTimeRoot
+            | Self::CalibrationOrMetrologyAuthority
+            | Self::PersistenceRetrieval
+            | Self::DatabaseOrEventStore
+            | Self::ObjectStoreArchiveIndex
+            | Self::RetrievalOrExportPath
             | Self::UpstreamSourceRegistry => FaultDomainDimension::SourceEvidenceLineage,
-            Self::TransportFabric => FaultDomainDimension::ExecutionProvider,
-            Self::GatewayRuntime | Self::ExecutionEnvironment => FaultDomainDimension::Runtime,
+            Self::TransportFabric | Self::NetworkOrBackhaul | Self::BrokerOrIntermediary => {
+                FaultDomainDimension::ExecutionProvider
+            }
+            Self::GatewayRuntime | Self::ExecutionEnvironment | Self::FirmwareOrConfiguration => {
+                FaultDomainDimension::Runtime
+            }
             Self::ResolverOrTransformation | Self::VerifierImplementation => {
                 FaultDomainDimension::ImplementationLineage
             }
@@ -1304,6 +1331,26 @@ mod tests {
             result.findings[0].disposition,
             SeparationDisposition::NotApplicable
         );
+    }
+
+    #[test]
+    fn fine_grained_maritime_fault_domains_map_into_owner_dimensions() {
+        let expected = [
+            (MaritimeDependencyClass::PhysicalSensorOrReader, FaultDomainDimension::InputAcquisition),
+            (MaritimeDependencyClass::InstallationOrReadPoint, FaultDomainDimension::InputAcquisition),
+            (MaritimeDependencyClass::PowerSupplyOrUps, FaultDomainDimension::InputAcquisition),
+            (MaritimeDependencyClass::ClockOrTimeRoot, FaultDomainDimension::SourceEvidenceLineage),
+            (MaritimeDependencyClass::CalibrationOrMetrologyAuthority, FaultDomainDimension::SourceEvidenceLineage),
+            (MaritimeDependencyClass::FirmwareOrConfiguration, FaultDomainDimension::Runtime),
+            (MaritimeDependencyClass::NetworkOrBackhaul, FaultDomainDimension::ExecutionProvider),
+            (MaritimeDependencyClass::BrokerOrIntermediary, FaultDomainDimension::ExecutionProvider),
+            (MaritimeDependencyClass::DatabaseOrEventStore, FaultDomainDimension::SourceEvidenceLineage),
+            (MaritimeDependencyClass::ObjectStoreArchiveIndex, FaultDomainDimension::SourceEvidenceLineage),
+            (MaritimeDependencyClass::RetrievalOrExportPath, FaultDomainDimension::SourceEvidenceLineage),
+        ];
+        for (class, dimension) in expected {
+            assert_eq!(class.canonical_dimension(), dimension, "{class:?}");
+        }
     }
 
     #[test]
