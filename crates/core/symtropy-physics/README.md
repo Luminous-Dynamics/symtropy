@@ -1,6 +1,6 @@
 # symtropy-physics
 
-N-dimensional rigid body physics with GJK+EPA collision detection. Zero heap allocation in the hot path.
+N-dimensional rigid body physics with GJK+EPA collision detection. Common collision manifolds keep their first eight points inline; unusually large manifolds spill safely to heap storage.
 
 ## Installation
 
@@ -46,7 +46,8 @@ for _ in 0..100 {
 - **PhysicsCallback trait** — inject consciousness or custom force modulation into the physics step
 - **Constraints** — distance constraints (more coming)
 - **Const-generic dimensions** — `PhysicsWorld<2>`, `PhysicsWorld<3>`, `PhysicsWorld<4>`
-- **Zero heap** — GJK simplex uses `ArrayVec`, bivectors use `[f64; 6]`
+- **Inline manifold storage** — up to eight contact points remain inline; higher-dimensional contact patches spill without truncation or an `ArrayVec` capacity panic
+- **Zero heap in core narrow-phase primitives** — GJK simplex uses `ArrayVec`, bivectors use `[f64; 6]`; spill storage allocates only when a manifold exceeds its inline point capacity
 - **WASM compatible**
 
 ## Benchmarks
