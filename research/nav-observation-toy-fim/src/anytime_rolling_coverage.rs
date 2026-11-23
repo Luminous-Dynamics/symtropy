@@ -1435,6 +1435,78 @@ mod tests {
     }
 
     #[test]
+    fn accelerated_range_proof_queries_a_nonempty_q_prefix() {
+        let mut cfg = config(RollingWindowRule::Proportional {
+            numerator: 1,
+            denominator: 2,
+        });
+        cfg.target_miscoverage = 0.5;
+        cfg.confidence_error_probability = 0.99;
+        cfg.maximum_feasibility_starts = 128;
+
+        let mut reference = AnytimeRollingCoveragePolicy::new(cfg).unwrap();
+        reference.monitoring_horizon = 99;
+        reference.bounded_episode_count = 49;
+        reference.abstention_count = 50;
+        reference.last_window_length = 50;
+        reference.prefixes = Vec::with_capacity(100);
+
+        for start in 0..=99_u64 {
+            let prefix = if start <= 50 {
+                PrefixSnapshot::zero()
+            } else {
+                PrefixSnapshot {
+                    bounded_count: start - 50,
+                    miss_count: 0,
+                    predictable_variation: 0.0,
+                    scaled_margin: stitched_two_sided_scaled_margin(
+                        start,
+                        0.0,
+                        cfg.confidence_error_probability,
+                    )
+                    .unwrap(),
+                }
+            };
+            reference.prefixes.push(prefix);
+        }
+
+        let mut index = ConservativeRollingRangeIndex::new();
+        for (start, prefix) in reference.prefixes.iter().copied().enumerate() {
+            let (r_interval, q_interval) = prefix_range_intervals(
+                prefix,
+                start as u64,
+                cfg.window_rule,
+                cfg.target_miscoverage,
+            )
+            .unwrap()
+            .unwrap();
+            index.append(r_interval, q_interval).unwrap();
+        }
+        reference.rolling_range_index = Some(index);
+        let mut accelerated = reference.clone();
+
+        let reference_decision = reference.decide_next_episode().unwrap();
+        let accelerated_decision =
+            accelerated.decide_next_episode_accelerated().unwrap();
+
+        assert_eq!(
+            accelerated_decision.disposition,
+            reference_decision.disposition
+        );
+        assert!(reference_decision.is_bounded_set_requested());
+        assert_eq!(reference_decision.feasibility_witnesses.len(), 100);
+        assert_eq!(accelerated_decision.feasibility_witnesses.len(), 2);
+        assert_eq!(accelerated_decision.range_proof_witnesses.len(), 2);
+        for witness in &accelerated_decision.range_proof_witnesses {
+            let minimum = witness.q_minimum.expect("the R filter must leave a Q prefix");
+            assert!(minimum.argmin_index >= 51);
+            assert!(minimum.argmin_index < 67);
+            assert!(minimum.minimum_lower_bound >= witness.q_threshold_upper);
+            assert!(witness.queried_end_index_exclusive > witness.queried_start_index);
+        }
+    }
+
+    #[test]
     fn ambiguous_range_proof_falls_back_to_the_complete_reference_scan() {
         let mut cfg = config(RollingWindowRule::Proportional {
             numerator: 1,
