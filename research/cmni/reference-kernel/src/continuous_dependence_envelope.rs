@@ -371,7 +371,10 @@ mod tests {
         .expect("continuous scalar correlation envelope");
 
         // V = 1 + [1 1] R [1 1]^T = 3 + 2 rho; minimum information is 1/4.
-        assert!((result.worst_case_parameter_information_bounds[0] - 0.25).abs() < 1.0e-12);
+        // The lower endpoint intentionally includes a 1e-12 numerical safety
+        // margin; it must remain below the analytic value and tightly bracket it.
+        assert!(result.worst_case_parameter_information_bounds[0] <= 0.25);
+        assert!((0.25 - result.worst_case_parameter_information_bounds[0]) < 2.0e-12);
         assert!((result.worst_case_parameter_information_bounds[1] - 0.25).abs() < 1.0e-12);
         assert!((result.worst_case_eig_nats_bounds[0] - 0.5 * 1.25_f64.ln()).abs() < 1.0e-12);
         assert_eq!(
@@ -414,8 +417,10 @@ mod tests {
             let h2 = -2.0;
             let information = (h1 * h1 * v22 - 2.0 * h1 * h2 * v12 + h2 * h2 * v11) / determinant;
             dense_minimum = dense_minimum.min(information);
+            // A lower bound on the minimum must sit below every feasible
+            // information value. The feasible-witness upper bound applies to
+            // the minimum itself, not to every value over the interval.
             assert!(information >= result.worst_case_parameter_information_bounds[0] - 1.0e-10);
-            assert!(information <= result.worst_case_parameter_information_bounds[1] + 1.0e-10);
         }
         assert!(result.worst_case_parameter_information_bounds[0] <= dense_minimum + 1.0e-12);
         assert!(result.worst_case_parameter_information_bounds[1] >= dense_minimum - 1.0e-12);
