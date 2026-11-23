@@ -28,6 +28,7 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod gaussian_overlap;
 pub mod lebedev;
 pub mod ncdot_integrand;
 pub mod residual;
@@ -35,6 +36,7 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use gaussian_overlap::{GaussianOverlapInput, GaussianOverlapModeReport, gaussian_product_mode};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,

@@ -44,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 126 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, and 12 in `ncdot_integrand.rs`. This exact 114-test head passed exact-head workflow [#217](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45065462384) on `5113a353a4555e74aab6cacadadd2f530d62a984`; formatting, all 114 tests, strict Clippy, checkout verification and artifact upload passed.
+The current authored test corpus contains 136 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 12 in `ncdot_integrand.rs`, and 10 in `gaussian_overlap.rs`. This exact 114-test head passed exact-head workflow [#217](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45065462384) on `5113a353a4555e74aab6cacadadd2f530d62a984`; formatting, all 114 tests, strict Clippy, checkout verification and artifact upload passed.
 
 ## Important limitations
 
