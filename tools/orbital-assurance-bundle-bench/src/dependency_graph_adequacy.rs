@@ -465,8 +465,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
     }
 
-    findings.sort_by(|a, b| (&a.code, &a.dependency_edge, &a.detail)
-        .cmp(&(&b.code, &b.dependency_edge, &b.detail)));
+    findings.sort_by(|a, b| {
+        (&a.code, &a.dependency_edge, &a.detail).cmp(&(&b.code, &b.dependency_edge, &b.detail))
+    });
     findings.dedup();
 
     let codes = findings
@@ -637,7 +638,10 @@ mod tests {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "common_mode_omission");
         assert_eq!(result.disposition, "COMMON_MODE_DEPENDENCY_OMISSION");
-        assert_eq!(result.missing_dependency_edges, vec!["domain_oracle->query_policy#artifact-domain-oracle"]);
+        assert_eq!(
+            result.missing_dependency_edges,
+            vec!["domain_oracle->query_policy#artifact-domain-oracle"]
+        );
     }
 
     #[test]
