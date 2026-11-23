@@ -9,8 +9,15 @@
 //! permission or weather evidence blocks aerial use.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+use crate::sustainable_mobility_service_capacity::{
+    CapacityServiceOpportunity, SustainableServiceCapacityInput,
+    evaluate_sustainable_service_capacity,
+};
 
 const MAX_REQUESTS: usize = 512;
 const MAX_AERIAL_OPPORTUNITIES: usize = 512;
@@ -179,6 +186,64 @@ pub struct ServiceQualityInput {
     pub blocked_intervals: Vec<BlockedInterval>,
     pub policies: Vec<AdmissionPolicy>,
     pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PayloadQualificationEvidence {
+    pub aircraft_id: String,
+    pub architecture_configuration_digest: String,
+    pub producer_id: String,
+    pub method_id: String,
+    pub evidence_reference: String,
+    pub evidence_class: EvidenceClass,
+    pub observed_at_seconds: u64,
+    pub valid_from_seconds: u64,
+    pub valid_until_seconds: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CapacityOpportunityQualification {
+    /// The only capacity identifier supplied by this input. Schedule fields
+    /// are resolved from the event-derived upstream report.
+    pub opportunity_id: String,
+    pub max_payload_units: u16,
+    pub evidence: PayloadQualificationEvidence,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct LinkedServiceQualityInput {
+    pub schema_version: String,
+    pub benchmark_id: String,
+    pub site_id: String,
+    pub site_configuration_digest: String,
+    pub horizon_seconds: u64,
+    pub source_architecture_id: String,
+    pub requests: Vec<ServiceRequest>,
+    pub aerial_opportunity_qualifications: Vec<CapacityOpportunityQualification>,
+    pub fallback_opportunities: Vec<FallbackServiceOpportunity>,
+    pub flight_windows: Vec<FlightWindow>,
+    pub blocked_intervals: Vec<BlockedInterval>,
+    pub policies: Vec<AdmissionPolicy>,
+    pub claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct LinkedServiceQualityReport {
+    pub schema_version: String,
+    pub benchmark_id: String,
+    pub horizon_seconds: u64,
+    pub capacity_source_architecture_id: String,
+    pub capacity_source_report_digest: String,
+    pub capacity_service_opportunity_digest: String,
+    pub capacity_architecture_configuration_digest: String,
+    pub capacity_opportunities_in_source: usize,
+    pub capacity_opportunities_qualified: usize,
+    pub policy_results: Vec<ServicePolicyResult>,
+    pub service_quality_is_physical_performance_claim: bool,
+    pub claim_ceiling: &'static str,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -386,8 +451,7 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
     for opportunity in &input.aerial_opportunities {
         let end = opportunity
             .start_seconds
-            .checked_add(u64::from(opportunity.max_service_duration_seconds))
-            .and_then(|value| value.checked_add(u64::from(opportunity.turnaround_seconds)));
+            .checked_add(u64::from(opportunity.max_service_duration_seconds));
         if opportunity.opportunity_id.trim().is_empty()
             || !opportunity_ids.insert(opportunity.opportunity_id.as_str())
             || opportunity.aircraft_id.trim().is_empty()
@@ -1016,6 +1080,268 @@ fn evaluate_policy(
         denial_reason_counts,
         outcomes,
         claim_ceiling: CLAIM_CEILING,
+    })
+}
+
+fn sha256_digest(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut hex = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    format!("sha256:{hex}")
+}
+
+fn linked_report_claim_ceiling() -> &'static str {
+    "Synthetic request admission over event-derived capacity receipts and separately supplied payload/weather/permission evidence only; no route planning, flight authorization, physical service, market or regulatory authority."
+}
+
+/// Re-run the upstream capacity evaluator and resolve aerial opportunities
+/// exclusively from its event-derived receipt sequence. This mode deliberately
+/// accepts no user-authored aircraft IDs, start times, mission durations or
+/// turnaround values.
+pub fn evaluate_linked_service_quality(
+    input: &LinkedServiceQualityInput,
+    capacity_input: &SustainableServiceCapacityInput,
+) -> Result<LinkedServiceQualityReport, Vec<String>> {
+    let mut errors = Vec::new();
+    if input.schema_version != "0.1.0"
+        || input.benchmark_id != "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001"
+        || input.site_id.trim().is_empty()
+        || input.site_configuration_digest.trim().is_empty()
+        || input.source_architecture_id.trim().is_empty()
+        || input.horizon_seconds == 0
+        || input.horizon_seconds > MAX_HORIZON_SECONDS
+        || input.claim_ceiling.trim().is_empty()
+        || input.aerial_opportunity_qualifications.len() > MAX_AERIAL_OPPORTUNITIES
+        || input.requests.is_empty()
+        || input.requests.len() > MAX_REQUESTS
+        || input.fallback_opportunities.len() > MAX_FALLBACK_OPPORTUNITIES
+        || input.flight_windows.is_empty()
+        || input.flight_windows.len() > MAX_FLIGHT_WINDOWS
+        || input.blocked_intervals.len() > MAX_BLOCKED_WINDOWS
+        || input.policies.is_empty()
+        || input.policies.len() > 2
+        || capacity_input.horizon_seconds != input.horizon_seconds
+    {
+        add_error(&mut errors, "linked_service_identity_or_bounds_invalid");
+    }
+
+    let capacity_report = evaluate_sustainable_service_capacity(capacity_input)
+        .map_err(|capacity_errors| {
+            capacity_errors
+                .into_iter()
+                .map(|error| format!("capacity_source_rejected:{error}"))
+                .collect::<Vec<_>>()
+        })?;
+    if capacity_report.schema_version != "0.1.0"
+        || capacity_report.benchmark_id != "SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001"
+        || capacity_report.horizon_seconds != input.horizon_seconds
+        || capacity_report.capacity_is_physical_performance_claim
+    {
+        add_error(&mut errors, "capacity_source_report_identity_or_horizon_invalid");
+    }
+
+    let selected: Vec<_> = capacity_report
+        .architecture_results
+        .iter()
+        .filter(|result| result.architecture_id == input.source_architecture_id)
+        .collect();
+    if selected.len() != 1 {
+        add_error(&mut errors, "capacity_source_architecture_missing_or_ambiguous");
+    }
+    let architectures: Vec<_> = capacity_input
+        .architectures
+        .iter()
+        .filter(|architecture| architecture.architecture_id == input.source_architecture_id)
+        .collect();
+    if architectures.len() != 1 {
+        add_error(&mut errors, "capacity_source_configuration_missing_or_ambiguous");
+    }
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    let selected = selected[0];
+    let architecture = architectures[0];
+    if selected.horizon_seconds != input.horizon_seconds
+        || selected.service_opportunities.len() as u64 != selected.completed_sorties
+        || selected.service_opportunities.len() > MAX_AERIAL_OPPORTUNITIES
+    {
+        add_error(&mut errors, "capacity_service_opportunity_count_or_horizon_invalid");
+    }
+
+    let source_report_bytes = serde_json::to_vec(&capacity_report)
+        .map_err(|error| vec![format!("capacity_report_serialization_failed:{error}")])?;
+    let source_report_digest = sha256_digest(&source_report_bytes);
+    let configuration_bytes = serde_json::to_vec(architecture)
+        .map_err(|error| vec![format!("capacity_configuration_serialization_failed:{error}")])?;
+    let configuration_digest = sha256_digest(&configuration_bytes);
+    let opportunity_bytes = serde_json::to_vec(&selected.service_opportunities)
+        .map_err(|error| vec![format!("capacity_opportunity_serialization_failed:{error}")])?;
+    let opportunity_digest = sha256_digest(&opportunity_bytes);
+    if opportunity_digest != selected.service_opportunity_digest {
+        add_error(&mut errors, "capacity_service_opportunity_digest_mismatch");
+    }
+
+    let mut source_ids = BTreeSet::new();
+    let mut source_sequences: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> = BTreeMap::new();
+    for opportunity in &selected.service_opportunities {
+        let mission_end = opportunity
+            .start_seconds
+            .checked_add(u64::from(opportunity.mission_duration_seconds));
+        if opportunity.opportunity_id.trim().is_empty()
+            || opportunity.aircraft_id.trim().is_empty()
+            || !source_ids.insert(opportunity.opportunity_id.as_str())
+            || opportunity.mission_duration_seconds == 0
+            || opportunity.turnaround_seconds > MAX_SERVICE_SECONDS
+            || mission_end.is_none_or(|end| end > input.horizon_seconds)
+        {
+            add_error(
+                &mut errors,
+                format!("capacity_receipt_identity_or_bounds_invalid:{}", opportunity.opportunity_id),
+            );
+        }
+        source_sequences
+            .entry(opportunity.aircraft_id.as_str())
+            .or_default()
+            .push(opportunity);
+    }
+    for (aircraft_id, opportunities) in &mut source_sequences {
+        opportunities.sort_by_key(|item| (item.mission_sequence, item.start_seconds));
+        for (index, opportunity) in opportunities.iter().enumerate() {
+            if usize::try_from(opportunity.mission_sequence).ok() != Some(index) {
+                add_error(
+                    &mut errors,
+                    format!("capacity_receipt_sequence_gap:{aircraft_id}"),
+                );
+            }
+        }
+        for pair in opportunities.windows(2) {
+            let next_earliest = pair[0]
+                .start_seconds
+                .checked_add(u64::from(pair[0].mission_duration_seconds))
+                .and_then(|end| end.checked_add(u64::from(pair[0].turnaround_seconds)));
+            if next_earliest.is_none_or(|earliest| pair[1].start_seconds < earliest) {
+                add_error(
+                    &mut errors,
+                    format!("capacity_receipts_overlap_on_aircraft:{aircraft_id}"),
+                );
+            }
+        }
+    }
+
+    let mut qualification_ids = BTreeSet::new();
+    let mut qualifications = BTreeMap::new();
+    for qualification in &input.aerial_opportunity_qualifications {
+        let Some(receipt) = selected
+            .service_opportunities
+            .iter()
+            .find(|receipt| receipt.opportunity_id == qualification.opportunity_id)
+        else {
+            add_error(
+                &mut errors,
+                format!("aerial_qualification_references_unknown_capacity_opportunity:{}", qualification.opportunity_id),
+            );
+            continue;
+        };
+        let evidence = &qualification.evidence;
+        let occupancy_end = receipt
+            .start_seconds
+            .checked_add(u64::from(receipt.mission_duration_seconds))
+            .and_then(|end| end.checked_add(u64::from(receipt.turnaround_seconds)));
+        if qualification.opportunity_id.trim().is_empty()
+            || !qualification_ids.insert(qualification.opportunity_id.as_str())
+            || qualification.max_payload_units == 0
+            || qualification.max_payload_units > MAX_PAYLOAD_UNITS
+            || evidence.aircraft_id != receipt.aircraft_id
+            || evidence.architecture_configuration_digest != configuration_digest
+            || evidence.producer_id.trim().is_empty()
+            || evidence.method_id.trim().is_empty()
+            || evidence.evidence_reference.trim().is_empty()
+            || evidence.evidence_class == EvidenceClass::Unknown
+            || evidence.valid_from_seconds > evidence.observed_at_seconds
+            || evidence.observed_at_seconds > receipt.start_seconds
+            || evidence.valid_from_seconds > receipt.start_seconds
+            || occupancy_end.is_none_or(|end| evidence.valid_until_seconds < end)
+            || qualifications
+                .insert(qualification.opportunity_id.as_str(), qualification)
+                .is_some()
+        {
+            add_error(
+                &mut errors,
+                format!("aerial_payload_qualification_invalid:{}", qualification.opportunity_id),
+            );
+        }
+    }
+
+    if !errors.is_empty() {
+        errors.sort();
+        errors.dedup();
+        return Err(errors);
+    }
+
+    let mut aerial_opportunities = Vec::with_capacity(input.aerial_opportunity_qualifications.len());
+    for qualification in &input.aerial_opportunity_qualifications {
+        let receipt = selected
+            .service_opportunities
+            .iter()
+            .find(|receipt| receipt.opportunity_id == qualification.opportunity_id)
+            .expect("all qualifications were resolved above");
+        aerial_opportunities.push(AerialServiceOpportunity {
+            opportunity_id: receipt.opportunity_id.clone(),
+            aircraft_id: receipt.aircraft_id.clone(),
+            start_seconds: receipt.start_seconds,
+            max_service_duration_seconds: receipt.mission_duration_seconds,
+            max_payload_units: qualification.max_payload_units,
+            turnaround_seconds: receipt.turnaround_seconds,
+            capacity_reference: format!("{source_report_digest}#{}", receipt.opportunity_id),
+        });
+    }
+    aerial_opportunities.sort_by_key(|opportunity| {
+        (opportunity.start_seconds, opportunity.aircraft_id.clone(), opportunity.opportunity_id.clone())
+    });
+
+    let legacy_input = ServiceQualityInput {
+        schema_version: input.schema_version.clone(),
+        benchmark_id: input.benchmark_id.clone(),
+        site_id: input.site_id.clone(),
+        site_configuration_digest: input.site_configuration_digest.clone(),
+        horizon_seconds: input.horizon_seconds,
+        capacity_source: CapacitySource {
+            source_report_digest: source_report_digest.clone(),
+            source_architecture_id: input.source_architecture_id.clone(),
+            horizon_seconds: selected.horizon_seconds,
+            steady_state_cycle_capacity_upper_bound_per_hour: selected.steady_state_cycle_capacity_upper_bound_per_hour,
+            initial_inventory_capacity_allowance_per_hour: selected.initial_inventory_capacity_allowance_per_hour,
+            max_aerial_opportunities: u32::try_from(aerial_opportunities.len())
+                .map_err(|_| vec!["qualified_opportunity_count_overflow".to_owned()])?,
+        },
+        requests: input.requests.clone(),
+        aerial_opportunities,
+        fallback_opportunities: input.fallback_opportunities.clone(),
+        flight_windows: input.flight_windows.clone(),
+        blocked_intervals: input.blocked_intervals.clone(),
+        policies: input.policies.clone(),
+        claim_ceiling: input.claim_ceiling.clone(),
+    };
+    let evaluated = evaluate_service_quality(&legacy_input).map_err(|errors| errors)?;
+
+    Ok(LinkedServiceQualityReport {
+        schema_version: input.schema_version.clone(),
+        benchmark_id: input.benchmark_id.clone(),
+        horizon_seconds: input.horizon_seconds,
+        capacity_source_architecture_id: input.source_architecture_id.clone(),
+        capacity_source_report_digest: source_report_digest,
+        capacity_service_opportunity_digest: opportunity_digest,
+        capacity_architecture_configuration_digest: configuration_digest,
+        capacity_opportunities_in_source: selected.service_opportunities.len(),
+        capacity_opportunities_qualified: aerial_opportunities.len(),
+        policy_results: evaluated.policy_results,
+        service_quality_is_physical_performance_claim: false,
+        claim_ceiling: linked_report_claim_ceiling(),
     })
 }
 
