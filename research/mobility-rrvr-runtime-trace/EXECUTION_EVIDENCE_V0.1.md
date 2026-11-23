@@ -99,3 +99,10 @@ The work composes rather than replaces the strongest existing benchmarks and too
 A PASS establishes internal consistency and linkage between supplied artifacts and the exact compiled plan. It does not authenticate the artifact producers, prove simulator/robot state is truthful, prove universal physical observer independence, execute a fault injector, establish HIL/physical evidence, issue native action authority, grant retry permission, or establish robot safety.
 
 The next integration is a Gazebo adapter that consumes the canonical plan, pauses/steps the simulator deterministically, emits a separate dispatch and execution receipt, captures independent target-state evidence, and never rewrites the plan. ROS runtime and controller/driver adapters follow the same interface; HIL is a distinct later qualification tier.
+
+
+## Gazebo adapter boundary
+
+The simulator adapter core uses the compiled plan's exact Gazebo build, Simulation Interfaces revision and SceneBroadcaster binary pin. Its transport orchestration advances only by discrete simulation steps, resolves each target in the current world epoch, and separates dispatch from execution and observer receipts. A timed-out dispatch becomes Unknown and is reconciled against the same idempotency key; it is never silently resent.
+
+See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md). The current implementation is mock-tested and has no live ROS 2/Gazebo transport yet.
