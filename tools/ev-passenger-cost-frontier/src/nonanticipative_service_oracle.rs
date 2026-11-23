@@ -1658,7 +1658,7 @@ mod tests {
 
     fn linked_fixture() -> LinkedServiceQualityInput {
         serde_json::from_str(include_str!(
-            "../fixtures/sustainable_mobility_service_quality_linked_v0_1.json"
+            "../fixtures/nonanticipative_linked_service_v0_1.json"
         ))
         .expect("linked service fixture must parse")
     }
