@@ -34,8 +34,9 @@ fn run() -> Result<ExitCode, String> {
         return Err("unexpected trailing arguments".to_owned());
     }
 
-    let input = fs::read(&fixture_path)
-        .map_err(|error| format!("cannot read incumbent-adequacy corpus {fixture_path}: {error}"))?;
+    let input = fs::read(&fixture_path).map_err(|error| {
+        format!("cannot read incumbent-adequacy corpus {fixture_path}: {error}")
+    })?;
     let corpus: Corpus = serde_json::from_slice(&input)
         .map_err(|error| format!("invalid incumbent-adequacy corpus JSON: {error}"))?;
     let evaluation = evaluate(&corpus)?;
