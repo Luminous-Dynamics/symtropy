@@ -1,10 +1,11 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
+use symtropy_physics::broadphase::Lbvh;
+use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 
@@ -219,6 +220,40 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ LBVH structure-quality diagnostics ═══
+
+fn bench_lbvh_structure_diagnostics(c: &mut Criterion) {
+    let mut group = c.benchmark_group("lbvh_structure_diagnostics_3d");
+
+    for body_count in [128usize, 512, 2048] {
+        let bodies: Vec<_> = (0..body_count)
+            .map(|index| {
+                let x = (index % 64) as f64 * 1.25;
+                let y = ((index / 64) % 32) as f64 * 1.25;
+                let z = (index / 2048) as f64 * 1.25;
+                RigidBody::<3>::dynamic_sphere(
+                    BodyHandle(index),
+                    Point::new([x, y, z]),
+                    0.5,
+                    1.0,
+                )
+            })
+            .collect();
+        let tree = Lbvh::build(&bodies);
+        let receipt = tree.structure_stats();
+        assert_eq!(receipt.body_count, body_count);
+        assert_eq!(receipt.internal_node_count, body_count - 1);
+
+        group.bench_function(BenchmarkId::new("structure_stats", body_count), |bench| {
+            bench.iter(|| {
+                black_box(tree.structure_stats());
+            });
+        });
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -237,5 +272,7 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    // Tree structure quality/memory diagnostics outside the simulation hot path.
+    bench_lbvh_structure_diagnostics,
 );
 criterion_main!(benches);
