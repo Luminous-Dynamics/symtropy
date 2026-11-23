@@ -1031,21 +1031,25 @@ fn value_of_perfect_information(
 pub fn evaluate_nonanticipative_oracle(
     input: &NonanticipativeOracleInput,
 ) -> Result<NonanticipativeOracleReport, Vec<String>> {
+    let derived = derive_service_inputs(input)?;
+    let requests = derived.requests;
+    let opportunities = derived.opportunities;
+    let capacity = derived.capacity;
     let mut errors = Vec::new();
     if input.schema_version != "0.1.0"
         || input.benchmark_id != "NONANTICIPATIVE-SERVICE-ORACLE-001"
         || input.horizon_seconds == 0
         || input.horizon_seconds > MAX_HORIZON_SECONDS
         || input.claim_ceiling.trim().is_empty()
-        || input.requests.is_empty()
-        || input.opportunities.is_empty()
+        || requests.is_empty()
+        || opportunities.is_empty()
         || input.observation_nodes.is_empty()
         || input.scenarios.is_empty()
     {
         add_error(&mut errors, "benchmark_identity_or_empty_input_invalid");
     }
-    if input.requests.len() > MAX_REQUESTS
-        || input.opportunities.len() > MAX_OPPORTUNITIES
+    if requests.len() > MAX_REQUESTS
+        || opportunities.len() > MAX_OPPORTUNITIES
         || input.scenarios.len() > MAX_SCENARIOS
         || input.observation_nodes.len() > MAX_NODES
     {
@@ -1053,10 +1057,16 @@ pub fn evaluate_nonanticipative_oracle(
             schema_version: input.schema_version.clone(),
             benchmark_id: input.benchmark_id.clone(),
             status: OracleStatus::NotRunBoundsExceeded,
-            request_count: input.requests.len(),
-            opportunity_count: input.opportunities.len(),
+            request_count: requests.len(),
+            opportunity_count: opportunities.len(),
             scenario_count: input.scenarios.len(),
             information_set_count: 0,
+            capacity_source_architecture_id: capacity.architecture_id.clone(),
+            capacity_source_report_digest: capacity.report_digest.clone(),
+            capacity_service_opportunity_digest: capacity.opportunity_digest.clone(),
+            capacity_architecture_configuration_digest: capacity.architecture_digest.clone(),
+            capacity_opportunities_in_source: capacity.opportunity_count,
+            capacity_opportunities_qualified: capacity.qualified_count,
             search_transition_limit: MAX_SEARCH_TRANSITIONS,
             search_transitions: 0,
             information_model: "nonanticipative_information_set_policy",
@@ -1078,7 +1088,7 @@ pub fn evaluate_nonanticipative_oracle(
     }
 
     let mut request_ids = BTreeMap::new();
-    for (index, request) in input.requests.iter().enumerate() {
+    for (index, request) in requests.iter().enumerate() {
         if request.request_id.trim().is_empty()
             || request.request_id.len() > 80
             || request_ids.insert(request.request_id.as_str(), index).is_some()
@@ -1095,7 +1105,7 @@ pub fn evaluate_nonanticipative_oracle(
 
     let mut opportunity_ids = BTreeMap::new();
     let mut resource_windows: BTreeMap<&str, Vec<(u64, u64, &str)>> = BTreeMap::new();
-    for (index, opportunity) in input.opportunities.iter().enumerate() {
+    for (index, opportunity) in opportunities.iter().enumerate() {
         let end = opportunity
             .start_seconds
             .checked_add(u64::from(opportunity.max_service_duration_seconds))
@@ -1140,6 +1150,12 @@ pub fn evaluate_nonanticipative_oracle(
             add_error(&mut errors, format!("observation_node_identity_or_evidence_invalid:{}", node.node_id));
             continue;
         }
+        if let Err(error) = validate_node_flight_observation(
+            node,
+            &input.linked_service_input,
+        ) {
+            add_error(&mut errors, error);
+        }
         let mut revealed_mask = 0_u16;
         let mut seen_requests = BTreeSet::new();
         for request_id in &node.revealed_request_ids {
@@ -1148,7 +1164,7 @@ pub fn evaluate_nonanticipative_oracle(
                 continue;
             };
             if !seen_requests.insert(request_id.as_str())
-                || input.requests[index].arrival_seconds > node.decision_time_seconds
+                || requests[index].arrival_seconds > node.decision_time_seconds
             {
                 add_error(&mut errors, format!("observation_request_reveal_invalid:{}:{request_id}", node.node_id));
             }
@@ -1162,7 +1178,10 @@ pub fn evaluate_nonanticipative_oracle(
                 continue;
             };
             if !seen_opportunities.insert(opportunity_id.as_str())
-                || input.opportunities[index].start_seconds < node.decision_time_seconds
+                || opportunities[index].start_seconds < node.decision_time_seconds
+                || (opportunities[index].mode == OpportunityMode::Aerial
+                    && (node.weather_state != WeatherState::Go
+                        || node.permission_state != PermissionState::Approved))
             {
                 add_error(&mut errors, format!("observation_opportunity_availability_invalid:{}:{opportunity_id}", node.node_id));
             }
@@ -1305,7 +1324,7 @@ pub fn evaluate_nonanticipative_oracle(
 
     let root = root_digest.ok_or_else(|| vec!["scenario_tree_root_missing".to_owned()])?;
     let initial_state = SearchState {
-        assigned_opportunity_by_request: vec![None; input.requests.len()],
+        assigned_opportunity_by_request: vec![None; requests.len()],
         used_opportunity_mask: 0,
         revealed_mask: 0,
     };
@@ -1319,8 +1338,8 @@ pub fn evaluate_nonanticipative_oracle(
         &children,
         &terminal_scenarios,
         &input.scenarios,
-        &input.requests,
-        &input.opportunities,
+        &requests,
+        &opportunities,
         input.horizon_seconds,
         &initial_state,
         &mut context,
@@ -1331,10 +1350,16 @@ pub fn evaluate_nonanticipative_oracle(
             schema_version: input.schema_version.clone(),
             benchmark_id: input.benchmark_id.clone(),
             status: OracleStatus::TransitionLimitReached,
-            request_count: input.requests.len(),
-            opportunity_count: input.opportunities.len(),
+            request_count: requests.len(),
+            opportunity_count: opportunities.len(),
             scenario_count: input.scenarios.len(),
             information_set_count: groups.len(),
+            capacity_source_architecture_id: capacity.architecture_id.clone(),
+            capacity_source_report_digest: capacity.report_digest.clone(),
+            capacity_service_opportunity_digest: capacity.opportunity_digest.clone(),
+            capacity_architecture_configuration_digest: capacity.architecture_digest.clone(),
+            capacity_opportunities_in_source: capacity.opportunity_count,
+            capacity_opportunities_qualified: capacity.qualified_count,
             search_transition_limit: MAX_SEARCH_TRANSITIONS,
             search_transitions: context.transitions,
             information_model: "nonanticipative_information_set_policy",
@@ -1359,7 +1384,7 @@ pub fn evaluate_nonanticipative_oracle(
     let mut clairvoyant_transitions = 0_usize;
     for (scenario_index, scenario) in input.scenarios.iter().enumerate() {
         let mut state = SearchState {
-            assigned_opportunity_by_request: vec![None; input.requests.len()],
+            assigned_opportunity_by_request: vec![None; requests.len()],
             used_opportunity_mask: 0,
             revealed_mask: 0,
         };
@@ -1383,7 +1408,7 @@ pub fn evaluate_nonanticipative_oracle(
                 state.used_opportunity_mask |= 1_u16 << opportunity_index;
             }
         }
-        let score = scenario_score(&state, &input.requests, &input.opportunities, input.horizon_seconds);
+        let score = scenario_score(&state, &requests, &opportunities, input.horizon_seconds);
         scenario_results.push(ScenarioResult {
             scenario_id: scenario.scenario_id.clone(),
             probability_units: scenario.probability_units,
@@ -1392,8 +1417,8 @@ pub fn evaluate_nonanticipative_oracle(
         let clairvoyant = clairvoyant_scenario_score(
             scenario,
             &node_by_id,
-            &input.requests,
-            &input.opportunities,
+            &requests,
+            &opportunities,
             input.horizon_seconds,
             &mut clairvoyant_transitions,
         )
@@ -1409,10 +1434,16 @@ pub fn evaluate_nonanticipative_oracle(
         schema_version: input.schema_version.clone(),
         benchmark_id: input.benchmark_id.clone(),
         status: OracleStatus::Evaluated,
-        request_count: input.requests.len(),
-        opportunity_count: input.opportunities.len(),
+        request_count: requests.len(),
+        opportunity_count: opportunities.len(),
         scenario_count: input.scenarios.len(),
         information_set_count: groups.len(),
+        capacity_source_architecture_id: capacity.architecture_id,
+        capacity_source_report_digest: capacity.report_digest,
+        capacity_service_opportunity_digest: capacity.opportunity_digest,
+        capacity_architecture_configuration_digest: capacity.architecture_digest,
+        capacity_opportunities_in_source: capacity.opportunity_count,
+        capacity_opportunities_qualified: capacity.qualified_count,
         search_transition_limit: MAX_SEARCH_TRANSITIONS,
         search_transitions: context.transitions.saturating_add(clairvoyant_transitions),
         information_model: "nonanticipative_information_set_policy",
