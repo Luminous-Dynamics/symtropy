@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "case_id": "NASA-CARA-OMITRON-TEST08-2D3D-ESCALATION",
+  "title": "Omitron Test Case 08 — 2D/3D conjunction probability disagreement",
+  "purpose": "Mandatory model-escalation negative control. A 2D snapshot Pc result must not be treated as equivalent to the conjunction-integrated 3D-Nc result for this case.",
+  "source": {
+    "repository": "nasa/CARA_Analysis_Tools",
+    "commit": "43f0160f94d76a91805d86521c3e8fa0d09ecd68",
+    "unit_test_path": "DistributedMatlab/ProbabilityOfCollision/UnitTests/Pc3D_Hall_UnitTest.m",
+    "unit_test_function": "test2D3DDisagreementCase",
+    "unit_test_blob_sha1": "7392ad0b895ae3b142e1ccd69fa91dd5364c3736",
+    "cdm_path": "DataFiles/SampleCDMs/OmitronTestCase_Test08_3DNc.cdm",
+    "cdm_blob_sha1": "9beba2b32565542ac78d3e4dedc1bf16a5deb168",
+    "cdm_size_bytes": 10031,
+    "source_notice": "CDM fixture remains in the pinned NASA repository. This manifest references its immutable source blob and does not redistribute the file."
+  },
+  "event": {
+    "cdm_message_id": "29499_conj_31746_20170820_050235_20170813_221640",
+    "tca_utc": "2017-232T05:02:35.819",
+    "reference_frame": "EME2000",
+    "hard_body_radius_m": 20,
+    "miss_distance_m": 7306.054688,
+    "relative_speed_m_per_s": 66.803100586
+  },
+  "comparisons": [
+    {
+      "method": "2D Foster",
+      "implementation": "Pc2D_Foster",
+      "invocation_summary": "NASA test invokes Pc2D_Foster with HBR=20 m, tolerance=1e-8 and method='circle'.",
+      "expected_probability": 2.2660816e-20,
+      "relative_tolerance": 0.001,
+      "quantity": "single-conjunction 2D snapshot probability",
+      "role": "lower-fidelity escalation comparator; not the 3D reference"
+    },
+    {
+      "method": "Hall 3D-Nc",
+      "implementation": "Pc3D_Hall",
+      "invocation_summary": "NASA test invokes Pc3D_Hall with HBR=20 m and default parameters from the pinned source revision.",
+      "expected_probability": 0.000019271201,
+      "relative_tolerance": 0.001,
+      "quantity": "conjunction-integrated expected number of collisions Nc; for the isolated single conjunction NASA identifies Nc with Pc",
+      "role": "high-fidelity regression target for this fixture"
+    }
+  ],
+  "derived_diagnostic": {
+    "ratio_3d_to_2d_approx": 8.505,
+    "ratio_scale_exponent": 14,
+    "note": "The numerical ratio is approximately 8.5e14 (nearly 15 orders of magnitude); use the exact expected values and tolerance above for assertions."
+  },
+  "reproduction_receipt_required": [
+    "Symtropy exact commit SHA",
+    "NASA source commit and fixture blob identities",
+    "input parser version and state/covariance unit conversions",
+    "HBR and algorithm parameters",
+    "format/test/Clippy and exact-checkout validation receipts",
+    "runtime, hardware and software toolchain",
+    "high-fidelity trajectory evaluations and all proposal-training/evaluation costs",
+    "numerical convergence and significant-Lebedev-node diagnostics",
+    "explicit distinction between 2D snapshot Pc and 3D conjunction-integrated Nc"
+  ],
+  "scientific_boundary": [
+    "The expected values are copied from the pinned NASA unit test and are not a newly independently computed ground truth.",
+    "Passing this fixture establishes regression parity for this case only; it does not establish broad NASA parity, physical-model validity, or calibration.",
+    "Do not use the 2D Foster output as the reference value for the 3D-Nc quantity."
+  ],
+  "reuse_and_notice": "The pinned NASA source files contain U.S. Government as-represented-by-NASA disclaimers and no-warranty language. Review the repository's applicable terms before mirroring or redistributing the CDM or source. This manifest records provenance and expected values only."
+}
