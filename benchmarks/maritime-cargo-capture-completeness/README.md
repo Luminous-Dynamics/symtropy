@@ -29,7 +29,7 @@ Dispositions:
 
 ## Frozen corpus
 
-`fixtures/capture-v0.1.tsv` contains 16 hand-authored expected dispositions. Synthetic `event_time`, `published_at` and `as_of` values use one declared reference coordinate: future reference events are not yet due at an earlier as-of instant, while a record published before its claimed occurrence is not evaluable. Unit tests add metamorphic controls for event removal, shared failure domains, acknowledgements without persistence, historical cutoffs, exact duplicates and conflicting event identities.
+`fixtures/capture-v0.1.tsv` contains 17 hand-authored expected dispositions. Synthetic `event_time`, `published_at` and `as_of` values use one declared reference coordinate: future reference events are not yet due at an earlier as-of instant, an evaluation before the capture window is not evaluable, and a record published before its claimed occurrence is not evaluable. Unit tests add metamorphic controls for event removal, shared failure domains, acknowledgements without persistence, historical cutoffs, exact duplicates and conflicting event identities.
 
 All cases are synthetic. The test helper creates the candidate input; the TSV independently declares the expected disposition. This is a reference contract, not a physical test campaign.
 
