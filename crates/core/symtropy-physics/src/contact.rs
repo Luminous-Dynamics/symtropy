@@ -1,8 +1,8 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use smallvec::SmallVec;
 use nalgebra::SVector;
+use smallvec::SmallVec;
 
 use crate::body::BodyHandle;
 
@@ -66,8 +66,7 @@ pub struct SensorEvent {
 /// Inline-plus-spill contact point storage. The common case stores up to
 /// `INLINE_CONTACT_POINTS` points inline; larger manifolds allocate overflow
 /// storage without truncating or panicking.
-pub type ContactPointBuffer<const D: usize> =
-    SmallVec<[ContactPoint<D>; INLINE_CONTACT_POINTS]>;
+pub type ContactPointBuffer<const D: usize> = SmallVec<[ContactPoint<D>; INLINE_CONTACT_POINTS]>;
 
 /// Contact information from a collision between two bodies.
 ///
