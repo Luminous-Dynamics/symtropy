@@ -1064,8 +1064,8 @@ mod tests {
             pair_id: "aggregate-pair".into(),
             identity_mode: PointIdentityMode::AggregateOnly,
             reduction_policy_id: Some("area-policy-v2".into()),
-            candidate_buffer_capacity: None,
-            manifold_point_capacity: Some(4),
+            candidate_buffer_capacity: Some(4),
+            manifold_point_capacity: Some(2),
             generated_points: vec![],
             solver_contacts: vec![],
             aggregate_counts: Some(AggregateManifoldCounts {
