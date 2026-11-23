@@ -97,7 +97,7 @@
       "required": [
         "disposition",
         "trigger_reason",
-        "worst_case_regret"
+        "worst_case_improvement"
       ],
       "properties": {
         "disposition": {
@@ -112,7 +112,7 @@
           "type": "string",
           "minLength": 1
         },
-        "worst_case_regret": {
+        "worst_case_improvement": {
           "type": [
             "integer",
             "null"
