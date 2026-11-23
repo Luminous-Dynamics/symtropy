@@ -698,14 +698,16 @@ mod tests {
     #[test]
     fn rejects_duplicate_scenario_and_fault_identities() {
         let mut scenario = valid_manifest();
-        scenario.scenarios[1].scenario_id = scenario.scenarios[0].scenario_id.clone();
+        let duplicate_scenario_id = scenario.scenarios[0].scenario_id.clone();
+        scenario.scenarios[1].scenario_id = duplicate_scenario_id;
         assert_eq!(
             scenario.validate(),
             Err(CampaignError::DuplicateScenarioIdentity)
         );
 
         let mut fault = valid_manifest();
-        fault.scenarios[2].faults[1].fault_id = fault.scenarios[2].faults[0].fault_id.clone();
+        let duplicate_fault_id = fault.scenarios[2].faults[0].fault_id.clone();
+        fault.scenarios[2].faults[1].fault_id = duplicate_fault_id;
         assert_eq!(
             fault.validate(),
             Err(CampaignError::DuplicateFaultIdentity)
