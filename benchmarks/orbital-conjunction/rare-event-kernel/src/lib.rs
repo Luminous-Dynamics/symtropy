@@ -53,9 +53,9 @@ pub use ncdot_sphere::{
     integrate_ncdot_sphere,
 };
 pub use ncdot_temporal::{
-    NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon,
-    NcdotTemporalIdentity, NcdotTemporalReport, NcdotTemporalSample,
-    TemporalHorizonCoverageClaim, integrate_ncdot_time_series,
+    NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon, NcdotTemporalIdentity,
+    NcdotTemporalReport, NcdotTemporalSample, TemporalHorizonCoverageClaim,
+    integrate_ncdot_time_series,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
@@ -225,15 +225,23 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidUnitDirection => "sphere direction must have unit norm",
             Self::InvalidEvidenceIdentifier => "evidence identifier must be nonempty",
-            Self::InvalidEvidenceDigest => "evidence digest must be 64 lowercase hexadecimal characters",
-            Self::EvidenceIdentityMismatch => "event, model or target-distribution identities do not match",
+            Self::InvalidEvidenceDigest => {
+                "evidence digest must be 64 lowercase hexadecimal characters"
+            }
+            Self::EvidenceIdentityMismatch => {
+                "event, model or target-distribution identities do not match"
+            }
             Self::InvalidTemporalHorizon => "temporal horizon or maximum interval is invalid",
             Self::InsufficientTemporalSamples => "at least two time samples are required",
             Self::DuplicateTemporalSample => "temporal sample identifiers must be unique",
             Self::TemporalLebedevRuleMismatch => "all time samples must use the same Lebedev rule",
             Self::InvalidTemporalRate => "temporal Ncdot rate or support report is invalid",
-            Self::TemporalHorizonEndpointMismatch => "temporal samples must include both declared horizon endpoints",
-            Self::NonIncreasingTemporalEpochs => "temporal sample epochs must be strictly increasing",
+            Self::TemporalHorizonEndpointMismatch => {
+                "temporal samples must include both declared horizon endpoints"
+            }
+            Self::NonIncreasingTemporalEpochs => {
+                "temporal sample epochs must be strictly increasing"
+            }
         };
         f.write_str(message)
     }
