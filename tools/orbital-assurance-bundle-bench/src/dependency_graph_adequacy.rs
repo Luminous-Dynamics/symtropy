@@ -266,6 +266,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let mut consumers_by_node = BTreeMap::new();
+    let mut findings = Vec::new();
     for consumer in &case.consumers {
         if !valid_id(&consumer.node_id)
             || !valid_id(&consumer.output_artifact_id)
@@ -281,6 +282,14 @@ fn evaluate_case(case: &Case) -> CaseResult {
         };
         if output.artifact_id != consumer.output_artifact_id {
             return invalid_graph(case, "consumer output artifact differs from producer manifest");
+        }
+        if output.scope_sha256 != consumer.scope_sha256 {
+            add_finding(
+                &mut findings,
+                "DEPENDENCY_SCOPE_MISMATCH",
+                Some(format!("output:{}", consumer.node_id)),
+                "consumer-produced artifact scope differs from its transformation scope",
+            );
         }
         let mut inputs = BTreeSet::new();
         if consumer.input_artifact_ids.iter().any(|id| !inputs.insert(id.as_str())) {
@@ -315,7 +324,6 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let mut expected = BTreeSet::new();
-    let mut findings = Vec::new();
     let mut missing = BTreeSet::new();
     let mut extra = BTreeSet::new();
 
