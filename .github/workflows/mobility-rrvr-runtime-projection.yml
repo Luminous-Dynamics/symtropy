@@ -9,6 +9,7 @@ on:
       - research/mobility-rrvr-plan-compiler-v0-1
       - research/mobility-rrvr-execution-evidence-v0-1
       - research/mobility-rrvr-gazebo-adapter-v0-1
+      - research/mobility-rrvr-benchmark-overlay-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
@@ -490,6 +491,45 @@ jobs:
             exit 1
           fi
           echo "Expected negative control rejected: delivery signature mismatch."
+
+      - name: Score matched RRVR evidence and recovery benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          CORPUS="$ROOT/fixtures/benchmark_matched_arms_v0_1.json"
+          SCHEMA="$ROOT/schemas/benchmark_corpus_v0_1.schema.json"
+          REPORT="$RUNNER_TEMP/rrvr-benchmark-report.json"
+          BAD="$RUNNER_TEMP/rrvr-benchmark-unmatched.json"
+
+          jq empty "$SCHEMA"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$CORPUS" "$REPORT" > /dev/null
+          jq -e '
+            .version == "0.1"
+            and .matched_pair_count == 2
+            and (.arm_summaries | length == 5)
+            and (.paired_comparisons | length == 4)
+            and ([.arm_summaries[].arm] | sort == ["full_rrvr","logging_only","restart_only","task_only","trace_only"])
+            and (.arm_summaries[] | select(.arm == "full_rrvr") |
+              .task_success_rate_ppm == 1000000
+              and .safety_rate_ppm == 1000000
+              and .false_confirmed_count == 1
+              and .median_trace_reduction_ppm == 625000)
+            and (.arm_summaries[] | select(.arm == "task_only") |
+              .safety_scored_count == 2
+              and .sbu_rate_all_episodes_ppm == 500000)
+          ' "$REPORT"
+
+          jq '.episodes[1].seed = (.episodes[1].seed + 1)' "$CORPUS" > "$BAD"
+          set +e
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$BAD" > "$RUNNER_TEMP/rrvr-benchmark-unmatched.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "RRVR benchmark scorer accepted a pair with a changed seed."
+            exit 1
+          fi
+          echo "Expected negative control rejected: unmatched pair inputs."
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
