@@ -166,26 +166,52 @@ impl fmt::Display for TransferErrorV0 {
             Self::UnknownTargetParticipant => "target relation references an unknown node",
             Self::NodeMapIncomplete => "node correspondence must cover both structures",
             Self::NodeMapNotInjective => "node correspondence must be one-to-one",
-            Self::UnknownSourceNodeMapping => "node correspondence references an unknown source node",
-            Self::UnknownTargetNodeMapping => "node correspondence references an unknown target node",
+            Self::UnknownSourceNodeMapping => {
+                "node correspondence references an unknown source node"
+            }
+            Self::UnknownTargetNodeMapping => {
+                "node correspondence references an unknown target node"
+            }
             Self::RelationMapIncomplete => "relation correspondence must cover both structures",
             Self::RelationMapNotInjective => "relation correspondence must be one-to-one",
-            Self::UnknownSourceRelationMapping => "relation correspondence references an unknown source relation",
-            Self::UnknownTargetRelationMapping => "relation correspondence references an unknown target relation",
-            Self::RelationKindMapIncomplete => "relation-kind correspondence must cover both structures",
+            Self::UnknownSourceRelationMapping => {
+                "relation correspondence references an unknown source relation"
+            }
+            Self::UnknownTargetRelationMapping => {
+                "relation correspondence references an unknown target relation"
+            }
+            Self::RelationKindMapIncomplete => {
+                "relation-kind correspondence must cover both structures"
+            }
             Self::RelationKindMapNotInjective => "relation-kind correspondence must be one-to-one",
-            Self::UnknownSourceRelationKind => "relation-kind correspondence references an unknown source kind",
-            Self::UnknownTargetRelationKind => "relation-kind correspondence references an unknown target kind",
+            Self::UnknownSourceRelationKind => {
+                "relation-kind correspondence references an unknown source kind"
+            }
+            Self::UnknownTargetRelationKind => {
+                "relation-kind correspondence references an unknown target kind"
+            }
             Self::RelationArityMismatch => "mapped relations have different participant counts",
             Self::RelationOrientationMismatch => "mapped relations have different directedness",
-            Self::InvalidParticipantTransform => "participant transform is incompatible with relation orientation",
-            Self::IncidenceMismatch => "mapped relation participants do not preserve the declared structure",
+            Self::InvalidParticipantTransform => {
+                "participant transform is incompatible with relation orientation"
+            }
+            Self::IncidenceMismatch => {
+                "mapped relation participants do not preserve the declared structure"
+            }
             Self::ActionMapNotInjective => "action correspondence must be one-to-one",
-            Self::InterventionEvidenceCountMismatch => "intervention evidence count does not match the action map",
+            Self::InterventionEvidenceCountMismatch => {
+                "intervention evidence count does not match the action map"
+            }
             Self::MissingInterventionEvidence => "a mapped action has no intervention evidence",
-            Self::DuplicateInterventionEvidence => "intervention evidence contains a duplicate action pair",
-            Self::UnmappedInterventionEvidence => "intervention evidence has no declared action correspondence",
-            Self::InterventionEffectMismatch => "observed intervention effect contradicts the precommitted transform",
+            Self::DuplicateInterventionEvidence => {
+                "intervention evidence contains a duplicate action pair"
+            }
+            Self::UnmappedInterventionEvidence => {
+                "intervention evidence has no declared action correspondence"
+            }
+            Self::InterventionEffectMismatch => {
+                "observed intervention effect contradicts the precommitted transform"
+            }
         };
         formatter.write_str(message)
     }
@@ -224,10 +250,18 @@ pub fn validate_structural_correspondence(
     }
 
     for pair in &correspondence.nodes {
-        if !source.nodes.iter().any(|node| node.id == pair.source_node_id) {
+        if !source
+            .nodes
+            .iter()
+            .any(|node| node.id == pair.source_node_id)
+        {
             return Err(TransferErrorV0::UnknownSourceNodeMapping);
         }
-        if !target.nodes.iter().any(|node| node.id == pair.target_node_id) {
+        if !target
+            .nodes
+            .iter()
+            .any(|node| node.id == pair.target_node_id)
+        {
             return Err(TransferErrorV0::UnknownTargetNodeMapping);
         }
     }
@@ -240,9 +274,11 @@ pub fn validate_structural_correspondence(
         return Err(TransferErrorV0::RelationKindMapIncomplete);
     }
 
-    if !ids_are_unique(&correspondence.relation_kinds, |pair| u32::from(pair.source_kind))
-        || !ids_are_unique(&correspondence.relation_kinds, |pair| u32::from(pair.target_kind))
-    {
+    if !ids_are_unique(&correspondence.relation_kinds, |pair| {
+        u32::from(pair.source_kind)
+    }) || !ids_are_unique(&correspondence.relation_kinds, |pair| {
+        u32::from(pair.target_kind)
+    }) {
         return Err(TransferErrorV0::RelationKindMapNotInjective);
     }
 
@@ -311,10 +347,8 @@ pub fn validate_structural_correspondence(
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let incidence_matches = match (
-            source_relation.orientation,
-            kind_pair.participant_transform,
-        ) {
+        let incidence_matches = match (source_relation.orientation, kind_pair.participant_transform)
+        {
             (RelationOrientationV0::Directed, ParticipantTransformV0::PreserveOrder) => {
                 mapped_participants == target_relation.participants
             }
@@ -405,10 +439,7 @@ fn transform_effect(effect: EffectSignV0, transform: EffectTransformV0) -> Effec
     }
 }
 
-fn validate_structure(
-    structure: &StructureV0,
-    is_source: bool,
-) -> Result<(), TransferErrorV0> {
+fn validate_structure(structure: &StructureV0, is_source: bool) -> Result<(), TransferErrorV0> {
     if !ids_are_unique(&structure.nodes, |node| node.id) {
         return Err(if is_source {
             TransferErrorV0::DuplicateSourceNodeId
@@ -430,10 +461,7 @@ fn validate_structure(
             return Err(TransferErrorV0::EmptyRelationParticipants);
         }
         for participant in &relation.participants {
-            let exists = structure
-                .nodes
-                .iter()
-                .any(|node| node.id == *participant);
+            let exists = structure.nodes.iter().any(|node| node.id == *participant);
             if !exists {
                 return Err(if is_source {
                     TransferErrorV0::UnknownSourceParticipant
@@ -469,17 +497,9 @@ fn ids_are_unique<T>(values: &[T], id_of: impl Fn(&T) -> u32) -> bool {
 mod tests {
     use super::*;
 
-    fn fixture() -> (
-        StructureV0,
-        StructureV0,
-        StructuralCorrespondenceV0,
-    ) {
+    fn fixture() -> (StructureV0, StructureV0, StructuralCorrespondenceV0) {
         let source = StructureV0 {
-            nodes: vec![
-                NodeV0 { id: 1 },
-                NodeV0 { id: 2 },
-                NodeV0 { id: 3 },
-            ],
+            nodes: vec![NodeV0 { id: 1 }, NodeV0 { id: 2 }, NodeV0 { id: 3 }],
             relations: vec![
                 RelationV0 {
                     id: 10,
@@ -497,11 +517,7 @@ mod tests {
         };
 
         let target = StructureV0 {
-            nodes: vec![
-                NodeV0 { id: 11 },
-                NodeV0 { id: 12 },
-                NodeV0 { id: 13 },
-            ],
+            nodes: vec![NodeV0 { id: 11 }, NodeV0 { id: 12 }, NodeV0 { id: 13 }],
             relations: vec![
                 RelationV0 {
                     id: 110,
@@ -619,8 +635,7 @@ mod tests {
     #[test]
     fn rejects_directed_relation_with_unordered_transform() {
         let (source, target, mut correspondence) = fixture();
-        correspondence.relation_kinds[0].participant_transform =
-            ParticipantTransformV0::Unordered;
+        correspondence.relation_kinds[0].participant_transform = ParticipantTransformV0::Unordered;
 
         assert_eq!(
             validate_structural_correspondence(&source, &target, &correspondence),
@@ -628,10 +643,7 @@ mod tests {
         );
     }
 
-    fn intervention_fixture() -> (
-        Vec<ActionCorrespondenceV0>,
-        Vec<InterventionObservationV0>,
-    ) {
+    fn intervention_fixture() -> (Vec<ActionCorrespondenceV0>, Vec<InterventionObservationV0>) {
         let action_map = vec![
             ActionCorrespondenceV0 {
                 source_action_id: 1,
@@ -666,8 +678,7 @@ mod tests {
     #[test]
     fn accepts_precommitted_intervention_effect_transforms() {
         let (action_map, observations) = intervention_fixture();
-        let witness =
-            validate_intervention_correspondence(&action_map, &observations).unwrap();
+        let witness = validate_intervention_correspondence(&action_map, &observations).unwrap();
 
         assert_eq!(witness.compared_actions, 2);
         assert!(witness.behaviorally_supported);
