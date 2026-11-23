@@ -46,4 +46,4 @@ The package depends on the sibling `ehd-piv-conformal-functional-uq` crate for t
 
 ## CI
 
-The repository pull-request matrix runs formatting, unit tests and strict Clippy for this crate and its UQ-005 dependency on Ubuntu, Windows and macOS. Qualification claims must cite the exact commit head; queued, skipped or cancelled checks are not passes.
+The shared workflow now captures formatter output before the final strict check, so any rustfmt changes can be committed rather than hidden in an automatically mutating CI step. The repository pull-request matrix runs formatting, unit tests and strict Clippy for this crate and its UQ-005 dependency on Ubuntu, Windows and macOS. Qualification claims must cite the exact commit head; queued, skipped or cancelled checks are not passes.
