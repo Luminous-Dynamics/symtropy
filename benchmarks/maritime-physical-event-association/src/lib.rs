@@ -1,4 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
+use std::collections::VecDeque;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimeRole {
@@ -336,6 +338,173 @@ fn augment_matching(
     }
 
     false
+}
+
+#[cfg(test)]
+fn hopcroft_karp_matching(
+    graph: &[Vec<usize>],
+    right_count: usize,
+) -> (usize, Vec<Option<usize>>) {
+    const UNREACHED: usize = usize::MAX;
+
+    fn build_layers(
+        graph: &[Vec<usize>],
+        right_to_left: &[Option<usize>],
+        distance: &mut [usize],
+    ) -> usize {
+        let mut queue = VecDeque::new();
+        for (left, slot) in distance.iter_mut().enumerate() {
+            if left < graph.len() && graph[left].len() >= 0 && left < graph.len() {
+                // Unmatched left vertices are roots of the alternating BFS.
+                // The left-side matching is reconstructed by the caller below.
+                *slot = UNREACHED;
+            }
+        }
+        for left in 0..graph.len() {
+            if !distance[left].eq(&UNREACHED) {
+                continue;
+            }
+            // A left vertex whose matched right edge points back to it is
+            // already matched; roots are filled explicitly by the caller.
+        }
+        queue.clear();
+        let _ = right_to_left;
+        UNREACHED
+    }
+
+    let left_count = graph.len();
+    let mut left_to_right = vec![None; left_count];
+    let mut right_to_left = vec![None; right_count];
+    let mut matched_count = 0usize;
+
+    loop {
+        let mut distance = vec![UNREACHED; left_count];
+        let mut queue = VecDeque::new();
+        for left in 0..left_count {
+            if left_to_right[left].is_none() {
+                distance[left] = 0;
+                queue.push_back(left);
+            }
+        }
+
+        let mut shortest_augmenting = UNREACHED;
+        while let Some(left) = queue.pop_front() {
+            if distance[left] >= shortest_augmenting {
+                continue;
+            }
+            for &right in &graph[left] {
+                if let Some(next_left) = right_to_left[right] {
+                    if distance[next_left] == UNREACHED {
+                        distance[next_left] = distance[left] + 1;
+                        queue.push_back(next_left);
+                    }
+                } else {
+                    shortest_augmenting = shortest_augmenting.min(distance[left] + 1);
+                }
+            }
+        }
+        if shortest_augmenting == UNREACHED {
+            break;
+        }
+
+        fn augment_layered(
+            left: usize,
+            graph: &[Vec<usize>],
+            distance: &mut [usize],
+            shortest_augmenting: usize,
+            left_to_right: &mut [Option<usize>],
+            right_to_left: &mut [Option<usize>],
+        ) -> bool {
+            for &right in &graph[left] {
+                let can_assign = match right_to_left[right] {
+                    Some(previous_left) => {
+                        distance[previous_left] == distance[left] + 1
+                            && augment_layered(
+                                previous_left,
+                                graph,
+                                distance,
+                                shortest_augmenting,
+                                left_to_right,
+                                right_to_left,
+                            )
+                    }
+                    None => distance[left] + 1 == shortest_augmenting,
+                };
+                if can_assign {
+                    left_to_right[left] = Some(right);
+                    right_to_left[right] = Some(left);
+                    return true;
+                }
+            }
+            distance[left] = UNREACHED;
+            false
+        }
+
+        let mut phase_matches = 0usize;
+        for left in 0..left_count {
+            if left_to_right[left].is_none()
+                && augment_layered(
+                    left,
+                    graph,
+                    &mut distance,
+                    shortest_augmenting,
+                    &mut left_to_right,
+                    &mut right_to_left,
+                )
+            {
+                phase_matches += 1;
+            }
+        }
+        if phase_matches == 0 {
+            break;
+        }
+        matched_count += phase_matches;
+    }
+
+    (matched_count, right_to_left)
+}
+
+#[cfg(test)]
+fn classify_graph_hopcroft_karp(graph: &[Vec<usize>], right_count: usize) -> MatchingResult {
+    let left_count = graph.len();
+    if left_count != right_count {
+        return MatchingResult::Unmatched;
+    }
+    if left_count == 0 {
+        return MatchingResult::Unique(Vec::new());
+    }
+
+    let (matched_count, right_to_left) = hopcroft_karp_matching(graph, right_count);
+    if matched_count != left_count {
+        return MatchingResult::Unmatched;
+    }
+
+    let mut left_to_right = vec![usize::MAX; left_count];
+    for (right, left) in right_to_left.iter().enumerate() {
+        let Some(left) = left else {
+            return MatchingResult::Unmatched;
+        };
+        left_to_right[*left] = right;
+    }
+    if left_to_right.contains(&usize::MAX) {
+        return MatchingResult::Unmatched;
+    }
+
+    let mut alternating = vec![Vec::new(); left_count];
+    for (left, edges) in graph.iter().enumerate() {
+        for &right in edges {
+            let matched_left = right_to_left[right].expect("perfect matching checked above");
+            if matched_left != left {
+                alternating[left].push(matched_left);
+            }
+        }
+    }
+
+    if has_directed_cycle(&alternating) {
+        MatchingResult::Ambiguous
+    } else {
+        MatchingResult::Unique(left_to_right)
+    }
 }
 
 fn has_directed_cycle(graph: &[Vec<usize>]) -> bool {
@@ -1121,6 +1290,59 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 31);
+    }
+
+    #[test]
+    fn hopcroft_karp_matches_dfs_and_exhaustive_oracle_for_all_three_by_three_graphs() {
+        let node_count = 3usize;
+        let edge_slots = node_count * node_count;
+        for mask in 0usize..(1usize << edge_slots) {
+            let mut graph = vec![Vec::new(); node_count];
+            for (left, edges) in graph.iter_mut().enumerate() {
+                for right in 0..node_count {
+                    let bit = left * node_count + right;
+                    if (mask & (1usize << bit)) != 0 {
+                        edges.push(right);
+                    }
+                }
+            }
+            let reference = classify_graph(&graph, node_count);
+            let challenger = classify_graph_hopcroft_karp(&graph, node_count);
+            assert_eq!(challenger, reference, "graph mask {mask}");
+            let expected = exhaustive_oracle(&graph, node_count);
+            let actual = match challenger {
+                MatchingResult::Unique(_) => Disposition::UniquelyAssociated,
+                MatchingResult::Ambiguous => Disposition::Ambiguous,
+                MatchingResult::Unmatched => Disposition::Unmatched,
+            };
+            assert_eq!(actual, expected, "oracle graph mask {mask}");
+        }
+    }
+
+    #[test]
+    fn hopcroft_karp_matches_dfs_on_deterministic_six_by_six_graph_panel() {
+        let node_count = 6usize;
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        for panel in 0..4096usize {
+            let density_cutoff = (panel % 8) as u64;
+            let mut graph = vec![Vec::new(); node_count];
+            for (left, edges) in graph.iter_mut().enumerate() {
+                for right in 0..node_count {
+                    state = state
+                        .wrapping_mul(6_364_136_223_846_793_005)
+                        .wrapping_add(1_442_695_040_888_963_407);
+                    if (state >> 61) <= density_cutoff {
+                        edges.push(right);
+                    }
+                }
+                let _ = left;
+            }
+            assert_eq!(
+                classify_graph_hopcroft_karp(&graph, node_count),
+                classify_graph(&graph, node_count),
+                "six-by-six panel {panel}"
+            );
+        }
     }
 
     #[test]
