@@ -25,6 +25,10 @@ pub struct MissionRiskScope {
     pub mission_digest: [u8; 32],
     /// Stable digest of the common model and conditioning regime.
     pub model_digest: [u8; 32],
+    /// Stable identity of the common target probability measure. Event-specific
+    /// posterior/conditioning digests may differ, but all marginals aggregated
+    /// here must refer to this same probability measure.
+    pub probability_measure_digest: [u8; 32],
     /// Inclusive start of the assessment horizon in integer seconds.
     pub horizon_start_seconds: u64,
     /// Exclusive end of the assessment horizon in integer seconds.
@@ -36,6 +40,7 @@ impl MissionRiskScope {
     pub fn new(
         mission_digest: [u8; 32],
         model_digest: [u8; 32],
+        probability_measure_digest: [u8; 32],
         horizon_start_seconds: u64,
         horizon_end_seconds: u64,
     ) -> Result<Self, RiskSemanticsError> {
@@ -45,6 +50,7 @@ impl MissionRiskScope {
         Ok(Self {
             mission_digest,
             model_digest,
+            probability_measure_digest,
             horizon_start_seconds,
             horizon_end_seconds,
         })
@@ -59,6 +65,7 @@ impl MissionRiskScope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConditionalCollisionProbability {
     value: Rational,
+    probability_measure_digest: [u8; 32],
     conditioning_digest: [u8; 32],
 }
 
@@ -66,6 +73,7 @@ impl ConditionalCollisionProbability {
     /// Construct a Pc value in [0, 1] with its conditioning identity.
     pub fn new(
         value: Rational,
+        probability_measure_digest: [u8; 32],
         conditioning_digest: [u8; 32],
     ) -> Result<Self, RiskSemanticsError> {
         if value > Rational::from_integer(1) {
@@ -73,6 +81,7 @@ impl ConditionalCollisionProbability {
         }
         Ok(Self {
             value,
+            probability_measure_digest,
             conditioning_digest,
         })
     }
@@ -82,7 +91,12 @@ impl ConditionalCollisionProbability {
         self.value
     }
 
-    /// Return the digest binding this value to its conditional inputs/model.
+    /// Return the shared target probability measure identity.
+    pub const fn probability_measure_digest(self) -> [u8; 32] {
+        self.probability_measure_digest
+    }
+
+    /// Return the digest binding this value to its event-specific conditioning inputs.
     pub const fn conditioning_digest(self) -> [u8; 32] {
         self.conditioning_digest
     }
@@ -342,6 +356,8 @@ pub enum RiskSemanticsError {
     InvalidTestThreshold,
     /// Event does not belong to the mission scope being aggregated.
     EventScopeMismatch,
+    /// Event Pc values refer to different target probability measures.
+    ProbabilityMeasureMismatch,
     /// Multiple CDM revisions were supplied as separate events for one
     /// physical conjunction, which would double-count the same encounter.
     DuplicateConjunctionIdentity,
@@ -356,6 +372,9 @@ impl core::fmt::Display for RiskSemanticsError {
             Self::ProbabilityOutsideUnitInterval => "probability quantity must lie in [0, 1]",
             Self::InvalidTestThreshold => "p-value test threshold must lie in (0, 1]",
             Self::EventScopeMismatch => "mission event scope differs from aggregation scope",
+            Self::ProbabilityMeasureMismatch => {
+                "conditional Pc probability measure differs from mission target measure"
+            }
             Self::DuplicateConjunctionIdentity => {
                 "physical conjunction is duplicated, possibly by multiple CDM revisions"
             }
@@ -403,6 +422,11 @@ pub fn aggregate_mission_collision_risk(
             return Err(RiskSemanticsError::DuplicateConjunctionIdentity);
         }
 
+        if event.conditional_pc.probability_measure_digest()
+            != scope.probability_measure_digest
+        {
+            return Err(RiskSemanticsError::ProbabilityMeasureMismatch);
+        }
         let pc = event.conditional_pc.value();
         if pc > Rational::from_integer(1) {
             return Err(RiskSemanticsError::ProbabilityOutsideUnitInterval);
@@ -462,7 +486,7 @@ mod tests {
     use super::*;
 
     fn scope() -> MissionRiskScope {
-        MissionRiskScope::new([1; 32], [2; 32], 0, 86_400).unwrap()
+        MissionRiskScope::new([1; 32], [2; 32], [3; 32], 0, 86_400).unwrap()
     }
 
     fn rational(numerator: u128, denominator: u128) -> Rational {
@@ -470,7 +494,7 @@ mod tests {
     }
 
     fn pc(value: Rational) -> ConditionalCollisionProbability {
-        ConditionalCollisionProbability::new(value, [4; 32]).unwrap()
+        ConditionalCollisionProbability::new(value, [3; 32], [4; 32]).unwrap()
     }
 
     fn event(id: u64, numerator: u128, denominator: u128) -> MissionConjunctionEvent {
@@ -578,13 +602,33 @@ mod tests {
     }
 
     #[test]
+    fn conditional_pcs_from_a_different_target_measure_cannot_be_aggregated() {
+        let mut input = event(1, 1, 10);
+        input.conditional_pc = ConditionalCollisionProbability::new(
+            rational(1, 10),
+            [99; 32],
+            [4; 32],
+        )
+        .unwrap();
+
+        assert_eq!(
+            aggregate_mission_collision_risk(
+                scope(),
+                &[input],
+                EventDependenceMode::Unknown,
+            ),
+            Err(RiskSemanticsError::ProbabilityMeasureMismatch)
+        );
+    }
+
+    #[test]
     fn invalid_mission_horizon_is_rejected() {
         assert_eq!(
-            MissionRiskScope::new([1; 32], [2; 32], 5, 5),
+            MissionRiskScope::new([1; 32], [2; 32], [3; 32], 5, 5),
             Err(RiskSemanticsError::InvalidMissionHorizon)
         );
         assert_eq!(
-            MissionRiskScope::new([1; 32], [2; 32], 6, 5),
+            MissionRiskScope::new([1; 32], [2; 32], [3; 32], 6, 5),
             Err(RiskSemanticsError::InvalidMissionHorizon)
         );
     }
@@ -592,7 +636,7 @@ mod tests {
     #[test]
     fn conditional_pc_outside_unit_interval_is_rejected() {
         assert_eq!(
-            ConditionalCollisionProbability::new(rational(11, 10), [4; 32]),
+            ConditionalCollisionProbability::new(rational(11, 10), [3; 32], [4; 32]),
             Err(RiskSemanticsError::ProbabilityOutsideUnitInterval)
         );
     }
