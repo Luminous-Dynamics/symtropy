@@ -94,12 +94,24 @@ fn distance_squared(left: [f64; 2], right: [f64; 2]) -> f64 {
 fn validate_inputs(
     previous: &[PreviousNormalImpulse],
     new_contacts: &[NewContactCandidate],
-) -> Result<(Vec<PreviousNormalImpulse>, Vec<NewContactCandidate>, f64, [f64; 2]), TransferError> {
+) -> Result<
+    (
+        Vec<PreviousNormalImpulse>,
+        Vec<NewContactCandidate>,
+        f64,
+        [f64; 2],
+    ),
+    TransferError,
+> {
     if previous.is_empty() {
-        return Err(TransferError::new("previous contact impulse set must not be empty"));
+        return Err(TransferError::new(
+            "previous contact impulse set must not be empty",
+        ));
     }
     if new_contacts.is_empty() {
-        return Err(TransferError::new("new contact candidate set must not be empty"));
+        return Err(TransferError::new(
+            "new contact candidate set must not be empty",
+        ));
     }
 
     let mut old = previous.to_vec();
@@ -136,7 +148,9 @@ fn validate_inputs(
         weighted_position[1] / total_impulse,
     ];
     if !target_center.iter().all(|value| value.is_finite()) {
-        return Err(TransferError::new("target center of pressure is non-finite"));
+        return Err(TransferError::new(
+            "target center of pressure is non-finite",
+        ));
     }
 
     let mut new = new_contacts.to_vec();
@@ -214,10 +228,7 @@ fn compare_candidates(left: &CandidateAllocation, right: &CandidateAllocation) -
         })
 }
 
-fn consider(
-    best: &mut Option<CandidateAllocation>,
-    candidate: Option<CandidateAllocation>,
-) {
+fn consider(best: &mut Option<CandidateAllocation>, candidate: Option<CandidateAllocation>) {
     if let Some(candidate) = candidate
         && best
             .as_ref()
@@ -253,8 +264,8 @@ fn exact_convex_hull_projection(
                 continue;
             }
             let to_target = [target[0] - a[0], target[1] - a[1]];
-            let t = ((to_target[0] * edge[0] + to_target[1] * edge[1]) / denominator)
-                .clamp(0.0, 1.0);
+            let t =
+                ((to_target[0] * edge[0] + to_target[1] * edge[1]) / denominator).clamp(0.0, 1.0);
             consider(
                 &mut best,
                 make_candidate(new_contacts, target, &[(left, 1.0 - t), (right, t)]),
@@ -281,20 +292,13 @@ fn exact_convex_hull_projection(
                 let weight_b = cross2(at, ac) / determinant;
                 let weight_c = cross2(ab, at) / determinant;
                 let weight_a = 1.0 - weight_b - weight_c;
-                if weight_a >= -1.0e-12
-                    && weight_b >= -1.0e-12
-                    && weight_c >= -1.0e-12
-                {
+                if weight_a >= -1.0e-12 && weight_b >= -1.0e-12 && weight_c >= -1.0e-12 {
                     consider(
                         &mut best,
                         make_candidate(
                             new_contacts,
                             target,
-                            &[
-                                (first, weight_a),
-                                (second, weight_b),
-                                (third, weight_c),
-                            ],
+                            &[(first, weight_a), (second, weight_b), (third, weight_c)],
                         ),
                     );
                 }
@@ -315,8 +319,7 @@ pub fn transfer_normal_impulse(
     previous: &[PreviousNormalImpulse],
     new_contacts: &[NewContactCandidate],
 ) -> Result<TemporalTransferReport, TransferError> {
-    let (old, new, total_impulse, target_center) =
-        validate_inputs(previous, new_contacts)?;
+    let (old, new, total_impulse, target_center) = validate_inputs(previous, new_contacts)?;
     let selected = exact_convex_hull_projection(&new, target_center)?;
 
     let mut allocations = Vec::new();
@@ -348,15 +351,23 @@ pub fn transfer_normal_impulse(
         || !center_of_pressure_error_norm.is_finite()
         || !impulse_sum_error.is_finite()
     {
-        return Err(TransferError::new("resultant wrench transfer residual is non-finite"));
+        return Err(TransferError::new(
+            "resultant wrench transfer residual is non-finite",
+        ));
     }
     let coordinate_scale = norm2(target_center).max(norm2(selected.achieved)).max(1.0);
     let center_tolerance = 1.0e-12 * coordinate_scale;
     let impulse_tolerance = 1.0e-12 * total_impulse.max(1.0);
 
     Ok(TemporalTransferReport {
-        source_contact_ids: old.iter().map(|contact| contact.contact_id.clone()).collect(),
-        retained_contact_ids: allocations.iter().map(|item| item.contact_id.clone()).collect(),
+        source_contact_ids: old
+            .iter()
+            .map(|contact| contact.contact_id.clone())
+            .collect(),
+        retained_contact_ids: allocations
+            .iter()
+            .map(|item| item.contact_id.clone())
+            .collect(),
         total_normal_impulse: total_impulse,
         target_center_of_pressure: target_center,
         achieved_center_of_pressure: selected.achieved,
@@ -416,22 +427,36 @@ mod tests {
         assert!((report.achieved_center_of_pressure[0] - 1.0).abs() < 1.0e-12);
         assert!((report.center_of_pressure_error_norm - 1.0).abs() < 1.0e-12);
         assert!((report.moment_error_norm - 2.0).abs() < 1.0e-12);
-        assert!(report.allocations.iter().all(|item| item.normal_impulse >= 0.0));
-        assert!((report.allocations.iter().map(|item| item.normal_impulse).sum::<f64>() - 2.0).abs() < 1.0e-12);
+        assert!(
+            report
+                .allocations
+                .iter()
+                .all(|item| item.normal_impulse >= 0.0)
+        );
+        assert!(
+            (report
+                .allocations
+                .iter()
+                .map(|item| item.normal_impulse)
+                .sum::<f64>()
+                - 2.0)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
     fn triangle_interior_representation_preserves_target_moment() {
         let previous = vec![old("old", 0.25, 0.25, 3.0)];
-        let next = vec![
-            new("a", 0.0, 0.0),
-            new("b", 1.0, 0.0),
-            new("c", 0.0, 1.0),
-        ];
+        let next = vec![new("a", 0.0, 0.0), new("b", 1.0, 0.0), new("c", 0.0, 1.0)];
         let report = transfer_normal_impulse(&previous, &next).expect("triangle transfer");
         assert!(report.exact_wrench_preservation);
         assert_eq!(report.allocations.len(), 3);
-        let weights = report.allocations.iter().map(|item| item.normalized_load_fraction).collect::<Vec<_>>();
+        let weights = report
+            .allocations
+            .iter()
+            .map(|item| item.normalized_load_fraction)
+            .collect::<Vec<_>>();
         assert!((weights.iter().sum::<f64>() - 1.0).abs() < 1.0e-12);
     }
 
@@ -456,7 +481,10 @@ mod tests {
         next_reversed.reverse();
         let second = transfer_normal_impulse(&previous_reversed, &next_reversed).expect("reversed");
         assert_eq!(first.allocations, second.allocations);
-        assert_eq!(first.achieved_center_of_pressure, second.achieved_center_of_pressure);
+        assert_eq!(
+            first.achieved_center_of_pressure,
+            second.achieved_center_of_pressure
+        );
         assert_eq!(first.moment_error, second.moment_error);
     }
 
@@ -465,7 +493,11 @@ mod tests {
         let previous = vec![old("old", 3.0, 2.0, 7.25)];
         let next = vec![new("a", -1.0, 0.0), new("b", 1.0, 0.0)];
         let report = transfer_normal_impulse(&previous, &next).expect("transfer");
-        let transferred: f64 = report.allocations.iter().map(|item| item.normal_impulse).sum();
+        let transferred: f64 = report
+            .allocations
+            .iter()
+            .map(|item| item.normal_impulse)
+            .sum();
         assert!((transferred - 7.25).abs() < 1.0e-12);
         assert!(report.impulse_sum_error.abs() < 1.0e-12);
         assert!(!report.exact_wrench_preservation);
@@ -473,19 +505,30 @@ mod tests {
 
     #[test]
     fn non_finite_and_negative_previous_impulses_are_rejected() {
-        assert!(transfer_normal_impulse(&[old("bad", 0.0, 0.0, f64::NAN)], &[new("new", 0.0, 0.0)]).is_err());
-        assert!(transfer_normal_impulse(&[old("bad", 0.0, 0.0, -1.0)], &[new("new", 0.0, 0.0)]).is_err());
+        assert!(
+            transfer_normal_impulse(&[old("bad", 0.0, 0.0, f64::NAN)], &[new("new", 0.0, 0.0)])
+                .is_err()
+        );
+        assert!(
+            transfer_normal_impulse(&[old("bad", 0.0, 0.0, -1.0)], &[new("new", 0.0, 0.0)])
+                .is_err()
+        );
     }
 
     #[test]
     fn duplicate_or_empty_contact_ids_are_rejected() {
         let previous = vec![old("old", 0.0, 0.0, 1.0)];
-        assert!(transfer_normal_impulse(&previous, &[new("x", 0.0, 0.0), new("x", 1.0, 0.0)]).is_err());
+        assert!(
+            transfer_normal_impulse(&previous, &[new("x", 0.0, 0.0), new("x", 1.0, 0.0)]).is_err()
+        );
         assert!(transfer_normal_impulse(&previous, &[new("", 0.0, 0.0)]).is_err());
     }
 
     #[test]
     fn zero_total_impulse_is_rejected_as_undefined_center_of_pressure() {
-        assert!(transfer_normal_impulse(&[old("zero", 0.0, 0.0, 0.0)], &[new("new", 0.0, 0.0)]).is_err());
+        assert!(
+            transfer_normal_impulse(&[old("zero", 0.0, 0.0, 0.0)], &[new("new", 0.0, 0.0)])
+                .is_err()
+        );
     }
 }
