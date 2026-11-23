@@ -56,6 +56,7 @@ pub struct GazeboCapabilityProfile {
     pub reset_profile_sha256: String,
     pub scene_broadcaster_id: String,
     pub scene_broadcaster_revision: String,
+    pub scene_broadcaster_sha256: String,
     pub scene_broadcaster_loaded: bool,
     pub capabilities: BTreeSet<GazeboCapability>,
 }
@@ -248,6 +249,9 @@ impl GazeboWorldSnapshot {
         prior_world_epoch: &str,
     ) -> Result<(), GazeboAdapterError> {
         self.validate_against_profile(profile)?;
+        if plan.reset.kind != "simulator_snapshot_restore" {
+            return Err(GazeboAdapterError::UnsupportedResetKind);
+        }
         if self.world_epoch == prior_world_epoch {
             return Err(GazeboAdapterError::ResetDidNotAdvanceEpoch);
         }
@@ -397,7 +401,7 @@ mod tests {
             world_name: "rrvr-world".into(),
             world_profile_sha256: plan.platform.environment_artifact_sha256.clone(),
             reset_profile_sha256: plan.reset.profile_sha256.clone(),
-            scene_broadcaster_id: "gz-scene-broadcaster".into(),
+            scene_broadcaster_id: plan.platform.scene_broadcaster_id.clone(),
             scene_broadcaster_revision: plan.platform.scene_broadcaster_revision.clone(),
             scene_broadcaster_sha256: plan.platform.scene_broadcaster_sha256.clone(),
             scene_broadcaster_loaded: true,
