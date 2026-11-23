@@ -582,122 +582,156 @@ AttemptParentLinksAreStable ==
     /\ s.attempts[1].parent = 0
     /\ \A i \in 2..MaxAttempts: s.attempts[i].parent = i - 1
 
+AttemptEpochsIncreaseFor(i) ==
+    /\ s.attempts[i].authorizedBootEpoch > s.attempts[i - 1].authorizedBootEpoch
+    /\ s.attempts[i].authorizedControllerEpoch > s.attempts[i - 1].authorizedControllerEpoch
+
 AttemptEpochsIncreaseAcrossRecovery ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
-            /\ s.attempts[i].authorizedBootEpoch > s.attempts[i - 1].authorizedBootEpoch
-            /\ s.attempts[i].authorizedControllerEpoch > s.attempts[i - 1].authorizedControllerEpoch
+        (s.attempts[i].status # "unreserved" => AttemptEpochsIncreaseFor(i))
+
+MissionNoEffectConsistent(i) ==
+    /\ s.attempts[i].physicalOutcome = "no_effect"
+    /\ s.attempts[i].physicalObserverQualified
+
+MissionAppliedConsistent(i) ==
+    /\ s.attempts[i].physicalOutcome = "applied"
+    /\ s.attempts[i].physicalObserverQualified
+
+MissionUnresolvedConsistent(i) ==
+    /\ s.attempts[i].physicalOutcome \in {"partial", "unknown", "disputed"}
+    /\ s.attempts[i].physicalObserverQualified
 
 MissionResolutionMatchesPhysicalOutcome ==
     \A i \in Attempts:
         /\ (s.attempts[i].missionResolution = "no_effect" =>
-                /\ s.attempts[i].physicalOutcome = "no_effect"
-                /\ s.attempts[i].physicalObserverQualified)
+                MissionNoEffectConsistent(i))
         /\ (s.attempts[i].missionResolution = "effect_predicate_satisfied" =>
-                /\ s.attempts[i].physicalOutcome = "applied"
-                /\ s.attempts[i].physicalObserverQualified)
+                MissionAppliedConsistent(i))
         /\ (s.attempts[i].missionResolution = "unresolved" =>
-                /\ s.attempts[i].physicalOutcome \in {"partial", "unknown", "disputed"}
-                /\ s.attempts[i].physicalObserverQualified)
+                MissionUnresolvedConsistent(i))
 
 PermitUseCountMatchesAcceptedChildren ==
     s.permitUseCount =
         Cardinality({i \in 2..MaxAttempts:
             s.attempts[i].status \in {"accepted", "reconciled"}})
 
+ReservationFactsHold(i) ==
+    /\ s.attempts[i].reservationCommitted
+    /\ s.attempts[i].dispatchStarted
+    /\ s.attempts[i].authorizedBootEpoch > 0
+    /\ s.attempts[i].authorizedControllerEpoch > 0
+
 ReservationPrecedesAcceptance ==
     \A i \in Attempts:
-        s.attempts[i].status \in {"accepted", "reconciled"} =>
-            /\ s.attempts[i].reservationCommitted
-            /\ s.attempts[i].dispatchStarted
-            /\ s.attempts[i].authorizedBootEpoch > 0
-            /\ s.attempts[i].authorizedControllerEpoch > 0
+        (s.attempts[i].status \in {"accepted", "reconciled"} =>
+            ReservationFactsHold(i))
+
+RetryParentIsQualified(i) ==
+    /\ s.attempts[i - 1].status = "reconciled"
+    /\ s.attempts[i - 1].physicalOutcome = "no_effect"
+    /\ s.attempts[i - 1].physicalObserverQualified
+    /\ s.attempts[i - 1].downstreamObserverQualified
+    /\ s.attempts[i - 1].observerProofsIndependent
+    /\ s.attempts[i - 1].missionResolution = "no_effect"
+    /\ s.attempts[i - 1].persistence \in ResolvedPersistence
+    /\ s.attempts[i - 1].controllerFenceBootEpoch = s.attempts[i].authorizedBootEpoch
+    /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.attempts[i].authorizedControllerEpoch
+    /\ s.attempts[i - 1].downstreamFenceBootEpoch = s.attempts[i].authorizedBootEpoch
+    /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.attempts[i].authorizedControllerEpoch
 
 RetryAdmissionIsQualified ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
-            /\ s.attempts[i - 1].status = "reconciled"
-            /\ s.attempts[i - 1].physicalOutcome = "no_effect"
-            /\ s.attempts[i - 1].physicalObserverQualified
-            /\ s.attempts[i - 1].downstreamObserverQualified
-            /\ s.attempts[i - 1].observerProofsIndependent
-            /\ s.attempts[i - 1].missionResolution = "no_effect"
-            /\ s.attempts[i - 1].persistence \in ResolvedPersistence
-            /\ s.attempts[i - 1].controllerFenceBootEpoch = s.attempts[i].authorizedBootEpoch
-            /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.attempts[i].authorizedControllerEpoch
-            /\ s.attempts[i - 1].downstreamFenceBootEpoch = s.attempts[i].authorizedBootEpoch
-            /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.attempts[i].authorizedControllerEpoch
+        (s.attempts[i].status # "unreserved" => RetryParentIsQualified(i))
+
+CapturedRecoveryAdmissionFactsHold(i) ==
+    /\ s.attempts[i].admittedFreshBoot
+    /\ s.attempts[i].admittedFreshController
+    /\ s.attempts[i].admittedControllerFence
+    /\ s.attempts[i].admittedDownstreamFence
+    /\ s.attempts[i].admittedM1
+    /\ s.attempts[i].admittedM2
+    /\ s.attempts[i].admittedBinding
 
 RecoveryAdmissionWasCurrentAndFenced ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status \in {"accepted", "reconciled"} =>
-            /\ s.attempts[i].admittedFreshBoot
-            /\ s.attempts[i].admittedFreshController
-            /\ s.attempts[i].admittedControllerFence
-            /\ s.attempts[i].admittedDownstreamFence
-            /\ s.attempts[i].admittedM1
-            /\ s.attempts[i].admittedM2
-            /\ s.attempts[i].admittedBinding
+        (s.attempts[i].status \in {"accepted", "reconciled"} =>
+            CapturedRecoveryAdmissionFactsHold(i))
 
 NoRetryAfterUnsafePhysicalOutcome ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
-            s.attempts[i - 1].physicalOutcome = "no_effect"
+        (s.attempts[i].status # "unreserved" =>
+            s.attempts[i - 1].physicalOutcome = "no_effect")
 
 NoRetryAfterAmbiguousPersistence ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
-            s.attempts[i - 1].persistence \in ResolvedPersistence
+        (s.attempts[i].status # "unreserved" =>
+            s.attempts[i - 1].persistence \in ResolvedPersistence)
 
 NoRetryAfterUnqualifiedObserver ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
+        (s.attempts[i].status # "unreserved" =>
             /\ s.attempts[i - 1].physicalObserverQualified
             /\ s.attempts[i - 1].downstreamObserverQualified
-            /\ s.attempts[i - 1].observerProofsIndependent
+            /\ s.attempts[i - 1].observerProofsIndependent)
 
 NoRecoveryFromAppliedOrPartial ==
     \A i \in 2..MaxAttempts:
-        s.attempts[i].status # "unreserved" =>
-            s.attempts[i - 1].physicalOutcome = "no_effect"
+        (s.attempts[i].status # "unreserved" =>
+            s.attempts[i - 1].physicalOutcome = "no_effect")
 
 OneShotPermitUseBound ==
     s.permitUseCount <= MaxAttempts - 1
 
+IssuedPermitTargetsNextAttempt ==
+    /\ s.permitForAttempt \in 2..MaxAttempts
+    /\ s.activeAttempt \in {s.permitForAttempt - 1, s.permitForAttempt}
+    /\ s.attempts[s.permitForAttempt].status \in
+        {"unreserved", "reserved", "dispatch_started"}
+    /\ s.attempts[s.permitForAttempt].parent = s.permitForAttempt - 1
+
 PermitTargetsOnlyNextAttempt ==
-    s.recoveryPermit = "issued" =>
-        /\ s.permitForAttempt \in 2..MaxAttempts
-        /\ s.activeAttempt \in {s.permitForAttempt - 1, s.permitForAttempt}
-        /\ s.attempts[s.permitForAttempt].status \in
-            {"unreserved", "reserved", "dispatch_started"}
-        /\ s.attempts[s.permitForAttempt].parent = s.permitForAttempt - 1
+    (s.recoveryPermit = "issued" => IssuedPermitTargetsNextAttempt)
+
+CurrentDownstreamFenceClosesPendingCommand(i) ==
+    ~s.attempts[i].commandPending
 
 OldQueueFenceClosesPendingCommand ==
     \A i \in Attempts:
-        s.attempts[i].downstreamFenceBootEpoch = s.bootEpoch
-        /\ s.attempts[i].downstreamFenceControllerEpoch = s.controllerEpoch =>
-            ~s.attempts[i].commandPending
+        ((s.attempts[i].downstreamFenceBootEpoch = s.bootEpoch
+          /\ s.attempts[i].downstreamFenceControllerEpoch = s.controllerEpoch) =>
+            CurrentDownstreamFenceClosesPendingCommand(i))
+
+CurrentDownstreamFenceHasControllerFence(i) ==
+    /\ s.attempts[i].controllerFenceBootEpoch = s.bootEpoch
+    /\ s.attempts[i].controllerFenceControllerEpoch = s.controllerEpoch
 
 DownstreamFenceRequiresControllerFence ==
     \A i \in Attempts:
-        s.attempts[i].downstreamFenceBootEpoch = s.bootEpoch
-        /\ s.attempts[i].downstreamFenceControllerEpoch = s.controllerEpoch =>
-            /\ s.attempts[i].controllerFenceBootEpoch = s.bootEpoch
-            /\ s.attempts[i].controllerFenceControllerEpoch = s.controllerEpoch
+        ((s.attempts[i].downstreamFenceBootEpoch = s.bootEpoch
+          /\ s.attempts[i].downstreamFenceControllerEpoch = s.controllerEpoch) =>
+            CurrentDownstreamFenceHasControllerFence(i))
 
 StoreVerdictMatchesDurableRecord ==
     \A i \in Attempts:
         /\ (s.attempts[i].persistence = "committed" => s.attempts[i].storeRecord)
         /\ (s.attempts[i].persistence = "definitely_not_committed" => ~s.attempts[i].storeRecord)
 
+ObserverProofsAreUnfaulted(i) ==
+    /\ ~s.attempts[i].observerCommonCause
+    /\ ~s.attempts[i].observerSelfReport
+
 NoObserverSelfQualification ==
     \A i \in Attempts:
-        s.attempts[i].physicalObserverQualified \/ s.attempts[i].downstreamObserverQualified =>
-            /\ ~s.attempts[i].observerCommonCause
-            /\ ~s.attempts[i].observerSelfReport
+        ((s.attempts[i].physicalObserverQualified \/
+          s.attempts[i].downstreamObserverQualified) =>
+            ObserverProofsAreUnfaulted(i))
+
+CommandOwnerMatchesAttempt(i) ==
+    s.attempts[i].commandOwner = i
 
 NoCommandOwnedByWrongAttempt ==
     \A i \in Attempts:
-        s.attempts[i].commandPending => s.attempts[i].commandOwner = i
+        (s.attempts[i].commandPending => CommandOwnerMatchesAttempt(i))
 
 ====
