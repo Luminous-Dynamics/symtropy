@@ -1016,6 +1016,7 @@ mod tests {
         assert_eq!(at_seventy.selected_view_ids, vec!["VIEW-1", "VIEW-2"]);
         assert!(at_seventy.full_nominal_union_covered);
         assert!(!at_seventy.requested_k_fully_covered);
+        assert!(!at_seventy.attainable_capped_targets_fully_covered);
     }
 
     #[test]
