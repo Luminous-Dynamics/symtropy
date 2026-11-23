@@ -659,7 +659,8 @@ mod tests {
         let digest = {
             use sha2::{Digest, Sha256};
             let value = Sha256::digest(bytes);
-            value.iter().map(|byte| format!("{byte:02x}")).collect()
+            let digest: String = value.iter().map(|byte| format!("{byte:02x}")).collect();
+            digest
         };
         CompiledCampaignPlan::compile(&manifest, &digest).unwrap()
     }
@@ -983,6 +984,8 @@ mod tests {
         let plan = plan();
         let fault = &plan.scenarios[0].fault_events[0];
         let binding = GazeboTargetBinding {
+            world_name: "rrvr-world".into(),
+            world_epoch: "world-epoch-1".into(),
             logical_component_id: fault.target_component_id.clone(),
             target_id: "gazebo-model-001".into(),
             target_revision: fault.target_revision.clone(),
@@ -1004,10 +1007,10 @@ mod tests {
     #[test]
     fn capability_profile_rejects_scene_broadcaster_binary_drift() {
         let plan = plan();
-        let mut profile = profile(&plan);
-        profile.scene_broadcaster_sha256 = "f".repeat(64);
+        let mut wrong_plugin = profile(&plan);
+        wrong_plugin.scene_broadcaster_sha256 = "f".repeat(64);
         assert_eq!(
-            profile.validate_for_plan(&plan),
+            wrong_plugin.validate_for_plan(&plan),
             Err(GazeboAdapterError::SceneBroadcasterUnavailable)
         );
 
