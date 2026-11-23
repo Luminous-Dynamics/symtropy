@@ -305,6 +305,23 @@ mod tests {
     }
 
     #[test]
+    fn released_and_accepted_packet_dispositions_must_match_exact_state() {
+        let validator = validator();
+        let mut packet = released_packet();
+        packet["owner_disposition"]["disposition"] = json!("ACCEPTED_FOR_USE");
+        assert!(!validator.is_valid(&packet));
+
+        packet["status"] = json!("ACCEPTED_FOR_USE");
+        packet["acceptance"]["first_article_results_ref"] =
+            evidence("quality-owner", "first-article-results");
+        set_gate(&mut packet, "G4");
+        assert!(validator.is_valid(&packet));
+
+        packet["owner_disposition"]["disposition"] = json!("RELEASED_FOR_FABRICATION");
+        assert!(!validator.is_valid(&packet));
+    }
+
+    #[test]
     fn evidence_digest_must_be_a_sha256_hex_string() {
         let mut packet = released_packet();
         packet["product"]["cartridge"]["datasheet_ref"]["sha256"] = json!("not-a-digest");
