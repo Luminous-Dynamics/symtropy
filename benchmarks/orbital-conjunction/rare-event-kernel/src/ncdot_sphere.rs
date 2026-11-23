@@ -12,9 +12,7 @@
 //! propagate orbits, or adapt the temporal grid.
 
 use crate::KernelError;
-use crate::conditional_velocity::{
-    ConditionalVelocityDistribution, ZeroConditionalVarianceMode,
-};
+use crate::conditional_velocity::{ConditionalVelocityDistribution, ZeroConditionalVarianceMode};
 use crate::lebedev::{LebedevRule, lebedev_sphere_rule};
 
 /// Immutable fixed-time mean state and Ncdot normalization inputs.
@@ -184,9 +182,7 @@ pub fn integrate_ncdot_sphere(
     let exact_zero_integrand = maximum_log_integrand == f64::NEG_INFINITY;
 
     let weight_sum = compensated_sum(rule.nodes().iter().map(|node| node.weight));
-    if !weight_sum.is_finite()
-        || (weight_sum - 4.0 * core::f64::consts::PI).abs() > 2.0e-12
-    {
+    if !weight_sum.is_finite() || (weight_sum - 4.0 * core::f64::consts::PI).abs() > 2.0e-12 {
         return Err(KernelError::InvalidSphereQuadratureWeights);
     }
 
@@ -240,8 +236,7 @@ pub fn integrate_ncdot_sphere(
         log_sum_exp(&significant_log_contributions)?
     };
 
-    let significant_integral_fraction =
-        log_fraction(significant_log_integral, log_sphere_integral);
+    let significant_integral_fraction = log_fraction(significant_log_integral, log_sphere_integral);
     let maximum_node_integral_fraction =
         log_fraction(maximum_log_weighted_contribution, log_sphere_integral);
 
@@ -430,8 +425,14 @@ mod tests {
         let pointwise = nu * (-0.5_f64).exp();
         let expected_sphere_integral = 4.0 * core::f64::consts::PI * pointwise;
         assert_eq!(report.node_count, 5810);
-        assert!((report.sphere_integral - expected_sphere_integral).abs() < expected_sphere_integral * 2.0e-12);
-        assert!((report.collision_rate - expected_sphere_integral).abs() < expected_sphere_integral * 2.0e-12);
+        assert!(
+            (report.sphere_integral - expected_sphere_integral).abs()
+                < expected_sphere_integral * 2.0e-12
+        );
+        assert!(
+            (report.collision_rate - expected_sphere_integral).abs()
+                < expected_sphere_integral * 2.0e-12
+        );
         assert_eq!(report.significant_node_count, 5810);
         assert!((report.significant_integral_fraction - 1.0).abs() < 1.0e-13);
         assert!(report.adequacy_satisfied);
