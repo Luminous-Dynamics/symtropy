@@ -347,7 +347,6 @@ fn hopcroft_karp_matching(
 ) -> (usize, Vec<Option<usize>>) {
     const UNREACHED: usize = usize::MAX;
 
-
     let left_count = graph.len();
     let mut left_to_right = vec![None; left_count];
     let mut right_to_left = vec![None; right_count];
@@ -1274,7 +1273,7 @@ mod tests {
         let edge_slots = node_count * node_count;
         for mask in 0usize..(1usize << edge_slots) {
             let mut graph = vec![Vec::new(); node_count];
-            for edges in &mut graph {
+            for (left, edges) in graph.iter_mut().enumerate() {
                 for right in 0..node_count {
                     let bit = left * node_count + right;
                     if (mask & (1usize << bit)) != 0 {
@@ -1302,7 +1301,7 @@ mod tests {
         for panel in 0..4096usize {
             let density_cutoff = (panel % 8) as u64;
             let mut graph = vec![Vec::new(); node_count];
-            for (left, edges) in graph.iter_mut().enumerate() {
+            for edges in &mut graph {
                 for right in 0..node_count {
                     state = state
                         .wrapping_mul(6_364_136_223_846_793_005)
