@@ -288,7 +288,11 @@ fn validate_problem(problem: &PlanningProblem) -> Result<(), String> {
             .checked_add(view.cost_units)
             .ok_or_else(|| "PLANNING_TOTAL_COST_OVERFLOW".to_owned())?;
 
-        let nominal: BTreeSet<&str> = view.nominal_feature_ids.iter().map(String::as_str).collect();
+        let nominal: BTreeSet<&str> = view
+            .nominal_feature_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         let robust: BTreeSet<&str> = view.robust_feature_ids.iter().map(String::as_str).collect();
         if nominal.len() != view.nominal_feature_ids.len()
             || robust.len() != view.robust_feature_ids.len()
@@ -309,11 +313,18 @@ pub fn problem_from_case(
     max_total_cost_units: u64,
 ) -> Result<PlanningProblem, String> {
     let evaluated = evaluate_case(case)?;
-    let case_view_ids: BTreeSet<&str> =
-        case.views.iter().map(|view| view.view_id.as_str()).collect();
+    let case_view_ids: BTreeSet<&str> = case
+        .views
+        .iter()
+        .map(|view| view.view_id.as_str())
+        .collect();
     if view_cost_units.len() != case_view_ids.len()
-        || view_cost_units.keys().any(|id| !case_view_ids.contains(id.as_str()))
-        || case_view_ids.iter().any(|id| !view_cost_units.contains_key(*id))
+        || view_cost_units
+            .keys()
+            .any(|id| !case_view_ids.contains(id.as_str()))
+        || case_view_ids
+            .iter()
+            .any(|id| !view_cost_units.contains_key(*id))
     {
         return Err("VIEW_COST_MAP_MUST_MATCH_CASE_VIEWS_EXACTLY".to_owned());
     }
@@ -526,7 +537,11 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         let nominal_features = view
             .nominal_feature_ids
             .iter()
-            .map(|id| *feature_indices.get(id.as_str()).expect("validated feature id"))
+            .map(|id| {
+                *feature_indices
+                    .get(id.as_str())
+                    .expect("validated feature id")
+            })
             .collect();
         let robust_features = view
             .robust_feature_ids
@@ -552,7 +567,11 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         problem,
         views,
         required: required.clone(),
-        view_ids: problem.views.iter().map(|view| view.view_id.clone()).collect(),
+        view_ids: problem
+            .views
+            .iter()
+            .map(|view| view.view_id.clone())
+            .collect(),
         results: SearchResults::default(),
     };
     let mut state = SearchState {
@@ -711,13 +730,35 @@ mod tests {
     fn exact_optimizer_defeats_a_greedy_trap() {
         let problem = problem(
             vec![
-                feature("F1", 1), feature("F2", 1), feature("F3", 1),
-                feature("F4", 1), feature("F5", 1), feature("F6", 1),
+                feature("F1", 1),
+                feature("F2", 1),
+                feature("F3", 1),
+                feature("F4", 1),
+                feature("F5", 1),
+                feature("F6", 1),
             ],
             vec![
-                view("VIEW-A", "DOMAIN-A", 1, &["F1", "F2", "F3", "F4"], &["F1", "F2", "F3", "F4"]),
-                view("VIEW-B", "DOMAIN-B", 1, &["F1", "F2", "F5"], &["F1", "F2", "F5"]),
-                view("VIEW-C", "DOMAIN-C", 1, &["F3", "F4", "F6"], &["F3", "F4", "F6"]),
+                view(
+                    "VIEW-A",
+                    "DOMAIN-A",
+                    1,
+                    &["F1", "F2", "F3", "F4"],
+                    &["F1", "F2", "F3", "F4"],
+                ),
+                view(
+                    "VIEW-B",
+                    "DOMAIN-B",
+                    1,
+                    &["F1", "F2", "F5"],
+                    &["F1", "F2", "F5"],
+                ),
+                view(
+                    "VIEW-C",
+                    "DOMAIN-C",
+                    1,
+                    &["F3", "F4", "F6"],
+                    &["F3", "F4", "F6"],
+                ),
             ],
             3,
             3,
@@ -748,9 +789,15 @@ mod tests {
         );
 
         let receipt = solve(&problem).unwrap();
-        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Infeasible);
+        assert_eq!(
+            receipt.candidate_geometry_disposition,
+            Disposition::Infeasible
+        );
         assert_eq!(receipt.robustly_feasible_subsets, 0);
-        assert_eq!(receipt.planning_disposition, PlanningDisposition::Infeasible);
+        assert_eq!(
+            receipt.planning_disposition,
+            PlanningDisposition::Infeasible
+        );
     }
 
     #[test]
@@ -766,8 +813,14 @@ mod tests {
         );
 
         let receipt = solve(&problem).unwrap();
-        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Indeterminate);
-        assert_eq!(receipt.planning_disposition, PlanningDisposition::Indeterminate);
+        assert_eq!(
+            receipt.candidate_geometry_disposition,
+            Disposition::Indeterminate
+        );
+        assert_eq!(
+            receipt.planning_disposition,
+            PlanningDisposition::Indeterminate
+        );
         assert_eq!(receipt.nominally_feasible_subsets, 1);
         assert_eq!(receipt.robustly_feasible_subsets, 0);
         assert!(!receipt.greedy_next_best_view.robustly_covered);
@@ -786,8 +839,14 @@ mod tests {
         );
 
         let receipt = solve(&problem).unwrap();
-        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Feasible);
-        assert_eq!(receipt.planning_disposition, PlanningDisposition::BudgetInfeasible);
+        assert_eq!(
+            receipt.candidate_geometry_disposition,
+            Disposition::Feasible
+        );
+        assert_eq!(
+            receipt.planning_disposition,
+            PlanningDisposition::BudgetInfeasible
+        );
         assert_eq!(receipt.robustly_feasible_subsets, 0);
     }
 
@@ -799,6 +858,9 @@ mod tests {
             1,
             1,
         );
-        assert_eq!(solve(&problem), Err("PLANNING_VIEW_COVERAGE_INVALID".to_owned()));
+        assert_eq!(
+            solve(&problem),
+            Err("PLANNING_VIEW_COVERAGE_INVALID".to_owned())
+        );
     }
 }
