@@ -30,7 +30,8 @@ pub struct PlanningView {
     pub robust_feature_ids: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanningProblem {
     pub case_id: String,
     pub coordinate_frame_id: String,
@@ -867,4 +868,120 @@ mod tests {
             Err("PLANNING_VIEW_COVERAGE_INVALID".to_owned())
         );
     }
+}
+
+
+pub const PLANNING_CORPUS_SCHEMA: &str =
+    "luminous.orbital-truss-inspectability.planning-corpus.v0.1";
+pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-001";
+pub const PLANNING_CORPUS_RECEIPT_SCHEMA: &str =
+    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.1";
+pub const PLANNING_CASE_COUNT: usize = 5;
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlanningCorpus {
+    pub schema: String,
+    pub benchmark_id: String,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
+    pub cases: Vec<PlanningCorpusCase>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlanningCorpusCase {
+    pub case_id: String,
+    pub expected_candidate_geometry_disposition: Disposition,
+    pub expected_planning_disposition: PlanningDisposition,
+    pub problem: PlanningProblem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PlanningCorpusCaseReceipt {
+    pub case_id: String,
+    pub expected_candidate_geometry_disposition: Disposition,
+    pub expected_planning_disposition: PlanningDisposition,
+    pub candidate_geometry_matches: bool,
+    pub planning_matches: bool,
+    pub planning: PlanningReceipt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PlanningCorpusReceipt {
+    pub schema: String,
+    pub benchmark_id: String,
+    pub source_commit: String,
+    pub input_sha256: String,
+    pub evidence_class: String,
+    pub claim_ceiling: String,
+    pub case_count: usize,
+    pub expected_outcome_matches: usize,
+    pub expected_outcome_mismatches: usize,
+    pub authority_granted: bool,
+    pub physical_validation: String,
+    pub cases: Vec<PlanningCorpusCaseReceipt>,
+}
+
+pub fn audit_planning_corpus(
+    bytes: &[u8],
+    source_commit: &str,
+) -> Result<PlanningCorpusReceipt, String> {
+    if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
+    }
+
+    let corpus: PlanningCorpus = serde_json::from_slice(bytes)
+        .map_err(|error| format!("PLANNING_CORPUS_PARSE_FAILED:{error}"))?;
+    if corpus.schema != PLANNING_CORPUS_SCHEMA
+        || corpus.benchmark_id != PLANNING_CORPUS_BENCHMARK_ID
+        || corpus.evidence_class != "synthetic"
+        || corpus.claim_ceiling != "synthetic_2d_geometric_observability_and_view_selection_only"
+        || corpus.cases.len() != PLANNING_CASE_COUNT
+    {
+        return Err("PLANNING_CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
+    }
+
+    let mut case_ids = BTreeSet::new();
+    let mut receipts = Vec::with_capacity(corpus.cases.len());
+    let mut expected_outcome_matches = 0_usize;
+    for case in &corpus.cases {
+        if case.case_id.trim().is_empty()
+            || !case_ids.insert(case.case_id.as_str())
+            || case.problem.case_id != case.case_id
+        {
+            return Err("PLANNING_CORPUS_CASE_ID_INVALID".to_owned());
+        }
+        let planning = solve(&case.problem)?;
+        let candidate_geometry_matches =
+            planning.candidate_geometry_disposition == case.expected_candidate_geometry_disposition;
+        let planning_matches = planning.planning_disposition == case.expected_planning_disposition;
+        if candidate_geometry_matches && planning_matches {
+            expected_outcome_matches += 1;
+        }
+        receipts.push(PlanningCorpusCaseReceipt {
+            case_id: case.case_id.clone(),
+            expected_candidate_geometry_disposition: case
+                .expected_candidate_geometry_disposition,
+            expected_planning_disposition: case.expected_planning_disposition,
+            candidate_geometry_matches,
+            planning_matches,
+            planning,
+        });
+    }
+
+    Ok(PlanningCorpusReceipt {
+        schema: PLANNING_CORPUS_RECEIPT_SCHEMA.to_owned(),
+        benchmark_id: PLANNING_CORPUS_BENCHMARK_ID.to_owned(),
+        source_commit: source_commit.to_ascii_lowercase(),
+        input_sha256: sha256_hex(bytes),
+        evidence_class: corpus.evidence_class,
+        claim_ceiling: corpus.claim_ceiling,
+        case_count: receipts.len(),
+        expected_outcome_matches,
+        expected_outcome_mismatches: receipts.len() - expected_outcome_matches,
+        authority_granted: false,
+        physical_validation: "NOT_ASSESSED".to_owned(),
+        cases: receipts,
+    })
 }
