@@ -14,9 +14,10 @@ use super::{ConstraintRowFamily, ValidationError, checked_sum, is_sha256, non_em
 pub enum GeometricPointDisposition {
     Retained = 1,
     ReducedByPolicy = 2,
-    CapacityDropped = 3,
-    Invalid = 4,
-    Unsupported = 5,
+    CandidateBufferCapacityDropped = 3,
+    ManifoldCapacityDropped = 4,
+    Invalid = 5,
+    Unsupported = 6,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -132,7 +133,8 @@ pub struct AggregateManifoldCounts {
     pub generated_points: u64,
     pub retained_points: u64,
     pub reduced_by_policy: u64,
-    pub capacity_dropped: u64,
+    pub candidate_buffer_capacity_dropped: u64,
+    pub manifold_capacity_dropped: u64,
     pub invalid_points: u64,
     pub unsupported_points: u64,
     pub solver_contact_groups: u64,
@@ -151,7 +153,8 @@ impl AggregateManifoldCounts {
             &[
                 self.retained_points,
                 self.reduced_by_policy,
-                self.capacity_dropped,
+                self.candidate_buffer_capacity_dropped,
+                self.manifold_capacity_dropped,
                 self.invalid_points,
                 self.unsupported_points,
             ],
@@ -201,7 +204,10 @@ pub struct ContactManifoldLineage {
     /// Present when any generated point is intentionally reduced by policy.
     pub reduction_policy_id: Option<String>,
     /// Inline manifold point capacity; None means the adapter declares no fixed cap.
-    pub point_capacity: Option<u64>,
+    /// Capacity of the temporary candidate buffer before deliberate reduction.
+    pub candidate_buffer_capacity: Option<u64>,
+    /// Capacity of the final stored manifold points.
+    pub manifold_point_capacity: Option<u64>,
     /// Exactly one disposition for each generated geometric candidate in StablePointIds mode.
     pub generated_points: Vec<GeometricPointRecord>,
     /// Solver contacts may represent one point or a cluster of geometric points.
@@ -218,7 +224,8 @@ pub struct ContactManifoldReport {
     pub generated_points: u64,
     pub retained_points: u64,
     pub reduced_by_policy: u64,
-    pub capacity_dropped: u64,
+    pub candidate_buffer_capacity_dropped: u64,
+    pub manifold_capacity_dropped: u64,
     pub invalid_points: u64,
     pub unsupported_points: u64,
     pub solver_groups: u64,
@@ -231,7 +238,8 @@ pub struct ContactManifoldReport {
     pub solver_not_submitted_points: u64,
     pub solver_aborted_points: u64,
     pub solver_mapping_complete: bool,
-    pub point_capacity_respected: bool,
+    pub candidate_buffer_capacity_respected: bool,
+    pub manifold_point_capacity_respected: bool,
 }
 
 impl ContactManifoldLineage {
@@ -274,13 +282,24 @@ impl ContactManifoldLineage {
                     "aggregate reductions require a reduction policy identity",
                 ));
             }
-            let point_capacity_respected = self
-                .point_capacity
+            let candidate_buffer_accepted = checked_sum(
+                &[
+                    counts.retained_points,
+                    counts.reduced_by_policy,
+                    counts.manifold_capacity_dropped,
+                ],
+                "manifold.aggregate_counts",
+            )?;
+            let candidate_buffer_capacity_respected = self
+                .candidate_buffer_capacity
+                .is_none_or(|capacity| candidate_buffer_accepted <= capacity);
+            let manifold_point_capacity_respected = self
+                .manifold_point_capacity
                 .is_none_or(|capacity| counts.retained_points <= capacity);
-            if !point_capacity_respected {
+            if !candidate_buffer_capacity_respected || !manifold_point_capacity_respected {
                 return Err(ValidationError::new(
-                    "manifold.point_capacity",
-                    "aggregate retained points exceed the declared inline point capacity",
+                    "manifold.capacity",
+                    "aggregate candidate or final-manifold population exceeds its declared capacity",
                 ));
             }
             return Ok(ContactManifoldReport {
@@ -288,7 +307,8 @@ impl ContactManifoldLineage {
                 generated_points: counts.generated_points,
                 retained_points: counts.retained_points,
                 reduced_by_policy: counts.reduced_by_policy,
-                capacity_dropped: counts.capacity_dropped,
+                candidate_buffer_capacity_dropped: counts.candidate_buffer_capacity_dropped,
+                manifold_capacity_dropped: counts.manifold_capacity_dropped,
                 invalid_points: counts.invalid_points,
                 unsupported_points: counts.unsupported_points,
                 solver_groups: counts.solver_contact_groups,
@@ -301,7 +321,8 @@ impl ContactManifoldLineage {
                 solver_not_submitted_points: counts.solver_not_submitted_points,
                 solver_aborted_points: counts.solver_aborted_points,
                 solver_mapping_complete: false,
-                point_capacity_respected,
+                candidate_buffer_capacity_respected,
+                manifold_point_capacity_respected,
             });
         }
         if self.aggregate_counts.is_some() {
@@ -315,7 +336,8 @@ impl ContactManifoldLineage {
         let mut generated_points = 0_u64;
         let mut retained_points = 0_u64;
         let mut reduced_by_policy = 0_u64;
-        let mut capacity_dropped = 0_u64;
+        let mut candidate_buffer_capacity_dropped = 0_u64;
+        let mut manifold_capacity_dropped = 0_u64;
         let mut invalid_points = 0_u64;
         let mut unsupported_points = 0_u64;
 
@@ -334,7 +356,12 @@ impl ContactManifoldLineage {
             match point.disposition {
                 GeometricPointDisposition::Retained => retained_points += 1,
                 GeometricPointDisposition::ReducedByPolicy => reduced_by_policy += 1,
-                GeometricPointDisposition::CapacityDropped => capacity_dropped += 1,
+                GeometricPointDisposition::CandidateBufferCapacityDropped => {
+                    candidate_buffer_capacity_dropped += 1
+                }
+                GeometricPointDisposition::ManifoldCapacityDropped => {
+                    manifold_capacity_dropped += 1
+                }
                 GeometricPointDisposition::Invalid => invalid_points += 1,
                 GeometricPointDisposition::Unsupported => unsupported_points += 1,
             }
@@ -347,13 +374,24 @@ impl ContactManifoldLineage {
             ));
         }
 
-        let point_capacity_respected = self
-            .point_capacity
+        let candidate_buffer_accepted = checked_sum(
+            &[
+                retained_points,
+                reduced_by_policy,
+                manifold_capacity_dropped,
+            ],
+            "manifold.candidate_buffer",
+        )?;
+        let candidate_buffer_capacity_respected = self
+            .candidate_buffer_capacity
+            .is_none_or(|capacity| candidate_buffer_accepted <= capacity);
+        let manifold_point_capacity_respected = self
+            .manifold_point_capacity
             .is_none_or(|capacity| retained_points <= capacity);
-        if !point_capacity_respected {
+        if !candidate_buffer_capacity_respected || !manifold_point_capacity_respected {
             return Err(ValidationError::new(
-                "manifold.point_capacity",
-                "retained points exceed the declared inline point capacity",
+                "manifold.capacity",
+                "candidate-buffer or final-manifold population exceeds its declared capacity",
             ));
         }
 
@@ -425,7 +463,8 @@ impl ContactManifoldLineage {
             generated_points,
             retained_points,
             reduced_by_policy,
-            capacity_dropped,
+            candidate_buffer_capacity_dropped,
+            manifold_capacity_dropped,
             invalid_points,
             unsupported_points,
             solver_groups: self.solver_contacts.len() as u64,
@@ -438,7 +477,8 @@ impl ContactManifoldLineage {
             solver_not_submitted_points,
             solver_aborted_points,
             solver_mapping_complete,
-            point_capacity_respected,
+            candidate_buffer_capacity_respected,
+            manifold_point_capacity_respected,
         })
     }
 }
@@ -664,7 +704,8 @@ impl CapacityEvidence {
         for lineage in lineages {
             push_string(&mut out, &lineage.pair_id);
             push_optional_string(&mut out, lineage.reduction_policy_id.as_deref());
-            push_optional_u64(&mut out, lineage.point_capacity);
+            push_optional_u64(&mut out, lineage.candidate_buffer_capacity);
+            push_optional_u64(&mut out, lineage.manifold_point_capacity);
             out.push(lineage.identity_mode as u8);
             match lineage.aggregate_counts {
                 Some(counts) => {
@@ -673,7 +714,8 @@ impl CapacityEvidence {
                         counts.generated_points,
                         counts.retained_points,
                         counts.reduced_by_policy,
-                        counts.capacity_dropped,
+                        counts.candidate_buffer_capacity_dropped,
+                        counts.manifold_capacity_dropped,
                         counts.invalid_points,
                         counts.unsupported_points,
                         counts.solver_contact_groups,
