@@ -64,6 +64,15 @@ pub struct SurfaceSupport {
     pub normal_cone_asserted: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct TriangleSupportDerivation {
+    pub support: SurfaceSupport,
+    pub support_enclosure_derived_from_triangle_vertices: bool,
+    pub planar_normal_cone_derived_from_triangle: bool,
+    pub outward_winding_input_asserted: bool,
+    pub numeric_method: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SupportSensor {
@@ -137,6 +146,89 @@ fn dot3(left: [f64; 3], right: [f64; 3]) -> f64 {
 
 fn subtract3(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
     [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
+}
+
+fn cross3(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
+    [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ]
+}
+
+/// Derive a candidate support enclosure and constant normal cone for a planar triangle.
+///
+/// The triangle is the convex hull of its three vertices. Its centroid is used as
+/// the ball centre and the maximum vertex distance as the radius. Convexity of the
+/// Euclidean norm bounds every convex combination by that maximum. A small
+/// coordinate-scale floating-point margin is added; this is not formal interval
+/// arithmetic, nor a proof that the supplied vertices identify the physical part.
+pub fn derive_planar_triangle_support(
+    support_id: &str,
+    vertices_m: [[f64; 3]; 3],
+    outward_winding_input_asserted: bool,
+) -> Result<TriangleSupportDerivation, String> {
+    if support_id.trim().is_empty() || !vertices_m.iter().all(|vertex| finite3(*vertex)) {
+        return Err("TRIANGLE_SUPPORT_ID_OR_VERTICES_INVALID".to_owned());
+    }
+    if !outward_winding_input_asserted {
+        return Err("TRIANGLE_OUTWARD_WINDING_NOT_ASSERTED".to_owned());
+    }
+
+    let edge_a = subtract3(vertices_m[1], vertices_m[0]);
+    let edge_b = subtract3(vertices_m[2], vertices_m[0]);
+    let area_normal = cross3(edge_a, edge_b);
+    let normal_length = norm3(area_normal);
+    if !normal_length.is_finite() || normal_length <= GEOMETRY_EPS {
+        return Err("TRIANGLE_SUPPORT_DEGENERATE".to_owned());
+    }
+
+    let center_m = [
+        (vertices_m[0][0] + vertices_m[1][0] + vertices_m[2][0]) / 3.0,
+        (vertices_m[0][1] + vertices_m[1][1] + vertices_m[2][1]) / 3.0,
+        (vertices_m[0][2] + vertices_m[1][2] + vertices_m[2][2]) / 3.0,
+    ];
+    if !finite3(center_m) {
+        return Err("TRIANGLE_SUPPORT_CENTROID_NONFINITE".to_owned());
+    }
+
+    let vertex_radius = vertices_m
+        .iter()
+        .map(|vertex| norm3(subtract3(*vertex, center_m)))
+        .fold(0.0_f64, f64::max);
+    let coordinate_scale = vertices_m
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(vertex_radius.max(1.0), f64::max);
+    let enclosing_ball_radius_m =
+        vertex_radius + (128.0 * f64::EPSILON * coordinate_scale);
+    if !enclosing_ball_radius_m.is_finite() || enclosing_ball_radius_m <= 0.0 {
+        return Err("TRIANGLE_SUPPORT_RADIUS_NONFINITE".to_owned());
+    }
+
+    let outward_normal_unit = [
+        area_normal[0] / normal_length,
+        area_normal[1] / normal_length,
+        area_normal[2] / normal_length,
+    ];
+    Ok(TriangleSupportDerivation {
+        support: SurfaceSupport {
+            support_id: support_id.to_owned(),
+            center_m,
+            enclosing_ball_radius_m,
+            enclosing_ball_asserted: true,
+            outward_normal_unit,
+            normal_cone_half_angle_rad: 0.0,
+            normal_cone_asserted: true,
+        },
+        support_enclosure_derived_from_triangle_vertices: true,
+        planar_normal_cone_derived_from_triangle: true,
+        outward_winding_input_asserted: true,
+        numeric_method:
+            "FLOAT64_WITH_128_EPSILON_COORDINATE_SCALE_MARGIN_NOT_FORMAL_INTERVAL_ARITHMETIC"
+                .to_owned(),
+    })
 }
 
 fn fixed_nonnegative(value: f64, scale: f64) -> Option<u64> {
@@ -605,6 +697,53 @@ mod tests {
         case.support.normal_cone_half_angle_rad = 0.6;
         let wide = evaluate_support_envelope(&case);
         assert_ne!(wide.status, SupportStatus::ConditionalWithinSensingEnvelope);
+    }
+
+    #[test]
+    fn planar_triangle_derivation_encloses_a_dense_barycentric_grid() {
+        let vertices = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+        let derived = derive_planar_triangle_support("TRIANGLE-1", vertices, true).unwrap();
+        let center = derived.support.center_m;
+        let radius = derived.support.enclosing_ball_radius_m;
+        assert!(derived.support_enclosure_derived_from_triangle_vertices);
+        assert!(derived.planar_normal_cone_derived_from_triangle);
+        assert!(derived.outward_winding_input_asserted);
+        assert_eq!(derived.support.normal_cone_half_angle_rad, 0.0);
+        assert!(derived.support.enclosing_ball_asserted);
+        assert!(derived.support.normal_cone_asserted);
+
+        for i in 0..=100 {
+            for j in 0..=(100 - i) {
+                let u = i as f64 / 100.0;
+                let v = j as f64 / 100.0;
+                let w = 1.0 - u - v;
+                let point = [
+                    vertices[0][0] * w + vertices[1][0] * u + vertices[2][0] * v,
+                    vertices[0][1] * w + vertices[1][1] * u + vertices[2][1] * v,
+                    vertices[0][2] * w + vertices[1][2] * u + vertices[2][2] * v,
+                ];
+                assert!(norm3(subtract3(point, center)) <= radius);
+            }
+        }
+        assert!((norm3(derived.support.outward_normal_unit) - 1.0).abs() < UNIT_EPS);
+    }
+
+    #[test]
+    fn planar_triangle_derivation_requires_declared_outward_winding() {
+        let vertices = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+        assert_eq!(
+            derive_planar_triangle_support("TRIANGLE-1", vertices, false),
+            Err("TRIANGLE_OUTWARD_WINDING_NOT_ASSERTED".to_owned())
+        );
+    }
+
+    #[test]
+    fn planar_triangle_derivation_rejects_degenerate_faces() {
+        let vertices = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
+        assert_eq!(
+            derive_planar_triangle_support("TRIANGLE-1", vertices, true),
+            Err("TRIANGLE_SUPPORT_DEGENERATE".to_owned())
+        );
     }
 
     #[test]
