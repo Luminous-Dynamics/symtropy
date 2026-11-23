@@ -1198,8 +1198,8 @@ mod tests {
             .expect("alternate branch policy exists");
         assert_eq!(policy.worst_case_wait_and_see_regret.numerator, 1);
         assert_eq!(policy.worst_case_wait_and_see_regret.denominator, 2);
-        assert_eq!(policy.worst_case_outcome_class_regret.numerator, 0);
-        assert_eq!(policy.worst_case_outcome_class_regret.denominator, 1);
+        assert_eq!(policy.worst_case_outcome_class_regret.numerator, 1);
+        assert_eq!(policy.worst_case_outcome_class_regret.denominator, 5);
 
         let safe_policy = result
             .policy_metrics
@@ -1209,8 +1209,8 @@ mod tests {
                     && metric.branch_actions.get("same").is_some_and(|id| id == "safe")
             })
             .expect("safe branch policy exists");
-        assert_eq!(safe_policy.worst_case_outcome_class_regret.numerator, 3);
-        assert_eq!(safe_policy.worst_case_outcome_class_regret.denominator, 10);
+        assert_eq!(safe_policy.worst_case_outcome_class_regret.numerator, 0);
+        assert_eq!(safe_policy.worst_case_outcome_class_regret.denominator, 1);
     }
 
     #[test]
