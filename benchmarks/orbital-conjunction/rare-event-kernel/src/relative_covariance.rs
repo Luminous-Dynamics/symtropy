@@ -138,8 +138,14 @@ pub fn dcp_secondary_primary_cross_covariance(
     {
         return Err(KernelError::InvalidDcpSigma);
     }
-    if !inputs.primary_sensitivity.iter().all(|value| value.is_finite())
-        || !inputs.secondary_sensitivity.iter().all(|value| value.is_finite())
+    if !inputs
+        .primary_sensitivity
+        .iter()
+        .all(|value| value.is_finite())
+        || !inputs
+            .secondary_sensitivity
+            .iter()
+            .all(|value| value.is_finite())
     {
         return Err(KernelError::NonFiniteValue);
     }
@@ -208,16 +214,16 @@ pub fn build_relative_ncdot_conditionals(
 
     let lower = cholesky_3(position)?;
     let inverse_position = inverse_from_cholesky_3(lower)?;
-    let position_log_determinant =
-        2.0 * (lower[0][0].ln() + lower[1][1].ln() + lower[2][2].ln());
+    let position_log_determinant = 2.0 * (lower[0][0].ln() + lower[1][1].ln() + lower[2][2].ln());
     if !position_log_determinant.is_finite() {
         return Err(KernelError::NumericalOverflow);
     }
 
-    let conditional_velocity_regression =
-        multiply_3(velocity_position, inverse_position);
-    let regression_times_transpose =
-        multiply_3(conditional_velocity_regression, transpose_3(velocity_position));
+    let conditional_velocity_regression = multiply_3(velocity_position, inverse_position);
+    let regression_times_transpose = multiply_3(
+        conditional_velocity_regression,
+        transpose_3(velocity_position),
+    );
     let mut conditional_velocity_covariance = subtract_3(velocity, regression_times_transpose);
     validate_finite_matrix_3(conditional_velocity_covariance)?;
     validate_symmetric_3(conditional_velocity_covariance)?;
@@ -227,8 +233,7 @@ pub fn build_relative_ncdot_conditionals(
         KernelError::InvalidConditionalVelocityCovariance,
     )?;
 
-    let log_position_density_normalizer =
-        0.5 * (3.0 * TAU.ln() + position_log_determinant);
+    let log_position_density_normalizer = 0.5 * (3.0 * TAU.ln() + position_log_determinant);
     if !log_position_density_normalizer.is_finite() {
         return Err(KernelError::NumericalOverflow);
     }
@@ -422,9 +427,7 @@ fn validate_finite_vector(vector: [f64; 3]) -> Result<(), KernelError> {
     }
 }
 
-fn validate_finite_state_covariance(
-    covariance: StateCovariance6,
-) -> Result<(), KernelError> {
+fn validate_finite_state_covariance(covariance: StateCovariance6) -> Result<(), KernelError> {
     if covariance.iter().flatten().all(|value| value.is_finite()) {
         Ok(())
     } else {
@@ -507,9 +510,7 @@ fn validate_positive_semidefinite<const N: usize>(
             for row in (pivot + 1)..N {
                 let mut residual = matrix[row][pivot];
                 for previous in 0..pivot {
-                    residual -= lower[row][previous]
-                        * lower[pivot][previous]
-                        * diagonal[previous];
+                    residual -= lower[row][previous] * lower[pivot][previous] * diagonal[previous];
                 }
                 if !residual.is_finite() || residual.abs() > tolerance {
                     return Err(error);
@@ -521,9 +522,7 @@ fn validate_positive_semidefinite<const N: usize>(
             for row in (pivot + 1)..N {
                 let mut residual = matrix[row][pivot];
                 for previous in 0..pivot {
-                    residual -= lower[row][previous]
-                        * lower[pivot][previous]
-                        * diagonal[previous];
+                    residual -= lower[row][previous] * lower[pivot][previous] * diagonal[previous];
                 }
                 if !residual.is_finite() {
                     return Err(KernelError::NumericalOverflow);
@@ -588,7 +587,8 @@ mod tests {
         for i in 0..6 {
             inputs.secondary_primary_cross_covariance[i][i] = 0.25;
         }
-        let result = build_relative_ncdot_conditionals(inputs).expect("valid correlated joint model");
+        let result =
+            build_relative_ncdot_conditionals(inputs).expect("valid correlated joint model");
         for i in 0..6 {
             assert!((result.relative_state_covariance[i][i] - 4.5).abs() < 1.0e-14);
         }
@@ -618,9 +618,7 @@ mod tests {
             result.conditional_velocity_regression,
             [[0.25, 0.0, 0.0], [0.0, 0.2, 0.0], [0.0, 0.0, 0.2]]
         );
-        assert!(
-            (result.conditional_velocity_covariance[0][0] - 1.0).abs() < 1.0e-14
-        );
+        assert!((result.conditional_velocity_covariance[0][0] - 1.0).abs() < 1.0e-14);
         assert!((result.conditional_velocity_covariance[1][1] - 0.8).abs() < 1.0e-14);
         assert!((result.conditional_velocity_covariance[2][2] - 0.5).abs() < 1.0e-14);
     }
