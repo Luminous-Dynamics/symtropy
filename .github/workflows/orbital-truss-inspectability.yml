@@ -115,7 +115,7 @@ jobs:
           cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json "$GITHUB_SHA" > /tmp/planning-b.json
           cmp /tmp/planning-a.json /tmp/planning-b.json
           jq -e '
-            .schema == "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.4" and
+            .schema == "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.5" and
             .case_count == 8 and .expected_outcome_matches == 8 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .physical_validation == "NOT_ASSESSED"
@@ -166,6 +166,18 @@ jobs:
           assert fragile_greedy["robust_requested_k_covered"] is False
           assert fragile_greedy["feature_coverage"][0]["available_candidate_views"] == 2
           assert fragile_greedy["feature_coverage"][0]["available_robust_candidate_views"] == 1
+          for case in cases.values():
+              planning = case["planning"]
+              exact_k = planning["nominal_k_exact"]
+              paper_greedy = planning["published_k_coverage_greedy"]
+              assert exact_k["minimum_cardinality_certified"] is True
+              assert exact_k["attainable_capped_target_covered"] is True
+              assert paper_greedy["attainable_capped_target_covered"] is True
+              assert paper_greedy["exact_reference_minimum_view_count"] == exact_k["selected_view_count"]
+              assert paper_greedy["view_count_gap_vs_exact"] == paper_greedy["selected_view_count"] - exact_k["selected_view_count"]
+              assert paper_greedy["view_count_gap_vs_exact"] >= 0
+              if exact_k["selected_view_count"] > 0:
+                  assert paper_greedy["relative_gap_basis_points_vs_exact"] == (paper_greedy["view_count_gap_vs_exact"] * 10000 // exact_k["selected_view_count"])
           pareto = cases["OP-005-COST-COUNT-PARETO"]["planning"]["pareto_frontier"]
           assert [(item["total_cost_units"], item["selected_view_count"]) for item in pareto] == [(2, 2), (3, 1)]
           print("Rust exact planner and independent Python oracle agree on eight frozen cases, including orthogonal k-view and failure-domain controls")

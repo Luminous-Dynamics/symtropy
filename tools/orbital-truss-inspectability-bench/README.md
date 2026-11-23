@@ -185,3 +185,12 @@ The paper directly cites the GPL-3.0 repository `IvanNik17/python-3d-analysis-li
 The globally informed greedy baseline now runs on the **nominal binary visibility matrix**, matching the paper's set multi-cover formulation. It does not use finite-pose robust coverage to select candidates or compute SBW. Its receipt reports robust counts and nominal/robust failure-domain diversity only as additional diagnostics. Therefore `requested_k_covered` and `attainable_capped_target_covered` describe nominal modeled visibility; they must never be read as physical detection or robust observability claims.
 
 The baseline uses fixed-point `exp(-slack)` lookup values (scale 1e15), integer score arithmetic and deterministic lexicographic ties. It uses selection-order cleanup because the paper's set-valued cleanup pseudocode does not specify an ordering. This is a documented deterministic transcription, not bit-for-bit replication of the authors' implementation. The paper itself calls the heuristic unguaranteed and reports no theoretical approximation bound.
+
+
+### Exact nominal k-coverage reference (v0.1)
+
+The receipt now carries a second exact result for the paper's actual set-multicover objective: minimum viewpoint cardinality under nominal binary visibility and the attainable capped per-feature target k*(v)=min(requested_k, available_nominal_views). For <=20 candidate views, subset cardinalities are enumerated from 0 upward; combinations are generated in sorted view-ID order. The first feasible combination therefore certifies minimum cardinality with deterministic lexicographic tie-breaking.
+
+This reference is deliberately distinct from the existing exact robust/domain-aware/cost-constrained planner. The paper-style dynamic greedy reports its view-count gap against this nominal k-only exact result, not against the robust planner. The receipt records whether requested k is met, whether the capped target is met, robust view counts, and nominal/robust failure-domain diversity as separate fields.
+
+For larger candidate pools this subset oracle is not intended to scale; use a solver-backed ILP/MIP with incumbent, lower bound, status and explicit optimality certificate. A timeout is not an optimality proof.
