@@ -88,6 +88,7 @@ fn run() -> Result<(), String> {
         "platform_profile_sha256": plan.platform.profile_sha256,
         "environment_artifact_sha256": plan.platform.environment_artifact_sha256,
         "simulator_revision": plan.platform.simulator_revision,
+        "gazebo_release": plan.platform.gazebo_release,
         "world_stats_topic": plan.platform.world_stats_topic,
         "scene_broadcaster_id": plan.platform.scene_broadcaster_id,
         "scene_broadcaster_revision": plan.platform.scene_broadcaster_revision,
