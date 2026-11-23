@@ -43,7 +43,7 @@ It does not assert that wrench transfer is always the correct physical choice. S
 
 ## Tests
 
-The unit suite contains 11 tests and covers:
+The unit suite contains 13 tests and covers:
 - exact preservation when old CoP lies inside the new contact hull;
 - closest-hull projection when old CoP lies outside;
 - a triangle interior barycentric allocation;
@@ -53,6 +53,8 @@ The unit suite contains 11 tests and covers:
 - current equal-distribution warm-start residual in force and moment;
 - invalid warm-start scaling;
 - invalid, duplicate and non-finite input rejection;
+- coordinate-origin translation invariance;
+- positive total-impulse scaling invariance;
 - zero-impulse undefined-CoP rejection.
 
 Run:
