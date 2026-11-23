@@ -616,11 +616,7 @@ mod tests {
                 .reasons
                 .contains(RevocationReason::ShapeOrTopologyChanged)
         );
-        assert!(
-            result
-                .reasons
-                .contains(RevocationReason::SceneReceiptStale)
-        );
+        assert!(result.reasons.contains(RevocationReason::SceneReceiptStale));
     }
 
     #[test]
@@ -660,11 +656,7 @@ mod tests {
                 .reasons
                 .contains(RevocationReason::SolverProfileChanged)
         );
-        assert!(
-            result
-                .reasons
-                .contains(RevocationReason::SceneReceiptStale)
-        );
+        assert!(result.reasons.contains(RevocationReason::SceneReceiptStale));
     }
 
     #[test]
@@ -680,11 +672,7 @@ mod tests {
         assert!(!result.horizon_eligible);
         assert!(!result.scene_discovery_current);
         assert!(result.solver_state_reusable);
-        assert!(
-            result
-                .reasons
-                .contains(RevocationReason::SceneReceiptStale)
-        );
+        assert!(result.reasons.contains(RevocationReason::SceneReceiptStale));
     }
 
     #[test]
