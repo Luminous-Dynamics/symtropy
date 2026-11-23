@@ -20,6 +20,7 @@ use super::transfer::{
 pub enum TransferAtlasFamilyV0 {
     RelabelledReverse,
     DegreeMatchedNonIsomorphic,
+    IsomorphicObservationDifferentMechanism,
     StructurallySimilarInterventionDivergent,
 }
 
@@ -94,6 +95,11 @@ impl TransferAtlasWorldV0 {
             },
             TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic => Self {
                 policy_view: degree_matched_non_isomorphic_pair(),
+                transfer_expected: false,
+                intervention_observations: None,
+            },
+            TransferAtlasFamilyV0::IsomorphicObservationDifferentMechanism => Self {
+                policy_view: relabelled_reverse_pair(),
                 transfer_expected: false,
                 intervention_observations: None,
             },
@@ -424,6 +430,20 @@ mod tests {
         assert_eq!(degree_sequence(&view.target), vec![3, 3, 3, 3, 3, 3]);
         assert_eq!(triangle_count(&view.source), 0);
         assert_eq!(triangle_count(&view.target), 2);
+    }
+
+    #[test]
+    fn unique_incidence_baseline_false_unifies_isomorphic_observation_with_different_mechanism() {
+        let world = TransferAtlasWorldV0::generate(
+            TransferAtlasFamilyV0::IsomorphicObservationDifferentMechanism,
+        );
+        let report = world.run_unique_incidence_baseline().unwrap();
+
+        assert_eq!(
+            report.disposition,
+            TransferAtlasDispositionV0::FalseUnification
+        );
+        assert!(report.witness.is_some());
     }
 
     #[test]
