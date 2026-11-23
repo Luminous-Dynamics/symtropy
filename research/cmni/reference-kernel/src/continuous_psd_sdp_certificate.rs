@@ -154,8 +154,7 @@ pub fn verify_continuous_dependence_sdp_certificate(
         source_count,
     )?;
     validate_witness_within_intervals(&primal_correlation, correlation_intervals)?;
-    let primal_correlation_min_eigenvalue =
-        minimum_symmetric_eigenvalue(&primal_correlation)?;
+    let primal_correlation_min_eigenvalue = minimum_symmetric_eigenvalue(&primal_correlation)?;
     verify_psd_minimum(
         primal_correlation_min_eigenvalue,
         &primal_correlation,
@@ -232,12 +231,8 @@ pub fn verify_continuous_dependence_sdp_certificate(
                 "sdp_pairwise_bound_multiplier_indices_invalid",
             ));
         }
-        if !multipliers.lower_multiplier.is_finite()
-            || !multipliers.upper_multiplier.is_finite()
-        {
-            return Err(ModelError::NonFiniteValue(
-                "sdp_pairwise_bound_multiplier",
-            ));
+        if !multipliers.lower_multiplier.is_finite() || !multipliers.upper_multiplier.is_finite() {
+            return Err(ModelError::NonFiniteValue("sdp_pairwise_bound_multiplier"));
         }
         if multipliers.lower_multiplier < 0.0 || multipliers.upper_multiplier < 0.0 {
             return Err(ModelError::InvalidParameter(
@@ -260,9 +255,8 @@ pub fn verify_continuous_dependence_sdp_certificate(
         .iter()
         .map(|row| row[..observation_count].to_vec())
         .collect::<Vec<_>>();
-    let mut maximum_stationarity_residual = (1.0 - observation_dual[observation_count]
-        [observation_count])
-        .abs();
+    let mut maximum_stationarity_residual =
+        (1.0 - observation_dual[observation_count][observation_count]).abs();
     let mut stationarity_scale = 1.0_f64.max(observation_dual_dimension as f64);
 
     for source_index in 0..source_count {
@@ -271,8 +265,7 @@ pub fn verify_continuous_dependence_sdp_certificate(
             .collect();
         let diagonal_coefficient = candidate.source_standard_deviations[source_index].powi(2)
             * quadratic_form(&source_column, &observation_dual_block);
-        let residual = -diagonal_coefficient
-            - correlation_dual[source_index][source_index]
+        let residual = -diagonal_coefficient - correlation_dual[source_index][source_index]
             + certificate.diagonal_equality_multipliers[source_index];
         maximum_stationarity_residual = maximum_stationarity_residual.max(residual.abs());
         stationarity_scale = stationarity_scale
@@ -296,10 +289,9 @@ pub fn verify_continuous_dependence_sdp_certificate(
             * candidate.source_standard_deviations[source_i]
             * candidate.source_standard_deviations[source_j]
             * bilinear_form(&column_i, &observation_dual_block, &column_j);
-        let residual = -cross
-            - 2.0 * correlation_dual[source_i][source_j]
-            - multipliers.lower_multiplier
-            + multipliers.upper_multiplier;
+        let residual =
+            -cross - 2.0 * correlation_dual[source_i][source_j] - multipliers.lower_multiplier
+                + multipliers.upper_multiplier;
         maximum_stationarity_residual = maximum_stationarity_residual.max(residual.abs());
         stationarity_scale = stationarity_scale
             .max(cross.abs())
@@ -339,10 +331,7 @@ pub fn verify_continuous_dependence_sdp_certificate(
 
     let primal_objective = certificate.primal_epigraph_t;
     let primal_dual_gap = primal_objective - dual_objective;
-    let gap_scale = primal_objective
-        .abs()
-        .max(dual_objective.abs())
-        .max(1.0);
+    let gap_scale = primal_objective.abs().max(dual_objective.abs()).max(1.0);
     if primal_dual_gap < -policy.feasibility_tolerance * gap_scale {
         return Err(ModelError::InvalidParameter(
             "sdp_dual_objective_exceeds_primal_objective",
@@ -582,9 +571,7 @@ mod tests {
         assert!((result.primal_information_upper_bound - 0.25).abs() < 1.0e-12);
         assert!((result.raw_dual_information_lower_bound - 0.25).abs() < 1.0e-12);
         assert!(result.primal_dual_gap.abs() < 1.0e-12);
-        assert!(
-            (result.worst_case_eig_nats_bounds[0] - 0.5 * 1.25_f64.ln()).abs() < 1.0e-12
-        );
+        assert!((result.worst_case_eig_nats_bounds[0] - 0.5 * 1.25_f64.ln()).abs() < 1.0e-12);
         assert!(result.maximum_stationarity_residual < 1.0e-12);
         assert!(!result.formal_certificate);
         assert_eq!(
@@ -605,7 +592,9 @@ mod tests {
                 &certificate,
                 policy(),
             ),
-            Err(ModelError::InvalidCovariance("sdp_observation_dual_not_psd"))
+            Err(ModelError::InvalidCovariance(
+                "sdp_observation_dual_not_psd"
+            ))
         ));
     }
 
