@@ -576,10 +576,11 @@ mod tests {
     fn refuses_shared_common_cause_across_physical_and_downstream_claims() {
         let mut recording = valid_recording();
         let assurance = recording.attempts[0].observer_assurance.as_mut().unwrap();
-        assurance.downstream_quiescence.observer_quorum.as_mut().unwrap().members[0]
-            .common_cause_domains[0] = assurance.physical_outcome.observer_quorum.as_ref().unwrap().members[0]
+        let shared_domain = assurance.physical_outcome.observer_quorum.as_ref().unwrap().members[0]
             .common_cause_domains[0]
             .clone();
+        assurance.downstream_quiescence.observer_quorum.as_mut().unwrap().members[0]
+            .common_cause_domains[0] = shared_domain;
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverQuorumUnqualified)
@@ -603,16 +604,17 @@ mod tests {
     #[test]
     fn refuses_replayed_observer_owner_receipt_from_another_attempt() {
         let mut recording = valid_recording();
-        recording.attempts[1]
-            .observer_assurance
-            .as_mut()
-            .unwrap()
-            .physical_outcome = recording.attempts[0]
+        let old_attempt_receipt = recording.attempts[0]
             .observer_assurance
             .as_ref()
             .unwrap()
             .physical_outcome
             .clone();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome = old_attempt_receipt;
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverClaimMismatch)
