@@ -393,11 +393,7 @@ fn cholesky_3x3(matrix: Matrix3) -> Result<Matrix3, KernelError> {
     for row in 0..3 {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for (left, right) in lower[row]
-                .iter()
-                .zip(lower[column].iter())
-                .take(column)
-            {
+            for (left, right) in lower[row].iter().zip(lower[column].iter()).take(column) {
                 value -= left * right;
             }
             if row == column {
