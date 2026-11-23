@@ -45,7 +45,7 @@ This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose
 
 ## Frozen corpus and tests
 
-The file at fixtures/association-v0.1.tsv contains 31 independently declared expected dispositions. Unit tests cover:
+The file at fixtures/association-v0.1.tsv contains 31 independently declared expected dispositions. The crate currently declares **27 Rust tests**. Unit tests cover:
 - exact and tolerance-bounded associations;
 - physical context mismatches;
 - globally unique matching despite local candidate ambiguity;
