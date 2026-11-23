@@ -168,3 +168,8 @@ The CLI emits a versioned report and a compact summary sidecar. A mismatch in po
 ## 9. Claim ceiling
 
 A passing scorer demonstrates corpus structural validity and deterministic metric calculation. It does not authenticate raw artifacts, prove the independent ground-truth labels, establish physical safety, or show RRVR is superior to SOTA. Superiority requires matched public benchmark runs, independently validated labels, enough representative trials, and full disclosure of protocol and denominators.
+
+
+## 10. Protocol and oracle identity locks
+
+Each episode now carries the host benchmark ID/revision, native policy-wrapper revision, safety-specification revision, independent delivery-adjudicator revision and root-cause-adjudicator revision. These are part of the matched-input commitment: two arms cannot be compared if they quietly use different host protocols or oracle versions. A scenario-cluster ID is also required and reported separately from the number of matched pairs so later inferential analysis can avoid counting repeated episodes from one scenario family as independent clusters.
