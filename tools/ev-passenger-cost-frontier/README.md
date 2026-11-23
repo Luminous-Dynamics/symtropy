@@ -355,3 +355,24 @@ The frozen fixture contains 11 requests, six aerial opportunities, six fallback 
 The research dossier is `docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md`. It compares the request-admission work to Zhao et al. (dynamic arrivals and changing weather, TR-E 2026, DOI 10.1016/j.tre.2026.105074), Lu et al. (real-options mode switching, TR-C 2026, DOI 10.1016/j.trc.2026.105807), Liang et al. (multi-visit pickup/delivery and drone resupply, EJOR 2026, DOI 10.1016/j.ejor.2026.10.020), and Xu et al. (mobile swapping/charging under uncertainty, TR-D 2026, DOI 10.1016/j.trd.2026.105458).
 
 This remains a synthetic online admission model. Weather/permission envelopes are declarative; they are not authenticated. Service opportunities and capacity report digests are inputs, not independently verified physical receipts. No route, flight, dispatch, market, regulatory or customer-delivery authority is granted.
+
+
+## MOBILITY-CAPACITY-OPPORTUNITY-RECEIPTS-001 — event-derived aerial service opportunities
+
+The composition child of [#6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909) and [#6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921) is tracked in [#6999](https://github.com/Luminous-Dynamics/symtropy/issues/6999).
+
+The capacity event simulator now emits one deterministic `CapacityServiceOpportunity` for every mission that it scheduled and completed within the declared horizon. Each record includes:
+- stable opportunity ID (`aircraft-NN-mission-NNNNNN`);
+- exact aircraft ID;
+- zero-based per-aircraft mission sequence;
+- mission start time;
+- mission duration;
+- landing-to-next-takeoff turnaround.
+
+The record is created only when the simulator initially schedules an aircraft's first mission, when an actual ready spare is assigned after landing, or when a completed charge restores a waiting aircraft. A charging queue that never completes cannot create a later opportunity. Missions that cannot finish inside the horizon are not exported as service opportunities.
+
+The report publishes a canonical `service_opportunity_digest` (SHA-256 over the serialized ordered opportunity array). Records are sorted by start time, aircraft ID and mission sequence. CI asserts that receipt count equals completed sorties, checks the digest shape and asserts the frozen Dock-shaped profile's first opportunity ID.
+
+The next adapter step is to make #6921 consume these exact upstream records, rather than accepting user-authored aircraft/time/duration slots. The digest detects inconsistency against the supplied report bytes; it is not an authenticated producer signature or proof of field performance.
+
+Runner verification is pending on the current branch. Do not treat source-level receipt generation as verified until exact-head formatting, Rust tests, deterministic report assertions and artifact upload pass.

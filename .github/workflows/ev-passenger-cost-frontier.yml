@@ -503,6 +503,10 @@ jobs:
             and .horizon_seconds == 28800
             and .capacity_is_physical_performance_claim == false
             and (.architecture_results | length) == 4
+            and all(.architecture_results[]; (.service_opportunities | length) == .completed_sorties)
+            and all(.architecture_results[]; (.service_opportunity_digest | test("^sha256:[0-9a-f]{64}$")))
+            and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .service_opportunities | length] == [38])
+            and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .service_opportunities[0].opportunity_id] == ["aircraft-00-mission-000000"])
             and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .effective_charging_channels] == [2])
             and ([.architecture_results[] | select(.architecture_id == "fixed_dock4_grid_constrained") | .effective_charging_channels] == [1])
             and ([.architecture_results[] | select(.architecture_id == "two_aircraft_shared_qualified_pool") | .effective_charging_channels] == [3])

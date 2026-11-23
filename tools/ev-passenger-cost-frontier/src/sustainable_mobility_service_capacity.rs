@@ -11,6 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 const MAX_SCENARIOS: usize = 16;
 const MAX_AIRCRAFT: u8 = 8;
@@ -57,6 +58,17 @@ pub struct SustainableServiceCapacityInput {
     pub claim_ceiling: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct CapacityServiceOpportunity {
+    pub opportunity_id: String,
+    pub aircraft_id: String,
+    /// Zero-based mission sequence for this aircraft within the report horizon.
+    pub mission_sequence: u32,
+    pub start_seconds: u64,
+    pub mission_duration_seconds: u32,
+    pub turnaround_seconds: u32,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ArchitectureCapacityResult {
     pub architecture_id: String,
@@ -65,6 +77,10 @@ pub struct ArchitectureCapacityResult {
     pub effective_charging_channels: u8,
     pub modelled_charging_power_w: u64,
     pub completed_sorties: u64,
+    /// Exact mission slots scheduled by this event simulation and completing within the horizon.
+    pub service_opportunities: Vec<CapacityServiceOpportunity>,
+    /// SHA-256 of the canonical serialized service_opportunities array.
+    pub service_opportunity_digest: String,
     pub completed_mission_hours: f64,
     pub completed_cycles_per_hour: f64,
     pub completed_cycles_per_aircraft_hour: f64,
@@ -103,15 +119,20 @@ pub struct SustainableServiceCapacityReport {
 
 #[derive(Debug, Clone, Copy)]
 enum ScheduledEvent {
-    ChargeComplete { channel_id: u8 },
-    MissionComplete { aircraft_id: u8 },
+    ChargeComplete {
+        channel_id: u8,
+    },
+    MissionComplete {
+        aircraft_id: u8,
+        mission_sequence: u32,
+    },
 }
 
 impl ScheduledEvent {
     fn order_key(self) -> (u8, u8) {
         match self {
             Self::ChargeComplete { channel_id } => (0, channel_id),
-            Self::MissionComplete { aircraft_id } => (1, aircraft_id),
+            Self::MissionComplete { aircraft_id, .. } => (1, aircraft_id),
         }
     }
 }
@@ -183,6 +204,89 @@ fn effective_charging_channels(scenario: &ServiceArchitecture) -> u8 {
         .min(scenario.parallel_charging_channels)
 }
 
+fn service_opportunity_id(aircraft_id: u8, mission_sequence: u32) -> String {
+    format!("aircraft-{aircraft_id:02}-mission-{mission_sequence:06}")
+}
+
+fn record_service_opportunity(
+    scenario: &ServiceArchitecture,
+    horizon_seconds: u64,
+    aircraft_id: u8,
+    mission_sequence: u32,
+    start_seconds: u64,
+    opportunities: &mut Vec<CapacityServiceOpportunity>,
+) -> Result<(), String> {
+    let mission_end = start_seconds
+        .checked_add(u64::from(scenario.mission_duration_seconds))
+        .ok_or_else(|| "service_opportunity_mission_end_overflow".to_owned())?;
+    if mission_end > horizon_seconds {
+        return Ok(());
+    }
+    if opportunities.len() >= MAX_EVENTS {
+        return Err("service_opportunity_limit_exceeded".to_owned());
+    }
+
+    opportunities.push(CapacityServiceOpportunity {
+        opportunity_id: service_opportunity_id(aircraft_id, mission_sequence),
+        aircraft_id: format!("aircraft-{aircraft_id:02}"),
+        mission_sequence,
+        start_seconds,
+        mission_duration_seconds: scenario.mission_duration_seconds,
+        turnaround_seconds: scenario.operational_turnaround_seconds,
+    });
+    Ok(())
+}
+
+fn schedule_next_mission(
+    scenario: &ServiceArchitecture,
+    horizon_seconds: u64,
+    now: u64,
+    aircraft_id: u8,
+    completed_mission_sequence: u32,
+    timeline: &mut BTreeMap<u64, Vec<ScheduledEvent>>,
+    opportunities: &mut Vec<CapacityServiceOpportunity>,
+) -> Result<(), String> {
+    let mission_sequence = completed_mission_sequence
+        .checked_add(1)
+        .ok_or_else(|| "aircraft_mission_sequence_overflow".to_owned())?;
+    let start_seconds = now
+        .checked_add(u64::from(scenario.operational_turnaround_seconds))
+        .ok_or_else(|| "next_mission_start_overflow".to_owned())?;
+    record_service_opportunity(
+        scenario,
+        horizon_seconds,
+        aircraft_id,
+        mission_sequence,
+        start_seconds,
+        opportunities,
+    )?;
+    let completion_seconds = start_seconds
+        .checked_add(u64::from(scenario.mission_duration_seconds))
+        .ok_or_else(|| "next_mission_completion_time_overflow".to_owned())?;
+    timeline
+        .entry(completion_seconds)
+        .or_default()
+        .push(ScheduledEvent::MissionComplete {
+            aircraft_id,
+            mission_sequence,
+        });
+    Ok(())
+}
+
+fn canonical_service_opportunity_digest(
+    opportunities: &[CapacityServiceOpportunity],
+) -> Result<String, String> {
+    let bytes = serde_json::to_vec(opportunities)
+        .map_err(|error| format!("service_opportunity_serialization_failed:{error}"))?;
+    let digest = Sha256::digest(bytes);
+    let mut hex = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    Ok(format!("sha256:{hex}"))
+}
+
 fn energy_proxy_mwh(power_w: u32, seconds: u64) -> Result<u64, String> {
     let value = u128::from(power_w)
         .checked_mul(u128::from(seconds))
@@ -242,12 +346,13 @@ pub fn evaluate_architecture_capacity(
     let mut free_channels: BTreeSet<u8> = (0..channels).collect();
     let mut ready_spares = scenario.initial_ready_spares;
     let mut charge_queue: VecDeque<()> = VecDeque::new();
-    let mut waiting_aircraft: VecDeque<(u8, u64)> = VecDeque::new();
+    let mut waiting_aircraft: VecDeque<(u8, u64, u32)> = VecDeque::new();
     let mut timeline: BTreeMap<u64, Vec<ScheduledEvent>> = BTreeMap::new();
 
     let mut charge_starts = 0_u64;
     let mut charge_completions = 0_u64;
     let mut completed_sorties = 0_u64;
+    let mut service_opportunities = Vec::new();
     let mut charge_queue_peak = 0_usize;
     let mut waiting_aircraft_peak = 0_usize;
     let mut aircraft_wait_seconds = 0_u64;
@@ -256,10 +361,22 @@ pub fn evaluate_architecture_capacity(
     let mut event_count = 0_usize;
 
     for aircraft_id in 0..scenario.aircraft_count {
+        record_service_opportunity(
+            scenario,
+            horizon_seconds,
+            aircraft_id,
+            0,
+            0,
+            &mut service_opportunities,
+        )
+        .map_err(|error| vec![error])?;
         timeline
             .entry(u64::from(scenario.mission_duration_seconds))
             .or_default()
-            .push(ScheduledEvent::MissionComplete { aircraft_id });
+            .push(ScheduledEvent::MissionComplete {
+                aircraft_id,
+                mission_sequence: 0,
+            });
     }
 
     while let Some((&now, _)) = timeline.first_key_value() {
@@ -286,7 +403,9 @@ pub fn evaluate_architecture_capacity(
                         .checked_add(1)
                         .ok_or_else(|| vec!["charge_completion_count_overflow".to_owned()])?;
 
-                    if let Some((aircraft_id, wait_started_at)) = waiting_aircraft.pop_front() {
+                    if let Some((aircraft_id, wait_started_at, completed_mission_sequence)) =
+                        waiting_aircraft.pop_front()
+                    {
                         let wait = now.saturating_sub(wait_started_at);
                         aircraft_wait_seconds = aircraft_wait_seconds
                             .checked_add(wait)
@@ -294,18 +413,16 @@ pub fn evaluate_architecture_capacity(
                         max_single_aircraft_wait_seconds =
                             max_single_aircraft_wait_seconds.max(wait);
 
-                        let next_mission = now
-                            .checked_add(u64::from(scenario.operational_turnaround_seconds))
-                            .and_then(|value| {
-                                value.checked_add(u64::from(scenario.mission_duration_seconds))
-                            })
-                            .ok_or_else(|| {
-                                vec!["next_mission_completion_time_overflow".to_owned()]
-                            })?;
-                        timeline
-                            .entry(next_mission)
-                            .or_default()
-                            .push(ScheduledEvent::MissionComplete { aircraft_id });
+                        schedule_next_mission(
+                            scenario,
+                            horizon_seconds,
+                            now,
+                            aircraft_id,
+                            completed_mission_sequence,
+                            &mut timeline,
+                            &mut service_opportunities,
+                        )
+                        .map_err(|error| vec![error])?;
                     } else {
                         ready_spares = ready_spares
                             .checked_add(1)
@@ -325,7 +442,10 @@ pub fn evaluate_architecture_capacity(
                     )
                     .map_err(|error| vec![error])?;
                 }
-                ScheduledEvent::MissionComplete { aircraft_id } => {
+                ScheduledEvent::MissionComplete {
+                    aircraft_id,
+                    mission_sequence,
+                } => {
                     completed_sorties = completed_sorties
                         .checked_add(1)
                         .ok_or_else(|| vec!["completed_sortie_count_overflow".to_owned()])?;
@@ -334,20 +454,18 @@ pub fn evaluate_architecture_capacity(
 
                     if ready_spares > 0 {
                         ready_spares -= 1;
-                        let next_mission = now
-                            .checked_add(u64::from(scenario.operational_turnaround_seconds))
-                            .and_then(|value| {
-                                value.checked_add(u64::from(scenario.mission_duration_seconds))
-                            })
-                            .ok_or_else(|| {
-                                vec!["next_mission_completion_time_overflow".to_owned()]
-                            })?;
-                        timeline
-                            .entry(next_mission)
-                            .or_default()
-                            .push(ScheduledEvent::MissionComplete { aircraft_id });
+                        schedule_next_mission(
+                            scenario,
+                            horizon_seconds,
+                            now,
+                            aircraft_id,
+                            mission_sequence,
+                            &mut timeline,
+                            &mut service_opportunities,
+                        )
+                        .map_err(|error| vec![error])?;
                     } else {
-                        waiting_aircraft.push_back((aircraft_id, now));
+                        waiting_aircraft.push_back((aircraft_id, now, mission_sequence));
                         waiting_aircraft_peak = waiting_aircraft_peak.max(waiting_aircraft.len());
                     }
 
@@ -369,13 +487,23 @@ pub fn evaluate_architecture_capacity(
         }
     }
 
-    for (_, wait_started_at) in &waiting_aircraft {
+    for (_, wait_started_at, _) in &waiting_aircraft {
         let remaining_wait = horizon_seconds.saturating_sub(*wait_started_at);
         aircraft_wait_seconds = aircraft_wait_seconds
             .checked_add(remaining_wait)
             .ok_or_else(|| vec!["aircraft_wait_accumulator_overflow".to_owned()])?;
         max_single_aircraft_wait_seconds = max_single_aircraft_wait_seconds.max(remaining_wait);
     }
+
+    service_opportunities.sort_by(|a, b| {
+        (a.start_seconds, &a.aircraft_id, a.mission_sequence).cmp(&(
+            b.start_seconds,
+            &b.aircraft_id,
+            b.mission_sequence,
+        ))
+    });
+    let service_opportunity_digest = canonical_service_opportunity_digest(&service_opportunities)
+        .map_err(|error| vec![error])?;
 
     let mission_seconds = completed_sorties
         .checked_mul(u64::from(scenario.mission_duration_seconds))
@@ -420,6 +548,8 @@ pub fn evaluate_architecture_capacity(
         effective_charging_channels: channels,
         modelled_charging_power_w,
         completed_sorties,
+        service_opportunities,
+        service_opportunity_digest,
         completed_mission_hours,
         completed_cycles_per_hour,
         completed_cycles_per_aircraft_hour,
@@ -516,6 +646,10 @@ mod tests {
 
     fn direct_charge() -> ServiceArchitecture {
         fixture().architectures[0].clone()
+    }
+
+    fn service_opportunity_id_for_test(aircraft_id: &str, mission_sequence: u32) -> String {
+        format!("{}-mission-{mission_sequence:06}", aircraft_id)
     }
 
     #[derive(Debug, PartialEq)]
@@ -738,6 +872,144 @@ mod tests {
         let b = evaluate_architecture_capacity(&three_spares, 20_000).expect("three spares");
         assert!(b.aircraft_wait_seconds < a.aircraft_wait_seconds);
         assert!(b.completed_sorties >= a.completed_sorties);
+    }
+
+    #[test]
+    fn service_opportunity_receipts_match_completed_sorties_and_aircraft_sequence() {
+        let input = fixture();
+        let report = evaluate_sustainable_service_capacity(&input).expect("capacity fixture");
+        for result in &report.architecture_results {
+            assert_eq!(
+                result.service_opportunities.len() as u64,
+                result.completed_sorties,
+                "every completed sortie must have exactly one service opportunity for {}",
+                result.architecture_id
+            );
+            assert_eq!(
+                result.service_opportunity_digest,
+                canonical_service_opportunity_digest(&result.service_opportunities)
+                    .expect("canonical opportunity digest")
+            );
+            assert!(result.service_opportunities.iter().all(|opportunity| {
+                opportunity.start_seconds + u64::from(opportunity.mission_duration_seconds)
+                    <= input.horizon_seconds
+            }));
+
+            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> = BTreeMap::new();
+            for opportunity in &result.service_opportunities {
+                assert!(
+                    opportunity
+                        .opportunity_id
+                        .ends_with(&format!("mission-{:06}", opportunity.mission_sequence))
+                );
+                by_aircraft
+                    .entry(&opportunity.aircraft_id)
+                    .or_default()
+                    .push(opportunity);
+            }
+            for opportunities in by_aircraft.values_mut() {
+                opportunities.sort_by_key(|item| item.mission_sequence);
+                assert_eq!(
+                    opportunities.first().map(|item| item.mission_sequence),
+                    Some(0)
+                );
+                assert_eq!(
+                    opportunities.first().map(|item| item.start_seconds),
+                    Some(0)
+                );
+                for (index, opportunity) in opportunities.iter().enumerate() {
+                    assert_eq!(opportunity.mission_sequence as usize, index);
+                    if let Some(next) = opportunities.get(index + 1) {
+                        let earliest_next = opportunity.start_seconds
+                            + u64::from(opportunity.mission_duration_seconds)
+                            + u64::from(opportunity.turnaround_seconds);
+                        assert!(next.start_seconds >= earliest_next);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn zero_charge_headroom_emits_no_opportunity_after_first_cycle() {
+        let mut scenario = direct_charge();
+        scenario.site_grid_import_limit_w = scenario.site_fixed_load_w;
+        scenario.initial_ready_spares = 0;
+        scenario.battery_pack_count = scenario.aircraft_count;
+        let result = evaluate_architecture_capacity(&scenario, 10_000).expect("zero grid");
+        assert_eq!(result.completed_sorties, 1);
+        assert_eq!(result.service_opportunities.len(), 1);
+        assert_eq!(result.service_opportunities[0].mission_sequence, 0);
+    }
+
+    #[test]
+    fn service_opportunity_receipts_match_sorties_and_per_aircraft_sequence() {
+        let input = fixture();
+        let report = evaluate_sustainable_service_capacity(&input).expect("capacity fixture");
+        for result in &report.architecture_results {
+            assert_eq!(
+                result.service_opportunities.len() as u64,
+                result.completed_sorties,
+                "every completed sortie must have a service opportunity for {}",
+                result.architecture_id
+            );
+            assert_eq!(
+                result.service_opportunity_digest,
+                canonical_service_opportunity_digest(&result.service_opportunities)
+                    .expect("canonical opportunity digest")
+            );
+            assert!(result.service_opportunities.iter().all(|opportunity| {
+                opportunity.start_seconds + u64::from(opportunity.mission_duration_seconds)
+                    <= input.horizon_seconds
+            }));
+
+            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> = BTreeMap::new();
+            for opportunity in &result.service_opportunities {
+                assert_eq!(
+                    opportunity.opportunity_id,
+                    service_opportunity_id_for_test(
+                        &opportunity.aircraft_id,
+                        opportunity.mission_sequence
+                    )
+                );
+                by_aircraft
+                    .entry(&opportunity.aircraft_id)
+                    .or_default()
+                    .push(opportunity);
+            }
+            for opportunities in by_aircraft.values_mut() {
+                opportunities.sort_by_key(|item| item.mission_sequence);
+                assert_eq!(
+                    opportunities.first().map(|item| item.mission_sequence),
+                    Some(0)
+                );
+                assert_eq!(
+                    opportunities.first().map(|item| item.start_seconds),
+                    Some(0)
+                );
+                for (index, opportunity) in opportunities.iter().enumerate() {
+                    assert_eq!(opportunity.mission_sequence as usize, index);
+                    if let Some(next) = opportunities.get(index + 1) {
+                        let next_earliest = opportunity.start_seconds
+                            + u64::from(opportunity.mission_duration_seconds)
+                            + u64::from(opportunity.turnaround_seconds);
+                        assert!(next.start_seconds >= next_earliest);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn zero_grid_headroom_emits_no_service_opportunity_after_first_mission() {
+        let mut scenario = direct_charge();
+        scenario.site_grid_import_limit_w = scenario.site_fixed_load_w;
+        scenario.initial_ready_spares = 0;
+        scenario.battery_pack_count = scenario.aircraft_count;
+        let result = evaluate_architecture_capacity(&scenario, 10_000).expect("zero grid");
+        assert_eq!(result.completed_sorties, 1);
+        assert_eq!(result.service_opportunities.len(), 1);
+        assert_eq!(result.service_opportunities[0].mission_sequence, 0);
     }
 
     #[test]

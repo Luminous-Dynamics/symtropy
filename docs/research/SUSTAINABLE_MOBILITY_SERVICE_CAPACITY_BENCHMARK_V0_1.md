@@ -404,3 +404,24 @@ Two further 2026 papers sharpen the next benchmark stage:
 The next exact benchmark should align request-arrival streams, deadlines, wind/weather observations, permission availability, fleet/pack/charger inventory and capital budget. Compare FCFS, earliest-deadline-first, static thresholds, rolling-horizon MPC, exact DP/MILP on small instances, ADP, robust/chance-constrained policies and learned policies. Every method must use the same contemporaneous information and the same reserve/permission/commitment gates. Report request acceptance, on-time completion, late/unserved demand, p50/p95/p99 latency, fallback success, service cost, energy at the correct measurement boundary, and rejected unsafe proposals separately.
 
 The new child [#6921 — request deadlines, online admission and fallback service](https://github.com/Luminous-Dynamics/symtropy/issues/6921) owns this service-quality adapter. It consumes #6909 capacity and #5422 outcome definitions without duplicating #6153's strategy layer or #6177's shared-aircraft/repositioning layer.
+
+
+## 20. v0.2 — service-opportunity receipts from the event timeline
+
+The first aggregate v0.1 capacity result exposed a composition weakness: a downstream request evaluator could accept plausible-looking aerial slots that were not actually produced by the pack/charger event simulation. The capacity event engine now emits a deterministic per-aircraft sequence of `CapacityServiceOpportunity` receipts.
+
+Each receipt identifies one aircraft's mission sequence, start time, mission duration and turnaround. Sequence zero is the initial mission at time zero. Later receipts are created only when:
+- the aircraft completes a mission and a ready spare pack is available, or
+- a charge completes and assigns a service-ready pack to an aircraft waiting for replenishment.
+
+The model does not infer additional flights from an aggregate average. It derives each next mission from its actual inventory state transition. If a pack cannot be restored because no charging channel is available, no later receipt is emitted for that aircraft. A mission is exported only if the mission itself completes within the declared horizon; the turnaround is retained even if it extends past the final horizon boundary.
+
+Receipts are sorted by `(start_seconds, aircraft_id, mission_sequence)` and hashed as a canonical serialized list. The report exposes `service_opportunity_digest`, and the exact-head workflow asserts:
+- receipt count equals the number of completed sorties;
+- every receipt list has a SHA-256 digest;
+- the frozen Dock-shaped profile has the deterministic first ID `aircraft-00-mission-000000`;
+- the no-grid-headroom negative control emits only the initial mission, with no post-recharge opportunity.
+
+The module now has 22 test definitions, including per-aircraft sequence continuity, turnaround separation, horizon coverage, digest reproducibility and no-grid receipt starvation. Exact-head CI is pending on the current branch at this point. The next child #6999 will bind request admission to these receipts so #6921 no longer needs to accept independently authored aircraft/time/duration values.
+
+These receipts are generated from synthetic assumptions, not measured flight/charger telemetry. The digest is an integrity check over supplied JSON, not producer authentication or physical qualification.
