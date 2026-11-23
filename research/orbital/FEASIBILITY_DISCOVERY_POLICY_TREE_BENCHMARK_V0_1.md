@@ -63,12 +63,16 @@ A no-query policy is also enumerated from the intersection across all worlds and
 For every valid policy, report:
 
 1. **Static robust baseline.** The best feasible fixed action when there is no observation. The policy can use one action across all worlds only if that action is feasible everywhere.
-2. **Query-conditioned policy.** A single query is executed; the public outcome selects the branch action. The evaluator reports worst-case loss, outcome-class regret, wait-and-see regret and native costs.
-3. **Clairvoyant wait-and-see bound.** For each hidden scenario, this lower-bound comparator selects the best action knowing the scenario in advance. It is explicitly non-deployable and may never be presented as a policy.
+2. **Query-conditioned policy.** A single query is executed; the public outcome selects the branch action. The evaluator reports worst-case loss, outcome-class minimax-regret gap, wait-and-see regret and native costs.
+3. **Clairvoyant wait-and-see bound.** The receipt exposes
+   \[
+   L_{clairvoyant}=\max_{s\in S}\min_{a\in F_s}L_s(a).
+   \]
+   For each hidden scenario, this lower-bound comparator selects the best action knowing the scenario in advance. It is explicitly non-deployable and may never be presented as a policy.
 
 Wait-and-see regret compares the chosen branch action with the best action feasible in the current hidden scenario. Outcome-class regret compares it with the best action that is feasible across all worlds/loss models that produce the same observed outcome. The latter is the relevant regret against a policy that uses only the information actually available after the query.
 
-The value-of-information field is the exact loss reduction relative to the best no-query minimax-loss policy, when that static baseline exists. Query cost, action cost, and loss remain separate dimensions. No arbitrary exchange rate converts milliseconds or exposure into loss.
+The value-of-information field is the exact loss reduction relative to the best no-query minimax-loss policy, when that static baseline exists. The case-level clairvoyant worst-case loss is an information-relaxation lower bound; the policy gap to that bound is reported separately from the outcome-class minimax-regret gap. Query cost, action cost, and loss remain separate dimensions. No arbitrary exchange rate converts milliseconds or exposure into loss.
 
 ## 6. Cost accounting and Pareto frontier
 
