@@ -1,0 +1,35 @@
+{
+  "fixture_type": "synthetic_cmni_covariance_profiled_spectrum_shape_v1",
+  "provenance": "fully synthetic two-bin reference, prediction and covariance; no neutron measurements",
+  "reference_spectrum": [
+    2,
+    5
+  ],
+  "predicted_shape": [
+    1,
+    3
+  ],
+  "covariance": [
+    [
+      0.04,
+      0.01
+    ],
+    [
+      0.01,
+      0.09
+    ]
+  ],
+  "profiled_scale": 1.717948717948718,
+  "residual": [
+    0.282051282051282,
+    -0.153846153846154
+  ],
+  "chi_square": 2.5641025641025643,
+  "degrees_of_freedom": 1,
+  "reduced_chi_square": 2.5641025641025643,
+  "limits": [
+    "Shape-only statistic with profiled scale.",
+    "The scale is not absolute fluence.",
+    "Covariance matrix is synthetic and treated as known."
+  ]
+}

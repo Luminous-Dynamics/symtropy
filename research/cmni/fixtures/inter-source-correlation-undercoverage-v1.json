@@ -1,0 +1,88 @@
+{
+  "schema_version": "cmni.inter_source_dependence_misspecification.v1",
+  "benchmark_id": "cross-source-correlation-undercoverage-v1",
+  "status": "synthetic_analytical_oracle",
+  "seed": null,
+  "model": {
+    "parameter_names": ["shared_physical_parameter"],
+    "prior_mean": [0.0],
+    "prior_covariance": [[1.0]],
+    "parameter_design_jacobian": [[1.0], [1.0]],
+    "observation_model": "y_i = H_i theta + J_i u + epsilon_i",
+    "independent_observation_covariance": [[[1.0]], [[1.0]]],
+    "objective_coordinates": "dimensionless"
+  },
+  "experiments": [
+    {
+      "experiment_id": "A",
+      "observation_source_jacobian_for_joint_block": [[1.0, 0.5]],
+      "observation_source_jacobians_for_split_blocks": {
+        "calibration_component_1": [[1.0]],
+        "calibration_component_2": [[0.5]]
+      }
+    },
+    {
+      "experiment_id": "B",
+      "observation_source_jacobian_for_joint_block": [[0.25, 1.0]],
+      "observation_source_jacobians_for_split_blocks": {
+        "calibration_component_1": [[0.25]],
+        "calibration_component_2": [[1.0]]
+      }
+    }
+  ],
+  "source_model": {
+    "correct_joint_source": {
+      "source_id": "joint_calibration_fit",
+      "source_covariance": [[4.0, 3.0], [3.0, 9.0]],
+      "component_correlation": 0.5,
+      "receipt_requirement": "one portfolio-scoped receipt covering the joint covariance block"
+    },
+    "incorrect_split_independence_negative_control": [
+      {
+        "source_id": "calibration_component_1",
+        "source_covariance": [[4.0]]
+      },
+      {
+        "source_id": "calibration_component_2",
+        "source_covariance": [[9.0]]
+      }
+    ]
+  },
+  "expected": {
+    "correct_joint_source_model": {
+      "observation_covariance": [[10.25, 8.875], [8.875, 11.75]],
+      "observation_covariance_exact": [["41/4", "71/8"], ["71/8", "47/4"]],
+      "posterior_parameter_variance": 0.9074515141204491,
+      "posterior_parameter_variance_exact": "2667/2939",
+      "posterior_precision_increment": 0.1019872515935508,
+      "posterior_precision_increment_exact": "272/2667"
+    },
+    "incorrect_split_independence_negative_control": {
+      "observation_covariance": [[7.25, 5.5], [5.5, 10.25]],
+      "observation_covariance_exact": [["29/4", "11/2"], ["11/2", "41/4"]],
+      "posterior_parameter_variance": 0.8714462299134734,
+      "posterior_parameter_variance_exact": "705/809",
+      "posterior_precision_increment": 0.1475177304964539,
+      "posterior_precision_increment_exact": "104/705"
+    },
+    "relative_posterior_variance_understatement": 0.039677364186089845,
+    "relative_posterior_variance_understatement_exact": "28536/719201",
+    "correct_vs_naive_variance_ordering": "correct_joint_model_has_higher_posterior_variance"
+  },
+  "assumptions": [
+    "Scalar Gaussian prior with unit variance",
+    "Two linear observations of the same scalar parameter",
+    "Independent observation noise variance is one for each experiment",
+    "A and B share one two-dimensional calibration latent variable",
+    "The calibration covariance is positive definite and has correlation 0.5",
+    "The split-source negative control drops the cross-covariance between calibration components",
+    "All calculations use exact linear-Gaussian conditioning"
+  ],
+  "non_claims": [
+    "Not a real detector or PFNS calibration dataset",
+    "Not proof that any physical calibration components have correlation 0.5",
+    "Not an independence-attestation validator",
+    "Not a field coverage result",
+    "Not evidence of SOTA superiority"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "d2plus-prompt-dissociation-85-15-v0",
+  "provenance_kind": "synthetic_sensitivity_scenario",
+  "source_context": {
+    "paper_doi": "10.1038/s41467-026-74421-1",
+    "paper_url": "https://doi.org/10.1038/s41467-026-74421-1",
+    "reported_source_composition": {
+      "d_plus_ion_current_fraction": 0.85,
+      "d2_plus_ion_current_fraction": 0.15
+    },
+    "reported_energy_spread_fraction": 0.05,
+    "note": "The paper reports typical source composition and an overall energy spread; it does not establish a mass-resolved per-deuteron spectrum or prompt dissociation profile."
+  },
+  "assumptions": {
+    "ion_charge_state": 1,
+    "accelerating_potential_kv": 1,
+    "d2_plus_dissociation": "prompt, symmetric, fragments inherit molecular velocity",
+    "target_deuteron_at_rest": true,
+    "center_of_mass_energy_mapping": "E_cm = E_lab / 2 for D on stationary D",
+    "ion_current_fractions_sum_to_one": true
+  },
+  "derived_components": [
+    {
+      "parent_species": "D+",
+      "per_deuteron_lab_energy_kev": 1,
+      "center_of_mass_energy_kev": 0.5,
+      "deuterons_per_ion": 1,
+      "ion_current_fraction": 0.85,
+      "deuteron_flux_fraction": 0.7391304347826086
+    },
+    {
+      "parent_species": "D2+",
+      "fragment_species": "D",
+      "per_deuteron_lab_energy_kev": 0.5,
+      "center_of_mass_energy_kev": 0.25,
+      "deuterons_per_ion": 2,
+      "ion_current_fraction": 0.15,
+      "deuteron_flux_fraction": 0.2608695652173913
+    }
+  ],
+  "derived_checks": {
+    "total_deuteron_flux_fraction": 1,
+    "molecular_component_deuteron_flux_pct": 26.08695652173913,
+    "note": "Conditional kinematic sensitivity fixture only; not a measurement, reconstructed beam spectrum, or explanation of the reported plateau."
+  },
+  "not_modelled": [
+    "mass-resolved fraction versus acceleration potential",
+    "D2+ dissociation probability and depth distribution",
+    "fragment angular and energy spread",
+    "species-specific stopping and implantation",
+    "time evolution of molecular and atomic fractions",
+    "detector and reaction-product response",
+    "experimental reaction yield"
+  ]
+}
