@@ -49,7 +49,7 @@ A high NORMAL availability figure is not sufficient. It must be reported alongsi
 
 A fault episode is introduced by a unique `Start { fault_id }` event and ended by a corresponding `Clear { fault_id }` event.
 
-- **Detection latency**: elapsed time from fault onset to the first observed event with a mode other than NORMAL. This measures downgrade latency; it does not prove the controller correctly diagnosed that specific fault.
+- **Detection latency**: elapsed time from fault onset to the first observed NORMAL-to-non-NORMAL transition after onset. This measures downgrade latency; it does not prove the controller correctly diagnosed that specific fault. If a fault begins while the mode is already non-NORMAL, it receives no zero-latency detection credit and remains undetected by this metric unless a later qualifying transition occurs.
 - **Fault cleared without detection**: fault ended before any non-NORMAL mode was observed.
 - **Active undetected fault at end**: fault has not cleared and no downgrade was observed.
 - **Active detected fault at end**: fault has not cleared, but the mode has left NORMAL.
@@ -58,7 +58,7 @@ A fault episode is introduced by a unique `Start { fault_id }` event and ended b
 
 Mean, P95 and maximum detection/recovery latencies are reported. Undetected, active and pending episodes are reported separately and are never silently dropped from the denominator.
 
-When a fault begins while the mode is already non-NORMAL, its measured downgrade latency is zero. This is a useful availability/integrity state, but the evaluator should not interpret it as proof the controller detected that specific new fault.
+When a fault begins while the mode is already non-NORMAL, the evaluator records no detection for that fault from the pre-existing state. This avoids attributing a downgrade caused by an earlier event to a newly introduced fault.
 
 ## Required benchmark scenarios
 
