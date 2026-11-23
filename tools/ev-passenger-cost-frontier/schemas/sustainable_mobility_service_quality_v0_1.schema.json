@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json",
+  "title": "Sustainable Mobility Service Quality v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "site_id",
+    "site_configuration_digest",
+    "horizon_seconds",
+    "capacity_source",
+    "requests",
+    "aerial_opportunities",
+    "fallback_opportunities",
+    "flight_windows",
+    "blocked_intervals",
+    "policies",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_configuration_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "horizon_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 604800
+    },
+    "capacity_source": {
+      "$ref": "#/$defs/capacitySource"
+    },
+    "requests": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "$ref": "#/$defs/request"
+      }
+    },
+    "aerial_opportunities": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "$ref": "#/$defs/aerialOpportunity"
+      }
+    },
+    "fallback_opportunities": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "$ref": "#/$defs/fallbackOpportunity"
+      }
+    },
+    "flight_windows": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/flightWindow"
+      }
+    },
+    "blocked_intervals": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/blockedInterval"
+      }
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "first_come_first_served",
+          "earliest_deadline_first"
+        ]
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "capacitySource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_report_digest",
+        "source_architecture_id",
+        "horizon_seconds",
+        "steady_state_cycle_capacity_upper_bound_per_hour",
+        "initial_inventory_capacity_allowance_per_hour",
+        "max_aerial_opportunities"
+      ],
+      "properties": {
+        "source_report_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "source_architecture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizon_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "steady_state_cycle_capacity_upper_bound_per_hour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "initial_inventory_capacity_allowance_per_hour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_aerial_opportunities": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        }
+      }
+    },
+    "serviceMode": {
+      "enum": [
+        "aerial_only",
+        "fallback_only",
+        "either"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "arrival_seconds",
+        "accept_by_seconds",
+        "deadline_seconds",
+        "required_service_seconds",
+        "payload_units",
+        "service_class",
+        "allowed_mode"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "arrival_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "accept_by_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "deadline_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "required_service_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "payload_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "service_class": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "allowed_mode": {
+          "$ref": "#/$defs/serviceMode"
+        }
+      }
+    },
+    "aerialOpportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "aircraft_id",
+        "start_seconds",
+        "max_service_duration_seconds",
+        "turnaround_seconds",
+        "capacity_reference"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "aircraft_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "start_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "max_service_duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "turnaround_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "capacity_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "fallbackOpportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "fallback_resource_id",
+        "fallback_mode",
+        "start_seconds",
+        "max_service_duration_seconds"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "fallback_resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "fallback_mode": {
+          "enum": [
+            "ground_courier",
+            "locker",
+            "amr"
+          ]
+        },
+        "start_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "max_service_duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      }
+    },
+    "flightEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "site_configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_seconds",
+        "valid_from_seconds",
+        "valid_until_seconds"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "valid_from_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "valid_until_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        }
+      }
+    },
+    "flightWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_id",
+        "start_seconds",
+        "end_seconds",
+        "weather_state",
+        "permission_state",
+        "evidence"
+      ],
+      "properties": {
+        "window_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "start_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "end_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "weather_state": {
+          "enum": [
+            "go",
+            "no_go",
+            "unknown"
+          ]
+        },
+        "permission_state": {
+          "enum": [
+            "approved",
+            "denied",
+            "unknown"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/flightEvidence"
+        }
+      }
+    },
+    "blockedInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interval_id",
+        "start_seconds",
+        "end_seconds",
+        "kind"
+      ],
+      "properties": {
+        "interval_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "start_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "end_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800
+        },
+        "kind": {
+          "enum": [
+            "maintenance",
+            "site_closed",
+            "no_go"
+          ]
+        }
+      }
+    }
+  }
+}
