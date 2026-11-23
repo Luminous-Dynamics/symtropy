@@ -1,0 +1,74 @@
+{
+  "schema_version": "ergo-transfer-proposal-v0",
+  "map_kind": "induced_embedding",
+  "source": {
+    "episode_id": "source-episode-001",
+    "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "scope": {
+      "node_ids": [
+        1,
+        2
+      ],
+      "relation_ids": [
+        10
+      ],
+      "excluded_node_ids": [
+        3
+      ],
+      "excluded_relation_ids": [
+        11
+      ]
+    }
+  },
+  "target": {
+    "episode_id": "target-episode-014",
+    "evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "scope": {
+      "node_ids": [
+        11,
+        12
+      ],
+      "relation_ids": [
+        110
+      ],
+      "excluded_node_ids": [
+        13
+      ],
+      "excluded_relation_ids": [
+        111
+      ]
+    }
+  },
+  "correspondence": {
+    "nodes": [
+      {
+        "source_node_id": 1,
+        "target_node_id": 11
+      },
+      {
+        "source_node_id": 2,
+        "target_node_id": 12
+      }
+    ],
+    "relation_kinds": [
+      {
+        "source_kind": 1,
+        "target_kind": 100,
+        "participant_transform": "unordered"
+      }
+    ],
+    "relations": [
+      {
+        "source_relation_id": 10,
+        "target_relation_id": 110
+      }
+    ]
+  },
+  "assumptions": [
+    "Source and target relation-kind identifiers are domain-local.",
+    "The declared selected scopes are the complete induced substructures claimed by this proposal."
+  ],
+  "alternative_correspondences": [],
+  "unresolved": false,
+  "counterexample_evidence_ids": []
+}
