@@ -379,13 +379,26 @@ mod tests {
         let original_plan = CompiledCampaignPlan::compile(&original, &"a".repeat(64)).unwrap();
 
         let mut changed_policy = manifest();
-        changed_policy.scenarios[0].policy_sha256 = "c".repeat(64);
-        changed_policy.scenarios[1].policy_sha256 = "c".repeat(64);
+        for scenario in &mut changed_policy.scenarios {
+            if scenario.pair_id == "pair-negative-001" {
+                scenario.policy_sha256 = "c".repeat(64);
+            }
+        }
         let policy_plan =
             CompiledCampaignPlan::compile(&changed_policy, &"a".repeat(64)).unwrap();
+        let original_policy_pair = original_plan
+            .pairs
+            .iter()
+            .find(|pair| pair.pair_id == "pair-negative-001")
+            .unwrap();
+        let changed_policy_pair = policy_plan
+            .pairs
+            .iter()
+            .find(|pair| pair.pair_id == "pair-negative-001")
+            .unwrap();
         assert_ne!(
-            original_plan.pairs[0].pair_commitment_sha256,
-            policy_plan.pairs[0].pair_commitment_sha256
+            original_policy_pair.pair_commitment_sha256,
+            changed_policy_pair.pair_commitment_sha256
         );
 
         let mut changed_fault = manifest();
