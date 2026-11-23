@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/mobility-rrvr-runtime-projection-v0-1
+      - research/mobility-rrvr-attempt-lineage-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
@@ -126,6 +127,30 @@ jobs:
           diff -u "$RUNNER_TEMP/tla-fields.txt" "$RUNNER_TEMP/schema-fields.txt"
           test "$(wc -l < "$RUNNER_TEMP/tla-fields.txt" | tr -d ' ')" -eq 43
 
+      - name: Validate multi-attempt lineage fixture and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/attempt_lineage_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and (.logical_effect_id | length > 0)
+            and (.attempts | length == 3)
+            and ([.attempts[].ordinal] == [1, 2, 3])
+            and .attempts[0].parent_attempt_id == null
+            and .attempts[1].parent_attempt_id == .attempts[0].attempt_id
+            and .attempts[2].parent_attempt_id == .attempts[1].attempt_id
+            and .attempts[0].physical_outcome.outcome == "no_effect"
+            and .attempts[1].physical_outcome.outcome == "no_effect"
+            and .attempts[2].physical_outcome.outcome == "applied"
+            and .attempts[0].controller_queue_fence.target_epoch == .attempts[1].authorized_epoch
+            and .attempts[0].downstream_quiescence.target_epoch == .attempts[1].authorized_epoch
+            and .attempts[1].controller_queue_fence.target_epoch == .attempts[2].authorized_epoch
+            and .attempts[1].downstream_quiescence.target_epoch == .attempts[2].authorized_epoch
+          ' "$FIXTURE"
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --check
 
