@@ -1170,6 +1170,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_unreviewed_ros_gazebo_pair_even_if_component_labels_match() {
+        let plan = plan();
+        let mut profile = profile(&plan);
+        profile.gazebo_release = "jetty".into();
+        assert_eq!(
+            profile.validate_for_plan(&plan),
+            Err(GazeboAdapterError::PlatformRevisionMismatch)
+        );
+    }
+
+    #[test]
     fn capability_profile_rejects_scene_broadcaster_binary_drift() {
         let plan = plan();
         let mut wrong_plugin = profile(&plan);
