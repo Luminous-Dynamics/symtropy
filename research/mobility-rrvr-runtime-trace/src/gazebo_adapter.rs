@@ -78,6 +78,8 @@ pub struct GazeboWorldSnapshot {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GazeboTargetBinding {
+    pub world_name: String,
+    pub world_epoch: String,
     pub logical_component_id: String,
     pub target_id: String,
     pub target_revision: String,
@@ -400,10 +402,28 @@ pub fn resolve_fault_target<T: GazeboSimulationTransport>(
     session: &GazeboAdapterSession,
     fault: &FaultInjection,
 ) -> Result<GazeboTargetBinding, GazeboAdapterError> {
+    let snapshot = transport
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    snapshot.validate_against_profile(&session.profile)?;
+    if snapshot.world_epoch != session.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if snapshot.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    if snapshot.state != SimulationState::Paused {
+        return Err(GazeboAdapterError::SimulatorNotPaused);
+    }
     let binding = transport
         .resolve_target(&session.profile.world_name, &fault.target_component_id)
         .map_err(|_| GazeboAdapterError::TransportFailure)?;
-    validate_target_binding(&binding, fault)?;
+    validate_target_binding(
+        &binding,
+        fault,
+        &session.profile.world_name,
+        &session.world_epoch,
+    )?;
     Ok(binding)
 }
 
@@ -597,7 +617,15 @@ pub fn dispatch_idempotency_key(
 pub fn validate_target_binding(
     binding: &GazeboTargetBinding,
     fault: &FaultInjection,
+    expected_world_name: &str,
+    expected_world_epoch: &str,
 ) -> Result<(), GazeboAdapterError> {
+    if binding.world_name != expected_world_name {
+        return Err(GazeboAdapterError::WrongWorld);
+    }
+    if binding.world_epoch != expected_world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
     if !nonempty(&binding.logical_component_id)
         || !nonempty(&binding.target_id)
         || !nonempty(&binding.target_revision)
@@ -746,6 +774,8 @@ mod tests {
             reset_calls: 0,
             step_calls: Vec::new(),
             target: GazeboTargetBinding {
+                world_name: profile.world_name.clone(),
+                world_epoch: "world-epoch-1".into(),
                 logical_component_id: fault.target_component_id.clone(),
                 target_id: "gazebo-model-001".into(),
                 target_revision: fault.target_revision.clone(),
@@ -955,11 +985,14 @@ mod tests {
             target_profile_sha256: fault.target_profile_sha256.clone(),
             fault_domain_id: fault.fault_domain_id.clone(),
         };
-        assert_eq!(validate_target_binding(&binding, fault), Ok(()));
+        assert_eq!(
+            validate_target_binding(&binding, fault, "rrvr-world", "world-epoch-1"),
+            Ok(())
+        );
         let mut wrong_target = binding;
         wrong_target.target_revision = "other-revision".into();
         assert_eq!(
-            validate_target_binding(&wrong_target, fault),
+            validate_target_binding(&wrong_target, fault, "rrvr-world", "world-epoch-1"),
             Err(GazeboAdapterError::TargetRevisionMismatch)
         );
     }
@@ -1031,6 +1064,25 @@ mod tests {
         assert_eq!(
             resolve_fault_target(&mut transport, &session, fault),
             Ok(transport.target.clone())
+        );
+    }
+
+    #[test]
+    fn rejects_target_binding_from_a_stale_world_epoch() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+        let binding = GazeboTargetBinding {
+            world_name: "rrvr-world".into(),
+            world_epoch: "old-world-epoch".into(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-model-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+        assert_eq!(
+            validate_target_binding(&binding, fault, "rrvr-world", "current-world-epoch"),
+            Err(GazeboAdapterError::WrongWorldEpoch)
         );
     }
 
