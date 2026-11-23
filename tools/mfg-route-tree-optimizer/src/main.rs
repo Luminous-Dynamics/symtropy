@@ -318,16 +318,20 @@ fn greedy_policy(case: &TreeCase) -> Result<PolicyPlan, String> {
 
     for (information_set, scenarios) in information_groups(case) {
         let observations = &scenarios[0].observations;
-        let available = available_recourse_routes(case, observations);
+        let mut available = available_recourse_routes(case, observations);
         let selected = if available
             .iter()
             .any(|route| route.route_id == primary.route_id)
         {
             Some(primary.route_id.clone())
         } else {
-            available
-                .first()
-                .map(|route| route.route_id.clone())
+            available.sort_by(|a, b| {
+                a.cost_units
+                    .cmp(&b.cost_units)
+                    .then(a.lead_time_hours.cmp(&b.lead_time_hours))
+                    .then(a.route_id.cmp(&b.route_id))
+            });
+            available.first().map(|route| route.route_id.clone())
         };
         recourse.insert(information_set, selected);
     }
