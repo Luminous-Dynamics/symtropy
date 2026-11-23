@@ -30,7 +30,7 @@ use crate::active_evidence_reliability::{
 use crate::decision_relevant_discrimination::DecisionRelevantDiscriminationReport;
 
 /// One admitted action scored with a conservative acquisition-probability interval.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ReliableEvidenceActionAssessment {
     pub conditional: EvidenceActionDecisionAssessment,
     pub reliability: AdmittedAcquisitionReliability,
@@ -264,7 +264,7 @@ pub fn plan_active_evidence_with_reliability(
         let conditional = single
             .pareto_frontier
             .first()
-            .copied()
+            .cloned()
             .ok_or(ReliableEvidencePlannerError::MissingConditionalAssessment(candidate.action_id))?;
         let reliability = admitted_by_action[&candidate.action_id];
 
@@ -303,7 +303,7 @@ pub fn plan_active_evidence_with_reliability(
                 && dominates(other, candidate)
         });
         if !dominated {
-            frontier.push(*candidate);
+            frontier.push(candidate.clone());
         }
     }
 
