@@ -91,6 +91,21 @@ function result(item, disposition, triggerReason, threshold, metrics = {}, world
 function invalidInput(item, reason) { return result(item, "INVALID_INPUT", reason, null); }
 function abstain(item, reason, threshold) { return result(item, "ABSTAIN", reason, threshold); }
 
+function supportedProjection(item) {
+  const model = item.loss_model_set;
+  if (model.projection_id === "exact-rational-to-integer-identity-v1") {
+    return model.source_loss_unit === item.loss_unit
+      && model.projection_scale_numerator === 1
+      && model.projection_scale_denominator === 1;
+  }
+  if (model.projection_id === "normalized-loss-times-1000-exact-v1") {
+    return model.source_loss_unit === "normalized_loss"
+      && item.loss_unit === "loss_micro_units"
+      && model.projection_scale_numerator === 1000
+      && model.projection_scale_denominator === 1;
+  }
+  return false;
+}
 function validGateStates(item) {
   return ["CURRENT", "STALE", "UNAVAILABLE"].includes(item.world_set_state)
     && ["CURRENT", "STALE", "INDETERMINATE", "OUT_OF_PROFILE", "INADEQUATE"].includes(item.loss_model_set?.state)
@@ -150,7 +165,9 @@ function evaluateCase(item) {
     || modelSet.source_claim_ceiling !== JOINT_LOSS_CLAIM_CEILING) {
     return invalidInput(item, "upstream world or loss-model receipt pins are malformed");
   }
-
+  if (!supportedProjection(item)) {
+    return invalidInput(item, "unsupported loss unit projection contract");
+  }
 
   const expectedWorlds = new Set(item.expected_world_ids);
   if (expectedWorlds.size !== item.expected_world_ids.length
@@ -248,8 +265,8 @@ function evaluateCase(item) {
       if (!validId(row.action_id) || !Number.isSafeInteger(row.loss) || row.loss < 0
         || !Number.isSafeInteger(row.source_numerator) || row.source_numerator < 0
         || !Number.isSafeInteger(row.source_denominator) || row.source_denominator <= 0
-        || !feasible.has(row.action_id) || losses.has(row.action_id)) {
-        return invalidInput(item, "loss row is malformed, duplicated or not feasible in its joint scenario");
+        || !actions.has(row.action_id) || losses.has(row.action_id)) {
+        return invalidInput(item, "loss row is malformed, duplicated or references an unknown action");
       }
       const scaledNumerator = BigInt(row.source_numerator)
         * BigInt(modelSet.projection_scale_numerator);
@@ -267,7 +284,7 @@ function evaluateCase(item) {
       }
       losses.set(row.action_id, row.loss);
     }
-    for (const actionId of feasible) {
+    for (const actionId of actions) {
       if (!losses.has(actionId)) return abstain(item, "INCOMPLETE_LOSS_MATRIX", threshold);
     }
 
@@ -292,7 +309,7 @@ function evaluateCase(item) {
       loss_model_id: scenario.loss_model_id,
       evidence_receipt_id: scenario.evidence_receipt_id,
       incumbent_feasible: scenario.incumbent_feasible,
-      incumbent_loss: scenario.losses.has(item.incumbent_action_id)
+      incumbent_loss: scenario.incumbent_feasible && scenario.losses.has(item.incumbent_action_id)
         ? scenario.losses.get(item.incumbent_action_id) : null,
       reference_common_action_loss: null,
       incumbent_minus_reference_loss: null
