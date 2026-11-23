@@ -18,7 +18,8 @@
     "fault_injector_revision": "fault-injector-v0.1",
     "fault_injector_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "native_adapter_revision": "native-adapter-6749-fixture",
-    "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1"
+    "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1",
+    "fault_injector_fault_domain_id": "injector-control-plane-a"
   },
   "reset": {
     "kind": "simulator_snapshot_restore",
@@ -97,7 +98,11 @@
           "target_component_id": "native-application",
           "fault_domain_id": "process-host-a",
           "kind": "process_crash",
-          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+          "scheduled_simulation_step": 100,
+          "target_revision": "native-application-revision-2026.11",
+          "target_profile_sha256": "2020202020202020202020202020202020202020202020202020202020202020",
+          "expected_delivery_signature_sha256": "3030303030303030303030303030303030303030303030303030303030303030"
         },
         {
           "sequence": 2,
@@ -107,7 +112,11 @@
           "target_component_id": "physical-observer-pair",
           "fault_domain_id": "observer-power-clock-a",
           "kind": "common_cause_failure",
-          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+          "scheduled_simulation_step": 200,
+          "target_revision": "physical-observer-pair-revision-2026.11",
+          "target_profile_sha256": "2121212121212121212121212121212121212121212121212121212121212121",
+          "expected_delivery_signature_sha256": "3131313131313131313131313131313131313131313131313131313131313131"
         },
         {
           "sequence": 3,
@@ -117,7 +126,11 @@
           "target_component_id": "controller-command-queue",
           "fault_domain_id": "controller-bus-a",
           "kind": "queue_retention",
-          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+          "scheduled_simulation_step": 300,
+          "target_revision": "controller-command-queue-revision-2026.11",
+          "target_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "expected_delivery_signature_sha256": "3232323232323232323232323232323232323232323232323232323232323232"
         },
         {
           "sequence": 4,
@@ -127,7 +140,11 @@
           "target_component_id": "actuator-drive",
           "fault_domain_id": "actuator-power-a",
           "kind": "power_loss",
-          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
+          "scheduled_simulation_step": 400,
+          "target_revision": "actuator-drive-revision-2026.11",
+          "target_profile_sha256": "2323232323232323232323232323232323232323232323232323232323232323",
+          "expected_delivery_signature_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         }
       ],
       "expected_disposition": "block",
@@ -156,7 +173,11 @@
           "target_component_id": "native-application",
           "fault_domain_id": "process-host-a",
           "kind": "process_crash",
-          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+          "scheduled_simulation_step": 100,
+          "target_revision": "native-application-revision-2026.11",
+          "target_profile_sha256": "2020202020202020202020202020202020202020202020202020202020202020",
+          "expected_delivery_signature_sha256": "3030303030303030303030303030303030303030303030303030303030303030"
         },
         {
           "sequence": 2,
@@ -166,7 +187,11 @@
           "target_component_id": "physical-observer-pair",
           "fault_domain_id": "observer-power-clock-a",
           "kind": "common_cause_failure",
-          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+          "scheduled_simulation_step": 200,
+          "target_revision": "physical-observer-pair-revision-2026.11",
+          "target_profile_sha256": "2121212121212121212121212121212121212121212121212121212121212121",
+          "expected_delivery_signature_sha256": "3131313131313131313131313131313131313131313131313131313131313131"
         },
         {
           "sequence": 3,
@@ -176,7 +201,11 @@
           "target_component_id": "controller-command-queue",
           "fault_domain_id": "controller-bus-a",
           "kind": "queue_retention",
-          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+          "scheduled_simulation_step": 300,
+          "target_revision": "controller-command-queue-revision-2026.11",
+          "target_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "expected_delivery_signature_sha256": "3232323232323232323232323232323232323232323232323232323232323232"
         },
         {
           "sequence": 4,
@@ -186,7 +215,11 @@
           "target_component_id": "actuator-drive",
           "fault_domain_id": "actuator-power-a",
           "kind": "power_loss",
-          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
+          "scheduled_simulation_step": 400,
+          "target_revision": "actuator-drive-revision-2026.11",
+          "target_profile_sha256": "2323232323232323232323232323232323232323232323232323232323232323",
+          "expected_delivery_signature_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
         }
       ],
       "expected_disposition": "measure",
