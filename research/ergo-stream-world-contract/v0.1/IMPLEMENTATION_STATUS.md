@@ -128,3 +128,18 @@ Added `TRANSFER_ATLAS_V0_2_PROTOCOL.md` to specify the next full benchmark phase
 - prospective go/no-go targets and explicit falsification conditions.
 
 This is a protocol document, not evidence that the v0.2 benchmark is implemented or qualified.
+
+## Finite action-conditioned dynamics-transfer witness
+
+The branch now adds `src/dynamics.rs`, exposed as `dynamics`, and `DYNAMICS_TRANSFER_V0_1.md`:
+
+- Represents a deterministic finite transition system as states, actions and transitions.
+- Validates total one-to-one state and action correspondences.
+- Requires a one-to-one, consistent source/target action-kind map.
+- Checks exact transition commutation under the state/action maps: `phi(delta_source(x, a)) == delta_target(phi(x), psi(a))`.
+- Rejects nondeterministic systems, incomplete or non-injective maps, action-kind collisions, missing target transitions and an explicit transition counterexample.
+- Tests include a relabelled positive system with four commuting transitions and negative controls for state/action map integrity and transition mismatch.
+
+This is a stronger finite dynamics test than graph correspondence or qualitative effect-sign matching, but it remains a validator for a proposed witness. It does not discover mappings from streams, infer causal mechanisms, authenticate interventions, estimate uncertainty or qualify physical-world transfer. It is not a continuous-time CfC/LTC equivalence test. A continuous extension needs explicit clock transformation, observation delay/sampling, uncertainty, error bounds and held-out rollout / intervention contracts.
+
+**Verification for the combined transfer, acquisition, matching, atlas and dynamics branch:** pending exact-head Rust 1.96 format, tests and strict Clippy.
