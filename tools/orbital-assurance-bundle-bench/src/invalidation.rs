@@ -147,7 +147,10 @@ fn invalid_graph(case: &InvalidationCase, detail: &str) -> CaseResult {
             .collect(),
         authority_granted: false,
         expected_result_matched: case.expected_disposition == "INVALID_GRAPH"
-            && case.expected_invalidated_node_ids.iter().collect::<BTreeSet<_>>()
+            && case
+                .expected_invalidated_node_ids
+                .iter()
+                .collect::<BTreeSet<_>>()
                 == node_ids.iter().collect::<BTreeSet<_>>(),
     }
 }
@@ -189,7 +192,10 @@ fn evaluate_case(case: &InvalidationCase) -> CaseResult {
 
     let mut roots = BTreeSet::new();
     for root_id in &case.required_root_node_ids {
-        if !valid_id(root_id) || !roots.insert(root_id.as_str()) || !node_index.contains_key(root_id.as_str()) {
+        if !valid_id(root_id)
+            || !roots.insert(root_id.as_str())
+            || !node_index.contains_key(root_id.as_str())
+        {
             return invalid_graph(case, "required root is missing, empty or duplicated");
         }
     }
@@ -424,10 +430,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .iter()
             .filter(|case| !case.expected_result_matched)
             .count(),
-        authority_grants: cases
-            .iter()
-            .filter(|case| case.authority_granted)
-            .count(),
+        authority_grants: cases.iter().filter(|case| case.authority_granted).count(),
     };
     let pass = summary.expected_result_mismatches == 0 && summary.authority_grants == 0;
 
@@ -462,7 +465,11 @@ mod tests {
     fn unchanged_dependency_graph_remains_current() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
         assert_eq!(case(&result, "baseline_current").disposition, "CURRENT");
-        assert!(case(&result, "baseline_current").invalidated_node_ids.is_empty());
+        assert!(
+            case(&result, "baseline_current")
+                .invalidated_node_ids
+                .is_empty()
+        );
     }
 
     #[test]
@@ -483,7 +490,12 @@ mod tests {
         ] {
             assert!(item.invalidated_node_ids.iter().any(|id| id == expected));
         }
-        assert!(!item.invalidated_node_ids.iter().any(|id| id == "unrelated_campaign"));
+        assert!(
+            !item
+                .invalidated_node_ids
+                .iter()
+                .any(|id| id == "unrelated_campaign")
+        );
     }
 
     #[test]
@@ -516,17 +528,29 @@ mod tests {
         let result = evaluate(&fixture()).expect("fixture evaluates");
         let item = case(&result, "domain_scope_changed");
         assert_eq!(item.disposition, "REQUALIFICATION_REQUIRED");
-        assert!(item.invalidated_node_ids.iter().any(|id| id == "decision_frontier"));
-        assert!(item.nodes.iter().any(|node| {
-            node.node_id == "domain" && node.status == "SCOPE_CHANGED"
-        }));
+        assert!(
+            item.invalidated_node_ids
+                .iter()
+                .any(|id| id == "decision_frontier")
+        );
+        assert!(
+            item.nodes
+                .iter()
+                .any(|node| { node.node_id == "domain" && node.status == "SCOPE_CHANGED" })
+        );
     }
 
     #[test]
     fn missing_dependency_and_cycles_fail_closed() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(case(&result, "missing_dependency").disposition, "INVALID_GRAPH");
-        assert_eq!(case(&result, "dependency_cycle").disposition, "INVALID_GRAPH");
+        assert_eq!(
+            case(&result, "missing_dependency").disposition,
+            "INVALID_GRAPH"
+        );
+        assert_eq!(
+            case(&result, "dependency_cycle").disposition,
+            "INVALID_GRAPH"
+        );
     }
 
     #[test]
@@ -553,11 +577,6 @@ mod tests {
     fn no_path_grants_authority() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
         assert!(!result.authority_granted);
-        assert!(
-            result
-                .cases
-                .iter()
-                .all(|case| !case.authority_granted)
-        );
+        assert!(result.cases.iter().all(|case| !case.authority_granted));
     }
 }
