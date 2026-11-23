@@ -308,7 +308,8 @@ mod tests {
         sphere.radius = -1.0;
         assert!(sphere.local_aabb().is_none());
 
-        let capsule = Capsule::<3>::new(1.0, 0.5, 3);
+        let mut capsule = Capsule::<3>::new(1.0, 0.5, 1);
+        capsule.axis = 3;
         assert!(capsule.local_aabb().is_none());
 
         let hyperbox = HyperBox::<3>::new([1.0, f64::NAN, 2.0]);
