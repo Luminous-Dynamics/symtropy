@@ -28,3 +28,4 @@ missing_revision|NOT_EVALUABLE
 source_time_role_mismatch|NOT_EVALUABLE
 witness_time_role_mismatch|NOT_EVALUABLE
 sensor_time_after_business_event|UNMATCHED
+sensor_time_overlaps_business_event|TIME_ORDER_UNRESOLVED
