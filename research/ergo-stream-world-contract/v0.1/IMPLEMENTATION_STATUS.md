@@ -44,7 +44,7 @@ A follow-on implementation is staged in [ERGO-STREAM-TRANSFER-001 #7171](https:/
 - `src/transfer.rs` validates a total one-to-one map of finite nodes, relation kinds and relation instances.
 - Directed relations explicitly preserve or reverse participant order; undirected incidence is compared without order.
 - Relation-kind mapping is one-to-one, preventing distinct source relation classes from being collapsed into one target class.
-- Intervention-effect mapping is validated separately against declared held-out qualitative observations.
+- Intervention-effect mapping is validated separately against supplied qualitative effect observations; the result only records whether all declared effects match the precommitted transform, not whether a causal claim is established.
 - No intervention map returns an explicitly unqualified behavior result; missing or contradictory evidence cannot be promoted to support.
 - Negative tests cover incidence mismatch, relation-kind collision, non-injective node mapping, incomplete relation mapping, invalid transforms, missing evidence and intervention counterexamples.
 - `TRANSFER_WITNESS_V0_1.md` records the claim boundary and reproduction commands.
