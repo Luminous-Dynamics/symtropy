@@ -259,21 +259,12 @@ fn validate_reset(
 ) -> Result<(), ExecutionEvidenceError> {
     match bundle.reset.status {
         ResetStatus::Unknown => {
-            if bundle.reset.receipt.is_some() {
-                return Err(ExecutionEvidenceError::InvalidResetReceipt);
-            }
-            if !bundle.events.is_empty() {
+            if bundle.reset.receipt.is_some() || !bundle.events.is_empty() {
                 return Err(ExecutionEvidenceError::ResetNotConfirmed);
             }
             return Ok(());
         }
-        ResetStatus::Rejected => {
-            if bundle.reset.receipt.is_none() || !bundle.events.is_empty() {
-                return Err(ExecutionEvidenceError::InvalidResetReceipt);
-            }
-            return Ok(());
-        }
-        ResetStatus::Confirmed => {}
+        ResetStatus::Rejected | ResetStatus::Confirmed => {}
     }
 
     let receipt = bundle
@@ -291,10 +282,15 @@ fn validate_reset(
         || receipt.world_epoch != bundle.world_epoch
         || receipt.reset_profile_sha256 != plan.reset.profile_sha256
         || receipt.expected_initial_state_sha256 != plan.reset.expected_initial_state_sha256
-        || receipt.observed_initial_state_sha256 != plan.reset.expected_initial_state_sha256
         || receipt.producer_revision != plan.platform.simulator_revision
+        || (bundle.reset.status == ResetStatus::Confirmed
+            && receipt.observed_initial_state_sha256
+                != plan.reset.expected_initial_state_sha256)
     {
         return Err(ExecutionEvidenceError::InvalidResetReceipt);
+    }
+    if bundle.reset.status == ResetStatus::Rejected && !bundle.events.is_empty() {
+        return Err(ExecutionEvidenceError::ResetNotConfirmed);
     }
     Ok(())
 }
@@ -340,7 +336,6 @@ impl ExecutionEvidenceBundle {
         if self.pair_id != scenario.pair_id
             || self.arm != scenario.arm
             || self.seed != scenario.seed
-            || self.events.len() != scenario.fault_events.len()
         {
             return Err(ExecutionEvidenceError::PlanBindingMismatch);
         }
@@ -363,6 +358,10 @@ impl ExecutionEvidenceBundle {
                 reconcile_required: self.reset.status == ResetStatus::Unknown,
                 retry_permitted: false,
             });
+        }
+
+        if self.events.len() != scenario.fault_events.len() {
+            return Err(ExecutionEvidenceError::EventCountMismatch);
         }
 
         let mut evidence_ids = BTreeSet::new();
