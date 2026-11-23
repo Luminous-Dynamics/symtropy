@@ -165,4 +165,6 @@ RRVR software evidence is not ISO conformity assessment, a risk assessment, a sa
 
 ## 7. Claim ceiling
 
+v0.1 covers one original effect attempt plus one recovery-authority admission. It does not yet qualify the physical outcome of the recovery attempt itself or nested/multiple recovery cycles. The next semantic increment must give each successive attempt its own physical-outcome, persistence, mission, controller-queue and downstream-graph evidence domains while preserving the original effect lineage.
+
 A passing Rust fixture establishes only the projection contract over supplied synthetic inputs. A Reflow/TLC trace pass establishes only that the recorded state/action sequence is a behavior of the pinned abstraction. Neither proves event capture is complete, owner artifacts are authentic, observer independence holds outside the declared fault model, or the TLA abstraction matches physical hardware. Those require independent owner authentication, fault campaigns, simulator/HIL/physical evidence and safety review.
