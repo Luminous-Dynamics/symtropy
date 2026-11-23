@@ -419,6 +419,20 @@ fn candidate_graph_interval_indexed(
     witness: &[PhysicalObservation],
     profile: &CorrelationProfile,
 ) -> IndexedCandidateGraph {
+    // This pruning bound is deliberately specialized to the validated v0.1
+    // BusinessEventTime source / SensorObservationTime witness profile. The
+    // role contract rejects a sensor interval that lies wholly after the
+    // business interval; changing the supported role pair requires deriving
+    // and re-proving the candidate-window bounds.
+    debug_assert_eq!(profile.source_time_role, TimeRole::BusinessEventTime);
+    debug_assert_eq!(profile.witness_time_role, TimeRole::SensorObservationTime);
+    debug_assert!(source
+        .iter()
+        .all(|event| event.event_time.role == TimeRole::BusinessEventTime));
+    debug_assert!(witness
+        .iter()
+        .all(|event| event.event_time.role == TimeRole::SensorObservationTime));
+
     let mut indexes = BTreeMap::<EventContext<'_>, IntervalContextIndex>::new();
     for (index, event) in witness.iter().enumerate() {
         indexes
