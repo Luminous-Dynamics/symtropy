@@ -120,7 +120,8 @@ impl<const D: usize> LocalAabb<D> {
 
         let min = rounded_min.map(next_down);
         let max = rounded_max.map(next_up);
-        if min.iter().any(|value| !value.is_finite()) || max.iter().any(|value| !value.is_finite()) {
+        if min.iter().any(|value| !value.is_finite()) || max.iter().any(|value| !value.is_finite())
+        {
             return None;
         }
 
