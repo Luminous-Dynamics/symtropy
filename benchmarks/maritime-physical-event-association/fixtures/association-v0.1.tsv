@@ -25,3 +25,5 @@ invalid_profile_digest|NOT_EVALUABLE
 invalid_source_digest|NOT_EVALUABLE
 invalid_witness_digest|NOT_EVALUABLE
 missing_revision|NOT_EVALUABLE
+source_time_role_mismatch|NOT_EVALUABLE
+witness_time_role_mismatch|NOT_EVALUABLE
