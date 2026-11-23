@@ -154,6 +154,11 @@ impl GazeboCapabilityProfile {
         if self.ros_distribution != plan.platform.ros_distribution {
             return Err(GazeboAdapterError::RosDistributionMismatch);
         }
+        if self.simulation_interfaces_revision
+            != plan.platform.simulation_interfaces_revision
+        {
+            return Err(GazeboAdapterError::PlatformRevisionMismatch);
+        }
         if self.world_profile_sha256 != plan.platform.environment_artifact_sha256 {
             return Err(GazeboAdapterError::InvalidCapabilityProfile);
         }
