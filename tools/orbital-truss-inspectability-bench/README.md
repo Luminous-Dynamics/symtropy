@@ -194,3 +194,8 @@ The receipt now carries a second exact result for the paper's actual set-multico
 This reference is deliberately distinct from the existing exact robust/domain-aware/cost-constrained planner. The paper-style dynamic greedy reports its view-count gap against this nominal k-only exact result, not against the robust planner. The receipt records whether requested k is met, whether the capped target is met, robust view counts, and nominal/robust failure-domain diversity as separate fields.
 
 For larger candidate pools this subset oracle is not intended to scale; use a solver-backed ILP/MIP with incumbent, lower bound, status and explicit optimality certificate. A timeout is not an optimality proof.
+
+
+## Source-admission manifest for the 2026 GSD k-coverage reproduction
+
+`docs/research/orbital-truss/source-manifest-gsd-kcover-v0_1.json` pins the paper, cited repository revision, model paths and Git blob identities, candidate external CC BY 4.0 datasets, published parameters, unknown inputs and source-admission gates. The current status is SOURCE_ADMISSION_INCOMPLETE; no model assets are vendored.
