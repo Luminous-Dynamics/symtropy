@@ -277,6 +277,152 @@ impl<const D: usize> PhysicsWorld<D> {
         self.mesh_contact_fn = Some(Arc::new(f));
     }
 
+    /// Read-only view of all bodies in stable storage order.
+    ///
+    /// Structural mutations must go through PhysicsWorld APIs so handle
+    /// indices and derived caches remain coherent. This accessor is additive:
+    /// the public field remains available during the staged API migration.
+    pub fn bodies(&self) -> &[RigidBody<D>] {
+        &self.bodies
+    }
+
+    /// Read-only view of the world's constraints.
+    pub fn constraints(&self) -> &[Box<dyn Constraint<D>>] {
+        &self.constraints
+    }
+
+    /// Read-only view of contact manifolds produced by the previous step.
+    pub fn contacts(&self) -> &[ContactManifold<D>] {
+        &self.contacts
+    }
+
+    /// Read-only view of collision events produced by the previous step.
+    pub fn collision_events(&self) -> &[CollisionEvent<D>] {
+        &self.collision_events
+    }
+
+    /// Read-only view of sensor events produced by the previous step.
+    pub fn sensor_events(&self) -> &[crate::contact::SensorEvent] {
+        &self.sensor_events
+    }
+
+    /// Check the bidirectional body/index/network-identity invariants.
+    ///
+    /// This O(n) audit is available in tests and debug builds only. It does
+    /// not repair inconsistent state: contradictions are returned as errors
+    /// so callers cannot mistake a rebuilt map for proof that the original
+    /// world was valid.
+    #[cfg(any(test, debug_assertions))]
+    fn validate_world_indices(&self) -> Result<(), String> {
+        if self.bodies.len() != self.handle_to_index.len() {
+            return Err(format!(
+                "body/index cardinality mismatch: {} bodies, {} handle entries",
+                self.bodies.len(),
+                self.handle_to_index.len()
+            ));
+        }
+
+        let mut seen_handles = HashMap::with_capacity(self.bodies.len());
+        let mut seen_net_ids = HashMap::with_capacity(self.net_id_map.len());
+        let mut max_handle = None;
+
+        for (index, body) in self.bodies.iter().enumerate() {
+            let handle = body.handle;
+            if let Some(previous) = seen_handles.insert(handle, index) {
+                return Err(format!(
+                    "duplicate body handle {:?} at indices {} and {}",
+                    handle, previous, index
+                ));
+            }
+
+            match self.handle_to_index.get(&handle) {
+                Some(&mapped_index) if mapped_index == index => {}
+                Some(&mapped_index) => {
+                    return Err(format!(
+                        "body {:?} at index {} maps to index {}",
+                        handle, index, mapped_index
+                    ));
+                }
+                None => return Err(format!("body {:?} at index {} has no index entry", handle, index)),
+            }
+
+            max_handle = Some(max_handle.map_or(handle.0, |current: usize| current.max(handle.0)));
+
+            if let Some(net_id) = body.net_id {
+                if let Some(previous_handle) = seen_net_ids.insert(net_id, handle) {
+                    return Err(format!(
+                        "duplicate NetId {:?} on handles {:?} and {:?}",
+                        net_id, previous_handle, handle
+                    ));
+                }
+                match self.net_id_map.get(&net_id) {
+                    Some(&mapped_handle) if mapped_handle == handle => {}
+                    Some(&mapped_handle) => {
+                        return Err(format!(
+                            "body {:?} owns NetId {:?}, but map points to {:?}",
+                            handle, net_id, mapped_handle
+                        ));
+                    }
+                    None => {
+                        return Err(format!(
+                            "body {:?} carries NetId {:?} without a map entry",
+                            handle, net_id
+                        ));
+                    }
+                }
+            }
+        }
+
+        for (&handle, &index) in &self.handle_to_index {
+            let Some(body) = self.bodies.get(index) else {
+                return Err(format!(
+                    "handle {:?} maps to out-of-range body index {}",
+                    handle, index
+                ));
+            };
+            if body.handle != handle {
+                return Err(format!(
+                    "handle map entry {:?} points to body {:?} at index {}",
+                    handle, body.handle, index
+                ));
+            }
+        }
+
+        if seen_net_ids.len() != self.net_id_map.len() {
+            return Err(format!(
+                "NetId map cardinality mismatch: {} body IDs, {} map entries",
+                seen_net_ids.len(),
+                self.net_id_map.len()
+            ));
+        }
+
+        for (&net_id, &handle) in &self.net_id_map {
+            let Some(body) = self.body(handle) else {
+                return Err(format!(
+                    "NetId {:?} maps to missing body {:?}",
+                    net_id, handle
+                ));
+            };
+            if body.net_id != Some(net_id) {
+                return Err(format!(
+                    "NetId map entry {:?} -> {:?} disagrees with body identity {:?}",
+                    net_id, handle, body.net_id
+                ));
+            }
+        }
+
+        if let Some(max_handle) = max_handle {
+            if self.next_handle <= max_handle {
+                return Err(format!(
+                    "next_handle {} is not greater than live handle {}",
+                    self.next_handle, max_handle
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Get the total number of bodies in the world.
     pub fn body_count(&self) -> usize {
         self.bodies.len()
@@ -2559,5 +2705,122 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+
+#[cfg(test)]
+mod world_index_integrity_tests {
+    use super::*;
+
+    #[test]
+    fn sequential_insertions_and_net_ids_preserve_index_bijections() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let first = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let second = world.add_body(RigidBody::dynamic_sphere(
+            BodyHandle(999),
+            Point::new([2.0, 0.0, 0.0]),
+            0.25,
+            2.0,
+        ));
+        world.set_net_id(first, NetId(100));
+        world.set_net_id(second, NetId(200));
+
+        assert_eq!(world.handle_for_net_id(NetId(100)), Some(first));
+        assert_eq!(world.handle_for_net_id(NetId(200)), Some(second));
+        assert_eq!(world.body(first).map(|body| body.net_id), Some(Some(NetId(100))));
+        assert_eq!(world.body(second).map(|body| body.net_id), Some(Some(NetId(200))));
+        world.validate_world_indices().unwrap();
+    }
+
+    #[test]
+    fn deterministic_bulk_insertion_preserves_net_id_order_and_indices() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let inserted = world
+            .add_bodies_deterministic(vec![
+                (
+                    NetId(30),
+                    RigidBody::dynamic_sphere(
+                        BodyHandle(90),
+                        Point::new([3.0, 0.0, 0.0]),
+                        0.5,
+                        1.0,
+                    ),
+                ),
+                (
+                    NetId(10),
+                    RigidBody::dynamic_sphere(
+                        BodyHandle(91),
+                        Point::new([1.0, 0.0, 0.0]),
+                        0.5,
+                        1.0,
+                    ),
+                ),
+                (
+                    NetId(20),
+                    RigidBody::dynamic_sphere(
+                        BodyHandle(92),
+                        Point::new([2.0, 0.0, 0.0]),
+                        0.5,
+                        1.0,
+                    ),
+                ),
+            ])
+            .unwrap();
+
+        assert_eq!(inserted, vec![BodyHandle(0), BodyHandle(1), BodyHandle(2)]);
+        assert_eq!(world.handle_for_net_id(NetId(10)), Some(BodyHandle(0)));
+        assert_eq!(world.handle_for_net_id(NetId(20)), Some(BodyHandle(1)));
+        assert_eq!(world.handle_for_net_id(NetId(30)), Some(BodyHandle(2)));
+        world.validate_world_indices().unwrap();
+    }
+
+    #[test]
+    fn integrity_audit_rejects_stale_handle_index_entries() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let first = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let second = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        world.validate_world_indices().unwrap();
+
+        world.handle_to_index.insert(first, 1);
+        let error = world.validate_world_indices().unwrap_err();
+        assert!(error.contains("maps to index") || error.contains("points to body"));
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn integrity_audit_rejects_duplicate_body_handles_and_net_ids() {
+        let mut duplicate_handles = PhysicsWorld::<3>::new(SVector::zeros());
+        let first = duplicate_handles.add_sphere(Point::origin(), 0.5, 1.0);
+        let second = duplicate_handles.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        duplicate_handles.bodies[1].handle = first;
+        assert!(duplicate_handles
+            .validate_world_indices()
+            .unwrap_err()
+            .contains("cardinality mismatch"));
+
+        let mut duplicate_net_ids = PhysicsWorld::<3>::new(SVector::zeros());
+        let a = duplicate_net_ids.add_sphere(Point::origin(), 0.5, 1.0);
+        let b = duplicate_net_ids.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        duplicate_net_ids.set_net_id(a, NetId(7));
+        duplicate_net_ids.body_mut(b).unwrap().net_id = Some(NetId(7));
+        assert!(duplicate_net_ids
+            .validate_world_indices()
+            .unwrap_err()
+            .contains("duplicate NetId"));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn read_only_accessors_borrow_existing_world_collections() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+
+        assert_eq!(world.bodies().len(), 1);
+        assert_eq!(world.constraints().len(), world.constraints.len());
+        assert_eq!(world.contacts().len(), world.contacts.len());
+        assert_eq!(world.collision_events().len(), world.collision_events.len());
+        assert_eq!(world.sensor_events().len(), world.sensor_events.len());
+        assert!(std::ptr::eq(world.bodies().as_ptr(), world.bodies.as_ptr()));
     }
 }
