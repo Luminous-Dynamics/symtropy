@@ -145,9 +145,9 @@ fn validate_symmetric(matrix: [[f64; 3]; 3]) -> Result<(), KernelError> {
         .flatten()
         .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
     let tolerance = 256.0 * f64::EPSILON * scale;
-    for i in 0..3 {
-        for j in 0..i {
-            if (matrix[i][j] - matrix[j][i]).abs() > tolerance {
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().take(i) {
+            if (value - matrix[j][i]).abs() > tolerance {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -160,8 +160,8 @@ fn cholesky_3(matrix: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
     for i in 0..3 {
         for j in 0..=i {
             let mut residual = matrix[i][j];
-            for k in 0..j {
-                residual -= lower[i][k] * lower[j][k];
+            for (left, right) in lower[i].iter().zip(lower[j].iter()).take(j) {
+                residual -= left * right;
             }
             if i == j {
                 if !residual.is_finite() || residual <= 0.0 {
@@ -296,16 +296,16 @@ mod tests {
         let secondary = gaussian([3.0, -2.0, 5.0], diagonal(4.0, 9.0, 16.0));
         let report = static_peak_overlap(inputs(primary, secondary)).expect("valid Gaussians");
         let expected_covariance = [0.8, 36.0 / 13.0, 144.0 / 25.0];
-        for i in 0..3 {
-            assert!((report.overlap_covariance[i][i] - expected_covariance[i]).abs() < 1.0e-13);
+        for (i, expected) in expected_covariance.iter().enumerate() {
+            assert!((report.overlap_covariance[i][i] - expected).abs() < 1.0e-13);
         }
         let expected_mean = [
             0.8 * (1.0 + 3.0 / 4.0),
             (36.0 / 13.0) * (2.0 / 4.0 - 2.0 / 9.0),
             (144.0 / 25.0) * (-1.0 / 9.0 + 5.0 / 16.0),
         ];
-        for i in 0..3 {
-            assert!((report.overlap_position[i] - expected_mean[i]).abs() < 1.0e-13);
+        for (actual, expected) in report.overlap_position.iter().zip(expected_mean.iter()) {
+            assert!((actual - expected).abs() < 1.0e-13);
         }
     }
 
@@ -321,13 +321,20 @@ mod tests {
         );
         let forward = static_peak_overlap(inputs(primary, secondary)).expect("forward product");
         let reverse = static_peak_overlap(inputs(secondary, primary)).expect("reverse product");
-        for i in 0..3 {
-            assert!((forward.overlap_position[i] - reverse.overlap_position[i]).abs() < 1.0e-13);
-            for j in 0..3 {
-                assert!(
-                    (forward.overlap_covariance[i][j] - reverse.overlap_covariance[i][j]).abs()
-                        < 1.0e-13
-                );
+        for (forward_value, reverse_value) in forward
+            .overlap_position
+            .iter()
+            .zip(reverse.overlap_position.iter())
+        {
+            assert!((forward_value - reverse_value).abs() < 1.0e-13);
+        }
+        for (forward_row, reverse_row) in forward
+            .overlap_covariance
+            .iter()
+            .zip(reverse.overlap_covariance.iter())
+        {
+            for (forward_value, reverse_value) in forward_row.iter().zip(reverse_row.iter()) {
+                assert!((forward_value - reverse_value).abs() < 1.0e-13);
             }
         }
         assert!(
@@ -342,8 +349,8 @@ mod tests {
         let primary = gaussian([10.0, -4.0, 2.0], diagonal(1.0e-4, 2.0e-4, 3.0e-4));
         let secondary = gaussian([-10.0, 8.0, 5.0], diagonal(1.0e2, 2.0e2, 3.0e2));
         let report = static_peak_overlap(inputs(primary, secondary)).expect("valid Gaussians");
-        for i in 0..3 {
-            assert!((report.overlap_position[i] - primary.mean[i]).abs() < 1.0e-4);
+        for (overlap, mean) in report.overlap_position.iter().zip(primary.mean.iter()) {
+            assert!((overlap - mean).abs() < 1.0e-4);
         }
     }
 
@@ -364,16 +371,21 @@ mod tests {
             gaussian(add_vector(secondary.mean, shift), secondary.covariance),
         ))
         .expect("translated product");
-        for i in 0..3 {
-            assert!(
-                (translated.overlap_position[i] - base.overlap_position[i] - shift[i]).abs()
-                    < 1.0e-12
-            );
-            for j in 0..3 {
-                assert!(
-                    (translated.overlap_covariance[i][j] - base.overlap_covariance[i][j]).abs()
-                        < 1.0e-12
-                );
+        for ((translated_value, base_value), shift_value) in translated
+            .overlap_position
+            .iter()
+            .zip(base.overlap_position.iter())
+            .zip(shift.iter())
+        {
+            assert!((translated_value - base_value - shift_value).abs() < 1.0e-12);
+        }
+        for (translated_row, base_row) in translated
+            .overlap_covariance
+            .iter()
+            .zip(base.overlap_covariance.iter())
+        {
+            for (translated_value, base_value) in translated_row.iter().zip(base_row.iter()) {
+                assert!((translated_value - base_value).abs() < 1.0e-12);
             }
         }
         assert!(

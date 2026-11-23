@@ -46,7 +46,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 130 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 11 in `ncdot_pointwise.rs`, and 5 in `ncdot_sphere.rs`. This stacked 130-test head requires its own exact-head workflow; the parent Lebedev and pointwise heads passed their own workflows.
+The current authored test corpus on this branch contains 156 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 11 in `ncdot_pointwise.rs`, 5 in `ncdot_sphere.rs`, 10 in `relative_covariance.rs`, 8 in `static_peak_overlap.rs`, and 8 in `col_energy_guard.rs`. The executable 156-test code head `e434ce8577fea55af8f50a5725aff3fc4cf16349` passed workflow [#246](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45121534317): formatting, all tests, strict Clippy with warnings denied, checkout verification and validation identity artifact passed. Artifact SHA-256: `d1b9f9606d63d7aa4db38a07604150088609a11bbdb856813070734d6a6f0b03`. Three subsequent commits changed only the README and added the separate NASA golden-case JSON manifest; the newer documentation/manifest head has not yet been exact-head gated.
 
 ## Important limitations
 
