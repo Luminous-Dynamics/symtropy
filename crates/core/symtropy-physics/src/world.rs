@@ -343,7 +343,12 @@ impl<const D: usize> PhysicsWorld<D> {
                         handle, index, mapped_index
                     ));
                 }
-                None => return Err(format!("body {:?} at index {} has no index entry", handle, index)),
+                None => {
+                    return Err(format!(
+                        "body {:?} at index {} has no index entry",
+                        handle, index
+                    ));
+                }
             }
 
             max_handle = Some(max_handle.map_or(handle.0, |current: usize| current.max(handle.0)));
@@ -2708,7 +2713,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod world_index_integrity_tests {
     use super::*;
@@ -2728,8 +2732,14 @@ mod world_index_integrity_tests {
 
         assert_eq!(world.handle_for_net_id(NetId(100)), Some(first));
         assert_eq!(world.handle_for_net_id(NetId(200)), Some(second));
-        assert_eq!(world.body(first).map(|body| body.net_id), Some(Some(NetId(100))));
-        assert_eq!(world.body(second).map(|body| body.net_id), Some(Some(NetId(200))));
+        assert_eq!(
+            world.body(first).map(|body| body.net_id),
+            Some(Some(NetId(100)))
+        );
+        assert_eq!(
+            world.body(second).map(|body| body.net_id),
+            Some(Some(NetId(200)))
+        );
         world.validate_world_indices().unwrap();
     }
 
@@ -2794,20 +2804,24 @@ mod world_index_integrity_tests {
         let first = duplicate_handles.add_sphere(Point::origin(), 0.5, 1.0);
         let second = duplicate_handles.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
         duplicate_handles.bodies[1].handle = first;
-        assert!(duplicate_handles
-            .validate_world_indices()
-            .unwrap_err()
-            .contains("duplicate body handle"));
+        assert!(
+            duplicate_handles
+                .validate_world_indices()
+                .unwrap_err()
+                .contains("duplicate body handle")
+        );
 
         let mut duplicate_net_ids = PhysicsWorld::<3>::new(SVector::zeros());
         let a = duplicate_net_ids.add_sphere(Point::origin(), 0.5, 1.0);
         let b = duplicate_net_ids.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
         duplicate_net_ids.set_net_id(a, NetId(7));
         duplicate_net_ids.body_mut(b).unwrap().net_id = Some(NetId(7));
-        assert!(duplicate_net_ids
-            .validate_world_indices()
-            .unwrap_err()
-            .contains("duplicate NetId"));
+        assert!(
+            duplicate_net_ids
+                .validate_world_indices()
+                .unwrap_err()
+                .contains("duplicate NetId")
+        );
         assert_ne!(a, b);
     }
 
