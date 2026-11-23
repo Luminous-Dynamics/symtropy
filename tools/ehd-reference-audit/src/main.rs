@@ -61,7 +61,7 @@ fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     path.iter().try_fold(value, |node, key| node.get(*key))
 }
 
-fn text_at(value: &Value, path: &[&str]) -> Option<&str> {
+fn text_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
     at(value, path)?.as_str()
 }
 
@@ -6136,7 +6136,7 @@ mod solver_comparator_registry_tests {
 }
 
 #[cfg(test)]
-mod solver_comparator_registry_tests {
+mod solver_comparator_boundary_tests {
     use super::*;
 
     fn atlas() -> Value {
