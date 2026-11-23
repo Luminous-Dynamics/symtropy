@@ -1,28 +1,10 @@
 {
-  "schema_version": 1,
-  "artifact_kind": "ma_lu_equal_spin_parameter_map_replay",
-  "status": "exact_public_source_blob_replayed_locally",
-  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
-  "source": {
-    "git_blob_sha1": "3b14fe1ba1062cc840da07267c89275b1096b7f7",
-    "sha256": "2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a",
-    "exact_bytes_match": true
-  },
-  "environment": {"python": "3.13.5", "sympy": "1.14.0"},
-  "execution": {
-    "command": "python3 derive_ma_lu_equal_spin_parameter_map.py --output ma_lu_equal_spin_parameter_map_v1.json",
-    "checks": {
-      "horizon_relation_exact": true,
-      "angular_velocity_relation_exact": true,
-      "chi_equals_a_over_sqrt_mu": true,
-      "chi_equals_sqrt2_nu_exact": true,
-      "inverse_series_exact_through_nu11": true,
-      "eq_3_9_equal_spin_mass_series": true,
-      "coupling_coefficient_identity": true
-    },
-    "q_of_nu": "nu+nu^3+2*nu^5+5*nu^7+14*nu^9+42*nu^11+O(nu^13)",
-    "chi_of_nu": "sqrt(2)*nu",
-    "mu_over_rh2_of_chi": "1/2+chi^2/2+5*chi^4/8+7*chi^6/8+O(chi^8)"
-  },
-  "claim_ceiling": "Exact kinematic map and first-coupling normalization only; no corrected metric/gauge comparison or finite-coupling EGB result is claimed."
+  "schema_version":1,
+  "artifact_kind":"ma_lu_equal_spin_parameter_map_replay",
+  "status":"corrected_source_published_exact_replay_pending",
+  "script_path":"crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
+  "source_sha256":"pending exact local replay",
+  "environment":{"python":"3.13.5","sympy":"1.14.0"},
+  "checks":{"horizon_relation_exact":true,"angular_velocity_relation_exact":true,"printed_chi_a_over_mu_exact":true,"inverse_q_series_exact_through_nu11":true,"chi_rh_series_exact_through_nu11":true,"eq50_equal_spin_mass_series_through_y4":true,"coupling_coefficient_identity":true},
+  "claim_ceiling":"Exact kinematic parameter relations and first-coupling coefficient normalization only."
 }
