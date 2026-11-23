@@ -522,9 +522,7 @@ fn solution_from_selection(problem: &PlanningProblem, selected: &[bool]) -> Plan
         .collect::<Vec<_>>();
     let undercovered_failure_domain_feature_ids = feature_coverage
         .iter()
-        .filter(|feature| {
-            feature.robust_failure_domain_count < feature.required_failure_domains
-        })
+        .filter(|feature| feature.robust_failure_domain_count < feature.required_failure_domains)
         .map(|feature| feature.feature_id.clone())
         .collect::<Vec<_>>();
     let mut uncovered_feature_ids = undercovered_view_count_feature_ids.clone();
@@ -985,15 +983,30 @@ mod tests {
         let problem = problem(
             vec![feature("SURFACE-1", 2, 1)],
             vec![
-                view("VIEW-A", "SAME-SENSOR-SYSTEM", 1, &["SURFACE-1"], &["SURFACE-1"]),
-                view("VIEW-B", "SAME-SENSOR-SYSTEM", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view(
+                    "VIEW-A",
+                    "SAME-SENSOR-SYSTEM",
+                    1,
+                    &["SURFACE-1"],
+                    &["SURFACE-1"],
+                ),
+                view(
+                    "VIEW-B",
+                    "SAME-SENSOR-SYSTEM",
+                    1,
+                    &["SURFACE-1"],
+                    &["SURFACE-1"],
+                ),
             ],
             2,
             2,
         );
 
         let receipt = solve(&problem).unwrap();
-        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Feasible);
+        assert_eq!(
+            receipt.candidate_geometry_disposition,
+            Disposition::Feasible
+        );
         let optimum = receipt.exact_optimum.unwrap();
         assert_eq!(optimum.selected_view_count, 2);
         assert_eq!(optimum.feature_coverage[0].robust_view_count, 2);
@@ -1035,11 +1048,17 @@ mod tests {
         );
 
         let receipt = solve(&problem).unwrap();
-        assert_eq!(receipt.candidate_geometry_disposition, Disposition::Infeasible);
+        assert_eq!(
+            receipt.candidate_geometry_disposition,
+            Disposition::Infeasible
+        );
         assert!(receipt.exact_optimum.is_none());
         assert_eq!(receipt.candidate_pool_coverage[0].required_view_count, 3);
         assert_eq!(receipt.candidate_pool_coverage[0].robust_view_count, 2);
-        assert_eq!(receipt.candidate_pool_coverage[0].robust_failure_domain_count, 1);
+        assert_eq!(
+            receipt.candidate_pool_coverage[0].robust_failure_domain_count,
+            1
+        );
     }
 
     #[test]
