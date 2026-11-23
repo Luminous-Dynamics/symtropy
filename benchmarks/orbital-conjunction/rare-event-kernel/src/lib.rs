@@ -32,6 +32,7 @@ pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_pointwise;
 pub mod ncdot_sphere;
+pub mod relative_covariance;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -45,6 +46,10 @@ pub use lebedev::{
 pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
 pub use ncdot_sphere::{
     NcdotSphereIntegrationConfig, NcdotSphereIntegrationReport, integrate_ncdot_sphere,
+};
+pub use relative_covariance::{
+    DcpCrossCovarianceInputs, RelativeNcdotConditionals, RelativeNcdotCovarianceInputs,
+    StateCovariance6, build_relative_ncdot_conditionals, dcp_secondary_primary_cross_covariance,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
@@ -137,6 +142,10 @@ pub enum KernelError {
     ZeroSphereIntegrand,
     /// Sphere quadrature absolute and relative tolerances are invalid.
     InvalidSphereQuadratureTolerance,
+    /// Primary/secondary marginal and cross covariance do not form a valid joint covariance.
+    InvalidJointCovariance,
+    /// A NASA DCP sigma is negative or non-finite.
+    InvalidDcpSigma,
 }
 
 impl fmt::Display for KernelError {
@@ -197,6 +206,10 @@ impl fmt::Display for KernelError {
             Self::InvalidSphereQuadratureTolerance => {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
             }
+            Self::InvalidJointCovariance => {
+                "primary, secondary and cross covariances do not form a positive-semidefinite joint model"
+            }
+            Self::InvalidDcpSigma => "NASA DCP sigma values must be finite and nonnegative",
         };
         f.write_str(message)
     }
