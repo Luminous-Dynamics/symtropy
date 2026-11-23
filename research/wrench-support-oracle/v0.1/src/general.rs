@@ -366,19 +366,34 @@ mod tests {
     }
 
     #[test]
-    fn finer_friction_polyhedra_converge_toward_the_disk_support() {
-        let make_model = |cone_sides| ContactWrenchModel {
-            contacts: vec![contact("c0", [0.0; 3], [0.0, 0.0, 1.0], 0.5, 0.5, 0.0, 1.0)],
-            cone_sides,
-            characteristic_length: 1.0,
-        };
-        let diagonal = direction("diagonal-force", [1.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
-        let four = evaluate_support(&make_model(4), &diagonal).unwrap().support_value;
-        let eight = evaluate_support(&make_model(8), &diagonal).unwrap().support_value;
-        let sixteen = evaluate_support(&make_model(16), &diagonal).unwrap().support_value;
-        let circular_limit = 0.5;
-        assert!(four < eight && eight < sixteen && sixteen < circular_limit);
-        assert!((circular_limit - sixteen) < (circular_limit - four));
+    fn friction_polyhedron_error_matches_analytic_angular_bound() {
+        for cone_sides in [4_usize, 8, 16, 32, 64] {
+            let half_step = std::f64::consts::PI / cone_sides as f64;
+            let query = direction(
+                "between-rays",
+                [-half_step.sin(), half_step.cos(), 0.0, 0.0, 0.0, 0.0],
+            );
+            let model = ContactWrenchModel {
+                contacts: vec![contact(
+                    "c0",
+                    [0.0; 3],
+                    [0.0, 0.0, 1.0],
+                    0.5,
+                    0.5,
+                    0.0,
+                    1.0,
+                )],
+                cone_sides,
+                characteristic_length: 1.0,
+            };
+            let support = evaluate_support(&model, &query)
+                .expect("polyhedral friction support")
+                .support_value;
+            let expected = 0.5 * half_step.cos();
+            assert!((support - expected).abs() < 1.0e-12);
+            let relative_error = 1.0 - support / 0.5;
+            assert!(relative_error <= 1.0 - half_step.cos() + 1.0e-12);
+        }
     }
 
     #[test]
