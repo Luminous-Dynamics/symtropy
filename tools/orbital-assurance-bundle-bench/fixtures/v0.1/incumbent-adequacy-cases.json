@@ -1,0 +1,803 @@
+{
+  "schema": "luminous.orbital-incumbent-adequacy.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-finite-world-incumbent-adequacy-only",
+  "cases": [
+    {
+      "case_id": "baseline_retain",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "RETAIN_INCUMBENT",
+        "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
+        "worst_case_improvement": 5
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "decision_irrelevant_shift",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "low_demand",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 101
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "high_demand",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 75
+            },
+            {
+              "action_id": "B",
+              "loss": 76
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "RETAIN_INCUMBENT",
+        "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
+        "worst_case_improvement": 0
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "opposite_optima_within_margin",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "world_prefers_A",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 104
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "world_prefers_B",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 104
+            },
+            {
+              "action_id": "B",
+              "loss": 100
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 3,
+      "switching_cost": 0,
+      "expected": {
+        "disposition": "RETAIN_INCUMBENT",
+        "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
+        "worst_case_improvement": 0
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "threshold_exceeded",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "harmful_shift",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 80
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 7,
+      "switching_cost": 3,
+      "expected": {
+        "disposition": "REOPTIMIZATION_WARRANTED",
+        "trigger_reason": "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD",
+        "worst_case_improvement": 20
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "threshold_equality",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "edge",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 10
+            },
+            {
+              "action_id": "B",
+              "loss": 0
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 8,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "RETAIN_INCUMBENT",
+        "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
+        "worst_case_improvement": 10
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "incumbent_infeasible",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "feasible",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 1
+            },
+            {
+              "action_id": "B",
+              "loss": 3
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "incumbent_removed",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "B",
+              "loss": 2
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "REOPTIMIZATION_WARRANTED",
+        "trigger_reason": "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "no_surviving_worlds",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "NO_SURVIVING_WORLDS",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "domain_open",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "OPEN",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "DOMAIN_NOT_CLOSED",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "stale_evidence",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "STALE",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "STALE_EVIDENCE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "incomplete_loss_matrix",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "INCOMPLETE_LOSS_MATRIX",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "duplicate_loss_row",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "A",
+              "loss": 101
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "trigger_reason": "loss row is malformed, duplicated or not feasible in its world",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "scope_mismatch",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "SCOPE_MISMATCH",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "model_inadequate",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "INADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "MODEL_FAMILY_INADEQUATE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "loss_unit_mismatch",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "energy_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_UNIT_MISMATCH",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    },
+    {
+      "case_id": "dependency_graph_inadequate",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "DEPENDENCY_GRAPH_INADEQUATE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "COMMON_MODE_DEPENDENCY_OMISSION"
+    },
+    {
+      "case_id": "dependency_graph_stale",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "STALE_DEPENDENCY_GRAPH",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "STALE"
+    }
+  ]
+}
