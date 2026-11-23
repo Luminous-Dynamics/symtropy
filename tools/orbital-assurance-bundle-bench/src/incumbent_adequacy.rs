@@ -1102,7 +1102,22 @@ mod tests {
             case(&report, "fractional_loss_projection").disposition,
             "INVALID_INPUT"
         );
-        assert_eq!(report.summary.expected_result_mismatches, 0);
+        assert_eq!(
+            report.summary.expected_result_mismatches,
+            0,
+            "unexpected mismatch cases: {:?}",
+            report
+                .cases
+                .iter()
+                .filter(|case| !case.expected_result_matched)
+                .map(|case| (
+                    case.case_id.as_str(),
+                    case.disposition.as_str(),
+                    case.trigger_reason.as_str(),
+                    case.worst_case_improvement
+                ))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -1313,12 +1328,39 @@ mod tests {
             case(&report, "baseline_retain").disposition,
             "INVALID_INPUT"
         );
-        assert_eq!(report.summary.expected_result_mismatches, 0);
+        assert_eq!(
+            report.summary.expected_result_mismatches,
+            0,
+            "overflow mutation mismatches: {:?}",
+            report
+                .cases
+                .iter()
+                .filter(|case| !case.expected_result_matched)
+                .map(|case| (
+                    case.case_id.as_str(),
+                    case.disposition.as_str(),
+                    case.trigger_reason.as_str(),
+                    case.worst_case_improvement
+                ))
+                .collect::<Vec<_>>()
+        );
 
         let regular = evaluate(&fixture()).expect("regular corpus evaluates");
         assert_eq!(
-            case(&regular, "duplicate_loss_row").disposition,
-            "INVALID_INPUT"
+            regular.summary.expected_result_mismatches,
+            0,
+            "regular corpus mismatches: {:?}",
+            regular
+                .cases
+                .iter()
+                .filter(|case| !case.expected_result_matched)
+                .map(|case| (
+                    case.case_id.as_str(),
+                    case.disposition.as_str(),
+                    case.trigger_reason.as_str(),
+                    case.worst_case_improvement
+                ))
+                .collect::<Vec<_>>()
         );
     }
 
