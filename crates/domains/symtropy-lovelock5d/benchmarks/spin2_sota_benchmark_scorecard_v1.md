@@ -323,3 +323,26 @@ A credible route beyond the current frontier is to:
 6. qualify the full gravitational principal symbol and strong hyperbolicity separately from stationary BVP regularity and mode stability.
 
 These are benchmark targets, not achieved results. See #6915, #6955, #6965 and the new spin-10 charge artifacts.
+
+### Fixed-conserved-charge thermodynamics: independent Gibbs identity through spin tenth order
+
+The new exact-source verifier specializes Ma-Lu Eqs. (3.20)-(3.26) to equal spins. It checks the parameter shifts delta_mu, delta_chi, the T/S/Omega corrections, and the Gibbs correction. The key independent identity at fixed M,J_a,J_b is:
+
+DeltaG = -S0*DeltaT - T0*DeltaS - J_a0*DeltaOmega_a - J_b0*DeltaOmega_b.
+
+For a=b=q, r_h=1, this reduces to:
+
+DeltaG = -S0*DeltaT - T0*DeltaS - 2*J0*DeltaOmega.
+
+The exact residual vanishes through q^10; the first possible unchecked order is q^12. A one-plane-only control and the incorrect entropy-prefactor control both fail.
+
+A source transcription detail is important: the JHEP version-of-record Eq. (3.23) uses the entropy correction prefactor 9*pi^2*sqrt(mu)/sqrt(2). An OCR/text extraction can lose one factor of pi and invert the mu dependence. The independent Gibbs identity is sensitive to that error and therefore serves as a useful equation-level cross-check.
+
+Public exact-source replay:
+- verifier: verify_ma_lu_equal_spin_fixed_charge_thermodynamics.py
+- Git blob SHA-1: 9fab7f906d066df8b9c1468521d95e0d25f9ea44
+- SHA-256: 012bac1a59e38d7b09782a231e75aef2809a2f9849835ebd1c06d7b86072f5e5
+- Python 3.13.5 / SymPy 1.14.0
+- all eight exact checks and both negative controls pass.
+
+This is a publisher-formula specialization and Gibbs consistency check. It does not independently rederive the complete differential-form first law from the metric and does not establish finite-coupling thermodynamics.
