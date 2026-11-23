@@ -212,14 +212,14 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
                 case.case_id, output.output_id
             )));
         }
-        if let Some(disposition_at_ms) = output.disposition_at_ms {
-            if disposition_at_ms < output.produced_at_ms || disposition_at_ms > case.horizon_end_ms
-            {
-                return Err(fail(format!(
-                    "case_{}_output_{}_disposition_time_outside_episode",
-                    case.case_id, output.output_id
-                )));
-            }
+        if let Some(disposition_at_ms) = output.disposition_at_ms
+            && (disposition_at_ms < output.produced_at_ms
+                || disposition_at_ms > case.horizon_end_ms)
+        {
+            return Err(fail(format!(
+                "case_{}_output_{}_disposition_time_outside_episode",
+                case.case_id, output.output_id
+            )));
         }
     }
     Ok(())
