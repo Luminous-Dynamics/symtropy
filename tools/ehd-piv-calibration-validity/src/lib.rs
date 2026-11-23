@@ -205,6 +205,7 @@ pub struct LiveEvidence {
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
+    AbstainOutOfEnvelope,
     AbstainInsufficientEvidence,
 }
 
@@ -654,6 +655,11 @@ impl CalibrationSupervisor {
             }
             FailureAction::IndependentDiagnosticRequired => {
                 Disposition::IndependentDiagnosticRequired { reason }
+            }
+            FailureAction::AbstainOutOfEnvelope => {
+                Disposition::AbstainOutOfEnvelope {
+                    feature: String::new(),
+                }
             }
             FailureAction::AbstainInsufficientEvidence => {
                 Disposition::AbstainInsufficientEvidence { reason }
