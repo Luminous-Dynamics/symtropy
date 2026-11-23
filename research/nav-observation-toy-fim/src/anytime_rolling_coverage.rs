@@ -356,12 +356,17 @@ impl AnytimeRollingCoveragePolicy {
             // the full-history proportional rule (theta=1), which always starts
             // at zero. The number of starts is therefore known without scanning
             // an unbounded future horizon.
-            let candidate_count = match self.config.window_rule {
+            let full_history_only = matches!(
+                self.config.window_rule,
                 RollingWindowRule::Proportional {
                     numerator,
-                    denominator,
-                } if numerator == denominator => 1,
-                _ => window_length as usize,
+                    denominator
+                } if numerator == denominator
+            );
+            let candidate_count = if full_history_only {
+                1_usize
+            } else {
+                usize::try_from(window_length).unwrap_or(usize::MAX)
             };
 
             if candidate_count > self.config.maximum_feasibility_starts {
@@ -371,7 +376,8 @@ impl AnytimeRollingCoveragePolicy {
             } else {
                 let previous = *self
                     .prefixes
-                    .get(self.monitoring_horizon as usize)
+                    .get(usize::try_from(self.monitoring_horizon)
+                        .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?)
                     .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
 
                 let prior_mean = if previous.bounded_count == 0 {
@@ -379,8 +385,13 @@ impl AnytimeRollingCoveragePolicy {
                 } else {
                     previous.miss_count as f64 / previous.bounded_count as f64
                 };
+                let candidate_starts = if full_history_only {
+                    vec![0_u64]
+                } else {
+                    (window_start..t).collect::<Vec<_>>()
+                };
 
-                for start in window_start..t {
+                for start in candidate_starts {
                     let Some(first_occurrence_at) =
                         first_time_with_window_start(self.config.window_rule, start)?
                     else {
@@ -395,7 +406,7 @@ impl AnytimeRollingCoveragePolicy {
                         self.config.target_miscoverage * smallest_window_length as f64;
 
                     for candidate_miss in [false, true] {
-                        let z = u64::from(candidate_miss);
+                        let z = if candidate_miss { 1_u64 } else { 0_u64 };
                         let bounded_count_with_candidate = previous
                             .bounded_count
                             .checked_add(1)
@@ -546,18 +557,24 @@ impl AnytimeRollingCoveragePolicy {
             None
         };
 
+        let expected_episode_index = self
+            .monitoring_horizon
+            .checked_add(1)
+            .ok_or(RollingWindowError::CounterOverflow)?;
         let t = decision.episode_index;
-        if t != self.monitoring_horizon + 1 || decision.decision_sequence_id != t {
+        if t != expected_episode_index || decision.decision_sequence_id != t {
             return Err(RollingWindowError::DecisionDoesNotMatchPending);
         }
 
+        let previous_index = usize::try_from(self.monitoring_horizon)
+            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
         let previous = *self
             .prefixes
-            .get(self.monitoring_horizon as usize)
+            .get(previous_index)
             .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
         let (next_bounded_count, next_miss_count, next_variation, next_scaled_margin) =
             if let Some((missed, _, _)) = missed_outcome {
-                let z = u64::from(missed);
+                let z = if missed { 1_u64 } else { 0_u64 };
                 let prior_mean = if previous.bounded_count == 0 {
                     0.0
                 } else {
