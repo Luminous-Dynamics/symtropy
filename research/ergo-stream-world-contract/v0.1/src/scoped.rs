@@ -460,10 +460,7 @@ mod tests {
         let (source, target) = source_and_target();
         let mut candidate = scoped_candidate(StructuralMapKindV0::SubgraphEmbedding);
         let removed_node = candidate.source_scope.node_ids.pop().unwrap();
-        candidate
-            .source_scope
-            .excluded_node_ids
-            .push(removed_node);
+        candidate.source_scope.excluded_node_ids.push(removed_node);
 
         assert_eq!(
             validate_scoped_structural_correspondence(&source, &target, &candidate),
