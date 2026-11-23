@@ -291,8 +291,8 @@ mod tests {
             ids.sort();
             if feasible
                 && (width > best_width
-                    || (width == best_width && (cost < best_cost
-                        || (cost == best_cost && ids < best_ids))))
+                    || (width == best_width
+                        && (cost < best_cost || (cost == best_cost && ids < best_ids))))
             {
                 best_width = width;
                 best_cost = cost;
@@ -491,14 +491,9 @@ mod tests {
     fn exhaustive_knapsack_oracle_quantifies_greedy_scheduler_regret() {
         // The highest width/cost item (6/4) is locally preferred, but the two
         // lower-ratio items (10/7 each) jointly produce a better budget fill.
-        let candidates = [
-            candidate(1, 6, 4),
-            candidate(2, 10, 7),
-            candidate(3, 10, 7),
-        ];
+        let candidates = [candidate(1, 6, 4), candidate(2, 10, 7), candidate(3, 10, 7)];
         let budget = Rational::from_integer(14);
-        let greedy =
-            schedule_refinements(scope(), budget, &candidates).unwrap();
+        let greedy = schedule_refinements(scope(), budget, &candidates).unwrap();
         let greedy_width = selected_width(&candidates, &greedy.selected_candidate_ids);
         let (optimal_width, optimal_cost, optimal_ids) =
             exhaustive_best_subset(&candidates, budget);
