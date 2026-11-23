@@ -205,7 +205,9 @@ pub struct LiveEvidence {
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
-    AbstainOutOfEnvelope { feature: String },
+    AbstainOutOfEnvelope {
+        feature: String,
+    },
     AbstainInsufficientEvidence,
 }
 
@@ -1007,7 +1009,9 @@ mod tests {
     fn requalification_rejects_reuse_of_observed_dependence_clusters() {
         let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
         let mut changed = evidence("e-1", 11);
-        changed.signals.insert(ShiftSignal::ConditionalResidualDriftDetected);
+        changed
+            .signals
+            .insert(ShiftSignal::ConditionalResidualDriftDetected);
         let _ = supervisor.observe(&changed);
 
         let mut next = certificate();
