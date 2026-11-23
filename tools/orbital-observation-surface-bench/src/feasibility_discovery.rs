@@ -269,7 +269,8 @@ fn validate_query_universe(case: &DiscoveryCase) -> Result<(), String> {
                 "admissible" | "indeterminate" | "out_of_profile"
             )
             || query.expected_world_ids.len() != worlds.len()
-            || query.expected_world_ids_sha256 != case.base_decision.compatible_world_set.world_ids_sha256
+            || query.expected_world_ids_sha256
+                != case.base_decision.compatible_world_set.world_ids_sha256
             || query.world_observations.len() != worlds.len()
             || query.world_observations.len() > MAX_WORLD_OBSERVATIONS
             || [
@@ -280,7 +281,24 @@ fn validate_query_universe(case: &DiscoveryCase) -> Result<(), String> {
             .iter()
             .any(|value| *value > MAX_SAFE_INTEGER)
         {
-            return Err(format!("query {} identity, kind, evidence or bounds are invalid", query.query_id));
+            return Err(format!(
+                "query {} identity, kind, evidence or bounds are invalid",
+                query.query_id
+            ));
+        }
+        let expected_worlds = query
+            .expected_world_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let base_worlds = worlds.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        if expected_worlds != base_worlds
+            || digest_ids(&query.expected_world_ids)? != query.expected_world_ids_sha256
+        {
+            return Err(format!(
+                "query {} expected-world inventory does not match the base world set",
+                query.query_id
+            ));
         }
         for (value, field) in [
             (query.admissibility_receipt_id.as_deref(), "admissibility receipt"),
@@ -800,9 +818,11 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
     }
 
     for policy in &mut policy_metrics {
-        if let Some(baseline) = &no_query_best {
-            policy.worst_loss_reduction_vs_best_no_query =
-                Some(signed_difference(baseline, &policy.worst_case_loss)?);
+        if policy.query_id.is_some() {
+            if let Some(baseline) = &no_query_best {
+                policy.worst_loss_reduction_vs_best_no_query =
+                    Some(signed_difference(baseline, &policy.worst_case_loss)?);
+            }
         }
     }
 
