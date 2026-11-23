@@ -1017,7 +1017,8 @@ mod tests {
         ];
         for (axis, expected_value) in expected_mean.iter().enumerate() {
             assert!((result.overlap_position[axis] - expected_value).abs() < 2.0e-12);
-            for (column, expected_covariance_value) in expected_covariance[axis].iter().enumerate() {
+            for (column, expected_covariance_value) in expected_covariance[axis].iter().enumerate()
+            {
                 assert!(
                     (result.overlap_covariance[axis][column] - expected_covariance_value).abs()
                         < 2.0e-12
