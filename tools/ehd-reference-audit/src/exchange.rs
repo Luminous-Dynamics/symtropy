@@ -270,8 +270,8 @@ pub fn map_integrated_impulses(
             .entry(destination_id)
             .or_insert([CompensatedSum::default(); 3]);
 
-        for component in 0..3 {
-            destination[component].add(event.impulse_ns[component] * fraction.value());
+        for (component, impulse) in event.impulse_ns.iter().copied().enumerate() {
+            destination[component].add(impulse * fraction.value());
         }
     }
 
