@@ -226,6 +226,22 @@ jobs:
           from pathlib import Path
           rust = json.loads(Path("/tmp/support-envelope-a.json").read_text())
           oracle = json.loads(Path("/tmp/support-envelope-oracle.json").read_text())
+          if rust != oracle:
+              for key in sorted(set(rust) | set(oracle)):
+                  if rust.get(key) != oracle.get(key):
+                      print(f"top-level mismatch {key}: Rust={rust.get(key)!r} Python={oracle.get(key)!r}")
+              rust_cases = {case["case_id"]: case for case in rust["cases"]}
+              oracle_cases = {case["case_id"]: case for case in oracle["cases"]}
+              for case_id in sorted(set(rust_cases) | set(oracle_cases)):
+                  if rust_cases.get(case_id) != oracle_cases.get(case_id):
+                      left = rust_cases.get(case_id)
+                      right = oracle_cases.get(case_id)
+                      if left is None or right is None:
+                          print(f"case mismatch {case_id}: Rust={left!r} Python={right!r}")
+                      else:
+                          for key in sorted(set(left) | set(right)):
+                              if left.get(key) != right.get(key):
+                                  print(f"case {case_id} field {key}: Rust={left.get(key)!r} Python={right.get(key)!r}")
           assert rust == oracle
           assert rust["expected_outcome_matches"] == rust["case_count"] == 13
           by_id = {case["case_id"]: case for case in rust["cases"]}
