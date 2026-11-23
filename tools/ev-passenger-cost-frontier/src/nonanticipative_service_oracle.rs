@@ -629,18 +629,6 @@ fn solve_node(
     Ok(best)
 }
 
-fn expected_score(raw: RawScore, probability_denominator: u128) -> ExactExpectedScore {
-    let factor = probability_denominator;
-    ExactExpectedScore {
-        on_time_services_numerator: u128::from(raw.on_time).saturating_mul(factor),
-        completed_by_horizon_numerator: u128::from(raw.completed).saturating_mul(factor),
-        lateness_seconds_numerator: u128::from(raw.lateness_seconds).saturating_mul(factor),
-        in_progress_numerator: u128::from(raw.in_progress).saturating_mul(factor),
-        completed_latency_seconds_numerator: u128::from(raw.latency_seconds).saturating_mul(factor),
-        probability_denominator,
-    }
-}
-
 fn hash_observation(
     node: &ScenarioTreeNode,
     parent_information_digest: Option<&str>,
