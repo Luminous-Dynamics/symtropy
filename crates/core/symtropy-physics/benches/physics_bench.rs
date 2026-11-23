@@ -594,7 +594,6 @@ fn bench_broadphase_stress_matrix(c: &mut Criterion) {
     group.finish();
 }
 
-
 fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
     const FRAMES: usize = 16;
     let mut group = c.benchmark_group("broadphase_temporal_static_reuse_3d");
@@ -608,8 +607,7 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
                 .map(|frame| {
                     let mut bodies = static_heavy_broadphase_scene(static_count, moving_count);
                     for moving_index in 0..moving_count {
-                        let anchor =
-                            moving_index * static_count / moving_count.max(1);
+                        let anchor = moving_index * static_count / moving_count.max(1);
                         let x = anchor as f64 * 3.0 + frame as f64 * 0.2 - 1.5;
                         let body = &mut bodies[static_count + moving_index];
                         body.transform = Transform::from_translation(Point::new([x, 0.0, 0.0]));
@@ -625,8 +623,7 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
             for (frame_index, bodies) in frames.iter().enumerate() {
                 let oracle_pairs = exhaustive_aabb_pair_oracle(bodies);
                 let full_pairs = broadphase::find_pairs(bodies);
-                let incremental_pairs =
-                    broadphase::find_pairs_incremental(bodies, &static_cache);
+                let incremental_pairs = broadphase::find_pairs_incremental(bodies, &static_cache);
                 assert_eq!(
                     full_pairs, oracle_pairs,
                     "temporal LBVH mismatch at frame {frame_index}, static={static_count}, moving={moving_count}"
@@ -651,7 +648,8 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
                             candidates += broadphase::find_pairs_incremental(
                                 black_box(bodies),
                                 black_box(&static_cache),
-                            ).len();
+                            )
+                            .len();
                         }
                         black_box(candidates);
                     });
@@ -664,8 +662,7 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
                     bench.iter(|| {
                         let mut candidates = 0usize;
                         for bodies in &frames {
-                            candidates +=
-                                broadphase::find_pairs(black_box(bodies)).len();
+                            candidates += broadphase::find_pairs(black_box(bodies)).len();
                         }
                         black_box(candidates);
                     });
@@ -683,7 +680,8 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
                             candidates += broadphase::find_pairs_incremental(
                                 black_box(bodies),
                                 black_box(&cache),
-                            ).len();
+                            )
+                            .len();
                         }
                         black_box(candidates);
                     });
