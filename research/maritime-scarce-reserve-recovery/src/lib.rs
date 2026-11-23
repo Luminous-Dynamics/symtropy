@@ -945,12 +945,7 @@ fn exhaustive_oracle(
         acquisition_cost,
     };
     let mut best = None;
-    enumerate_oracle_policies(
-        &search,
-        0,
-        &mut Vec::with_capacity(unique.len()),
-        &mut best,
-    );
+    enumerate_oracle_policies(&search, 0, &mut Vec::with_capacity(unique.len()), &mut best);
     best
 }
 
@@ -1012,16 +1007,13 @@ pub fn render_csv() -> String {
                 }
             };
 
-            let partition_regret = result
-                .solution
-                .as_ref()
-                .and_then(|solution| {
-                    solution
-                        .partition_regrets
-                        .iter()
-                        .find(|(partition, _)| *partition == decision.partition)
-                        .map(|(_, regret)| *regret)
-                });
+            let partition_regret = result.solution.as_ref().and_then(|solution| {
+                solution
+                    .partition_regrets
+                    .iter()
+                    .find(|(partition, _)| *partition == decision.partition)
+                    .map(|(_, regret)| *regret)
+            });
             let partition_misses = partition_regret.map_or_else(
                 || "MISSING".to_owned(),
                 |regret| regret.additional_critical_deadlines_missed.to_string(),
@@ -1314,20 +1306,12 @@ mod tests {
                     .as_slice()
                     .try_into()
                     .expect("five-world partition");
-                let production = solve_policy(
-                    &worlds,
-                    &labels,
-                    ObservationMode::IndependentWitness,
-                    0,
-                )
-                .expect("hold is feasible in every world");
-                let oracle = exhaustive_oracle(
-                    &worlds,
-                    &labels,
-                    ObservationMode::IndependentWitness,
-                    0,
-                )
-                .expect("independent exhaustive policy exists");
+                let production =
+                    solve_policy(&worlds, &labels, ObservationMode::IndependentWitness, 0)
+                        .expect("hold is feasible in every world");
+                let oracle =
+                    exhaustive_oracle(&worlds, &labels, ObservationMode::IndependentWitness, 0)
+                        .expect("independent exhaustive policy exists");
 
                 assert_eq!(production.worst_regret, oracle.worst_regret);
                 assert_eq!(
