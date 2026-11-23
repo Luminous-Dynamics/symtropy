@@ -22,6 +22,16 @@ pub enum ResetStatus {
     Unknown,
 }
 
+impl ResetStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Confirmed => "confirmed",
+            Self::Rejected => "rejected",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetResolutionStatus {
@@ -202,6 +212,7 @@ pub enum ExecutionEvidenceError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecutionSummary {
     pub scenario_id: String,
+    pub reset_status: ResetStatus,
     pub planned_fault_count: usize,
     pub dispatch_accepted_count: usize,
     pub dispatch_rejected_count: usize,
@@ -344,6 +355,7 @@ impl ExecutionEvidenceBundle {
         if self.reset.status != ResetStatus::Confirmed {
             return Ok(ExecutionSummary {
                 scenario_id: self.scenario_id.clone(),
+                reset_status: self.reset.status,
                 planned_fault_count: scenario.fault_events.len(),
                 dispatch_accepted_count: 0,
                 dispatch_rejected_count: 0,
@@ -908,6 +920,7 @@ impl ExecutionEvidenceBundle {
 
         Ok(ExecutionSummary {
             scenario_id: self.scenario_id.clone(),
+            reset_status: self.reset.status,
             planned_fault_count: scenario.fault_events.len(),
             dispatch_accepted_count,
             dispatch_rejected_count,
