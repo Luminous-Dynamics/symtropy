@@ -678,9 +678,10 @@ mod tests {
         let expected_mean = -0.1 + 0.1 * 0.6;
         let expected_variance = 1.0;
         let expected_md2 = 0.6_f64.powi(2) / 4.0;
-        let expected_speed = gaussian_negative_part_expectation(expected_mean, expected_variance.sqrt())
-            .expect("scalar positive-part reference")
-            .expectation;
+        let expected_speed =
+            gaussian_negative_part_expectation(expected_mean, expected_variance.sqrt())
+                .expect("scalar positive-part reference")
+                .expectation;
         assert!((report.position_offset[0] - expected_dr[0]).abs() < 1.0e-14);
         assert!((report.conditional_normal_mean - expected_mean).abs() < 1.0e-14);
         assert!((report.conditional_normal_variance - expected_variance).abs() < 1.0e-14);
@@ -713,11 +714,9 @@ mod tests {
         let regression = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [-2.0, 0.0, 0.0]];
         let conditional = [[0.0; 3]; 3];
         let blocks = covariance_from_a_q1_q2(position, regression, conditional);
-        let distribution = ConditionalVelocityDistribution::new(
-            blocks,
-            ConditionalVelocityConfig::default(),
-        )
-        .expect("rank-deficient full covariance with zero Schur complement");
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("rank-deficient full covariance with zero Schur complement");
 
         let nasa = distribution
             .evaluate_direction(
