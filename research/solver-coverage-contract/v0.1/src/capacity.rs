@@ -363,12 +363,20 @@ impl OverflowObservation {
             ));
         }
 
-        if let Some(count) = self.new_overflow_count {
+        if let Some(count) = self.overflow_count_delta {
             return Ok(if count > 0 {
                 StepOverflowAttribution::OccurredThisStep
             } else {
                 StepOverflowAttribution::DidNotOccurThisStep
             });
+        }
+
+        if matches!(
+            self.flag_lifetime,
+            OverflowFlagLifetime::StickyUntilReset | OverflowFlagLifetime::Cumulative
+        ) && (self.reset_epoch.is_none() || self.last_confirmed_reset_step.is_none())
+        {
+            return Ok(StepOverflowAttribution::Unattributable);
         }
 
         let transition = match (self.observed_before_step, self.observed_after_step) {
@@ -565,7 +573,7 @@ impl CapacityEvidence {
             out.push(item.flag_lifetime as u8);
             out.push(u8::from(item.observed_before_step));
             out.push(u8::from(item.observed_after_step));
-            push_optional_u64(&mut out, item.new_overflow_count);
+            push_optional_u64(&mut out, item.overflow_count_delta);
             push_string(&mut out, &item.source_semantics_id);
         }
 
@@ -681,7 +689,7 @@ mod tests {
             flag_lifetime: lifetime,
             observed_before_step: before,
             observed_after_step: after,
-            new_overflow_count: None,
+            overflow_count_delta: None,
             source_semantics_id: "steel-v1-constraint-overflow".into(),
         }
     }
@@ -803,15 +811,25 @@ mod tests {
     #[test]
     fn backend_increment_overrides_sticky_flag_ambiguity() {
         let mut item = overflow(OverflowFlagLifetime::StickyUntilReset, true, true);
-        item.new_overflow_count = Some(0);
+        item.overflow_count_delta = Some(0);
         assert_eq!(
             item.validate().unwrap(),
             StepOverflowAttribution::DidNotOccurThisStep
         );
-        item.new_overflow_count = Some(2);
+        item.overflow_count_delta = Some(2);
         assert_eq!(
             item.validate().unwrap(),
             StepOverflowAttribution::OccurredThisStep
+        );
+    }
+
+    #[test]
+    fn sticky_flag_without_reset_epoch_is_unattributable() {
+        let mut item = overflow(OverflowFlagLifetime::StickyUntilReset, false, true);
+        item.reset_epoch = None;
+        assert_eq!(
+            item.validate().unwrap(),
+            StepOverflowAttribution::Unattributable
         );
     }
 
