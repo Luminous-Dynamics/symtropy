@@ -515,7 +515,10 @@ mod tests {
         let incomplete = StructuralCorrespondenceV0::default();
 
         let report = world.evaluate(Some(&incomplete));
-        assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
+        assert_eq!(
+            report.disposition,
+            TransferAtlasDispositionV0::CorrectAbstention
+        );
         assert_eq!(
             report.validation_error,
             Some(TransferErrorV0::NodeMapIncomplete)
