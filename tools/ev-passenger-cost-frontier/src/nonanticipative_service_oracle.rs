@@ -20,14 +20,12 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::sustainable_mobility_service_capacity::{
-    SustainableServiceCapacityInput,
-    evaluate_sustainable_service_capacity,
+    SustainableServiceCapacityInput, evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
-    EvidenceClass, FallbackMode,
-    FallbackServiceOpportunity, FlightEvidence, FulfilmentMode,
-    LinkedServiceQualityInput, PermissionState, RequestDisposition,
-    ServiceRequest, WeatherState, evaluate_linked_service_quality,
+    EvidenceClass, FallbackMode, FallbackServiceOpportunity, FlightEvidence, FulfilmentMode,
+    LinkedServiceQualityInput, PermissionState, RequestDisposition, ServiceRequest, WeatherState,
+    evaluate_linked_service_quality,
 };
 
 const MAX_REQUESTS: usize = 4;
@@ -351,10 +349,16 @@ fn request_mode_compatible(request: &ServiceRequest, opportunity: &QualifiedOppo
     use crate::sustainable_mobility_service_quality::ServiceMode;
     match opportunity.fulfilment_mode {
         FulfilmentMode::Aerial => {
-            matches!(request.allowed_mode, ServiceMode::AerialOnly | ServiceMode::Either)
+            matches!(
+                request.allowed_mode,
+                ServiceMode::AerialOnly | ServiceMode::Either
+            )
         }
         FulfilmentMode::GroundCourier | FulfilmentMode::Locker | FulfilmentMode::Amr => {
-            matches!(request.allowed_mode, ServiceMode::FallbackOnly | ServiceMode::Either)
+            matches!(
+                request.allowed_mode,
+                ServiceMode::FallbackOnly | ServiceMode::Either
+            )
         }
     }
 }
@@ -507,7 +511,8 @@ fn solve_node(
         .revealed_opportunities
         .iter()
         .filter(|opportunity| {
-            node.available_opportunity_ids.contains(&opportunity.opportunity_id)
+            node.available_opportunity_ids
+                .contains(&opportunity.opportunity_id)
         })
         .cloned()
         .collect();
@@ -538,9 +543,9 @@ fn solve_node(
     let mut best: Option<Plan> = None;
 
     for action in actions {
-        let assigned_mask = action.iter().fold(0_u8, |mask, item| {
-            mask | (1_u8 << item.request_index)
-        });
+        let assigned_mask = action
+            .iter()
+            .fold(0_u8, |mask, item| mask | (1_u8 << item.request_index));
         let mut remaining = current_mask & !assigned_mask;
         let mut expired_request_ids = Vec::new();
         for request_index in 0..model.requests.len() {
@@ -601,8 +606,7 @@ fn solve_node(
             expired_by_node.extend(child_plan.expired_by_node);
             canonical.push_str(&format!(
                 "||{}:{}",
-                model.nodes[*child_index].source.node_id,
-                child_plan.canonical_key
+                model.nodes[*child_index].source.node_id, child_plan.canonical_key
             ));
         }
 
@@ -649,12 +653,9 @@ fn hash_observation(
         .map_err(|error| format!("observation_digest_serialization_failed:{error}"))?;
     let observation_digest = sha256_hex(&bytes);
     let parent = parent_information_digest.unwrap_or("sha256:root");
-    let information_set_bytes = serde_json::to_vec(&(
-        parent,
-        node.decision_time_seconds,
-        &observation_digest,
-    ))
-    .map_err(|error| format!("information_set_digest_serialization_failed:{error}"))?;
+    let information_set_bytes =
+        serde_json::to_vec(&(parent, node.decision_time_seconds, &observation_digest))
+            .map_err(|error| format!("information_set_digest_serialization_failed:{error}"))?;
     Ok((observation_digest, sha256_hex(&information_set_bytes)))
 }
 
@@ -719,15 +720,25 @@ fn disposition_score(
 }
 
 fn add_raw_score(target: &mut RawScore, source: RawScore) -> Result<(), String> {
-    target.on_time = target.on_time.checked_add(source.on_time)
+    target.on_time = target
+        .on_time
+        .checked_add(source.on_time)
         .ok_or_else(|| "raw_score_overflow".to_owned())?;
-    target.completed = target.completed.checked_add(source.completed)
+    target.completed = target
+        .completed
+        .checked_add(source.completed)
         .ok_or_else(|| "raw_score_overflow".to_owned())?;
-    target.lateness_seconds = target.lateness_seconds.checked_add(source.lateness_seconds)
+    target.lateness_seconds = target
+        .lateness_seconds
+        .checked_add(source.lateness_seconds)
         .ok_or_else(|| "raw_score_overflow".to_owned())?;
-    target.in_progress = target.in_progress.checked_add(source.in_progress)
+    target.in_progress = target
+        .in_progress
+        .checked_add(source.in_progress)
         .ok_or_else(|| "raw_score_overflow".to_owned())?;
-    target.latency_seconds = target.latency_seconds.checked_add(source.latency_seconds)
+    target.latency_seconds = target
+        .latency_seconds
+        .checked_add(source.latency_seconds)
         .ok_or_else(|| "raw_score_overflow".to_owned())?;
     Ok(())
 }
@@ -803,12 +814,9 @@ fn enumerate_clairvoyant(
         if used_request_mask & bit != 0 {
             continue;
         }
-        if let Some(assignment) = make_local_assignment(
-            request_index,
-            opportunity,
-            requests,
-            horizon_seconds,
-        ) {
+        if let Some(assignment) =
+            make_local_assignment(request_index, opportunity, requests, horizon_seconds)
+        {
             current.push(assignment);
             enumerate_clairvoyant(
                 opportunities,
@@ -843,10 +851,7 @@ fn collect_leaf_paths(
     current.pop();
 }
 
-fn path_probability_numerator(
-    path: &[usize],
-    nodes: &[NormalizedNode],
-) -> Result<u128, String> {
+fn path_probability_numerator(path: &[usize], nodes: &[NormalizedNode]) -> Result<u128, String> {
     let mut probability = 1_u128;
     for node_index in path.iter().skip(1) {
         probability = probability
@@ -855,10 +860,15 @@ fn path_probability_numerator(
             ))
             .ok_or_else(|| "scenario_leaf_probability_overflow".to_owned())?;
     }
-    let depth = nodes[*path.last().ok_or_else(|| "scenario_path_empty".to_owned())?].depth;
+    let depth = nodes[*path
+        .last()
+        .ok_or_else(|| "scenario_path_empty".to_owned())?]
+    .depth;
     probability
-        .checked_mul(scale_for_remaining_depth(depth)
-            .ok_or_else(|| "scenario_leaf_probability_overflow".to_owned())?)
+        .checked_mul(
+            scale_for_remaining_depth(depth)
+                .ok_or_else(|| "scenario_leaf_probability_overflow".to_owned())?,
+        )
         .ok_or_else(|| "scenario_leaf_probability_overflow".to_owned())
 }
 
@@ -928,7 +938,10 @@ fn leaf_clairvoyant_score(
         let node = &nodes[*node_index];
         request_indices.extend(node.request_indices.iter().copied());
         for opportunity in &node.revealed_opportunities {
-            if node.available_opportunity_ids.contains(&opportunity.opportunity_id) {
+            if node
+                .available_opportunity_ids
+                .contains(&opportunity.opportunity_id)
+            {
                 opportunities.insert(opportunity.opportunity_id.clone(), opportunity.clone());
             }
         }
@@ -993,8 +1006,7 @@ pub fn evaluate_nonanticipative_service_oracle(
         || input.nodes.len() > MAX_TREE_NODES
         || service.requests.is_empty()
         || service.requests.len() > MAX_REQUESTS
-        || service.aerial_opportunity_qualifications.len()
-            + service.fallback_opportunities.len()
+        || service.aerial_opportunity_qualifications.len() + service.fallback_opportunities.len()
             > MAX_OPPORTUNITIES_PER_PATH
         || service.horizon_seconds != capacity.horizon_seconds
     {
@@ -1057,24 +1069,32 @@ pub fn evaluate_nonanticipative_service_oracle(
     let mut architecture_configuration = None;
     for architecture in &capacity.architectures {
         if architecture.architecture_id == service.source_architecture_id {
-            architecture_configuration = Some(serde_json::to_vec(architecture)
-                .map_err(|error| vec![format!("architecture_digest_serialization_failed:{error}")])?);
+            architecture_configuration =
+                Some(serde_json::to_vec(architecture).map_err(|error| {
+                    vec![format!("architecture_digest_serialization_failed:{error}")]
+                })?);
         }
     }
-    let architecture_configuration_digest = architecture_configuration
-        .as_deref()
-        .map(sha256_hex)
-        .ok_or_else(|| vec!["capacity_source_architecture_missing".to_owned()])?;
-    let service_opportunities_bytes = serde_json::to_vec(&selected.service_opportunities)
-        .map_err(|error| vec![format!("service_opportunity_digest_serialization_failed:{error}")])?;
+    let architecture_configuration_digest =
+        architecture_configuration
+            .as_deref()
+            .map(sha256_hex)
+            .ok_or_else(|| vec!["capacity_source_architecture_missing".to_owned()])?;
+    let service_opportunities_bytes =
+        serde_json::to_vec(&selected.service_opportunities).map_err(|error| {
+            vec![format!(
+                "service_opportunity_digest_serialization_failed:{error}"
+            )]
+        })?;
     let capacity_service_opportunity_digest = sha256_hex(&service_opportunities_bytes);
     if linked_report.capacity_source_report_digest != source_report_digest
-        || linked_report.capacity_service_opportunity_digest
-            != capacity_service_opportunity_digest
+        || linked_report.capacity_service_opportunity_digest != capacity_service_opportunity_digest
         || linked_report.capacity_architecture_configuration_digest
             != architecture_configuration_digest
     {
-        return Err(vec!["linked_and_scenario_capacity_digests_disagree".to_owned()]);
+        return Err(vec![
+            "linked_and_scenario_capacity_digests_disagree".to_owned(),
+        ]);
     }
 
     let mut raw_nodes = input.nodes.clone();
@@ -1097,16 +1117,25 @@ pub fn evaluate_nonanticipative_service_oracle(
                 .insert(node.node_id.as_str(), index)
                 .is_some()
         {
-            add_error(&mut errors, format!("scenario_node_identity_or_bounds_invalid:{}", node.node_id));
+            add_error(
+                &mut errors,
+                format!("scenario_node_identity_or_bounds_invalid:{}", node.node_id),
+            );
             continue;
         }
         if let Some(parent_id) = &node.parent_node_id {
             let Some(parent_index) = node_index_by_id.get(parent_id.as_str()).copied() else {
-                add_error(&mut errors, format!("scenario_parent_missing_or_not_earlier:{}", node.node_id));
+                add_error(
+                    &mut errors,
+                    format!("scenario_parent_missing_or_not_earlier:{}", node.node_id),
+                );
                 continue;
             };
             if raw_nodes[parent_index].decision_time_seconds >= node.decision_time_seconds {
-                add_error(&mut errors, format!("scenario_time_not_strictly_increasing:{}", node.node_id));
+                add_error(
+                    &mut errors,
+                    format!("scenario_time_not_strictly_increasing:{}", node.node_id),
+                );
                 continue;
             }
             parent_indices[index] = Some(parent_index);
@@ -1141,7 +1170,10 @@ pub fn evaluate_nonanticipative_service_oracle(
             if sum != 1_000_000 {
                 add_error(
                     &mut errors,
-                    format!("scenario_sibling_probabilities_do_not_sum_to_one:{}", raw_nodes[parent_index].node_id),
+                    format!(
+                        "scenario_sibling_probabilities_do_not_sum_to_one:{}",
+                        raw_nodes[parent_index].node_id
+                    ),
                 );
             }
         }
@@ -1158,10 +1190,10 @@ pub fn evaluate_nonanticipative_service_oracle(
     let mut information_digests = Vec::<String>::with_capacity(raw_nodes.len());
     let mut sibling_information_sets: BTreeMap<usize, BTreeSet<String>> = BTreeMap::new();
     for (index, node) in raw_nodes.iter().enumerate() {
-        let parent_digest = parent_indices[index]
-            .map(|parent| information_digests[parent].as_str());
-        let (observation_digest, information_set_digest) = hash_observation(node, parent_digest)
-            .map_err(|error| vec![error])?;
+        let parent_digest =
+            parent_indices[index].map(|parent| information_digests[parent].as_str());
+        let (observation_digest, information_set_digest) =
+            hash_observation(node, parent_digest).map_err(|error| vec![error])?;
         if let Some(parent_index) = parent_indices[index] {
             let seen = sibling_information_sets.entry(parent_index).or_default();
             if !seen.insert(information_set_digest.clone()) {
@@ -1176,13 +1208,20 @@ pub fn evaluate_nonanticipative_service_oracle(
             && node.aerial_reveals.is_empty()
             && node.fallback_reveals.is_empty()
         {
-            add_error(&mut errors, format!("scenario_node_has_no_new_observation:{}", node.node_id));
+            add_error(
+                &mut errors,
+                format!("scenario_node_has_no_new_observation:{}", node.node_id),
+            );
         }
         let mut seen_request_ids = BTreeSet::new();
         let mut node_request_indices = Vec::new();
         for reveal in &node.request_reveals {
-            let Some(request_index) = request_indices.get(reveal.request_id.as_str()).copied() else {
-                add_error(&mut errors, format!("scenario_reveals_unknown_request:{}", reveal.request_id));
+            let Some(request_index) = request_indices.get(reveal.request_id.as_str()).copied()
+            else {
+                add_error(
+                    &mut errors,
+                    format!("scenario_reveals_unknown_request:{}", reveal.request_id),
+                );
                 continue;
             };
             if !seen_request_ids.insert(reveal.request_id.as_str())
@@ -1196,7 +1235,11 @@ pub fn evaluate_nonanticipative_service_oracle(
                     node.decision_time_seconds,
                 )
             {
-                node_error(&mut errors, &node.node_id, "scenario_request_reveal_invalid_or_replayed");
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_request_reveal_invalid_or_replayed",
+                );
             }
             node_request_indices.push(request_index);
         }
@@ -1206,11 +1249,20 @@ pub fn evaluate_nonanticipative_service_oracle(
         let mut revealed_opportunities = Vec::new();
         for observation in &node.aerial_reveals {
             let Some(receipt) = receipts.get(observation.opportunity_id.as_str()) else {
-                node_error(&mut errors, &node.node_id, "scenario_aerial_reveal_unknown_capacity_receipt");
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_aerial_reveal_unknown_capacity_receipt",
+                );
                 continue;
             };
-            let Some(qualification) = qualifications.get(observation.opportunity_id.as_str()) else {
-                node_error(&mut errors, &node.node_id, "scenario_aerial_reveal_without_payload_qualification");
+            let Some(qualification) = qualifications.get(observation.opportunity_id.as_str())
+            else {
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_aerial_reveal_without_payload_qualification",
+                );
                 continue;
             };
             let required_until = receipt
@@ -1230,7 +1282,11 @@ pub fn evaluate_nonanticipative_service_oracle(
                     )
                 })
             {
-                node_error(&mut errors, &node.node_id, "scenario_aerial_observation_invalid_or_replayed");
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_aerial_observation_invalid_or_replayed",
+                );
             }
             let opportunity = QualifiedOpportunity {
                 opportunity_id: receipt.opportunity_id.clone(),
@@ -1251,7 +1307,11 @@ pub fn evaluate_nonanticipative_service_oracle(
 
         for observation in &node.fallback_reveals {
             let Some(fallback) = fallbacks.get(observation.opportunity_id.as_str()) else {
-                node_error(&mut errors, &node.node_id, "scenario_fallback_reveal_unknown_opportunity");
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_fallback_reveal_unknown_opportunity",
+                );
                 continue;
             };
             let required_until = fallback
@@ -1270,7 +1330,11 @@ pub fn evaluate_nonanticipative_service_oracle(
                     )
                 })
             {
-                node_error(&mut errors, &node.node_id, "scenario_fallback_observation_invalid_or_replayed");
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "scenario_fallback_observation_invalid_or_replayed",
+                );
             }
             let opportunity = QualifiedOpportunity {
                 opportunity_id: fallback.opportunity_id.clone(),
@@ -1288,9 +1352,8 @@ pub fn evaluate_nonanticipative_service_oracle(
             }
             revealed_opportunities.push(opportunity);
         }
-        revealed_opportunities.sort_by(|left, right| {
-            left.opportunity_id.cmp(&right.opportunity_id)
-        });
+        revealed_opportunities
+            .sort_by(|left, right| left.opportunity_id.cmp(&right.opportunity_id));
         node_request_indices.sort_unstable();
 
         information_digests.push(information_set_digest.clone());
@@ -1329,22 +1392,46 @@ pub fn evaluate_nonanticipative_service_oracle(
             let node = &normalized[*node_index];
             for request_index in &node.request_indices {
                 if !path_requests.insert(*request_index) {
-                    add_error(&mut errors, format!("request_revealed_twice_on_path:{}", service.requests[*request_index].request_id));
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "request_revealed_twice_on_path:{}",
+                            service.requests[*request_index].request_id
+                        ),
+                    );
                 }
             }
             for observation in &node.source.aerial_reveals {
                 if !path_aerial.insert(observation.opportunity_id.as_str()) {
-                    add_error(&mut errors, format!("aerial_opportunity_revealed_twice_on_path:{}", observation.opportunity_id));
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "aerial_opportunity_revealed_twice_on_path:{}",
+                            observation.opportunity_id
+                        ),
+                    );
                 }
             }
             for observation in &node.source.fallback_reveals {
                 if !path_fallback.insert(observation.opportunity_id.as_str()) {
-                    add_error(&mut errors, format!("fallback_opportunity_revealed_twice_on_path:{}", observation.opportunity_id));
+                    add_error(
+                        &mut errors,
+                        format!(
+                            "fallback_opportunity_revealed_twice_on_path:{}",
+                            observation.opportunity_id
+                        ),
+                    );
                 }
             }
         }
         if path_aerial != expected_aerial_ids || path_fallback != expected_fallback_ids {
-            add_error(&mut errors, format!("leaf_does_not_reveal_complete_opportunity_universe:{}", normalized[*path.last().unwrap()].source.node_id));
+            add_error(
+                &mut errors,
+                format!(
+                    "leaf_does_not_reveal_complete_opportunity_universe:{}",
+                    normalized[*path.last().unwrap()].source.node_id
+                ),
+            );
         }
     }
     if !errors.is_empty() {
@@ -1360,8 +1447,7 @@ pub fn evaluate_nonanticipative_service_oracle(
         transitions: 0,
     };
     let mut memo = BTreeMap::new();
-    let root_plan = solve_node(0, 0, &mut model, &mut memo)
-        .map_err(|error| vec![error])?;
+    let root_plan = solve_node(0, 0, &mut model, &mut memo).map_err(|error| vec![error])?;
 
     let mut leaves = Vec::new();
     let mut clairvoyant_expected = ScaledScore::default();
@@ -1379,7 +1465,9 @@ pub fn evaluate_nonanticipative_service_oracle(
             .cmp(&model.nodes[*right.last().unwrap()].source.node_id)
     });
     for path in &leaf_paths {
-        let leaf_index = *path.last().ok_or_else(|| vec!["scenario_path_empty".to_owned()])?;
+        let leaf_index = *path
+            .last()
+            .ok_or_else(|| vec!["scenario_path_empty".to_owned()])?;
         let probability_numerator =
             path_probability_numerator(path, &model.nodes).map_err(|error| vec![error])?;
         probability_sum = probability_sum
@@ -1441,16 +1529,22 @@ pub fn evaluate_nonanticipative_service_oracle(
         });
     }
     if probability_sum != PROBABILITY_DENOMINATOR {
-        return Err(vec!["scenario_leaf_probabilities_do_not_sum_to_one".to_owned()]);
+        return Err(vec![
+            "scenario_leaf_probabilities_do_not_sum_to_one".to_owned(),
+        ]);
     }
     if nonanticipative_from_leaves != root_plan.score {
-        return Err(vec!["nonanticipative_policy_score_leaf_replay_mismatch".to_owned()]);
+        return Err(vec![
+            "nonanticipative_policy_score_leaf_replay_mismatch".to_owned(),
+        ]);
     }
     if clairvoyant_expected.on_time < root_plan.score.on_time
         || clairvoyant_expected.completed < root_plan.score.completed
         || clairvoyant_expected.lateness_seconds > root_plan.score.lateness_seconds
     {
-        return Err(vec!["clairvoyant_reference_does_not_dominate_nonanticipative_policy".to_owned()]);
+        return Err(vec![
+            "clairvoyant_reference_does_not_dominate_nonanticipative_policy".to_owned(),
+        ]);
     }
 
     let expected_nonanticipative = ExactExpectedScore {
@@ -1470,10 +1564,16 @@ pub fn evaluate_nonanticipative_service_oracle(
         probability_denominator: PROBABILITY_DENOMINATOR,
     };
     let value_of_perfect_information = PerfectInformationValue {
-        additional_on_time_services_numerator: clairvoyant_expected.on_time - root_plan.score.on_time,
-        additional_completed_services_numerator: clairvoyant_expected.completed - root_plan.score.completed,
-        avoided_lateness_seconds_numerator: root_plan.score.lateness_seconds - clairvoyant_expected.lateness_seconds,
-        avoided_completed_latency_seconds_numerator: root_plan.score.latency_seconds.saturating_sub(clairvoyant_expected.latency_seconds),
+        additional_on_time_services_numerator: clairvoyant_expected.on_time
+            - root_plan.score.on_time,
+        additional_completed_services_numerator: clairvoyant_expected.completed
+            - root_plan.score.completed,
+        avoided_lateness_seconds_numerator: root_plan.score.lateness_seconds
+            - clairvoyant_expected.lateness_seconds,
+        avoided_completed_latency_seconds_numerator: root_plan
+            .score
+            .latency_seconds
+            .saturating_sub(clairvoyant_expected.latency_seconds),
         probability_denominator: PROBABILITY_DENOMINATOR,
     };
 
@@ -1527,8 +1627,16 @@ pub fn evaluate_nonanticipative_service_oracle(
         expected_nonanticipative,
         expected_clairvoyant_full_information,
         value_of_perfect_information,
-        worst_case_on_time_services: if worst_case_on_time == usize::MAX { 0 } else { worst_case_on_time },
-        worst_case_completed_by_horizon: if worst_case_completed == usize::MAX { 0 } else { worst_case_completed },
+        worst_case_on_time_services: if worst_case_on_time == usize::MAX {
+            0
+        } else {
+            worst_case_on_time
+        },
+        worst_case_completed_by_horizon: if worst_case_completed == usize::MAX {
+            0
+        } else {
+            worst_case_completed
+        },
         worst_case_lateness_seconds: worst_case_lateness,
         policy,
         leaf_results: leaves,
@@ -1567,30 +1675,48 @@ mod tests {
     #[test]
     fn policy_has_one_action_per_shared_information_node_and_value_of_information_is_positive() {
         let input = tree_fixture();
-        let report = evaluate_nonanticipative_service_oracle(
-            &input,
-            &linked_fixture(),
-            &capacity_fixture(),
-        )
-        .expect("scenario-tree known answer");
+        let report =
+            evaluate_nonanticipative_service_oracle(&input, &linked_fixture(), &capacity_fixture())
+                .expect("scenario-tree known answer");
         assert!(report.nonanticipativity_enforced_by_shared_information_nodes);
         assert!(!report.deployable_online_policy);
         assert_eq!(report.node_count, 3);
         assert_eq!(report.leaf_count, 2);
-        assert_eq!(report.expected_nonanticipative.on_time_services_numerator, PROBABILITY_DENOMINATOR);
         assert_eq!(
-            report.expected_clairvoyant_full_information.on_time_services_numerator,
+            report.expected_nonanticipative.on_time_services_numerator,
+            PROBABILITY_DENOMINATOR
+        );
+        assert_eq!(
+            report
+                .expected_clairvoyant_full_information
+                .on_time_services_numerator,
             PROBABILITY_DENOMINATOR + PROBABILITY_DENOMINATOR * 2 / 5
         );
         assert_eq!(
-            report.value_of_perfect_information.additional_on_time_services_numerator,
+            report
+                .value_of_perfect_information
+                .additional_on_time_services_numerator,
             PROBABILITY_DENOMINATOR * 2 / 5
         );
-        let root = report.policy.iter().find(|node| node.node_id == "root").expect("root action");
+        let root = report
+            .policy
+            .iter()
+            .find(|node| node.node_id == "root")
+            .expect("root action");
         assert_eq!(root.assignments.len(), 1);
         assert_eq!(root.assignments[0].request_id, "request-visible-early");
-        assert_eq!(root.assignments[0].opportunity_id, "aircraft-00-mission-000000");
-        assert_eq!(report.policy.iter().filter(|node| node.node_id == "root").count(), 1);
+        assert_eq!(
+            root.assignments[0].opportunity_id,
+            "aircraft-00-mission-000000"
+        );
+        assert_eq!(
+            report
+                .policy
+                .iter()
+                .filter(|node| node.node_id == "root")
+                .count(),
+            1
+        );
         assert!(!report.ledger_or_physical_mutation_performed);
         assert!(!report.flight_authority_granted);
         assert!(!report.market_or_dispatch_authority_granted);
@@ -1600,15 +1726,20 @@ mod tests {
     fn weather_no_go_blocks_aerial_and_uses_fallback_when_available() {
         let mut tree = tree_fixture();
         tree.nodes[0].aerial_reveals[0].weather_state = WeatherState::NoGo;
-        let report = evaluate_nonanticipative_service_oracle(
-            &tree,
-            &linked_fixture(),
-            &capacity_fixture(),
-        )
-        .expect("no-go should be a valid unavailable observation");
-        let root = report.policy.iter().find(|node| node.node_id == "root").expect("root");
+        let report =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect("no-go should be a valid unavailable observation");
+        let root = report
+            .policy
+            .iter()
+            .find(|node| node.node_id == "root")
+            .expect("root");
         assert!(root.assignments.is_empty());
-        let high = report.leaf_results.iter().find(|leaf| leaf.leaf_node_id == "high-demand").expect("high");
+        let high = report
+            .leaf_results
+            .iter()
+            .find(|leaf| leaf.leaf_node_id == "high-demand")
+            .expect("high");
         assert_eq!(high.on_time_services, 1);
         assert_eq!(high.rejected_requests, 1);
     }
@@ -1626,7 +1757,12 @@ mod tests {
         let report = evaluate_nonanticipative_service_oracle(&tree, &service, &capacity_fixture())
             .expect("late reveal is an explicit rejected request");
         assert_eq!(
-            report.leaf_results.iter().find(|leaf| leaf.leaf_node_id == "high-demand").unwrap().rejected_requests,
+            report
+                .leaf_results
+                .iter()
+                .find(|leaf| leaf.leaf_node_id == "high-demand")
+                .unwrap()
+                .rejected_requests,
             1
         );
     }
@@ -1634,61 +1770,102 @@ mod tests {
     #[test]
     fn future_request_observation_is_rejected() {
         let mut tree = tree_fixture();
-        let high = tree.nodes.iter_mut().find(|node| node.node_id == "high-demand").expect("high");
+        let high = tree
+            .nodes
+            .iter_mut()
+            .find(|node| node.node_id == "high-demand")
+            .expect("high");
         high.request_reveals[0].evidence.observed_at_seconds = 301;
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("future observation");
-        assert!(errors.iter().any(|error| error.contains("scenario_request_reveal_invalid_or_replayed")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("future observation");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("scenario_request_reveal_invalid_or_replayed"))
+        );
     }
 
     #[test]
     fn future_weather_observation_is_rejected() {
         let mut tree = tree_fixture();
         tree.nodes[0].aerial_reveals[0].evidence.observed_at_seconds = 1;
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("future weather observation");
-        assert!(errors.iter().any(|error| error.contains("scenario_aerial_observation_invalid_or_replayed")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("future weather observation");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("scenario_aerial_observation_invalid_or_replayed"))
+        );
     }
 
     #[test]
     fn stale_weather_observation_cannot_cover_full_mission_and_turnaround() {
         let mut tree = tree_fixture();
         tree.nodes[0].aerial_reveals[0].evidence.valid_until_seconds = 344;
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("stale evidence");
-        assert!(errors.iter().any(|error| error.contains("scenario_aerial_observation_invalid_or_replayed")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("stale evidence");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("scenario_aerial_observation_invalid_or_replayed"))
+        );
     }
 
     #[test]
     fn sibling_probabilities_must_sum_to_one_million() {
         let mut tree = tree_fixture();
         tree.nodes[1].conditional_probability_ppm = 399_999;
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("probability sum");
-        assert!(errors.iter().any(|error| error.contains("scenario_sibling_probabilities_do_not_sum_to_one")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("probability sum");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("scenario_sibling_probabilities_do_not_sum_to_one"))
+        );
     }
 
     #[test]
     fn duplicate_request_on_one_path_is_rejected() {
         let mut tree = tree_fixture();
-        let repeated = tree.nodes.iter().find(|node| node.node_id == "high-demand")
+        let repeated = tree
+            .nodes
+            .iter()
+            .find(|node| node.node_id == "high-demand")
             .expect("high")
             .request_reveals[0]
             .clone();
-        let low = tree.nodes.iter_mut().find(|node| node.node_id == "low-demand").expect("low");
+        let low = tree
+            .nodes
+            .iter_mut()
+            .find(|node| node.node_id == "low-demand")
+            .expect("low");
         low.request_reveals.push(repeated);
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("same request re-revealed on one path");
-        assert!(errors.iter().any(|error| error.contains("request_revealed_twice_on_path")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("same request re-revealed on one path");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("request_revealed_twice_on_path"))
+        );
     }
 
     #[test]
     fn opportunity_universe_must_be_revealed_on_every_leaf_path() {
         let mut tree = tree_fixture();
         tree.nodes[2].fallback_reveals.clear();
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("missing branch fallback observation");
-        assert!(errors.iter().any(|error| error.contains("leaf_does_not_reveal_complete_opportunity_universe")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("missing branch fallback observation");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("leaf_does_not_reveal_complete_opportunity_universe"))
+        );
     }
 
     #[test]
@@ -1701,10 +1878,15 @@ mod tests {
             node.aerial_reveals.reverse();
             node.fallback_reveals.reverse();
         }
-        let first = evaluate_nonanticipative_service_oracle(&input, &linked_fixture(), &capacity_fixture())
-            .expect("first");
-        let second = evaluate_nonanticipative_service_oracle(&permuted, &linked_fixture(), &capacity_fixture())
-            .expect("permuted");
+        let first =
+            evaluate_nonanticipative_service_oracle(&input, &linked_fixture(), &capacity_fixture())
+                .expect("first");
+        let second = evaluate_nonanticipative_service_oracle(
+            &permuted,
+            &linked_fixture(),
+            &capacity_fixture(),
+        )
+        .expect("permuted");
         assert_eq!(
             serde_json::to_string(&first).expect("serialize first"),
             serde_json::to_string(&second).expect("serialize second")
@@ -1720,13 +1902,16 @@ mod tests {
         tree.nodes[1].conditional_probability_ppm = 400_000;
         tree.nodes.push(duplicate);
         tree.nodes[2].conditional_probability_ppm = 500_000;
-        let errors = evaluate_nonanticipative_service_oracle(
-            &tree,
-            &linked_fixture(),
-            &capacity_fixture(),
-        )
-        .expect_err("same observation history cannot have two separately optimized actions");
-        assert!(errors.iter().any(|error| error.contains("identical_sibling_information_sets_must_be_merged")));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err(
+                    "same observation history cannot have two separately optimized actions",
+                );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("identical_sibling_information_sets_must_be_merged"))
+        );
     }
 
     #[test]
@@ -1734,14 +1919,17 @@ mod tests {
         let mut tree = tree_fixture();
         let high_receipt = tree.nodes[1].fallback_reveals[0].receipt_id.clone();
         tree.nodes[2].fallback_reveals[0].receipt_id = high_receipt.clone();
-        tree.nodes[2].fallback_reveals[0].evidence.evidence_reference = high_receipt;
-        let errors = evaluate_nonanticipative_service_oracle(
-            &tree,
-            &linked_fixture(),
-            &capacity_fixture(),
-        )
-        .expect_err("one receipt may not be replayed across scenario branches");
-        assert!(errors.iter().any(|error| error.contains("scenario_fallback_observation_invalid_or_replayed")));
+        tree.nodes[2].fallback_reveals[0]
+            .evidence
+            .evidence_reference = high_receipt;
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("one receipt may not be replayed across scenario branches");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("scenario_fallback_observation_invalid_or_replayed"))
+        );
     }
 
     #[test]
@@ -1749,8 +1937,13 @@ mod tests {
         let mut tree = tree_fixture();
         let repeated_node = tree.nodes[0].clone();
         tree.nodes = vec![repeated_node; MAX_TREE_NODES + 1];
-        let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect_err("node bound");
-        assert!(errors.iter().any(|error| error == "nonanticipative_identity_or_bounds_invalid"));
+        let errors =
+            evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+                .expect_err("node bound");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "nonanticipative_identity_or_bounds_invalid")
+        );
     }
 }
