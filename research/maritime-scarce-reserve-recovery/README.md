@@ -45,7 +45,7 @@ Hard constraints are applied before objective comparison:
 - advisory-only or no-observation policies cannot use reserve capacity;
 - unknown, potentially-correlated, revoked, stale, incomplete, ambiguous, unmatched or unauthorised evidence cannot qualify an independent observation.
 
-The participant-level outcomes (A units, B units, missed critical participant, authorization disposition and reserve use) are emitted separately. We do not collapse distributional incidence into a hidden fairness weight.
+The participant-level outcomes (A units, B units, missed critical participant, authorization disposition and reserve use) are emitted separately. We do not collapse distributional incidence into a hidden fairness weight. The CSV also emits each observation partition's regret separately from each world-level regret, so the decision boundary and aggregate worst-case are independently inspectable.
 
 ## Observation alternatives
 
