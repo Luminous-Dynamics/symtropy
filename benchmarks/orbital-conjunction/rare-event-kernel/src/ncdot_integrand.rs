@@ -487,9 +487,7 @@ fn validate_symmetric(matrix: &[[f64; 3]; 3]) -> Result<(), KernelError> {
     }
     for (row_index, row) in matrix.iter().enumerate() {
         for (column_index, other_row) in matrix.iter().enumerate().skip(row_index + 1) {
-            if (row[column_index] - other_row[row_index]).abs()
-                > SYMMETRY_REL_TOLERANCE * scale
-            {
+            if (row[column_index] - other_row[row_index]).abs() > SYMMETRY_REL_TOLERANCE * scale {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
