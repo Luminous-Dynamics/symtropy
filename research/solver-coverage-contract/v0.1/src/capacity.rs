@@ -160,7 +160,10 @@ pub struct ContactManifoldReport {
 impl ContactManifoldLineage {
     pub fn validate(&self) -> Result<ContactManifoldReport, ValidationError> {
         if !non_empty(&self.pair_id) {
-            return Err(ValidationError::new("manifold.pair_id", "must not be empty"));
+            return Err(ValidationError::new(
+                "manifold.pair_id",
+                "must not be empty",
+            ));
         }
         if let Some(policy) = &self.reduction_policy_id {
             if !non_empty(policy) {
@@ -182,7 +185,10 @@ impl ContactManifoldLineage {
         for (index, point) in self.generated_points.iter().enumerate() {
             let path = format!("manifold.generated_points[{index}]");
             point.validate(&path)?;
-            if point_records.insert(point.point_id.as_str(), point).is_some() {
+            if point_records
+                .insert(point.point_id.as_str(), point)
+                .is_some()
+            {
                 return Err(ValidationError::new(&path, "duplicate geometric point ID"));
             }
             generated_points = generated_points.checked_add(1).ok_or_else(|| {
@@ -254,8 +260,12 @@ impl ContactManifoldLineage {
                 match group.disposition {
                     SolverContactDisposition::Solved => solver_solved_points += 1,
                     SolverContactDisposition::NotConverged => solver_not_converged_points += 1,
-                    SolverContactDisposition::SleepingSkipped => solver_sleeping_skipped_points += 1,
-                    SolverContactDisposition::CapacityDropped => solver_capacity_dropped_points += 1,
+                    SolverContactDisposition::SleepingSkipped => {
+                        solver_sleeping_skipped_points += 1
+                    }
+                    SolverContactDisposition::CapacityDropped => {
+                        solver_capacity_dropped_points += 1
+                    }
                     SolverContactDisposition::Unsupported => solver_unsupported_points += 1,
                     SolverContactDisposition::NotSubmitted => solver_not_submitted_points += 1,
                     SolverContactDisposition::ExecutionAborted => solver_aborted_points += 1,
@@ -471,9 +481,7 @@ impl CapacityEvidence {
             }
             match observation.validate()? {
                 StepOverflowAttribution::OccurredThisStep => overflow_occurred_this_step += 1,
-                StepOverflowAttribution::Unattributable => {
-                    overflow_not_attributable_to_step += 1
-                }
+                StepOverflowAttribution::Unattributable => overflow_not_attributable_to_step += 1,
                 StepOverflowAttribution::DidNotOccurThisStep => {}
             }
         }
@@ -548,18 +556,12 @@ impl CapacityEvidence {
 
         let mut observations = self.overflow_observations.clone();
         observations.sort_by(|a, b| {
-            (
-                a.scope_kind,
-                &a.scope_id,
-                a.row_family,
-                a.step_index,
-            )
-                .cmp(&(
-                    b.scope_kind,
-                    &b.scope_id,
-                    b.row_family,
-                    b.step_index,
-                ))
+            (a.scope_kind, &a.scope_id, a.row_family, a.step_index).cmp(&(
+                b.scope_kind,
+                &b.scope_id,
+                b.row_family,
+                b.step_index,
+            ))
         });
         push_u64(&mut out, observations.len() as u64);
         for item in observations {
@@ -579,8 +581,7 @@ impl CapacityEvidence {
 
         let mut resets = self.diagnostic_resets.clone();
         resets.sort_by(|a, b| {
-            (a.scope_kind, &a.scope_id, &a.reset_id)
-                .cmp(&(b.scope_kind, &b.scope_id, &b.reset_id))
+            (a.scope_kind, &a.scope_id, &a.reset_id).cmp(&(b.scope_kind, &b.scope_id, &b.reset_id))
         });
         push_u64(&mut out, resets.len() as u64);
         for item in resets {
