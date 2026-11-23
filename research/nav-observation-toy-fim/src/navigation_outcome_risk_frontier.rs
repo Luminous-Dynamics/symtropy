@@ -532,8 +532,8 @@ mod tests {
         let result = plan_navigation_outcome_risk_frontier(
             &policy(),
             &[
-                candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
-                candidate(2, 350_000_000, 550_000_000, 450_000_000, 600_000_000, 400, 400),
+                candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800),
+                candidate(2, 350_000_000, 400_000_000, 450_000_000, 600_000_000, 400, 400),
                 candidate(3, 400_000_000, 500_000_000, 600_000_000, 800_000_000, 900, 900),
             ],
         )
@@ -547,9 +547,9 @@ mod tests {
         let result = plan_navigation_outcome_risk_frontier(
             &policy(),
             &[
-                candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
+                candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800),
                 candidate(2, 300_000_000, 700_000_000, 950_000_000, 1_000_000_000, 400, 400),
-                candidate(3, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 1_200, 400),
+                candidate(3, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 1_200, 400),
             ],
         )
         .unwrap();
@@ -581,8 +581,8 @@ mod tests {
         );
 
         let duplicate = vec![
-            candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
-            candidate(1, 350_000_000, 550_000_000, 450_000_000, 600_000_000, 400, 400),
+            candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800),
+            candidate(1, 350_000_000, 400_000_000, 450_000_000, 600_000_000, 400, 400),
         ];
         assert_eq!(
             plan_navigation_outcome_risk_frontier(&policy(), &duplicate),
@@ -604,7 +604,7 @@ mod tests {
             plan_navigation_outcome_risk_frontier(&policy(), &[bad.clone()]),
             Err(NavigationRiskSelectionError::InvalidRiskAssessment(1))
         );
-        bad = candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800);
+        bad = candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800);
         bad.risk.unknown_or_unreconciled_probability_mass_parts_per_billion = 1;
         assert_eq!(
             plan_navigation_outcome_risk_frontier(&policy(), &[bad]),
