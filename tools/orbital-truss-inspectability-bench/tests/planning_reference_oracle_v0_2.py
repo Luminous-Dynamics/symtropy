@@ -10,8 +10,8 @@ from pathlib import Path
 
 CORPUS_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus.v0.2"
 BENCHMARK_ID = "ORBITAL-TRUSS-PLANNING-002"
-RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.3"
-CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.3"
+RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.4"
+CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.4"
 CLAIM_CEILING = "synthetic_2d_geometric_observability_and_view_selection_only"
 CASE_COUNT = 8
 MAX_EXACT_VIEWS = 20
@@ -172,16 +172,17 @@ EXP_NEGATIVE_FIXED_1E15 = [
 
 
 def published_style_k_coverage_greedy(problem):
-    """Fixed-point deterministic transcription of the paper's dynamic k-coverage heuristic."""
+    """Fixed-point transcription over the paper's nominal binary visibility matrix."""
     all_coverage = coverage_records(problem, [True] * len(problem["views"]))
     attainable = [
-        min(feature["required_view_count"], coverage["robust_view_count"])
+        min(feature["required_view_count"], coverage["nominal_view_count"])
         for feature, coverage in zip(problem["features"], all_coverage)
     ]
     requested = [feature["required_view_count"] for feature in problem["features"]]
-    remaining = [row["robust_view_count"] for row in all_coverage]
+    remaining = [row["nominal_view_count"] for row in all_coverage]
     covered_count = [0] * len(problem["features"])
     selected = [False] * len(problem["views"])
+    selection_order = []
 
     while any(count < target for count, target in zip(covered_count, attainable)):
         deficits = [
@@ -211,7 +212,7 @@ def published_style_k_coverage_greedy(problem):
             score = sum(
                 weights[feature_index]
                 for feature_index, feature in enumerate(problem["features"])
-                if feature["feature_id"] in problem["views"][index]["robust_feature_ids"]
+                if feature["feature_id"] in problem["views"][index]["nominal_feature_ids"]
             )
             if score > best_score:
                 best_score = score
@@ -220,26 +221,24 @@ def published_style_k_coverage_greedy(problem):
             break
 
         selected[best_index] = True
+        selection_order.append(best_index)
         for feature_index, feature in enumerate(problem["features"]):
-            if feature["feature_id"] in problem["views"][best_index]["robust_feature_ids"]:
+            if feature["feature_id"] in problem["views"][best_index]["nominal_feature_ids"]:
                 covered_count[feature_index] += 1
                 remaining[feature_index] -= 1
 
-    removal_order = sorted(
-        (index for index, include in enumerate(selected) if include),
-        key=lambda index: problem["views"][index]["view_id"],
-    )
+    # Pseudocode treats S as a set; use deterministic selection order for cleanup.
     changed = True
     while changed:
         changed = False
-        for index in removal_order:
+        for index in selection_order:
             if not selected[index]:
                 continue
             preserves = True
             for feature_index, feature in enumerate(problem["features"]):
                 sees_feature = (
                     feature["feature_id"]
-                    in problem["views"][index]["robust_feature_ids"]
+                    in problem["views"][index]["nominal_feature_ids"]
                 )
                 if sees_feature and covered_count[feature_index] - 1 < attainable[feature_index]:
                     preserves = False
@@ -247,7 +246,7 @@ def published_style_k_coverage_greedy(problem):
             if preserves:
                 selected[index] = False
                 for feature_index, feature in enumerate(problem["features"]):
-                    if feature["feature_id"] in problem["views"][index]["robust_feature_ids"]:
+                    if feature["feature_id"] in problem["views"][index]["nominal_feature_ids"]:
                         covered_count[feature_index] -= 1
                 changed = True
                 break
@@ -270,21 +269,28 @@ def published_style_k_coverage_greedy(problem):
         feature_coverage.append({
             "feature_id": feature["feature_id"],
             "requested_k": feature["required_view_count"],
-            "available_candidate_views": available["robust_view_count"],
+            "available_candidate_views": available["nominal_view_count"],
+            "available_robust_candidate_views": available["robust_view_count"],
             "attainable_capped_target": capped,
+            "selected_views": selected_row["nominal_view_count"],
             "selected_robust_views": selected_row["robust_view_count"],
-            "requested_k_met": selected_row["robust_view_count"] >= feature["required_view_count"],
-            "attainable_target_met": selected_row["robust_view_count"] >= capped,
+            "requested_k_met": selected_row["nominal_view_count"] >= feature["required_view_count"],
+            "attainable_target_met": selected_row["nominal_view_count"] >= capped,
+            "robust_requested_k_met": selected_row["robust_view_count"] >= feature["required_view_count"],
             "required_failure_domains": feature["required_failure_domains"],
-            "selected_failure_domains": selected_row["robust_failure_domain_count"],
-            "failure_domain_requirement_met": (
+            "selected_nominal_failure_domains": selected_row["nominal_failure_domain_count"],
+            "selected_robust_failure_domains": selected_row["robust_failure_domain_count"],
+            "nominal_failure_domain_requirement_met": (
+                selected_row["nominal_failure_domain_count"] >= feature["required_failure_domains"]
+            ),
+            "robust_failure_domain_requirement_met": (
                 selected_row["robust_failure_domain_count"] >= feature["required_failure_domains"]
             ),
         })
 
     return {
-        "algorithm": "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_1",
-        "arithmetic": "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties",
+        "algorithm": "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_2",
+        "arithmetic": "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties;selection_order_cleanup",
         "selected_view_ids": selected_ids,
         "selected_view_count": len(selected_ids),
         "total_cost_units": total_cost,
@@ -293,11 +299,13 @@ def published_style_k_coverage_greedy(problem):
             and total_cost <= problem["max_total_cost_units"]
         ),
         "requested_k_covered": all(row["requested_k_met"] for row in feature_coverage),
-        "attainable_capped_target_covered": all(
-            row["attainable_target_met"] for row in feature_coverage
+        "attainable_capped_target_covered": all(row["attainable_target_met"] for row in feature_coverage),
+        "robust_requested_k_covered": all(row["robust_requested_k_met"] for row in feature_coverage),
+        "nominal_failure_domain_requirements_met": all(
+            row["nominal_failure_domain_requirement_met"] for row in feature_coverage
         ),
-        "failure_domain_requirements_met": all(
-            row["failure_domain_requirement_met"] for row in feature_coverage
+        "robust_failure_domain_requirements_met": all(
+            row["robust_failure_domain_requirement_met"] for row in feature_coverage
         ),
         "feature_coverage": feature_coverage,
     }
