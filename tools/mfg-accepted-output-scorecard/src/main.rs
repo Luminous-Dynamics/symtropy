@@ -204,7 +204,7 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
         }
         for unit_id in &output.unit_ids {
             if unit_id.trim().is_empty()
-                || unit_id.trim() != unit_id
+                || unit_id.trim() != unit_id.as_str()
                 || !product_unit_ids.insert(unit_id.as_str())
             {
                 return Err(fail("duplicate_or_invalid_product_unit_id"));
