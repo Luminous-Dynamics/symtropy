@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital assurance dependency invalidation receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "evaluation",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-assurance-invalidation.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "$ref": "#/$defs/sha"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "summary",
+        "cases",
+        "authority_granted"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-dependency-invalidation-only"
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_count",
+            "current_cases",
+            "requalification_required_cases",
+            "invalid_graph_cases",
+            "source_changed_nodes",
+            "scope_changed_nodes",
+            "dependency_version_mismatch_nodes",
+            "upstream_invalidated_nodes",
+            "invalidated_required_roots",
+            "expected_result_mismatches",
+            "authority_grants"
+          ],
+          "properties": {
+            "case_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "current_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "requalification_required_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_graph_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_changed_nodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scope_changed_nodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dependency_version_mismatch_nodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "upstream_invalidated_nodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalidated_required_roots": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_result_mismatches": {
+              "const": 0
+            },
+            "authority_grants": {
+              "const": 0
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "disposition",
+              "required_root_node_ids",
+              "invalidated_required_root_node_ids",
+              "invalidated_node_ids",
+              "current_node_count",
+              "invalidated_node_count",
+              "nodes",
+              "authority_granted",
+              "expected_result_matched"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "disposition": {
+                "enum": [
+                  "CURRENT",
+                  "REQUALIFICATION_REQUIRED",
+                  "INVALID_GRAPH"
+                ]
+              },
+              "required_root_node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "invalidated_required_root_node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "invalidated_node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "current_node_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "invalidated_node_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "node_id",
+                    "status",
+                    "invalidated_by"
+                  ],
+                  "properties": {
+                    "node_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "CURRENT",
+                        "SOURCE_CHANGED",
+                        "SCOPE_CHANGED",
+                        "DEPENDENCY_VERSION_MISMATCH",
+                        "UPSTREAM_INVALIDATED",
+                        "INVALID_GRAPH"
+                      ]
+                    },
+                    "invalidated_by": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "authority_granted": {
+                "const": false
+              },
+              "expected_result_matched": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
