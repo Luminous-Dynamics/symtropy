@@ -1,0 +1,362 @@
+name: Mobility RRVR Runtime Projection
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-runtime-projection-v0-1
+    paths:
+      - "research/mobility-rrvr-runtime-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - ".github/workflows/mobility-rrvr-runtime-projection.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-runtime-trace/**"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - ".github/workflows/mobility-rrvr-runtime-projection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  projection-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Download and verify pinned TLC and formal inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          MODEL_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.cfg"
+          TRACE_SPEC="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+          printf '%s  %s\n' "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168" "$MODEL_CFG" | sha256sum --check
+          printf '%s  %s\n' "281c17f88823c88edf070b4d7b320738f8c5b46645ec41cb1059213c69a5e3aa" "$TRACE_SPEC" | sha256sum --check
+          printf '%s  %s\n' "b4e7c14733a757a9923e9837519586708b85ee23c6bb35995fff245695a365dc" "$TRACE_CFG" | sha256sum --check
+
+      - name: Validate schema and known-answer fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/runtime_projection_v0_1.schema.json"
+          INIT="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_init_v0_1.json"
+          TRACE_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_reservation_acceptance_v0_1.json"
+          RECOVERY_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$INIT"
+          jq empty "$TRACE_FIXTURE"
+          jq empty "$RECOVERY_FIXTURE"
+          for FIXTURE in "$INIT" "$TRACE_FIXTURE" "$RECOVERY_FIXTURE"; do
+            jq -e '
+              all(.snapshots[].owner_evidence[];
+                (.raw_artifact_sha256 | test("^[a-fA-F0-9]{64}$")))
+            ' "$FIXTURE"
+          done
+          jq -e '
+            .version == "0.1"
+            and .header.model_source_sha256 == "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81"
+            and .header.model_config_sha256 == "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168"
+            and .header.tla_tool_sha256 == "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
+            and (.snapshots | length == 4)
+            and all(.snapshots[]; (.state_s | keys | length == 43))
+            and all(.snapshots[]; (.owner_evidence | length == 10))
+            and all(.snapshots[]; ([.owner_evidence[].domain] | unique | length == 10))
+            and .snapshots[0].model_action == null
+            and .snapshots[1].model_action == "ReserveAttempt"
+            and .snapshots[2].model_action == "MarkDispatchStarted"
+            and .snapshots[3].model_action == "NativeAcceptOld"
+            and .snapshots[3].state_s.commandPending == true
+            and .snapshots[3].state_s.commandOwnerAttempt == "attempt-1"
+          ' "$TRACE_FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and .header.model_source_sha256 == "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81"
+            and .header.model_config_sha256 == "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168"
+            and .header.tla_tool_sha256 == "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
+            and (.snapshots | length == 17)
+            and all(.snapshots[]; (.state_s | keys | length == 43))
+            and all(.snapshots[]; (.owner_evidence | length == 10))
+            and .snapshots[4].model_action == "OldDeviceDoesNotApply"
+            and .snapshots[7].model_action == "AcknowledgeStoreNoCommit"
+            and .snapshots[10].model_action == "FenceControllerQueue"
+            and .snapshots[11].model_action == "FenceDownstreamExecution"
+            and .snapshots[12].model_action == "ObserveOldEffect"
+            and .snapshots[14].model_action == "IssueRecoveryPermit"
+            and .snapshots[15].model_action == "CreateFreshTicket"
+            and .snapshots[16].model_action == "NativeAcceptRecovery"
+            and .snapshots[-1].state_s.recoveryPermit == "consumed"
+            and .snapshots[-1].state_s.permitUseCount == 1
+            and .snapshots[-1].state_s.downstreamFenceBootEpoch == 0
+            and .snapshots[-1].state_s.admittedDownstreamFence == true
+            and .snapshots[-1].state_s.commandOwnerAttempt == "attempt-2"
+            and ([.snapshots[-1].owner_evidence[]
+                  | select(.domain == "physical_outcome_observer_quorum" or .domain == "downstream_observer_quorum")
+                  | .status] | all(. == "quorum_qualified"))
+          ' "$RECOVERY_FIXTURE"
+
+      - name: Compare Rust and JSON Schema fields with pinned TLA Init
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          RUST="research/mobility-rrvr-runtime-trace/src/lib.rs"
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/runtime_projection_v0_1.schema.json"
+          sed -n '/Init ==/,/ReserveAttempt ==/p' "$MODEL" \
+            | grep -oE '[A-Za-z][A-Za-z0-9]*[[:space:]]*\|->' \
+            | sed -E 's/[[:space:]]*\|->$//' \
+            | sort -u > "$RUNNER_TEMP/tla-fields.txt"
+          sed -n '/pub const STATE_FIELDS/,/^];/p' "$RUST" \
+            | grep -oE '"[A-Za-z][A-Za-z0-9]*"' \
+            | tr -d '"' | sort -u > "$RUNNER_TEMP/rust-fields.txt"
+          jq -r '.properties.snapshots.items.properties.state_s.required[]' "$SCHEMA" \
+            | sort -u > "$RUNNER_TEMP/schema-fields.txt"
+          diff -u "$RUNNER_TEMP/tla-fields.txt" "$RUNNER_TEMP/rust-fields.txt"
+          diff -u "$RUNNER_TEMP/tla-fields.txt" "$RUNNER_TEMP/schema-fields.txt"
+          test "$(wc -l < "$RUNNER_TEMP/tla-fields.txt" | tr -d ' ')" -eq 43
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --check
+
+      - name: Run runtime projection tests
+        run: cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Emit Reflow trace and provenance sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rrvr-runtime-projection"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_reservation_acceptance_v0_1.json"
+          TRACE="$RUNNER_TEMP/rrvr-runtime-projection/runtime-trace.ndjson"
+          SIDECAR="$RUNNER_TEMP/rrvr-runtime-projection/provenance-sidecar.json"
+          MANIFEST="$RUNNER_TEMP/rrvr-runtime-projection/manifest.json"
+          cargo run --locked \
+            --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml \
+            --bin rrvr_runtime_project -- "$FIXTURE" "$TRACE" "$SIDECAR" > "$MANIFEST"
+          jq -e '
+            .projection_validation == "passed"
+            and .tla_conformance == "not_run"
+            and .snapshot_count == 4
+            and (.input_sha256 | test("^[a-f0-9]{64}$"))
+            and (.trace_sha256 | test("^[a-f0-9]{64}$"))
+            and (.sidecar_sha256 | test("^[a-f0-9]{64}$"))
+          ' "$MANIFEST"
+          test "$(wc -l < "$TRACE" | tr -d ' ')" -eq 4
+          jq -e -s '
+            length == 4
+            and .[0].state.s.stage == "unreserved"
+            and .[1].event == "ReserveAttempt"
+            and .[1].state.s.stage == "reserved"
+            and .[2].event == "MarkDispatchStarted"
+            and .[2].state.s.stage == "dispatch_started"
+            and .[3].event == "NativeAcceptOld"
+            and .[3].state.s.commandPending == true
+          ' "$TRACE"
+          jq -e '
+            .snapshots | length == 4
+            and (.[3].owner_evidence | length == 10)
+            and (.[0].owner_evidence | map(.domain) | unique | length == 10)
+          ' "$SIDECAR"
+          cp "$FIXTURE" "$RUNNER_TEMP/rrvr-runtime-projection/input-recording.json"
+          (
+            cd "$RUNNER_TEMP/rrvr-runtime-projection"
+            sha256sum input-recording.json runtime-trace.ndjson provenance-sidecar.json manifest.json > SHA256SUMS
+          )
+
+      - name: Emit full no-effect recovery projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
+          TRACE="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-trace.ndjson"
+          SIDECAR="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-sidecar.json"
+          MANIFEST="$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-manifest.json"
+          cargo run --locked \
+            --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml \
+            --bin rrvr_runtime_project -- "$FIXTURE" "$TRACE" "$SIDECAR" > "$MANIFEST"
+          jq -e '
+            .projection_validation == "passed"
+            and .tla_conformance == "not_run"
+            and .snapshot_count == 17
+          ' "$MANIFEST"
+          test "$(wc -l < "$TRACE" | tr -d ' ')" -eq 17
+          jq -e -s '
+            length == 17
+            and .[12].event == "ObserveOldEffect"
+            and .[14].event == "IssueRecoveryPermit"
+            and .[15].event == "CreateFreshTicket"
+            and .[16].event == "NativeAcceptRecovery"
+            and .[16].state.s.recoveryPermit == "consumed"
+            and .[16].state.s.permitUseCount == 1
+            and .[16].state.s.downstreamFenceBootEpoch == 0
+            and .[16].state.s.admittedDownstreamFence == true
+          ' "$TRACE"
+          jq -e '
+            .snapshots | length == 17
+            and (.[16].owner_evidence | length == 10)
+            and ([.[16].owner_evidence[]
+                  | select(.domain == "physical_outcome_observer_quorum" or .domain == "downstream_observer_quorum")
+                  | .status] | all(. == "quorum_qualified"))
+          ' "$SIDECAR"
+          cp "$FIXTURE" "$RUNNER_TEMP/rrvr-runtime-projection/no-effect-recovery-recording.json"
+          (
+            cd "$RUNNER_TEMP/rrvr-runtime-projection"
+            sha256sum no-effect-recovery-recording.json no-effect-recovery-trace.ndjson \
+              no-effect-recovery-sidecar.json no-effect-recovery-manifest.json \
+              >> SHA256SUMS
+          )
+
+      - name: Validate emitted action/state traces with pinned TLC
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="$GITHUB_WORKSPACE/research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          TRACE_SPEC="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          ROOT="$RUNNER_TEMP/rrvr-runtime-projection"
+
+          run_trace_check() {
+            local label="$1"
+            local source_trace="$2"
+            local work="$ROOT/tla-$label"
+            mkdir -p "$work"
+            cp "$MODEL" "$work/RestartSafeEffectContinuity.tla"
+            cp "$TRACE_SPEC" "$work/RestartSafeEffectContinuityTrace.tla"
+            cp "$TRACE_CFG" "$work/RestartSafeEffectContinuityTrace.cfg"
+            cp "$source_trace" "$work/rrvr-trace.ndjson"
+            (
+              cd "$work"
+              java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+                -workers 1 \
+                -metadir "$RUNNER_TEMP/tlc-runtime-$label" \
+                -config RestartSafeEffectContinuityTrace.cfg \
+                RestartSafeEffectContinuityTrace.tla
+            ) | tee "$ROOT/tlc-$label.log"
+            grep -Fq "Model checking completed. No error has been found." "$ROOT/tlc-$label.log"
+            grep -Fq "0 states left on queue" "$ROOT/tlc-$label.log"
+          }
+
+          run_trace_check "reservation" "$ROOT/runtime-trace.ndjson"
+          run_trace_check "no-effect-recovery" "$ROOT/no-effect-recovery-trace.ndjson"
+
+      - name: Prove trace validator rejects wrong action labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rrvr-runtime-projection"
+          MODEL="$GITHUB_WORKSPACE/research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          TRACE_SPEC="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          WORK="$ROOT/tla-negative-wrong-action"
+          mkdir -p "$WORK"
+          jq -c -s '
+            map(if .event? == "ReserveAttempt"
+                then .event = "MarkDispatchStarted"
+                else .
+                end)
+            | .[]
+          ' "$ROOT/runtime-trace.ndjson" > "$WORK/rrvr-trace.ndjson"
+          jq -s -e '
+            length == 4
+            and .[1].event == "MarkDispatchStarted"
+            and .[1].state.s.stage == "reserved"
+          ' "$WORK/rrvr-trace.ndjson"
+          cp "$MODEL" "$WORK/RestartSafeEffectContinuity.tla"
+          cp "$TRACE_SPEC" "$WORK/RestartSafeEffectContinuityTrace.tla"
+          cp "$TRACE_CFG" "$WORK/RestartSafeEffectContinuityTrace.cfg"
+          set +e
+          (
+            cd "$WORK"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-runtime-negative-wrong-action" \
+              -config RestartSafeEffectContinuityTrace.cfg \
+              RestartSafeEffectContinuityTrace.tla
+          ) > "$ROOT/tlc-negative-wrong-action.log" 2>&1
+          status=$?
+          set -e
+          cat "$ROOT/tlc-negative-wrong-action.log"
+          if [ "$status" -eq 0 ]; then
+            echo "TLC accepted a trace whose named action cannot produce its recorded state."
+            exit 1
+          fi
+          if ! grep -Fq "TraceNotStuck" "$ROOT/tlc-negative-wrong-action.log" \
+            || ! grep -Eiq "violat" "$ROOT/tlc-negative-wrong-action.log"; then
+            echo "TLC failed for a reason other than the expected TraceNotStuck invariant."
+            exit 1
+          fi
+          echo "Expected negative control rejected: action/state mismatch."
+
+          cp "$TRACE_SPEC" "$ROOT/RestartSafeEffectContinuityTrace.tla"
+          cp "$TRACE_CFG" "$ROOT/RestartSafeEffectContinuityTrace.cfg"
+          cp "$MODEL" "$ROOT/RestartSafeEffectContinuity.tla"
+          cp "$JAR" "$ROOT/tla2tools.jar"
+          (
+            cd "$ROOT"
+            MODEL_SHA=$(sha256sum RestartSafeEffectContinuity.tla | cut -d ' ' -f 1)
+            TRACE_SPEC_SHA=$(sha256sum RestartSafeEffectContinuityTrace.tla | cut -d ' ' -f 1)
+            TRACE_CFG_SHA=$(sha256sum RestartSafeEffectContinuityTrace.cfg | cut -d ' ' -f 1)
+            TLC_JAR_SHA=$(sha256sum tla2tools.jar | cut -d ' ' -f 1)
+            RESERVATION_LOG_SHA=$(sha256sum tlc-reservation.log | cut -d ' ' -f 1)
+            RECOVERY_LOG_SHA=$(sha256sum tlc-no-effect-recovery.log | cut -d ' ' -f 1)
+            NEGATIVE_LOG_SHA=$(sha256sum tlc-negative-wrong-action.log | cut -d ' ' -f 1)
+            jq -n \
+              --arg model_sha256 "$MODEL_SHA" \
+              --arg trace_spec_sha256 "$TRACE_SPEC_SHA" \
+              --arg trace_config_sha256 "$TRACE_CFG_SHA" \
+              --arg tlc_jar_sha256 "$TLC_JAR_SHA" \
+              --arg reservation_log_sha256 "$RESERVATION_LOG_SHA" \
+              --arg recovery_log_sha256 "$RECOVERY_LOG_SHA" \
+              --arg negative_log_sha256 "$NEGATIVE_LOG_SHA" \
+              '{
+                schema_version:"0.1",
+                tla_conformance:"passed",
+                checker:"TLC",
+                trace_contract:"named-action plus exact complete successor-state equality",
+                valid_traces:{
+                  reservation:{result:"passed",snapshots:4,log_sha256:$reservation_log_sha256},
+                  no_effect_recovery:{result:"passed",snapshots:17,log_sha256:$recovery_log_sha256}
+                },
+                negative_control:{
+                  mutation:"Rename first recorded ReserveAttempt action to MarkDispatchStarted without changing successor state",
+                  expected:"TraceNotStuck violated",
+                  result:"rejected",
+                  log_sha256:$negative_log_sha256
+                },
+                pins:{
+                  model_sha256:$model_sha256,
+                  trace_spec_sha256:$trace_spec_sha256,
+                  trace_config_sha256:$trace_config_sha256,
+                  tla2tools_jar_sha256:$tlc_jar_sha256
+                },
+                claim_ceiling:"Recorded state/action traces conform to the pinned TLA abstraction; this does not authenticate source artifacts or prove physical truth."
+              }' > formal-conformance-manifest.json
+            sha256sum RestartSafeEffectContinuityTrace.tla RestartSafeEffectContinuityTrace.cfg \
+              RestartSafeEffectContinuity.tla tla2tools.jar tlc-reservation.log tlc-no-effect-recovery.log \
+              tlc-negative-wrong-action.log formal-conformance-manifest.json >> SHA256SUMS
+          )
+
+      - name: Upload projection conformance package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrvr-runtime-projection-${{ github.sha }}
+          path: ${{ runner.temp }}/rrvr-runtime-projection/
+          if-no-files-found: error
+          retention-days: 90
