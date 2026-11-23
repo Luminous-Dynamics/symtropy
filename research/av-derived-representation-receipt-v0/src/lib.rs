@@ -221,6 +221,7 @@ pub enum NormalizationV1 {
     /// L2 unit-norm normalization.
     L2,
     /// Per-feature z-score normalization.
+    #[serde(rename = "per_feature_z_score")]
     PerFeatureZScore,
     /// Values scaled to the unit interval.
     UnitInterval,
@@ -711,9 +712,9 @@ fn validate_reproducibility(
 }
 
 fn validate_quantization(bit_width: u8, scale_nano: u64) -> Result<(), DerivedReceiptError> {
-    if !(2..=32).contains(&bit_width) || scale_nano == 0 {
+    if !(2..=8).contains(&bit_width) || scale_nano == 0 {
         return Err(DerivedReceiptError::new(
-            "quantization requires bit width 2..=32 and nonzero scale",
+            "8-bit quantized elements require bit width 2..=8 and nonzero scale",
         ));
     }
     Ok(())
@@ -1053,6 +1054,12 @@ mod tests {
             &payload,
             20
         ).is_err());
+    }
+
+    #[test]
+    fn normalization_variant_uses_schema_stable_snake_case() {
+        let value = serde_json::to_value(NormalizationV1::PerFeatureZScore).unwrap();
+        assert_eq!(value, serde_json::Value::String("per_feature_z_score".to_string()));
     }
 
     #[test]
