@@ -37,9 +37,9 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
-pub mod space_time_partition;
 pub mod residual;
 pub mod sequential;
+pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
 
@@ -81,18 +81,17 @@ pub use pop_convergence::{
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
 };
-pub use space_time_partition::{
-    NcEnvelopeReport, NonnegativeRationalInterval, Rational, SpaceTimeCellContribution,
-    SpaceTimeHorizon, SpaceTimePartition, SpaceTimePartitionError, SpaceTimeRateCell,
-    SpaceTimeScope, SpherePatch, SpherePatchId, TimeSlab, TimeSlabId,
-    verify_space_time_partition,
-};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use space_time_partition::{
+    NcEnvelopeReport, NonnegativeRationalInterval, Rational, SpaceTimeCellContribution,
+    SpaceTimeHorizon, SpaceTimePartition, SpaceTimePartitionError, SpaceTimeRateCell,
+    SpaceTimeScope, SpherePatch, SpherePatchId, TimeSlab, TimeSlabId, verify_space_time_partition,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
