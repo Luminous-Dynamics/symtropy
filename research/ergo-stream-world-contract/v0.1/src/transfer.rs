@@ -202,8 +202,12 @@ impl fmt::Display for TransferErrorV0 {
                 "mapped relation participants do not preserve the declared structure"
             }
             Self::ActionMapNotInjective => "action correspondence must be one-to-one",
-            Self::ActionKindMapNotInjective => "distinct source action kinds must map to distinct target kinds",
-            Self::InconsistentActionKindTransform => "one source action kind has inconsistent target kinds or effect transforms",
+            Self::ActionKindMapNotInjective => {
+                "distinct source action kinds must map to distinct target kinds"
+            }
+            Self::InconsistentActionKindTransform => {
+                "one source action kind has inconsistent target kinds or effect transforms"
+            }
             Self::MissingInterventionEvidence => "a mapped action has no intervention evidence",
             Self::DuplicateInterventionEvidence => {
                 "intervention evidence contains a duplicate action pair"
