@@ -330,16 +330,17 @@ impl IntegrityModeEvaluator {
             }
         }
 
-        // The first non-NORMAL mode after an active fault onset is the observed
-        // downgrade time. If the controller was already non-NORMAL at the
-        // fault-onset event, the measured latency is zero.
-        if event.mode != IntegrityMode::Normal {
-            for (fault_id, track) in next_fault_tracks.iter_mut() {
+        // Count a fault as detected only on an observed NORMAL -> non-NORMAL
+        // transition after its onset. Merely beginning a fault episode while
+        // already degraded must not receive a misleading zero-latency credit.
+        let downgraded_now = self.previous_mode == Some(IntegrityMode::Normal)
+            && event.mode != IntegrityMode::Normal;
+        if downgraded_now {
+            for track in next_fault_tracks.values_mut() {
                 if !track.cleared && !track.detected {
                     track.detected = true;
                     next_detection_latencies.push(event.timestamp_ms.saturating_sub(track.onset_ms));
                     add(&mut next_fault_detected, 1)?;
-                    let _ = fault_id;
                 }
             }
         }
@@ -747,14 +748,34 @@ mod tests {
                 0,
                 10,
                 IntegrityMode::Normal,
-                EvaluatorTruthStatus::UnsafeOrFaulted,
-                Some(EvaluatorFaultEvent::Start { fault_id: 1 }),
+                EvaluatorTruthStatus::QualifiedSafe,
+                None,
             ))
             .unwrap();
         evaluator
             .observe(event(
                 2,
                 10,
+                10,
+                IntegrityMode::Normal,
+                EvaluatorTruthStatus::UnsafeOrFaulted,
+                Some(EvaluatorFaultEvent::Start { fault_id: 1 }),
+            ))
+            .unwrap();
+        evaluator
+            .observe(event(
+                3,
+                20,
+                10,
+                IntegrityMode::Degraded,
+                EvaluatorTruthStatus::UnsafeOrFaulted,
+                None,
+            ))
+            .unwrap();
+        evaluator
+            .observe(event(
+                4,
+                30,
                 10,
                 IntegrityMode::Degraded,
                 EvaluatorTruthStatus::UnsafeOrFaulted,
@@ -765,6 +786,7 @@ mod tests {
         let report = evaluator.report();
         assert_eq!(report.active_faults_undetected_at_end, 1);
         assert_eq!(report.active_faults_detected_at_end, 1);
+        assert_eq!(report.fault_episodes_detected, 1);
         assert_eq!(report.recoveries_pending_at_end, 0);
     }
 }
