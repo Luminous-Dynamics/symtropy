@@ -1533,6 +1533,19 @@ mod tests {
     }
 
     fn finish_hashes(input: &mut NonanticipativeOracleInput) {
+        let windows = input.linked_service_input.flight_windows.clone();
+        for node in &mut input.observation_nodes {
+            let window = windows
+                .iter()
+                .find(|window| window.window_id == node.flight_window_id)
+                .expect("fixture observation window");
+            node.weather_evidence_digest =
+                flight_weather_evidence_digest(window, node.weather_state)
+                    .expect("weather evidence digest");
+            node.permission_evidence_digest =
+                flight_permission_evidence_digest(window, node.permission_state)
+                    .expect("permission evidence digest");
+        }
         let mut order: Vec<usize> = (0..input.observation_nodes.len()).collect();
         order.sort_by_key(|index| input.observation_nodes[*index].decision_time_seconds);
         let mut remap = BTreeMap::new();
@@ -1572,66 +1585,90 @@ mod tests {
     }
 
     #[test]
-    fn full_tree_policy_uses_shared_root_action_and_reports_perfect_information_gap() {
+    fn full_tree_policy_is_nonanticipative_and_quantifies_future_information_value() {
         let report = evaluate_nonanticipative_oracle(&fixture()).expect("bounded tree evaluates");
         assert_eq!(report.status, OracleStatus::Evaluated);
         assert!(report.nonanticipativity_verified);
         assert_eq!(report.information_set_count, 3);
-        assert_eq!(report.scenario_count, 2);
-        let root = report.policy.iter().find(|decision| decision.decision_time_seconds == 0).unwrap();
-        assert_eq!(root.assignments, vec![PolicyAssignment {
-            request_id: "request-early".to_owned(),
-            opportunity_id: "slot-late".to_owned(),
-        }]);
+        assert_eq!(report.scenario_count, 3);
+        assert_eq!(report.capacity_source_architecture_id, "fixed_dock4_reference_profile");
+        assert!(report.capacity_source_report_digest.starts_with("sha256:"));
+        assert_eq!(report.capacity_opportunities_qualified, 1);
+        let root = report.policy.iter().find(|decision| decision.decision_time_seconds == 349).unwrap();
+        assert!(root.assignments.is_empty());
         let nonanticipative = report.nonanticipative_score.as_ref().unwrap();
         let clairvoyant = report.clairvoyant_perfect_information_score.as_ref().unwrap();
-        assert_eq!(nonanticipative.expected_on_time_services_units, 1_500_000);
-        assert_eq!(clairvoyant.expected_on_time_services_units, 1_500_000);
-        assert_eq!(report.value_of_perfect_information.as_ref().unwrap().expected_latency_seconds_units, 8_500_000);
+        assert_eq!(nonanticipative.expected_on_time_services_units, 350_000);
+        assert_eq!(nonanticipative.expected_completed_by_horizon_units, 350_000);
+        assert_eq!(clairvoyant.expected_on_time_services_units, 350_000);
+        assert_eq!(clairvoyant.expected_completed_by_horizon_units, 650_000);
+        assert_eq!(
+            report.value_of_perfect_information.as_ref().unwrap()
+                .expected_completed_by_horizon_units,
+            300_000
+        );
+        assert_eq!(
+            report.scenario_results.iter()
+                .find(|scenario| scenario.scenario_id == "later-request-weather-no-go")
+                .unwrap().score.completed_by_horizon,
+            0
+        );
     }
 
     #[test]
     fn hidden_future_request_is_not_revealed_at_shared_root() {
         let input = fixture();
         let root = input.observation_nodes.iter()
-            .filter(|node| node.decision_time_seconds == 0)
+            .filter(|node| node.decision_time_seconds == 349)
             .collect::<Vec<_>>();
         assert_eq!(root.len(), 2);
         assert_eq!(root[0].information_set_digest, root[1].information_set_digest);
         assert!(!root[0].revealed_request_ids.contains(&"request-later".to_owned()));
+        assert_eq!(
+            input.capacity_input.architectures.iter()
+                .find(|architecture| architecture.architecture_id == "fixed_dock4_reference_profile")
+                .unwrap().mission_duration_seconds,
+            300
+        );
+        assert_eq!(
+            input.linked_service_input.aerial_opportunity_qualifications[0].opportunity_id,
+            "aircraft-00-mission-000002"
+        );
     }
 
     #[test]
-    fn aerial_assignment_is_blocked_when_weather_or_permission_is_not_approved() {
+    fn aerial_assignment_is_blocked_when_weather_is_not_approved() {
         let mut input = fixture();
-        input.requests[0].allowed_mode = AllowedMode::FallbackOnly;
-        input.requests[1].allowed_mode = AllowedMode::AerialOnly;
-        input.opportunities[0].mode = OpportunityMode::Aerial;
-        input.observation_nodes[0].weather_state = WeatherState::NoGo;
-        input.observation_nodes[1].weather_state = WeatherState::NoGo;
-        input.observation_nodes[2].weather_state = WeatherState::NoGo;
+        input.linked_service_input.requests[0].allowed_mode = ServiceMode::FallbackOnly;
+        input.linked_service_input.requests[1].allowed_mode = ServiceMode::AerialOnly;
+        for node in &mut input.observation_nodes {
+            node.weather_state = WeatherState::NoGo;
+            node.available_opportunity_ids.clear();
+        }
         finish_hashes(&mut input);
         let report = evaluate_nonanticipative_oracle(&input)
             .expect("weather no-go removes the aerial action");
         assert_eq!(report.status, OracleStatus::Evaluated);
-        assert!(report.policy.iter().all(|decision| {
-            decision.assignments.iter().all(|assignment| assignment.request_id != "request-later")
-        }));
+        assert!(report.policy.iter().all(|decision| decision.assignments.is_empty()));
     }
 
     #[test]
     fn permission_denied_blocks_aerial_assignment_after_revelation() {
         let mut input = fixture();
-        input.requests[0].allowed_mode = AllowedMode::FallbackOnly;
-        input.requests[1].allowed_mode = AllowedMode::AerialOnly;
-        input.opportunities[0].mode = OpportunityMode::Aerial;
-        input.observation_nodes[2].permission_state = PermissionState::Denied;
+        input.observation_nodes.iter_mut()
+            .find(|node| node.node_id == "later-request-weather-go")
+            .expect("go branch node")
+            .permission_state = PermissionState::Denied;
+        input.observation_nodes.iter_mut()
+            .find(|node| node.node_id == "later-request-weather-go")
+            .expect("go branch node")
+            .available_opportunity_ids.clear();
         finish_hashes(&mut input);
         let report = evaluate_nonanticipative_oracle(&input)
             .expect("permission denial is a valid revealed observation");
-        assert!(report.policy.iter().all(|decision| {
-            decision.assignments.iter().all(|assignment| assignment.request_id != "request-later")
-        }));
+        assert!(report.policy.iter().filter(|decision| {
+            decision.decision_time_seconds == 350
+        }).all(|decision| decision.assignments.is_empty()));
     }
 
     #[test]
@@ -1673,11 +1710,13 @@ mod tests {
     #[test]
     fn bounds_exceeded_is_explicit_not_a_partial_optimum() {
         let mut input = fixture();
-        input.requests.push(input.requests[0].clone());
-        input.requests.push(input.requests[0].clone());
-        input.requests.push(input.requests[0].clone());
-        input.requests.push(input.requests[0].clone());
-        input.requests.push(input.requests[0].clone());
+        for index in 0..5 {
+            let mut request = input.linked_service_input.requests[0].clone();
+            request.request_id = format!("extra-request-{index}");
+            request.arrival_seconds = 0;
+            request.accept_by_seconds = 349;
+            input.linked_service_input.requests.push(request);
+        }
         let report = evaluate_nonanticipative_oracle(&input).expect("bounds are report status");
         assert_eq!(report.status, OracleStatus::NotRunBoundsExceeded);
         assert!(report.nonanticipative_score.is_none());
@@ -1689,8 +1728,10 @@ mod tests {
         let input = fixture();
         let first = evaluate_nonanticipative_oracle(&input).expect("first report");
         let mut permuted = fixture();
-        permuted.requests.reverse();
-        permuted.opportunities.reverse();
+        permuted.linked_service_input.requests.reverse();
+        permuted.linked_service_input.aerial_opportunity_qualifications.reverse();
+        permuted.linked_service_input.fallback_opportunities.reverse();
+        permuted.capacity_input.architectures.reverse();
         permuted.observation_nodes.reverse();
         permuted.scenarios.reverse();
         for node in &mut permuted.observation_nodes {
