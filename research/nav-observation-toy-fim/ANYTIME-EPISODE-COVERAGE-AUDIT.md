@@ -73,11 +73,11 @@ The caller must ensure:
 2. The decision receipt is sealed before evaluation truth is inspected.
 3. The complete trajectory is scored once, using the frozen episode score definition.
 4. The outcome receipt commits to the full episode, truth source, tube identity, evaluator version and hit/miss result.
-5. Episode sequence IDs and decision-receipt sequence IDs are strictly increasing.
+5. Episode identity IDs, episode sequence IDs, decision-receipt sequence IDs and bounded-episode outcome-receipt sequence IDs are strictly increasing. An abstention has no truth outcome or outcome receipt sequence; it cannot advance the outcome watermark.
 6. Receipt digests are canonical and bind episode identity, sequence, frozen policy and decision/outcome data.
 7. Ground-truth arrival or evaluation must never change historical controller-visible event inclusion, order or input data.
 
-The module checks sequence monotonicity, nonzero receipt digests and immediate receipt replay. It does not compute SHA-256, authenticate the receipt contents, verify signatures, validate ground-truth independence or enforce the caller's filtration. Those are separate source/evaluator assurance obligations.
+The module checks monotonic episode identity, episode/decision/outcome sequence progression, nonzero receipt digests and immediate receipt replay. The episode and outcome identifiers are source-ledger sequence identities, not arbitrary UUIDs. It does not compute SHA-256, authenticate the receipt contents, verify signatures, validate ground-truth independence or enforce the caller's filtration. Those are separate source/evaluator assurance obligations.
 
 A bounded outcome with missing truth or a missing outcome receipt is not recorded as a hit. It remains pending/indeterminate and cannot advance the audit.
 
@@ -133,7 +133,7 @@ Implemented in `anytime_episode_coverage.rs`:
 - stitched empirical-Bernstein running margin;
 - true running-average miscoverage upper confidence sequence;
 - separate bounded-set, abstention and total-horizon counts;
-- source decision/outcome receipt and monotonic sequence checks;
+- source decision/outcome receipt and monotonic episode, decision and truth-outcome sequence checks;
 - fail-closed handling of missing truth and replay;
 - tests for hits, misses, abstentions, always-abstain availability, all-miss behavior, replay and formula values.
 
