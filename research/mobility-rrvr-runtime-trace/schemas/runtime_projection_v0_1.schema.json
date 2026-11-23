@@ -381,7 +381,8 @@
                 "claim_scope_sha256",
                 "observer_quorum",
                 "raw_artifact_id",
-                "raw_artifact_sha256"
+                "raw_artifact_sha256",
+                "asserted_value"
               ],
               "properties": {
                 "domain": {
@@ -550,6 +551,10 @@
                       }
                     }
                   ]
+                },
+                "asserted_value": {
+                  "type": "string",
+                  "minLength": 1
                 }
               },
               "allOf": [
