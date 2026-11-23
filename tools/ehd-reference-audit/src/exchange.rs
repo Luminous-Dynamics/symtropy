@@ -256,9 +256,9 @@ pub fn map_integrated_impulses(
     let mut source_absolute_total = [CompensatedSum::default(); 3];
 
     for event in &sorted_events {
-        for component in 0..3 {
-            source_total[component].add(event.impulse_ns[component]);
-            source_absolute_total[component].add(event.impulse_ns[component].abs());
+        for (component, impulse) in event.impulse_ns.iter().copied().enumerate() {
+            source_total[component].add(impulse);
+            source_absolute_total[component].add(impulse.abs());
         }
     }
 
