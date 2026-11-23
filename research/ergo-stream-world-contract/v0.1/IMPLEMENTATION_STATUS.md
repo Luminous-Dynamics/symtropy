@@ -113,3 +113,18 @@ The action correspondence contract now includes source/target action-kind IDs an
 This test still uses qualitative reference signs, not an authenticated intervention runner or a physical causal experiment. It establishes that the finite evaluator can separate structural correspondence from an inconsistent proposed effect transform; it does not establish transportable causal mechanisms.
 
 **Verification for the latest combined branch:** pending exact-head Rust 1.96 format, tests and strict Clippy.
+
+## Transfer Atlas v0.2 protocol
+
+Added `TRANSFER_ATLAS_V0_2_PROTOCOL.md` to specify the next full benchmark phase:
+
+- evaluator / learner process custody and serialized policy-view boundaries;
+- freeze-before-reveal ordering for structural maps and action/effect transforms;
+- nine paired-world generator families, including matched-marginal, non-identifiable, multiscale and cross-modal cases;
+- acquisition, graph-matching, causal-discovery, direct-policy and world-model baseline ladders;
+- separate matched-budget and best-available comparisons;
+- capability, epistemic reliability, efficiency and prediction-to-action scorecards;
+- family-held-out splitting, statistical power analysis, pre-registration, full failed-run denominators and replay artifacts;
+- prospective go/no-go targets and explicit falsification conditions.
+
+This is a protocol document, not evidence that the v0.2 benchmark is implemented or qualified.
