@@ -29,15 +29,8 @@ pub use design_decision::{
 
 mod continuous_psd_sdp_certificate;
 pub use continuous_psd_sdp_certificate::{
-    verify_continuous_dependence_sdp_certificate, CorrelationBoundDualMultipliers,
-    ContinuousDependenceSdpCertificate, ContinuousDependenceSdpVerification,
-    SdpCertificateVerificationPolicy, SdpCertificateVerificationStatus,
-};
-
-mod continuous_psd_sdp_certificate;
-pub use continuous_psd_sdp_certificate::{
-    verify_continuous_dependence_sdp_certificate, CorrelationBoundDualMultipliers,
-    ContinuousDependenceSdpCertificate, ContinuousDependenceSdpVerification,
+    verify_continuous_dependence_sdp_certificate, ContinuousDependenceSdpCertificate,
+    ContinuousDependenceSdpVerification, CorrelationBoundDualMultipliers,
     SdpCertificateVerificationPolicy, SdpCertificateVerificationStatus,
 };
 
