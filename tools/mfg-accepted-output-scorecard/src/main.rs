@@ -274,8 +274,8 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
     let mut accepted_events: Vec<(u64, String, u64)> = Vec::new();
 
     for output in &case.outputs {
-        let output_units = u64::try_from(output.unit_ids.len())
-            .map_err(|_| fail("output_unit_count_overflow"))?;
+        let output_units =
+            u64::try_from(output.unit_ids.len()).map_err(|_| fail("output_unit_count_overflow"))?;
         produced_units = checked_add(produced_units, output_units, "produced_units")?;
         let qualified = independently_qualified(output);
         match (output.disposition, qualified) {
