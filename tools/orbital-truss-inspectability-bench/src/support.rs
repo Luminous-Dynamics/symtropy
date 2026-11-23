@@ -19,8 +19,8 @@ const GSD_SCALE: f64 = 1.0e12;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SupportStatus {
-    CertifiedWithinSensingEnvelope,
-    ProvenOutsideSensingEnvelope,
+    ConditionalWithinSensingEnvelope,
+    ConditionallyOutsideSensingEnvelope,
     Indeterminate,
     InvalidInput,
 }
@@ -357,7 +357,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
     }
 
     let status = if !outside_reasons.is_empty() {
-        SupportStatus::ProvenOutsideSensingEnvelope
+        SupportStatus::ConditionallyOutsideSensingEnvelope
     } else {
         let distance_passes = minimum_distance >= sensor.minimum_range_m - GEOMETRY_EPS
             && maximum_distance <= sensor.maximum_range_m + GEOMETRY_EPS;
@@ -369,7 +369,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
         let gsd_passes =
             gsd_upper.is_some_and(|gsd| gsd <= sensor.maximum_gsd_m_per_px + GEOMETRY_EPS);
         if distance_passes && fov_passes && incidence_passes && gsd_passes {
-            SupportStatus::CertifiedWithinSensingEnvelope
+            SupportStatus::ConditionalWithinSensingEnvelope
         } else {
             SupportStatus::Indeterminate
         }
@@ -380,7 +380,7 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
             .into_iter()
             .map(str::to_owned)
             .collect::<Vec<_>>()
-    } else if status == SupportStatus::CertifiedWithinSensingEnvelope {
+    } else if status == SupportStatus::ConditionalWithinSensingEnvelope {
         vec![
             "WHOLE_SUPPORT_RANGE_BOUNDS_PASS".to_owned(),
             "WHOLE_SUPPORT_FOV_BOUND_PASSES".to_owned(),
@@ -581,10 +581,10 @@ mod tests {
         let mut case = corpus.cases[4].clone();
         case.support.enclosing_ball_radius_m = 0.01;
         let small = evaluate_support_envelope(&case);
-        assert_eq!(small.status, SupportStatus::CertifiedWithinSensingEnvelope);
+        assert_eq!(small.status, SupportStatus::ConditionalWithinSensingEnvelope);
         case.support.enclosing_ball_radius_m = 0.2;
         let large = evaluate_support_envelope(&case);
-        assert_ne!(large.status, SupportStatus::CertifiedWithinSensingEnvelope);
+        assert_ne!(large.status, SupportStatus::ConditionalWithinSensingEnvelope);
     }
 
     #[test]
@@ -592,10 +592,10 @@ mod tests {
         let corpus: SupportEnvelopeCorpus = serde_json::from_str(FIXTURE).unwrap();
         let mut case = corpus.cases[0].clone();
         let narrow = evaluate_support_envelope(&case);
-        assert_eq!(narrow.status, SupportStatus::CertifiedWithinSensingEnvelope);
+        assert_eq!(narrow.status, SupportStatus::ConditionalWithinSensingEnvelope);
         case.support.normal_cone_half_angle_rad = 0.6;
         let wide = evaluate_support_envelope(&case);
-        assert_ne!(wide.status, SupportStatus::CertifiedWithinSensingEnvelope);
+        assert_ne!(wide.status, SupportStatus::ConditionalWithinSensingEnvelope);
     }
 
     #[test]
@@ -604,7 +604,7 @@ mod tests {
         let certificate = evaluate_support_envelope(&corpus.cases[0]);
         assert_eq!(
             certificate.status,
-            SupportStatus::CertifiedWithinSensingEnvelope
+            SupportStatus::ConditionalWithinSensingEnvelope
         );
         assert_eq!(certificate.occlusion_status, OcclusionStatus::NotAssessed);
         assert!(!certificate.full_support_visibility_certified);
