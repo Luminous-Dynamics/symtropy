@@ -322,7 +322,11 @@ fn build_transfer_report(
     weights: &[f64],
     transfer_scale: f64,
 ) -> Result<TemporalTransferReport, TransferError> {
-    if weights.len() != new.len() || !transfer_scale.is_finite() || transfer_scale <= 0.0 || transfer_scale > 1.0 {
+    if weights.len() != new.len()
+        || !transfer_scale.is_finite()
+        || transfer_scale <= 0.0
+        || transfer_scale > 1.0
+    {
         return Err(TransferError::new("transfer weights and scale are invalid"));
     }
     let transferred_normal_impulse = total_impulse * transfer_scale;
@@ -331,7 +335,9 @@ fn build_transfer_report(
     let mut achieved_center = [0.0_f64; 2];
     for (index, fraction) in weights.iter().enumerate() {
         if !fraction.is_finite() || *fraction < 0.0 {
-            return Err(TransferError::new("normalized impulse weights must be finite and non-negative"));
+            return Err(TransferError::new(
+                "normalized impulse weights must be finite and non-negative",
+            ));
         }
         achieved_center[0] += new[index].position[0] * fraction;
         achieved_center[1] += new[index].position[1] * fraction;
@@ -347,7 +353,9 @@ fn build_transfer_report(
     }
     let weight_sum: f64 = weights.iter().sum();
     if (weight_sum - 1.0).abs() > 1.0e-12 {
-        return Err(TransferError::new("normalized impulse weights must sum to one"));
+        return Err(TransferError::new(
+            "normalized impulse weights must sum to one",
+        ));
     }
 
     let force_error = transferred_normal_impulse - total_impulse;
@@ -366,7 +374,9 @@ fn build_transfer_report(
         || !impulse_sum_error.is_finite()
         || !force_error.is_finite()
     {
-        return Err(TransferError::new("resultant wrench transfer residual is non-finite"));
+        return Err(TransferError::new(
+            "resultant wrench transfer residual is non-finite",
+        ));
     }
     let coordinate_scale = norm2(target_center).max(norm2(achieved_center)).max(1.0);
     let center_tolerance = 1.0e-12 * coordinate_scale;
@@ -374,8 +384,14 @@ fn build_transfer_report(
     let force_tolerance = impulse_tolerance;
 
     Ok(TemporalTransferReport {
-        source_contact_ids: old.iter().map(|contact| contact.contact_id.clone()).collect(),
-        retained_contact_ids: allocations.iter().map(|item| item.contact_id.clone()).collect(),
+        source_contact_ids: old
+            .iter()
+            .map(|contact| contact.contact_id.clone())
+            .collect(),
+        retained_contact_ids: allocations
+            .iter()
+            .map(|item| item.contact_id.clone())
+            .collect(),
         total_normal_impulse: total_impulse,
         transferred_normal_impulse,
         force_error,
@@ -400,8 +416,7 @@ pub fn transfer_normal_impulse(
     previous: &[PreviousNormalImpulse],
     new_contacts: &[NewContactCandidate],
 ) -> Result<TemporalTransferReport, TransferError> {
-    let (old, new, total_impulse, target_center) =
-        validate_inputs(previous, new_contacts)?;
+    let (old, new, total_impulse, target_center) = validate_inputs(previous, new_contacts)?;
     let selected = exact_convex_hull_projection(&new, target_center)?;
     build_transfer_report(
         &old,
@@ -421,8 +436,7 @@ pub fn transfer_equal_distribution(
     new_contacts: &[NewContactCandidate],
     warm_start_scale: f64,
 ) -> Result<TemporalTransferReport, TransferError> {
-    let (old, new, total_impulse, target_center) =
-        validate_inputs(previous, new_contacts)?;
+    let (old, new, total_impulse, target_center) = validate_inputs(previous, new_contacts)?;
     if !warm_start_scale.is_finite() || warm_start_scale <= 0.0 || warm_start_scale > 1.0 {
         return Err(TransferError::new("warm-start scale must be in (0, 1]"));
     }
@@ -596,52 +610,60 @@ mod tests {
         let baseline = transfer_normal_impulse(&previous, &next).expect("baseline");
         let shifted_previous = previous
             .iter()
-            .map(|item| old(
-                &item.contact_id,
-                item.position[0] + 7.0,
-                item.position[1] - 4.0,
-                item.normal_impulse,
-            ))
+            .map(|item| {
+                old(
+                    &item.contact_id,
+                    item.position[0] + 7.0,
+                    item.position[1] - 4.0,
+                    item.normal_impulse,
+                )
+            })
             .collect::<Vec<_>>();
         let shifted_next = next
             .iter()
-            .map(|item| new(
-                &item.contact_id,
-                item.position[0] + 7.0,
-                item.position[1] - 4.0,
-            ))
+            .map(|item| {
+                new(
+                    &item.contact_id,
+                    item.position[0] + 7.0,
+                    item.position[1] - 4.0,
+                )
+            })
             .collect::<Vec<_>>();
         let shifted =
             transfer_normal_impulse(&shifted_previous, &shifted_next).expect("shifted");
 
         assert_eq!(baseline.retained_contact_ids, shifted.retained_contact_ids);
         assert_eq!(baseline.allocations, shifted.allocations);
-        assert!((baseline.center_of_pressure_error_norm - shifted.center_of_pressure_error_norm).abs() < 1.0e-12);
+        assert!(
+            (baseline.center_of_pressure_error_norm - shifted.center_of_pressure_error_norm).abs()
+                < 1.0e-12
+        );
         assert!((baseline.moment_error_norm - shifted.moment_error_norm).abs() < 1.0e-12);
     }
 
     #[test]
     fn positive_impulse_scaling_preserves_normalized_allocation() {
-        let previous = vec![
-            old("old-a", -1.0, 0.0, 1.0),
-            old("old-b", 1.0, 0.0, 3.0),
-        ];
+        let previous = vec![old("old-a", -1.0, 0.0, 1.0), old("old-b", 1.0, 0.0, 3.0)];
         let next = vec![new("new-a", -2.0, 0.0), new("new-b", 2.0, 0.0)];
         let baseline = transfer_normal_impulse(&previous, &next).expect("baseline");
         let scaled_previous = previous
             .iter()
-            .map(|item| old(
-                &item.contact_id,
-                item.position[0],
-                item.position[1],
-                item.normal_impulse * 5.0,
-            ))
+            .map(|item| {
+                old(
+                    &item.contact_id,
+                    item.position[0],
+                    item.position[1],
+                    item.normal_impulse * 5.0,
+                )
+            })
             .collect::<Vec<_>>();
         let scaled = transfer_normal_impulse(&scaled_previous, &next).expect("scaled");
         assert_eq!(baseline.retained_contact_ids, scaled.retained_contact_ids);
         assert_eq!(baseline.allocations.len(), scaled.allocations.len());
         for (first, second) in baseline.allocations.iter().zip(&scaled.allocations) {
-            assert!((first.normalized_load_fraction - second.normalized_load_fraction).abs() < 1.0e-12);
+            assert!(
+                (first.normalized_load_fraction - second.normalized_load_fraction).abs() < 1.0e-12
+            );
             assert!((second.normal_impulse - first.normal_impulse * 5.0).abs() < 1.0e-12);
         }
     }
