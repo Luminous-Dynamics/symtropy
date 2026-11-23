@@ -182,3 +182,9 @@ The transport trait has no live ROS client implementation yet. The CLI validates
 
 
 The execution-evidence validator also enforces cross-event chronology: fault event N+1 cannot begin with a receipt earlier than the last available receipt of event N on the same simulation clock. Local correctness is not enough if the global trace is reordered.
+
+### Delivery observer quorum extension
+
+Fault delivery confirmation now requires the campaign-pinned minimum observer quorum (at least two profiles), each pinned by observer ID/revision/binary digest and declared common-cause domains. Confirmed/Refuted observations carry separate receipts per observer. The validator rejects shared declared domains between quorum members or with the injector, replayed observer artifacts and unpinned binaries.
+
+The positive four-event bundle carries eight observer receipts: two per fault. The evidence report separates four delivery verdicts from eight supporting observer receipts. This is still fault-model-relative independence, not a claim of physical independence.
