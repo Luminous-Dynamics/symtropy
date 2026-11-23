@@ -300,11 +300,7 @@ fn pca_oracle_pairs(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
     pairs
 }
 
-fn pca_sap_scene(
-    static_count: usize,
-    dynamic_count: usize,
-    clustered: bool,
-) -> Vec<RigidBody<3>> {
+fn pca_sap_scene(static_count: usize, dynamic_count: usize, clustered: bool) -> Vec<RigidBody<3>> {
     let mut bodies = Vec::with_capacity(static_count + dynamic_count);
 
     for index in 0..static_count {
@@ -415,10 +411,7 @@ impl PcaSap {
     }
 
     fn build(bodies: &[RigidBody<3>]) -> Self {
-        let aabbs: Vec<_> = bodies
-            .iter()
-            .map(broadphase::Aabb::from_body)
-            .collect();
+        let aabbs: Vec<_> = bodies.iter().map(broadphase::Aabb::from_body).collect();
         let centers: Vec<_> = aabbs
             .iter()
             .map(|aabb| (aabb.min + aabb.max) * 0.5)
@@ -431,11 +424,8 @@ impl PcaSap {
             .map(|(body_index, aabb)| {
                 let center = (aabb.min + aabb.max) * 0.5;
                 let half_extent = (aabb.max - aabb.min) * 0.5;
-                let absolute_axis = SVector::<f64, 3>::new(
-                    axis[0].abs(),
-                    axis[1].abs(),
-                    axis[2].abs(),
-                );
+                let absolute_axis =
+                    SVector::<f64, 3>::new(axis[0].abs(), axis[1].abs(), axis[2].abs());
                 let projection_center = center.dot(&axis);
                 let projection_radius = absolute_axis.dot(&half_extent);
                 PcaSapEntry {
