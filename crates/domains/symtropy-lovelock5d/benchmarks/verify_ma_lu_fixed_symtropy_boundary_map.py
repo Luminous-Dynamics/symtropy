@@ -45,7 +45,7 @@ def derive():
     a_fixed=trunc(q_inv*rh_fixed,eS,nu,4)
     mu_fixed=trunc(mu.subs(q,q_inv_R).subs(eR,eR_eS)*rh_fixed**2,eS,nu,4)
     # Eq. (10) chi=a/mu. Report chi*R_H, a dimensionless combination.
-    chiRH_fixed=trunc((2*q_inv_R*RH_rh.subs(q,q_inv_R)/(1+q_inv_R**2)**2).subs(eR,eR_eS),eS,nu,4)
+    chi_fixed=trunc(trunc((sp.sqrt(2)*q_inv_R/(1+q_inv_R**2)),eR,2).subs(eR,eR_eS),eS,nu,4)
 
     expected={
       "q":nu+nu**3/2+eS*(7*nu-sp.Rational(3619,90)*nu**3),
@@ -53,11 +53,11 @@ def derive():
       "r_h_over_R_H":1-sp.Rational(5,3)*eS-nu**2/2-sp.Rational(127,90)*eS*nu**2,
       "a_over_R_H":nu+sp.Rational(16,3)*eS*nu-sp.Rational(2068,45)*eS*nu**3,
       "mu_parameter_over_R_H2":sp.Rational(1,2)-sp.Rational(5,3)*eS+nu**2/2+sp.Rational(454,45)*eS*nu**2,
-      "chi_times_R_H":2*nu-2*nu**3+sp.Rational(52,3)*eS*nu-sp.Rational(2344,15)*eS*nu**3
+      "chi":sp.sqrt(2)*(nu-nu**3/2+7*eS*nu-sp.Rational(5509,90)*eS*nu**3)
     }
     actual={"q":q_inv,"R_H_over_r_h":RH_fixed,"r_h_over_R_H":rh_fixed,
             "a_over_R_H":a_fixed,"mu_parameter_over_R_H2":mu_fixed,
-            "chi_times_R_H":chiRH_fixed}
+            "chi":chi_fixed}
     for key in expected:
         zero(key,actual[key]-expected[key])
 
@@ -67,14 +67,13 @@ def derive():
     assert sp.series(RH_q-RH_q.subs(eR,0),eR,0,2).removeO()!=0
     assert sp.series(nuS_q-RH_rh*nu_h,eR,0,2).removeO()!=0
     assert sp.series(nuS_q.subs(eR,0)-nu_h,q,0,4).removeO()!=0
-    assert chiRH_fixed != sp.sqrt(2)*nu
+    assert chi_fixed != sp.sqrt(2)*nu
     return {
       "schema_version":1,
       "artifact_kind":"ma_lu_fixed_symtropy_horizon_omega_parameter_map",
       "status":"exact_symbolic_first_coupling_parameter_map_derived",
       "definitions":{"q":"a/r_h","nu_h":"Omega_H*r_h","nu_S":"Omega_H*R_H",
-        "epsilon_R":"alpha_R/r_h^2","epsilon_S":"alpha_R/R_H^2","chi":"a/mu",
-        "chi_times_R_H":"(a/mu)*R_H"},
+        "epsilon_R":"alpha_R/r_h^2","epsilon_S":"alpha_R/R_H^2","chi":"a/sqrt(mu)"},
       "horizon_values":{
         "mu_over_rh2":"(1+q^2)^2/2",
         "H2_h_through_q2":"838*q^2/45-16/3",
@@ -85,11 +84,11 @@ def derive():
       "fixed_symtropy_boundary_expansions":{k:sp.sstr(v) for k,v in actual.items()},
       "epsilon_conversion":"epsilon_R=epsilon_S*(1+nu_S^2)+O(epsilon_S^2,nu_S^4)",
       "checks":{"horizon_H2_H4_H7":True,"nuS_and_radius_series":True,
-        "inverse_q_series":True,"a_and_mu_parameter_maps":True,"chi_times_RH_map":True,
+        "inverse_q_series":True,"a_and_mu_parameter_maps":True,"chi_map":True,
         "GR_exact_limit":True,"negative_control_omit_H7":True,
         "negative_control_omit_H2_H4":True,"negative_control_nu_h_vs_nu_S":True,
-        "negative_control_sqrt2_chi":True},
-      "claim_ceiling":"Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H). mu/R_H^2 is the converted background MP parameter, not corrected ADM mass. No corrected metric component comparison, full EOM residual, finite-coupling solution, or existence theorem is claimed."
+        "negative_control_zero_spin_only_chi":True},
+      "claim_ceiling":"Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), using the JHEP version-of-record chi=a/sqrt(mu). mu/R_H^2 is the converted background MP parameter, not corrected ADM mass. No finite-coupling solution or existence theorem is claimed."
     }
 
 def main():
