@@ -60,6 +60,19 @@ The frozen run evaluated 12 cases, 60 scenario leaves and 96 decision nodes acro
 
 The exact policy is 77.8% lower than the intentionally weak cost-only baseline. However, the stronger scarcity/deadline-aware heuristic ties the exact policy on **all 12 cases** (zero regret). This is the important result: v0.1 validates the model, non-anticipativity and replay machinery, but does not establish decision-quality uplift over a competent simple dispatch rule. The corpus has a structurally obvious A-only job and a flexible job; a scarcity-first dispatch rule is sufficient.
 
+Per-family exact/scarcity mean costs (two seeds each):
+
+| Scenario family | Mean challenge units |
+|---|---:|
+| Nominal resource window | 9.750 |
+| Local resource outage | 9.950 |
+| Correlated common-cause | 17.025 |
+| Qualification Unknown | 10.150 |
+| Deadline/capacity pressure | 12.000 |
+| Quality-outcome uncertainty | 8.925 |
+
+The highest-cost family is correlated common-cause disruption, but it still does not separate the exact policy from the scarcity/deadline heuristic. These two-seed means are descriptive only; they are not statistically powered comparisons.
+
 Do not present the 77.8% figure as an industry comparison or SOTA result. The exact-versus-scarcity tie is a negative result to preserve. v0.2 must introduce interacting bottlenecks, overlapping eligibility, recovery-time uncertainty, operation/setup state and evidence-dependent route transitions, then compare against a tuned baseline portfolio on held-out regimes.
 
 Validation on the exact head above:
