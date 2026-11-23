@@ -43,9 +43,8 @@
     }
   ],
   "derived_diagnostic": {
-    "ratio_3d_to_2d_approx": 8.505,
-    "ratio_scale_exponent": 14,
-    "note": "The numerical ratio is approximately 8.5e14 (nearly 15 orders of magnitude); use the exact expected values and tolerance above for assertions."
+    "ratio_3d_to_2d": 850419552411528.2,
+    "note": "Computed directly from the two expected NASA unit-test values."
   },
   "reproduction_receipt_required": [
     "Symtropy exact commit SHA",
