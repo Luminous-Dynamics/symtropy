@@ -27,6 +27,25 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Download and verify pinned TLC and formal inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          MODEL_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.cfg"
+          TRACE_SPEC="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+          printf '%s  %s\n' "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168" "$MODEL_CFG" | sha256sum --check
+          printf '%s  %s\n' "281c17f88823c88edf070b4d7b320738f8c5b46645ec41cb1059213c69a5e3aa" "$TRACE_SPEC" | sha256sum --check
+          printf '%s  %s\n' "b4e7c14733a757a9923e9837519586708b85ee23c6bb35995fff245695a365dc" "$TRACE_CFG" | sha256sum --check
+
       - name: Validate schema and known-answer fixtures
         shell: bash
         run: |
@@ -41,6 +60,9 @@ jobs:
           jq empty "$RECOVERY_FIXTURE"
           jq -e '
             .version == "0.1"
+            and .header.model_source_sha256 == "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81"
+            and .header.model_config_sha256 == "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168"
+            and .header.tla_tool_sha256 == "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
             and (.snapshots | length == 4)
             and all(.snapshots[]; (.state_s | keys | length == 43))
             and all(.snapshots[]; (.owner_evidence | length == 10))
@@ -54,6 +76,9 @@ jobs:
           ' "$TRACE_FIXTURE"
           jq -e '
             .version == "0.1"
+            and .header.model_source_sha256 == "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81"
+            and .header.model_config_sha256 == "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168"
+            and .header.tla_tool_sha256 == "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f"
             and (.snapshots | length == 17)
             and all(.snapshots[]; (.state_s | keys | length == 43))
             and all(.snapshots[]; (.owner_evidence | length == 10))
@@ -187,6 +212,85 @@ jobs:
             sha256sum no-effect-recovery-recording.json no-effect-recovery-trace.ndjson \
               no-effect-recovery-sidecar.json no-effect-recovery-manifest.json \
               >> SHA256SUMS
+          )
+
+      - name: Validate emitted action/state traces with pinned TLC
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="$GITHUB_WORKSPACE/research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          TRACE_SPEC="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          ROOT="$RUNNER_TEMP/rrvr-runtime-projection"
+
+          run_trace_check() {
+            local label="$1"
+            local source_trace="$2"
+            local work="$ROOT/tla-$label"
+            mkdir -p "$work"
+            cp "$MODEL" "$work/RestartSafeEffectContinuity.tla"
+            cp "$TRACE_SPEC" "$work/RestartSafeEffectContinuityTrace.tla"
+            cp "$TRACE_CFG" "$work/RestartSafeEffectContinuityTrace.cfg"
+            cp "$source_trace" "$work/rrvr-trace.ndjson"
+            (
+              cd "$work"
+              java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+                -workers 1 \
+                -metadir "$RUNNER_TEMP/tlc-runtime-$label" \
+                -config RestartSafeEffectContinuityTrace.cfg \
+                RestartSafeEffectContinuityTrace.tla
+            ) | tee "$ROOT/tlc-$label.log"
+            grep -Fq "Model checking completed. No error has been found." "$ROOT/tlc-$label.log"
+            grep -Fq "0 states left on queue" "$ROOT/tlc-$label.log"
+          }
+
+          run_trace_check "reservation" "$ROOT/runtime-trace.ndjson"
+          run_trace_check "no-effect-recovery" "$ROOT/no-effect-recovery-trace.ndjson"
+
+      - name: Prove trace validator rejects wrong action labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rrvr-runtime-projection"
+          MODEL="$GITHUB_WORKSPACE/research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+          TRACE_SPEC="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
+          TRACE_CFG="$GITHUB_WORKSPACE/research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          WORK="$ROOT/tla-negative-wrong-action"
+          mkdir -p "$WORK"
+          jq -s '.[1].event = "MarkDispatchStarted" | .[]' "$ROOT/runtime-trace.ndjson" > "$WORK/rrvr-trace.ndjson"
+          cp "$MODEL" "$WORK/RestartSafeEffectContinuity.tla"
+          cp "$TRACE_SPEC" "$WORK/RestartSafeEffectContinuityTrace.tla"
+          cp "$TRACE_CFG" "$WORK/RestartSafeEffectContinuityTrace.cfg"
+          set +e
+          (
+            cd "$WORK"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-runtime-negative-wrong-action" \
+              -config RestartSafeEffectContinuityTrace.cfg \
+              RestartSafeEffectContinuityTrace.tla
+          ) > "$ROOT/tlc-negative-wrong-action.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            cat "$ROOT/tlc-negative-wrong-action.log"
+            echo "TLC accepted a trace whose named action cannot produce its recorded state."
+            exit 1
+          fi
+          grep -Fq "Invariant TraceNotStuck is violated" "$ROOT/tlc-negative-wrong-action.log"
+          echo "Expected negative control rejected: action/state mismatch."
+
+          cp "$TRACE_SPEC" "$ROOT/RestartSafeEffectContinuityTrace.tla"
+          cp "$TRACE_CFG" "$ROOT/RestartSafeEffectContinuityTrace.cfg"
+          cp "$MODEL" "$ROOT/RestartSafeEffectContinuity.tla"
+          cp "$JAR" "$ROOT/tla2tools.jar"
+          (
+            cd "$ROOT"
+            sha256sum RestartSafeEffectContinuityTrace.tla RestartSafeEffectContinuityTrace.cfg \
+              RestartSafeEffectContinuity.tla tla2tools.jar tlc-reservation.log tlc-no-effect-recovery.log \
+              tlc-negative-wrong-action.log >> SHA256SUMS
           )
 
       - name: Upload projection conformance package
