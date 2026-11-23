@@ -149,6 +149,9 @@ pub fn certify_col_energy_path(
             disposition: match reason {
                 StopReason::Violation => ColEnergyGuardDisposition::ReducedPrefixCertified,
                 StopReason::Budget => ColEnergyGuardDisposition::AbstainedBudget,
+                StopReason::Unresolved if safe_prefix > 0.0 => {
+                    ColEnergyGuardDisposition::ReducedPrefixCertified
+                }
                 StopReason::Unresolved => ColEnergyGuardDisposition::AbstainedUnresolved,
             },
         }),
