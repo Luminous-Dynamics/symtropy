@@ -17,7 +17,6 @@ use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 pub const DISPATCH_JOURNAL_VERSION: &str = "0.1";
 const GENESIS_SHA256: &str =
@@ -73,6 +72,7 @@ enum KeyJournalState {
     ResponseAccepted,
     ResponseRejected,
     ResponseUnknown,
+    ReconciliationUnresolved,
     Reconciled,
 }
 
@@ -146,7 +146,11 @@ impl FileDispatchJournalStore {
                     DispatchJournalError::Io(error.to_string())
                 }
             })?;
+        lock.sync_all()
+            .map_err(|error| DispatchJournalError::Io(error.to_string()))?;
+        sync_parent_directory(&lock_path)?;
 
+        let journal_existed = path.exists();
         if let Err(error) = OpenOptions::new()
             .create(true)
             .append(true)
@@ -154,6 +158,9 @@ impl FileDispatchJournalStore {
         {
             let _ = fs::remove_file(&lock_path);
             return Err(DispatchJournalError::Io(error.to_string()));
+        }
+        if !journal_existed {
+            sync_parent_directory(&path)?;
         }
 
         Ok(Self {
@@ -178,7 +185,11 @@ impl FileDispatchJournalStore {
         }
 
         let mut records = Vec::new();
-        for line in bytes.split(|byte| *byte == b'\n').filter(|line| !line.is_empty()) {
+        let content = &bytes[..bytes.len() - 1];
+        for line in content.split(|byte| *byte == b'\n') {
+            if line.is_empty() {
+                return Err(DispatchJournalError::InvalidJson);
+            }
             let record = serde_json::from_slice::<DispatchJournalRecord>(line)
                 .map_err(|_| DispatchJournalError::InvalidJson)?;
             records.push(record);
@@ -452,7 +463,11 @@ impl DispatchJournal {
                 DispatchJournalPhase::ReconciliationRecorded => {
                     if !matches!(
                         states.get(&record.idempotency_key),
-                        Some(KeyJournalState::IntentPersisted | KeyJournalState::ResponseUnknown)
+                        Some(
+                            KeyJournalState::IntentPersisted
+                                | KeyJournalState::ResponseUnknown
+                                | KeyJournalState::ReconciliationUnresolved
+                        )
                     ) {
                         return Err(DispatchJournalError::IllegalPhaseTransition);
                     }
@@ -467,7 +482,14 @@ impl DispatchJournal {
                     ) {
                         return Err(DispatchJournalError::IllegalPhaseTransition);
                     }
-                    states.insert(record.idempotency_key.clone(), KeyJournalState::Reconciled);
+                    states.insert(
+                        record.idempotency_key.clone(),
+                        if record.outcome == Some(DispatchJournalOutcome::Unresolved) {
+                            KeyJournalState::ReconciliationUnresolved
+                        } else {
+                            KeyJournalState::Reconciled
+                        },
+                    );
                 }
             }
 
@@ -600,9 +622,29 @@ where
 
     match journal.latest_phase_for(idempotency_key) {
         Some(DispatchJournalPhase::ReconciliationRecorded) => {
-            return JournaledReconciliationOutcome::JournalRejected(
-                DispatchJournalError::AlreadyReconciled,
-            );
+            match journal.latest_outcome_for(idempotency_key) {
+                Some(DispatchJournalOutcome::Unresolved) => {}
+                Some(DispatchJournalOutcome::Accepted) => {
+                    return JournaledReconciliationOutcome::AlreadyResolved(
+                        ReconciliationDecision::ExistingDispatchAccepted,
+                    );
+                }
+                Some(DispatchJournalOutcome::Rejected) => {
+                    return JournaledReconciliationOutcome::AlreadyResolved(
+                        ReconciliationDecision::ExistingDispatchRejected,
+                    );
+                }
+                Some(DispatchJournalOutcome::NoDispatchProven) => {
+                    return JournaledReconciliationOutcome::AlreadyResolved(
+                        ReconciliationDecision::NoDispatchProven,
+                    );
+                }
+                _ => {
+                    return JournaledReconciliationOutcome::JournalRejected(
+                        DispatchJournalError::AlreadyReconciled,
+                    );
+                }
+            }
         }
         Some(DispatchJournalPhase::ResponseRecorded) => {
             match journal.latest_outcome_for(idempotency_key) {
@@ -672,6 +714,15 @@ where
     JournaledReconciliationOutcome::Recorded(decision)
 }
 
+fn sync_parent_directory(path: &Path) -> Result<(), DispatchJournalError> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let directory =
+        File::open(parent).map_err(|error| DispatchJournalError::Io(error.to_string()))?;
+    directory
+        .sync_all()
+        .map_err(|error| DispatchJournalError::Io(error.to_string()))
+}
+
 fn digest_serializable<T: Serialize>(value: &T) -> Result<String, DispatchJournalError> {
     let value = serde_json::to_value(value).map_err(|_| DispatchJournalError::InvalidJson)?;
     let bytes = serde_json::to_vec(&value).map_err(|_| DispatchJournalError::InvalidJson)?;
@@ -729,6 +780,29 @@ mod tests {
             _idempotency_key: &str,
         ) -> Result<DispatchLedgerResult, Self::Error> {
             Ok(self.lookup_result)
+        }
+    }
+
+    struct FaultInjectingStore {
+        inner: FileDispatchJournalStore,
+        fail_on_append: usize,
+        append_count: usize,
+    }
+
+    impl DispatchJournalStore for FaultInjectingStore {
+        fn load_validated(&mut self) -> Result<DispatchJournal, DispatchJournalError> {
+            self.inner.load_validated()
+        }
+
+        fn append_and_sync(
+            &mut self,
+            record: &DispatchJournalRecord,
+        ) -> Result<(), DispatchJournalError> {
+            self.append_count += 1;
+            if self.append_count == self.fail_on_append {
+                return Err(DispatchJournalError::Io("injected journal write failure".into()));
+            }
+            self.inner.append_and_sync(record)
         }
     }
 
@@ -824,6 +898,106 @@ mod tests {
         assert_eq!(injector.dispatch_calls, 0);
         assert_eq!(reopened.load_validated().unwrap().records().len(), 2);
         drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn intent_persistence_failure_prevents_external_dispatch() {
+        let path = path();
+        let inner = FileDispatchJournalStore::open(&path).unwrap();
+        let mut store = FaultInjectingStore {
+            inner,
+            fail_on_append: 1,
+            append_count: 0,
+        };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Unknown,
+            dispatch_result: GazeboDispatchOutcome::Unknown { dispatch_id: None },
+        };
+        assert_eq!(
+            dispatch_once_with_journal(&mut store, &mut injector, &request()),
+            JournaledDispatchOutcome::IntentPersistenceFailed
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+        drop(store);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn lost_response_after_dispatch_is_reconciled_after_restart_without_redispatch() {
+        let path = path();
+        let inner = FileDispatchJournalStore::open(&path).unwrap();
+        let mut store = FaultInjectingStore {
+            inner,
+            fail_on_append: 2,
+            append_count: 0,
+        };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Accepted,
+            dispatch_result: GazeboDispatchOutcome::Accepted {
+                dispatch_id: "dispatch-after-lost-response".into(),
+            },
+        };
+        assert_eq!(
+            dispatch_once_with_journal(&mut store, &mut injector, &request()),
+            JournaledDispatchOutcome::ResponsePersistenceFailed
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+        drop(store);
+
+        let mut reopened = FileDispatchJournalStore::open(&path).unwrap();
+        assert_eq!(
+            dispatch_once_with_journal(&mut reopened, &mut injector, &request()),
+            JournaledDispatchOutcome::DuplicateSuppressed
+        );
+        assert_eq!(
+            reconcile_with_journal(&mut reopened, &mut injector, &request().idempotency_key),
+            JournaledReconciliationOutcome::Recorded(
+                ReconciliationDecision::ExistingDispatchAccepted
+            )
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+        drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn unresolved_reconciliation_can_repeat_lookups_but_never_dispatch() {
+        let path = path();
+        let mut store = FileDispatchJournalStore::open(&path).unwrap();
+        let request = request();
+        let request_sha = digest_serializable(&request).unwrap();
+        let intent = DispatchJournal::empty()
+            .next_record(
+                &request.idempotency_key,
+                &request_sha,
+                DispatchJournalPhase::IntentPersisted,
+                None,
+                None,
+            )
+            .unwrap();
+        store.append_and_sync(&intent).unwrap();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Unknown,
+            dispatch_result: GazeboDispatchOutcome::Unknown { dispatch_id: None },
+        };
+        assert_eq!(
+            reconcile_with_journal(&mut store, &mut injector, &request.idempotency_key),
+            JournaledReconciliationOutcome::Recorded(ReconciliationDecision::Unresolved)
+        );
+        injector.lookup_result = DispatchLedgerResult::Accepted;
+        assert_eq!(
+            reconcile_with_journal(&mut store, &mut injector, &request.idempotency_key),
+            JournaledReconciliationOutcome::Recorded(
+                ReconciliationDecision::ExistingDispatchAccepted
+            )
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+        assert_eq!(store.load_validated().unwrap().records().len(), 3);
+        drop(store);
         let _ = fs::remove_file(path);
     }
 
