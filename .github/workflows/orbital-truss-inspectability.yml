@@ -85,7 +85,7 @@ jobs:
           assert fixture["schema"] == "luminous.orbital-truss-support-envelope.corpus.v0.1"
           assert fixture["benchmark_id"] == "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001"
           assert fixture["evidence_class"] == "synthetic"
-          assert fixture["claim_ceiling"] == "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed"
+          assert fixture["claim_ceiling"] == "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed"
           assert len(fixture["cases"]) == 13
           assert len({case["case_id"] for case in fixture["cases"]}) == 13
           assert schema["properties"]["cases"]["minItems"] == 13
@@ -214,7 +214,7 @@ jobs:
             .case_count == 13 and .expected_outcome_matches == 13 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .occlusion_assessed == false and .physical_validation == "NOT_ASSESSED" and
-            all(.cases[]; .full_support_visibility_certified == false and .may_count_toward_full_support_coverage == false)
+            all(.cases[]; .full_support_visibility_certified == false and .may_count_toward_full_support_coverage == false and .precondition_proofs_verified_independently == false)
           ' /tmp/support-envelope-a.json
       - name: Independent support-envelope oracle
         run: |
@@ -233,6 +233,7 @@ jobs:
           assert by_id["SE-004-ALL-SUPPORT-OUTSIDE-FOV"]["status"] == "PROVEN_OUTSIDE_SENSING_ENVELOPE"
           assert by_id["SE-005-FOV-BOUND-INDETERMINATE"]["status"] == "INDETERMINATE"
           assert all(not case["full_support_visibility_certified"] for case in rust["cases"])
+          assert all(case["precondition_proofs_verified_independently"] is False for case in rust["cases"])
           print("Rust support-envelope certificates match the independent Python oracle on all 13 frozen controls")
           PY
       - name: Create exact-head evidence manifest
