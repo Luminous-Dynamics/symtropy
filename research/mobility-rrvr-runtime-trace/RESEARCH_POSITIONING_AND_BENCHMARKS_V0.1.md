@@ -199,7 +199,7 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 ### Proposed targets (not achieved)
 
 - Zero accepted descendant attempts after any non-NoEffect or unqualified NoEffect outcome.
-- Zero accepted retry edges with unresolved persistence.
+- Zero accepted retry edges with InFlight or IndeterminateCommit persistence.
 - Zero accepted evidence receipts with cross-attempt or cross-epoch scope leakage.
 - 100% rejection of the frozen unsafe-lineage controls and 100% acceptance of the frozen valid reference chains.
 - Validation cost grows linearly with attempt count; report p50/p95/p99 runtime and bytes per attempt rather than hiding cost in a composite score.
