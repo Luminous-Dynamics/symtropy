@@ -201,8 +201,7 @@ pub fn derive_planar_triangle_support(
         .flatten()
         .map(|value| value.abs())
         .fold(vertex_radius.max(1.0), f64::max);
-    let enclosing_ball_radius_m =
-        vertex_radius + (128.0 * f64::EPSILON * coordinate_scale);
+    let enclosing_ball_radius_m = vertex_radius + (128.0 * f64::EPSILON * coordinate_scale);
     if !enclosing_ball_radius_m.is_finite() || enclosing_ball_radius_m <= 0.0 {
         return Err("TRIANGLE_SUPPORT_RADIUS_NONFINITE".to_owned());
     }
