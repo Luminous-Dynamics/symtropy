@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PLANNING_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-receipt.v0.3";
+    "luminous.orbital-truss-inspectability.planning-receipt.v0.4";
 pub const MAX_EXACT_VIEWS: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -72,13 +72,18 @@ pub struct KCoverageFeatureReport {
     pub feature_id: String,
     pub requested_k: usize,
     pub available_candidate_views: usize,
+    pub available_robust_candidate_views: usize,
     pub attainable_capped_target: usize,
+    pub selected_views: usize,
     pub selected_robust_views: usize,
     pub requested_k_met: bool,
     pub attainable_target_met: bool,
+    pub robust_requested_k_met: bool,
     pub required_failure_domains: usize,
-    pub selected_failure_domains: usize,
-    pub failure_domain_requirement_met: bool,
+    pub selected_nominal_failure_domains: usize,
+    pub selected_robust_failure_domains: usize,
+    pub nominal_failure_domain_requirement_met: bool,
+    pub robust_failure_domain_requirement_met: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -91,7 +96,9 @@ pub struct PublishedKCoverageGreedy {
     pub within_declared_budgets: bool,
     pub requested_k_covered: bool,
     pub attainable_capped_target_covered: bool,
-    pub failure_domain_requirements_met: bool,
+    pub robust_requested_k_covered: bool,
+    pub nominal_failure_domain_requirements_met: bool,
+    pub robust_failure_domain_requirements_met: bool,
     pub feature_coverage: Vec<KCoverageFeatureReport>,
 }
 
@@ -570,9 +577,11 @@ fn published_style_k_coverage_greedy(
     problem: &PlanningProblem,
 ) -> Result<PublishedKCoverageGreedy, String> {
     let candidate_counts = coverage_records(problem, &vec![true; problem.views.len()]);
+    // The paper's visibility matrix is nominal and binary: one count per distinct
+    // viewpoint ID, irrespective of perturbation robustness or failure-domain labels.
     let attainable_targets = candidate_counts
         .iter()
-        .map(|feature| feature.required_view_count.min(feature.robust_view_count))
+        .map(|feature| feature.required_view_count.min(feature.nominal_view_count))
         .collect::<Vec<_>>();
     let requested_k = problem
         .features
@@ -581,10 +590,11 @@ fn published_style_k_coverage_greedy(
         .collect::<Vec<_>>();
     let mut remaining_counts = candidate_counts
         .iter()
-        .map(|feature| feature.robust_view_count)
+        .map(|feature| feature.nominal_view_count)
         .collect::<Vec<_>>();
     let mut covered_counts = vec![0_usize; problem.features.len()];
     let mut selected = vec![false; problem.views.len()];
+    let mut selection_order = Vec::new();
 
     while covered_counts
         .iter()
@@ -609,8 +619,11 @@ fn published_style_k_coverage_greedy(
             let denominator = requested_k[index]
                 .checked_mul(requested_k[index])
                 .ok_or_else(|| "PUBLISHED_GREEDY_K_SQUARE_OVERFLOW".to_owned())?;
+            let deficit_squared = (*deficit as u128)
+                .checked_mul(*deficit as u128)
+                .ok_or_else(|| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?;
             let numerator = u128::from(exp_weight)
-                .checked_mul((*deficit as u128) * (*deficit as u128))
+                .checked_mul(deficit_squared)
                 .ok_or_else(|| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?;
             let weight = numerator / (denominator as u128);
             weights.push(
@@ -624,7 +637,7 @@ fn published_style_k_coverage_greedy(
                 continue;
             }
             let mut score = 0_u128;
-            for feature_id in &view.robust_feature_ids {
+            for feature_id in &view.nominal_feature_ids {
                 let feature_index = problem
                     .features
                     .iter()
@@ -655,45 +668,32 @@ fn published_style_k_coverage_greedy(
             break;
         }
         selected[best_index] = true;
-        for feature_id in &problem.views[best_index].robust_feature_ids {
+        selection_order.push(best_index);
+        for feature_id in &problem.views[best_index].nominal_feature_ids {
             let feature_index = problem
                 .features
                 .iter()
                 .position(|feature| feature.feature_id == *feature_id)
                 .expect("validated feature id");
             covered_counts[feature_index] += 1;
-        }
-        for feature_id in &problem.views[best_index].robust_feature_ids {
-            let feature_index = problem
-                .features
-                .iter()
-                .position(|feature| feature.feature_id == *feature_id)
-                .expect("validated feature id");
             remaining_counts[feature_index] -= 1;
         }
     }
 
-    // Deterministic cleanup: remove selected candidates in lexicographic ID order
-    // whenever every capped attainable k target remains covered.
-    let mut removal_order = (0..problem.views.len())
-        .filter(|index| selected[*index])
-        .collect::<Vec<_>>();
-    removal_order.sort_by(|left, right| {
-        problem.views[*left]
-            .view_id
-            .cmp(&problem.views[*right].view_id)
-    });
+    // The paper does not specify a tie/order convention for its set-valued cleanup.
+    // We use deterministic selection order, restart after each removal, and preserve
+    // the paper's capped nominal k targets exactly.
     let mut changed = true;
     while changed {
         changed = false;
-        for index in &removal_order {
+        for index in &selection_order {
             if !selected[*index] {
                 continue;
             }
             let mut preserves_targets = true;
             for feature_index in 0..problem.features.len() {
                 let loses_coverage = problem.views[*index]
-                    .robust_feature_ids
+                    .nominal_feature_ids
                     .iter()
                     .any(|feature_id| problem.features[feature_index].feature_id == *feature_id);
                 if loses_coverage
@@ -706,7 +706,7 @@ fn published_style_k_coverage_greedy(
             }
             if preserves_targets {
                 selected[*index] = false;
-                for feature_id in &problem.views[*index].robust_feature_ids {
+                for feature_id in &problem.views[*index].nominal_feature_ids {
                     let feature_index = problem
                         .features
                         .iter()
@@ -743,20 +743,27 @@ fn published_style_k_coverage_greedy(
         .map(|(selected_feature, candidate_feature)| {
             let attainable_capped_target = selected_feature
                 .required_view_count
-                .min(candidate_feature.robust_view_count);
+                .min(candidate_feature.nominal_view_count);
             KCoverageFeatureReport {
                 feature_id: selected_feature.feature_id.clone(),
                 requested_k: selected_feature.required_view_count,
-                available_candidate_views: candidate_feature.robust_view_count,
+                available_candidate_views: candidate_feature.nominal_view_count,
+                available_robust_candidate_views: candidate_feature.robust_view_count,
                 attainable_capped_target,
+                selected_views: selected_feature.nominal_view_count,
                 selected_robust_views: selected_feature.robust_view_count,
-                requested_k_met: selected_feature.robust_view_count
+                requested_k_met: selected_feature.nominal_view_count
                     >= selected_feature.required_view_count,
-                attainable_target_met: selected_feature.robust_view_count
+                attainable_target_met: selected_feature.nominal_view_count
                     >= attainable_capped_target,
+                robust_requested_k_met: selected_feature.robust_view_count
+                    >= selected_feature.required_view_count,
                 required_failure_domains: selected_feature.required_failure_domains,
-                selected_failure_domains: selected_feature.robust_failure_domain_count,
-                failure_domain_requirement_met: selected_feature.robust_failure_domain_count
+                selected_nominal_failure_domains: selected_feature.nominal_failure_domain_count,
+                selected_robust_failure_domains: selected_feature.robust_failure_domain_count,
+                nominal_failure_domain_requirement_met: selected_feature.nominal_failure_domain_count
+                    >= selected_feature.required_failure_domains,
+                robust_failure_domain_requirement_met: selected_feature.robust_failure_domain_count
                     >= selected_feature.required_failure_domains,
             }
         })
@@ -767,12 +774,18 @@ fn published_style_k_coverage_greedy(
     let attainable_capped_target_covered = feature_coverage
         .iter()
         .all(|feature| feature.attainable_target_met);
-    let failure_domain_requirements_met = feature_coverage
+    let robust_requested_k_covered = feature_coverage
         .iter()
-        .all(|feature| feature.failure_domain_requirement_met);
+        .all(|feature| feature.robust_requested_k_met);
+    let nominal_failure_domain_requirements_met = feature_coverage
+        .iter()
+        .all(|feature| feature.nominal_failure_domain_requirement_met);
+    let robust_failure_domain_requirements_met = feature_coverage
+        .iter()
+        .all(|feature| feature.robust_failure_domain_requirement_met);
     Ok(PublishedKCoverageGreedy {
-        algorithm: "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_1".to_owned(),
-        arithmetic: "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties".to_owned(),
+        algorithm: "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_2".to_owned(),
+        arithmetic: "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties;selection_order_cleanup".to_owned(),
         selected_view_count: selected_view_ids.len(),
         selected_view_ids,
         total_cost_units,
@@ -783,7 +796,9 @@ fn published_style_k_coverage_greedy(
         ),
         requested_k_covered,
         attainable_capped_target_covered,
-        failure_domain_requirements_met,
+        robust_requested_k_covered,
+        nominal_failure_domain_requirements_met,
+        robust_failure_domain_requirements_met,
         feature_coverage,
     })
 }
@@ -1393,6 +1408,30 @@ mod tests {
     }
 
     #[test]
+    fn paper_style_k_coverage_uses_nominal_visibility_not_robust_visibility() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 2, 1)],
+            vec![
+                view("VIEW-A", "DOMAIN-A", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "DOMAIN-B", 1, &["SURFACE-1"], &[]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        let baseline = receipt.published_k_coverage_greedy;
+        assert_eq!(baseline.selected_view_ids, vec!["VIEW-A", "VIEW-B"]);
+        assert!(baseline.requested_k_covered);
+        assert!(baseline.attainable_capped_target_covered);
+        assert!(!baseline.robust_requested_k_covered);
+        assert_eq!(baseline.feature_coverage[0].available_candidate_views, 2);
+        assert_eq!(baseline.feature_coverage[0].available_robust_candidate_views, 1);
+        assert_eq!(baseline.feature_coverage[0].selected_views, 2);
+        assert_eq!(baseline.feature_coverage[0].selected_robust_views, 1);
+    }
+
+    #[test]
     fn exact_search_covers_the_full_twenty_view_boundary() {
         let views = (0..MAX_EXACT_VIEWS)
             .map(|index| {
@@ -1462,7 +1501,7 @@ pub const PLANNING_CORPUS_SCHEMA: &str =
     "luminous.orbital-truss-inspectability.planning-corpus.v0.2";
 pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-002";
 pub const PLANNING_CORPUS_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.3";
+    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.4";
 pub const PLANNING_CASE_COUNT: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
