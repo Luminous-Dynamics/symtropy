@@ -290,7 +290,6 @@ pub fn rank_designs_by_robust_decision_value(
     })
 }
 
-
 /// One component of a randomized policy, represented as a distribution over
 /// deterministic outcome-to-action maps. The mixture is fixed before the
 /// hidden dependence scenario is known.
@@ -433,22 +432,21 @@ pub fn rank_designs_by_randomized_robust_decision_value(
         let scenario_count = candidate.scenarios.len();
         let policy_count = deterministic_policy_count(action_count, outcome_count)?;
 
-        total_policy_evaluations = total_policy_evaluations
-            .checked_add(policy_count)
-            .ok_or(ModelError::InvalidParameter(
-                "randomized_robust_policy_count_overflow",
-            ))?;
+        total_policy_evaluations = total_policy_evaluations.checked_add(policy_count).ok_or(
+            ModelError::InvalidParameter("randomized_robust_policy_count_overflow"),
+        )?;
         if total_policy_evaluations > policy.max_policy_evaluations {
             return Err(ModelError::InvalidParameter(
                 "randomized_robust_policy_evaluation_cap_exceeded",
             ));
         }
 
-        let payoff_evaluation_count = policy_count
-            .checked_mul(scenario_count)
-            .ok_or(ModelError::InvalidParameter(
-                "randomized_robust_payoff_evaluation_count_overflow",
-            ))?;
+        let payoff_evaluation_count =
+            policy_count
+                .checked_mul(scenario_count)
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_robust_payoff_evaluation_count_overflow",
+                ))?;
         if payoff_evaluation_count > policy.max_policy_evaluations {
             return Err(ModelError::InvalidParameter(
                 "randomized_robust_payoff_evaluation_cap_exceeded",
@@ -468,8 +466,7 @@ pub fn rank_designs_by_randomized_robust_decision_value(
                 .iter()
                 .copied()
                 .fold(f64::INFINITY, f64::min);
-            deterministic_robust_value =
-                deterministic_robust_value.max(deterministic_worst_case);
+            deterministic_robust_value = deterministic_robust_value.max(deterministic_worst_case);
 
             for (scenario_index, utility) in scenario_utilities.iter().enumerate() {
                 clairvoyant_by_scenario[scenario_index] =
@@ -485,7 +482,8 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             &payoff_matrix,
             policy.feasibility_tolerance,
             policy.duality_gap_tolerance,
-            policy.max_basis_evaluations
+            policy
+                .max_basis_evaluations
                 .saturating_sub(total_basis_evaluations),
         )?;
         total_basis_evaluations = total_basis_evaluations
@@ -528,10 +526,12 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             .iter()
             .zip(game.minimizing_scenario_mixture.probabilities.iter())
             .filter(|(_, probability)| **probability > 0.0)
-            .map(|(scenario_index, probability)| LeastFavourableScenarioWeight {
-                scenario_id: expected_scenario_ids[*scenario_index].clone(),
-                probability: *probability,
-            })
+            .map(
+                |(scenario_index, probability)| LeastFavourableScenarioWeight {
+                    scenario_id: expected_scenario_ids[*scenario_index].clone(),
+                    probability: *probability,
+                },
+            )
             .collect::<Vec<_>>();
 
         let randomized_robust_value = randomized_policy_utilities
@@ -644,12 +644,8 @@ pub fn rank_designs_by_randomized_robust_decision_value(
     }
 
     scores.sort_by(|left, right| {
-        let left_value = left
-            .net_robust_decision_value
-            .unwrap_or(f64::NEG_INFINITY);
-        let right_value = right
-            .net_robust_decision_value
-            .unwrap_or(f64::NEG_INFINITY);
+        let left_value = left.net_robust_decision_value.unwrap_or(f64::NEG_INFINITY);
+        let right_value = right.net_robust_decision_value.unwrap_or(f64::NEG_INFINITY);
         right_value
             .total_cmp(&left_value)
             .then_with(|| left.candidate_id.cmp(&right.candidate_id))
@@ -676,9 +672,7 @@ pub fn rank_designs_by_randomized_robust_decision_value(
     })
 }
 
-fn validate_randomized_policy(
-    policy: RandomizedRobustDecisionPolicy,
-) -> Result<(), ModelError> {
+fn validate_randomized_policy(policy: RandomizedRobustDecisionPolicy) -> Result<(), ModelError> {
     if !policy.remaining_resource_budget.is_finite()
         || !policy.cost_to_utility_rate.is_finite()
         || !policy.feasibility_tolerance.is_finite()
@@ -718,9 +712,7 @@ fn solve_finite_zero_sum_game(
         return Err(ModelError::MismatchedDataLengths);
     }
     if payoffs.iter().flatten().any(|value| !value.is_finite()) {
-        return Err(ModelError::NonFiniteValue(
-            "randomized_robust_game_payoff",
-        ));
+        return Err(ModelError::NonFiniteValue("randomized_robust_game_payoff"));
     }
 
     let policy_count = payoffs.len();
@@ -740,7 +732,11 @@ fn solve_finite_zero_sum_game(
         .max(f64::MIN_POSITIVE);
     let normalized_payoffs = payoffs
         .iter()
-        .map(|row| row.iter().map(|value| value / payoff_scale).collect::<Vec<_>>())
+        .map(|row| {
+            row.iter()
+                .map(|value| value / payoff_scale)
+                .collect::<Vec<_>>()
+        })
         .collect::<Vec<_>>();
     let (mut maximizing_policy_mixture, primal_bases) =
         enumerate_primal_game_strategy(&normalized_payoffs, feasibility_tolerance)?;
@@ -756,11 +752,12 @@ fn solve_finite_zero_sum_game(
         &minimizing_scenario_mixture.support,
         &minimizing_scenario_mixture.probabilities,
     );
-    let basis_evaluations = primal_bases
-        .checked_add(dual_bases)
-        .ok_or(ModelError::InvalidParameter(
-            "randomized_robust_basis_evaluation_count_overflow",
-        ))?;
+    let basis_evaluations =
+        primal_bases
+            .checked_add(dual_bases)
+            .ok_or(ModelError::InvalidParameter(
+                "randomized_robust_basis_evaluation_count_overflow",
+            ))?;
     if basis_evaluations > max_basis_evaluations {
         return Err(ModelError::InvalidParameter(
             "randomized_robust_basis_evaluation_cap_exceeded",
@@ -797,8 +794,8 @@ fn solve_finite_zero_sum_game(
                     payoffs[*policy_index][*scenario_index] * scenario_probability
                 })
                 .sum::<f64>();
-            maximum_complementarity_residual = maximum_complementarity_residual
-                .max((expected_against_dual - dual_value).abs());
+            maximum_complementarity_residual =
+                maximum_complementarity_residual.max((expected_against_dual - dual_value).abs());
         }
     }
     for (scenario_index, probability) in minimizing_scenario_mixture
@@ -815,8 +812,8 @@ fn solve_finite_zero_sum_game(
                     payoffs[*policy_index][*scenario_index] * policy_probability
                 })
                 .sum::<f64>();
-            maximum_complementarity_residual = maximum_complementarity_residual
-                .max((primal_payoff - primal_value).abs());
+            maximum_complementarity_residual =
+                maximum_complementarity_residual.max((primal_payoff - primal_value).abs());
         }
     }
     if maximum_complementarity_residual > feasibility_tolerance * scale * 10.0 {
@@ -864,10 +861,9 @@ fn enumerate_primal_game_strategy(
                 let Some(solution) = solve_small_linear_system(matrix, rhs, tolerance) else {
                     continue;
                 };
-                let Some(probabilities) = normalize_feasible_probabilities(
-                    &solution[..support_size],
-                    tolerance,
-                ) else {
+                let Some(probabilities) =
+                    normalize_feasible_probabilities(&solution[..support_size], tolerance)
+                else {
                     continue;
                 };
                 let value = robust_policy_value(payoffs, policy_support, &probabilities);
@@ -932,10 +928,9 @@ fn enumerate_dual_game_strategy(
                 let Some(solution) = solve_small_linear_system(matrix, rhs, tolerance) else {
                     continue;
                 };
-                let Some(probabilities) = normalize_feasible_probabilities(
-                    &solution[..support_size],
-                    tolerance,
-                ) else {
+                let Some(probabilities) =
+                    normalize_feasible_probabilities(&solution[..support_size], tolerance)
+                else {
                     continue;
                 };
                 let value = dual_scenario_value(payoffs, scenario_support, &probabilities);
@@ -1001,19 +996,17 @@ fn dual_scenario_value(
             scenario_support
                 .iter()
                 .zip(probabilities.iter())
-                .map(|(scenario_index, probability)| {
-                    policy_payoffs[*scenario_index] * probability
-                })
+                .map(|(scenario_index, probability)| policy_payoffs[*scenario_index] * probability)
                 .sum::<f64>()
         })
         .fold(f64::NEG_INFINITY, f64::max)
 }
 
-fn normalize_feasible_probabilities(
-    values: &[f64],
-    tolerance: f64,
-) -> Option<Vec<f64>> {
-    if values.iter().any(|value| !value.is_finite() || *value < -tolerance) {
+fn normalize_feasible_probabilities(values: &[f64], tolerance: f64) -> Option<Vec<f64>> {
+    if values
+        .iter()
+        .any(|value| !value.is_finite() || *value < -tolerance)
+    {
         return None;
     }
     let mut probabilities = values
@@ -1123,15 +1116,18 @@ fn total_support_basis_count(
             .ok_or(ModelError::InvalidParameter(
                 "randomized_robust_basis_count_overflow",
             ))?;
-        one_side_count = one_side_count
-            .checked_add(pair_count)
-            .ok_or(ModelError::InvalidParameter(
-                "randomized_robust_basis_count_overflow",
-            ))?;
+        one_side_count =
+            one_side_count
+                .checked_add(pair_count)
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_robust_basis_count_overflow",
+                ))?;
     }
-    one_side_count.checked_mul(2).ok_or(ModelError::InvalidParameter(
-        "randomized_robust_basis_count_overflow",
-    ))
+    one_side_count
+        .checked_mul(2)
+        .ok_or(ModelError::InvalidParameter(
+            "randomized_robust_basis_count_overflow",
+        ))
 }
 
 fn binomial_count(n: usize, k: usize) -> Result<usize, ModelError> {
@@ -1609,10 +1605,7 @@ mod tests {
         assert_eq!(result.recommended_candidate_id, None);
     }
 
-    fn randomized_fixture() -> (
-        RobustDecisionProblem,
-        RobustDecisionDesignCandidate,
-    ) {
+    fn randomized_fixture() -> (RobustDecisionProblem, RobustDecisionDesignCandidate) {
         (
             RobustDecisionProblem {
                 state_ids: vec![
@@ -1693,8 +1686,14 @@ mod tests {
         assert!((score.primal_game_value - score.dual_game_value).abs() < 1.0e-9);
         assert!(score.primal_dual_gap < 1.0e-9);
         assert!(score.maximum_complementarity_residual < 1.0e-8);
-        assert!((score.randomized_policy_expected_utilities_by_scenario[0] - 34.0 / 75.0).abs() < 1.0e-9);
-        assert!((score.randomized_policy_expected_utilities_by_scenario[1] - 34.0 / 75.0).abs() < 1.0e-9);
+        assert!(
+            (score.randomized_policy_expected_utilities_by_scenario[0] - 34.0 / 75.0).abs()
+                < 1.0e-9
+        );
+        assert!(
+            (score.randomized_policy_expected_utilities_by_scenario[1] - 34.0 / 75.0).abs()
+                < 1.0e-9
+        );
         assert_eq!(score.randomized_policy_mixture.len(), 2);
         assert_eq!(score.least_favourable_scenario_mixture.len(), 2);
         let scenario_a_weight = score
@@ -1721,11 +1720,7 @@ mod tests {
         let mut limits = randomized_policy();
         limits.max_basis_evaluations = 10;
         assert_eq!(
-            rank_designs_by_randomized_robust_decision_value(
-                &problem,
-                &[candidate],
-                limits,
-            ),
+            rank_designs_by_randomized_robust_decision_value(&problem, &[candidate], limits,),
             Err(ModelError::InvalidParameter(
                 "randomized_robust_basis_evaluation_cap_exceeded"
             ))
