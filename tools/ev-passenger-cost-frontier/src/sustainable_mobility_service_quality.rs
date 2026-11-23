@@ -1368,12 +1368,13 @@ impl ExactOracleSearch<'_> {
         self.visit(opportunity_index + 1);
         self.current.pop();
 
-        for candidate in &self.candidates_by_opportunity[opportunity_index] {
+        let candidates = self.candidates_by_opportunity[opportunity_index].clone();
+        let opportunity = self.opportunities[opportunity_index].clone();
+        for candidate in candidates {
             if !self.used_requests.insert(candidate.request_index) {
                 continue;
             }
             let request = &self.input.requests[candidate.request_index];
-            let opportunity = &self.opportunities[opportunity_index];
             self.current.push(Some(ExactOracleAssignment {
                 request_id: request.request_id.clone(),
                 opportunity_id: opportunity.opportunity_id.clone(),
@@ -1837,6 +1838,8 @@ pub fn evaluate_linked_service_quality(
         claim_ceiling: input.claim_ceiling.clone(),
     };
     let evaluated = evaluate_service_quality(&legacy_input).map_err(|errors| errors)?;
+    let exact_oracle =
+        exact_assignment_oracle(&legacy_input, &evaluated.policy_results)?;
 
     Ok(LinkedServiceQualityReport {
         schema_version: input.schema_version.clone(),
@@ -1849,6 +1852,7 @@ pub fn evaluate_linked_service_quality(
         capacity_opportunities_in_source: selected.service_opportunities.len(),
         capacity_opportunities_qualified: qualified_opportunity_count,
         policy_results: evaluated.policy_results,
+        exact_oracle,
         service_quality_is_physical_performance_claim: false,
         claim_ceiling: linked_report_claim_ceiling(),
     })
