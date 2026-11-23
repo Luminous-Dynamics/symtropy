@@ -12,8 +12,8 @@ use std::error::Error;
 use std::fmt;
 
 use crate::functional::{
-    propagate_field_functional_uncertainty, Covariance3, FieldFunctionalInput,
-    FieldFunctionalReport,
+    propagate_field_functional_uncertainty, validate_functional_covariance, Covariance3,
+    FieldFunctionalInput, FieldFunctionalReport,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -71,6 +71,7 @@ pub enum SpatialFunctionalError {
     KernelCovarianceNotPositiveSemidefinite,
     NonFiniteDerivedValue,
     NegativeTotalVariance { functional_index: usize },
+    InvalidTotalFunctionalCovariance(String),
 }
 
 impl fmt::Display for SpatialFunctionalError {
@@ -91,6 +92,7 @@ impl fmt::Display for SpatialFunctionalError {
             Self::KernelCovarianceNotPositiveSemidefinite => write!(f, "kernel component covariance is not positive semidefinite"),
             Self::NonFiniteDerivedValue => write!(f, "spatial functional covariance is non-finite"),
             Self::NegativeTotalVariance { functional_index } => write!(f, "negative variance for functional {functional_index}"),
+            Self::InvalidTotalFunctionalCovariance(error) => write!(f, "combined spatial functional covariance is invalid: {error}"),
         }
     }
 }
@@ -257,12 +259,15 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
             }
         }
     }
+    // Revalidate after adding the spatial cross-location term. A valid base
+    // covariance plus a mathematically valid kernel contribution should remain
+    // PSD, but the final assembled matrix is the object downstream consumers use.
+    validate_functional_covariance(&total)
+        .map_err(|error| SpatialFunctionalError::InvalidTotalFunctionalCovariance(error.to_string()))?;
+
     let mut std = [0.0_f64; 4];
     for a in 0..4 {
-        if total[a][a] < -1.0e-12 {
-            return Err(SpatialFunctionalError::NegativeTotalVariance { functional_index: a });
-        }
-        std[a] = total[a][a].max(0.0).sqrt();
+        std[a] = total[a][a].sqrt();
     }
 
     Ok(SpatialFieldFunctionalReport {
