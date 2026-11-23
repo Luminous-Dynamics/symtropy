@@ -1708,6 +1708,140 @@ mod tests {
     }
 
     #[test]
+    fn opportunity_schedule_is_resolved_only_from_the_capacity_receipt() {
+        let mut input = fixture();
+        input.linked_service_input.aerial_opportunity_qualifications[0].opportunity_id =
+            "caller-invented-slot".to_owned();
+        input.linked_service_input.aerial_opportunity_qualifications[0]
+            .evidence.capacity_opportunity_id = "caller-invented-slot".to_owned();
+        let errors = evaluate_nonanticipative_oracle(&input)
+            .expect_err("qualification cannot create an opportunity absent from capacity receipts");
+        assert!(errors.iter().any(|error| {
+            error.contains("aerial_qualification_references_unknown_capacity_opportunity")
+        }));
+    }
+
+    #[test]
+    fn hand_authored_opportunity_schedule_field_is_rejected() {
+        let mut value: serde_json::Value = serde_json::from_str(include_str!(
+            "../fixtures/nonanticipative_service_oracle_v0_1.json"
+        ))
+        .expect("fixture JSON");
+        value["opportunities"] = serde_json::json!([{
+            "opportunity_id":"invented",
+            "resource_id":"aircraft-99",
+            "mode":"aerial",
+            "start_seconds":1,
+            "max_service_duration_seconds":300,
+            "turnaround_seconds":45,
+            "max_payload_units":1
+        }]);
+        assert!(serde_json::from_value::<NonanticipativeOracleInput>(value).is_err());
+    }
+
+    #[test]
+    fn future_flight_observation_evidence_is_rejected_at_decision_cut() {
+        let mut input = fixture();
+        input.linked_service_input.flight_windows[0]
+            .evidence
+            .observed_at_seconds = 400;
+        let errors = evaluate_nonanticipative_oracle(&input)
+            .expect_err("future weather/permission evidence cannot justify a current action");
+        assert!(errors.iter().any(|error| {
+            error.contains("future") || error.contains("evidence")
+        }));
+    }
+
+    #[test]
+    fn independent_three_policy_enumeration_matches_nonanticipative_optimum() {
+        let input = fixture();
+        let report = evaluate_nonanticipative_oracle(&input).expect("scenario tree");
+        let derived = derive_service_inputs(&input).expect("linked capacity derivation");
+        let requests = &derived.requests;
+        let opportunities = &derived.opportunities;
+        let opportunity_index = opportunities.iter()
+            .position(|opportunity| opportunity.opportunity_id == "aircraft-00-mission-000002")
+            .expect("exact upstream receipt");
+        let mut candidates: Vec<(Vec<u64>, bool, bool)> = Vec::new();
+
+        // Enumerate every legal policy in this two-decision tree:
+        // reserve the one opportunity for the early request at the root;
+        // or defer it and optionally assign the later request after revelation.
+        for root_assign_early in [false, true] {
+            for child_assign_later in [false, true] {
+                if root_assign_early && child_assign_later {
+                    continue;
+                }
+                let score_one = |request_index: Option<usize>, final_available: bool| {
+                    let mut score = [0_u64; 6];
+                    let Some(request_index) = request_index else { return score; };
+                    if !final_available { return score; }
+                    let request = &requests[request_index];
+                    let opportunity = &opportunities[opportunity_index];
+                    let completion = opportunity.start_seconds
+                        + u64::from(request.required_service_seconds);
+                    if completion > input.horizon_seconds {
+                        score[3] = 1;
+                    } else {
+                        score[1] = 1;
+                        score[5] = completion - request.arrival_seconds;
+                        if completion <= request.deadline_seconds {
+                            score[0] = 1;
+                        } else {
+                            score[2] = 1;
+                            score[4] = completion - request.deadline_seconds;
+                        }
+                    }
+                    score
+                };
+                let no_later = score_one(
+                    if root_assign_early { Some(0) } else { None },
+                    true,
+                );
+                let later_go = score_one(
+                    if root_assign_early {
+                        Some(0)
+                    } else if child_assign_later {
+                        Some(1)
+                    } else {
+                        None
+                    },
+                    true,
+                );
+                let later_no_go = score_one(
+                    if root_assign_early { Some(0) } else { None },
+                    false,
+                );
+                let weighted = (0..6).map(|metric| {
+                    no_later[metric] * 300_000
+                        + later_go[metric] * 350_000
+                        + later_no_go[metric] * 350_000
+                }).collect::<Vec<_>>();
+                candidates.push((weighted, root_assign_early, child_assign_later));
+            }
+        }
+        let better = |left: &[u64], right: &[u64]| {
+            left[0] > right[0]
+                || (left[0] == right[0] && left[1] > right[1])
+                || (left[0] == right[0] && left[1] == right[1] && left[4] < right[4])
+                || (left[0] == right[0] && left[1] == right[1] && left[4] == right[4] && left[3] < right[3])
+                || (left[0] == right[0] && left[1] == right[1] && left[4] == right[4] && left[3] == right[3] && left[5] < right[5])
+        };
+        let best = candidates.into_iter().reduce(|current, candidate| {
+            if better(&candidate.0, &current.0) { candidate } else { current }
+        }).expect("at least empty policy");
+        let observed = report.nonanticipative_score.as_ref().expect("evaluated");
+        assert_eq!(observed.expected_on_time_services_units, best.0[0]);
+        assert_eq!(observed.expected_completed_by_horizon_units, best.0[1]);
+        assert_eq!(observed.expected_late_services_units, best.0[2]);
+        assert_eq!(observed.expected_in_progress_units, best.0[3]);
+        assert_eq!(observed.expected_lateness_seconds_units, best.0[4]);
+        assert_eq!(observed.expected_latency_seconds_units, best.0[5]);
+        assert!(!best.1);
+        assert!(best.2);
+    }
+
+    #[test]
     fn input_order_permutation_preserves_canonical_policy() {
         let input = fixture();
         let first = evaluate_nonanticipative_oracle(&input).expect("first report");
