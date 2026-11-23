@@ -306,13 +306,11 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
         }
         if case.action_universe.closure_kind == "finite_exhaustive"
             && case.action_universe.evidence_status == "admissible"
-            && case
-                .action_universe
-                .source_receipt_id
-                .trim()
-                .is_empty()
+            && case.action_universe.source_receipt_id.trim().is_empty()
         {
-            return Err("exhaustive action universe requires a closure evidence receipt".to_owned());
+            return Err(
+                "exhaustive action universe requires a closure evidence receipt".to_owned(),
+            );
         }
 
         let mut expected_actions = BTreeSet::new();
@@ -353,11 +351,16 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 .iter()
                 .any(|value| *value > MAX_SAFE_INTEGER)
             {
-                return Err("action identity, eligibility evidence or native cost is invalid".to_owned());
+                return Err(
+                    "action identity, eligibility evidence or native cost is invalid".to_owned(),
+                );
             }
         }
         if action_ids != expected_actions {
-            return Err("observed action IDs do not match the planned exhaustive action inventory".to_owned());
+            return Err(
+                "observed action IDs do not match the planned exhaustive action inventory"
+                    .to_owned(),
+            );
         }
 
         if !valid_sha256(&case.action_universe.expected_action_ids_sha256)
@@ -397,7 +400,9 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                         .as_deref()
                         .is_none_or(|value| !valid_id(value)))
             {
-                return Err("scenario identity, world, evidence status or receipt is invalid".to_owned());
+                return Err(
+                    "scenario identity, world, evidence status or receipt is invalid".to_owned(),
+                );
             }
             covered_worlds.insert(scenario.world_id.as_str());
 
@@ -417,16 +422,27 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                 let outcome = scenario
                     .action_outcomes
                     .get(&action.action_id)
-                    .ok_or_else(|| format!("scenario {} is missing action {}", scenario.scenario_id, action.action_id))?;
+                    .ok_or_else(|| {
+                        format!(
+                            "scenario {} is missing action {}",
+                            scenario.scenario_id, action.action_id
+                        )
+                    })?;
                 match action.eligibility_status.as_str() {
                     "prohibited" => {
                         if outcome.feasibility_status != "prohibited" || outcome.loss.is_some() {
-                            return Err(format!("prohibited action {} must have a prohibited null-loss outcome", action.action_id));
+                            return Err(format!(
+                                "prohibited action {} must have a prohibited null-loss outcome",
+                                action.action_id
+                            ));
                         }
                     }
                     "indeterminate" => {
                         if outcome.feasibility_status != "indeterminate" || outcome.loss.is_some() {
-                            return Err(format!("indeterminate action {} must have an indeterminate null-loss outcome", action.action_id));
+                            return Err(format!(
+                                "indeterminate action {} must have an indeterminate null-loss outcome",
+                                action.action_id
+                            ));
                         }
                     }
                     "eligible" => match outcome.feasibility_status.as_str() {
@@ -439,10 +455,18 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
                         }
                         "infeasible" | "indeterminate" => {
                             if outcome.loss.is_some() {
-                                return Err(format!("non-feasible action {} must not carry a loss", action.action_id));
+                                return Err(format!(
+                                    "non-feasible action {} must not carry a loss",
+                                    action.action_id
+                                ));
                             }
                         }
-                        _ => return Err(format!("eligible action {} has an invalid scenario feasibility status", action.action_id)),
+                        _ => {
+                            return Err(format!(
+                                "eligible action {} has an invalid scenario feasibility status",
+                                action.action_id
+                            ));
+                        }
                     },
                     _ => return Err("unsupported static action eligibility status".to_owned()),
                 }
@@ -450,7 +474,10 @@ fn validate_corpus(corpus: &DecisionCorpus) -> Result<(), String> {
         }
 
         if observed_scenarios != expected_scenarios {
-            return Err("observed scenario IDs do not match the upstream planned scenario inventory".to_owned());
+            return Err(
+                "observed scenario IDs do not match the upstream planned scenario inventory"
+                    .to_owned(),
+            );
         }
         if covered_worlds != worlds {
             return Err("scenario manifest must cover every compatible physical world".to_owned());
@@ -543,7 +570,10 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
         .iter()
         .any(|action| action.eligibility_status == "indeterminate")
     {
-        return Ok(empty_case_result(case, "ACTION_ADMISSIBILITY_INDETERMINATE"));
+        return Ok(empty_case_result(
+            case,
+            "ACTION_ADMISSIBILITY_INDETERMINATE",
+        ));
     }
 
     if case
@@ -581,11 +611,18 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             let outcome = scenario
                 .action_outcomes
                 .get(&action.action_id)
-                .ok_or_else(|| format!("missing outcome for {} / {}", scenario.scenario_id, action.action_id))?;
+                .ok_or_else(|| {
+                    format!(
+                        "missing outcome for {} / {}",
+                        scenario.scenario_id, action.action_id
+                    )
+                })?;
             match outcome.feasibility_status.as_str() {
                 "feasible" => {
                     feasible.push(action.action_id.clone());
-                    *per_action_feasible_count.entry(action.action_id.clone()).or_default() += 1;
+                    *per_action_feasible_count
+                        .entry(action.action_id.clone())
+                        .or_default() += 1;
                     let loss = outcome.loss.as_ref().ok_or_else(|| {
                         format!("feasible action {} has no loss", action.action_id)
                     })?;
@@ -601,14 +638,17 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 "indeterminate" => {
                     return Ok(empty_case_result(case, "FEASIBILITY_INDETERMINATE"));
                 }
-                _ => return Err("validated scenario contains unknown feasibility status".to_owned()),
+                _ => {
+                    return Err("validated scenario contains unknown feasibility status".to_owned());
+                }
             }
         }
 
         if feasible.is_empty() {
             return Ok(empty_case_result(case, "NO_FEASIBLE_ACTION_IN_SCENARIO"));
         }
-        let best = scenario_best.ok_or_else(|| "scenario best feasible loss is missing".to_owned())?;
+        let best =
+            scenario_best.ok_or_else(|| "scenario best feasible loss is missing".to_owned())?;
         per_scenario_best.insert(scenario.scenario_id.clone(), best);
 
         let feasible_set = feasible.iter().cloned().collect::<BTreeSet<_>>();
@@ -692,7 +732,9 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 .filter_map(|action| scenario.action_outcomes.get(&action.action_id))
                 .filter_map(|outcome| outcome.loss.as_ref())
                 .min_by(|left, right| left.compare_exact(right))
-                .ok_or_else(|| format!("no robust-set loss in scenario {}", scenario.scenario_id))?;
+                .ok_or_else(|| {
+                    format!("no robust-set loss in scenario {}", scenario.scenario_id)
+                })?;
             Ok((scenario.scenario_id.clone(), best.canonicalized()))
         })
         .collect::<Result<BTreeMap<_, _>, String>>()?;
@@ -703,7 +745,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             .eligibility_receipt_id
             .as_deref()
             .filter(|value| valid_id(value))
-            .ok_or_else(|| format!("robust action {} has no eligibility receipt", action.action_id))?
+            .ok_or_else(|| {
+                format!(
+                    "robust action {} has no eligibility receipt",
+                    action.action_id
+                )
+            })?
             .to_owned();
 
         let mut per_scenario = Vec::with_capacity(scenarios.len());
@@ -711,7 +758,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
             let outcome = scenario
                 .action_outcomes
                 .get(&action.action_id)
-                .ok_or_else(|| format!("robust action {} missing a scenario outcome", action.action_id))?;
+                .ok_or_else(|| {
+                    format!(
+                        "robust action {} missing a scenario outcome",
+                        action.action_id
+                    )
+                })?;
             let loss = outcome
                 .loss
                 .as_ref()
@@ -728,12 +780,12 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
                 world_id: scenario.world_id.clone(),
                 loss_model_id: scenario.loss_model_id.clone(),
                 loss: loss.clone(),
-                wait_and_see_regret: loss.checked_sub(wait_and_see_best).map_err(|error| {
-                    format!("wait-and-see regret underflow: {error}")
-                })?,
-                robust_set_regret: loss.checked_sub(robust_best).map_err(|error| {
-                    format!("robust-set regret underflow: {error}")
-                })?,
+                wait_and_see_regret: loss
+                    .checked_sub(wait_and_see_best)
+                    .map_err(|error| format!("wait-and-see regret underflow: {error}"))?,
+                robust_set_regret: loss
+                    .checked_sub(robust_best)
+                    .map_err(|error| format!("robust-set regret underflow: {error}"))?,
             });
         }
 
@@ -791,16 +843,18 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
         });
     }
 
-    let minimax_wait_and_see_regret_action_ids =
-        argmin_ids(&action_metrics, |metric| &metric.worst_case_wait_and_see_regret);
-    let minimax_robust_set_regret_action_ids =
-        argmin_ids(&action_metrics, |metric| &metric.worst_case_robust_set_regret);
+    let minimax_wait_and_see_regret_action_ids = argmin_ids(&action_metrics, |metric| {
+        &metric.worst_case_wait_and_see_regret
+    });
+    let minimax_robust_set_regret_action_ids = argmin_ids(&action_metrics, |metric| {
+        &metric.worst_case_robust_set_regret
+    });
     let pareto_frontier_action_ids = action_metrics
         .iter()
         .filter(|candidate| {
-            !action_metrics.iter().any(|other| {
-                other.action_id != candidate.action_id && dominates(other, candidate)
-            })
+            !action_metrics
+                .iter()
+                .any(|other| other.action_id != candidate.action_id && dominates(other, candidate))
         })
         .map(|metric| metric.action_id.clone())
         .collect::<Vec<_>>();
@@ -843,19 +897,67 @@ pub fn evaluate(corpus: &DecisionCorpus) -> Result<Evaluation, String> {
 
     let summary = Summary {
         case_count: cases.len(),
-        action_universe_open_cases: cases.iter().filter(|item| item.status == "ACTION_UNIVERSE_OPEN").count(),
-        action_universe_indeterminate_cases: cases.iter().filter(|item| item.status == "ACTION_UNIVERSE_INDETERMINATE").count(),
-        action_admissibility_indeterminate_cases: cases.iter().filter(|item| item.status == "ACTION_ADMISSIBILITY_INDETERMINATE").count(),
-        feasibility_indeterminate_cases: cases.iter().filter(|item| item.status == "FEASIBILITY_INDETERMINATE").count(),
-        loss_model_indeterminate_cases: cases.iter().filter(|item| item.status == "LOSS_MODEL_INDETERMINATE" || item.status == "OUT_OF_PROFILE").count(),
-        no_feasible_scenario_cases: cases.iter().filter(|item| item.status == "NO_FEASIBLE_ACTION_IN_SCENARIO").count(),
-        no_robust_feasible_action_cases: cases.iter().filter(|item| item.status == "NO_ROBUST_FEASIBLE_ACTION").count(),
-        robust_decision_cases: cases.iter().filter(|item| item.status == "ROBUST_FEASIBLE_DECISION_SET_AVAILABLE").count(),
+        action_universe_open_cases: cases
+            .iter()
+            .filter(|item| item.status == "ACTION_UNIVERSE_OPEN")
+            .count(),
+        action_universe_indeterminate_cases: cases
+            .iter()
+            .filter(|item| item.status == "ACTION_UNIVERSE_INDETERMINATE")
+            .count(),
+        action_admissibility_indeterminate_cases: cases
+            .iter()
+            .filter(|item| item.status == "ACTION_ADMISSIBILITY_INDETERMINATE")
+            .count(),
+        feasibility_indeterminate_cases: cases
+            .iter()
+            .filter(|item| item.status == "FEASIBILITY_INDETERMINATE")
+            .count(),
+        loss_model_indeterminate_cases: cases
+            .iter()
+            .filter(|item| {
+                item.status == "LOSS_MODEL_INDETERMINATE" || item.status == "OUT_OF_PROFILE"
+            })
+            .count(),
+        no_feasible_scenario_cases: cases
+            .iter()
+            .filter(|item| item.status == "NO_FEASIBLE_ACTION_IN_SCENARIO")
+            .count(),
+        no_robust_feasible_action_cases: cases
+            .iter()
+            .filter(|item| item.status == "NO_ROBUST_FEASIBLE_ACTION")
+            .count(),
+        robust_decision_cases: cases
+            .iter()
+            .filter(|item| item.status == "ROBUST_FEASIBLE_DECISION_SET_AVAILABLE")
+            .count(),
         declared_action_count: cases.iter().map(|item| item.action_count).sum(),
-        robust_feasible_action_count: cases.iter().map(|item| item.robust_feasible_action_ids.len()).sum(),
-        sometimes_feasible_action_count: cases.iter().map(|item| item.action_feasibility_classes.iter().filter(|class| class.classification == "SOMETIMES_FEASIBLE").count()).sum(),
-        never_feasible_action_count: cases.iter().map(|item| item.action_feasibility_classes.iter().filter(|class| class.classification == "NEVER_FEASIBLE").count()).sum(),
-        pareto_frontier_action_count: cases.iter().map(|item| item.pareto_frontier_action_ids.len()).sum(),
+        robust_feasible_action_count: cases
+            .iter()
+            .map(|item| item.robust_feasible_action_ids.len())
+            .sum(),
+        sometimes_feasible_action_count: cases
+            .iter()
+            .map(|item| {
+                item.action_feasibility_classes
+                    .iter()
+                    .filter(|class| class.classification == "SOMETIMES_FEASIBLE")
+                    .count()
+            })
+            .sum(),
+        never_feasible_action_count: cases
+            .iter()
+            .map(|item| {
+                item.action_feasibility_classes
+                    .iter()
+                    .filter(|class| class.classification == "NEVER_FEASIBLE")
+                    .count()
+            })
+            .sum(),
+        pareto_frontier_action_count: cases
+            .iter()
+            .map(|item| item.pareto_frontier_action_ids.len())
+            .sum(),
     };
 
     Ok(Evaluation {
@@ -874,8 +976,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> DecisionCorpus {
-        serde_json::from_str(include_str!("../fixtures/v0.1/feasibility-regret-cases.json"))
-            .expect("feasibility regret corpus must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/v0.1/feasibility-regret-cases.json"
+        ))
+        .expect("feasibility regret corpus must parse")
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
@@ -891,7 +995,11 @@ mod tests {
         let evaluation = evaluate(&fixture()).expect("fixture evaluates");
         let result = case(&evaluation, "infeasible-zero-loss-comparator");
         assert_eq!(result.robust_feasible_action_ids, vec!["robust"]);
-        let metric = result.action_metrics.iter().find(|item| item.action_id == "robust").unwrap();
+        let metric = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "robust")
+            .unwrap();
         assert_eq!(metric.worst_case_wait_and_see_regret.numerator, 2);
         assert_eq!(metric.worst_case_wait_and_see_regret.denominator, 5);
         assert_eq!(metric.worst_case_robust_set_regret.numerator, 0);
@@ -910,7 +1018,10 @@ mod tests {
             .expect("alpha metric exists");
         assert_eq!(alpha.worst_case_wait_and_see_regret.numerator, 3);
         assert_eq!(alpha.worst_case_wait_and_see_regret.denominator, 10);
-        assert_eq!(result.minimax_wait_and_see_regret_action_ids, vec!["alpha", "beta"]);
+        assert_eq!(
+            result.minimax_wait_and_see_regret_action_ids,
+            vec!["alpha", "beta"]
+        );
     }
 
     #[test]
@@ -939,9 +1050,11 @@ mod tests {
             case(&evaluation, "infeasible-zero-loss-comparator").status,
             "ACTION_ADMISSIBILITY_INDETERMINATE"
         );
-        assert!(case(&evaluation, "infeasible-zero-loss-comparator")
-            .action_metrics
-            .is_empty());
+        assert!(
+            case(&evaluation, "infeasible-zero-loss-comparator")
+                .action_metrics
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1039,7 +1152,17 @@ mod tests {
     fn prohibited_action_never_enters_feasible_sets() {
         let evaluation = evaluate(&fixture()).expect("fixture evaluates");
         let result = case(&evaluation, "infeasible-zero-loss-comparator");
-        assert!(result.robust_feasible_action_ids.iter().all(|id| id != "prohibited"));
-        assert!(result.scenario_feasible_sets.iter().all(|set| !set.feasible_action_ids.contains(&"prohibited".to_owned())));
+        assert!(
+            result
+                .robust_feasible_action_ids
+                .iter()
+                .all(|id| id != "prohibited")
+        );
+        assert!(
+            result
+                .scenario_feasible_sets
+                .iter()
+                .all(|set| !set.feasible_action_ids.contains(&"prohibited".to_owned()))
+        );
     }
 }
