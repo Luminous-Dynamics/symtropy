@@ -151,7 +151,11 @@
         "driver_revision",
         "firmware_revision",
         "calibration_revision",
-        "observer_stack_revision"
+        "observer_stack_revision",
+        "fault_injector_revision",
+        "fault_injector_sha256",
+        "native_adapter_revision",
+        "runtime_monitor_revision"
       ],
       "properties": {
         "platform_id": {
@@ -193,6 +197,21 @@
           "minLength": 1
         },
         "observer_stack_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "native_adapter_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_monitor_revision": {
           "type": "string",
           "minLength": 1
         }
