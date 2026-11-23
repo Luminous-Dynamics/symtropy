@@ -30,6 +30,7 @@ use core::fmt;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_sphere;
 pub mod normal_positive_part;
 pub mod residual;
 pub mod sequential;
@@ -45,6 +46,10 @@ pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use ncdot_sphere::{
+    NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
+    integrate_ncdot_sphere,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,

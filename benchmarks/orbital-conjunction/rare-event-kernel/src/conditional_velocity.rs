@@ -130,10 +130,13 @@ pub struct ConditionalDirectionReport {
     pub mahalanobis_distance_squared: f64,
     /// Log of the unnormalised Ncdot sphere integrand.
     pub log_integrand: f64,
-    /// Ncdot sphere integrand in f64; may underflow to zero.
+    /// Ncdot sphere integrand in f64; may underflow to zero or overflow to infinity.
     pub integrand: f64,
     /// True when the integrand underflowed despite a finite log value.
     pub integrand_underflowed: bool,
+    /// True when the f64 integrand exceeds the representable maximum while
+    /// its finite log value remains available for log-domain sphere summation.
+    pub integrand_overflowed: bool,
     /// True when the zero-variance branch was used.
     pub zero_variance_fallback_used: bool,
     /// Zero-variance interpretation used when the fallback was selected.
@@ -317,13 +320,15 @@ impl ConditionalVelocityDistribution {
         } else {
             f64::NEG_INFINITY
         };
-        if log_integrand.is_nan() {
+        if log_integrand.is_nan() || log_integrand == f64::INFINITY {
             return Err(KernelError::NumericalOverflow);
         }
-        let integrand = log_integrand.exp();
-        if !integrand.is_finite() {
-            return Err(KernelError::NumericalOverflow);
-        }
+        let integrand_overflowed = log_integrand.is_finite() && log_integrand > f64::MAX.ln();
+        let integrand = if integrand_overflowed {
+            f64::INFINITY
+        } else {
+            log_integrand.exp()
+        };
 
         Ok(ConditionalDirectionReport {
             direction,
@@ -336,6 +341,7 @@ impl ConditionalVelocityDistribution {
             log_integrand,
             integrand,
             integrand_underflowed: integrand == 0.0 && log_integrand.is_finite(),
+            integrand_overflowed,
             zero_variance_fallback_used: fallback_used,
             zero_variance_mode,
         })
@@ -888,6 +894,31 @@ mod tests {
                 .abs()
                 < 1.0e-12
         );
+    }
+
+    #[test]
+    fn pointwise_integrand_overflow_preserves_finite_log_value() {
+        let blocks = RelativePositionVelocityCovarianceBlocks {
+            position: identity_matrix(),
+            velocity_position: [[0.0; 3]; 3],
+            velocity: identity_matrix(),
+        };
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("valid covariance");
+        let report = distribution
+            .evaluate_direction(
+                [0.0; 3],
+                [0.0; 3],
+                1.0,
+                [1.0, 0.0, 0.0],
+                -1_000.0,
+                ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit,
+            )
+            .expect("finite log integrand");
+        assert!(report.log_integrand.is_finite());
+        assert!(report.integrand_overflowed);
+        assert!(report.integrand.is_infinite());
     }
 
     #[test]
