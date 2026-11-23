@@ -5,9 +5,9 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere, Transform};
 use symtropy_physics::broadphase::{self, Aabb, BroadphasePair, StaticBroadphase};
-use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
+use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -222,10 +222,7 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
 
 // ═══ Static-heavy broadphase baselines ═══
 
-fn static_heavy_broadphase_scene(
-    static_count: usize,
-    moving_count: usize,
-) -> Vec<RigidBody<3>> {
+fn static_heavy_broadphase_scene(static_count: usize, moving_count: usize) -> Vec<RigidBody<3>> {
     let mut bodies = Vec::with_capacity(static_count + moving_count);
 
     // Static bodies are widely separated. Each moving body is colocated with
@@ -305,8 +302,7 @@ fn bench_broadphase_static_heavy(c: &mut Criterion) {
             // both optimized paths to match this one-sided completeness oracle.
             let oracle_pairs = exhaustive_aabb_pair_oracle(&bodies);
             let full_pairs = broadphase::find_pairs(&bodies);
-            let incremental_pairs =
-                broadphase::find_pairs_incremental(&bodies, &static_cache);
+            let incremental_pairs = broadphase::find_pairs_incremental(&bodies, &static_cache);
             assert_eq!(
                 full_pairs, oracle_pairs,
                 "LBVH candidate mismatch for static={static_count}, moving={moving_count}"
