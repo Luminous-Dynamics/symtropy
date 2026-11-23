@@ -397,9 +397,11 @@ impl AnytimeRollingCoveragePolicy {
                     else {
                         continue;
                     };
+                    let prefix_index = usize::try_from(start)
+                        .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
                     let prefix = *self
                         .prefixes
-                        .get(start as usize)
+                        .get(prefix_index)
                         .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
                     let smallest_window_length = t.max(first_occurrence_at) - start;
                     let allowed_miss_sum =
@@ -610,9 +612,11 @@ impl AnytimeRollingCoveragePolicy {
                 )
             };
 
+        let prefix_index = usize::try_from(decision.window_start)
+            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
         let prefix = *self
             .prefixes
-            .get(decision.window_start as usize)
+            .get(prefix_index)
             .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
         let window_bounded_count = next_bounded_count
             .checked_sub(prefix.bounded_count)
@@ -960,7 +964,8 @@ mod tests {
         .unwrap();
         for _ in 0..3 {
             let decision = policy.decide_next_episode().unwrap();
-            complete(&mut policy, &decision, None);
+            let outcome = decision.is_bounded_set_requested().then_some(false);
+            complete(&mut policy, &decision, outcome);
         }
         let decision = policy.decide_next_episode().unwrap();
         let starts = decision
