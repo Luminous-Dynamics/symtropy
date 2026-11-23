@@ -6,6 +6,8 @@
 
 use std::fmt;
 
+pub mod acquisition;
+
 pub mod transfer;
 
 pub const SCHEMA_VERSION_V0: u16 = 1;
