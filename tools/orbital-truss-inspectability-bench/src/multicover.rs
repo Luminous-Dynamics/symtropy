@@ -312,9 +312,14 @@ fn weight_vector(
     weights
 }
 
-fn select_greedily(
-    indexed: &IndexedProblem,
-) -> Result<(Vec<bool>, Vec<usize>, Vec<usize>), String> {
+#[derive(Debug, Clone)]
+struct GreedySelection {
+    selected: Vec<bool>,
+    selection_order: Vec<usize>,
+    cleanup_removed: Vec<usize>,
+}
+
+fn select_greedily(indexed: &IndexedProblem) -> Result<GreedySelection, String> {
     let target = indexed
         .requested_k
         .iter()
@@ -402,7 +407,11 @@ fn select_greedily(
         }
     }
 
-    Ok((selected, selection_order, cleanup_removed))
+    Ok(GreedySelection {
+        selected,
+        selection_order,
+        cleanup_removed,
+    })
 }
 
 #[derive(Debug, Clone)]
@@ -654,7 +663,10 @@ fn overlap_pruning_baseline(
 
 pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt, String> {
     let indexed = validate_problem(problem)?;
-    let (selected, selection_order, cleanup_removed) = select_greedily(&indexed)?;
+    let nominal_selection = select_greedily(&indexed)?;
+    let selected = nominal_selection.selected;
+    let selection_order = nominal_selection.selection_order;
+    let cleanup_removed = nominal_selection.cleanup_removed;
     let mut dual_bound = dual_certificate(&indexed)?;
     let feature_coverage = build_feature_coverage(&indexed, &selected);
     let mut overlap_pruning_baselines = Vec::with_capacity(4);
@@ -708,7 +720,7 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         .then(|| {
             let numerator = (excess as u128) * 10_000_u128;
             let denominator = dual_bound.lower_bound_ceiling as u128;
-            ((numerator + denominator - 1) / denominator) as u64
+            numerator.div_ceil(denominator) as u64
         });
 
     let nominal_visibility_edge_count = indexed.nominal_by_view.iter().map(Vec::len).sum();
