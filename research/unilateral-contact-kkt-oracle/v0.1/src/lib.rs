@@ -46,7 +46,10 @@ pub struct QpError {
 
 impl QpError {
     fn new(kind: QpErrorKind, reason: impl Into<String>) -> Self {
-        Self { kind, reason: reason.into() }
+        Self {
+            kind,
+            reason: reason.into(),
+        }
     }
 }
 
@@ -508,8 +511,7 @@ fn restricted_kkt_passes(
     retained.iter().all(|index| {
         impulses[*index] >= -tolerances.impulse_absolute
             && values[*index] >= -tolerances.gradient_absolute
-            && (impulses[*index] * values[*index]).abs()
-                <= tolerances.complementarity_absolute
+            && (impulses[*index] * values[*index]).abs() <= tolerances.complementarity_absolute
     })
 }
 
@@ -565,12 +567,12 @@ fn solve_restricted_validated(
     }
     retained.sort_by(|left, right| qp.ids[*left].cmp(&qp.ids[*right]));
 
-    let subset_count = 1_u64
-        .checked_shl(retained.len() as u32)
-        .ok_or_else(|| QpError::new(
+    let subset_count = 1_u64.checked_shl(retained.len() as u32).ok_or_else(|| {
+        QpError::new(
             QpErrorKind::ActiveSetBudgetExceeded,
             "active-set subset count overflow",
-        ))?;
+        )
+    })?;
     if subset_count > config.maximum_active_sets {
         return Err(QpError::new(
             QpErrorKind::ActiveSetBudgetExceeded,
@@ -815,10 +817,12 @@ pub fn adaptive_refine(
         )?;
         total_subsets = total_subsets
             .checked_add(restricted.active_set_subsets_evaluated)
-            .ok_or_else(|| QpError::new(
-                QpErrorKind::ActiveSetBudgetExceeded,
-                "cumulative active-set count overflow",
-            ))?;
+            .ok_or_else(|| {
+                QpError::new(
+                    QpErrorKind::ActiveSetBudgetExceeded,
+                    "cumulative active-set count overflow",
+                )
+            })?;
 
         let certificate = verify_validated_kkt(
             &validated,
@@ -993,8 +997,8 @@ mod tests {
             vec![vec![2.0, -1.0], vec![-1.0, 2.0]],
             vec![-1.0, -1.0],
         );
-        let report = adaptive_refine(&problem, &strings(&["left"]), config())
-            .expect("coupled contact KKT");
+        let report =
+            adaptive_refine(&problem, &strings(&["left"]), config()).expect("coupled contact KKT");
         assert_eq!(report.status, AdaptiveStatus::FullPatchKktCertified);
         assert_eq!(
             report.refinement_rounds[0].added_contact_id.as_deref(),
@@ -1011,8 +1015,8 @@ mod tests {
             vec![vec![1.0, 1.0], vec![1.0, 1.0]],
             vec![-1.0, -1.0],
         );
-        let report = adaptive_refine(&problem, &strings(&["a"]), config())
-            .expect("redundant contact KKT");
+        let report =
+            adaptive_refine(&problem, &strings(&["a"]), config()).expect("redundant contact KKT");
         assert_eq!(report.status, AdaptiveStatus::FullPatchKktCertified);
         assert_eq!(report.final_impulses[0].normal_impulse, 1.0);
         assert_eq!(report.final_impulses[1].normal_impulse, 0.0);
@@ -1068,8 +1072,8 @@ mod tests {
             vec![vec![1.0, 0.2], vec![0.4, 1.0]],
             vec![-1.0, -1.0],
         );
-        let error = adaptive_refine(&problem, &strings(&["a"]), config())
-            .expect_err("asymmetry must fail");
+        let error =
+            adaptive_refine(&problem, &strings(&["a"]), config()).expect_err("asymmetry must fail");
         assert_eq!(error.kind, QpErrorKind::AsymmetricMatrix);
     }
 
