@@ -523,8 +523,8 @@ fn summarize_family(
         abstention_count: (count - selection_count) as usize,
         synthetic_completion_count: completion_count as usize,
         on_time_count: on_time_count as usize,
-        mean_expected_regret_units_micros: if count > 0 { regret_sum / count } else { 0 },
-        mean_realized_cost_units: if count > 0 { realized_cost_sum / count } else { 0 },
+        mean_expected_regret_units_micros: regret_sum / count,
+        mean_realized_cost_units: realized_cost_sum / count,
     }
 }
 
