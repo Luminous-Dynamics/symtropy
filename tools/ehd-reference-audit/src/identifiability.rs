@@ -137,8 +137,8 @@ pub fn analyse_two_parameter_design(
     let mut r1 = 0.0_f64;
 
     for row in 0..n {
-        for column in 0..2 {
-            if !design_rows[row][column].is_finite() {
+        for (column, value) in design_rows[row].iter().copied().enumerate() {
+            if !value.is_finite() {
                 return Err(IdentifiabilityError::NonFiniteDesign { row, column });
             }
         }
