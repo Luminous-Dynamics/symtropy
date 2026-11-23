@@ -5,6 +5,7 @@ on:
     branches:
       - research/mobility-rrvr-runtime-projection-v0-1
       - research/mobility-rrvr-attempt-lineage-v0-1
+      - research/mobility-rrvr-fault-campaign-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
@@ -189,11 +190,60 @@ jobs:
             and .attempts[1].downstream_quiescence.target_epoch == .attempts[2].authorized_epoch
             and ([.. | objects | select(has("raw_artifact_sha256")) | .raw_artifact_sha256] | all(type == "string" and test("^[a-fA-F0-9]{64}$")))
           ' "$FIXTURE"
+      - name: Validate paired RRVR fault campaign manifest and schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/fault_campaign_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/fault_campaign_paired_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and (.campaign_id | length > 0)
+            and (.fault_model_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.reset.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.reset.expected_initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.scenarios | length == 4)
+            and ([.scenarios[].pair_id] | unique | length == 2)
+            and ([.scenarios[] | select(.arm == "full_rrvr" and .control_class == "positive" and .expected_disposition == "admit")] | length == 1)
+            and ([.scenarios[] | select(.arm == "full_rrvr" and (.control_class == "negative" or .control_class == "mutation") and (.expected_disposition == "hold" or .expected_disposition == "block"))] | length == 1)
+            and ([.scenarios[] | select(.arm == "last_attempt_only" and .expected_disposition == "measure")] | length == 2)
+            and ([.scenarios[].faults[]] | length == 8)
+            and ([.scenarios[].faults[].parameters_sha256] | all(test("^[a-fA-F0-9]{64}$")))
+          ' "$FIXTURE"
+
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --check
 
       - name: Run runtime projection tests
         run: cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
+
+      - name: Run paired RRVR campaign validator positive control
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/fault_campaign_paired_v0_1.json"
+          REPORT="$RUNNER_TEMP/rrvr-campaign-summary.json"
+          cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_campaign_validate -- "$FIXTURE" "$REPORT"
+          jq -e '
+            .validation == "passed"
+            and .scenario_count == 4
+            and .pair_count == 2
+            and .positive_control_count == 2
+            and .negative_control_count == 2
+            and .fault_injection_count == 8
+            and .full_rrvr_positive_count == 1
+            and .full_rrvr_negative_count == 1
+            and .coverage_complete == true
+            and .fault_injection_executed == false
+            and .platform_inventory_authenticated == false
+            and .owner_evidence_authenticated == false
+            and .physical_safety_established == false
+            and .tla_refinement_checked == false
+          ' "$REPORT"
 
       - name: Run multi-attempt lineage CLI positive control
         shell: bash
