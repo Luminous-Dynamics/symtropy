@@ -90,8 +90,7 @@ pub fn static_peak_overlap(
 
     let primary_precision_mean = matrix_vector(primary_precision, inputs.primary.mean);
     let secondary_precision_mean = matrix_vector(secondary_precision, inputs.secondary.mean);
-    let precision_weighted_mean =
-        add_vector(primary_precision_mean, secondary_precision_mean);
+    let precision_weighted_mean = add_vector(primary_precision_mean, secondary_precision_mean);
     let overlap_position = matrix_vector(overlap_covariance, precision_weighted_mean);
     validate_finite_vector(overlap_position)?;
 
@@ -100,12 +99,10 @@ pub fn static_peak_overlap(
     let relative_mean = subtract_vector(inputs.primary.mean, inputs.secondary.mean);
     let solved_relative = solve_spd_from_cholesky(combined_lower, relative_mean);
     let relative_mahalanobis = dot(relative_mean, solved_relative);
-    let combined_log_determinant = 2.0
-        * (combined_lower[0][0].ln()
-            + combined_lower[1][1].ln()
-            + combined_lower[2][2].ln());
-    let log_integral_of_density_product = -0.5
-        * (3.0 * TAU.ln() + combined_log_determinant + relative_mahalanobis);
+    let combined_log_determinant =
+        2.0 * (combined_lower[0][0].ln() + combined_lower[1][1].ln() + combined_lower[2][2].ln());
+    let log_integral_of_density_product =
+        -0.5 * (3.0 * TAU.ln() + combined_log_determinant + relative_mahalanobis);
     if !relative_mahalanobis.is_finite() || !log_integral_of_density_product.is_finite() {
         return Err(KernelError::NumericalOverflow);
     }
@@ -280,8 +277,7 @@ mod tests {
         let report = static_peak_overlap(inputs(primary, secondary)).expect("valid Gaussians");
         assert_eq!(report.overlap_position, [3.0, 4.0, 5.0]);
         assert_eq!(report.overlap_covariance, diagonal(2.0, 2.0, 2.0));
-        let expected =
-            -0.5 * (3.0 * TAU.ln() + (8.0_f64.powi(3)).ln() + 6.0);
+        let expected = -0.5 * (3.0 * TAU.ln() + (8.0_f64.powi(3)).ln() + 6.0);
         assert!((report.log_integral_of_density_product - expected).abs() < 1.0e-13);
     }
 
@@ -319,7 +315,10 @@ mod tests {
         for i in 0..3 {
             assert!((forward.overlap_position[i] - reverse.overlap_position[i]).abs() < 1.0e-13);
             for j in 0..3 {
-                assert!((forward.overlap_covariance[i][j] - reverse.overlap_covariance[i][j]).abs() < 1.0e-13);
+                assert!(
+                    (forward.overlap_covariance[i][j] - reverse.overlap_covariance[i][j]).abs()
+                        < 1.0e-13
+                );
             }
         }
         assert!(
@@ -386,7 +385,10 @@ mod tests {
 
     #[test]
     fn nonsymmetric_or_nonpositive_covariances_fail_closed() {
-        let primary = gaussian([0.0; 3], [[1.0, 0.1, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
+        let primary = gaussian(
+            [0.0; 3],
+            [[1.0, 0.1, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        );
         let secondary = gaussian([0.0; 3], diagonal(1.0, 1.0, 1.0));
         assert_eq!(
             static_peak_overlap(inputs(primary, secondary)),
