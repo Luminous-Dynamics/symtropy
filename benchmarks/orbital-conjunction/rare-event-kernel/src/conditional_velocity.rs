@@ -256,8 +256,7 @@ impl ConditionalVelocityDistribution {
             hard_body_radius * direction[2],
         ];
         let position_offset = subtract_vector(sphere_position, mean_relative_position);
-        let conditional_velocity_offset =
-            matrix_vector(self.regression, position_offset);
+        let conditional_velocity_offset = matrix_vector(self.regression, position_offset);
         let conditional_mean_velocity = [
             mean_relative_velocity[0] + conditional_velocity_offset[0],
             mean_relative_velocity[1] + conditional_velocity_offset[1],
@@ -298,11 +297,7 @@ impl ConditionalVelocityDistribution {
                     conditional_normal_mean,
                     conditional_normal_variance.sqrt(),
                 )?;
-                (
-                    speed.expectation,
-                    speed.log_expectation,
-                    false,
-                )
+                (speed.expectation, speed.log_expectation, false)
             };
 
         let inverse_position_offset = matrix_vector(self.position_inverse, position_offset);
@@ -545,26 +540,17 @@ fn subtract_3x3(left: Matrix3, right: Matrix3) -> Matrix3 {
 fn matrix_vector(matrix: Matrix3, vector: [f64; 3]) -> [f64; 3] {
     let mut result = [0.0; 3];
     for i in 0..3 {
-        result[i] = matrix[i][0] * vector[0]
-            + matrix[i][1] * vector[1]
-            + matrix[i][2] * vector[2];
+        result[i] = matrix[i][0] * vector[0] + matrix[i][1] * vector[1] + matrix[i][2] * vector[2];
     }
     result
 }
 
 fn dot(left: [f64; 3], right: [f64; 3]) -> f64 {
-    left[0].mul_add(
-        right[0],
-        left[1].mul_add(right[1], left[2] * right[2]),
-    )
+    left[0].mul_add(right[0], left[1].mul_add(right[1], left[2] * right[2]))
 }
 
 fn subtract_vector(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] - right[0],
-        left[1] - right[1],
-        left[2] - right[2],
-    ]
+    [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
 }
 
 fn all_finite_3(vector: [f64; 3]) -> bool {
@@ -594,10 +580,7 @@ mod tests {
         conditional: Matrix3,
     ) -> RelativePositionVelocityCovarianceBlocks {
         let cross = multiply_3x3(regression, position);
-        let velocity = add_3x3(
-            conditional,
-            multiply_3x3(regression, transpose_3x3(cross)),
-        );
+        let velocity = add_3x3(conditional, multiply_3x3(regression, transpose_3x3(cross)));
         RelativePositionVelocityCovarianceBlocks {
             position,
             velocity_position: cross,
@@ -627,7 +610,11 @@ mod tests {
                 .expect("valid diagonal blocks");
         assert_eq!(
             distribution.position_covariance_inverse(),
-            [[0.25, 0.0, 0.0], [0.0, 1.0 / 9.0, 0.0], [0.0, 0.0, 1.0 / 16.0]]
+            [
+                [0.25, 0.0, 0.0],
+                [0.0, 1.0 / 9.0, 0.0],
+                [0.0, 0.0, 1.0 / 16.0]
+            ]
         );
         assert_eq!(distribution.regression_matrix(), [[0.0; 3]; 3]);
         assert_eq!(
@@ -642,16 +629,17 @@ mod tests {
         let regression = [[0.1, 0.02, 0.0], [0.0, -0.1, 0.03], [0.04, 0.0, 0.05]];
         let conditional = [[1.0, 0.1, 0.0], [0.1, 2.0, 0.2], [0.0, 0.2, 3.0]];
         let blocks = covariance_from_a_q1_q2(position, regression, conditional);
-        let distribution = ConditionalVelocityDistribution::new(
-            blocks,
-            ConditionalVelocityConfig::default(),
-        )
-        .expect("valid block covariance");
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("valid block covariance");
         for i in 0..3 {
             for j in 0..3 {
-                assert!((distribution.regression_matrix()[i][j] - regression[i][j]).abs() < 1.0e-12);
                 assert!(
-                    (distribution.conditional_velocity_covariance()[i][j] - conditional[i][j]).abs()
+                    (distribution.regression_matrix()[i][j] - regression[i][j]).abs() < 1.0e-12
+                );
+                assert!(
+                    (distribution.conditional_velocity_covariance()[i][j] - conditional[i][j])
+                        .abs()
                         < 1.0e-12
                 );
             }
@@ -664,11 +652,9 @@ mod tests {
         let regression = [[0.1, 0.02, 0.0], [0.0, -0.1, 0.03], [0.04, 0.0, 0.05]];
         let conditional = [[1.0, 0.1, 0.0], [0.1, 2.0, 0.2], [0.0, 0.2, 3.0]];
         let blocks = covariance_from_a_q1_q2(position, regression, conditional);
-        let distribution = ConditionalVelocityDistribution::new(
-            blocks,
-            ConditionalVelocityConfig::default(),
-        )
-        .expect("valid covariance");
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("valid covariance");
 
         let report = distribution
             .evaluate_direction(
@@ -775,7 +761,10 @@ mod tests {
         assert!(report.conditional_normal_variance > 0.0);
         assert!(!report.zero_variance_fallback_used);
         assert!(report.expected_inward_normal_speed > 0.0);
-        assert_eq!(report.zero_variance_mode, ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit);
+        assert_eq!(
+            report.zero_variance_mode,
+            ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit
+        );
     }
 
     #[test]
@@ -855,9 +844,11 @@ mod tests {
             velocity_position: permute(blocks.velocity_position),
             velocity: permute(blocks.velocity),
         };
-        let transformed =
-            ConditionalVelocityDistribution::new(transformed_blocks, ConditionalVelocityConfig::default())
-                .expect("permuted covariance");
+        let transformed = ConditionalVelocityDistribution::new(
+            transformed_blocks,
+            ConditionalVelocityConfig::default(),
+        )
+        .expect("permuted covariance");
         let transformed_report = transformed
             .evaluate_direction(
                 permute_vector(mean_position),
@@ -869,9 +860,21 @@ mod tests {
             )
             .expect("permuted coordinates");
 
-        assert!((report.mahalanobis_distance_squared - transformed_report.mahalanobis_distance_squared).abs() < 1.0e-12);
-        assert!((report.conditional_normal_variance - transformed_report.conditional_normal_variance).abs() < 1.0e-12);
-        assert!((report.expected_inward_normal_speed - transformed_report.expected_inward_normal_speed).abs() < 1.0e-12);
+        assert!(
+            (report.mahalanobis_distance_squared - transformed_report.mahalanobis_distance_squared)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (report.conditional_normal_variance - transformed_report.conditional_normal_variance)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (report.expected_inward_normal_speed - transformed_report.expected_inward_normal_speed)
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -890,11 +893,9 @@ mod tests {
             Err(KernelError::InvalidCovarianceTolerance)
         );
 
-        let distribution = ConditionalVelocityDistribution::new(
-            blocks,
-            ConditionalVelocityConfig::default(),
-        )
-        .expect("valid covariance");
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("valid covariance");
         assert_eq!(
             distribution.evaluate_direction(
                 [0.0; 3],
