@@ -19,5 +19,6 @@
     "set_simulation_state",
     "get_entities",
     "get_entity_state"
-  ]
+  ],
+  "world_stats_topic": "/world/rrvr-reference-world/stats"
 }
