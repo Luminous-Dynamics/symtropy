@@ -716,7 +716,7 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
         }
         finding.accepted_shared_dependencies.push(acceptance.clone());
     }
-    let mut validation_errors = post_validation_errors.into_iter().collect::<Vec<_>>();
+    let validation_errors = post_validation_errors.into_iter().collect::<Vec<_>>();
     let disposition = if !validation_errors.is_empty() {
         ProfileDisposition::ProfileInvalid
     } else if findings
@@ -1023,6 +1023,109 @@ mod tests {
         );
         assert_eq!(result.findings[0].shared_paths.len(), 1);
         assert_eq!(result.findings[0].shared_identities, BTreeSet::from([Digest::from_byte(9)]));
+    }
+
+    #[test]
+    fn accepted_shared_dependency_keeps_shared_disposition_and_risk_owner() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let (mut profile, projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                7,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "source-binding",
+                "shared-reader-source",
+                "edge-source",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                7,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "witness-binding",
+                "shared-reader-witness",
+                "edge-witness",
+            )]),
+            dimension,
+        );
+        let acceptance = AcceptedSharedDependency {
+            stage: MaritimeStage::Detection,
+            dimension,
+            identity: Digest::from_byte(7),
+            rationale: "Temporary shared read-point is contractually unavoidable".to_owned(),
+            impact: "A common reader fault can suppress both event channels".to_owned(),
+            owner: "terminal-assurance-owner".to_owned(),
+        };
+        profile.accepted_shared_dependencies.push(acceptance.clone());
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileObligationsNotMet);
+        assert_eq!(result.findings[0].disposition, SeparationDisposition::Shared);
+        assert!(result.findings[0].shared_identities.contains(&Digest::from_byte(7)));
+        assert_eq!(result.findings[0].accepted_shared_dependencies, vec![acceptance]);
+    }
+
+    #[test]
+    fn accepted_shared_dependency_must_match_an_observed_overlap() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let (mut profile, projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                1,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "source-binding",
+                "source-reader",
+                "edge-source",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                2,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "witness-binding",
+                "witness-reader",
+                "edge-witness",
+            )]),
+            dimension,
+        );
+        profile.accepted_shared_dependencies.push(AcceptedSharedDependency {
+            stage: MaritimeStage::Detection,
+            dimension,
+            identity: Digest::from_byte(7),
+            rationale: "Not actually observed".to_owned(),
+            impact: "No known impact".to_owned(),
+            owner: "assurance-owner".to_owned(),
+        });
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
+        assert!(result.validation_errors.contains(&ValidationError::UnobservedSharedAcceptance));
+    }
+
+    #[test]
+    fn duplicate_shared_acceptance_is_invalid() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let (mut profile, projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                7,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "source-binding",
+                "shared-source",
+                "edge-source",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                7,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "witness-binding",
+                "shared-witness",
+                "edge-witness",
+            )]),
+            dimension,
+        );
+        let acceptance = AcceptedSharedDependency {
+            stage: MaritimeStage::Detection,
+            dimension,
+            identity: Digest::from_byte(7),
+            rationale: "Accepted for test".to_owned(),
+            impact: "Shared reader risk retained".to_owned(),
+            owner: "assurance-owner".to_owned(),
+        };
+        profile.accepted_shared_dependencies = vec![acceptance.clone(), acceptance];
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
+        assert!(result.validation_errors.contains(&ValidationError::DuplicateSharedAcceptance));
     }
 
     #[test]
