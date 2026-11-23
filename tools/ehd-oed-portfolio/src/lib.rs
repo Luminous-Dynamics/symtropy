@@ -35,6 +35,8 @@ pub struct CandidateExperiment {
     pub cost: u32,
     pub control_tags: BTreeSet<String>,
     /// One physical sensitivity row for every declared scenario.
+    /// Values must be derivatives in the predeclared, dimensionless scaled
+    /// physical-parameter coordinates (not arbitrary raw parameter units).
     pub physical_sensitivities_by_scenario: Vec<[f64; PHYSICAL_PARAMETER_COUNT]>,
     /// Shared nuisance-mode sensitivities (e.g. force offset and drift).
     /// These are declared nuisance directions, not fitted physical effects.
@@ -488,22 +490,30 @@ fn normalize_and_validate_covariance(
         for column in (row + 1)..n {
             let upper = covariance[row][column];
             let lower = covariance[column][row];
-            let scale = (standard_deviations[row] * standard_deviations[column])
-                .max(upper.abs())
-                .max(lower.abs())
-                .max(f64::MIN_POSITIVE);
-            if (upper - lower).abs() > COVARIANCE_SYMMETRY_REL_TOLERANCE * scale {
+            // Normalize each entry in two divisions. Multiplying standard
+            // deviations first can overflow even when the final correlation
+            // coefficient is representable.
+            let upper_normalized =
+                (upper / standard_deviations[row]) / standard_deviations[column];
+            let lower_normalized =
+                (lower / standard_deviations[row]) / standard_deviations[column];
+            if !upper_normalized.is_finite() || !lower_normalized.is_finite() {
+                return Err(PortfolioError::NonFiniteDerivedValue);
+            }
+            let scale = upper_normalized
+                .abs()
+                .max(lower_normalized.abs())
+                .max(1.0);
+            if (upper_normalized - lower_normalized).abs()
+                > COVARIANCE_SYMMETRY_REL_TOLERANCE * scale
+            {
                 return Err(PortfolioError::AsymmetricCovariance {
                     scenario,
                     row,
                     column,
                 });
             }
-            let normalized = (upper * 0.5 + lower * 0.5)
-                / (standard_deviations[row] * standard_deviations[column]);
-            if !normalized.is_finite() {
-                return Err(PortfolioError::NonFiniteDerivedValue);
-            }
+            let normalized = upper_normalized * 0.5 + lower_normalized * 0.5;
             correlation[row][column] = normalized;
             correlation[column][row] = normalized;
         }
