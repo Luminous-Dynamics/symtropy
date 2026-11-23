@@ -63,6 +63,13 @@ impl Vec3 {
     fn norm(self) -> f64 {
         self.dot(self).sqrt()
     }
+    fn cross(self, other: Self) -> Self {
+        Self {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x,
+        }
+    }
     fn normalized(self) -> Option<Self> {
         let norm = self.norm();
         (norm.is_finite() && norm > 1.0e-12).then(|| self.scale(1.0 / norm))
@@ -94,6 +101,14 @@ pub struct CameraInput {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct AugmentationInput {
+    pub requested_k: usize,
+    pub tilt_angles_deg: Vec<f64>,
+    pub azimuth_angles_deg: Vec<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GsdCase {
     pub schema: String,
     pub benchmark_id: String,
@@ -103,6 +118,7 @@ pub struct GsdCase {
     pub coordinate_frame_id: String,
     pub grid: GridInput,
     pub camera: CameraInput,
+    pub augmentation: AugmentationInput,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -126,15 +142,19 @@ pub struct CandidateView {
     pub view_id: String,
     pub source_feature_id: String,
     pub source_cell: [usize; 3],
-    pub normal_q1e6: [i64; 3],
+    pub position_direction_q1e6: [i64; 3],
     pub position_um: [i64; 3],
     pub optical_axis_q1e6: [i64; 3],
+    pub generation_kind: String,
+    pub tilt_degrees_millideg: Option<i64>,
+    pub azimuth_degrees_millideg: Option<i64>,
     pub visible_feature_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct FeatureCoverage {
     pub feature_id: String,
+    pub initial_candidate_view_count: usize,
     pub candidate_view_count: usize,
     pub seen_by_view_ids: Vec<String>,
 }
@@ -162,6 +182,11 @@ pub struct GsdReceipt {
     pub max_oblique_angle_microrad: i64,
     pub slant_range_max_um: i64,
     pub perpendicular_distance_um: i64,
+    pub requested_k: usize,
+    pub initial_candidate_view_count: usize,
+    pub augmented_candidate_view_count: usize,
+    pub undercovered_feature_ids_before_augmentation: Vec<String>,
+    pub requested_k_covered_after_augmentation: bool,
     pub candidate_view_count: usize,
     pub visible_relation_count: usize,
     pub surface_features: Vec<SurfacePatch>,
@@ -484,6 +509,31 @@ fn validate_case(case: &GsdCase) -> Result<(), String> {
     {
         return Err("CASE_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
     }
+    if case.augmentation.requested_k == 0 || case.augmentation.requested_k > 20 {
+        return Err("REQUESTED_K_OUT_OF_BOUNDS".to_owned());
+    }
+    if case.augmentation.tilt_angles_deg.len() > 90
+        || case.augmentation.azimuth_angles_deg.len() > 12
+        || case.augmentation.tilt_angles_deg.iter().any(|angle| {
+            !angle.is_finite() || *angle < 1.0 || *angle > 90.0
+        })
+        || case.augmentation.azimuth_angles_deg.iter().any(|angle| {
+            !angle.is_finite() || *angle < 0.0 || *angle >= 360.0
+        })
+    {
+        return Err("AUGMENTATION_ANGLE_INPUT_INVALID".to_owned());
+    }
+    let mut tilt_values = case.augmentation.tilt_angles_deg.clone();
+    tilt_values.sort_by(f64::total_cmp);
+    if tilt_values.windows(2).any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10) {
+        return Err("DUPLICATE_TILT_ANGLE".to_owned());
+    }
+    let mut azimuth_values = case.augmentation.azimuth_angles_deg.clone();
+    azimuth_values.sort_by(f64::total_cmp);
+    if azimuth_values.windows(2).any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10) {
+        return Err("DUPLICATE_AZIMUTH_ANGLE".to_owned());
+    }
+
     let camera = &case.camera;
     if !camera.horizontal_fov_rad.is_finite()
         || camera.horizontal_fov_rad <= 0.0
@@ -578,7 +628,7 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
             view_id: format!("VIEW-{}", candidates.len()),
             source_feature_id: surface.feature_id.clone(),
             source_cell: surface.cell,
-            normal_q1e6: surface.normal_q1e6,
+            position_direction_q1e6: surface.normal_q1e6,
             position_um: [
                 quantize(position.x, 1.0e6)?,
                 quantize(position.y, 1.0e6)?,
@@ -589,17 +639,157 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
                 quantize(optical.y, 1.0e6)?,
                 quantize(optical.z, 1.0e6)?,
             ],
+            generation_kind: "INITIAL_NORMAL".to_owned(),
+            tilt_degrees_millideg: None,
+            azimuth_degrees_millideg: None,
             visible_feature_ids: visible_features,
         });
     }
 
+    let initial_candidate_view_count = candidates.len();
+    let initial_coverage = surfaces
+        .iter()
+        .map(|surface| {
+            candidates
+                .iter()
+                .filter(|candidate| candidate.visible_feature_ids.contains(&surface.feature_id))
+                .count()
+        })
+        .collect::<Vec<_>>();
+    let undercovered_feature_ids_before_augmentation = surfaces
+        .iter()
+        .zip(&initial_coverage)
+        .filter(|(_, count)| **count < case.augmentation.requested_k)
+        .map(|(surface, _)| surface.feature_id.clone())
+        .collect::<Vec<_>>();
+
+    let augmentation_upper_bound = undercovered_feature_ids_before_augmentation
+        .len()
+        .checked_mul(case.augmentation.tilt_angles_deg.len())
+        .and_then(|count| count.checked_mul(case.augmentation.azimuth_angles_deg.len()))
+        .ok_or_else(|| "AUGMENTATION_CANDIDATE_COUNT_OVERFLOW".to_owned())?;
+    if initial_candidate_view_count + augmentation_upper_bound > 20_000 {
+        return Err("CANDIDATE_VIEW_LIMIT_EXCEEDED".to_owned());
+    }
+
+    for (surface_index, surface) in surfaces.iter().enumerate() {
+        if initial_coverage[surface_index] >= case.augmentation.requested_k {
+            continue;
+        }
+        let normal = Vec3::from_array([
+            surface.normal_q1e6[0] as f64 / 1.0e6,
+            surface.normal_q1e6[1] as f64 / 1.0e6,
+            surface.normal_q1e6[2] as f64 / 1.0e6,
+        ]);
+        let reference_axis = if normal.x.abs() <= normal.y.abs()
+            && normal.x.abs() <= normal.z.abs()
+        {
+            Vec3 { x: 1.0, y: 0.0, z: 0.0 }
+        } else if normal.y.abs() <= normal.z.abs() {
+            Vec3 { x: 0.0, y: 1.0, z: 0.0 }
+        } else {
+            Vec3 { x: 0.0, y: 0.0, z: 1.0 }
+        };
+        let tangent_one = reference_axis
+            .sub(normal.scale(reference_axis.dot(normal)))
+            .normalized()
+            .ok_or_else(|| "TANGENT_FRAME_CONSTRUCTION_FAILED".to_owned())?;
+        let tangent_two = normal
+            .cross(tangent_one)
+            .normalized()
+            .ok_or_else(|| "TANGENT_FRAME_CONSTRUCTION_FAILED".to_owned())?;
+
+        for tilt_degrees in &case.augmentation.tilt_angles_deg {
+            let beta = tilt_degrees.to_radians();
+            for azimuth_degrees in &case.augmentation.azimuth_angles_deg {
+                let phi = azimuth_degrees.to_radians();
+                let tangent = tangent_one
+                    .scale(phi.cos())
+                    .add(tangent_two.scale(phi.sin()));
+                let direction = normal
+                    .scale(beta.cos())
+                    .add(tangent.scale(beta.sin()))
+                    .normalized()
+                    .ok_or_else(|| "AUGMENTED_DIRECTION_INVALID".to_owned())?;
+                let centre = grid.centre(surface.cell);
+                let position = centre.add(direction.scale(perpendicular));
+                if grid.ray_occluded(position, centre, surface.cell) {
+                    continue;
+                }
+                let optical = direction.scale(-1.0);
+                let mut visible_features = Vec::new();
+                for target in &surfaces {
+                    let target_normal = Vec3::from_array([
+                        target.normal_q1e6[0] as f64 / 1.0e6,
+                        target.normal_q1e6[1] as f64 / 1.0e6,
+                        target.normal_q1e6[2] as f64 / 1.0e6,
+                    ]);
+                    let target_centre = grid.centre(target.cell);
+                    let to_target = target_centre.sub(position);
+                    let distance = to_target.norm();
+                    if distance <= 1.0e-12 || distance > slant_range + 1.0e-10 {
+                        continue;
+                    }
+                    let Some(deviation) = direction.angle(target_normal) else {
+                        continue;
+                    };
+                    if deviation > camera.max_oblique_angle_rad + 1.0e-10 {
+                        continue;
+                    }
+                    let Some(fov_angle) = optical.angle(to_target) else {
+                        continue;
+                    };
+                    if fov_angle > camera.horizontal_fov_rad * 0.5 + 1.0e-10 {
+                        continue;
+                    }
+                    let gsd = distance * fov_scale
+                        / (f64::from(camera.horizontal_pixel_count) * deviation.cos());
+                    if gsd > camera.gsd_max_m_per_pixel + 1.0e-12 {
+                        continue;
+                    }
+                    if grid.ray_occluded(position, target_centre, target.cell) {
+                        continue;
+                    }
+                    visible_features.push(target.feature_id.clone());
+                }
+                visible_features.sort();
+                candidates.push(CandidateView {
+                    view_id: format!("VIEW-{}", candidates.len()),
+                    source_feature_id: surface.feature_id.clone(),
+                    source_cell: surface.cell,
+                    position_direction_q1e6: [
+                        quantize(direction.x, 1.0e6)?,
+                        quantize(direction.y, 1.0e6)?,
+                        quantize(direction.z, 1.0e6)?,
+                    ],
+                    position_um: [
+                        quantize(position.x, 1.0e6)?,
+                        quantize(position.y, 1.0e6)?,
+                        quantize(position.z, 1.0e6)?,
+                    ],
+                    optical_axis_q1e6: [
+                        quantize(optical.x, 1.0e6)?,
+                        quantize(optical.y, 1.0e6)?,
+                        quantize(optical.z, 1.0e6)?,
+                    ],
+                    generation_kind: "AUGMENTED_TILT_AZIMUTH".to_owned(),
+                    tilt_degrees_millideg: Some(quantize(*tilt_degrees, 1.0e3)?),
+                    azimuth_degrees_millideg: Some(quantize(*azimuth_degrees, 1.0e3)?),
+                    visible_feature_ids,
+                });
+            }
+        }
+    }
+
+    let augmented_candidate_view_count = candidates.len() - initial_candidate_view_count;
     let visible_relation_count = candidates
         .iter()
         .map(|candidate| candidate.visible_feature_ids.len())
         .sum::<usize>();
     let feature_coverage = surfaces
         .iter()
-        .map(|surface| {
+        .enumerate()
+        .map(|(index, surface)| {
             let mut seen_by_view_ids = candidates
                 .iter()
                 .filter(|candidate| candidate.visible_feature_ids.contains(&surface.feature_id))
@@ -608,6 +798,7 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
             seen_by_view_ids.sort();
             FeatureCoverage {
                 feature_id: surface.feature_id.clone(),
+                initial_candidate_view_count: initial_coverage[index],
                 candidate_view_count: seen_by_view_ids.len(),
                 seen_by_view_ids,
             }
@@ -646,6 +837,13 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         max_oblique_angle_microrad: quantize(camera.max_oblique_angle_rad, 1.0e6)?,
         slant_range_max_um: quantize(slant_range, 1.0e6)?,
         perpendicular_distance_um: quantize(perpendicular, 1.0e6)?,
+        requested_k: case.augmentation.requested_k,
+        initial_candidate_view_count,
+        augmented_candidate_view_count,
+        undercovered_feature_ids_before_augmentation,
+        requested_k_covered_after_augmentation: feature_coverage
+            .iter()
+            .all(|feature| feature.candidate_view_count >= case.augmentation.requested_k),
         candidate_view_count: candidates.len(),
         visible_relation_count,
         surface_features: surfaces,
@@ -761,6 +959,45 @@ mod tests {
         assert_eq!(
             evaluate_bytes(&bytes, &"0".repeat(40)),
             Err("CAMERA_MODEL_INVALID".to_owned())
+        );
+    }
+
+    #[test]
+    fn augmentation_only_targets_initially_undercovered_features() {
+        let bytes = include_bytes!(
+            "../../../docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json"
+        );
+        let receipt = evaluate_bytes(bytes, &"0".repeat(40)).unwrap();
+        assert!(receipt.augmented_candidate_view_count > 0);
+        assert!(!receipt.undercovered_feature_ids_before_augmentation.is_empty());
+        assert_eq!(
+            receipt.candidate_view_count,
+            receipt.initial_candidate_view_count + receipt.augmented_candidate_view_count
+        );
+        for candidate in receipt
+            .candidate_views
+            .iter()
+            .filter(|candidate| candidate.generation_kind == "AUGMENTED_TILT_AZIMUTH")
+        {
+            assert!(
+                receipt
+                    .undercovered_feature_ids_before_augmentation
+                    .contains(&candidate.source_feature_id)
+            );
+            assert!(candidate.tilt_degrees_millideg.is_some());
+            assert!(candidate.azimuth_degrees_millideg.is_some());
+        }
+    }
+
+    #[test]
+    fn candidate_generation_rejects_excessive_augmentation_instead_of_truncating() {
+        let mut case = fixture();
+        case.augmentation.tilt_angles_deg = vec![30.0; 91];
+        case.augmentation.azimuth_angles_deg = vec![0.0];
+        let bytes = serde_json::to_vec(&case).unwrap();
+        assert_eq!(
+            evaluate_bytes(&bytes, &"0".repeat(40)),
+            Err("AUGMENTATION_ANGLE_INPUT_INVALID".to_owned())
         );
     }
 
