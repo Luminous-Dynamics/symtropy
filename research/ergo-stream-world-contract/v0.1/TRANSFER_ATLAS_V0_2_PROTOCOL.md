@@ -94,6 +94,8 @@ Begin with finite deterministic generators and independent exact oracles. Introd
 | Cross-modal alignment | Coupled event streams with delay, drift and missing channels | Incorrect association, temporal shuffling and missing-modality controls |
 | Interactive dynamics | Occlusion, contact, event order and continuous-time state changes | Same snapshots with different causal ordering / action outcomes |
 
+Continuous-time and hybrid dynamics qualification is specified separately in [`CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md`](CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md). It defines explicit clock/time maps, irregular sampling, delay, hybrid events/resets, uncertainty decomposition and trajectory-level transfer error. This is a protocol only; the executable v0.1 witness remains finite and deterministic.
+
 The current v0.1 Transfer Atlas fixtures cover a relabeled/reversed graph pair, a degree-matched non-isomorphic pair, and a qualitative intervention-divergent effect fixture. Separately, #7173 now contains a deterministic finite-state dynamics witness that checks exact transition commutation under a proposed state/action map. Neither the fixtures nor the validator implement these full generator families, stream-to-graph learning, an authenticated intervention runner, or a sealed evaluation service.
 
 ## 4. Baseline ladder and comparison discipline
