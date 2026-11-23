@@ -956,7 +956,7 @@ mod tests {
             reference_contract_id: "independent-reference-contract-v1".into(),
             reference_uncertainty_assessment_id: "reference-uncertainty-assessment-001".into(),
             length_scale_candidates_m: vec![1.0, 1.5, 2.0, 2.5, 3.0, 4.0],
-            maximum_validation_correlation_error: 0.10,
+            maximum_validation_correlation_error: 0.05,
             negative_lobe_z_threshold: 1.96,
         }
     }
