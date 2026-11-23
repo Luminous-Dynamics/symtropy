@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Content verification and dependence-aware partitioning for EHD-PIV evidence.
 //!
 //! This crate establishes byte identity and structural split consistency. It
