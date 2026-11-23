@@ -1,0 +1,86 @@
+{
+  "fixture_type": "synthetic_cmni_detector_response_ensemble_v1",
+  "provenance": "fully synthetic response matrices and count rates; no detector calibration",
+  "response_matrix_convention": "rows=measured bins; columns=true-energy bins",
+  "response_realizations": [
+    [
+      [
+        0.8,
+        0.1
+      ],
+      [
+        0.2,
+        0.7
+      ]
+    ],
+    [
+      [
+        0.7,
+        0.2
+      ],
+      [
+        0.3,
+        0.6
+      ]
+    ]
+  ],
+  "true_spectrum_rate_per_s": [
+    100,
+    50
+  ],
+  "background_rate_counts_per_s": [
+    1,
+    2
+  ],
+  "exposure_time_s": 10,
+  "conditional_expected_counts": [
+    [
+      860,
+      570
+    ],
+    [
+      810,
+      620
+    ]
+  ],
+  "predictive_mean_counts": [
+    835,
+    595
+  ],
+  "poisson_covariance": [
+    [
+      835,
+      0
+    ],
+    [
+      0,
+      595
+    ]
+  ],
+  "response_ensemble_sample_covariance": [
+    [
+      1250,
+      -1250
+    ],
+    [
+      -1250,
+      1250
+    ]
+  ],
+  "predictive_covariance": [
+    [
+      2085,
+      -1250
+    ],
+    [
+      -1250,
+      1845
+    ]
+  ],
+  "limits": [
+    "Two equally weighted synthetic response realizations only.",
+    "Background held fixed.",
+    "Sample covariance uses denominator N-1.",
+    "Not a detector calibration or spectrum unfolding result."
+  ]
+}

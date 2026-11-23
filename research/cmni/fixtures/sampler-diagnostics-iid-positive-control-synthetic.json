@@ -1,0 +1,58 @@
+{
+  "fixture_type": "synthetic_cmni_sampler_diagnostics_iid_positive_control_v1",
+  "provenance": "Independent Python implementation of the diagnostic equations, not Rust test output and not posterior sampling of a physics model",
+  "generator": {
+    "prng": "SplitMix64",
+    "normal_transform": "Box-Muller",
+    "chain_seeds": [
+      "0xC0FFEE",
+      "0xC0FFEE+97",
+      "0xC0FFEE+194",
+      "0xC0FFEE+291"
+    ],
+    "draws_per_chain": 2000,
+    "coefficient_distribution": "standard normal synthetic control",
+    "hamiltonian_energy_distribution": "independent standard normal synthetic control"
+  },
+  "expected_diagnostic_ranges": {
+    "rank_normalized_split_rhat": [
+      0.999,
+      1.002
+    ],
+    "folded_rank_normalized_split_rhat": [
+      0.999,
+      1.002
+    ],
+    "bulk_ess": [
+      7000,
+      8000
+    ],
+    "lower_upper_tail_min_ess": [
+      7000,
+      8000
+    ],
+    "raw_mean_ess": [
+      7000,
+      8000
+    ],
+    "raw_mean_mcse": [
+      0.01,
+      0.013
+    ],
+    "minimum_chain_ebfmi": [
+      1.5,
+      2.5
+    ],
+    "divergence_count": [
+      0,
+      0
+    ],
+    "qualification_flag": true
+  },
+  "interpretation": "An IID-like positive control should have Rhat near one, ESS near the total draw count, no divergences and healthy E-BFMI. Pathological controls for scale mismatch, zero energy variation and duplicated seeds are in sampler_diagnostics.rs tests.",
+  "limits": [
+    "Synthetic diagnostic control only.",
+    "No CMNI posterior is sampled or validated.",
+    "The Rust implementation still requires comparison against Stan or another mature diagnostics package."
+  ]
+}

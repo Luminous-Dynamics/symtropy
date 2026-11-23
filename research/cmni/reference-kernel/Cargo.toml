@@ -1,0 +1,15 @@
+[package]
+name = "cmni-reference"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Research-only homogeneous screened D-D thick-target yield reference kernel"
+
+# Keep this prototype independent of the parent Symtropy workspace until it
+# has passed scientific review and numerical verification.
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]

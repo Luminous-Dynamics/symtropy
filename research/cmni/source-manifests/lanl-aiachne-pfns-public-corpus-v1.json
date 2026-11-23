@@ -1,0 +1,555 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Public LANL AIACHNE PFNS source-corpus inventory",
+  "status": "source_bytes_and_record_structure_verified_not_scientifically_admitted",
+  "source": {
+    "repository": "https://github.com/lanl/sparse_bias",
+    "branch": "main",
+    "commit": "190a4e97ac21de4f33b42e49733e62c45d515e75",
+    "commit_date": "2026-07-20T16:59:22Z",
+    "data_directory": "AIACHNE/Data_LA-UR-25-31736/",
+    "readme_license_statement": "README states BSD-3 License; verify applicable rights and notices before redistribution."
+  },
+  "scope": {
+    "json_experiment_files": 21,
+    "pointwise_reference_files": 1,
+    "total_files": 22,
+    "total_bytes": 1508795,
+    "note": "This is the original public AIACHNE corpus in the LANL sparse_bias repository. It is distinct from the seven Neudecker 2025 supplementary artifacts and from NMF-90.",
+    "sha256_verified_files": 22,
+    "byte_identity_verified_files": 22
+  },
+  "identity_semantics": {
+    "git_blob_sha1": "Git object identity reported by the GitHub Contents API; not a SHA-256 digest.",
+    "sha256": "Must be computed from exact materialized bytes before data-admission status can advance.",
+    "validation": "File identity and byte size do not establish scientific validity, metadata completeness, covariance interpretation, or fitness for a benchmark."
+  },
+  "files": [
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/Eval_MvUncCf252PFNS_AfterAIACHNEKnowledgePointwise_Upd20250908.dat",
+      "size_bytes": 3198,
+      "git_blob_sha1": "61967b0be2074f5199828006b5dcab1830421788",
+      "sha256": "f28afee1090f77acef98999d2c5344d1cbed0c1cb3c698639d249fa22024d287",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified"
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Bao1989.json",
+      "size_bytes": 31887,
+      "git_blob_sha1": "cf184e20271c7f08b96f6ff38df6c847d1835048",
+      "sha256": "1fb24145be179097fa0cae53fdb2d16a1c687133b8f2f8b56fef3bf74a5e068a",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 33,
+        "uncertainty_count": 33,
+        "energy_limit_count": 33,
+        "correlation_matrix_shape": [
+          33,
+          33
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.039148151983240315,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blain2017highEout.json",
+      "size_bytes": 11440,
+      "git_blob_sha1": "3fad353838e98a7bb08a038521612ca8623a3d70",
+      "sha256": "39d247039c915300e8f1436db1441a1c6489e80841710810f383ee2c32ffca49",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 12,
+        "uncertainty_count": 12,
+        "energy_limit_count": 12,
+        "correlation_matrix_shape": [
+          12,
+          12
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.0005470089458578572,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blain2017lowEout.json",
+      "size_bytes": 12076,
+      "git_blob_sha1": "ddc27e8bebb1bac325aa0dacf5a788028c385626",
+      "sha256": "2022a9a635e4d2e61d7e4933e9bfa1d42e520b4194f975c53ed8630222c78ce7",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 13,
+        "uncertainty_count": 13,
+        "energy_limit_count": 13,
+        "correlation_matrix_shape": [
+          13,
+          13
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.028590577529104107,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1973.json",
+      "size_bytes": 121809,
+      "git_blob_sha1": "6b3360de135009da64fe699ac39cff08a10363ea",
+      "sha256": "680d42939c0255d323bacd55ad45eb0e75af6cdb34d9f92c29490d69eec4da1f",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 73,
+        "uncertainty_count": 73,
+        "energy_limit_count": 73,
+        "correlation_matrix_shape": [
+          73,
+          73
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.006476971103416773,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980002.json",
+      "size_bytes": 102757,
+      "git_blob_sha1": "aefd6b13656e2ea90bf727b15d14a6fa22774b36",
+      "sha256": "7c3b48aaab78d68fa3456f7ba198b8fa8b121d22504b63aa081fd14acdcff187",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 67,
+        "uncertainty_count": 67,
+        "energy_limit_count": 67,
+        "correlation_matrix_shape": [
+          67,
+          67
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.29081130874855304,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980003.json",
+      "size_bytes": 58916,
+      "git_blob_sha1": "d9f85c4701ce2ec9a0e0522aaca58e417ff331a0",
+      "sha256": "f911aaabae554108cb41184190297d25704662fb3f556dcb8fb04e27a2b4b69d",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 49,
+        "uncertainty_count": 49,
+        "energy_limit_count": 49,
+        "correlation_matrix_shape": [
+          49,
+          49
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.3899194141148848,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980004.json",
+      "size_bytes": 128786,
+      "git_blob_sha1": "437d4df0c44f72145b9e92200545a0a6c78ad52e",
+      "sha256": "92938495f11ea261333fe20ecdb5b64a247762e791e04bd5f55d968b5f9bbf85",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 76,
+        "uncertainty_count": 76,
+        "energy_limit_count": 76,
+        "correlation_matrix_shape": [
+          76,
+          76
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.3538029683179863,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Blinov1980005.json",
+      "size_bytes": 146192,
+      "git_blob_sha1": "f70d688d9767512e2719e8ad705202efb467d315",
+      "sha256": "3db3eb01da3e46536360963cb1b6418866da4759455179430d48a5c4eb26f9b1",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 81,
+        "uncertainty_count": 81,
+        "energy_limit_count": 81,
+        "correlation_matrix_shape": [
+          81,
+          81
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.6224062172505394,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boettger1990.json",
+      "size_bytes": 82971,
+      "git_blob_sha1": "2a1b674e1cf6f5b182dfdb927f8e91fca087d2ae",
+      "sha256": "03860f791b8c9d7c43437653bf329e6c5289081d5223964c14f2fd1a869b9577",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 60,
+        "uncertainty_count": 60,
+        "energy_limit_count": 60,
+        "correlation_matrix_shape": [
+          60,
+          60
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.011449965299644729,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boldeman1986highEout.json",
+      "size_bytes": 80347,
+      "git_blob_sha1": "0a6c92990606e21cc7a0c1535266aca16876d1e8",
+      "sha256": "7241837de37932da23c66bc8b2776c93a4b05ff9936e5120526356d59e8e6044",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 59,
+        "uncertainty_count": 59,
+        "energy_limit_count": 59,
+        "correlation_matrix_shape": [
+          59,
+          59
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.000018866578059021635,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boldeman1986lowEout.json",
+      "size_bytes": 25537,
+      "git_blob_sha1": "0e3962c318fdf935fccfb7329814bfe8cf3b344a",
+      "sha256": "d1dea9e0712a2e9522c6fd737d8e9619600291d5f41e55aafed2fec11a5f8fb1",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 28,
+        "uncertainty_count": 28,
+        "energy_limit_count": 28,
+        "correlation_matrix_shape": [
+          28,
+          28
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.0062127851562843485,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983003.json",
+      "size_bytes": 20291,
+      "git_blob_sha1": "3f5b7e8de0cbbd8a0650eb3f0bcb46aaff649a7f",
+      "sha256": "2544085935bcdf2514d238705d0d215b437b47b9d9775be45aaaded4257b2819",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 24,
+        "uncertainty_count": 24,
+        "energy_limit_count": 24,
+        "correlation_matrix_shape": [
+          24,
+          24
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.044527688826092746,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983004.json",
+      "size_bytes": 20311,
+      "git_blob_sha1": "d11228d1fb06efe5b237d8cb228f80ff48804981",
+      "sha256": "2ace1bd92e5e4553fca1d9babe285b8533dbd5d5e10dcc70256bbd834ea23e59",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 24,
+        "uncertainty_count": 24,
+        "energy_limit_count": 24,
+        "correlation_matrix_shape": [
+          24,
+          24
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.005962143521733429,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Boytsov1983ant.json",
+      "size_bytes": 70439,
+      "git_blob_sha1": "23537ede0253b5217f6ccc6dc898400ee5d8f679",
+      "sha256": "a7ccfe7a047e41f2be703b5181d884a2d76111d34460f9b396775595dd69bfcc",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 55,
+        "uncertainty_count": 55,
+        "energy_limit_count": 55,
+        "correlation_matrix_shape": [
+          55,
+          55
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.0027682697833003546,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Chalupka1990.json",
+      "size_bytes": 24693,
+      "git_blob_sha1": "773d97899647dae1464d377ff7431e7bb51a07a1",
+      "sha256": "225c0aca8593f610db78b527b9534c0a2861e840574906b9244926a418d58a45",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 28,
+        "uncertainty_count": 28,
+        "energy_limit_count": 28,
+        "correlation_matrix_shape": [
+          28,
+          28
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.34559640783191026,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Knitter1973003.json",
+      "size_bytes": 174786,
+      "git_blob_sha1": "4849a3cb68b5aa8263df5133197d929bc105abb2",
+      "sha256": "89e90334c64708406103c2a984373703559c9dc88f61caeb673455d94144afbb",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 90,
+        "uncertainty_count": 90,
+        "energy_limit_count": 90,
+        "correlation_matrix_shape": [
+          90,
+          90
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.038813892106143826,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Kornilov2015.json",
+      "size_bytes": 174393,
+      "git_blob_sha1": "53284095187ad723fe5d06e7d63d54c1ae9ef21a",
+      "sha256": "30551db8539f97733cf57559e9b40273fa88f8ea86e14dc1ae0ac693d3fecb33",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 90,
+        "uncertainty_count": 90,
+        "energy_limit_count": 90,
+        "correlation_matrix_shape": [
+          90,
+          90
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.013485876556396563,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Lajtai1990.json",
+      "size_bytes": 111158,
+      "git_blob_sha1": "88f52e41d94a2af2f99b84f4c68f42847515581e",
+      "sha256": "fddfa016f562fe27a284773d2a00c2826ef28ae06b8cfb1816a629c5d8e0412b",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 70,
+        "uncertainty_count": 70,
+        "energy_limit_count": 70,
+        "correlation_matrix_shape": [
+          70,
+          70
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.10232252818056758,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Maerten1990_0deg.json",
+      "size_bytes": 19928,
+      "git_blob_sha1": "495c4655e9f75533102aa2c29c19795740a0f042",
+      "sha256": "39596ce3066337573f2ac34e5e31c00a710af5dd6ed25d70d344321853fd20b7",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 23,
+        "uncertainty_count": 23,
+        "energy_limit_count": 23,
+        "correlation_matrix_shape": [
+          23,
+          23
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.020166208725804366,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Maerten1990_60deg.json",
+      "size_bytes": 19904,
+      "git_blob_sha1": "ddfd9ea8cefd9fdf2d92b639470343eea1cd2c78",
+      "sha256": "e584725df0778a8098e6fe25ae3f72787d3cf61ff7fd995cfd8ffdd1b6a6ee91",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 23,
+        "uncertainty_count": 23,
+        "energy_limit_count": 23,
+        "correlation_matrix_shape": [
+          23,
+          23
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.02384843681069545,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    },
+    {
+      "path": "AIACHNE/Data_LA-UR-25-31736/PFNS_Poenitz1982.json",
+      "size_bytes": 66976,
+      "git_blob_sha1": "18483c2b20a27c92331b7adc12a40011211214be",
+      "sha256": "81adfe85fe84cae2836dbfd3892dc919cdf5bfb7cb69db4f93b07b2aec91c6e9",
+      "byte_retrieval_status": "retrieved_exact_git_blob",
+      "sha256_status": "verified",
+      "structural_audit": {
+        "observation_count": 52,
+        "uncertainty_count": 52,
+        "energy_limit_count": 52,
+        "correlation_matrix_shape": [
+          52,
+          52
+        ],
+        "correlation_symmetric_within_float_tolerance": true,
+        "correlation_positive_definite_unpivoted_cholesky": true,
+        "minimum_unpivoted_cholesky_diagonal_pivot": 0.07886307989072959,
+        "zero_observation_bins": 0,
+        "numeric_arrays_finite": true,
+        "energy_limits_monotone_non_decreasing": true
+      }
+    }
+  ],
+  "retrieval_verification": {
+    "source_commit": "190a4e97ac21de4f33b42e49733e62c45d515e75",
+    "verification_method": "Each text payload was retrieved at the pinned commit, re-encoded as UTF-8, checked against the GitHub-reported byte length, and hashed using the Git blob SHA-1 object preimage; every computed blob SHA-1 matched the upstream object ID. SHA-256 was then computed over the same UTF-8 bytes.",
+    "limitations": [
+      "These are byte-integrity receipts for the exact public Git objects, not scientific validation or admission.",
+      "The bytes were retrieved through the GitHub connector and verified in-memory; this does not assert that the files were copied into the Symtropy repository or a local filesystem.",
+      "The original LANL README states BSD-3 License; preserve upstream notices and confirm redistribution terms before republishing source bytes."
+    ]
+  },
+  "structural_audit": {
+    "experiment_json_files": 21,
+    "observation_count_total": 1030,
+    "correlation_matrix_entries_total": 63646,
+    "uncertainty_entries_total": 1030,
+    "energy_limit_entries_total": 1030,
+    "zero_observation_bins_total": 0,
+    "non_finite_numeric_values": 0,
+    "all_correlation_matrices_square_symmetric_positive_definite": true,
+    "maximum_absolute_correlation_asymmetry_observed": 4.440892098500626e-16,
+    "minimum_unpivoted_cholesky_diagonal_pivot": 0.000018866578059021635,
+    "minimum_pivot_file": "PFNS_Boldeman1986highEout.json",
+    "caveat": "Structural numerical checks only. Cholesky pivots are not eigenvalues or condition numbers; scientific validity and uncertainty completeness remain unqualified.",
+    "energy_limits_strictly_increasing_all_experiments": true,
+    "pointwise_reference_grid_points": 72,
+    "pointwise_reference_energy_min_mev": 0.0005,
+    "pointwise_reference_energy_max_mev": 25.01,
+    "experiments_below_reference_lower_boundary": [
+      "PFNS_Blinov1980002.json"
+    ],
+    "experiment_bins_below_reference_lower_boundary": 3,
+    "skipped_left_out_of_domain_trapezoids": 2,
+    "upper_endpoint_nan_trapezoids": 0,
+    "normalization_candidate_fixture": "research/cmni/fixtures/aiachne-reference-normalization-v1.json",
+    "normalization_fixture_status": "candidate_values_from_in_memory_reimplementation_pending_independent_scipy_cross_check"
+  }
+}
