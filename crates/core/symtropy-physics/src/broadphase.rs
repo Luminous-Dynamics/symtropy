@@ -27,7 +27,118 @@ pub struct Aabb<const D: usize> {
     pub max: SVector<f64, D>,
 }
 
+/// Which strict interval inequality proves two AABBs disjoint on one axis.
+///
+/// The numeric discriminants are stable for evidence serialization.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum AabbSeparationRelation {
+    /// `self.max[axis] < other.min[axis]`.
+    SelfMaxBelowOtherMin = 1,
+    /// `other.max[axis] < self.min[axis]`.
+    OtherMaxBelowSelfMin = 2,
+}
+
+/// Exact-snapshot witness for one strict AABB separation inequality.
+///
+/// This proves only that the two supplied, represented AABBs are disjoint.
+/// It does not prove that either AABB conservatively encloses its underlying
+/// collider, nor does it bind a broadphase node identity or revision read-set.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AabbSeparationWitness<const D: usize> {
+    axis: usize,
+    relation: AabbSeparationRelation,
+    self_min_bits: [u64; D],
+    self_max_bits: [u64; D],
+    other_min_bits: [u64; D],
+    other_max_bits: [u64; D],
+}
+
+impl<const D: usize> AabbSeparationWitness<D> {
+    /// Axis of the strict separating interval.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
+    /// Direction of the strict separating interval.
+    pub fn relation(&self) -> AabbSeparationRelation {
+        self.relation
+    }
+
+    /// Recheck the exact endpoint snapshots and strict separation inequality.
+    ///
+    /// Any endpoint change, non-finite endpoint, reversed interval, invalid
+    /// axis, or loss of strict separation invalidates this witness.
+    pub fn verify(&self, a: &Aabb<D>, b: &Aabb<D>) -> bool {
+        if self.axis >= D || !aabb_has_finite_ordered_bounds(a) || !aabb_has_finite_ordered_bounds(b) {
+            return false;
+        }
+
+        if self.self_min_bits != std::array::from_fn(|axis| a.min[axis].to_bits())
+            || self.self_max_bits != std::array::from_fn(|axis| a.max[axis].to_bits())
+            || self.other_min_bits != std::array::from_fn(|axis| b.min[axis].to_bits())
+            || self.other_max_bits != std::array::from_fn(|axis| b.max[axis].to_bits())
+        {
+            return false;
+        }
+
+        match self.relation {
+            AabbSeparationRelation::SelfMaxBelowOtherMin => {
+                a.max[self.axis] < b.min[self.axis]
+            }
+            AabbSeparationRelation::OtherMaxBelowSelfMin => {
+                b.max[self.axis] < a.min[self.axis]
+            }
+        }
+    }
+}
+
+fn aabb_has_finite_ordered_bounds<const D: usize>(aabb: &Aabb<D>) -> bool {
+    (0..D).all(|axis| {
+        aabb.min[axis].is_finite()
+            && aabb.max[axis].is_finite()
+            && aabb.min[axis] <= aabb.max[axis]
+    })
+}
+
+
 impl<const D: usize> Aabb<D> {
+    /// Construct a checkable witness if these finite, ordered AABBs are
+    /// strictly separated on at least one axis.
+    ///
+    /// Tangency is overlap for broadphase purposes and therefore produces no
+    /// witness. Invalid or non-finite endpoints also produce no witness.
+    pub fn separation_witness(&self, other: &Self) -> Option<AabbSeparationWitness<D>> {
+        if !aabb_has_finite_ordered_bounds(self)
+            || !aabb_has_finite_ordered_bounds(other)
+        {
+            return None;
+        }
+
+        for axis in 0..D {
+            let relation = if self.max[axis] < other.min[axis] {
+                Some(AabbSeparationRelation::SelfMaxBelowOtherMin)
+            } else if other.max[axis] < self.min[axis] {
+                Some(AabbSeparationRelation::OtherMaxBelowSelfMin)
+            } else {
+                None
+            };
+
+            if let Some(relation) = relation {
+                return Some(AabbSeparationWitness {
+                    axis,
+                    relation,
+                    self_min_bits: std::array::from_fn(|i| self.min[i].to_bits()),
+                    self_max_bits: std::array::from_fn(|i| self.max[i].to_bits()),
+                    other_min_bits: std::array::from_fn(|i| other.min[i].to_bits()),
+                    other_max_bits: std::array::from_fn(|i| other.max[i].to_bits()),
+                });
+            }
+        }
+
+        None
+    }
+
     pub fn empty() -> Self {
         Self {
             min: SVector::from_element(f64::MAX),
@@ -509,6 +620,90 @@ mod tests {
     use super::*;
     use crate::body::RigidBody;
     use symtropy_math::{Point, Sphere};
+
+    #[test]
+    fn aabb_separation_witness_proves_strict_axis_gap_and_is_replayable() {
+        let left = Aabb {
+            min: SVector::from([0.0, 0.0, 0.0]),
+            max: SVector::from([1.0, 1.0, 1.0]),
+        };
+        let right = Aabb {
+            min: SVector::from([2.0, 0.25, 0.25]),
+            max: SVector::from([3.0, 0.75, 0.75]),
+        };
+
+        let witness = left.separation_witness(&right).expect("x-axis gap exists");
+        assert_eq!(witness.axis(), 0);
+        assert_eq!(
+            witness.relation(),
+            AabbSeparationRelation::SelfMaxBelowOtherMin
+        );
+        assert!(witness.verify(&left, &right));
+        assert!(!witness.verify(&right, &left));
+    }
+
+    #[test]
+    fn aabb_separation_witness_supports_reverse_direction_and_other_axes() {
+        let left = Aabb {
+            min: SVector::from([0.0, 3.0, 0.0]),
+            max: SVector::from([1.0, 4.0, 1.0]),
+        };
+        let right = Aabb {
+            min: SVector::from([0.0, 0.0, 0.0]),
+            max: SVector::from([1.0, 2.0, 1.0]),
+        };
+
+        let witness = left.separation_witness(&right).expect("y-axis gap exists");
+        assert_eq!(witness.axis(), 1);
+        assert_eq!(
+            witness.relation(),
+            AabbSeparationRelation::OtherMaxBelowSelfMin
+        );
+        assert!(witness.verify(&left, &right));
+    }
+
+    #[test]
+    fn aabb_separation_witness_rejects_tangency_and_invalid_bounds() {
+        let tangent = Aabb {
+            min: SVector::from([1.0, 0.0, 0.0]),
+            max: SVector::from([2.0, 1.0, 1.0]),
+        };
+        let base = Aabb {
+            min: SVector::zeros(),
+            max: SVector::from_element(1.0),
+        };
+        assert!(base.separation_witness(&tangent).is_none());
+
+        let nan = Aabb {
+            min: SVector::from([f64::NAN, 0.0, 0.0]),
+            max: SVector::from([f64::NAN, 1.0, 1.0]),
+        };
+        let reversed = Aabb {
+            min: SVector::from([2.0, 0.0, 0.0]),
+            max: SVector::from([1.0, 1.0, 1.0]),
+        };
+        assert!(nan.separation_witness(&base).is_none());
+        assert!(base.separation_witness(&reversed).is_none());
+    }
+
+    #[test]
+    fn aabb_separation_witness_rejects_changed_endpoint_snapshot() {
+        let left = Aabb {
+            min: SVector::zeros(),
+            max: SVector::from_element(1.0),
+        };
+        let right = Aabb {
+            min: SVector::from([2.0, 0.0, 0.0]),
+            max: SVector::from([3.0, 1.0, 1.0]),
+        };
+        let witness = left.separation_witness(&right).unwrap();
+
+        let changed_left = Aabb {
+            min: SVector::zeros(),
+            max: SVector::from([1.0, 1.0, 1.0000000000000002]),
+        };
+        assert!(!witness.verify(&changed_left, &right));
+    }
 
     #[test]
     fn overlapping_pair_detected() {
