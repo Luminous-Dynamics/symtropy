@@ -114,8 +114,8 @@ pub fn certify_col_energy_path(
         return Err(KernelError::InvalidColEnergyGuardConfig);
     }
 
-    let reference_energy = energy_enclosure(inputs, 0.0, 0.0)
-        .ok_or(KernelError::NumericalOverflow)?;
+    let reference_energy =
+        energy_enclosure(inputs, 0.0, 0.0).ok_or(KernelError::NumericalOverflow)?;
     if reference_energy.upper >= 0.0 {
         return Err(KernelError::UnboundReferenceCoL);
     }
@@ -312,11 +312,7 @@ fn validate_inputs(inputs: ColEnergyGuardInputs) -> Result<(), KernelError> {
     Ok(())
 }
 
-fn energy_enclosure(
-    inputs: ColEnergyGuardInputs,
-    x_lower: f64,
-    x_upper: f64,
-) -> Option<Enclosure> {
+fn energy_enclosure(inputs: ColEnergyGuardInputs, x_lower: f64, x_upper: f64) -> Option<Enclosure> {
     if !x_lower.is_finite()
         || !x_upper.is_finite()
         || x_lower < 0.0
@@ -333,8 +329,14 @@ fn energy_enclosure(
         return None;
     }
 
-    let mut position = [Enclosure { lower: 0.0, upper: 0.0 }; 3];
-    let mut velocity = [Enclosure { lower: 0.0, upper: 0.0 }; 3];
+    let mut position = [Enclosure {
+        lower: 0.0,
+        upper: 0.0,
+    }; 3];
+    let mut velocity = [Enclosure {
+        lower: 0.0,
+        upper: 0.0,
+    }; 3];
 
     for i in 0..3 {
         let initial = Enclosure::point(inputs.initial_col_position[i])?;
@@ -347,15 +349,21 @@ fn energy_enclosure(
         let mut value = Enclosure::point(inputs.conditional_mean_velocity[i])?;
         for j in 0..3 {
             let beta = Enclosure::point(inputs.conditional_velocity_regression[i][j])?;
-            let pos_offset = position[j]
-                .subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
+            let pos_offset =
+                position[j].subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
             value = value.add(beta.multiply(pos_offset)?)?;
         }
         velocity[i] = value;
     }
 
-    let mut speed_squared = Enclosure { lower: 0.0, upper: 0.0 };
-    let mut radius_squared = Enclosure { lower: 0.0, upper: 0.0 };
+    let mut speed_squared = Enclosure {
+        lower: 0.0,
+        upper: 0.0,
+    };
+    let mut radius_squared = Enclosure {
+        lower: 0.0,
+        upper: 0.0,
+    };
     for i in 0..3 {
         speed_squared = speed_squared.add(velocity[i].square()?)?;
         radius_squared = radius_squared.add(position[i].square()?)?;
@@ -506,12 +514,13 @@ mod tests {
 
     #[test]
     fn constant_bound_path_certifies_full_step() {
-        let report = certify_col_energy_path(
-            constant_bound_path(),
-            ColEnergyGuardConfig::default(),
-        )
-        .expect("valid bound path");
-        assert_eq!(report.disposition, ColEnergyGuardDisposition::FullStepCertified);
+        let report =
+            certify_col_energy_path(constant_bound_path(), ColEnergyGuardConfig::default())
+                .expect("valid bound path");
+        assert_eq!(
+            report.disposition,
+            ColEnergyGuardDisposition::FullStepCertified
+        );
         assert_eq!(report.certified_safe_prefix, 1.0);
         assert!(report.first_boundary_bracket.is_none());
         assert!(report.reference_energy_enclosure[1] < 0.0);
@@ -562,8 +571,8 @@ mod tests {
         inputs.conditional_mean_position = [10.0e6, 0.0, 0.0];
         inputs.gravitational_parameter = 1.0;
         inputs.maximum_relative_energy_change = 0.2;
-        let report = certify_col_energy_path(inputs, ColEnergyGuardConfig::default())
-            .expect("valid path");
+        let report =
+            certify_col_energy_path(inputs, ColEnergyGuardConfig::default()).expect("valid path");
         let bracket = report.first_boundary_bracket.expect("boundary bracket");
         assert!(bracket[0] <= bracket[1]);
         assert!(report.certified_safe_prefix <= bracket[0]);
@@ -585,7 +594,10 @@ mod tests {
             },
         )
         .expect("valid path");
-        assert_eq!(report.disposition, ColEnergyGuardDisposition::AbstainedBudget);
+        assert_eq!(
+            report.disposition,
+            ColEnergyGuardDisposition::AbstainedBudget
+        );
         assert!(report.certified_safe_prefix <= 1.0);
     }
 
@@ -599,7 +611,10 @@ mod tests {
         inputs.maximum_relative_energy_change = 10.0;
         let report = certify_col_energy_path(inputs, ColEnergyGuardConfig::default())
             .expect("reference state is bound");
-        assert_ne!(report.disposition, ColEnergyGuardDisposition::FullStepCertified);
+        assert_ne!(
+            report.disposition,
+            ColEnergyGuardDisposition::FullStepCertified
+        );
     }
 
     #[test]
