@@ -133,7 +133,7 @@ const NO_OBSERVATION: SensorAction = SensorAction {
     service_units_per_latency_tick: 0,
 };
 
-const SENSORS: [SensorAction; 6] = [
+const SENSORS: [SensorAction; 9] = [
     // This is useful operational telemetry, but shares the TOS/gateway path.
     // It is deliberately advisory and cannot become an independent witness.
     SensorAction {
@@ -205,6 +205,52 @@ const SENSORS: [SensorAction; 6] = [
         latency_ticks: 0,
         service_units_per_latency_tick: 1,
     },
+    SensorAction {
+        id: "potentially_correlated_feed",
+        mode: SensingMode::IndependentWitness,
+        gate: Some(EvidenceGate {
+            dependency: DependencyDisposition::PotentiallyCorrelated,
+            event_association: EventAssociation::Unique,
+            capture_complete: true,
+            freshness_current: true,
+            read_only_authorized: true,
+            dependency_receipt: "synthetic:potential-common-root",
+            association_receipt: "synthetic:unique-physical-event-match",
+            capture_receipt: "synthetic:complete-capture",
+        }),
+        outcomes: [
+            "PRIMARY_READY",
+            "PRIMARY_DELAY_RESERVE_READY",
+            "PRIMARY_DELAY_RESERVE_UNAVAILABLE",
+        ],
+        energy_kwh: 0,
+        service_units_per_kwh: 1,
+        latency_ticks: 0,
+        service_units_per_latency_tick: 1,
+    },
+    SensorAction {
+        id: "revoked_dependency_feed",
+        mode: SensingMode::IndependentWitness,
+        gate: Some(EvidenceGate {
+            dependency: DependencyDisposition::Revoked,
+            event_association: EventAssociation::Unique,
+            capture_complete: true,
+            freshness_current: true,
+            read_only_authorized: true,
+            dependency_receipt: "synthetic:revoked-dependency-receipt",
+            association_receipt: "synthetic:unique-physical-event-match",
+            capture_receipt: "synthetic:complete-capture",
+        }),
+        outcomes: [
+            "PRIMARY_READY",
+            "PRIMARY_DELAY_RESERVE_READY",
+            "PRIMARY_DELAY_RESERVE_UNAVAILABLE",
+        ],
+        energy_kwh: 0,
+        service_units_per_kwh: 1,
+        latency_ticks: 0,
+        service_units_per_latency_tick: 1,
+    },
     // A separated channel is not enough when physical-event correspondence is
     // ambiguous. This control checks that the event-association gate remains
     // independent of the dependency-separation gate.
@@ -220,6 +266,29 @@ const SENSORS: [SensorAction; 6] = [
             dependency_receipt: "synthetic:stage-dimension-separated",
             association_receipt: "synthetic:ambiguous-physical-event-match",
             capture_receipt: "synthetic:complete-independent-capture",
+        }),
+        outcomes: [
+            "PRIMARY_READY",
+            "PRIMARY_DELAY_RESERVE_READY",
+            "PRIMARY_DELAY_RESERVE_UNAVAILABLE",
+        ],
+        energy_kwh: 0,
+        service_units_per_kwh: 1,
+        latency_ticks: 0,
+        service_units_per_latency_tick: 1,
+    },
+    SensorAction {
+        id: "unmatched_event_receipt",
+        mode: SensingMode::IndependentWitness,
+        gate: Some(EvidenceGate {
+            dependency: DependencyDisposition::Separated,
+            event_association: EventAssociation::Unmatched,
+            capture_complete: true,
+            freshness_current: true,
+            read_only_authorized: true,
+            dependency_receipt: "synthetic:stage-dimension-separated",
+            association_receipt: "synthetic:no-physical-event-match",
+            capture_receipt: "synthetic:complete-capture",
         }),
         outcomes: [
             "PRIMARY_READY",
@@ -712,6 +781,18 @@ mod tests {
     #[test]
     fn ambiguous_event_association_and_stale_evidence_fail_closed() {
         let results = evaluate_benchmark();
+        assert_eq!(
+            result(&results, "potentially_correlated_feed").status,
+            "BLOCKED_POTENTIALLY_CORRELATED"
+        );
+        assert_eq!(
+            result(&results, "revoked_dependency_feed").status,
+            "BLOCKED_REVOKED_DEPENDENCY"
+        );
+        assert_eq!(
+            result(&results, "unmatched_event_receipt").status,
+            "BLOCKED_UNMATCHED_ASSOCIATION"
+        );
         assert_eq!(
             result(&results, "ambiguous_event_camera").status,
             "BLOCKED_AMBIGUOUS_ASSOCIATION"
