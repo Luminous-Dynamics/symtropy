@@ -10,7 +10,7 @@ from pathlib import Path
 CORPUS_SCHEMA = "luminous.orbital-truss-support-envelope.corpus.v0.1"
 RECEIPT_SCHEMA = "luminous.orbital-truss-support-envelope.receipt.v0.1"
 BENCHMARK_ID = "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001"
-CLAIM_CEILING = "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed"
+CLAIM_CEILING = "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed"
 CASE_COUNT = 13
 DISTANCE_SCALE = 1e9
 ANGLE_SCALE = 1e9
@@ -51,8 +51,9 @@ def invalid(case, reason):
         "incidence_angle_upper_bound_nrad": None,
         "gsd_lower_bound_pm_per_px": None,
         "gsd_upper_bound_pm_per_px": None,
-        "support_bound_proven": support["enclosing_ball_proven"],
-        "normal_cone_proven": support["normal_cone_proven"],
+        "support_bound_input_asserted": support["enclosing_ball_asserted"],
+        "normal_cone_input_asserted": support["normal_cone_asserted"],
+        "precondition_proofs_verified_independently": False,
         "occlusion_status": "NOT_ASSESSED",
         "full_support_visibility_certified": False,
         "may_count_toward_full_support_coverage": False,
@@ -76,8 +77,9 @@ def indeterminate(case, reasons):
         "incidence_angle_upper_bound_nrad": None,
         "gsd_lower_bound_pm_per_px": None,
         "gsd_upper_bound_pm_per_px": None,
-        "support_bound_proven": support["enclosing_ball_proven"],
-        "normal_cone_proven": support["normal_cone_proven"],
+        "support_bound_input_asserted": support["enclosing_ball_asserted"],
+        "normal_cone_input_asserted": support["normal_cone_asserted"],
+        "precondition_proofs_verified_independently": False,
         "occlusion_status": "NOT_ASSESSED",
         "full_support_visibility_certified": False,
         "may_count_toward_full_support_coverage": False,
@@ -134,7 +136,7 @@ def evaluate(case):
         return invalid(case, reason)
     support = case["support"]
     sensor = case["sensor"]
-    if not support["enclosing_ball_proven"]:
+    if not support["enclosing_ball_asserted"]:
         return indeterminate(case, ["SUPPORT_ENCLOSING_BALL_UNPROVEN"])
 
     vector = [
@@ -159,7 +161,7 @@ def evaluate(case):
     incidence_upper = None
     gsd_lower = None
     gsd_upper = None
-    if support["normal_cone_proven"]:
+    if support["normal_cone_asserted"]:
         center_incidence = math.acos(max(
             -1.0,
             min(1.0, dot(support["outward_normal_unit"], toward_sensor)),
@@ -198,7 +200,7 @@ def evaluate(case):
         )
         fov_pass = fov_upper <= sensor["horizontal_fov_rad"] / 2.0 + EPS
         incidence_pass = (
-            support["normal_cone_proven"]
+            support["normal_cone_asserted"]
             and incidence_upper is not None
             and incidence_upper <= sensor["maximum_obliquity_rad"] + EPS
             and incidence_upper < math.pi / 2.0
@@ -223,7 +225,7 @@ def evaluate(case):
                 reasons.append("RANGE_UPPER_BOUND_NOT_CERTIFIED")
             if fov_upper > sensor["horizontal_fov_rad"] / 2.0 + EPS:
                 reasons.append("FOV_UPPER_BOUND_NOT_CERTIFIED")
-            if not support["normal_cone_proven"]:
+            if not support["normal_cone_asserted"]:
                 reasons.append("NORMAL_CONE_UNPROVEN")
             elif (incidence_upper is None
                   or incidence_upper > sensor["maximum_obliquity_rad"] + EPS
@@ -248,8 +250,9 @@ def evaluate(case):
         "incidence_angle_upper_bound_nrad": fixed(incidence_upper, ANGLE_SCALE),
         "gsd_lower_bound_pm_per_px": fixed(gsd_lower, GSD_SCALE),
         "gsd_upper_bound_pm_per_px": fixed(gsd_upper, GSD_SCALE),
-        "support_bound_proven": support["enclosing_ball_proven"],
-        "normal_cone_proven": support["normal_cone_proven"],
+        "support_bound_input_asserted": support["enclosing_ball_asserted"],
+        "normal_cone_input_asserted": support["normal_cone_asserted"],
+        "precondition_proofs_verified_independently": False,
         "occlusion_status": "NOT_ASSESSED",
         "full_support_visibility_certified": False,
         "may_count_toward_full_support_coverage": False,
@@ -291,6 +294,7 @@ def main():
         "flight_authorized": False,
         "physical_validation": "NOT_ASSESSED",
         "occlusion_assessed": False,
+        "precondition_proofs_verified_independently": False,
         "case_count": len(cases),
         "expected_outcome_matches": matches,
         "expected_outcome_mismatches": len(cases) - matches,
