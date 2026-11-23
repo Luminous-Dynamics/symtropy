@@ -31,7 +31,7 @@ pub enum ServiceMode {
     Either,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum AdmissionPolicy {
     FirstComeFirstServed,
@@ -1060,6 +1060,7 @@ mod tests {
                 aircraft_id: "a1".to_owned(),
                 start_seconds: 100,
                 max_service_duration_seconds: 600,
+                max_payload_units: 100,
                 turnaround_seconds: 100,
                 capacity_reference: "synthetic://capacity/first".to_owned(),
             },
