@@ -156,7 +156,9 @@
         "fault_injector_sha256",
         "native_adapter_revision",
         "runtime_monitor_revision",
-        "fault_injector_fault_domain_id"
+        "fault_injector_fault_domain_id",
+        "fault_injector_id",
+        "native_adapter_id"
       ],
       "properties": {
         "platform_id": {
@@ -217,6 +219,14 @@
           "minLength": 1
         },
         "fault_injector_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_adapter_id": {
           "type": "string",
           "minLength": 1
         }
