@@ -431,7 +431,7 @@
                   "attempt-2-downstream-host-1"
                 ],
                 "raw_artifact_id": "attempt-2-downstream-raw-1",
-                "raw_artifact_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+                "raw_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
               },
               {
                 "observer_id": "attempt-2-downstream-observer-2",
@@ -443,7 +443,7 @@
                   "attempt-2-downstream-host-2"
                 ],
                 "raw_artifact_id": "attempt-2-downstream-raw-2",
-                "raw_artifact_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"
+                "raw_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
               }
             ]
           },
@@ -614,7 +614,7 @@
                   "attempt-3-applied-host-2"
                 ],
                 "raw_artifact_id": "attempt-3-applied-raw-2",
-                "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                "raw_artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
               }
             ]
           },
