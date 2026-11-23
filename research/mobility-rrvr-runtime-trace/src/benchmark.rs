@@ -146,6 +146,7 @@ struct MatchedInput {
     platform_profile_sha256: String,
     environment_artifact_sha256: String,
     fault_schedule_sha256: String,
+    planned_fault_event_count: u32,
     safety_spec_revision: String,
     delivery_adjudicator_revision: String,
     root_cause_adjudicator_revision: String,
@@ -167,6 +168,7 @@ impl From<&BenchmarkEpisode> for MatchedInput {
             platform_profile_sha256: episode.platform_profile_sha256.clone(),
             environment_artifact_sha256: episode.environment_artifact_sha256.clone(),
             fault_schedule_sha256: episode.fault_schedule_sha256.clone(),
+            planned_fault_event_count: episode.planned_fault_event_count,
             safety_spec_revision: episode.safety_spec_revision.clone(),
             delivery_adjudicator_revision: episode.delivery_adjudicator_revision.clone(),
             root_cause_adjudicator_revision: episode.root_cause_adjudicator_revision.clone(),
@@ -967,6 +969,37 @@ mod tests {
             })
             .unwrap();
         changed.seed += 1;
+        assert_eq!(
+            corpus.validate_and_score(&"a".repeat(64)),
+            Err(BenchmarkError::IncomparableMatchedInputs)
+        );
+    }
+
+    #[test]
+    fn rejects_different_adjudicator_or_safety_protocol_within_a_pair() {
+        let mut corpus = corpus();
+        let full = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| {
+                episode.matched_pair_id == "pair-1" && episode.arm == BenchmarkArm::FullRrvr
+            })
+            .unwrap();
+        full.delivery_adjudicator_revision = "different-adjudicator-v2".into();
+        assert_eq!(
+            corpus.validate_and_score(&"a".repeat(64)),
+            Err(BenchmarkError::IncomparableMatchedInputs)
+        );
+
+        let mut corpus = corpus();
+        let full = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| {
+                episode.matched_pair_id == "pair-1" && episode.arm == BenchmarkArm::FullRrvr
+            })
+            .unwrap();
+        full.safety_spec_revision = "different-safety-spec-v2".into();
         assert_eq!(
             corpus.validate_and_score(&"a".repeat(64)),
             Err(BenchmarkError::IncomparableMatchedInputs)
