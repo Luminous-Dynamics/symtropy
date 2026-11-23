@@ -432,6 +432,7 @@ jobs:
           jq -e '
             .validation == "passed"
             and .planned_fault_count == 4
+            and .world_statistics_verified_count == 4
             and .dispatch_accepted_count == 4
             and .executed_count == 4
             and .delivery_confirmed_count == 4
