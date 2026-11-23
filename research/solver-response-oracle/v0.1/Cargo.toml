@@ -1,0 +1,16 @@
+[package]
+name = "solver-response-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Common-space comparison oracle for full and reduced contact-solver responses"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "response_tournament"
+path = "examples/response_tournament.rs"
+
+[workspace]
