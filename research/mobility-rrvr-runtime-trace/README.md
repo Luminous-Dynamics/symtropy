@@ -182,3 +182,14 @@ The transport trait has no live ROS client implementation yet. The CLI validates
 
 
 The execution-evidence validator also enforces cross-event chronology: fault event N+1 cannot begin with a receipt earlier than the last available receipt of event N on the same simulation clock. Local correctness is not enough if the global trace is reordered.
+
+
+## Durable dispatch, blinded observation and independent simulator statistics
+
+The durable-dispatch research branch adds three important protections beyond the original mock adapter:
+
+- a write-ahead, append-only, hash-chained dispatch journal, synced before external dispatch; existing intent suppresses redispatch after process restart and only permits ledger reconciliation;
+- a blinded observer API that never receives the expected signature and returns its own measured signature plus a distinct raw artifact commitment;
+- a pinned Gazebo world-statistics receipt that cross-checks discrete step requests against independently published iterations and sim_time values.
+
+The campaign now requires a non-shared observer identity/fault domain and pins the observer binary. The ROS/Gazebo pairing is validated against the supported LTS combinations Jazzy/Harmonic or Lyrical/Jetty. The checked-in Gazebo profile remains a synthetic placeholder fixture; the code is still transport-neutral and does not establish a live simulator connection. See issue #7148.
