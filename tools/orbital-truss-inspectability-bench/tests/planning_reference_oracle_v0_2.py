@@ -10,8 +10,8 @@ from pathlib import Path
 
 CORPUS_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus.v0.2"
 BENCHMARK_ID = "ORBITAL-TRUSS-PLANNING-002"
-RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.2"
-CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.2"
+RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.3"
+CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.3"
 CLAIM_CEILING = "synthetic_2d_geometric_observability_and_view_selection_only"
 CASE_COUNT = 8
 MAX_EXACT_VIEWS = 20
@@ -161,6 +161,148 @@ def greedy(problem, ratio):
     return solution(problem, selected)
 
 
+EXP_NEGATIVE_FIXED_1E15 = [
+    1000000000000000, 367879441171442, 135335283236613,
+    49787068367864, 18315638888734, 6737946999085,
+    2478752176666, 911881965555, 335462627903,
+    123409804087, 45399929762, 16701700790,
+    6144212353, 2260329407, 831528719, 305902321,
+    112535175, 41399377, 15229980, 5602796, 2061154,
+]
+
+
+def published_style_k_coverage_greedy(problem):
+    """Fixed-point deterministic transcription of the paper's dynamic k-coverage heuristic."""
+    all_coverage = coverage_records(problem, [True] * len(problem["views"]))
+    attainable = [
+        min(feature["required_view_count"], coverage["robust_view_count"])
+        for feature, coverage in zip(problem["features"], all_coverage)
+    ]
+    requested = [feature["required_view_count"] for feature in problem["features"]]
+    remaining = [row["robust_view_count"] for row in all_coverage]
+    covered_count = [0] * len(problem["features"])
+    selected = [False] * len(problem["views"])
+
+    while any(count < target for count, target in zip(covered_count, attainable)):
+        deficits = [
+            max(0, target - count)
+            for count, target in zip(covered_count, attainable)
+        ]
+        weights = []
+        for index, deficit in enumerate(deficits):
+            if deficit == 0:
+                weights.append(0)
+                continue
+            slack = max(0, remaining[index] - deficit)
+            if slack >= len(EXP_NEGATIVE_FIXED_1E15):
+                raise ValueError("PUBLISHED_GREEDY_SLACK_OUT_OF_RANGE")
+            k = requested[index]
+            weights.append(EXP_NEGATIVE_FIXED_1E15[slack] * deficit * deficit // (k * k))
+
+        best_index = None
+        best_score = 0
+        order = sorted(
+            range(len(problem["views"])),
+            key=lambda index: problem["views"][index]["view_id"],
+        )
+        for index in order:
+            if selected[index]:
+                continue
+            score = sum(
+                weights[feature_index]
+                for feature_index, feature in enumerate(problem["features"])
+                if feature["feature_id"] in problem["views"][index]["robust_feature_ids"]
+            )
+            if score > best_score:
+                best_score = score
+                best_index = index
+        if best_index is None:
+            break
+
+        selected[best_index] = True
+        for feature_index, feature in enumerate(problem["features"]):
+            if feature["feature_id"] in problem["views"][best_index]["robust_feature_ids"]:
+                covered_count[feature_index] += 1
+                remaining[feature_index] -= 1
+
+    removal_order = sorted(
+        (index for index, include in enumerate(selected) if include),
+        key=lambda index: problem["views"][index]["view_id"],
+    )
+    changed = True
+    while changed:
+        changed = False
+        for index in removal_order:
+            if not selected[index]:
+                continue
+            preserves = True
+            for feature_index, feature in enumerate(problem["features"]):
+                sees_feature = (
+                    feature["feature_id"]
+                    in problem["views"][index]["robust_feature_ids"]
+                )
+                if sees_feature and covered_count[feature_index] - 1 < attainable[feature_index]:
+                    preserves = False
+                    break
+            if preserves:
+                selected[index] = False
+                for feature_index, feature in enumerate(problem["features"]):
+                    if feature["feature_id"] in problem["views"][index]["robust_feature_ids"]:
+                        covered_count[feature_index] -= 1
+                changed = True
+                break
+
+    selected_ids = sorted(
+        view["view_id"]
+        for view, include in zip(problem["views"], selected)
+        if include
+    )
+    total_cost = sum(
+        view["cost_units"]
+        for view, include in zip(problem["views"], selected)
+        if include
+    )
+    selected_coverage = coverage_records(problem, selected)
+    feature_coverage = []
+    for feature, available, selected_row, capped in zip(
+        problem["features"], all_coverage, selected_coverage, attainable
+    ):
+        feature_coverage.append({
+            "feature_id": feature["feature_id"],
+            "requested_k": feature["required_view_count"],
+            "available_candidate_views": available["robust_view_count"],
+            "attainable_capped_target": capped,
+            "selected_robust_views": selected_row["robust_view_count"],
+            "requested_k_met": selected_row["robust_view_count"] >= feature["required_view_count"],
+            "attainable_target_met": selected_row["robust_view_count"] >= capped,
+            "required_failure_domains": feature["required_failure_domains"],
+            "selected_failure_domains": selected_row["robust_failure_domain_count"],
+            "failure_domain_requirement_met": (
+                selected_row["robust_failure_domain_count"] >= feature["required_failure_domains"]
+            ),
+        })
+
+    return {
+        "algorithm": "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_1",
+        "arithmetic": "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties",
+        "selected_view_ids": selected_ids,
+        "selected_view_count": len(selected_ids),
+        "total_cost_units": total_cost,
+        "within_declared_budgets": (
+            len(selected_ids) <= problem["max_selected_views"]
+            and total_cost <= problem["max_total_cost_units"]
+        ),
+        "requested_k_covered": all(row["requested_k_met"] for row in feature_coverage),
+        "attainable_capped_target_covered": all(
+            row["attainable_target_met"] for row in feature_coverage
+        ),
+        "failure_domain_requirements_met": all(
+            row["failure_domain_requirement_met"] for row in feature_coverage
+        ),
+        "feature_coverage": feature_coverage,
+    }
+
+
 def solve(problem):
     validate_problem(problem)
     views = problem["views"]
@@ -257,6 +399,7 @@ def solve(problem):
         "pareto_frontier": frontier,
         "greedy_next_best_view": greedy_plan,
         "cheapest_first": cheapest_plan,
+        "published_k_coverage_greedy": published_style_k_coverage_greedy(problem),
         "greedy_cost_gap_units": (
             greedy_plan["total_cost_units"] - optimum_cost
             if optimum is not None and greedy_plan["robustly_covered"] else None
