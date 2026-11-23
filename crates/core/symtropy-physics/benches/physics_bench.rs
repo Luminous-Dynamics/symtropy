@@ -535,7 +535,7 @@ fn canonical_broadphase_pair(a: BodyHandle, b: BodyHandle) -> BroadphasePair {
     }
 }
 
-// ═══ Benchmark-only principal-axis sweep-and-prune baseline ═══
+// ═══ Benchmark-only PCA-SAP baseline; not eligible for production selection without matched multi-family evidence ═══
 
 #[derive(Clone)]
 struct BenchPcaSapEntry {
