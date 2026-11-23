@@ -20,6 +20,7 @@ The full and reduced snapshots must match exactly on:
 
 - scenario digest;
 - initial-state digest;
+- probe-set digest for the frozen common full-patch probes;
 - physics-model digest;
 - solver-configuration digest;
 - work-unit schema digest;
@@ -35,7 +36,7 @@ The comparison uses explicit positive scales:
 - linear velocity scale v_scale;
 - linear impulse scale p_scale.
 
-Rotational velocity is converted to a linear scale using L times the angular-velocity difference. Angular impulse is converted using angular-impulse difference divided by L. The output is dimensionless, and the scales are part of the benchmark input, not chosen after observing results.
+Rotational velocity is converted to a linear scale using L times the angular-velocity difference. Angular impulse is converted using angular-impulse difference divided by L. The output is dimensionless, and the scales are part of the benchmark input, not chosen after observing results. The response record repeats all three scale values and the exact probe-set digest.
 
 ## Run
 
@@ -54,6 +55,7 @@ The report includes:
 - maximum common-probe normal and tangent relative-velocity errors;
 - RMS common-probe relative-velocity error;
 - stable body/contact witness IDs;
+- probe-set digest, work-unit schema and all normalization scales.
 - exact scenario, state, model, solver, candidate-set, warm-start and work-budget identities;
 - each solver's actual work, iteration count, submitted row count and termination disposition.
 
