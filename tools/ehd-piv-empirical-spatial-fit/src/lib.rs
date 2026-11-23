@@ -269,7 +269,12 @@ fn is_psd(a: Matrix3) -> bool {
     if !a.iter().flatten().all(|v| v.is_finite()) {
         return false;
     }
-    let scale = a.iter().flatten().map(|v| v.abs()).fold(0.0_f64, f64::max).max(1.0);
+    let scale = a
+        .iter()
+        .flatten()
+        .map(|v| v.abs())
+        .fold(0.0_f64, f64::max)
+        .max(1.0);
     let t1 = 1.0e-10 * scale;
     let t2 = 1.0e-10 * scale * scale;
     let t3 = 1.0e-10 * scale * scale * scale;
@@ -314,14 +319,23 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
         || !fit.length_scale_m.is_finite()
         || fit.length_scale_m <= 0.0
         || fit.length_scale_candidates_m.len() < 3
-        || !fit.length_scale_candidates_m.iter().all(|v| v.is_finite() && *v > 0.0)
-        || fit.length_scale_candidates_m.windows(2).any(|w| w[0] >= w[1])
+        || !fit
+            .length_scale_candidates_m
+            .iter()
+            .all(|v| v.is_finite() && *v > 0.0)
+        || fit
+            .length_scale_candidates_m
+            .windows(2)
+            .any(|w| w[0] >= w[1])
         || !fit.length_scale_candidates_m.contains(&fit.length_scale_m)
         || !fit.maximum_validation_correlation_error.is_finite()
         || fit.maximum_validation_correlation_error <= 0.0
         || !fit.maximum_validation_relative_variance_error.is_finite()
         || fit.maximum_validation_relative_variance_error <= 0.0
-        || !fit.calibration_component_variance_standard_error_m2_s2.iter().all(|v| v.is_finite() && *v >= 0.0)
+        || !fit
+            .calibration_component_variance_standard_error_m2_s2
+            .iter()
+            .all(|v| v.is_finite() && *v >= 0.0)
         || !fit.negative_lobe_z_threshold.is_finite()
         || fit.negative_lobe_z_threshold < 1.96
         || !fit.maximum_calibration_mean_bias_m_s.is_finite()
@@ -330,17 +344,35 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
         || fit.calibration_fit_relative_frobenius_error < 0.0
         || fit.coordinates_m.len() < 3
         || fit.calibration_mean_bias_profile_m_s.len() != fit.coordinates_m.len()
-        || !fit.calibration_mean_bias_profile_m_s.iter().flatten().all(|v| v.is_finite())
+        || !fit
+            .calibration_mean_bias_profile_m_s
+            .iter()
+            .flatten()
+            .all(|v| v.is_finite())
         || !fit.coordinates_m.iter().flatten().all(|v| v.is_finite())
     {
         return Err(SpatialFitError::InvalidFitConfiguration);
     }
-    let acquisition_ids: HashSet<&str> = fit.calibration_acquisition_ids.iter().map(String::as_str).collect();
-    let reference_ids: HashSet<&str> = fit.calibration_reference_evidence_ids.iter().map(String::as_str).collect();
+    let acquisition_ids: HashSet<&str> = fit
+        .calibration_acquisition_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let reference_ids: HashSet<&str> = fit
+        .calibration_reference_evidence_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if acquisition_ids.len() != fit.calibration_acquisition_count
         || reference_ids.len() != fit.calibration_acquisition_count
-        || fit.calibration_acquisition_ids.iter().any(|id| id.trim().is_empty())
-        || fit.calibration_reference_evidence_ids.iter().any(|id| id.trim().is_empty())
+        || fit
+            .calibration_acquisition_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
+        || fit
+            .calibration_reference_evidence_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
     {
         return Err(SpatialFitError::InvalidFitConfiguration);
     }
@@ -351,8 +383,7 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
             }
         }
     }
-    if !is_psd(fit.spatial_component_covariance_m2_s2)
-        || !is_psd(fit.local_nugget_covariance_m2_s2)
+    if !is_psd(fit.spatial_component_covariance_m2_s2) || !is_psd(fit.local_nugget_covariance_m2_s2)
     {
         return Err(SpatialFitError::NonPositiveSemidefiniteMatrix);
     }
@@ -375,7 +406,9 @@ fn validate_fields(
         });
     }
     if protocol_fingerprint.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "protocol_fingerprint" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "protocol_fingerprint",
+        });
     }
 
     let mut acquisition_ids = HashSet::new();
@@ -391,7 +424,9 @@ fn validate_fields(
         }
         for (index, (actual, wanted)) in coordinates.iter().zip(expected.iter()).enumerate() {
             if (0..3).any(|axis| !close_coordinate(actual[axis], wanted[axis])) {
-                return Err(SpatialFitError::CoordinateGridMismatch { sample_index: index });
+                return Err(SpatialFitError::CoordinateGridMismatch {
+                    sample_index: index,
+                });
             }
         }
     }
@@ -402,17 +437,24 @@ fn validate_fields(
         }
         for j in 0..i {
             if distance(coordinates[i], coordinates[j]) <= 1.0e-12 {
-                return Err(SpatialFitError::DuplicateCoordinate { first: j, second: i });
+                return Err(SpatialFitError::DuplicateCoordinate {
+                    first: j,
+                    second: i,
+                });
             }
         }
     }
 
     for field in fields {
         if field.acquisition_cluster_id.trim().is_empty() {
-            return Err(SpatialFitError::EmptyIdentity { field: "acquisition_cluster_id" });
+            return Err(SpatialFitError::EmptyIdentity {
+                field: "acquisition_cluster_id",
+            });
         }
         if field.reference_evidence_id.trim().is_empty() {
-            return Err(SpatialFitError::EmptyIdentity { field: "reference_evidence_id" });
+            return Err(SpatialFitError::EmptyIdentity {
+                field: "reference_evidence_id",
+            });
         }
         if field.protocol_fingerprint != protocol_fingerprint {
             return Err(SpatialFitError::ProtocolMismatch);
@@ -431,15 +473,21 @@ fn validate_fields(
         }
         for (index, point) in field.coordinates_m.iter().enumerate() {
             if !point.iter().all(|v| v.is_finite()) {
-                return Err(SpatialFitError::NonFiniteCoordinate { sample_index: index });
+                return Err(SpatialFitError::NonFiniteCoordinate {
+                    sample_index: index,
+                });
             }
             if (0..3).any(|axis| !close_coordinate(point[axis], coordinates[index][axis])) {
-                return Err(SpatialFitError::CoordinateGridMismatch { sample_index: index });
+                return Err(SpatialFitError::CoordinateGridMismatch {
+                    sample_index: index,
+                });
             }
         }
         for (index, residual) in field.residuals_m_s.iter().enumerate() {
             if !residual.iter().all(|v| v.is_finite()) {
-                return Err(SpatialFitError::NonFiniteResidual { sample_index: index });
+                return Err(SpatialFitError::NonFiniteResidual {
+                    sample_index: index,
+                });
             }
         }
     }
@@ -459,9 +507,12 @@ fn mean_residual_profile(fields: &[ResidualField], point_count: usize) -> Vec<[f
 }
 
 fn centered_residuals(field: &ResidualField, mean_profile: &[[f64; 3]]) -> Vec<[f64; 3]> {
-    field.residuals_m_s.iter().zip(mean_profile.iter()).map(|(r, m)| {
-        [r[0] - m[0], r[1] - m[1], r[2] - m[2]]
-    }).collect()
+    field
+        .residuals_m_s
+        .iter()
+        .zip(mean_profile.iter())
+        .map(|(r, m)| [r[0] - m[0], r[1] - m[1], r[2] - m[2]])
+        .collect()
 }
 
 fn matrix_sum(left: Matrix3, right: Matrix3) -> Matrix3 {
@@ -480,7 +531,11 @@ fn cluster_variance_summary(
     fields: &[ResidualField],
     mean_profile: &[[f64; 3]],
 ) -> ([f64; 3], [f64; 3]) {
-    let mut cluster_values = [Vec::with_capacity(fields.len()), Vec::with_capacity(fields.len()), Vec::with_capacity(fields.len())];
+    let mut cluster_values = [
+        Vec::with_capacity(fields.len()),
+        Vec::with_capacity(fields.len()),
+        Vec::with_capacity(fields.len()),
+    ];
     for field in fields {
         let mut sums = [0.0_f64; 3];
         for residual in centered_residuals(field, mean_profile) {
@@ -552,13 +607,10 @@ fn held_out_variance_scale_metrics(
 
         let ratio = validation_variance / calibration_variance;
         ratios[component] = Some(ratio);
-        maximum_observed_relative_error =
-            maximum_observed_relative_error.max((ratio - 1.0).abs());
+        maximum_observed_relative_error = maximum_observed_relative_error.max((ratio - 1.0).abs());
 
-        let relative_calibration_se =
-            calibration_standard_error[component] / calibration_variance;
-        let relative_validation_se =
-            validation_standard_error[component] / validation_variance;
+        let relative_calibration_se = calibration_standard_error[component] / calibration_variance;
+        let relative_validation_se = validation_standard_error[component] / validation_variance;
         let log_ratio_standard_error = relative_calibration_se.hypot(relative_validation_se);
         if !ratio.is_finite() || !log_ratio_standard_error.is_finite() {
             statuses[component] = VarianceScaleStatus::Inconclusive;
@@ -594,7 +646,11 @@ fn zero_lag_covariance(fields: &[ResidualField], mean_profile: &[[f64; 3]]) -> M
     let denominator = (fields.len() * mean_profile.len()) as f64;
     for field in fields {
         for residual in centered_residuals(field, mean_profile) {
-            add_scaled(&mut covariance, symmetric_outer(residual, residual), 1.0 / denominator);
+            add_scaled(
+                &mut covariance,
+                symmetric_outer(residual, residual),
+                1.0 / denominator,
+            );
         }
     }
     covariance
@@ -630,16 +686,24 @@ fn median_nearest_neighbour_spacing(coordinates: &[[f64; 3]]) -> Result<f64, Spa
 
 fn validate_config(config: &FitConfig) -> Result<(), SpatialFitError> {
     if config.fit_config_id.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "fit_config_id" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "fit_config_id",
+        });
     }
     if config.protocol_fingerprint.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "protocol_fingerprint" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "protocol_fingerprint",
+        });
     }
     if config.reference_contract_id.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "reference_contract_id" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "reference_contract_id",
+        });
     }
     if config.reference_uncertainty_assessment_id.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "reference_uncertainty_assessment_id" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "reference_uncertainty_assessment_id",
+        });
     }
     let candidates = &config.length_scale_candidates_m;
     if candidates.len() < 3
@@ -647,7 +711,9 @@ fn validate_config(config: &FitConfig) -> Result<(), SpatialFitError> {
         || candidates.windows(2).any(|w| w[0] >= w[1])
         || !config.maximum_validation_correlation_error.is_finite()
         || config.maximum_validation_correlation_error <= 0.0
-        || !config.maximum_validation_relative_variance_error.is_finite()
+        || !config
+            .maximum_validation_relative_variance_error
+            .is_finite()
         || config.maximum_validation_relative_variance_error <= 0.0
         || !config.negative_lobe_z_threshold.is_finite()
         || config.negative_lobe_z_threshold < 1.96
@@ -680,7 +746,11 @@ fn fit_candidate(
             for j in (i + 1)..coordinates.len() {
                 let k = wendland_c2(distance(coordinates[i], coordinates[j]) / length_scale_m);
                 if k > 0.0 {
-                    add_scaled(&mut numerator, symmetric_outer(residuals[i], residuals[j]), k);
+                    add_scaled(
+                        &mut numerator,
+                        symmetric_outer(residuals[i], residuals[j]),
+                        k,
+                    );
                     denominator += k * k;
                 }
             }
@@ -688,7 +758,11 @@ fn fit_candidate(
         if denominator <= MATRIX_EPSILON {
             return None;
         }
-        add_scaled(&mut spatial, numerator, 1.0 / (denominator * fields.len() as f64));
+        add_scaled(
+            &mut spatial,
+            numerator,
+            1.0 / (denominator * fields.len() as f64),
+        );
     }
     let nugget = matrix_sub(c0, spatial);
     if !is_psd(spatial) || !is_psd(nugget) || matrix_trace(spatial) <= MATRIX_EPSILON {
@@ -703,7 +777,11 @@ fn fit_candidate(
             let mut empirical = zero_matrix();
             for field in fields {
                 let residuals = centered_residuals(field, mean_profile);
-                add_scaled(&mut empirical, symmetric_outer(residuals[i], residuals[j]), 1.0 / fields.len() as f64);
+                add_scaled(
+                    &mut empirical,
+                    symmetric_outer(residuals[i], residuals[j]),
+                    1.0 / fields.len() as f64,
+                );
             }
             let predicted = {
                 let mut p = zero_matrix();
@@ -758,14 +836,19 @@ pub fn fit_spatial_error_kernel(
             &coordinates,
             *candidate,
         ) {
-            if best.as_ref().map_or(true, |current| fitted.relative_error < current.relative_error) {
+            if best.as_ref().map_or(true, |current| {
+                fitted.relative_error < current.relative_error
+            }) {
                 best = Some(fitted);
             }
         }
     }
     let best = best.ok_or(SpatialFitError::NoPositiveSemidefiniteCandidate)?;
 
-    let maximum_bias = mean_profile.iter().map(|v| vector_norm(*v)).fold(0.0_f64, f64::max);
+    let maximum_bias = mean_profile
+        .iter()
+        .map(|v| vector_norm(*v))
+        .fold(0.0_f64, f64::max);
     Ok(EmpiricalSpatialFit {
         // The isotropic case is represented by equal x/y/z ranges in the
         // existing UQ-005 anisotropic Wendland-C2 contract.
@@ -777,7 +860,8 @@ pub fn fit_spatial_error_kernel(
         coordinates_m: coordinates.clone(),
         length_scale_candidates_m: config.length_scale_candidates_m.clone(),
         maximum_validation_correlation_error: config.maximum_validation_correlation_error,
-        maximum_validation_relative_variance_error: config.maximum_validation_relative_variance_error,
+        maximum_validation_relative_variance_error: config
+            .maximum_validation_relative_variance_error,
         negative_lobe_z_threshold: config.negative_lobe_z_threshold,
         length_scale_m: best.length_scale_m,
         spatial_component_covariance_m2_s2: best.spatial_covariance,
@@ -787,8 +871,14 @@ pub fn fit_spatial_error_kernel(
         maximum_calibration_mean_bias_m_s: maximum_bias,
         calibration_fit_relative_frobenius_error: best.relative_error,
         calibration_acquisition_count: calibration_fields.len(),
-        calibration_acquisition_ids: calibration_fields.iter().map(|f| f.acquisition_cluster_id.clone()).collect(),
-        calibration_reference_evidence_ids: calibration_fields.iter().map(|f| f.reference_evidence_id.clone()).collect(),
+        calibration_acquisition_ids: calibration_fields
+            .iter()
+            .map(|f| f.acquisition_cluster_id.clone())
+            .collect(),
+        calibration_reference_evidence_ids: calibration_fields
+            .iter()
+            .map(|f| f.reference_evidence_id.clone())
+            .collect(),
         calibration_manifest_sha256: calibration_manifest_sha256.to_ascii_lowercase(),
     })
 }
@@ -810,7 +900,11 @@ struct BinAccumulator {
 
 impl BinAccumulator {
     fn empty() -> Self {
-        Self { count: 0, kernel_sum: 0.0, cross_sum: zero_matrix() }
+        Self {
+            count: 0,
+            kernel_sum: 0.0,
+            cross_sum: zero_matrix(),
+        }
     }
 }
 
@@ -819,8 +913,8 @@ fn sample_mean_and_se(values: &[f64]) -> Option<(f64, f64)> {
         return None;
     }
     let mean = values.iter().sum::<f64>() / values.len() as f64;
-    let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
-        / (values.len() - 1) as f64;
+    let variance =
+        values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (values.len() - 1) as f64;
     Some((mean, (variance / values.len() as f64).sqrt()))
 }
 
@@ -835,7 +929,9 @@ pub fn validate_spatial_error_kernel(
     receipt_id: &str,
 ) -> Result<SpatialFitValidation, SpatialFitError> {
     if receipt_id.trim().is_empty() {
-        return Err(SpatialFitError::EmptyIdentity { field: "receipt_id" });
+        return Err(SpatialFitError::EmptyIdentity {
+            field: "receipt_id",
+        });
     }
     if !valid_sha256(validation_manifest_sha256) {
         return Err(SpatialFitError::InvalidManifestDigest);
@@ -859,11 +955,20 @@ pub fn validate_spatial_error_kernel(
         return Err(SpatialFitError::CoordinateCountMismatch);
     }
 
-    let calibration_ids: HashSet<&str> = fit.calibration_acquisition_ids.iter().map(String::as_str).collect();
-    let calibration_refs: HashSet<&str> = fit.calibration_reference_evidence_ids.iter().map(String::as_str).collect();
-    if validation_fields.iter().any(|f| calibration_ids.contains(f.acquisition_cluster_id.as_str())
-        || calibration_refs.contains(f.reference_evidence_id.as_str()))
-    {
+    let calibration_ids: HashSet<&str> = fit
+        .calibration_acquisition_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let calibration_refs: HashSet<&str> = fit
+        .calibration_reference_evidence_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    if validation_fields.iter().any(|f| {
+        calibration_ids.contains(f.acquisition_cluster_id.as_str())
+            || calibration_refs.contains(f.reference_evidence_id.as_str())
+    }) {
         return Err(SpatialFitError::CalibrationValidationOverlap);
     }
 
@@ -875,7 +980,12 @@ pub fn validate_spatial_error_kernel(
             let d = distance(coordinates[i], coordinates[j]);
             let bin = ((d / spacing).round() as usize).max(1);
             max_bin = max_bin.max(bin);
-            pairs.push(Pair { i, j, bin, distance_m: d });
+            pairs.push(Pair {
+                i,
+                j,
+                bin,
+                distance_m: d,
+            });
         }
     }
     if pairs.is_empty() || max_bin == 0 {
@@ -922,7 +1032,11 @@ pub fn validate_spatial_error_kernel(
             let bin = &mut bins[pair.bin];
             bin.count += 1;
             bin.kernel_sum += wendland_c2(pair.distance_m / fit.length_scale_m);
-            add_scaled(&mut bin.cross_sum, symmetric_outer(residuals[pair.i], residuals[pair.j]), 1.0);
+            add_scaled(
+                &mut bin.cross_sum,
+                symmetric_outer(residuals[pair.i], residuals[pair.j]),
+                1.0,
+            );
         }
 
         for bin_index in 1..=max_bin {
@@ -933,13 +1047,18 @@ pub fn validate_spatial_error_kernel(
             let mut observed = zero_matrix();
             let mut predicted = zero_matrix();
             add_scaled(&mut observed, bin.cross_sum, 1.0 / bin.count as f64);
-            add_scaled(&mut predicted, fit.spatial_component_covariance_m2_s2, bin.kernel_sum / bin.count as f64);
+            add_scaled(
+                &mut predicted,
+                fit.spatial_component_covariance_m2_s2,
+                bin.kernel_sum / bin.count as f64,
+            );
 
             let mut observed_correlation = zero_matrix();
             let mut predicted_correlation = zero_matrix();
             for a in 0..3 {
                 for b in 0..3 {
-                    let denominator = (calibration_c0[a][a].max(0.0) * calibration_c0[b][b].max(0.0)).sqrt();
+                    let denominator =
+                        (calibration_c0[a][a].max(0.0) * calibration_c0[b][b].max(0.0)).sqrt();
                     if denominator > MATRIX_EPSILON {
                         observed_correlation[a][b] = observed[a][b] / denominator;
                         predicted_correlation[a][b] = predicted[a][b] / denominator;
@@ -962,17 +1081,23 @@ pub fn validate_spatial_error_kernel(
     for bin_index in 1..=max_bin {
         let observations = &observed_by_bin[bin_index];
         let predictions = &predicted_by_bin[bin_index];
-        if observations.len() < MIN_INDEPENDENT_ACQUISITIONS || predictions.len() != observations.len() {
+        if observations.len() < MIN_INDEPENDENT_ACQUISITIONS
+            || predictions.len() != observations.len()
+        {
             continue;
         }
         bins_with_evidence += 1;
         for a in 0..3 {
             for b in 0..3 {
-                let observed_mean = observations.iter().map(|m| m[a][b]).sum::<f64>() / observations.len() as f64;
-                let predicted_mean = predictions.iter().map(|m| m[a][b]).sum::<f64>() / predictions.len() as f64;
+                let observed_mean =
+                    observations.iter().map(|m| m[a][b]).sum::<f64>() / observations.len() as f64;
+                let predicted_mean =
+                    predictions.iter().map(|m| m[a][b]).sum::<f64>() / predictions.len() as f64;
                 maximum_error = maximum_error.max((observed_mean - predicted_mean).abs());
             }
-            if let Some((mean, standard_error)) = sample_mean_and_se(&diagonal_correlations[bin_index][a]) {
+            if let Some((mean, standard_error)) =
+                sample_mean_and_se(&diagonal_correlations[bin_index][a])
+            {
                 if mean < -fit.negative_lobe_z_threshold * standard_error {
                     negative_lobe = true;
                 }
@@ -983,19 +1108,22 @@ pub fn validate_spatial_error_kernel(
         return Err(SpatialFitError::NoValidationLagBins);
     }
 
-    let maximum_bias_shift = validation_mean_profile.iter().zip(fit.calibration_mean_bias_profile_m_s.iter())
-        .map(|(validation, calibration)| vector_norm([
-            validation[0] - calibration[0],
-            validation[1] - calibration[1],
-            validation[2] - calibration[2],
-        ]))
+    let maximum_bias_shift = validation_mean_profile
+        .iter()
+        .zip(fit.calibration_mean_bias_profile_m_s.iter())
+        .map(|(validation, calibration)| {
+            vector_norm([
+                validation[0] - calibration[0],
+                validation[1] - calibration[1],
+                validation[2] - calibration[2],
+            ])
+        })
         .fold(0.0_f64, f64::max);
 
     let variance_scale_rejected = zero_to_nonzero_variance
-        || variance_scale_status_by_component
-            .contains(&VarianceScaleStatus::Rejected);
-    let variance_scale_inconclusive = variance_scale_status_by_component
-        .contains(&VarianceScaleStatus::Inconclusive);
+        || variance_scale_status_by_component.contains(&VarianceScaleStatus::Rejected);
+    let variance_scale_inconclusive =
+        variance_scale_status_by_component.contains(&VarianceScaleStatus::Inconclusive);
     let status = if negative_lobe {
         QualificationStatus::RejectedNegativeCorrelationLobe
     } else if variance_scale_rejected {
@@ -1026,7 +1154,8 @@ pub fn validate_spatial_error_kernel(
         variance_ratio_confidence_interval_95: variance_ratio_confidence_intervals,
         variance_scale_status_by_component,
         maximum_validation_relative_variance_error: maximum_variance_error,
-        maximum_allowed_validation_relative_variance_error: fit.maximum_validation_relative_variance_error,
+        maximum_allowed_validation_relative_variance_error: fit
+            .maximum_validation_relative_variance_error,
         zero_to_nonzero_variance_component_detected: zero_to_nonzero_variance,
         negative_correlation_lobe_detected: negative_lobe,
         maximum_validation_mean_bias_shift_m_s: maximum_bias_shift,
@@ -1046,18 +1175,25 @@ impl SpatialFitValidation {
         validate_fit_record(fit)?;
         if self.status != QualificationStatus::Qualified
             || self.negative_correlation_lobe_detected
-            || self.maximum_absolute_correlation_fit_error > self.maximum_allowed_absolute_correlation_fit_error
+            || self.maximum_absolute_correlation_fit_error
+                > self.maximum_allowed_absolute_correlation_fit_error
             || !self.maximum_absolute_correlation_fit_error.is_finite()
-            || !self.maximum_allowed_absolute_correlation_fit_error.is_finite()
+            || !self
+                .maximum_allowed_absolute_correlation_fit_error
+                .is_finite()
             || self.maximum_absolute_correlation_fit_error < 0.0
             || self.maximum_allowed_absolute_correlation_fit_error <= 0.0
-            || self.maximum_allowed_absolute_correlation_fit_error != fit.maximum_validation_correlation_error
+            || self.maximum_allowed_absolute_correlation_fit_error
+                != fit.maximum_validation_correlation_error
             || !self.maximum_validation_relative_variance_error.is_finite()
             || self.maximum_validation_relative_variance_error < 0.0
-            || self.maximum_validation_relative_variance_error > fit.maximum_validation_relative_variance_error
-            || self.validation_to_calibration_variance_ratio.iter().flatten().any(|ratio| {
-                !ratio.is_finite() || *ratio < 0.0
-            })
+            || self.maximum_validation_relative_variance_error
+                > fit.maximum_validation_relative_variance_error
+            || self
+                .validation_to_calibration_variance_ratio
+                .iter()
+                .flatten()
+                .any(|ratio| !ratio.is_finite() || *ratio < 0.0)
             || (0..3).any(|component| {
                 let ratio = self.validation_to_calibration_variance_ratio[component];
                 let interval = self.variance_ratio_confidence_interval_95[component];
@@ -1082,8 +1218,11 @@ impl SpatialFitValidation {
                     VarianceScaleStatus::Rejected | VarianceScaleStatus::Inconclusive => true,
                 }
             })
-            || !self.maximum_allowed_validation_relative_variance_error.is_finite()
-            || self.maximum_allowed_validation_relative_variance_error != fit.maximum_validation_relative_variance_error
+            || !self
+                .maximum_allowed_validation_relative_variance_error
+                .is_finite()
+            || self.maximum_allowed_validation_relative_variance_error
+                != fit.maximum_validation_relative_variance_error
             || self.zero_to_nonzero_variance_component_detected
             || self.validation_acquisition_count < MIN_INDEPENDENT_ACQUISITIONS
             || !valid_sha256(&self.validation_manifest_sha256)
@@ -1094,7 +1233,8 @@ impl SpatialFitValidation {
             || self.reference_uncertainty_assessment_id != fit.reference_uncertainty_assessment_id
             || self.calibration_manifest_sha256 != fit.calibration_manifest_sha256
             || self.fitted_length_scale_m != fit.length_scale_m
-            || self.fitted_spatial_component_covariance_m2_s2 != fit.spatial_component_covariance_m2_s2
+            || self.fitted_spatial_component_covariance_m2_s2
+                != fit.spatial_component_covariance_m2_s2
         {
             return Err(SpatialFitError::ValidationNotQualified);
         }
@@ -1107,7 +1247,8 @@ impl SpatialFitValidation {
                 protocol_fingerprint: fit.protocol_fingerprint.clone(),
                 independent_acquisition_count: fit.calibration_acquisition_count,
                 maximum_absolute_correlation_fit_error: self.maximum_absolute_correlation_fit_error,
-                maximum_allowed_absolute_correlation_fit_error: self.maximum_allowed_absolute_correlation_fit_error,
+                maximum_allowed_absolute_correlation_fit_error: self
+                    .maximum_allowed_absolute_correlation_fit_error,
                 negative_correlation_lobe_detected: self.negative_correlation_lobe_detected,
             },
             length_scales_m: [fit.length_scale_m; 3],
@@ -1155,29 +1296,31 @@ mod tests {
             }
         }
         let l = cholesky(covariance);
-        (0..count).map(|index| {
-            // Repeated complete 2^3 Hadamard sign blocks give exact zero mean
-            // and identity second moments. This is a manufactured deterministic
-            // covariance fixture, not a pseudo-random physical experiment.
-            let code = (index as u64).wrapping_add(seed);
-            let z = [
-                if code & 1 == 0 { -1.0 } else { 1.0 },
-                if code & 2 == 0 { -1.0 } else { 1.0 },
-                if code & 4 == 0 { -1.0 } else { 1.0 },
-            ];
-            let mut residuals = vec![[0.0; 3]; 3];
-            for i in 0..3 {
-                let x = (0..=i).map(|j| l[i][j] * z[j]).sum::<f64>();
-                residuals[i] = [x, 0.0, 0.0];
-            }
-            ResidualField {
-                acquisition_cluster_id: format!("{prefix}-acq-{index}"),
-                reference_evidence_id: format!("{prefix}-ref-{index}"),
-                protocol_fingerprint: "piv-grid-32-overlap-75-v1".into(),
-                coordinates_m: coordinates.clone(),
-                residuals_m_s: residuals,
-            }
-        }).collect()
+        (0..count)
+            .map(|index| {
+                // Repeated complete 2^3 Hadamard sign blocks give exact zero mean
+                // and identity second moments. This is a manufactured deterministic
+                // covariance fixture, not a pseudo-random physical experiment.
+                let code = (index as u64).wrapping_add(seed);
+                let z = [
+                    if code & 1 == 0 { -1.0 } else { 1.0 },
+                    if code & 2 == 0 { -1.0 } else { 1.0 },
+                    if code & 4 == 0 { -1.0 } else { 1.0 },
+                ];
+                let mut residuals = vec![[0.0; 3]; 3];
+                for i in 0..3 {
+                    let x = (0..=i).map(|j| l[i][j] * z[j]).sum::<f64>();
+                    residuals[i] = [x, 0.0, 0.0];
+                }
+                ResidualField {
+                    acquisition_cluster_id: format!("{prefix}-acq-{index}"),
+                    reference_evidence_id: format!("{prefix}-ref-{index}"),
+                    protocol_fingerprint: "piv-grid-32-overlap-75-v1".into(),
+                    coordinates_m: coordinates.clone(),
+                    residuals_m_s: residuals,
+                }
+            })
+            .collect()
     }
 
     fn config() -> FitConfig {
@@ -1201,11 +1344,18 @@ mod tests {
         assert!(fit.spatial_component_covariance_m2_s2[0][0] > 0.0);
         assert!(fit.local_nugget_covariance_m2_s2[0][0] >= 0.0);
         let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "heldout-receipt-001",
-        ).unwrap();
+            &fit,
+            &validation,
+            &"b".repeat(64),
+            "heldout-receipt-001",
+        )
+        .unwrap();
         assert_eq!(report.status, QualificationStatus::Qualified);
         let kernel = report.to_spatial_error_kernel(&fit).unwrap();
-        assert_eq!(kernel.calibration_receipt.independent_acquisition_count, 256);
+        assert_eq!(
+            kernel.calibration_receipt.independent_acquisition_count,
+            256
+        );
         assert_eq!(kernel.model_id, SUPPORTED_MODEL_ID);
     }
 
@@ -1224,9 +1374,9 @@ mod tests {
         let calibration = synthetic_fields("cal-bound", 256, 0x1234, 2.0);
         let validation = synthetic_fields("val-bound", 256, 0x9876, 2.0);
         let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
-        let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "bound-receipt",
-        ).unwrap();
+        let report =
+            validate_spatial_error_kernel(&fit, &validation, &"b".repeat(64), "bound-receipt")
+                .unwrap();
         let mut substituted = fit.clone();
         substituted.length_scale_m = 2.5;
         assert!(matches!(
@@ -1240,9 +1390,9 @@ mod tests {
         let calibration = synthetic_fields("cal-sym", 256, 0x1234, 2.0);
         let validation = synthetic_fields("val-sym", 256, 0x9876, 2.0);
         let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
-        let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "sym-receipt",
-        ).unwrap();
+        let report =
+            validate_spatial_error_kernel(&fit, &validation, &"b".repeat(64), "sym-receipt")
+                .unwrap();
         let mut invalid = fit.clone();
         invalid.spatial_component_covariance_m2_s2[0][1] = 0.01;
         assert!(matches!(
@@ -1291,11 +1441,21 @@ mod tests {
             field.residuals_m_s = vec![[sign, 0.0, 0.0], [-sign, 0.0, 0.0], [sign, 0.0, 0.0]];
         }
         let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "negative-lobe-receipt",
-        ).unwrap();
+            &fit,
+            &validation,
+            &"b".repeat(64),
+            "negative-lobe-receipt",
+        )
+        .unwrap();
         assert!(report.negative_correlation_lobe_detected);
-        assert_eq!(report.status, QualificationStatus::RejectedNegativeCorrelationLobe);
-        assert!(matches!(report.to_spatial_error_kernel(&fit), Err(SpatialFitError::ValidationNotQualified)));
+        assert_eq!(
+            report.status,
+            QualificationStatus::RejectedNegativeCorrelationLobe
+        );
+        assert!(matches!(
+            report.to_spatial_error_kernel(&fit),
+            Err(SpatialFitError::ValidationNotQualified)
+        ));
     }
 
     #[test]
@@ -1360,12 +1520,9 @@ mod tests {
         );
         assert!(!report.negative_correlation_lobe_detected);
         assert!(
-            (report.validation_to_calibration_variance_ratio[0].unwrap() - 2.25).abs()
-                < 1.0e-10
+            (report.validation_to_calibration_variance_ratio[0].unwrap() - 2.25).abs() < 1.0e-10
         );
-        assert!(
-            (report.maximum_validation_relative_variance_error - 1.25).abs() < 1.0e-10
-        );
+        assert!((report.maximum_validation_relative_variance_error - 1.25).abs() < 1.0e-10);
         assert!(matches!(
             report.to_spatial_error_kernel(&fit),
             Err(SpatialFitError::ValidationNotQualified)
@@ -1391,10 +1548,7 @@ mod tests {
             "uncertain-variance-scale-receipt",
         )
         .unwrap();
-        assert!(
-            (report.validation_to_calibration_variance_ratio[0].unwrap() - 1.0).abs()
-                < 0.02
-        );
+        assert!((report.validation_to_calibration_variance_ratio[0].unwrap() - 1.0).abs() < 0.02);
         assert_eq!(
             report.variance_scale_status_by_component[0],
             VarianceScaleStatus::Inconclusive
@@ -1447,11 +1601,14 @@ mod tests {
         for field in &mut validation {
             field.residuals_m_s[0][0] += 2.0;
         }
-        let report = validate_spatial_error_kernel(
-            &fit, &validation, &"b".repeat(64), "shifted-receipt",
-        ).unwrap();
+        let report =
+            validate_spatial_error_kernel(&fit, &validation, &"b".repeat(64), "shifted-receipt")
+                .unwrap();
         assert!(report.maximum_validation_mean_bias_shift_m_s > 1.0);
         // Bias is reported separately; correlation covariance does not absorb it.
-        assert_ne!(report.status, QualificationStatus::RejectedNegativeCorrelationLobe);
+        assert_ne!(
+            report.status,
+            QualificationStatus::RejectedNegativeCorrelationLobe
+        );
     }
 }
