@@ -35,7 +35,11 @@ function projectedScenariosDigest(scenarios) {
     loss_unit: scenario.loss_unit,
     scope_sha256: scenario.scope_sha256,
     feasible_action_ids: [...scenario.feasible_action_ids].sort(cmp),
-    losses: [...scenario.losses].sort((a, b) => cmp(a.action_id, b.action_id)).map(loss => ({
+    losses: [...scenario.losses].sort((a, b) =>
+      cmp(a.action_id, b.action_id)
+      || cmp(a.source_numerator, b.source_numerator)
+      || cmp(a.source_denominator, b.source_denominator)
+      || cmp(a.loss, b.loss)).map(loss => ({
       action_id: loss.action_id,
       source_numerator: loss.source_numerator,
       source_denominator: loss.source_denominator,
