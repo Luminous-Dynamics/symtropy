@@ -1,0 +1,37 @@
+name: Manufacturing Accepted-Output Resilience Scorecard
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_accepted_output_scorecard_*.schema.json"
+      - "fixtures/manufacturing/mfg_accepted_output_scorecard_*.json"
+      - "tools/mfg-accepted-output-scorecard/**"
+      - "docs/research/MFG_ACCEPTED_OUTPUT_SCORECARD_V0_1.md"
+      - ".github/workflows/mfg-accepted-output-scorecard.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-accepted-output-scorecard-v0-1
+    paths:
+      - "schemas/manufacturing/mfg_accepted_output_scorecard_*.schema.json"
+      - "fixtures/manufacturing/mfg_accepted_output_scorecard_*.json"
+      - "tools/mfg-accepted-output-scorecard/**"
+      - "docs/research/MFG_ACCEPTED_OUTPUT_SCORECARD_V0_1.md"
+      - ".github/workflows/mfg-accepted-output-scorecard.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-accepted-output-scorecard/Cargo.toml -- --check
+      - name: Run schema, known-answer and adversarial tests
+        run: cargo test --manifest-path tools/mfg-accepted-output-scorecard/Cargo.toml
+      - name: Run accepted-output resilience scorecard
+        run: cargo run --manifest-path tools/mfg-accepted-output-scorecard/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-accepted-output-scorecard/Cargo.toml -- -D warnings
