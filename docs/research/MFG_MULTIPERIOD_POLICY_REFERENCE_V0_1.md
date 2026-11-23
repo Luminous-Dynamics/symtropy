@@ -26,13 +26,15 @@ The canonical test instance exposes an opportunity-cost decision: a myopic cheap
 
 ## Policy and exact oracle
 
+The baseline tournament keeps two interpretable comparators: (1) maximum immediate assignment count then lowest immediate cost; (2) earliest due date, fewest admissible remaining routes over the declared horizon, then lowest immediate cost. The second is a stronger scarcity-aware heuristic and prevents the exact oracle being compared only to a weak cheapest-now rule.
+
 The exact reference enumerates every feasible assignment set at each decision node. It recursively partitions future scenarios by the canonical prefix of visible observations plus the public completed-job/resource state. Each node chooses one common action for its entire information group. The objective is integer PPM-weighted cost and includes:
 - route production cost;
 - declared public expected quality-loss cost;
 - tardiness cost based on the completion period;
 - unserved-job penalty.
 
-The myopic baseline maximizes jobs completed immediately, then minimizes immediate cost with deterministic tie-breaking. It deliberately ignores future recourse value. It is a transparent baseline, not a claim that all industrial dispatch heuristics have been exhausted.
+The first myopic baseline maximizes jobs completed immediately, then minimizes immediate cost with deterministic tie-breaking. A second scarcity/deadline-aware baseline prioritizes earlier due dates and fewer admissible remaining routes, then minimizes immediate cost. Both are one-step rules and do not optimize future recourse value. The exact policy is compared against both; this tiny corpus does not establish superiority over full industrial dispatch/APS baselines.
 
 Hidden realized quality rejection pairs are excluded from optimization and used only to calculate a separate evaluator diagnostic. The test suite mutates these hidden outcomes and requires the policy tree to remain byte-for-byte identical.
 
