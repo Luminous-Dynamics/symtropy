@@ -33,7 +33,7 @@ When A is PSD, these conditions are sufficient for global optimality of this con
 
 ## Fairness and numerical boundary
 
-All tolerances are explicit and part of the input. Symmetry is checked against a relative tolerance; the checked matrix is symmetrized by averaging corresponding entries before PSD validation and optimization. The report preserves maximum input asymmetry and LDL pivot/tolerance information.
+All tolerances are explicit and part of the input. Symmetry is checked against a relative tolerance; the checked matrix is symmetrized by averaging corresponding entries before PSD validation and optimization. The report preserves maximum input asymmetry and LDL pivot/tolerance information. The KKT receipt separates (1) whether the full impulse vector is a KKT optimum and (2) whether the selected retained subset alone represents it, requiring omitted impulses to be zero within tolerance. Intermediate non-finite gradients, pivots, solves and objectives are typed failures.
 
 The implementation uses binary64 arithmetic and user-declared tolerances. It is an executable numerical KKT oracle, not an interval-arithmetic formal proof. Globally optimal means globally optimal within the declared convex QP under the validated floating-point/tolerance contract; it does not establish that the QP itself captures production contact physics.
 
