@@ -502,8 +502,7 @@ impl FaultCampaignManifest {
         if self.required_layers.is_empty() || self.required_cut_points.is_empty() {
             return Err(CampaignError::EmptyRequiredCoverage);
         }
-        let required_layers: BTreeSet<FaultLayer> =
-            self.required_layers.iter().copied().collect();
+        let required_layers: BTreeSet<FaultLayer> = self.required_layers.iter().copied().collect();
         let required_cuts: BTreeSet<FaultCutPoint> =
             self.required_cut_points.iter().copied().collect();
         if required_layers.len() != self.required_layers.len()
@@ -615,10 +614,8 @@ mod tests {
     use serde_json::Value;
 
     fn valid_manifest() -> FaultCampaignManifest {
-        serde_json::from_str(include_str!(
-            "../fixtures/fault_campaign_paired_v0_1.json"
-        ))
-        .expect("known-answer campaign fixture deserializes")
+        serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+            .expect("known-answer campaign fixture deserializes")
     }
 
     #[test]
@@ -639,10 +636,7 @@ mod tests {
     fn rejects_a_pair_that_changes_the_seed_or_fault_schedule() {
         let mut manifest = valid_manifest();
         manifest.scenarios[1].seed += 1;
-        assert_eq!(
-            manifest.validate(),
-            Err(CampaignError::IncomparablePair)
-        );
+        assert_eq!(manifest.validate(), Err(CampaignError::IncomparablePair));
 
         let mut changed_fault = valid_manifest();
         changed_fault.scenarios[3].faults[0].kind = FaultKind::PowerLoss;
@@ -675,7 +669,9 @@ mod tests {
     #[test]
     fn rejects_missing_fault_cut_coverage() {
         let mut manifest = valid_manifest();
-        manifest.required_cut_points.push(FaultCutPoint::AfterEffectReservation);
+        manifest
+            .required_cut_points
+            .push(FaultCutPoint::AfterEffectReservation);
         assert_eq!(
             manifest.validate(),
             Err(CampaignError::MissingRequiredCutPoint)
@@ -711,7 +707,10 @@ mod tests {
 
         let mut native = valid_manifest();
         native.platform.native_adapter_revision.clear();
-        assert_eq!(native.validate(), Err(CampaignError::InvalidPlatformProfile));
+        assert_eq!(
+            native.validate(),
+            Err(CampaignError::InvalidPlatformProfile)
+        );
     }
 
     #[test]
@@ -727,10 +726,7 @@ mod tests {
         let mut fault = valid_manifest();
         let duplicate_fault_id = fault.scenarios[2].faults[0].fault_id.clone();
         fault.scenarios[2].faults[1].fault_id = duplicate_fault_id;
-        assert_eq!(
-            fault.validate(),
-            Err(CampaignError::DuplicateFaultIdentity)
-        );
+        assert_eq!(fault.validate(), Err(CampaignError::DuplicateFaultIdentity));
     }
 
     #[test]
@@ -752,10 +748,9 @@ mod tests {
 
     #[test]
     fn strict_deserializer_rejects_unknown_fields() {
-        let mut value: Value = serde_json::from_str(include_str!(
-            "../fixtures/fault_campaign_paired_v0_1.json"
-        ))
-        .unwrap();
+        let mut value: Value =
+            serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+                .unwrap();
         value["unverified_platform_override"] = serde_json::json!(true);
         assert!(serde_json::from_value::<FaultCampaignManifest>(value).is_err());
     }
