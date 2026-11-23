@@ -199,3 +199,8 @@ For larger candidate pools this subset oracle is not intended to scale; use a so
 ## Source-admission manifest for the 2026 GSD k-coverage reproduction
 
 `docs/research/orbital-truss/source-manifest-gsd-kcover-v0_1.json` pins the paper, cited repository revision, model paths and Git blob identities, candidate external CC BY 4.0 datasets, published parameters, unknown inputs and source-admission gates. The current status is SOURCE_ADMISSION_INCOMPLETE; no model assets are vendored.
+
+## Research extensions
+
+- [Benchmark and SOTA roadmap v0.3](../../../docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_3.md): source-aware 2026 comparisons and support-certification direction.
+- [Surface-support certification v0.1](../../../docs/research/orbital-truss/surface-support-certification-v0_1.md): proposed conservative full-patch FOV/GSD/incidence/occlusion contract (#7136).
