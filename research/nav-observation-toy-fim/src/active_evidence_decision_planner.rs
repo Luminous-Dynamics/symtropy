@@ -40,6 +40,7 @@ pub struct EvidenceActionDecisionAssessment {
 pub enum ActiveEvidenceDecisionReason {
     TargetAlreadySatisfied,
     LowestLatencyDecisionResolvingAction,
+    LowestLatencyTargetReachingAction,
     BestDecisionDiscriminationAvailableButTargetNotReached,
     BestProtectionReductionAvailableButTargetNotReached,
 }
@@ -101,7 +102,6 @@ impl std::error::Error for ActiveEvidenceDecisionError {}
 
 #[derive(Clone, Debug, PartialEq)]
 struct ValidatedDecisionReport {
-    action_id: u64,
     inventory_sha256: [u8; 32],
     partition_sha256: [u8; 32],
     assignments: BTreeMap<u64, u64>,
@@ -267,7 +267,6 @@ fn validate_decision_report(
     }
 
     Ok(ValidatedDecisionReport {
-        action_id: report.action_id,
         inventory_sha256: report.hypothesis_inventory_sha256,
         partition_sha256: report.decision_partition_sha256,
         assignments,
@@ -489,7 +488,12 @@ pub fn plan_active_evidence_with_decision_relevance(
                     .then_with(|| left.action.action_id.cmp(&right.action.action_id))
             })
             .ok_or(ActiveEvidenceDecisionError::InvalidDecisionReport(0))?;
-        (ActiveEvidenceDecisionReason::LowestLatencyDecisionResolvingAction, selected)
+        let reason = if selected.distinguishable_decision_pair_count > 0 {
+            ActiveEvidenceDecisionReason::LowestLatencyDecisionResolvingAction
+        } else {
+            ActiveEvidenceDecisionReason::LowestLatencyTargetReachingAction
+        };
+        (reason, selected)
     } else if assessments
         .iter()
         .any(|candidate| candidate.distinguishable_decision_pair_count > 0)
