@@ -447,7 +447,8 @@ mod tests {
         CorrelationProfile {
             profile_id: "gate-out-correlation-v0.1".to_owned(),
             version: "0.1".to_owned(),
-            profile_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+            profile_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                .to_owned(),
             source_channel_id: "terminal-epcis".to_owned(),
             witness_channel_id: "independent-gate-sensor".to_owned(),
             time_basis_id: "UTC-REF-A".to_owned(),
@@ -472,7 +473,8 @@ mod tests {
             PhysicalObservation {
                 record_key: $key.to_owned(),
                 revision_id: "rev-1".to_owned(),
-                payload_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+                payload_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
                 canonical_box_id: $box_id.to_owned(),
                 event_kind: $kind.to_owned(),
                 facility_id: $facility.to_owned(),
