@@ -147,9 +147,7 @@ impl core::fmt::Display for PopOuterConvergenceError {
             Self::InvalidNcdotReductionFactor => {
                 "Ncdot reduction factor must be finite and lie in (0, 1]"
             }
-            Self::InvalidSurfaceMd2Cutoff => {
-                "surface MD2 cutoff must be finite and nonnegative"
-            }
+            Self::InvalidSurfaceMd2Cutoff => "surface MD2 cutoff must be finite and nonnegative",
             Self::InvalidRefinementConfiguration => {
                 "refinement mode requires a positive maximum refinement count"
             }
@@ -216,16 +214,14 @@ pub fn decide_pop_outer_convergence(
             PopOuterConvergenceReason::UndefinedEquinoctialOrbitFailure,
         )
     } else {
-        let maximum = maximum_ncdot_per_second
-            .expect("partial convergence has at least one converged epoch");
+        let maximum =
+            maximum_ncdot_per_second.expect("partial convergence has at least one converged epoch");
         if !maximum.is_finite() {
             (false, PopOuterConvergenceReason::NonFiniteNcdotPeak)
         } else {
             ncdot_cutoff_per_second = Some(maximum * config.ncdot_reduction_factor);
             if maximum == 0.0 {
-                if minimum_surface_md2
-                    .is_some_and(|minimum| minimum > config.surface_md2_cutoff)
-                {
+                if minimum_surface_md2.is_some_and(|minimum| minimum > config.surface_md2_cutoff) {
                     (
                         true,
                         PopOuterConvergenceReason::PartialZeroRateSurfaceClearance,
@@ -253,8 +249,7 @@ pub fn decide_pop_outer_convergence(
 
                 let adjacent_unconverged = high_rate_epoch_indices.iter().any(|index| {
                     (*index > 0 && !epochs[*index - 1].pop_converged)
-                        || (*index + 1 < total_epoch_count
-                            && !epochs[*index + 1].pop_converged)
+                        || (*index + 1 < total_epoch_count && !epochs[*index + 1].pop_converged)
                 });
                 if adjacent_unconverged {
                     (
@@ -396,7 +391,10 @@ mod tests {
         .unwrap();
 
         assert!(result.converged);
-        assert_eq!(result.reason, PopOuterConvergenceReason::AllPopEpochsConverged);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::AllPopEpochsConverged
+        );
         assert_eq!(result.maximum_ncdot_per_second, Some(5.0));
         assert_eq!(result.ncdot_cutoff_per_second, Some(0.5));
     }
@@ -413,7 +411,10 @@ mod tests {
         .unwrap();
 
         assert!(!result.converged);
-        assert_eq!(result.reason, PopOuterConvergenceReason::NoPopEpochConverged);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::NoPopEpochConverged
+        );
     }
 
     #[test]
@@ -431,7 +432,10 @@ mod tests {
         .unwrap();
 
         assert!(result.converged);
-        assert_eq!(result.reason, PopOuterConvergenceReason::PartialHighRateRegionComplete);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::PartialHighRateRegionComplete
+        );
         assert_eq!(result.high_rate_epoch_indices, [2]);
     }
 
@@ -519,7 +523,10 @@ mod tests {
             PopOuterConvergenceReason::PartialZeroRateSurfaceClearance
         );
         assert!(!rejected.converged);
-        assert_eq!(rejected.reason, PopOuterConvergenceReason::PartialZeroRateUnresolved);
+        assert_eq!(
+            rejected.reason,
+            PopOuterConvergenceReason::PartialZeroRateUnresolved
+        );
     }
 
     #[test]
@@ -578,14 +585,15 @@ mod tests {
         policy.refine_ephemeris = true;
         policy.refinement_count = 250;
         policy.maximum_refinements = 250;
-        let result = decide_pop_outer_convergence(
-            &[epoch(1, 0.0, true, 0, Some(1.0), Some(1.0))],
-            policy,
-        )
-        .unwrap();
+        let result =
+            decide_pop_outer_convergence(&[epoch(1, 0.0, true, 0, Some(1.0), Some(1.0))], policy)
+                .unwrap();
 
         assert!(!result.converged);
-        assert_eq!(result.reason, PopOuterConvergenceReason::RefinementLimitExhausted);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::RefinementLimitExhausted
+        );
         assert!(!result.refinement_limit_satisfied);
     }
 
@@ -608,10 +616,7 @@ mod tests {
     #[test]
     fn missing_ncdot_for_converged_epoch_is_rejected() {
         assert_eq!(
-            decide_pop_outer_convergence(
-                &[epoch(1, 0.0, true, 0, None, Some(1.0))],
-                config()
-            ),
+            decide_pop_outer_convergence(&[epoch(1, 0.0, true, 0, None, Some(1.0))], config()),
             Err(PopOuterConvergenceError::MissingConvergedEpochNcdot)
         );
     }
