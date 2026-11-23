@@ -30,7 +30,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "baseline_retain-joint-1",
+          "loss_model_id": "loss-model-baseline_retain",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-baseline_retain-1"
         },
         {
           "world_id": "w2",
@@ -49,7 +53,11 @@
               "loss": 78
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "baseline_retain-joint-2",
+          "loss_model_id": "loss-model-baseline_retain",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-baseline_retain-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -63,7 +71,30 @@
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_improvement": 5
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-baseline_retain",
+      "world_set_receipt_sha256": "c02f3f0248a614fb0fcbbaed3ae4c794053e62c7e9814336e24004991fc74b5f",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "c4b903c86e8624f3fbdd11c62125cda16cdfb63cc511edcf438c5fe9a8812e45",
+        "source_case_id": "baseline_retain",
+        "source_manifest_id": "synthetic-loss-manifest-baseline_retain",
+        "source_scenarios_sha256": "670518fe09ddece80be34e7bb61df79dd4a429417bc5317f09c57c35042973fe",
+        "expected_scenario_ids": [
+          "baseline_retain-joint-1",
+          "baseline_retain-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "47807a59e3c2e11b18ec36dbca35b65e0670c32d4180ea3df0655b6deac5dc0b",
+        "projected_scenarios_sha256": "df4ee2c650d463c112cca43b96115bbebe6286f6773a5fe8892909c8aa78490c"
+      }
     },
     {
       "case_id": "decision_irrelevant_shift",
@@ -92,7 +123,11 @@
               "loss": 101
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "decision_irrelevant_shift-joint-1",
+          "loss_model_id": "loss-model-decision_irrelevant_shift",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-decision_irrelevant_shift-1"
         },
         {
           "world_id": "high_demand",
@@ -111,7 +146,11 @@
               "loss": 76
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "decision_irrelevant_shift-joint-2",
+          "loss_model_id": "loss-model-decision_irrelevant_shift",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-decision_irrelevant_shift-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -125,7 +164,30 @@
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_improvement": 0
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-decision_irrelevant_shift",
+      "world_set_receipt_sha256": "0fca821cc1baef4165ce5e9143fbca4ebe61470f0a05586030ab08ef50fd2abf",
+      "expected_world_ids": [
+        "high_demand",
+        "low_demand"
+      ],
+      "expected_world_ids_sha256": "12db3237e5cbb74d8967812f2edd0f16410036fa4ab1aa43231e138202fdf262",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "8ac6572634fd0cdcabc24717464f50fba8fae5ed18e97d4ea20a5e1c1106eed9",
+        "source_case_id": "decision_irrelevant_shift",
+        "source_manifest_id": "synthetic-loss-manifest-decision_irrelevant_shift",
+        "source_scenarios_sha256": "91fcd29a18d5a8a66d31630e47854b89f88e44a4605ea801dc120b811fd298df",
+        "expected_scenario_ids": [
+          "decision_irrelevant_shift-joint-1",
+          "decision_irrelevant_shift-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "35efb1ca2a388a13359350e252f28a87cfc840ae01954cee830ee16f5e3ef81f",
+        "projected_scenarios_sha256": "c2132c25ab3996cd6cd3fdee5f666586a0a2479481f26bb772f93b77e34d8ed7"
+      }
     },
     {
       "case_id": "opposite_optima_within_margin",
@@ -154,7 +216,11 @@
               "loss": 104
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "opposite_optima_within_margin-joint-1",
+          "loss_model_id": "loss-model-opposite_optima_within_margin",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-opposite_optima_within_margin-1"
         },
         {
           "world_id": "world_prefers_B",
@@ -173,7 +239,11 @@
               "loss": 100
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "opposite_optima_within_margin-joint-2",
+          "loss_model_id": "loss-model-opposite_optima_within_margin",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-opposite_optima_within_margin-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -187,7 +257,30 @@
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_improvement": 0
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-opposite_optima_within_margin",
+      "world_set_receipt_sha256": "72b072e14008a5958cda80c8718c6dbbd2d8758bbad973a189a0abff676023c3",
+      "expected_world_ids": [
+        "world_prefers_A",
+        "world_prefers_B"
+      ],
+      "expected_world_ids_sha256": "9140a3174c754798b5af0a1763bb83e30a36f8b57a253e3c822bff2ca5a27d2a",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "034bd5280600c42119e8216b071c5abe21586f986f364ee03a7abcfcf72fa9a8",
+        "source_case_id": "opposite_optima_within_margin",
+        "source_manifest_id": "synthetic-loss-manifest-opposite_optima_within_margin",
+        "source_scenarios_sha256": "2e05ab552deafa189f95de7b9d19c3992e922b621d9930c8c5a6da84c7063f9d",
+        "expected_scenario_ids": [
+          "opposite_optima_within_margin-joint-1",
+          "opposite_optima_within_margin-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "a619a222335285d60ca7f88061b9d6f63f324c16edc7398dde1d293cbef1fac9",
+        "projected_scenarios_sha256": "89b17c7b2ccf29eb10e0bf36504e026d21b59f43e5f63bd13a7d9b9f68d65637"
+      }
     },
     {
       "case_id": "threshold_exceeded",
@@ -216,7 +309,11 @@
               "loss": 80
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "threshold_exceeded-joint-1",
+          "loss_model_id": "loss-model-threshold_exceeded",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-threshold_exceeded-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -230,7 +327,28 @@
         "trigger_reason": "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD",
         "worst_case_improvement": 20
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-threshold_exceeded",
+      "world_set_receipt_sha256": "0d0ba0a6139b7e0041c5af36073a1ab3deae09da1c91ca3ed66a77bc39d84e44",
+      "expected_world_ids": [
+        "harmful_shift"
+      ],
+      "expected_world_ids_sha256": "bde819099649d03d20f896858cb43de5f2924d61332a3c789045739363640dd2",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "bfda16a1c62eba1e764dffa3c7e67e6eed0bd700809bd461b8809170aaaf21b8",
+        "source_case_id": "threshold_exceeded",
+        "source_manifest_id": "synthetic-loss-manifest-threshold_exceeded",
+        "source_scenarios_sha256": "d0941cb696118b34deb8997613d06a05c048b208ee34c6ac6a247eb8cf76459b",
+        "expected_scenario_ids": [
+          "threshold_exceeded-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "f0381c012ef9a0a52832a27f058f0f40df2d7b2047bc06e2103ec12ae80d5714",
+        "projected_scenarios_sha256": "8614d25b0223d5d5012474c012c9dbd71686add4c53f7a46c220e5e99cd6dfc7"
+      }
     },
     {
       "case_id": "threshold_equality",
@@ -259,7 +377,11 @@
               "loss": 0
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "threshold_equality-joint-1",
+          "loss_model_id": "loss-model-threshold_equality",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-threshold_equality-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -273,7 +395,28 @@
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         "worst_case_improvement": 10
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-threshold_equality",
+      "world_set_receipt_sha256": "4118e2df58dc29c8b49d29cb8bffe2f8bc11e76a8b2db8336499b4352c1cdc8e",
+      "expected_world_ids": [
+        "edge"
+      ],
+      "expected_world_ids_sha256": "49eb12f85115a4b004a6588e76748e2561dcbed3604779203497b5ce89354354",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "7a7f2ed6ad7436ed5b4636531973d66f63452d16383899c6f79dd2aba13def40",
+        "source_case_id": "threshold_equality",
+        "source_manifest_id": "synthetic-loss-manifest-threshold_equality",
+        "source_scenarios_sha256": "c7c9e086327da5d13c9ec4a56eea2c11afbd93adc590cd6aac55cc024544d61a",
+        "expected_scenario_ids": [
+          "threshold_equality-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "f8a5c8dee30f3fd7f5dc8cfd8d680528923bc97051e850e28f64836c8bee8cb0",
+        "projected_scenarios_sha256": "86da74c4a6ed89458d72b3147b82cb115bc34ee1d153009de193be46106d224e"
+      }
     },
     {
       "case_id": "incumbent_infeasible",
@@ -302,7 +445,11 @@
               "loss": 3
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "incumbent_infeasible-joint-1",
+          "loss_model_id": "loss-model-incumbent_infeasible",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-incumbent_infeasible-1"
         },
         {
           "world_id": "incumbent_removed",
@@ -316,7 +463,11 @@
               "loss": 2
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "incumbent_infeasible-joint-2",
+          "loss_model_id": "loss-model-incumbent_infeasible",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-incumbent_infeasible-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -330,7 +481,30 @@
         "trigger_reason": "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-incumbent_infeasible",
+      "world_set_receipt_sha256": "ed465bf845f2100bf102e755f64c2145cc6465647b284a44ca96582239c6952f",
+      "expected_world_ids": [
+        "feasible",
+        "incumbent_removed"
+      ],
+      "expected_world_ids_sha256": "3a643434d98d1894cb581f6423dd28b28dda21db5e16d54ae22c8934e384ac19",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "2b0e26f71a66d8c629bf6506efbced1979db4da1b3954b147e6e974f21b567ea",
+        "source_case_id": "incumbent_infeasible",
+        "source_manifest_id": "synthetic-loss-manifest-incumbent_infeasible",
+        "source_scenarios_sha256": "89a40c6be1ac0c9472022ad795b053970fc912687d270279580d247e57096661",
+        "expected_scenario_ids": [
+          "incumbent_infeasible-joint-1",
+          "incumbent_infeasible-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "b584b9c921ef120c14f1cad60742759c7476184044b8339c13629373b9835c8a",
+        "projected_scenarios_sha256": "a210996b3014646144315aacf5a397b89bba7098a1e1652e00f904a85a7a9809"
+      }
     },
     {
       "case_id": "no_surviving_worlds",
@@ -353,7 +527,24 @@
         "trigger_reason": "NO_SURVIVING_WORLDS",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-no_surviving_worlds",
+      "world_set_receipt_sha256": "a7e39f50631ebf077b16f36ce3f06002da317a038cc3d496f0d0e50058f810fa",
+      "expected_world_ids": [],
+      "expected_world_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "e97c6bd111cf97e8e96995f30cb4e8a01f8ce96c3531c378b71c6435fb8268d3",
+        "source_case_id": "no_surviving_worlds",
+        "source_manifest_id": "synthetic-loss-manifest-no_surviving_worlds",
+        "source_scenarios_sha256": "fa6595c2fff5f3df6c89288afcb99a61e924f8d9fcd51c75916f227bdcf2b2df",
+        "expected_scenario_ids": [],
+        "expected_scenario_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "projected_scenarios_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
     },
     {
       "case_id": "domain_open",
@@ -382,7 +573,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "domain_open-joint-1",
+          "loss_model_id": "loss-model-domain_open",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-domain_open-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -396,7 +591,28 @@
         "trigger_reason": "DOMAIN_NOT_CLOSED",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-domain_open",
+      "world_set_receipt_sha256": "c0267578c2adce9cbdeb5ffdd3035e4bba4dcb5b9463ab237e74e0357f11eb4c",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "66a3d049f88b36093ec1726340663c53141786f51d5b332771fa464775705a7f",
+        "source_case_id": "domain_open",
+        "source_manifest_id": "synthetic-loss-manifest-domain_open",
+        "source_scenarios_sha256": "bacc755c825b967abf8f7946e8a1e0d37b4ad6150eb1d09167971e456b4098fd",
+        "expected_scenario_ids": [
+          "domain_open-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "d61c6577cff23d1d6788d7187c41f1f7ae60329d074e1bc4d1e7626ce34b5241",
+        "projected_scenarios_sha256": "6f9b96a951f7539be0950bc8fb741f789c6d43126e8c6d21217fc3340c35b757"
+      }
     },
     {
       "case_id": "stale_evidence",
@@ -425,7 +641,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "stale_evidence-joint-1",
+          "loss_model_id": "loss-model-stale_evidence",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-stale_evidence-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -439,7 +659,28 @@
         "trigger_reason": "STALE_EVIDENCE",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-stale_evidence",
+      "world_set_receipt_sha256": "d5fb04fedf7432da9cc1a9af4fbf0e71d23020efed006ba8cf13dfbe8e51e2d6",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "1e5dbffb70cc607b0f0d9a18198d6d2acd2a8e6fbc40b1cc5d9fdfb19ecab566",
+        "source_case_id": "stale_evidence",
+        "source_manifest_id": "synthetic-loss-manifest-stale_evidence",
+        "source_scenarios_sha256": "1e02a6e604f82148b03f5c2d077f83302c18b06af3d9765836cd1d785bc19113",
+        "expected_scenario_ids": [
+          "stale_evidence-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "ed1c44e18254e4377acdee7383498a0a620242df94f5de6ab8ad15ffb66c8c81",
+        "projected_scenarios_sha256": "acfa452bc35cd33d495fa4bc83efb733dc38b5afe1070649d6bb5ab1348b9e3a"
+      }
     },
     {
       "case_id": "incomplete_loss_matrix",
@@ -464,7 +705,11 @@
               "loss": 100
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "incomplete_loss_matrix-joint-1",
+          "loss_model_id": "loss-model-incomplete_loss_matrix",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-incomplete_loss_matrix-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -478,7 +723,28 @@
         "trigger_reason": "INCOMPLETE_LOSS_MATRIX",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-incomplete_loss_matrix",
+      "world_set_receipt_sha256": "25693c14e828f7a3ff3538bb2c2b00ab0be88a57ec6b12336fbfdfd55b42bfef",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "7ad5a869229f45025128f899dc492d91c91c3f8664db6fb969129b3fa5d65655",
+        "source_case_id": "incomplete_loss_matrix",
+        "source_manifest_id": "synthetic-loss-manifest-incomplete_loss_matrix",
+        "source_scenarios_sha256": "74935d6e645c4c50c8ea8d3c3d72feabde3aafbd40804c9b87d09c67c72c3c14",
+        "expected_scenario_ids": [
+          "incomplete_loss_matrix-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "9d7e38c91c3069db0d4898c2e9c698e3174346d0958c9c35c7397b5eb93e5826",
+        "projected_scenarios_sha256": "04e45d2253cf7e9a06a705d8deeb91d3d58c8c96cd04bcb5c7d62390f5017e8c"
+      }
     },
     {
       "case_id": "duplicate_loss_row",
@@ -511,7 +777,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "duplicate_loss_row-joint-1",
+          "loss_model_id": "loss-model-duplicate_loss_row",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-duplicate_loss_row-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -525,7 +795,28 @@
         "trigger_reason": "loss row is malformed, duplicated or not feasible in its world",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-duplicate_loss_row",
+      "world_set_receipt_sha256": "814c11d024023e52233e43a9e80c2182a7043e1f18adf4dcd8c9744adbd762cc",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "f290a5a6e0385c2c782abe6ae6cd0dc573c4f61882c426dc7d623f2b3949a1c1",
+        "source_case_id": "duplicate_loss_row",
+        "source_manifest_id": "synthetic-loss-manifest-duplicate_loss_row",
+        "source_scenarios_sha256": "0c154b3d16ee876771cd36d1fcf674f38b555d48d398bfdda0daea3d4fe7ed11",
+        "expected_scenario_ids": [
+          "duplicate_loss_row-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "0dafa062ba166762f1a53ede0b74e07c5c4b1922d7af4634cd14a954bf2ee1a6",
+        "projected_scenarios_sha256": "78c9b2bf621a9018a5467ff1aa7b51b3ea7602b921261a01ae2b5514d038550d"
+      }
     },
     {
       "case_id": "scope_mismatch",
@@ -554,7 +845,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "scope_mismatch-joint-1",
+          "loss_model_id": "loss-model-scope_mismatch",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-scope_mismatch-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -568,7 +863,28 @@
         "trigger_reason": "SCOPE_MISMATCH",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-scope_mismatch",
+      "world_set_receipt_sha256": "1a0a798348255d7d3c03d7d8f5dcb82a4005ae587b0af189f907ad7301cf10e3",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "de9f642fb7d337d90ab9ecd2cc8968449b126f02916b48f065310eb39a0e3f63",
+        "source_case_id": "scope_mismatch",
+        "source_manifest_id": "synthetic-loss-manifest-scope_mismatch",
+        "source_scenarios_sha256": "b9829385f7659d61158574e54db8acde7afefa73a50b4f755346cb62baf1255b",
+        "expected_scenario_ids": [
+          "scope_mismatch-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "5df5943bcb74493885594ea5cdbeb5357e7a5cb0e026baefec6fbc73dea2d949",
+        "projected_scenarios_sha256": "a50caf3e39f0ef620aa2a25c51958769a277789f55523b15ca1bb1d5244cfbb0"
+      }
     },
     {
       "case_id": "model_inadequate",
@@ -597,7 +913,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "model_inadequate-joint-1",
+          "loss_model_id": "loss-model-model_inadequate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-model_inadequate-1"
         }
       ],
       "world_set_state": "CURRENT",
@@ -611,7 +931,28 @@
         "trigger_reason": "MODEL_FAMILY_INADEQUATE",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-model_inadequate",
+      "world_set_receipt_sha256": "f6d0b20bb083e1bd94741ba5a969018e4b6f6be8a8424509c27ebe6cef9f5693",
+      "expected_world_ids": [
+        "w1"
+      ],
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "1a8ccb749d6edae934bbe29c79a21896a4e8fa48c0ca5671e9598e89a55ca5b2",
+        "source_case_id": "model_inadequate",
+        "source_manifest_id": "synthetic-loss-manifest-model_inadequate",
+        "source_scenarios_sha256": "d6c060e8e666702e9c01bdc78ce178fd401516eff801d19bc3c3c05e132d7cf9",
+        "expected_scenario_ids": [
+          "model_inadequate-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "da190497fcef11a53784d48139969b3f790c8dfd884af8e6755ad9718636db40",
+        "projected_scenarios_sha256": "beb6c97bb36542d6f6d9ae05555cc4a1dcc2ef3fd41a3ca82dd754b9dc505beb"
+      }
     },
     {
       "case_id": "loss_unit_mismatch",
@@ -640,7 +981,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "energy_micro_units"
+          "loss_unit": "energy_micro_units",
+          "scenario_id": "loss_unit_mismatch-joint-1",
+          "loss_model_id": "loss-model-loss_unit_mismatch",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_unit_mismatch-1"
         },
         {
           "world_id": "w2",
@@ -659,7 +1004,11 @@
               "loss": 78
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_unit_mismatch-joint-2",
+          "loss_model_id": "loss-model-loss_unit_mismatch",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_unit_mismatch-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -673,7 +1022,30 @@
         "trigger_reason": "LOSS_UNIT_MISMATCH",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_unit_mismatch",
+      "world_set_receipt_sha256": "db32890f81e7af8badbfe6e2459ad7909ce9d9890292c70f9586c66d04b97519",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "bf1a82703a0d2df0e25875932fd380cc3154fa53dfd6d285cd05016daa5fa42c",
+        "source_case_id": "loss_unit_mismatch",
+        "source_manifest_id": "synthetic-loss-manifest-loss_unit_mismatch",
+        "source_scenarios_sha256": "4568df31045f8d63a89bca9c2d9d71c2fe94446172f60cc9b71f116e69619613",
+        "expected_scenario_ids": [
+          "loss_unit_mismatch-joint-1",
+          "loss_unit_mismatch-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "cbd7cb4412f56b92c51124bfea022164af8b0f9b2faa7b5421596eb5a7ac3623",
+        "projected_scenarios_sha256": "978fa10afc2bae91dd22fabe5403549613db17fe56ae123e58e4bba6e6fedab0"
+      }
     },
     {
       "case_id": "dependency_graph_inadequate",
@@ -702,7 +1074,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "dependency_graph_inadequate-joint-1",
+          "loss_model_id": "loss-model-dependency_graph_inadequate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-dependency_graph_inadequate-1"
         },
         {
           "world_id": "w2",
@@ -721,7 +1097,11 @@
               "loss": 78
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "dependency_graph_inadequate-joint-2",
+          "loss_model_id": "loss-model-dependency_graph_inadequate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-dependency_graph_inadequate-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -735,7 +1115,30 @@
         "trigger_reason": "DEPENDENCY_GRAPH_INADEQUATE",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "COMMON_MODE_DEPENDENCY_OMISSION"
+      "dependency_graph_state": "COMMON_MODE_DEPENDENCY_OMISSION",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-dependency_graph_inadequate",
+      "world_set_receipt_sha256": "a397c32b310e3e46455cbe4e3db7808fde4adcef7b207c567990edfcfcabaa28",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "97d60979d36dbe87a1d9ec5a3f72f25c839cb4e6a8d532cdccf84a5acb0c7d85",
+        "source_case_id": "dependency_graph_inadequate",
+        "source_manifest_id": "synthetic-loss-manifest-dependency_graph_inadequate",
+        "source_scenarios_sha256": "7d19a4ff023d08518072551a94646427c41d1c393dd86d359ed778bc7f3f6a32",
+        "expected_scenario_ids": [
+          "dependency_graph_inadequate-joint-1",
+          "dependency_graph_inadequate-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "fce6aef06466c25391e827bea4c9fff03478c71065cdbb235adbe3c3ad38308a",
+        "projected_scenarios_sha256": "28f216ce314c42ccd21b17670952de598479836f1d8c546814b384b48338945e"
+      }
     },
     {
       "case_id": "dependency_graph_stale",
@@ -764,7 +1167,11 @@
               "loss": 95
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "dependency_graph_stale-joint-1",
+          "loss_model_id": "loss-model-dependency_graph_stale",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-dependency_graph_stale-1"
         },
         {
           "world_id": "w2",
@@ -783,7 +1190,11 @@
               "loss": 78
             }
           ],
-          "loss_unit": "cost_micro_units"
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "dependency_graph_stale-joint-2",
+          "loss_model_id": "loss-model-dependency_graph_stale",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-dependency_graph_stale-2"
         }
       ],
       "world_set_state": "CURRENT",
@@ -797,7 +1208,912 @@
         "trigger_reason": "STALE_DEPENDENCY_GRAPH",
         "worst_case_improvement": null
       },
-      "dependency_graph_state": "STALE"
+      "dependency_graph_state": "STALE",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-dependency_graph_stale",
+      "world_set_receipt_sha256": "398c968149336c49e2b13ec061d4ffe7018b299e955dda1ca4b8254f7de7b6f8",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "754efc05d32df1594700440347b035a0cd5aab86dc717e96519800d6a79e1834",
+        "source_case_id": "dependency_graph_stale",
+        "source_manifest_id": "synthetic-loss-manifest-dependency_graph_stale",
+        "source_scenarios_sha256": "c170f5c29bcf34c585163528381ed9afedfad7c982bcc2a0666f24d648fe8c50",
+        "expected_scenario_ids": [
+          "dependency_graph_stale-joint-1",
+          "dependency_graph_stale-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "a8ba63c3c7246b00732495f2d3d4392700498fb239c02ffccce94ad0558db46f",
+        "projected_scenarios_sha256": "82f61acda82e8fa0f6d642e74b17c5438130de10cb9e84ebc4c85267a9fbd18b"
+      }
+    },
+    {
+      "case_id": "loss_model_set_stale",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_stale-joint-1",
+          "loss_model_id": "loss-model-loss_model_set_stale",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_stale-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_stale-joint-2",
+          "loss_model_id": "loss-model-loss_model_set_stale",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_stale-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "STALE_LOSS_MODEL_SET",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_model_set_stale",
+      "world_set_receipt_sha256": "37ae4bc0ded3b6ccdff92569e80c4c4d0419d5a41f61bdaad85d3852d12dc68a",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "STALE",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "c292b9d73d159aceb256f97ba79b79eba2a56f01918fad0379fcdd12956b4f5d",
+        "source_case_id": "loss_model_set_stale",
+        "source_manifest_id": "synthetic-loss-manifest-loss_model_set_stale",
+        "source_scenarios_sha256": "299168ea3ba55e5ac3da9ada48667702d8db615abb060d9636a9d78e08cb92f1",
+        "expected_scenario_ids": [
+          "loss_model_set_stale-joint-1",
+          "loss_model_set_stale-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "b6748bee0afb8523370d294919ad944a952cdeb339d26e06ae4b16417e5dd5d4",
+        "projected_scenarios_sha256": "442b3a8608f280b74ec579d784a5c438dcb506f1b9e7d5cd76f23be174e8bab1"
+      }
+    },
+    {
+      "case_id": "loss_model_set_inadequate",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_inadequate-joint-1",
+          "loss_model_id": "loss-model-loss_model_set_inadequate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_inadequate-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_inadequate-joint-2",
+          "loss_model_id": "loss-model-loss_model_set_inadequate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_inadequate-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_MODEL_SET_INADEQUATE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_model_set_inadequate",
+      "world_set_receipt_sha256": "c3d60d53bf8cbb3201772cd6f6402c3374257cae21e036138e3176e666a9ce69",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "INADEQUATE",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "f2ccfd16d78f0dd1fa40b9446e219efdfb4b0db7806325b1fb85f4e49c580b95",
+        "source_case_id": "loss_model_set_inadequate",
+        "source_manifest_id": "synthetic-loss-manifest-loss_model_set_inadequate",
+        "source_scenarios_sha256": "8817c658440347569093c23182081cff1b2a845b17cc2a5b76e90b1fb8db1a11",
+        "expected_scenario_ids": [
+          "loss_model_set_inadequate-joint-1",
+          "loss_model_set_inadequate-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "9cd91ad251ea3a072bf30203cdcefb3a41ac0d53ad5fa3bc5c34da323ff28e5c",
+        "projected_scenarios_sha256": "af945eb00daabdd29ce95e197c00cbe7d4f94a4d4be5e653d6314af2d6fd7a69"
+      }
+    },
+    {
+      "case_id": "loss_model_set_out_of_profile",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_out_of_profile-joint-1",
+          "loss_model_id": "loss-model-loss_model_set_out_of_profile",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_out_of_profile-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_set_out_of_profile-joint-2",
+          "loss_model_id": "loss-model-loss_model_set_out_of_profile",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_set_out_of_profile-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_MODEL_SET_OUT_OF_PROFILE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_model_set_out_of_profile",
+      "world_set_receipt_sha256": "14a7cdb7230420c67a8dd60d26074b34e4782dbffc625ea98500fcab7627b7d4",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "OUT_OF_PROFILE",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "9e7c2672a49fadb4b33091c3e315bd29eb690d6d8cd82f893c03dcb514d41c58",
+        "source_case_id": "loss_model_set_out_of_profile",
+        "source_manifest_id": "synthetic-loss-manifest-loss_model_set_out_of_profile",
+        "source_scenarios_sha256": "823ac222cf125f78ae3932ea1d48b7b81d61cc67eb46bf9505c1a79b7cc198ab",
+        "expected_scenario_ids": [
+          "loss_model_set_out_of_profile-joint-1",
+          "loss_model_set_out_of_profile-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "2e0a3ba4d8a9281230ca38bb72b9f65e71c68b6b83445ce5c1a3775f289c99f6",
+        "projected_scenarios_sha256": "63e4d4693d46985580f2b88b5a4ed77643e3986774b805e4ab895177dcd69bbb"
+      }
+    },
+    {
+      "case_id": "loss_scenario_out_of_profile",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_out_of_profile-joint-1",
+          "loss_model_id": "loss-model-loss_scenario_out_of_profile",
+          "evidence_status": "out_of_profile",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_scenario_out_of_profile-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_out_of_profile-joint-2",
+          "loss_model_id": "loss-model-loss_scenario_out_of_profile",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_scenario_out_of_profile-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_SCENARIO_OUT_OF_PROFILE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_scenario_out_of_profile",
+      "world_set_receipt_sha256": "8c4a573ad47a23553579fb6f109693309b393ee98822e404b25fd61daac80644",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "71ece293e9972f399e3c21763a3dd56a528d93f1defd7d3be242cf6beb475a40",
+        "source_case_id": "loss_scenario_out_of_profile",
+        "source_manifest_id": "synthetic-loss-manifest-loss_scenario_out_of_profile",
+        "source_scenarios_sha256": "5de16f208ac2227b3b851c8f8cb2973057ccf0ad8c024bcdf02e255e955193a9",
+        "expected_scenario_ids": [
+          "loss_scenario_out_of_profile-joint-1",
+          "loss_scenario_out_of_profile-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "4ad0955594ebfe76e47a06af904d8d65c1cabfd785ef7e955bc900f7456a583f",
+        "projected_scenarios_sha256": "8f86c66147145e1716302a62b944e6d0f321000328c2dfa0248d583b9855037e"
+      }
+    },
+    {
+      "case_id": "loss_scenario_indeterminate",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_indeterminate-joint-1",
+          "loss_model_id": "loss-model-loss_scenario_indeterminate",
+          "evidence_status": "indeterminate",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_scenario_indeterminate-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_indeterminate-joint-2",
+          "loss_model_id": "loss-model-loss_scenario_indeterminate",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_scenario_indeterminate-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_SCENARIO_EVIDENCE_INDETERMINATE",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_scenario_indeterminate",
+      "world_set_receipt_sha256": "5dfb8aa70de52ff002047fbeb8fc19fb089f45c38ff04f6f8bb302298ae415c0",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "c18261b1b76737cd962a3a0e080d77a59c0c1e658df88cdddf6f5d689d661144",
+        "source_case_id": "loss_scenario_indeterminate",
+        "source_manifest_id": "synthetic-loss-manifest-loss_scenario_indeterminate",
+        "source_scenarios_sha256": "af910b31ce36f1a06e65acdb1bccbe1ddb1237cee8f93c12daa2a739f1520aa5",
+        "expected_scenario_ids": [
+          "loss_scenario_indeterminate-joint-1",
+          "loss_scenario_indeterminate-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "ac9ece5c3d8714dc026d60639c81bb6ae919708a0b1aa9183866b506a52444e1",
+        "projected_scenarios_sha256": "3cb9a68f5553e96d1a52d66d7b5cfbf61fc3e79747f9be2e06ba09ff9b284f4a"
+      }
+    },
+    {
+      "case_id": "joint_scenario_omission",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "joint_scenario_omission-joint-1",
+          "loss_model_id": "loss-model-joint_scenario_omission",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-joint_scenario_omission-1"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "trigger_reason": "observed joint scenarios do not match planned loss-model inventory",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-joint_scenario_omission",
+      "world_set_receipt_sha256": "5ab46f546e218900264395e92487a90882fb9a29179570ce4b694c914d6b41f2",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "f8dcd7970413f8ed3b33252a221cdec2c470e8035d69cf6d02ad8ca630ea4024",
+        "source_case_id": "joint_scenario_omission",
+        "source_manifest_id": "synthetic-loss-manifest-joint_scenario_omission",
+        "source_scenarios_sha256": "ac2351b7c9fe595febd5dc0cd17ebd15b78559e254d256e8f0037e2cd73a34f0",
+        "expected_scenario_ids": [
+          "joint_scenario_omission-joint-1",
+          "joint_scenario_omission-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "6629db40b648030a308ff28125aa3f2c23faf6d47de8eaa18c14d890feeb8428",
+        "projected_scenarios_sha256": "0eb1ebaa2d7f5f7936db72196945aa92ff8b51223ed2a6db338fb6ed0cabecab"
+      }
+    },
+    {
+      "case_id": "physical_world_omission",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "physical_world_omission-joint-1",
+          "loss_model_id": "loss-model-physical_world_omission",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-physical_world_omission-1"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "trigger_reason": "joint loss scenarios do not cover the exact surviving physical-world inventory",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-physical_world_omission",
+      "world_set_receipt_sha256": "2a2f12f989069301788d423ea825573d7bb0c0f64721db3558c8955707168e33",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "6204ed69ee2f397cf53297c6aa5637ee93a4c2f3d5a1ad8b5768c7a26960e298",
+        "source_case_id": "physical_world_omission",
+        "source_manifest_id": "synthetic-loss-manifest-physical_world_omission",
+        "source_scenarios_sha256": "cbc8b891e9f8fa8506e2533d20ab1d9e209f7fbc51a49cf19b7ed3a64194620b",
+        "expected_scenario_ids": [
+          "physical_world_omission-joint-1"
+        ],
+        "expected_scenario_ids_sha256": "d6c8777d7f62e97731b467947ee36219a53337518c0e431ce5b565370f145c58",
+        "projected_scenarios_sha256": "25c59806003ec9396604d5298b817c87147ff232bec318a4bb3e2d81f19f4361"
+      }
+    },
+    {
+      "case_id": "loss_model_source_pin_malformed",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_source_pin_malformed-joint-1",
+          "loss_model_id": "loss-model-loss_model_source_pin_malformed",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_source_pin_malformed-1"
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_model_source_pin_malformed-joint-2",
+          "loss_model_id": "loss-model-loss_model_source_pin_malformed",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_model_source_pin_malformed-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "trigger_reason": "upstream world or loss-model receipt pins are malformed",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_model_source_pin_malformed",
+      "world_set_receipt_sha256": "1149fc5b6f74c0ff7575c9619d5324707b52f8fe59fddb7a6c08b9d5c5db2f2d",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "not-a-sha256",
+        "source_case_id": "loss_model_source_pin_malformed",
+        "source_manifest_id": "synthetic-loss-manifest-loss_model_source_pin_malformed",
+        "source_scenarios_sha256": "e4b0b65541ea8de131ffc376688fdb2b9090990cac6f7917c6e04cf5a75d3188",
+        "expected_scenario_ids": [
+          "loss_model_source_pin_malformed-joint-1",
+          "loss_model_source_pin_malformed-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "98fa5d93fab9e6b963d0fd324fc5d19f7ca907c6e3c15c03692631a2a41ae74f",
+        "projected_scenarios_sha256": "deebe53a51aaf04491143dd611dd92feb0efdc34beceb6e12f767c34d6582a28"
+      }
+    },
+    {
+      "case_id": "loss_scenario_receipt_missing",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "w1",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_receipt_missing-joint-1",
+          "loss_model_id": "loss-model-loss_scenario_receipt_missing",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "w2",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 78
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "loss_scenario_receipt_missing-joint-2",
+          "loss_model_id": "loss-model-loss_scenario_receipt_missing",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-loss_scenario_receipt_missing-2"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "ABSTAIN",
+        "trigger_reason": "LOSS_SCENARIO_RECEIPT_MISSING",
+        "worst_case_improvement": null
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-loss_scenario_receipt_missing",
+      "world_set_receipt_sha256": "1c6c15808f0a22b171fe5045587fa2b67b53b9b9d52bdee64f605041174f918d",
+      "expected_world_ids": [
+        "w1",
+        "w2"
+      ],
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "0a60b4cd9a060cec08ef6adf1632ec6e67050ae872c363882d9e7227cbbe3e68",
+        "source_case_id": "loss_scenario_receipt_missing",
+        "source_manifest_id": "synthetic-loss-manifest-loss_scenario_receipt_missing",
+        "source_scenarios_sha256": "8aa60583bb5ceee8dea6cc7379862e83c53aaf88757386b6dd7a12f157b2db11",
+        "expected_scenario_ids": [
+          "loss_scenario_receipt_missing-joint-1",
+          "loss_scenario_receipt_missing-joint-2"
+        ],
+        "expected_scenario_ids_sha256": "99e6848088c5573d73b6444aa4a631acb0c96e680ea02f8f6286c9f8b92949f6",
+        "projected_scenarios_sha256": "ff9150bbc86aa3d027464118f36a8cbd08cd84d8a586ec5af2dbe895f106516c"
+      }
+    },
+    {
+      "case_id": "multi_loss_models_same_world",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "loss_unit": "cost_micro_units",
+      "incumbent_action_id": "A",
+      "action_ids": [
+        "A",
+        "B"
+      ],
+      "worlds": [
+        {
+          "world_id": "physical-world-shared",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 100
+            },
+            {
+              "action_id": "B",
+              "loss": 95
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "joint-shared-world-model-A",
+          "loss_model_id": "loss-model-A",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-multi_loss_models_same_world-1"
+        },
+        {
+          "world_id": "physical-world-shared",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "feasible_action_ids": [
+            "A",
+            "B"
+          ],
+          "losses": [
+            {
+              "action_id": "A",
+              "loss": 80
+            },
+            {
+              "action_id": "B",
+              "loss": 82
+            }
+          ],
+          "loss_unit": "cost_micro_units",
+          "scenario_id": "joint-shared-world-model-B",
+          "loss_model_id": "loss-model-B",
+          "evidence_status": "admissible",
+          "evidence_receipt_id": "synthetic-loss-receipt-multi_loss_models_same_world-1"
+        }
+      ],
+      "world_set_state": "CURRENT",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "model_family_state": "ADEQUATE",
+      "evidence_state": "CURRENT",
+      "materiality_margin": 10,
+      "switching_cost": 2,
+      "expected": {
+        "disposition": "RETAIN_INCUMBENT",
+        "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
+        "worst_case_improvement": 5
+      },
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "world_set_receipt_id": "synthetic-compatible-world-receipt-multi_loss_models_same_world",
+      "world_set_receipt_sha256": "445292e54ecf36960144d95142a0eee6cf9e346a23a13f22754c4489b00f4396",
+      "expected_world_ids": [
+        "physical-world-shared"
+      ],
+      "expected_world_ids_sha256": "66dbaedd7267b1973a7e4a2c81760b2026eff4944904f79e2bca3fb7f690819b",
+      "loss_model_set": {
+        "state": "CURRENT",
+        "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
+        "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
+        "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
+        "source_receipt_sha256": "aa5b196802ed7183430827754e6190749067ae0c946d42a72303558600ad080a",
+        "source_case_id": "multi_loss_models_same_world",
+        "source_manifest_id": "synthetic-loss-manifest-multi_loss_models_same_world",
+        "source_scenarios_sha256": "86aeff29d0afbf6478a5e59358b4045d8e47eeee07f5a01beededcd74cef77e5",
+        "expected_scenario_ids": [
+          "joint-shared-world-model-A",
+          "joint-shared-world-model-B"
+        ],
+        "expected_scenario_ids_sha256": "2a0f185d06de8c8a964a9ac34987d67f4de3e3019d97d84ebbdb0646e1bca4af",
+        "projected_scenarios_sha256": "11b7e666b6679623ae91fc23ed5c38a12f6e70a4648ebd39f167ce16c6d6ba99"
+      }
     }
   ]
 }
