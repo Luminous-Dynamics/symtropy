@@ -336,6 +336,36 @@ pub struct CoverageReport {
 /// Explicitly recorded omissions are valid evidence about an incomplete run.
 /// Missing, duplicate, unexpected, malformed, or arithmetically inconsistent
 /// records are protocol errors and are rejected.
+/// Validate a receipt after the caller independently computes SHA-256 over
+/// request.canonical_request_preimage().
+///
+/// This binds the caller-computed digest to the request identity. The caller
+/// remains responsible for using a correct SHA-256 implementation.
+pub fn validate_receipt_with_computed_request_digest(
+    receipt: &CoverageReceipt,
+    computed_request_sha256: &str,
+) -> Result<CoverageReport, ValidationError> {
+    receipt.request.identity.validate()?;
+    if !is_sha256(computed_request_sha256) {
+        return Err(ValidationError::new(
+            "computed_request_sha256",
+            "must be exactly 64 hexadecimal characters",
+        ));
+    }
+    if !receipt
+        .request
+        .identity
+        .request_set_sha256
+        .eq_ignore_ascii_case(computed_request_sha256)
+    {
+        return Err(ValidationError::new(
+            "identity.request_set_sha256",
+            "does not match the caller-computed canonical request digest",
+        ));
+    }
+    validate_receipt(receipt)
+}
+
 pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, ValidationError> {
     let request = &receipt.request;
     request.identity.validate()?;
@@ -858,6 +888,15 @@ mod tests {
             second.request.canonical_request_preimage()
         );
         assert_eq!(canonical_receipt_preimage(&first), canonical_receipt_preimage(&second));
+    }
+
+    #[test]
+    fn caller_computed_request_digest_must_match_identity() {
+        let value = receipt();
+        let expected = value.request.identity.request_set_sha256.clone();
+        assert!(validate_receipt_with_computed_request_digest(&value, &expected).is_ok());
+        assert!(validate_receipt_with_computed_request_digest(&value, &"6".repeat(64)).is_err());
+        assert!(validate_receipt_with_computed_request_digest(&value, "bad-digest").is_err());
     }
 
     #[test]
