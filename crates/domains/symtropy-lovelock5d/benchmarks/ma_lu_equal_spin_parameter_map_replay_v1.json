@@ -3,36 +3,26 @@
   "artifact_kind": "ma_lu_equal_spin_parameter_map_replay",
   "status": "exact_public_source_blob_replayed_locally",
   "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
-  "local_source_sha256": "278a692110f02886c62db25319c1c84310e03bc0d08cb682f9a30a4e6c17f512",
-  "environment": {
-    "python": "3.13.5",
-    "sympy": "1.14.0"
+  "source": {
+    "git_blob_sha1": "3b14fe1ba1062cc840da07267c89275b1096b7f7",
+    "sha256": "2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a",
+    "exact_bytes_match": true
   },
+  "environment": {"python": "3.13.5", "sympy": "1.14.0"},
   "execution": {
-    "command": "python3 derive_ma_lu_equal_spin_parameter_map.py",
-    "python": "3.13.5",
-    "sympy": "1.14.0",
-    "result_status": "exact_symbolic_parameter_relations_derived",
+    "command": "python3 derive_ma_lu_equal_spin_parameter_map.py --output ma_lu_equal_spin_parameter_map_v1.json",
     "checks": {
       "horizon_relation_exact": true,
       "angular_velocity_relation_exact": true,
-      "printed_chi_relation_exact": true,
+      "chi_equals_a_over_sqrt_mu": true,
+      "chi_equals_sqrt2_nu_exact": true,
       "inverse_series_exact_through_nu11": true,
+      "eq_3_9_equal_spin_mass_series": true,
       "coupling_coefficient_identity": true
-    }
+    },
+    "q_of_nu": "nu+nu^3+2*nu^5+5*nu^7+14*nu^9+42*nu^11+O(nu^13)",
+    "chi_of_nu": "sqrt(2)*nu",
+    "mu_over_rh2_of_chi": "1/2+chi^2/2+5*chi^4/8+7*chi^6/8+O(chi^8)"
   },
-  "checks": {
-    "horizon_relation_exact": true,
-    "angular_velocity_relation_exact": true,
-    "printed_chi_relation_exact": true,
-    "inverse_series_exact_through_nu11": true,
-    "coupling_coefficient_identity": true
-  },
-  "claim_ceiling": "Exact public script blob replayed locally and exact kinematic parameter relations/series inversion verified. This does not compare corrected metrics, perform the radial gauge transformation, or solve finite-coupling EGB.",
-  "source": {
-    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
-    "git_blob_sha1": "5d17da9c52e0668d699d591c608a5bc18eb98efc",
-    "sha256": "dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3",
-    "exact_bytes_match": true
-  }
+  "claim_ceiling": "Exact kinematic map and first-coupling normalization only; no corrected metric/gauge comparison or finite-coupling EGB result is claimed."
 }
