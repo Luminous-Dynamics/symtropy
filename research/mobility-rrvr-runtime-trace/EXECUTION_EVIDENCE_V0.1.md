@@ -111,3 +111,8 @@ See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md). The current implementation
 ## Cross-event chronology
 
 The validator now checks chronology across the ordered fault schedule, not only within each event. After target/dispatch/execution/observation receipts for event N, the first available receipt for event N+1 may not move backwards in simulation step or simulation time. All events retain the reset receipt's clock identity and run/world epochs. A locally ordered event cannot be replayed out of sequence in the larger campaign trace.
+
+
+## Simulator-control versus world-state evidence
+
+The step-service/action receipt proves only what the control endpoint returned. The simulator transport must additionally capture a receipt from the pinned Gazebo world-statistics topic, including source build, raw artifact digest, clock, iterations and sim_time. The adapter refuses to accept a cut point until the observed statistics agree with the requested step and the world-state snapshot. The current reference is a synthetic test contract, not a live Gazebo stream. See GAZEBO_ADAPTER_V0.1.md.
