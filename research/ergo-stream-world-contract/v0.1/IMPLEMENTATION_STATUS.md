@@ -229,3 +229,10 @@ The current scope contract deliberately does not implement many-to-one homomorph
 Seven tests cover an induced embedding, full-isomorphism scope enforcement, omitted internal target relation, explicit extra target relation for subgraph embedding, incomplete scope partition, relation escaping the scope, and incomplete correspondence coverage.
 
 **Verification for the scope-aware extension:** pending exact-head Rust 1.96 formatting, tests/doctest and strict Clippy. Earlier successful workflow coverage does not extend to this new module.
+
+
+## Scoped transfer proposal example and workflow note
+
+Added `examples/scoped_transfer_induced_embedding.example.json` as a machine-readable example of the new v0 proposal sidecar. The JSON Schema and example have both been retrieved and parsed as JSON. The example shows two selected nodes / one selected relation on each side, plus one excluded node and one excluded relation on each side, all bound to separate episode IDs and evidence-prefix hashes.
+
+The first exact-head workflow after adding `scoped.rs` reached only `cargo fmt --check` and failed on three formatting differences in that file. Those exact rustfmt differences were corrected. The example and docs were then added; the latest branch head must still receive an exact-head Rust 1.96 format/test/doctest/strict-Clippy result. No validation result from the pre-scope code is inherited.
