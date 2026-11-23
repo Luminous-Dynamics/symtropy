@@ -567,7 +567,7 @@ mod tests {
             build_relative_ncdot_conditionals(base_inputs()).expect("independent Gaussian blocks");
         assert_eq!(result.inverse_position_covariance[0][0], 0.25);
         assert!((result.inverse_position_covariance[1][1] - 1.0 / 3.0).abs() < 1.0e-14);
-        assert_eq!(result.inverse_position_covariance[2][2], 0.5);
+        assert!((result.inverse_position_covariance[2][2] - 0.5).abs() < 1.0e-14);
         assert_eq!(result.conditional_velocity_regression, [[0.0; 3]; 3]);
         assert_eq!(
             result.conditional_velocity_covariance,
@@ -614,10 +614,15 @@ mod tests {
         p[5][5] = 0.58;
         inputs.primary_covariance = p;
         let result = build_relative_ncdot_conditionals(inputs).expect("valid joint covariance");
-        assert_eq!(
-            result.conditional_velocity_regression,
-            [[0.25, 0.0, 0.0], [0.0, 0.2, 0.0], [0.0, 0.0, 0.2]]
-        );
+        let expected_regression = [[0.25, 0.0, 0.0], [0.0, 0.2, 0.0], [0.0, 0.0, 0.2]];
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!(
+                    (result.conditional_velocity_regression[i][j] - expected_regression[i][j]).abs()
+                        < 1.0e-14
+                );
+            }
+        }
         assert!((result.conditional_velocity_covariance[0][0] - 1.0).abs() < 1.0e-14);
         assert!((result.conditional_velocity_covariance[1][1] - 0.8).abs() < 1.0e-14);
         assert!((result.conditional_velocity_covariance[2][2] - 0.5).abs() < 1.0e-14);
