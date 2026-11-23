@@ -390,7 +390,7 @@ fn validate_robust_impact(
         {
             return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
         }
-        let numerator = u128::from(pair.guaranteed_separated_pair_count)
+        let numerator = (pair.guaranteed_separated_pair_count as u128)
             .checked_mul(u128::from(PROBABILITY_SCALE))
             .ok_or(NavigationOutcomeRiskError::InvalidRobustImpactAssessment)?;
         let denominator = pair.hypothesis_pair_count as u128;
