@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "research/sc-ic-condition-profiles-v0.1" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -83,6 +83,12 @@ jobs:
     - name: Test Airborne Energy Observability Oracle
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
+
+    - name: Test REBCO Long-Length Auditor
+      run: cargo test --locked -p rebco-long-length-auditor
+
+    - name: Audit Synthetic REBCO Long-Length Fixture
+      run: cargo run --locked --quiet -p rebco-long-length-auditor --bin rebco-long-length-auditor -- docs/research/fixtures/rebco_long_length_synthetic_v0_1.json
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
