@@ -934,13 +934,13 @@ mod tests {
     fn parent_request_or_result_mutation_is_rejected() {
         let payload = vec![0xA5; 256];
         let receipt = receipt(&payload);
-        let mut parent = parent(ParentAcquisitionStatusV1::Delivered);
-        parent.request_id = "different-request".to_string();
-        assert!(validate_derived_receipt(&receipt, &parent, &payload, 20).is_err());
+        let mut parent_evidence = parent(ParentAcquisitionStatusV1::Delivered);
+        parent_evidence.request_id = "different-request".to_string();
+        assert!(validate_derived_receipt(&receipt, &parent_evidence, &payload, 20).is_err());
 
-        let mut parent = parent(ParentAcquisitionStatusV1::Delivered);
-        parent.result_event_sha256 = digest(b"different-result");
-        assert!(validate_derived_receipt(&receipt, &parent, &payload, 20).is_err());
+        let mut parent_evidence = parent(ParentAcquisitionStatusV1::Delivered);
+        parent_evidence.result_event_sha256 = digest(b"different-result");
+        assert!(validate_derived_receipt(&receipt, &parent_evidence, &payload, 20).is_err());
     }
 
     #[test]
