@@ -7,9 +7,7 @@
 //! reset a world, step time, inject a fault, or create native authority.
 
 use mobility_rrvr_runtime_trace::campaign_plan::CompiledCampaignPlan;
-use mobility_rrvr_runtime_trace::gazebo_adapter::{
-    GazeboCapabilityProfile, SteppingMethod,
-};
+use mobility_rrvr_runtime_trace::gazebo_adapter::{GazeboCapabilityProfile, SteppingMethod};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -65,11 +63,17 @@ fn run() -> Result<(), String> {
         .map_err(|error| format!("compiled plan integrity check failed: {error:?}"))?;
     plan.verify_source_manifest_bytes(&source_bytes)
         .map_err(|error| format!("source manifest binding failed: {error:?}"))?;
-    if plan.canonical_bytes().map_err(|error| format!("{error:?}"))? != plan_bytes {
+    if plan
+        .canonical_bytes()
+        .map_err(|error| format!("{error:?}"))?
+        != plan_bytes
+    {
         return Err("compiled plan is not in the declared canonical encoding".to_owned());
     }
     if !plan.plan_sha256.eq_ignore_ascii_case(expected_plan_sha256) {
-        return Err("compiled plan digest does not match the externally pinned expected digest".to_owned());
+        return Err(
+            "compiled plan digest does not match the externally pinned expected digest".to_owned(),
+        );
     }
 
     let profile: GazeboCapabilityProfile = serde_json::from_slice(&capability_bytes)
