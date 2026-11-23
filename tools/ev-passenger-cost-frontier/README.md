@@ -423,14 +423,14 @@ cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --
   tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
 \`\`\`
 
-The exact reference is deliberately bounded to at most 8 requests and 8 combined aerial/fallback opportunities, with a 1,000,000-node limit. Above the input bounds it returns not_run_bounds_exceeded; on node exhaustion it returns node_limit_reached. Neither status includes an optimum or policy regret. For an evaluated instance, the objective is lexicographic: maximize on-time completions; maximize total completed-by-horizon services; minimize cumulative lateness; minimize work left in progress at the cut-off; minimize completed-request latency; then apply a canonical ID tie-break. No arbitrary weighted scalar score or service-class weight is introduced.
+The exact reference uses bitmask dynamic programming, bounded to at most 12 requests and 16 combined aerial/fallback opportunities, with a 1,000,000-transition ceiling. Above the input bounds it returns not_run_bounds_exceeded; on transition exhaustion it returns transition_limit_reached. Neither status includes an optimum or policy regret. For an evaluated instance, the objective is lexicographic: maximize on-time completions; maximize total completed-by-horizon services; minimize cumulative lateness; minimize work left in progress at the cut-off; minimize completed-request latency; then apply a canonical ID tie-break. No arbitrary weighted scalar score or service-class weight is introduced.
 
 The two-request/two-opportunity frozen source-receipt challenge yields:
 - FCFS: one on-time and one late completion; 185 seconds cumulative deadline lateness.
 - EDF: two on-time completions; zero deadline lateness.
 - Exact oracle: same outcome as EDF on this tiny instance; FCFS loses one on-time completion and has 185 seconds of lateness excess.
 
-The full 12-request linked fixture has 7 qualified aerial plus 5 fallback opportunities, so the exact oracle explicitly abstains because it exceeds the 8-opportunity bound. The policy comparison remains FCFS vs EDF until a larger exact/DP/MILP baseline is separately qualified.
+The full 12-request linked fixture has 7 qualified aerial plus 5 fallback opportunities and now falls within the 12-request/16-opportunity DP bound. Its linked report computes an exact assignment optimum and component-wise FCFS/EDF gaps for the same event-derived opportunity set. Larger instances still abstain above the declared bounds.
 
 The linked consumer still re-runs the capacity event simulator and derives aircraft/time/duration/turnaround only from source opportunity receipts. Exact oracle code: src/sustainable_mobility_service_quality.rs; bounded fixture: fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json; full linked fixture: fixtures/sustainable_mobility_service_quality_linked_v0_1.json; dossier: docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md.
 
