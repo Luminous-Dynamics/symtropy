@@ -320,14 +320,15 @@ The exact local script was run with Python 3.13.5 / mpmath 1.3.0 before publicat
 This is a second numerical quadrature family. It is not an interval enclosure, action-row replay or finite-\(\lambda\) BVP result.
 
 
-## Correction and exact-source replay: Ma--Lü convention map (23 November 2026)
+## Ma--Lü printed-convention correction and exact kinematic replay (23 November 2026)
 
-The paper's Eq. (2.9) explicitly defines chi_a=a/sqrt(mu), chi_b=b/sqrt(mu). For equal spins q=a/r_h and nu=Omega_H*r_h, the horizon and angular-velocity equations give mu/r_h^2=(1+q^2)^2/2 and nu=q/(1+q^2). Therefore chi=sqrt(2)*q/(1+q^2)=sqrt(2)*nu exactly. The inverse physical ratio is q=nu+nu^3+2nu^5+5nu^7+14nu^9+42nu^11+O(nu^13). Ma-Lu Eq. (3.9) independently cross-checks mu/r_h^2=1/2+chi^2/2+5chi^4/8+7chi^6/8+O(chi^8).
-
-The corrected SymPy parameter-map script was fetched byte-for-byte from the public branch and replayed locally: Git blob SHA-1 3b14fe1ba1062cc840da07267c89275b1096b7f7, SHA-256 2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a. Python 3.13.5 / SymPy 1.14.0. Exact horizon, angular-velocity, chi, inverse q(nu) through nu^11, Eq. (3.9), and coupling-normalization checks pass.
-
-The first-coupling Euler-tensor identity alpha_R=alpha_GB/4 remains correct on Ricci-flat MP. The metric/gauge transformation and full component comparison remain open.
-
+The published PDF Eq. (10) is \(\chi_a=a/\mu,\chi_b=b/\mu\); the square-root denominator inserted by an earlier extraction reading was incorrect. For equal spins \(q=a/r_h\),
+\[
+\mu/r_h^2=(1+q^2)^2/2,\qquad
+\nu_h=\Omega_Hr_h=q/(1+q^2),\qquad
+\chi r_h=2q/(1+q^2)^2.
+\]
+The exact q(\nu_h) and \(\chi r_h(\nu_h)\) series are checked through \(\nu_h^{11}\), and the Eq. (50) mass-parameter series is reproduced through \((\chi r_h)^4\). The corrected exact-source script has Git blob SHA-1 956ad645c8b90882441a6a76ba89e11dcac99144 and SHA-256 6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c.
 
 ## Ma--Lü Ricci-flat source identity and perturbative validity (23 November 2026)
 
@@ -337,16 +338,16 @@ Artifacts:
 - ma_lu_ricci_flat_euler_identity_v1.md
 - ma_lu_ricci_flat_euler_identity_v1.json
 
-The Ma--Lü equal-spin kinematic map has also been replayed from its exact public source blob (Git blob SHA-1 5d17da9c52e0668d699d591c608a5bc18eb98efc, SHA-256 dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3); its inverse series passes through \(\nu^{11}\). The paper's printed \(\chi=a/\mu\) is retained literally, with a dimensional-convention caveat. The quantities \(q=a/r_h\) and \(\nu=\Omega_Hr_h\) agree only at leading slow-spin order.
+The Ma--Lü equal-spin kinematic map is now aligned with the printed Eq. (10), \(\chi=a/\mu\). The scale-explicit variable for comparing perturbative spin coefficients is \(\chi r_h\); do not substitute \(\chi=\sqrt2\,\nu_h\) or \(\chi=\nu_h\).
 
 A new task, [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955), covers perturbative spin-uniformity. Wu--Lü, PRD 111, 104026 (2025), find rotation-dependent divergences in first-order quadratic-curvature thermodynamic corrections across ensembles, while cautioning that these may be perturbative artifacts rather than nonexistence in the full nonlinear theory. Therefore the Ma--Lü spin-series truncation error and coupling truncation error \(O(\epsilon_R^2)\) must be tracked separately. The metric/gauge comparison and thermodynamic matching remain open.
 
 
 ## Fixed Symtropy horizon and physical angular velocity: Ma--Lü parameter conversion (23 November 2026)
 
-The benchmark now distinguishes the Ma--Lü Boyer--Lindquist horizon \(r_h\), \(\nu_h=\Omega_Hr_h\), from the Symtropy areal horizon \(R_H\), \(\nu_S=\Omega_HR_H\). At zero coupling, \(R_H^2=r_h^2+a^2\) and \(\nu_S=q/\sqrt{1+q^2}\); they are not the same spin variable.
+The benchmark distinguishes Ma--Lü's Boyer--Lindquist horizon \(r_h\), \(\nu_h=\Omega_Hr_h\), from Symtropy's areal horizon \(R_H\), \(\nu_S=\Omega_HR_H\). At zero coupling, \(R_H^2=r_h^2+a^2\), so the two spins are already different. At first coupling the \(H_7\) orbit-space horizon shift and \(H_2/H_4/H_7\) angular-velocity correction both enter.
 
-A local exact-symbolic first-coupling derivation gives, with \(\epsilon_S=\alpha_R/R_H^2\):
+With \(\epsilon_S=\alpha_R/R_H^2\), the fixed-boundary conversion is:
 \[
 R_H/r_h=1+5\epsilon_S/3+\nu_S^2/2+(277/90)\epsilon_S\nu_S^2+\cdots,
 \]
@@ -357,13 +358,23 @@ q=\nu_S+\nu_S^3/2+\epsilon_S(7\nu_S-(3619/90)\nu_S^3)+\cdots,
 a/R_H=\nu_S+(16/3)\epsilon_S\nu_S-(2068/45)\epsilon_S\nu_S^3+\cdots,
 \]
 \[
-\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+(454/45)\epsilon_S\nu_S^2+\cdots.
+\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+(454/45)\epsilon_S\nu_S^2+\cdots,
 \]
-The last quantity is the converted background MP mass parameter, **not** the corrected ADM mass; ADM mass needs an independent asymptotic extraction including \(H_1\).
+\[
+\chi R_H=2\nu_S-2\nu_S^3+(52/3)\epsilon_S\nu_S-(2344/15)\epsilon_S\nu_S^3+\cdots.
+\]
+The converted \(\mu/R_H^2\) is the background MP parameter, not the corrected ADM mass.
 
-Artifacts:
-- ma_lu_fixed_symtropy_boundary_map_v1.json
-- ma_lu_fixed_symtropy_boundary_map_v1.md
-- ma_lu_fixed_symtropy_boundary_map_replay_v1.json
+## Exact original-row Ma--Lü overlap (23 November 2026)
 
-Issue [#6965](https://github.com/Luminous-Dynamics/symtropy/issues/6965) owns the parameter map and its independent verification. The exact transformed metric coefficient comparison remains open in #6915.
+The fixed-boundary radial/time/fibre-cross-term profiles are
+\[
+B_{21}=\frac{(R^2-1)(11R^6+11R^4+22R^2+9)}{9R^{10}},\quad
+F_{21}=\frac{(R^2-1)(22R^4-11R^2-35)}{18R^8},
+\]
+\[
+H_{21}=-\frac{(R^2+1)(11R^2+3)}{6R^6}.
+\]
+With the correct MP-connected zeroth-order mode offsets \(c_B=c_H=0\), the four original action-derived rows give exact rational zero: \(E_b=E_f=E_g=E_h=0\). The algebraic \(E_f\) pivot reconstructs \(F_{21}\), and the horizon sensitivity outputs are \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\). These tangent values are not to be substituted for \(c_B,c_H\).
+
+The linear-spin frame-dragging profile also agrees at the \(O(a)\) order used by the even \(O(a^2)\) system. The full angular-diagonal \(H_5,H_6\) components and corrected ADM mass remain open, so the full five-dimensional metric is not yet declared matched.
