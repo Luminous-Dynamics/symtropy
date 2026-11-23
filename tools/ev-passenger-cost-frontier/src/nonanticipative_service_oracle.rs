@@ -225,7 +225,6 @@ pub struct NonanticipativeOracleReport {
 
 #[derive(Debug, Clone)]
 struct InformationSet {
-    digest: String,
     parent_digest: Option<String>,
     decision_time_seconds: u64,
     revealed_mask: u16,
@@ -628,9 +627,8 @@ fn clairvoyant_scenario_score(
     requests: &[ScenarioRequest],
     opportunities: &[ScenarioOpportunity],
     horizon_seconds: u64,
-    probability_units: u32,
     transitions: &mut usize,
-) -> Result<(ScenarioScore, usize), ()> {
+) -> Result<ScenarioScore, ()> {
     let mut revealed_mask = 0_u16;
     let mut candidates_by_request = vec![Vec::new(); requests.len()];
     for node_id in &scenario.node_path {
@@ -640,7 +638,6 @@ fn clairvoyant_scenario_score(
             revealed_mask |= 1_u16 << index;
         }
         let info = InformationSet {
-            digest: node.information_set_digest.clone(),
             parent_digest: node.parent_information_set_digest.clone(),
             decision_time_seconds: node.decision_time_seconds,
             revealed_mask: node.revealed_request_ids.iter().filter_map(|id| requests.iter().position(|r| r.request_id == *id)).fold(0_u16, |mask, i| mask | (1_u16 << i)),
@@ -717,9 +714,8 @@ fn clairvoyant_scenario_score(
             best = Some((score, key));
         }
     }
-    let _ = probability_units;
     let _ = horizon_seconds;
-    best.map(|(score, _)| (score, *transitions)).ok_or(())
+    best.map(|(score, _)| score).ok_or(())
 }
 
 fn expected_score_from_scenarios(
@@ -755,20 +751,20 @@ fn value_of_perfect_information(
             nonanticipative.expected_completed_by_horizon_units,
         ),
         expected_late_services_units: signed_difference(
-            clairvoyant.expected_late_services_units,
             nonanticipative.expected_late_services_units,
+            clairvoyant.expected_late_services_units,
         ),
         expected_in_progress_units: signed_difference(
-            clairvoyant.expected_in_progress_units,
             nonanticipative.expected_in_progress_units,
+            clairvoyant.expected_in_progress_units,
         ),
         expected_lateness_seconds_units: signed_difference(
-            clairvoyant.expected_lateness_seconds_units,
             nonanticipative.expected_lateness_seconds_units,
+            clairvoyant.expected_lateness_seconds_units,
         ),
         expected_latency_seconds_units: signed_difference(
-            clairvoyant.expected_latency_seconds_units,
             nonanticipative.expected_latency_seconds_units,
+            clairvoyant.expected_latency_seconds_units,
         ),
     }
 }
@@ -1126,17 +1122,15 @@ pub fn evaluate_nonanticipative_oracle(
             probability_units: scenario.probability_units,
             score: score.clone(),
         });
-        let (clairvoyant, added) = clairvoyant_scenario_score(
+        let clairvoyant = clairvoyant_scenario_score(
             scenario,
             &node_by_id,
             &input.requests,
             &input.opportunities,
             input.horizon_seconds,
-            scenario.probability_units,
             &mut clairvoyant_transitions,
         )
         .map_err(|_| vec!["clairvoyant_oracle_transition_limit_reached".to_owned()])?;
-        let _ = added;
         clairvoyant_scores.push(clairvoyant);
     }
 
@@ -1185,7 +1179,17 @@ mod tests {
     }
 
     fn finish_hashes(input: &mut NonanticipativeOracleInput) {
-        for node in &mut input.observation_nodes {
+        let mut order: Vec<usize> = (0..input.observation_nodes.len()).collect();
+        order.sort_by_key(|index| input.observation_nodes[*index].decision_time_seconds);
+        let mut remap = BTreeMap::new();
+        for index in order {
+            let node = &mut input.observation_nodes[index];
+            if let Some(parent) = &node.parent_information_set_digest {
+                if let Some(new_parent) = remap.get(parent).cloned() {
+                    node.parent_information_set_digest = Some(new_parent);
+                }
+            }
+            let old_information_digest = node.information_set_digest.clone();
             let mut revealed = node.revealed_request_ids.clone();
             revealed.sort();
             let mut available = node.available_opportunity_ids.clone();
@@ -1208,6 +1212,7 @@ mod tests {
             })
             .expect("information set JSON");
             node.information_set_digest = sha256_hex(&info);
+            remap.insert(old_information_digest, node.information_set_digest.clone());
         }
     }
 
@@ -1244,13 +1249,19 @@ mod tests {
     #[test]
     fn aerial_assignment_is_blocked_when_weather_or_permission_is_not_approved() {
         let mut input = fixture();
-        input.requests[0].allowed_mode = AllowedMode::AerialOnly;
+        input.requests[0].allowed_mode = AllowedMode::FallbackOnly;
+        input.requests[1].allowed_mode = AllowedMode::AerialOnly;
+        input.opportunities[0].mode = OpportunityMode::Aerial;
         input.observation_nodes[0].weather_state = WeatherState::NoGo;
+        input.observation_nodes[1].weather_state = WeatherState::NoGo;
+        input.observation_nodes[2].weather_state = WeatherState::NoGo;
         finish_hashes(&mut input);
-        let result = evaluate_nonanticipative_oracle(&input);
-        assert!(result.is_ok());
-        let report = result.unwrap();
-        assert!(report.policy.iter().all(|decision| decision.assignments.is_empty()));
+        let report = evaluate_nonanticipative_oracle(&input)
+            .expect("weather no-go removes the aerial action");
+        assert_eq!(report.status, OracleStatus::Evaluated);
+        assert!(report.policy.iter().all(|decision| {
+            decision.assignments.iter().all(|assignment| assignment.request_id != "request-later")
+        }));
     }
 
     #[test]
