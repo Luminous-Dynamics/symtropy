@@ -324,16 +324,32 @@ fn validate_attempt_evidence(
         evidence_ids,
     )?;
 
-    if attempt.physical_outcome.outcome == PhysicalOutcome::Applied
-        && attempt.physical_outcome.receipt.status != OwnerEvidenceStatus::Confirmed
-    {
-        return Err(LineageError::OutcomeVerdictMismatch);
-    }
-    if attempt.physical_outcome.outcome == PhysicalOutcome::NoEffect
-        && attempt.mission_resolution.outcome == MissionOutcome::EffectPredicateSatisfied
-        && attempt.mission_resolution.receipt.status == OwnerEvidenceStatus::Confirmed
-    {
-        return Err(LineageError::MissionOutcomeMismatch);
+    match attempt.physical_outcome.outcome {
+        PhysicalOutcome::Applied => {
+            if attempt.physical_outcome.receipt.status != OwnerEvidenceStatus::Confirmed {
+                return Err(LineageError::OutcomeVerdictMismatch);
+            }
+            if attempt.mission_resolution.outcome != MissionOutcome::EffectPredicateSatisfied
+                || attempt.mission_resolution.receipt.status != OwnerEvidenceStatus::Confirmed
+            {
+                return Err(LineageError::MissionOutcomeMismatch);
+            }
+        }
+        PhysicalOutcome::NoEffect => {
+            if attempt.mission_resolution.outcome == MissionOutcome::EffectPredicateSatisfied
+                && attempt.mission_resolution.receipt.status == OwnerEvidenceStatus::Confirmed
+            {
+                return Err(LineageError::MissionOutcomeMismatch);
+            }
+        }
+        PhysicalOutcome::NotObserved
+        | PhysicalOutcome::Partial
+        | PhysicalOutcome::Unknown
+        | PhysicalOutcome::Disputed => {
+            if attempt.mission_resolution.outcome != MissionOutcome::Unresolved {
+                return Err(LineageError::MissionOutcomeMismatch);
+            }
+        }
     }
 
     Ok(())
@@ -697,6 +713,41 @@ mod tests {
             recording.validate(),
             Err(LineageError::InvalidEvidenceReceipt)
         );
+    }
+
+    #[test]
+    fn refuses_applied_physical_outcome_without_confirmed_mission_predicate() {
+        let mut recording = valid_recording();
+        recording.attempts[2].mission_resolution.outcome = MissionOutcome::Unresolved;
+        recording.attempts[2]
+            .mission_resolution
+            .receipt
+            .asserted_value = "unresolved".into();
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::MissionOutcomeMismatch)
+        );
+    }
+
+    #[test]
+    fn refuses_confirmed_effect_predicate_for_partial_or_unknown_physical_outcome() {
+        for outcome in [
+            PhysicalOutcome::NotObserved,
+            PhysicalOutcome::Partial,
+            PhysicalOutcome::Unknown,
+            PhysicalOutcome::Disputed,
+        ] {
+            let mut recording = valid_recording();
+            recording.attempts[2].physical_outcome.outcome = outcome;
+            recording.attempts[2]
+                .physical_outcome
+                .receipt
+                .asserted_value = physical_value(outcome).into();
+            assert_eq!(
+                recording.validate(),
+                Err(LineageError::MissionOutcomeMismatch)
+            );
+        }
     }
 
     #[test]
