@@ -1,0 +1,66 @@
+{
+  "schema": "luminous.ehd_piv_event_acquisition_policy",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-EVENT-001",
+  "status": "manufactured_event_window_planner_authored_tests_execution_pending",
+  "policy": "confidence_bounded_event_window_plus_receipt_qualified_illumination_choice",
+  "maximum_illumination_options": 16,
+  "interval_constraints": [
+    "minimum_event_information_lower_bound",
+    "velocity_displacement_upper_bound",
+    "event_buffer_utilization_upper_bound",
+    "clock_uncertainty_upper_bound",
+    "calibrated_mode_window_upper_bound"
+  ],
+  "evidence_gates": [
+    "stream_and_camera_identity",
+    "clock_domain_and_protocol_identity",
+    "monotonic_event_timestamps",
+    "qualified_clock_synchronization",
+    "measured_packet_loss_fraction",
+    "illumination_mode_calibration_receipt",
+    "spatial_coverage",
+    "observer_impact_assessment"
+  ],
+  "illumination_modes": [
+    "full_field",
+    "block_scanned",
+    "line_scanned"
+  ],
+  "fail_closed_rules": [
+    "unknown_packet_loss_abstains",
+    "timestamp_order_failure_abstains",
+    "clock_synchronization_failure_abstains",
+    "event_rate_lower_bound_nonpositive_abstains",
+    "minimum_information_above_buffer_or_displacement_limit_abstains",
+    "no_unqualified_illumination_mode_is_selected",
+    "no_silent_event_loss_is_accepted",
+    "perturbative_illumination_requires_post_measurement_observer_requalification"
+  ],
+  "comparator_lanes": [
+    "frame_based_multi_pass_piv",
+    "event_piv_fixed_accumulation",
+    "time_adaptive_event_piv",
+    "block_scanned_illumination",
+    "line_scanned_illumination",
+    "joint_adaptive_interval_and_illumination",
+    "event_particle_tracking_dbscan_adversarial",
+    "volumetric_lpt_reference"
+  ],
+  "prospective_targets": {
+    "silent_event_loss": 0,
+    "infeasible_interval_acceptance": 0,
+    "unknown_packet_loss_acceptance": 0,
+    "stale_or_missing_illumination_receipt_acceptance": 0,
+    "uncertainty_coverage_nominal": 0.95,
+    "uncertainty_coverage_lower": 0.9,
+    "uncertainty_coverage_upper": 0.98
+  },
+  "claim_boundary": [
+    "manufactured_acquisition_policy_only",
+    "no_camera_or_illumination_actuation",
+    "no_raw_event_stream_processing",
+    "no_physical_ehd_validation",
+    "no_passivity_proof"
+  ]
+}
