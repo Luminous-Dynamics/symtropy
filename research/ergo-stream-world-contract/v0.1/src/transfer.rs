@@ -720,6 +720,45 @@ mod tests {
     }
 
     #[test]
+    fn rejects_many_source_action_kinds_mapped_to_one_target_kind() {
+        let action_map = vec![
+            ActionCorrespondenceV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_action_kind: 1,
+                target_action_kind: 10,
+                effect_transform: EffectTransformV0::Preserve,
+            },
+            ActionCorrespondenceV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_action_kind: 2,
+                target_action_kind: 10,
+                effect_transform: EffectTransformV0::Negate,
+            },
+        ];
+        let observations = vec![
+            InterventionObservationV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_effect: EffectSignV0::Positive,
+                target_effect: EffectSignV0::Positive,
+            },
+            InterventionObservationV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_effect: EffectSignV0::Negative,
+                target_effect: EffectSignV0::Positive,
+            },
+        ];
+
+        assert_eq!(
+            validate_intervention_correspondence(&action_map, &observations),
+            Err(TransferErrorV0::ActionKindMapNotInjective)
+        );
+    }
+
+    #[test]
     fn rejects_inconsistent_transform_for_same_action_kind() {
         let action_map = vec![
             ActionCorrespondenceV0 {
