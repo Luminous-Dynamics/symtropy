@@ -459,7 +459,11 @@ mod tests {
     fn selected_relations_cannot_escape_selected_node_scope() {
         let (source, target) = source_and_target();
         let mut candidate = scoped_candidate(StructuralMapKindV0::SubgraphEmbedding);
-        candidate.source_scope.node_ids.pop();
+        let removed_node = candidate.source_scope.node_ids.pop().unwrap();
+        candidate
+            .source_scope
+            .excluded_node_ids
+            .push(removed_node);
 
         assert_eq!(
             validate_scoped_structural_correspondence(&source, &target, &candidate),
