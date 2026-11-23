@@ -358,11 +358,11 @@ Aerial opportunities require:
 
 Unknown/denied/stale weather or permission blocks aerial service. A request may use fallback only if its declared mode permits it. The fixture includes unknown permission and weather no-go cases, a maintenance window, a late arrival, a late completion and a request with no available opportunity.
 
-The frozen fixture contains 11 requests, six aerial opportunities, six fallback opportunities and five evidence-bound flight windows. The module includes 14 focused Rust test definitions for FCFS/EDF priority, fallback under unknown permission, stale/future evidence, maintenance, acceptance cutoffs, overlap, source-capacity budgets, deadline expiry, deterministic input permutations, mode constraints, payload capacity and late completion. Exact-head Actions run [#45134172381](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45134172381) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (203 tests passed, 0 failed across test binaries). Clippy remains unverified.
+The legacy fixture contains 11 requests, six manually declared aerial opportunities, six fallback opportunities and five evidence-bound flight windows. The module contains 24 Rust test definitions across legacy compatibility, true FCFS/EDF semantics and the linked receipt consumer for FCFS/EDF priority, fallback under unknown permission, stale/future evidence, maintenance, acceptance cutoffs, overlap, source-capacity budgets, deadline expiry, deterministic input permutations, mode constraints, payload capacity and late completion. Exact-head Actions run [#45134172381](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45134172381) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (203 tests passed, 0 failed across test binaries). Clippy remains unverified.
 
 The research dossier is `docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md`. It compares the request-admission work to Zhao et al. (dynamic arrivals and changing weather, TR-E 2026, DOI 10.1016/j.tre.2026.105074), Lu et al. (real-options mode switching, TR-C 2026, DOI 10.1016/j.trc.2026.105807), Liang et al. (multi-visit pickup/delivery and drone resupply, EJOR 2026, DOI 10.1016/j.ejor.2026.10.020), and Xu et al. (mobile swapping/charging under uncertainty, TR-D 2026, DOI 10.1016/j.trd.2026.105458).
 
-This remains a synthetic online admission model. Weather/permission envelopes are declarative; they are not authenticated. Service opportunities and capacity report digests are inputs, not independently verified physical receipts. No route, flight, dispatch, market, regulatory or customer-delivery authority is granted.
+This remains a synthetic online admission model. The legacy compatibility mode still accepts manually declared opportunities; the preferred linked mode re-runs the capacity event evaluator and derives aerial schedule fields from the exact event receipt sequence. Payload/weather/permission envelopes remain declarative and unauthenticated. No route, flight, dispatch, market, regulatory or customer-delivery authority is granted.
 
 
 ## MOBILITY-CAPACITY-OPPORTUNITY-RECEIPTS-001 — event-derived aerial service opportunities
@@ -401,3 +401,12 @@ Strict schema: `schemas/sustainable_mobility_service_quality_linked_v0_1.schema.
 The linked report carries the derived capacity-report digest, opportunity digest and configuration digest. This proves internal consistency between the supplied architecture input and the event model's deterministic outputs; it does not authenticate the producer or turn synthetic evidence into physical truth. No flight, dispatch, customer delivery, regulatory or market authority is granted.
 
 Research dossier: `docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md`.
+
+## Linked receipt consumer — composition correction for #6999
+
+The preferred linked CLI mode now takes two files: the linked request fixture and the versioned capacity architecture input. The request input contains receipt IDs and payload qualification only. The consumer re-runs the capacity evaluator and derives each aerial aircraft/time/duration/turnaround tuple from the resulting event receipts. It rejects unknown/duplicate IDs, per-aircraft sequence gaps/overlaps, mismatched payload aircraft/configuration, expired payload evidence and horizon mismatch.
+
+The legacy one-file mode is retained explicitly with the --legacy flag for backward-compatible reproduction; it is not the preferred way to create new request fixtures. The new exact-schema fixture has twelve requests and seven qualified IDs from a 38-opportunity capacity report. Expected synthetic outcomes: FCFS 6 on-time / 2 late / 3 unserved / 1 rejected; EDF 7 on-time / 1 late / 3 unserved / 1 rejected. The policy difference is a real arrival-order FCFS (deadline-independent ties) versus EDF.
+
+New dossier: docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md. Exact-head CI for this linked-consumer branch is pending; the source currently contains 24 focused tests, but no compile/test claim is made until the new workflow run completes.
+
