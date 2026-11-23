@@ -36,6 +36,21 @@ fn outcome_name(outcome: PhysicalOutcome) -> &'static str {
     }
 }
 
+fn evidence_status_name(status: mobility_rrvr_runtime_trace::OwnerEvidenceStatus) -> &'static str {
+    use mobility_rrvr_runtime_trace::OwnerEvidenceStatus;
+    match status {
+        OwnerEvidenceStatus::Current => "current",
+        OwnerEvidenceStatus::Confirmed => "confirmed",
+        OwnerEvidenceStatus::Refuted => "refuted",
+        OwnerEvidenceStatus::InsufficientEvidence => "insufficient_evidence",
+        OwnerEvidenceStatus::Unknown => "unknown",
+        OwnerEvidenceStatus::Disputed => "disputed",
+        OwnerEvidenceStatus::QuorumQualified => "quorum_qualified",
+        OwnerEvidenceStatus::QuorumNotQualified => "quorum_not_qualified",
+        OwnerEvidenceStatus::NotApplicable => "not_applicable",
+    }
+}
+
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 && args.len() != 3 {
@@ -60,6 +75,8 @@ fn run() -> Result<(), String> {
         "applied_attempt_count": summary.applied_attempt_count,
         "head_attempt_id": summary.head_attempt_id,
         "head_physical_outcome": outcome_name(summary.head_outcome),
+        "head_outcome_verdict": evidence_status_name(summary.head_outcome_status),
+        "head_physical_observer_quorum_qualified": summary.head_physical_observer_qualified,
         "owner_authentication": "not_performed",
         "evidence_completeness": "not_established",
         "tla_refinement": "not_checked",
