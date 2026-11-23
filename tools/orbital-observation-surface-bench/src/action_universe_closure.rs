@@ -284,9 +284,6 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
     for exclusion in &case.exclusions {
         if !valid_id(&exclusion.exclusion_id)
             || !valid_id(&exclusion.partition_id)
-            || !valid_id(&exclusion.reason_code)
-            || !valid_id(&exclusion.evidence_receipt_id)
-            || !valid_id(&exclusion.negative_space_witness_receipt_id)
             || !exclusion_ids.insert(exclusion.exclusion_id.clone())
         {
             return Err(format!("case {} contains an invalid or duplicate exclusion witness", case.case_id));
@@ -359,13 +356,20 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
         if matches!(partition.classification.as_str(), "excluded" | "not_applicable") {
             if partition.exclusion_ids.is_empty() {
                 partition_semantics_valid = false;
+                unwitnessed_exclusion_ids.extend(
+                    case.exclusions
+                        .iter()
+                        .filter(|item| item.partition_id == partition.partition_id)
+                        .map(|item| item.exclusion_id.clone()),
+                );
             }
             for exclusion_id in &partition.exclusion_ids {
                 match exclusion_by_id.get(exclusion_id.as_str()) {
                     Some(exclusion)
                         if exclusion.partition_id == partition.partition_id
-                            && !exclusion.evidence_receipt_id.trim().is_empty()
-                            && !exclusion.negative_space_witness_receipt_id.trim().is_empty() => {}
+                            && valid_id(&exclusion.reason_code)
+                            && valid_id(&exclusion.evidence_receipt_id)
+                            && valid_id(&exclusion.negative_space_witness_receipt_id) => {}
                     _ => unwitnessed_exclusion_ids.push(exclusion_id.clone()),
                 }
             }
