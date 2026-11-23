@@ -316,16 +316,10 @@ fn evidence_blocker(sensor: &SensorAction) -> Option<&'static str> {
         (_, DependencyDisposition::Revoked) => {
             return Some("BLOCKED_REVOKED_DEPENDENCY");
         }
-        (
-            SensingMode::IndependentWitness,
-            DependencyDisposition::Shared,
-        ) => {
+        (SensingMode::IndependentWitness, DependencyDisposition::Shared) => {
             return Some("BLOCKED_SHARED_DEPENDENCY");
         }
-        (
-            SensingMode::IndependentWitness,
-            DependencyDisposition::PotentiallyCorrelated,
-        ) => {
+        (SensingMode::IndependentWitness, DependencyDisposition::PotentiallyCorrelated) => {
             return Some("BLOCKED_POTENTIALLY_CORRELATED");
         }
         (SensingMode::AdvisoryOnly, DependencyDisposition::PotentiallyCorrelated) => {
@@ -424,8 +418,8 @@ fn evaluate_partitions(
 
             let mut action_worst_regret = 0;
             for &world_index in &world_indices {
-                let physical_regret = oracle[world_index]
-                    .checked_sub(action.delivered_service_units[world_index])?;
+                let physical_regret =
+                    oracle[world_index].checked_sub(action.delivered_service_units[world_index])?;
                 let regret = physical_regret.checked_add(cost)?;
                 action_worst_regret = action_worst_regret.max(regret);
             }
@@ -454,10 +448,7 @@ fn evaluate_partitions(
     Some((worst_case_regret, decisions))
 }
 
-fn evaluate_sensor(
-    sensor: &SensorAction,
-    oracle: &[u32; WORLD_COUNT],
-) -> CandidateResult {
+fn evaluate_sensor(sensor: &SensorAction, oracle: &[u32; WORLD_COUNT]) -> CandidateResult {
     let evidence_receipts = sensor
         .gate
         .map(|gate| {
@@ -508,7 +499,13 @@ fn evaluate_sensor(
     }
 
     let Some((regret, decisions)) = evaluate_partitions(sensor, oracle, cost) else {
-        return base("NO_COMMON_FEASIBLE_RECOURSE", Some(cost), None, None, Vec::new());
+        return base(
+            "NO_COMMON_FEASIBLE_RECOURSE",
+            Some(cost),
+            None,
+            None,
+            Vec::new(),
+        );
     };
 
     let partition_count = decisions.len();
@@ -543,7 +540,11 @@ fn evaluate_benchmark() -> Vec<CandidateResult> {
 
     let mut results = Vec::with_capacity(SENSORS.len() + 1);
     results.push(evaluate_sensor(&NO_OBSERVATION, &oracle));
-    results.extend(SENSORS.iter().map(|sensor| evaluate_sensor(sensor, &oracle)));
+    results.extend(
+        SENSORS
+            .iter()
+            .map(|sensor| evaluate_sensor(sensor, &oracle)),
+    );
 
     let baseline_regret = results
         .iter()
@@ -657,7 +658,10 @@ mod tests {
         assert_eq!(inspection.acquisition_cost_service_units, Some(5));
         assert_eq!(inspection.partition_count, Some(3));
         assert_eq!(inspection.worst_case_regret_service_units, Some(5));
-        assert_eq!(inspection.worst_case_regret_reduction_service_units, Some(65));
+        assert_eq!(
+            inspection.worst_case_regret_reduction_service_units,
+            Some(65)
+        );
         assert!(inspection.recommended);
 
         let selected = inspection
@@ -669,10 +673,7 @@ mod tests {
             selected,
             vec![
                 ("PRIMARY_DELAY_RESERVE_READY", "use_reserve"),
-                (
-                    "PRIMARY_DELAY_RESERVE_UNAVAILABLE",
-                    "maintain_primary"
-                ),
+                ("PRIMARY_DELAY_RESERVE_UNAVAILABLE", "maintain_primary"),
                 ("PRIMARY_READY", "maintain_primary"),
             ]
         );
@@ -690,7 +691,10 @@ mod tests {
         );
         assert_eq!(telemetry.partition_count, Some(2));
         assert_eq!(telemetry.worst_case_regret_service_units, Some(71));
-        assert_eq!(telemetry.worst_case_regret_reduction_service_units, Some(-1));
+        assert_eq!(
+            telemetry.worst_case_regret_reduction_service_units,
+            Some(-1)
+        );
         assert!(!telemetry.recommended);
         assert!(telemetry.evidence_receipts.contains("shared-gateway"));
     }
@@ -755,7 +759,6 @@ mod tests {
         assert_eq!(selected, vec!["independent_field_inspection"]);
     }
 
-
     #[test]
     fn missing_gate_receipt_and_correlated_or_revoked_dependencies_fail_closed() {
         let mut missing_gate = SENSORS[0];
@@ -793,7 +796,6 @@ mod tests {
             Some("BLOCKED_UNMATCHED_ASSOCIATION")
         );
     }
-
 
     #[test]
     fn empty_upstream_receipt_identifiers_are_not_accepted() {
