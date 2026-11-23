@@ -1,0 +1,70 @@
+name: Qualified Throughput Evaluator
+
+on:
+  push:
+    branches: ["research/qualified-throughput-evaluator-v0"]
+    paths:
+      - "research/qualified-throughput/**"
+      - ".github/workflows/qualified-throughput-evaluator.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/qualified-throughput/**"
+      - ".github/workflows/qualified-throughput-evaluator.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualified-throughput-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustc +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/qualified-throughput/Cargo.toml -- --check
+
+      - name: Run campaign evaluator tests
+        run: cargo +1.96.0 test --manifest-path research/qualified-throughput/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/qualified-throughput/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate deterministic campaign report
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/qualified-throughput"
+          mkdir -p "$package/target/receipts"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/independent-environments.json" \
+            > "$package/target/receipts/first.json"
+          cargo +1.96.0 run --quiet --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/independent-environments.json" \
+            > "$package/target/receipts/second.json"
+          cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
+          grep -q '"qualified_simulated_ticks_per_second":' "$package/target/receipts/first.json"
+          grep -q '"completed_unqualified_cases":' "$package/target/receipts/first.json"
+          grep -q '"pareto_frontier_engine_ids":' "$package/target/receipts/first.json"
+          sha256sum "$package/target/receipts/first.json" | tee "$package/target/receipts/report.sha256"
+
+      - name: Preserve known-answer report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qualified-throughput-report-${{ github.sha }}
+          path: research/qualified-throughput/target/receipts/
+          if-no-files-found: warn
+          retention-days: 30
