@@ -387,3 +387,18 @@ Exact public-script replay:
 - all eight exact identities and negative controls pass.
 
 The publisher article's data/code availability statement says that no associated research data were provided and no code was deposited. Symtropy's source-pinned, executable coefficient fixtures can therefore improve independent reproducibility. That is a reproducibility advantage, not a claim of better physics or numerical performance.
+
+## 17. Fixed-charge thermodynamic consistency: equal-spin Gibbs identity
+
+Beyond the spin-10 DeltaM reproduction, the equal-spin specialization of Ma-Lu Eqs. (3.20)-(3.26) now passes a separate fixed-conserved-charge Legendre identity through chi^10:
+
+DeltaG = -S0*DeltaT - T0*DeltaS - 2*J0*DeltaOmega.
+
+The verification checks the published parameter redefinitions, T/S/Omega corrections, and Gibbs correction. The exact residual is zero through the tenth-order spin truncation; a missing second angular plane and the OCR-misread entropy prefactor both trigger negative controls.
+
+This closes an important internal thermodynamic-consistency gap in the equal-spin published-formula reproduction. It is not a new independent derivation of the metric's differential-form first law, not a full two-spin calculation, and not a finite-coupling result. The source uses the Eq. (3.23) entropy prefactor 9*pi^2*sqrt(mu)/sqrt(2), confirmed from the publisher PDF.
+
+Public exact-source verifier:
+- verify_ma_lu_equal_spin_fixed_charge_thermodynamics.py
+- Git blob SHA-1 9fab7f906d066df8b9c1468521d95e0d25f9ea44
+- SHA-256 012bac1a59e38d7b09782a231e75aef2809a2f9849835ebd1c06d7b86072f5e5
