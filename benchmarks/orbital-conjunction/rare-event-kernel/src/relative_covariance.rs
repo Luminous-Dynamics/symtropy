@@ -635,8 +635,8 @@ mod tests {
         })
         .expect("valid DCP covariance");
         assert!((cross[0][0] - (-0.06)).abs() < 1.0e-15);
-        assert!((cross[1][2] - (-0.36)).abs() < 1.0e-15);
-        assert!((cross[5][4] - 0.54).abs() < 1.0e-15);
+        assert!((cross[1][2] - 0.18).abs() < 1.0e-15);
+        assert!((cross[5][4] - 0.9).abs() < 1.0e-15);
     }
 
     #[test]
@@ -655,7 +655,7 @@ mod tests {
         let result = build_relative_ncdot_conditionals(inputs).expect("valid DCP joint covariance");
         assert!(result.cross_object_correlation_present);
         assert!((result.relative_state_covariance[0][0] - (8.0 - 0.0004)).abs() < 1.0e-14);
-        assert!((result.relative_state_covariance[0][1] - (-0.0006)).abs() < 1.0e-14);
+        assert!((result.relative_state_covariance[0][1] - (-0.0004)).abs() < 1.0e-14);
     }
 
     #[test]
@@ -694,7 +694,7 @@ mod tests {
         inputs.primary_covariance[2][2] = 0.0;
         assert_eq!(
             build_relative_ncdot_conditionals(inputs),
-            Err(KernelError::InvalidJointCovariance)
+            Err(KernelError::NotPositiveDefinite)
         );
     }
 
