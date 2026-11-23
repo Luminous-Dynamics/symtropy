@@ -495,7 +495,10 @@ impl ExecutionEvidenceBundle {
                 TargetResolutionStatus::Unknown => {
                     if event.target_resolution.resolved_target_id.is_some()
                         || event.target_resolution.resolved_target_revision.is_some()
-                        || event.target_resolution.resolved_target_profile_sha256.is_some()
+                        || event
+                            .target_resolution
+                            .resolved_target_profile_sha256
+                            .is_some()
                         || event.target_resolution.resolved_fault_domain_id.is_some()
                     {
                         return Err(ExecutionEvidenceError::InvalidTargetResolution);
@@ -785,8 +788,7 @@ impl ExecutionEvidenceBundle {
                         .filter(|value| nonempty(value))
                         .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
                     if observer_id == self.platform.fault_injector_revision
-                        || observer_fault_domain_id
-                            == self.platform.fault_injector_fault_domain_id
+                        || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
                     {
                         return Err(ExecutionEvidenceError::ObserverNotDistinct);
                     }
@@ -1098,8 +1100,7 @@ mod tests {
         let mut evidence = bundle();
         evidence.events[0]
             .delivery_observation
-            .observer_fault_domain_id =
-            Some(plan.platform.fault_injector_fault_domain_id.clone());
+            .observer_fault_domain_id = Some(plan.platform.fault_injector_fault_domain_id.clone());
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ObserverNotDistinct)
@@ -1146,8 +1147,12 @@ mod tests {
         evidence.events[0].delivery_observation.verdict = DeliveryVerdict::Unknown;
         evidence.events[0].delivery_observation.observer_id = None;
         evidence.events[0].delivery_observation.observer_revision = None;
-        evidence.events[0].delivery_observation.observer_fault_domain_id = None;
-        evidence.events[0].delivery_observation.observed_fault_signature_sha256 = None;
+        evidence.events[0]
+            .delivery_observation
+            .observer_fault_domain_id = None;
+        evidence.events[0]
+            .delivery_observation
+            .observed_fault_signature_sha256 = None;
         evidence.events[0].delivery_observation.receipt = None;
         let summary = evidence.validate_against_plan(&plan).unwrap();
         assert!(summary.reconcile_required);
