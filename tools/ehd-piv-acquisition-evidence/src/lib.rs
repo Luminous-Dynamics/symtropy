@@ -95,6 +95,8 @@ pub enum EvidenceError {
     EmptyCohort(&'static str),
     DuplicateCohortId(String),
     DuplicateCohortRole(String),
+    CohortManifestMismatch { expected: String, actual: String },
+    CohortCoverageMismatch { missing: Vec<String>, unexpected: Vec<String> },
     DuplicateCohortMember { cohort_id: String, identity: String },
     CohortOverlap {
         left_cohort: String,
@@ -145,6 +147,16 @@ impl fmt::Display for EvidenceError {
             Self::EmptyCohort(cohort) => write!(f, "cohort {cohort} has an empty required identity set"),
             Self::DuplicateCohortId(id) => write!(f, "duplicate cohort ID: {id}"),
             Self::DuplicateCohortRole(role) => write!(f, "duplicate cohort role: {role}"),
+            Self::CohortManifestMismatch { expected, actual } => write!(
+                f,
+                "cohort source manifest mismatch: expected {expected}, found {actual}"
+            ),
+            Self::CohortCoverageMismatch { missing, unexpected } => write!(
+                f,
+                "cohort component coverage mismatch: {} missing, {} unexpected",
+                missing.len(),
+                unexpected.len()
+            ),
             Self::DuplicateCohortMember { cohort_id, identity } => {
                 write!(f, "cohort {cohort_id} repeats identity {identity}")
             }
@@ -507,6 +519,7 @@ impl AcquisitionManifest {
 
         Ok(CohortPartition {
             cohort_id,
+            source_manifest_sha256: self.manifest_sha256()?,
             role,
             acquisition_ids: selected,
             dependence_component_ids: selected_components,
@@ -570,6 +583,7 @@ impl fmt::Display for CohortRole {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CohortPartition {
     cohort_id: String,
+    source_manifest_sha256: String,
     role: CohortRole,
     acquisition_ids: BTreeSet<String>,
     dependence_component_ids: BTreeSet<String>,
@@ -580,6 +594,10 @@ pub struct CohortPartition {
 impl CohortPartition {
     pub fn cohort_id(&self) -> &str {
         &self.cohort_id
+    }
+
+    pub fn source_manifest_sha256(&self) -> &str {
+        &self.source_manifest_sha256
     }
 
     pub fn role(&self) -> CohortRole {
@@ -608,9 +626,16 @@ pub fn validate_disjoint_cohorts(cohorts: &[CohortPartition]) -> Result<(), Evid
         return Err(EvidenceError::TooFewCohorts);
     }
 
+    let expected_manifest_sha256 = cohorts[0].source_manifest_sha256.as_str();
     let mut cohort_ids = HashSet::new();
     let mut roles = HashSet::new();
     for cohort in cohorts {
+        if cohort.source_manifest_sha256 != expected_manifest_sha256 {
+            return Err(EvidenceError::CohortManifestMismatch {
+                expected: expected_manifest_sha256.to_owned(),
+                actual: cohort.source_manifest_sha256.clone(),
+            });
+        }
         non_empty(&cohort.cohort_id, "cohort_id")?;
         if !cohort_ids.insert(cohort.cohort_id.as_str()) {
             return Err(EvidenceError::DuplicateCohortId(cohort.cohort_id.clone()));
@@ -658,6 +683,41 @@ pub fn validate_disjoint_cohorts(cohorts: &[CohortPartition]) -> Result<(), Evid
                 &right.reference_evidence_ids,
             )?;
         }
+    }
+    Ok(())
+}
+
+/// Require every dependence component in the source manifest to appear
+/// in exactly one supplied cohort partition.
+pub fn validate_complete_cohort_cover(
+    manifest: &AcquisitionManifest,
+    cohorts: &[CohortPartition],
+) -> Result<(), EvidenceError> {
+    manifest.validate()?;
+    validate_disjoint_cohorts(cohorts)?;
+
+    let manifest_sha256 = manifest.manifest_sha256()?;
+    let expected: BTreeSet<String> = manifest
+        .dependence_components()?
+        .values()
+        .cloned()
+        .collect();
+    let mut actual = BTreeSet::new();
+
+    for cohort in cohorts {
+        if cohort.source_manifest_sha256 != manifest_sha256 {
+            return Err(EvidenceError::CohortManifestMismatch {
+                expected: manifest_sha256,
+                actual: cohort.source_manifest_sha256.clone(),
+            });
+        }
+        actual.extend(cohort.dependence_component_ids.iter().cloned());
+    }
+
+    let missing = expected.difference(&actual).cloned().collect::<Vec<_>>();
+    let unexpected = actual.difference(&expected).cloned().collect::<Vec<_>>();
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(EvidenceError::CohortCoverageMismatch { missing, unexpected });
     }
     Ok(())
 }
@@ -1232,7 +1292,55 @@ mod tests {
                 &["acq-c".to_owned()],
             )
             .unwrap();
-        assert!(validate_disjoint_cohorts(&[training, calibration, evaluation]).is_ok());
+        assert!(validate_disjoint_cohorts(&[
+            training.clone(),
+            calibration.clone(),
+            evaluation.clone()
+        ]).is_ok());
+        assert!(validate_complete_cohort_cover(
+            &value,
+            &[training, calibration, evaluation]
+        ).is_ok());
+    }
+
+    #[test]
+    fn missing_dependence_components_fail_complete_cover() {
+        let value = manifest();
+        let training = value
+            .cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()])
+            .unwrap();
+        let calibration = value
+            .cohort_partition(
+                "calibration",
+                CohortRole::UncertaintyCalibration,
+                &["acq-b".to_owned()],
+            )
+            .unwrap();
+        assert!(matches!(
+            validate_complete_cohort_cover(&value, &[training, calibration]),
+            Err(EvidenceError::CohortCoverageMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn cohort_partitions_from_different_manifests_cannot_be_composed() {
+        let first = manifest();
+        let mut second = manifest();
+        second.manifest_id = "manifest-002".to_owned();
+        let training = first
+            .cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()])
+            .unwrap();
+        let evaluation = second
+            .cohort_partition(
+                "test",
+                CohortRole::SealedEvaluation,
+                &["acq-b".to_owned()],
+            )
+            .unwrap();
+        assert!(matches!(
+            validate_disjoint_cohorts(&[training, evaluation]),
+            Err(EvidenceError::CohortManifestMismatch { .. })
+        ));
     }
 
     #[test]
