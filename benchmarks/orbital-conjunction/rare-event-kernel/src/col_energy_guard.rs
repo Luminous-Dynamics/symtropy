@@ -341,22 +341,22 @@ fn energy_enclosure(inputs: ColEnergyGuardInputs, x_lower: f64, x_upper: f64) ->
         upper: 0.0,
     }; 3];
 
-    for i in 0..3 {
+    for (i, position_component) in position.iter_mut().enumerate() {
         let initial = Enclosure::point(inputs.initial_col_position[i])?;
         let target = Enclosure::point(inputs.target_col_position[i])?;
         let delta = target.subtract(initial)?;
-        position[i] = initial.add(x.multiply(delta)?)?;
+        *position_component = initial.add(x.multiply(delta)?)?;
     }
 
-    for i in 0..3 {
+    for (i, velocity_component) in velocity.iter_mut().enumerate() {
         let mut value = Enclosure::point(inputs.conditional_mean_velocity[i])?;
-        for j in 0..3 {
+        for (j, position_component) in position.iter().enumerate() {
             let beta = Enclosure::point(inputs.conditional_velocity_regression[i][j])?;
             let pos_offset =
-                position[j].subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
+                position_component.subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
             value = value.add(beta.multiply(pos_offset)?)?;
         }
-        velocity[i] = value;
+        *velocity_component = value;
     }
 
     let mut speed_squared = Enclosure {
@@ -367,9 +367,9 @@ fn energy_enclosure(inputs: ColEnergyGuardInputs, x_lower: f64, x_upper: f64) ->
         lower: 0.0,
         upper: 0.0,
     };
-    for i in 0..3 {
-        speed_squared = speed_squared.add(velocity[i].square()?)?;
-        radius_squared = radius_squared.add(position[i].square()?)?;
+    for (velocity_component, position_component) in velocity.iter().zip(position.iter()) {
+        speed_squared = speed_squared.add(velocity_component.square()?)?;
+        radius_squared = radius_squared.add(position_component.square()?)?;
     }
     let kinetic = speed_squared.scale(0.5)?;
     let radius = radius_squared.sqrt_nonnegative()?;
