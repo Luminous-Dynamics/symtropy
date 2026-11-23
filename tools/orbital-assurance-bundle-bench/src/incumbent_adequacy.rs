@@ -521,14 +521,27 @@ mod tests {
     }
 
     #[test]
-    fn overflow_and_duplicate_loss_rows_fail_closed() {
-        let report = evaluate(&fixture()).expect("corpus evaluates");
+    fn threshold_overflow_and_duplicate_loss_rows_fail_closed() {
+        let mut corpus = fixture();
+        let overflow = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "baseline_retain")
+            .expect("baseline case exists");
+        overflow.materiality_margin = i64::MAX;
+        overflow.switching_cost = 1;
+        overflow.expected = Expected {
+            disposition: "INVALID_INPUT".to_owned(),
+            trigger_reason: "materiality margin plus switching cost overflows loss units".to_owned(),
+            worst_case_regret: None,
+        };
+        let report = evaluate(&corpus).expect("overflow corpus evaluates");
+        assert_eq!(case(&report, "baseline_retain").disposition, "INVALID_INPUT");
+        assert_eq!(report.summary.expected_result_mismatches, 0);
+
+        let regular = evaluate(&fixture()).expect("regular corpus evaluates");
         assert_eq!(
-            case(&report, "threshold_overflow").disposition,
-            "INVALID_INPUT"
-        );
-        assert_eq!(
-            case(&report, "duplicate_loss_row").disposition,
+            case(&regular, "duplicate_loss_row").disposition,
             "INVALID_INPUT"
         );
     }
