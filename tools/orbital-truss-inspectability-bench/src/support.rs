@@ -595,8 +595,25 @@ mod tests {
     #[test]
     fn frozen_support_corpus_matches_all_adjudicated_outcomes() {
         let receipt = audit_support_corpus(FIXTURE.as_bytes(), &"a".repeat(40)).unwrap();
+        let corpus: SupportEnvelopeCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let mismatches = receipt
+            .cases
+            .iter()
+            .zip(&corpus.cases)
+            .filter(|(actual, expected)| actual.status != expected.expected_status)
+            .map(|(actual, expected)| {
+                format!(
+                    "{} actual={:?} expected={:?} reasons={:?}",
+                    actual.case_id, actual.status, expected.expected_status, actual.reason_codes
+                )
+            })
+            .collect::<Vec<_>>();
         assert_eq!(receipt.case_count, SUPPORT_CASE_COUNT);
-        assert_eq!(receipt.expected_outcome_matches, SUPPORT_CASE_COUNT);
+        assert_eq!(
+            receipt.expected_outcome_matches,
+            SUPPORT_CASE_COUNT,
+            "support-envelope corpus mismatches: {mismatches:?}"
+        );
         assert_eq!(receipt.expected_outcome_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.occlusion_assessed);
