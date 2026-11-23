@@ -29,7 +29,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-1-persistence-raw",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "f7952cb6c926b4c5ce5dcf20dfe751d73de96a6d404432bd551d24dc1425f9c6"
         }
       },
       "physical_outcome": {
@@ -51,7 +51,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-1-physical-outcome-raw",
-          "raw_artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          "raw_artifact_sha256": "0919ec1b903d8d148ff3116972e10c5683a25d45c3287b0646784bdf25889926"
         }
       },
       "mission_resolution": {
@@ -73,7 +73,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-1-mission-resolution-raw",
-          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010"
+          "raw_artifact_sha256": "0a1309716eed56dd9d9dbebcb9ca834984720b2741683bbb6993766e994c1b9f"
         }
       },
       "controller_queue_fence": {
@@ -99,7 +99,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-1-controller-queue-raw",
-          "raw_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "raw_artifact_sha256": "a84bc40fe94e9f26e883d65d631edc8535efe50c2a3acaebfb41d7af56391e5d"
         }
       },
       "downstream_quiescence": {
@@ -125,7 +125,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-1-downstream-graph-raw",
-          "raw_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          "raw_artifact_sha256": "41933a9add42c419d6f2efd70877f691281329cca09313722c9f9a238bf97938"
         }
       },
       "observer_assurance": {
@@ -254,7 +254,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-2-persistence-raw",
-          "raw_artifact_sha256": "18181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818"
+          "raw_artifact_sha256": "8766cd9cd7eb40439a3b878b2ad724c29f9e9951b20e12da930cc84b92b08f4c"
         }
       },
       "physical_outcome": {
@@ -276,7 +276,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-2-physical-outcome-raw",
-          "raw_artifact_sha256": "19191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919"
+          "raw_artifact_sha256": "3bac624da7f609ac71b3fcdf71fabb14d9c43e9dc8c88d821435638338a6f43f"
         }
       },
       "mission_resolution": {
@@ -298,7 +298,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-2-mission-resolution-raw",
-          "raw_artifact_sha256": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
+          "raw_artifact_sha256": "5a775ceff7e476af499a3e2cc76bc9e5ed0a76a7175637d1000d88762507084e"
         }
       },
       "controller_queue_fence": {
@@ -324,7 +324,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-2-controller-queue-raw",
-          "raw_artifact_sha256": "15151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515"
+          "raw_artifact_sha256": "0a1b2ddf6459b0869b02a83609f4b390b74252a370c308542c96fb8425b87226"
         }
       },
       "downstream_quiescence": {
@@ -350,7 +350,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-2-downstream-graph-raw",
-          "raw_artifact_sha256": "16161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616"
+          "raw_artifact_sha256": "da93a546e612515c1be805879b989ef15aacda67c6574ffef3e6eeefc1cce561"
         }
       },
       "observer_assurance": {
@@ -479,7 +479,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-3-persistence-raw",
-          "raw_artifact_sha256": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222"
+          "raw_artifact_sha256": "0510801d7abd2415317c0bf277604522fbf804da161e54396b536b41bb4cebbc"
         }
       },
       "physical_outcome": {
@@ -501,7 +501,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-3-physical-outcome-raw",
-          "raw_artifact_sha256": "23232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323"
+          "raw_artifact_sha256": "02d3ada90b1130ab8a61f5621421466c824a396ca5adb5783fb93091334e55ff"
         }
       },
       "mission_resolution": {
@@ -523,7 +523,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-3-mission-resolution-raw",
-          "raw_artifact_sha256": "24242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424"
+          "raw_artifact_sha256": "c6e195c463af60cbf8e9b8cfc05d31b47b2b3a0ebf9adc76f90b2fe0d3f867a8"
         }
       },
       "controller_queue_fence": {
@@ -546,7 +546,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-3-controller-queue-raw",
-          "raw_artifact_sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f"
+          "raw_artifact_sha256": "2ee7963815d0d7e9de78d89a153f6abcf76e5a35a0813167c0bdc6abb362295d"
         }
       },
       "downstream_quiescence": {
@@ -569,7 +569,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "attempt-3-downstream-graph-raw",
-          "raw_artifact_sha256": "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020"
+          "raw_artifact_sha256": "ffbfe9e3beb3a3079c87c8de267adf435e4d7d43c891024203b71bf673335b18"
         }
       },
       "observer_assurance": {
