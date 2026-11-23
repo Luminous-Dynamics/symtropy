@@ -63,6 +63,20 @@ cargo test --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --l
 cargo clippy --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --locked --all-targets -- -D warnings
 ```
 
+## Reproducible paired-policy tournament
+
+Run:
+
+```sh
+cargo run --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --example temporal_transfer_tournament --locked
+```
+
+The example compares the current scalar-cache baseline (0.8 attenuation followed by equal distribution) with non-negative CoP-preserving transport on identical old/new contact sets. It includes:
+- a shifted new manifold where the old CoP is still achievable;
+- a bounded new hull where the old CoP lies outside, so residual wrench error is unavoidable.
+
+The CSV reports source/transferred normal impulse, force error, CoP error, moment error, impulse-sum error and retained contact IDs. It is a deterministic synthetic model comparison, not a production run or physical benchmark.
+
 ## Claim ceiling
 
 Exactness is limited to the planar shared-normal normal-impulse model. This does not prove frictional warm-start stability, energy non-injection, better solver iteration count or physical task transfer.
