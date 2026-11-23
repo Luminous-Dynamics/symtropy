@@ -1,0 +1,26 @@
+name: AV minimum FPS curve evaluator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-minfps-curve.yml"
+      - "tools/av-minfps-curve/**"
+      - "research/av-minfps-curve-v0/**"
+      - "schemas/minfps-curve-v1.schema.json"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head minimum-FPS contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate input schema JSON
+        run: python3 -m json.tool schemas/minfps-curve-v1.schema.json > /dev/null
+      - name: Run minimum-FPS evaluator tests
+        run: python3 -m unittest discover -s tools/av-minfps-curve -p "test_*.py" -v
