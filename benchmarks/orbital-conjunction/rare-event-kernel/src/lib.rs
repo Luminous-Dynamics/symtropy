@@ -34,6 +34,7 @@ pub mod ncdot_pointwise;
 pub mod ncdot_sphere;
 pub mod relative_covariance;
 pub mod residual;
+pub mod static_peak_overlap;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
@@ -50,6 +51,9 @@ pub use ncdot_sphere::{
 pub use relative_covariance::{
     DcpCrossCovarianceInputs, RelativeNcdotConditionals, RelativeNcdotCovarianceInputs,
     StateCovariance6, build_relative_ncdot_conditionals, dcp_secondary_primary_cross_covariance,
+};
+pub use static_peak_overlap::{
+    PositionGaussian3, StaticPeakOverlapInputs, StaticPeakOverlapReport, static_peak_overlap,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
