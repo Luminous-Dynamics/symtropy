@@ -699,7 +699,7 @@ jobs:
             and .lower_tail_cvar_on_time_services.denominator == 100000000000000000000000
             and .tv_robust_min_expected_on_time_services.denominator == .probability_denominator
             and .tv_robust_max_expected_lateness_seconds.denominator == .probability_denominator
-            and (.source_tree_digest | test("^sha256:[0-9a-f]{64}$"))
+            and .source_tree_digest == "sha256:9583d2cdc6ffa456ec448b39dd79fc23de400257586561dbcf881cdf8c62d2d0"
             and (.source_service_digest | test("^sha256:[0-9a-f]{64}$"))
             and (.source_capacity_digest | test("^sha256:[0-9a-f]{64}$"))
             and .ledger_or_physical_mutation_performed == false
