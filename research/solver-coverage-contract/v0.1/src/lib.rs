@@ -1080,8 +1080,10 @@ mod tests {
     fn capacity_lineage_is_part_of_the_canonical_run_receipt() {
         let mut first = receipt();
         let mut second = receipt();
-        second.capacity_evidence.manifold_lineages.push(
-            capacity::ContactManifoldLineage {
+        second
+            .capacity_evidence
+            .manifold_lineages
+            .push(capacity::ContactManifoldLineage {
                 pair_id: "body-a/body-b".into(),
                 reduction_policy_id: None,
                 point_capacity: Some(8),
@@ -1097,8 +1099,7 @@ mod tests {
                     reason: None,
                 }],
                 solver_mapping_complete: true,
-            },
-        );
+            });
         assert_ne!(
             canonical_receipt_preimage(&first),
             canonical_receipt_preimage(&second)
