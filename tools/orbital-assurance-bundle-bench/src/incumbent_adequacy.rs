@@ -754,7 +754,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             losses.insert(loss.action_id.clone(), loss.loss);
         }
 
-        if action_ids.iter().any(|action_id| !losses.contains_key(action_id)) {
+        if action_ids
+            .iter()
+            .any(|action_id| !losses.contains_key(action_id))
+        {
             return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
         }
 
