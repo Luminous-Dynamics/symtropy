@@ -436,7 +436,7 @@ mod tests {
         let mut class_pair_assessments = Vec::new();
 
         for (a, b, total, separated, weight) in values {
-            let numerator = u128::from(*separated) * u128::from(SCALE);
+            let numerator = (*separated as u128) * u128::from(SCALE);
             let floor = numerator / *total as u128;
             let unresolved = *total - *separated;
             total_pairs += *total;
