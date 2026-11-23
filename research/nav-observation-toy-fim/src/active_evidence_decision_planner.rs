@@ -716,6 +716,21 @@ mod tests {
             plan.pareto_frontier[0].disposition,
             DecisionProjectionDisposition::AllDecisionIncompatiblePairsSeparated
         );
+        assert_eq!(plan.pareto_frontier[0].outcome_model_sha256, [2; 32]);
+        assert_eq!(plan.pareto_frontier[0].normalization_sha256, [0x33; 32]);
+        assert_eq!(
+            plan.pareto_frontier[0].separated_decision_hypothesis_pairs,
+            vec![(1, 3), (2, 3)]
+        );
+        assert!(plan.pareto_frontier[0].unresolved_decision_hypothesis_pairs.is_empty());
+        assert_eq!(
+            plan.decision_assignments,
+            Some(vec![
+                HypothesisDecisionAssignment { hypothesis_id: 1, decision_class_id: 10 },
+                HypothesisDecisionAssignment { hypothesis_id: 2, decision_class_id: 10 },
+                HypothesisDecisionAssignment { hypothesis_id: 3, decision_class_id: 20 },
+            ])
+        );
     }
 
     #[test]
@@ -879,5 +894,11 @@ mod tests {
         );
         assert!(!plan.conditional_target_reached);
         assert!(plan.authority_transition_not_authorized_by_plan);
+        assert_eq!(plan.pareto_frontier[0].outcome_model_sha256, [1; 32]);
+        assert_eq!(
+            plan.pareto_frontier[0].separated_decision_hypothesis_pairs,
+            vec![(1, 3), (2, 3)]
+        );
+        assert!(plan.pareto_frontier[0].unresolved_decision_hypothesis_pairs.is_empty());
     }
 }
