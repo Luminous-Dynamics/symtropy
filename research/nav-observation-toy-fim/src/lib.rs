@@ -24,5 +24,6 @@ pub mod hbr_window_fusion;
 pub mod episode_conformal_tube;
 pub mod dynamic_episode_conformal_family;
 pub mod anisotropic_episode_tube;
+pub mod campaign_block_conformal;
 pub mod anytime_episode_coverage;
 pub mod anytime_rolling_coverage;
