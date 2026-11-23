@@ -118,14 +118,17 @@ A method should not be called better than SAOCP or PACE unless compared on match
 
 ## Required metrics
 
-Each method/window row emits:
+Each method/window row emits an 18-column evidence receipt:
 - total, observed and missing sample counts;
 - observed joint coverage;
 - evaluator-only latent joint coverage;
+- **no-assumption partial-identification bounds** for joint coverage: lower bound treats every missing outcome as uncovered; upper bound treats every missing outcome as covered; the evaluator-only latent value must lie inside these bounds;
 - observed arrival and handling marginal coverage;
 - mean arrival and handling interval widths;
 - final adaptive alpha (where applicable);
 - an explicit claim status.
+
+Coverage debt is computed from the lower identification bound per window, so a later overcovered window cannot cancel earlier undercoverage. The observed-to-latent optimism gap is evaluator-only and exposes selection bias without giving hidden truth to the deployed calibrator.
 
 Claim status is deliberately fail-closed:
 - NOT_CERTIFIED_MISSINGNESS whenever the evaluation window contains missing outcomes;
