@@ -519,6 +519,10 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                 candidate_edge_count,
             )
             .with_candidate_pair_evaluations(candidate_pair_evaluations);
+            // Visible denominators describe the whole as-of candidate set, not
+            // the unresolved subset (which is correctly empty on a unique pass).
+            report.source_visible_count = source.len();
+            report.witness_visible_count = witness.len();
 
             for (source_index, witness_index) in left_to_right.into_iter().enumerate() {
                 let source_event = &source[source_index];
