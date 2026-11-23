@@ -186,3 +186,14 @@ It requires at least five distinct declared clusters and between 1,000 and 200,0
 For each resample, the implementation draws the same number of clusters as observed, with replacement. Every matched pair and its five arms remain together inside the sampled cluster. Pair-level task/safety/recovery deltas are first averaged within each cluster, then clusters are equally weighted, avoiding larger clusters dominating merely because they contribute more episodes. The fixed resampling seed is derived from the benchmark version, exact source-corpus digest and replicate count. The report contains paired full-RRVR-minus-baseline point estimates and nearest-rank 95% percentile intervals for task success, safety and recovery success.
 
 This is a percentile cluster bootstrap, not a hierarchical model or BCa interval. Five clusters is an execution floor, not evidence of adequate power or independent population sampling. The CI corpus has six synthetic clusters solely to exercise the code; those intervals are not empirical results. The researcher must justify that clusters represent meaningful independent sampling units and report sensitivity to cluster definitions, task/platform strata, exclusions and predeclared endpoints. When clusters share a controller, simulator build, task template or fault-generation seed, that dependence must be reflected in the cluster design.
+
+
+## 12. Delivery-decision error denominators
+
+The arm report distinguishes four related quantities:
+- **False-confirm rate:** false Confirmed / all episodes independently adjudicated NotDelivered. This is a false-positive rate with the actual negative class as denominator.
+- **False-refute rate:** false Refuted / all episodes independently adjudicated Delivered. This is a false-negative rate with the actual positive class as denominator.
+- **Decision coverage:** classified Confirmed-or-Refuted episodes / all episodes with adjudicated Delivered-or-NotDelivered truth. Unknown assessments are abstentions and lower coverage.
+- **Classification accuracy:** correct Confirmed/Refuted decisions / all classified decisions. Unknown abstentions are not counted as classifications; coverage must be reported beside accuracy so a system cannot look accurate simply by refusing to decide.
+
+Counts for adjudicated Delivered and NotDelivered, classified episodes, unknown decisions and correct classifications are emitted separately. An always-Unknown system can have undefined classification accuracy, but its decision coverage is zero; it cannot be presented as an accurate classifier.
