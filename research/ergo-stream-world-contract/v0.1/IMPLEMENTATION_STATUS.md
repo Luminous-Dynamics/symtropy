@@ -175,7 +175,7 @@ The focused workflow run [#45268504387](https://github.com/Luminous-Dynamics/sym
 - `cargo test --locked`: passed, including 50 unit tests and the dynamics module doctest;
 - strict `cargo clippy --all-targets -- -D warnings`: passed.
 
-After this verified code head, the branch has only documentation changes: `CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md`, the linked updates in `TRANSFER_ATLAS_V0_2_PROTOCOL.md`, and this implementation-status record. The current PR head is `957ae173f04a5b75138eaf99a7cb32385420d6d2`; those later commits do not modify executable Rust. This verification therefore applies to all executable source on the current branch. It is not an OS-sandbox, full blind evaluator, multi-family benchmark, or learner-performance result.
+At the time of that run, changes after the verified code head were documentation-only. Subsequent Atlas code changes described below are newer and are **not** covered by that pass. The prior result remains valid for the earlier executable code snapshot only.
 
 ## False-proposal versus abstention scoring correction
 
@@ -191,3 +191,17 @@ A fourth Atlas control, `IsomorphicObservationDifferentMechanism`, exposes the s
 The visible fixture flag is only a local reference oracle, not a process-isolated hidden evaluator or authenticated physical mechanism model. The simple matcher is intentionally expected to fail this semantic negative control.
 
 **Verification:** the above source/tests are newer than code head `bb11dc83015f63afbcddba6c00ee92fdce5fc23e`; their exact-head formatting, tests and strict Clippy are pending.
+
+## Latest Atlas scoring / false-unification extension
+
+The Atlas has since been extended in `src/atlas.rs`:
+
+- `CorrectAbstention` now means exactly that the learner submitted no candidate.
+- `RejectedFalseProposal` means a candidate was submitted but the independent structural validator rejected it.
+- `FalseUnification` means a structurally valid correspondence is accepted even though evaluator-owned mechanism truth says transfer does not hold.
+- The new `IsomorphicObservationDifferentMechanism` control presents the same policy-visible relabeled structure as the positive control, but the hidden owner-side mechanism label is non-transferable. The unique-incidence matcher therefore produces a valid graph correspondence and is scored as a false unification.
+- A second negative test submits a complete degree-signature mapping on K3,3 versus the triangular prism; the structural validator rejects it with an incidence counterexample, producing `RejectedFalseProposal`, not abstention.
+
+This separates graph correspondence from mechanism transportability and prevents a rejected proposal from being scored as a genuine abstention. The isomorphic-surface negative is deliberately evaluator-labelled and local; it is not a production secret-store or isolated blind-evaluator service.
+
+The Atlas source changes are after the earlier verified code head `bb11dc83015f63afbcddba6c00ee92fdce5fc23e`. Latest known workflow [#45269716596](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45269716596) is pending on the then-current branch; its result must be checked against the exact current PR head. The extended Atlas code remains unqualified until Rust 1.96 formatting, tests/doctest and strict Clippy pass on the same code snapshot.
