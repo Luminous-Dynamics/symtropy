@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - main
+      - research/fan-article-release-packet-v0-1
     paths:
       - "schemas/manufacturing/fan_article_release_packet_v0_1.schema.json"
       - "fixtures/manufacturing/fan_article_release_packet_v0_1.json"
