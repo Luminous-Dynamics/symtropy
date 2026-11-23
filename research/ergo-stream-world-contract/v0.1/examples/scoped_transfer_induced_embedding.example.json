@@ -18,6 +18,54 @@
       "excluded_relation_ids": [
         11
       ]
+    },
+    "structure": {
+      "nodes": [
+        {
+          "id": 1,
+          "evidence_ids": [
+            "E0001"
+          ]
+        },
+        {
+          "id": 2,
+          "evidence_ids": [
+            "E0002"
+          ]
+        },
+        {
+          "id": 3,
+          "evidence_ids": [
+            "E0003"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": 10,
+          "kind": 1,
+          "orientation": "undirected",
+          "participants": [
+            1,
+            2
+          ],
+          "evidence_ids": [
+            "E0004"
+          ]
+        },
+        {
+          "id": 11,
+          "kind": 1,
+          "orientation": "undirected",
+          "participants": [
+            2,
+            3
+          ],
+          "evidence_ids": [
+            "E0005"
+          ]
+        }
+      ]
     }
   },
   "target": {
@@ -36,6 +84,54 @@
       ],
       "excluded_relation_ids": [
         111
+      ]
+    },
+    "structure": {
+      "nodes": [
+        {
+          "id": 11,
+          "evidence_ids": [
+            "E0011"
+          ]
+        },
+        {
+          "id": 12,
+          "evidence_ids": [
+            "E0012"
+          ]
+        },
+        {
+          "id": 13,
+          "evidence_ids": [
+            "E0013"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "id": 110,
+          "kind": 100,
+          "orientation": "undirected",
+          "participants": [
+            11,
+            12
+          ],
+          "evidence_ids": [
+            "E0014"
+          ]
+        },
+        {
+          "id": 111,
+          "kind": 100,
+          "orientation": "undirected",
+          "participants": [
+            12,
+            13
+          ],
+          "evidence_ids": [
+            "E0015"
+          ]
+        }
       ]
     }
   },
