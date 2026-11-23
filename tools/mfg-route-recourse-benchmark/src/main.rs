@@ -8,6 +8,10 @@ const EMBEDDED_CORPUS: &str =
     include_str!("../../../fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json");
 const EMBEDDED_ANSWERS: &str =
     include_str!("../../../fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json");
+const EMBEDDED_CASE_SCHEMA: &str =
+    include_str!("../../../schemas/manufacturing/mfg_route_recourse_case_v0_1.schema.json");
+const EMBEDDED_ANSWER_SCHEMA: &str =
+    include_str!("../../../schemas/manufacturing/mfg_route_recourse_known_answers_v0_1.schema.json");
 const UNFULFILLED_PENALTY_PER_UNIT: u64 = 1_000;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -166,7 +170,7 @@ struct DecisionResult {
     seed: u64,
     decision_id: String,
     decision_hour: u64,
-    information_set_digest: String,
+    information_set_fingerprint_fnv1a64: String,
     recommendation: Recommendation,
     oracle_recommendation: Recommendation,
     recommendation_objective_units: Option<u64>,
@@ -200,6 +204,20 @@ struct ObservedState {
 
 fn fail(message: impl Into<String>) -> String {
     message.into()
+}
+
+fn validate_json_schema(instance_text: &str, schema_text: &str) -> Result<(), String> {
+    let instance: serde_json::Value = serde_json::from_str(instance_text)
+        .map_err(|error| format!("schema_instance_parse_error:{error}"))?;
+    let schema: serde_json::Value = serde_json::from_str(schema_text)
+        .map_err(|error| format!("schema_document_parse_error:{error}"))?;
+    let validator = jsonschema::draft202012::options()
+        .offline()
+        .build(&schema)
+        .map_err(|error| format!("draft_2020_12_schema_compile_error:{error}"))?;
+    validator
+        .validate(&instance)
+        .map_err(|error| format!("draft_2020_12_instance_validation_error:{error}"))
 }
 
 fn validate(corpus: &Corpus) -> Result<(), String> {
@@ -786,6 +804,7 @@ fn check_non_anticipativity(
 }
 
 fn validate_known_answers(corpus: &Corpus) -> Result<(), String> {
+    validate_json_schema(EMBEDDED_ANSWERS, EMBEDDED_ANSWER_SCHEMA)?;
     let answers: KnownAnswerFile = serde_json::from_str(EMBEDDED_ANSWERS)
         .map_err(|error| format!("known_answer_parse_error:{error}"))?;
     if answers.schema_id != "https://luminousdynamics.io/schemas/mfg-route-recourse-known-answers-v0.1"
@@ -891,7 +910,7 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                     seed: case.seed,
                     decision_id: point.decision_id.clone(),
                     decision_hour: point.decision_hour,
-                    information_set_digest: digest,
+                    information_set_fingerprint_fnv1a64: digest,
                     recommendation,
                     oracle_recommendation: oracle,
                     recommendation_objective_units: policy_cost,
@@ -977,6 +996,7 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("corpus_read_error:{error}"))?,
         _ => return Err(fail("usage: mfg-route-recourse-benchmark [corpus.json]")),
     };
+    validate_json_schema(&content, EMBEDDED_CASE_SCHEMA)?;
     let corpus: Corpus = serde_json::from_str(&content)
         .map_err(|error| format!("corpus_parse_error:{error}"))?;
     validate(&corpus)?;
@@ -1013,6 +1033,25 @@ mod tests {
             .iter()
             .find(|point| point.decision_id == id)
             .expect("decision point exists")
+    }
+
+    #[test]
+    fn draft_2020_12_schema_accepts_frozen_corpus_and_rejects_unknown_fields() {
+        let schema: serde_json::Value =
+            serde_json::from_str(EMBEDDED_CASE_SCHEMA).expect("schema parses");
+        let validator = jsonschema::draft202012::options()
+            .offline()
+            .build(&schema)
+            .expect("Draft 2020-12 validator builds offline");
+        let instance: serde_json::Value =
+            serde_json::from_str(EMBEDDED_CORPUS).expect("corpus parses");
+        assert!(validator.is_valid(&instance));
+        let mut tampered = instance;
+        tampered.as_object_mut().unwrap().insert(
+            "unrecognized_property".into(),
+            serde_json::Value::Bool(true),
+        );
+        assert!(!validator.is_valid(&tampered));
     }
 
     #[test]
