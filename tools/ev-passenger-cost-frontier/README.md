@@ -438,3 +438,25 @@ Exact-head verification for the 12×16 bitmask-DP plus explicit offline-informat
 
 
 **Information boundary:** a full-horizon exact assignment can use later revealed requests when choosing earlier opportunity assignments. The result is therefore labelled `clairvoyant_full_horizon_offline_upper_bound` and `deployable_online_policy=false`. A separate nonanticipative scenario-tree oracle is tracked in [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133).
+
+
+## NONANTICIPATIVE-SERVICE-ORACLE-001 — exact scenario-tree policy and value of information
+
+[Parent issue #7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133). This child uses the event-derived capacity opportunities and linked request service definitions already owned by #6909/#6921. It addresses the information-leakage limitation of the full-horizon exact assignment oracle.
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin nonanticipative_service_oracle_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json \
+  tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+```
+
+The bounded Rust scenario-tree oracle emits one action per revealed information node. Sibling nodes with identical revealed histories must be merged; identical sibling information-set digests are rejected. Requests, weather/permission and fallback availability are only usable after their observation node. Aerial opportunities are event-derived from the capacity model and are actionable at their scheduled start time in this v0.1 contract. Future slots are not carried as pending actions across nodes yet.
+
+The report compares the exact nonanticipative policy against a separately computed per-leaf clairvoyant full-information upper bound and reports the value of perfect information. The denominator is exact integer probability (10^{24}); scenario branch weights are declared in ppm. It never produces a deployable online policy or grants flight/market/dispatch authority.
+
+Frozen tree: one root decision, then a 0.4 high-demand branch revealing a hidden urgent aerial-only request and a 0.6 low-demand branch. Expected known answer: the common nonanticipative policy can deliver 1.0 on-time request in expectation; the clairvoyant full-information upper bound is 1.4, giving a 0.4 on-time-request VPI. These are synthetic design-time values until the exact-head Rust workflow passes.
+
+Strict scenario schema: `schemas/nonanticipative_service_oracle_v0_1.schema.json`; linked service input: `fixtures/nonanticipative_linked_service_v0_1.json`; scenario tree: `fixtures/nonanticipative_service_oracle_v0_1.json`; dossier: `docs/research/NONANTICIPATIVE_SERVICE_ORACLE_BENCHMARK_V0_1.md`.
