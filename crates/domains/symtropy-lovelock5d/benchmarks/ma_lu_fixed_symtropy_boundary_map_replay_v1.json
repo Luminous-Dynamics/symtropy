@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_replay",
-  "status": "corrected_chi_a_over_mu; public verifier committed; exact public source replay pending",
+  "status": "corrected_chi_a_over_mu_and_q_truncation; independent_local_symbolic_rederivation_passed; exact_public_blob_replay_pending",
   "local_source": {
     "path": "/tmp/verify_ma_lu_fixed_boundary_map.py",
     "sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
@@ -30,13 +30,27 @@
   },
   "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation fixed-boundary parameter map with chi=a/mu. The public verifier is committed but exact-byte local replay is pending. No H5/H6 angular-diagonal component match, corrected ADM mass, finite-coupling branch or existence theorem is claimed.",
   "parameter_interpretation": {
-    "chi": "a/mu (published Ma-Lu Eq. 10)",
+    "chi": "a/mu (Ma-Lu Eq. 10)",
     "chi_times_R_H": "2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3",
     "mu_over_R_H2": "converted background MP parameter, not corrected ADM mass"
   },
   "public_verifier": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_symtropy_boundary_map.py",
-    "git_blob_sha1": "9d86ceea199938475371394810080ee1dece5034",
+    "git_blob_sha1": "e957b15d264850512c0af0799f98ad5af8afe60e",
     "exact_local_blob_replay": "pending"
+  },
+  "local_independent_rederivation": {
+    "python": "3.13.5",
+    "sympy": "1.14.0",
+    "method": "independent SymPy reconstruction of the published horizon H2/H4/H7 values and fixed-boundary series",
+    "checks": [
+      "nuS(q,epsilon_R) through q^3",
+      "R_H/r_h through q^2",
+      "inverse q(nu_S,epsilon_R)",
+      "q, R_H/r_h, r_h/R_H, a/R_H, background mu/R_H^2, chi*R_H maps",
+      "GR limit",
+      "negative controls for H7, H2/H4, nu_h versus nu_S, and chi factor"
+    ],
+    "result": "all_exact_symbolic_checks_pass"
   }
 }
