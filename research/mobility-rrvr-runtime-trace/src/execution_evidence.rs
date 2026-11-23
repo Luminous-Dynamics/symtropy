@@ -1124,6 +1124,24 @@ mod tests {
     }
 
     #[test]
+    fn rejects_world_statistics_mismatched_iteration_or_topic() {
+        let plan = plan();
+        let mut wrong_step = bundle();
+        wrong_step.events[0].world_statistics.iterations += 1;
+        assert_eq!(
+            wrong_step.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+
+        let mut wrong_topic = bundle();
+        wrong_topic.events[0].world_statistics.topic = "/world/other/stats".into();
+        assert_eq!(
+            wrong_topic.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
     fn rejects_execution_receipt_at_wrong_simulation_step() {
         let plan = plan();
         let mut evidence = bundle();
