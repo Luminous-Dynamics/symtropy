@@ -1,101 +1,63 @@
-# Equal-spin Ma–Lü to Symtropy radial-gauge map
+# Ma–Lü to Symtropy: verified radial/time-sector comparison
 
-**Status:** exact symbolic angular reduction and first-order radial-coordinate map, executed locally with Python 3.13.5 / SymPy 1.14.0 on 23 November 2026.
+**Status:** exact first-coupling, slow-rotation comparison for the radial, temporal and frame-dragging sectors; all four original Symtropy even-sector action rows vanish exactly. Full angular-diagonal H5/H6 component matching remains open.
 
-Source: Ma and Lü, *Quadratic curvature correction to 5D Myers–Perry metric*, JHEP 05 (2026) 081, arXiv:2512.23797, Eqs. (2.8)–(2.12).
+Source: Ma and Lü, *Quadratic curvature correction to 5D Myers–Perry metric*, JHEP 05 (2026) 081, arXiv:2512.23797, Eqs. (9)–(13). Equation (10) defines chi=a/mu; the compact factor in the spin-squared terms is mu*chi^2=a^2/mu. The H1 spin-squared bracket includes the -1076*mu^3/r^8 term.
 
-## Equal-spin angular reduction
+## Radial/time-sector map
 
-Set equal spins \(a=b\), \(x=\cos\theta\), and define
+Let A=r^2+a^2, Delta=A^2/r^2-2*mu, and G=A*(1+alpha_R*H7). Transform to Symtropy's radial gauge by
 \[
-A=r^2+a^2,\qquad \Delta_r=A^2/r^2-2\mu,\qquad
-\eta=(1-x^2)d\phi+x^2d\psi.
+R^2=G(r),\qquad
+f(R(r))=\frac{\Delta}{4G^2}\left(\frac{dG}{dr}\right)^2.
 \]
-Ma–Lü's Eq. (2.8) has the orbit-space coefficient
+Through first order,
 \[
-G(r)=(1+\alpha_R H_7(r))A.
+f(R(r))=\frac{\Delta r^2}{A^2}
+\left(1+\alpha_R\frac{A}{r}H_7'(r)\right)+O(\alpha_R^2).
 \]
-The equal-spin limit gives \(H_2=H_3\). Using the Eq. (2.12) coefficients through \(O(\chi^2)\), with \(\chi^2=a^2/\mu\), one finds
+Using Ma–Lü's H1,H2,H4,H7 functions, the corresponding Symtropy-sector functions in the old r coordinate are
 \[
-H_5(A+D x^2)=A H_7+D x^2 H_4+O(\chi^4),
+g=G,\qquad h=G+\frac{2\mu a^2}{A}(1+\alpha_RH_4),
 \]
 \[
-H_6(A+D(1-x^2))=A H_7+D(1-x^2)H_4+O(\chi^4),
+h\,w=\frac{2\mu a}{A}(1+\alpha_RH_2),\qquad
+b=1-\frac{2\mu}{A}-\alpha_RH_1+h w^2.
 \]
-where \(D=2\mu a^2/A\). Both identities cancel exactly through \(a^2\). Therefore the full equal-spin angular part becomes
-\[
-G\,d\Omega_3^2+D(1+\alpha_R H_4)\eta^2
-+O(\alpha_R^2,\chi^4),
-\]
-where \(d\Omega_3^2=d\theta^2+(1-x^2)d\phi^2+x^2d\psi^2\).
+The physical component comparison composes these with r(R) and the fixed-boundary parameter map.
 
-This is the key cohomogeneity-one reduction: the two-angle dependence collapses to a round \(S^3\) base plus a single Hopf-fibre deformation.
+## Fixed (R_H, Omega_H) profiles
 
-## Radial gauge transformation
+Use epsilon_R=alpha_R/R_H^2, nu_S=Omega_H*R_H, and Symtropy's lambda=alpha_GB/R_H^2=4*epsilon_R. The converted profiles on the MP-connected branch are
+\[
+B_{21}(R)=\frac{(R^2-1)(11R^6+11R^4+22R^2+9)}{9R^{10}},
+\]
+\[
+F_{21}(R)=\frac{(R^2-1)(22R^4-11R^2-35)}{18R^8},
+\]
+\[
+H_{21}(R)=-\frac{(R^2+1)(11R^2+3)}{6R^6}.
+\]
+The linear-spin W1(R) profile also agrees with Symtropy's exact finite-alpha first-order reference at the order needed for O(a^2) equations; the difference in W1=w/a_S begins at O(nu_S^2), which contributes to w at O(a^3) and w^2 at O(a^4).
 
-Symtropy's metric ansatz uses \(g(R)=R^2\). The coordinate definition is
-\[
-R^2=G(r)=A(1+\alpha_R H_7(r)).
-\]
-The inverse to first order in \(\alpha_R\) is
-\[
-r=\sqrt{R^2-a^2}
--\frac{\alpha_R R^2 H_7(\sqrt{R^2-a^2})}
-       {2\sqrt{R^2-a^2}}
-+O(\alpha_R^2).
-\]
+## Four original equation rows: exact check
 
-Ma–Lü's radial metric coefficient is \(G/\Delta_r\). By the chain rule,
+The original action-row fixture is spin2_boundary_map_lambda1_action_rows_v1.json. Substitution of the fixed-boundary profiles into the complete original Eb, Ef, Eg, Eh coefficient rows gives exact rational zero in each row:
 \[
-f(R)=\frac{\Delta_r}{4G^2}\left(\frac{dG}{dr}\right)^2.
+E_b=E_f=E_g=E_h=0.
 \]
-Expanding this gives
+The positive algebraic Ef pivot independently reconstructs the same F21. The local verification uses cB=cH=0, because these are zeroth-order homogeneous-mode offsets for the MP-connected branch. The numbers
 \[
-f(R(r))=\frac{\Delta_r r^2}{A^2}
-\left(1+\alpha_R\frac{A}{r}H_7'(r)\right)
-+O(\alpha_R^2).
+B_{21}'(1)=106/9,\qquad H_{21}(1)=-14/3
 \]
-The Symtropy radial-gauge functions and time shift are
-\[
-g=G,\qquad h=G+D(1+\alpha_R H_4),
-\]
-\[
-h\,w=\frac{2\mu a}{A}(1+\alpha_R H_2),
-\]
-\[
-b=1-\frac{2\mu}{A}-\alpha_R H_1+h w^2.
-\]
-These are currently functions of the old Boyer–Lindquist coordinate \(r\); the full component comparison must compose with \(r(R)\).
+are the resulting first-coupling horizon sensitivities; they are **not** values to substitute for cB,cH. An earlier exploratory check incorrectly did so and produced spurious nonzero residuals. Negative controls reject that substitution and a mutated H1 profile.
 
-## Remaining fixed-parameter conversion
+## Important open boundary
 
-Ma–Lü keep the Boyer–Lindquist horizon radius \(r_h\) and parameters \((\mu,a,b)\) fixed in their perturbation scheme. Symtropy instead fixes its areal radial-gauge horizon \(R_H\) and physical \(\Omega_H=w(r_h)\). The conversion cannot be skipped.
+This increment does not yet certify the full angular-diagonal dphi^2,dpsi^2 sectors H5,H6. Those are independent components in the published two-angle ansatz and must be checked directly against the reduced Hopf-frame metric before the complete five-dimensional metric can be declared matched. The corrected gauge script intentionally reports this boundary rather than claiming a full angular-block proof.
 
-At zero coupling,
-\[
-R_H^2=r_h^2+a^2,\qquad
-\nu_h=\Omega_Hr_h=\frac{q}{1+q^2},\qquad q=\frac{a}{r_h},
-\]
-while Symtropy's spin is
-\[
-\nu_S=\Omega_HR_H=\frac{q}{\sqrt{1+q^2}}.
-\]
-Thus \(q=\nu_S/\sqrt{1-\nu_S^2}\), \(r_h=R_H\sqrt{1-\nu_S^2}\), and
-\[
-\mu=\frac{R_H^2}{2(1-\nu_S^2)},\qquad
-\chi=\sqrt{2}\,\nu_h=\sqrt{2}\,\nu_S\sqrt{1-\nu_S^2}.
-\]
-At nonzero \(\alpha_R\), solve simultaneously
-\[
-R_H^2=A_h(1+\alpha_R H_7(r_h)),\qquad
-\Omega_H=w(r_h),
-\]
-then re-expand at fixed \((R_H,\Omega_H)\). That corrected parameter renormalization is not yet part of this derivation.
+The converted mu/R_H^2 is the background MP parameter, not the corrected ADM mass. Extract the ADM mass from the full transformed asymptotic metric, including H1, with the selected ensemble explicit.
 
-No equality with Symtropy's \(B_{21},F_{21},H_{21}\) is claimed yet. No full original-EOM residual or finite-coupling result is claimed.
+## Claim ceiling
 
-## Reproduction and provenance
-
-The derivation was executed locally with Python 3.13.5 / SymPy 1.14.0. The local source SHA-256 is ac07be432a1450e9deeb4368b71a05957122dc85b486238d4ba51757cfbbb4db; its local Git blob SHA-1 is 287e16dadd113350ade8eacd240f2a012f4459ca. The currently published source file is a lightly revised copy and has not yet been replayed byte-for-byte. The published file is indexed under derive_ma_lu_equal_spin_symtropy_gauge.py.
-
-The symbolic controls cover H2=H3, the H5,H6 angular identities, the radial f chain rule, a wrong-chi^2 normalization negative control, and omission of the H7 radial redefinition. Claim ceiling: angular reduction and radial gauge transformation only; no horizon/Omega reparameterization, full coefficient comparison or finite-coupling result.
+This is a formal first-coupling, equal-spin, slow-rotation metric-sector comparison and exact original-row validation. It is not a finite-coupling nonlinear EGB solution, interval existence theorem, global uniqueness proof, full hyperbolicity result, or stability calculation.
