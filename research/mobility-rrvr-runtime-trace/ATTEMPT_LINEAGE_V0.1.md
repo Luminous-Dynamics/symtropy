@@ -8,7 +8,7 @@
 
 The parent runtime projection v0.1 deliberately covers one original attempt and one recovery admission. It does not qualify the physical outcome of the recovery attempt or a second recovery cycle. This module addresses that gap as a separate, bounded reference contract: it consumes owner-issued per-attempt evidence records and verifies a linear history of up to 64 attempts for one stable logical effect.
 
-The key invariant is that a retry is an edge between two distinct attempts, not a repetition of an old command. The old attempt must be proven to have had no physical effect, its persistence result must be a resolved Committed or DefinitelyNotCommitted state, and both the controller queue and every declared downstream execution-holding layer must have confirmed quiescence for the exact new boot/controller epoch.
+The key invariant is that a retry is an edge between two distinct attempts, not a repetition of an old command. The old attempt must be proven to have had no physical effect, its persistence result must be a resolved Committed or DefinitelyNotCommitted state, and both the controller queue and every declared downstream execution-holding layer must have confirmed quiescence for the exact new boot/controller epoch. The physical NoEffect and downstream-quiescence claims must each carry their own fault-model-qualified observer quorum with disjoint declared common-cause dependencies.
 
 ## Attempt-lineage rules
 
@@ -28,6 +28,7 @@ A parent can have a child only when all of these independently scoped facts hold
 3. Persistence is either Committed or DefinitelyNotCommitted, with a confirmed persistence verdict; InFlight and IndeterminateCommit remain blocked.
 4. The controller-queue fence is quiescent, confirmed, and targets the exact child's boot/controller epoch.
 5. The downstream graph is independently reported quiescent, confirmed, and targets that same child epoch.
+6. Both NoEffect and quiescence have claim-specific observer quorums tied to this exact parent attempt/epoch and the same declared fault-profile revision; the two proof sets must be independent under the common-cause contract.
 
 Applied, partial, unknown, disputed, and not_observed are never retryable parent outcomes. Committed, in_flight, or indeterminate_commit persistence is never sufficient for a retry edge. A fence for a different epoch is not transferable.
 
@@ -39,7 +40,7 @@ This module returns an internal consistency summary only. It does not:
 - perform M1/M2, mission, ticket, binding, or live native-boundary authorization;
 - authenticate owner identity, signatures, or raw artifact contents;
 - prove the declared downstream inventory is complete;
-- independently qualify sensor common-cause independence (that remains the observer-assurance owner's responsibility);
+- replace the observer-assurance owner or its common-cause evaluator (it reuses that owner’s proof types and validation functions);
 - claim Rust/TLA+ refinement or physical robot safety.
 
 The existing owners remain authoritative. This module does not introduce a second journal, queue, observer registry, persistence classifier, mission authority, or action API. The native adapter must continue to revalidate current authority and atomically consume its own one-shot permit at its existing linearization point.
