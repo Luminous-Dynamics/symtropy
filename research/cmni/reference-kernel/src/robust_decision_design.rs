@@ -736,7 +736,8 @@ fn solve_finite_zero_sum_game(
         .iter()
         .flatten()
         .map(|value| value.abs())
-        .fold(1.0_f64, f64::max);
+        .fold(0.0_f64, f64::max)
+        .max(f64::MIN_POSITIVE);
     let normalized_payoffs = payoffs
         .iter()
         .map(|row| row.iter().map(|value| value / payoff_scale).collect::<Vec<_>>())
@@ -827,7 +828,7 @@ fn solve_finite_zero_sum_game(
     Ok(FiniteGameSolution {
         maximizing_policy_mixture,
         minimizing_scenario_mixture,
-        primal_dual_gap: gap.max(0.0),
+        primal_dual_gap: gap.abs(),
         maximum_complementarity_residual,
         basis_evaluations,
     })
@@ -1694,6 +1695,20 @@ mod tests {
         assert!((score.randomized_policy_expected_utilities_by_scenario[1] - 34.0 / 75.0).abs() < 1.0e-9);
         assert_eq!(score.randomized_policy_mixture.len(), 2);
         assert_eq!(score.least_favourable_scenario_mixture.len(), 2);
+        let scenario_a_weight = score
+            .least_favourable_scenario_mixture
+            .iter()
+            .find(|weight| weight.scenario_id == "dependence-a")
+            .expect("first dual scenario weight")
+            .probability;
+        let scenario_b_weight = score
+            .least_favourable_scenario_mixture
+            .iter()
+            .find(|weight| weight.scenario_id == "dependence-b")
+            .expect("second dual scenario weight")
+            .probability;
+        assert!((scenario_a_weight - 1.0 / 3.0).abs() < 1.0e-9);
+        assert!((scenario_b_weight - 2.0 / 3.0).abs() < 1.0e-9);
         assert!(!score.formal_certificate);
         assert!(score.primal_dual_verified_within_tolerance);
     }
