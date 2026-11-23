@@ -559,6 +559,25 @@ mod tests {
     }
 
     #[test]
+    fn integrated_covariance_psd_gate_is_invariant_to_independent_unit_rescaling() {
+        let correlation = [
+            [1.0, 0.2, 0.0, 0.0],
+            [0.2, 1.0, 0.25, 0.0],
+            [0.0, 0.25, 1.0, 0.1],
+            [0.0, 0.0, 0.1, 1.0],
+        ];
+        let standard_deviations = [1.0e6, 1.0e-4, 1.0e9, 1.0e-8];
+        let mut covariance = [[0.0; 4]; 4];
+        for row in 0..4 {
+            for column in 0..4 {
+                covariance[row][column] =
+                    standard_deviations[row] * correlation[row][column] * standard_deviations[column];
+            }
+        }
+        assert!(validate_functional_covariance(&covariance).is_ok());
+    }
+
+    #[test]
     fn integrated_covariance_rejects_indefinite_matrix_with_positive_diagonal() {
         let covariance = [
             [1.0, 0.0, 0.0, 0.0],
