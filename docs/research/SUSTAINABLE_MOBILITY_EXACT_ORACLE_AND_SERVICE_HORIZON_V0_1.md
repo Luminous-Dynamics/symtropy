@@ -3,7 +3,7 @@
 **Parent:** [SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 #6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921)  
 **Capacity source:** [SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 #6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909)  
 **Branch:** research/mobility-service-quality-exact-oracle-v0-1  
-**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and exact policy-gap reporting implemented; exact-head Actions verified for the 12×16 bound.
+**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and offline upper-bound gaps implemented; exact DP verified; the additional information-model metadata revision is pending its own exact-head run.
 
 ## 1. Why this increment matters
 
@@ -54,6 +54,14 @@ The regret vector keeps components separate:
 
 The regret components are diagnostics, not a single blended percentage.
 
+## 2A. Information model: offline upper bound, not an online policy
+
+The exact DP sees the complete frozen request stream and every event-derived opportunity in the horizon while selecting assignments. It enforces that a request cannot be assigned before its arrival and that each opportunity/request is used at most once, but it can still reserve earlier opportunities based on knowledge of later arrivals. Its report therefore carries information_model = `clairvoyant_full_horizon_offline_upper_bound` and deployable_online_policy = false.
+
+The FCFS/EDF comparisons are component-wise distances to this offline upper bound. They must not be described as regret to an achievable online optimum. The value of perfect future information is part of the comparison, not hidden inside a policy-performance claim.
+
+Follow-on [#7133 — nonanticipative scenario-tree oracle](https://github.com/Luminous-Dynamics/symtropy/issues/7133) will enforce identical decisions across scenarios sharing the same revealed history. Online FCFS/EDF, rolling-horizon MPC and ADP must then be compared against that information-constrained oracle; the clairvoyant DP remains a separate upper bound.
+
 ## 3. Frozen small-instance known answer
 
 Fixture: tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json.
@@ -68,7 +76,7 @@ It contains two requests and two aerial opportunities derived from the fixed Doc
 
 The total completed-request latency for the exact/EDF outcome is 825 seconds. FCFS has the same total latency on this small instance, but misses one additional on-time deadline and accumulates 185 seconds of lateness. This illustrates why service latency, deadline success and service completion must remain separate.
 
-The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). The DP completed in 768 transitions against its 1,000,000 cap. The exact assignment score is 7 on-time + 1 late (8 completed), zero in-progress, 170 seconds cumulative lateness and 6,715 seconds total completed-request latency. The exact policy gaps are:
+The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). The DP completed in 768 transitions against its 1,000,000 cap. Its clairvoyant offline upper-bound score is 7 on-time + 1 late (8 completed), zero in-progress, 170 seconds cumulative lateness and 6,715 seconds total completed-request latency. The distances to that offline bound are:
 
 | Policy | On-time gap | Completed gap | Lateness excess | Latency excess | In-progress excess |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -142,4 +150,4 @@ The full matched tournament should add nonanticipative rolling-horizon MPC, scen
 
 ## 7. Claim boundary
 
-A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45210669154](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45210669154) at `d70c8a0536bf0ae8219a2c664403126f84865e40` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact assertions and artifact upload. Test binaries reported 223 passed, 0 failed; the service-quality module contains 30 focused Rust test definitions. Clippy is not included, and physical/field evidence remains a separate qualification.
+A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45210669154](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45210669154) at `d70c8a0536bf0ae8219a2c664403126f84865e40` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact assertions and artifact upload for the 12×16 DP implementation. Test binaries reported 223 passed, 0 failed; the service-quality module had 30 focused Rust test definitions at that head. The later information-model metadata and explicit no-online-policy assertions are additional changes pending their own exact-head run. Clippy is not included, and physical/field evidence remains a separate qualification.
