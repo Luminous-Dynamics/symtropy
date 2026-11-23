@@ -204,6 +204,16 @@ fn digest_queries(queries: &[Query]) -> Result<String, String> {
     Ok(sha256_hex(&bytes))
 }
 
+fn digest_scenarios(scenarios: &[FeasibilityScenario]) -> Result<String, String> {
+    let mut sorted = scenarios.to_vec();
+    sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let canonical = serde_json::to_value(sorted)
+        .map_err(|error| format!("failed to encode canonical feasibility scenarios: {error}"))?;
+    let bytes = serde_json::to_vec(&canonical)
+        .map_err(|error| format!("failed to serialize feasibility scenarios: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
 fn checked_add_cost(left: &ActionCost, right: &ActionCost) -> Result<ActionCost, String> {
     Ok(ActionCost {
         reference_trials: left
