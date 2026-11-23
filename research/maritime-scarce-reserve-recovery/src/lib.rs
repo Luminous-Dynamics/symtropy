@@ -965,7 +965,7 @@ fn authorization_disposition(world: &World) -> &'static str {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "sensor_id,status,mode,worst_missed_deadline_regret,worst_service_loss_units,acquisition_cost_service_units,recommended,outcome_partition,world_id,selected_action,a_service_units,b_service_units,missed_critical_participant,reserve_available,a_authorized,b_authorized,authorization_disposition,world_missed_deadline_regret,world_service_loss_units,evidence_receipts\n",
+        "sensor_id,status,mode,worst_missed_deadline_regret,worst_service_loss_units,acquisition_cost_service_units,recommended,outcome_partition,world_id,selected_action,reserve_used,a_service_units,b_service_units,missed_critical_participant,reserve_available,a_authorized,b_authorized,authorization_disposition,world_missed_deadline_regret,world_service_loss_units,partition_missed_deadline_regret,partition_service_loss_units,evidence_receipts\n",
     );
 
     for result in evaluate_benchmark() {
@@ -988,7 +988,7 @@ pub fn render_csv() -> String {
 
         if result.world_decisions.is_empty() {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{}\n",
+                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{}\n",
                 result.id,
                 result.status,
                 result.mode.id(),
@@ -1012,8 +1012,20 @@ pub fn render_csv() -> String {
                 }
             };
 
+            let partition_regret = result
+                .solution
+                .as_ref()
+                .and_then(|solution| {
+                    solution
+                        .partition_regrets
+                        .iter()
+                        .find(|(partition, _)| *partition == decision.partition)
+                        .map(|(_, regret)| *regret)
+                })
+                .unwrap_or_default();
+
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 result.id,
                 result.status,
                 result.mode.id(),
@@ -1024,6 +1036,7 @@ pub fn render_csv() -> String {
                 decision.partition,
                 world.id,
                 decision.action.id(),
+                decision.outcome.reserve_used, 
                 decision.outcome.a_service_units,
                 decision.outcome.b_service_units,
                 missed_participant,
@@ -1033,6 +1046,8 @@ pub fn render_csv() -> String {
                 authorization_disposition(world),
                 decision.regret.additional_critical_deadlines_missed,
                 decision.regret.service_loss_units,
+                partition_regret.additional_critical_deadlines_missed,
+                partition_regret.service_loss_units,
                 result.evidence_receipts
             ));
         }
