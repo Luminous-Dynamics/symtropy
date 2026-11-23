@@ -332,6 +332,7 @@ fn validate_reset(
         || receipt.world_epoch != bundle.world_epoch
         || receipt.reset_profile_sha256 != plan.reset.profile_sha256
         || receipt.expected_initial_state_sha256 != plan.reset.expected_initial_state_sha256
+        || receipt.producer_id != plan.platform.platform_id
         || receipt.producer_revision != plan.platform.simulator_revision
         || (bundle.reset.status == ResetStatus::Confirmed
             && receipt.observed_initial_state_sha256 != plan.reset.expected_initial_state_sha256)
@@ -1162,6 +1163,33 @@ mod tests {
         wrong_topic.events[0].world_statistics.topic = "/world/other/stats".into();
         assert_eq!(
             wrong_topic.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_stale_or_wrong_capture_clock_world_statistics() {
+        let plan = plan();
+        let mut stale = bundle();
+        stale.events[0]
+            .world_statistics
+            .received_monotonic_ns = stale
+            .reset
+            .receipt
+            .as_ref()
+            .unwrap()
+            .world_statistics_received_monotonic_ns;
+        assert_eq!(
+            stale.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+
+        let mut wrong_clock = bundle();
+        wrong_clock.events[0]
+            .world_statistics
+            .capture_clock_id = "different-collector-clock".into();
+        assert_eq!(
+            wrong_clock.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
         );
     }
