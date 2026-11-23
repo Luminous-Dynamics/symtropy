@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -698,40 +700,6 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
     Ok(())
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ProjectionError {
-    MissingHeaderIdentity,
-    MissingSnapshot,
-    TooManySnapshots,
-    InvalidSequence,
-    InvalidEventIdentity,
-    DuplicateEventIdentity,
-    InvalidPredecessor,
-    InvalidModelAction,
-    MissingOwnerEvidence,
-    InvalidOwnerEvidence,
-    InvalidSourceClock,
-    DuplicateOwnerDomain,
-    MissingOrExtraStateField,
-    InvalidStateFieldType,
-    StateOutOfBounds,
-    CommandOwnerMismatch,
-    ReservationStageMismatch,
-    OldAcceptanceLineageMismatch,
-    DownstreamFenceInvariant,
-    PersistenceRecordMismatch,
-    DisputedObserverContradiction,
-    PermitConsumptionMismatch,
-    RecoveryFromUnqualifiedOutcome,
-    IndeterminatePersistenceRecovery,
-    FreshTicketBindingMismatch,
-    RecoveryAdmissionInvariant,
-    InitialStateMismatch,
-}
-
-fn nonempty(value: &str) -> bool {
-    !value.trim().is_empty()
-}
 fn valid_sha(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
