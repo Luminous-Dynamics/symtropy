@@ -468,22 +468,26 @@ mod tests {
     }
 
     #[test]
-    fn unresolved_campaign_outcomes_are_counted_as_non_successes() {
+    fn failed_invalid_and_unresolved_blocks_are_counted_separately() {
         let mut candidate = contract(7);
-        candidate.probability_lower_bound = 0.5;
-        candidate.probability_upper_bound = 1.0;
+        candidate.probability_lower_bound = 0.1;
+        candidate.probability_upper_bound = 0.9;
+        candidate.campaign_blocks[1].outcome =
+            AcquisitionCampaignOutcome::FailedOrTimedOut;
+        candidate.campaign_blocks[2].outcome =
+            AcquisitionCampaignOutcome::AcquiredButInvalid;
         candidate.campaign_blocks[3].outcome =
             AcquisitionCampaignOutcome::UnknownOrUnreconciled;
         let mut cfg = policy();
-        cfg.minimum_probability_lower_bound = 0.5;
+        cfg.minimum_probability_lower_bound = 0.1;
         let result = admit_active_evidence_reliability(&cfg, &[7], &[candidate]).unwrap();
         let admitted = result.admitted_actions[0];
-        assert_eq!(admitted.valid_qualified_success_block_count, 3);
-        assert_eq!(admitted.non_success_block_count, 1);
-        assert_eq!(admitted.failed_or_timed_out_block_count, 0);
-        assert_eq!(admitted.acquired_but_invalid_block_count, 0);
+        assert_eq!(admitted.valid_qualified_success_block_count, 1);
+        assert_eq!(admitted.failed_or_timed_out_block_count, 1);
+        assert_eq!(admitted.acquired_but_invalid_block_count, 1);
+        assert_eq!(admitted.non_success_block_count, 3);
         assert_eq!(admitted.unresolved_block_count, 1);
-        assert_eq!(admitted.empirical_valid_success_fraction, 0.75);
+        assert_eq!(admitted.empirical_valid_success_fraction, 0.25);
     }
 
     #[test]
