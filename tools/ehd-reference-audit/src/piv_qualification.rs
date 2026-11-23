@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! PIV vector-validity, uncertainty-coverage and PIV/LPT comparison receipts.
 //!
 //! This module evaluates aggregate evidence supplied by a PIV pipeline. It does
@@ -20,12 +22,8 @@ pub enum FlowRegion {
 }
 
 impl FlowRegion {
-    const ALL: [Self; REQUIRED_REGION_COUNT] = [
-        Self::Bulk,
-        Self::NearWall,
-        Self::ShearLayer,
-        Self::Wake,
-    ];
+    const ALL: [Self; REQUIRED_REGION_COUNT] =
+        [Self::Bulk, Self::NearWall, Self::ShearLayer, Self::Wake];
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -171,12 +169,26 @@ pub enum PivQualificationError {
     ZeroValidReferenceDenominator,
     InvalidClassifierGate,
     InvalidCoverageGate,
-    CoverageCountExceedsSampleCount { region: FlowRegion },
-    DuplicateCoverageRegion { region: FlowRegion },
-    MissingCoverageRegion { region: FlowRegion },
-    NonFiniteVelocity { method: DiagnosticMethod, component: usize },
-    InvalidVelocityUncertainty { method: DiagnosticMethod, component: usize },
-    EmptyIdentity { field: &'static str },
+    CoverageCountExceedsSampleCount {
+        region: FlowRegion,
+    },
+    DuplicateCoverageRegion {
+        region: FlowRegion,
+    },
+    MissingCoverageRegion {
+        region: FlowRegion,
+    },
+    NonFiniteVelocity {
+        method: DiagnosticMethod,
+        component: usize,
+    },
+    InvalidVelocityUncertainty {
+        method: DiagnosticMethod,
+        component: usize,
+    },
+    EmptyIdentity {
+        field: &'static str,
+    },
     DuplicateEvidenceIdentity,
     ConditionMismatch,
     CoordinateFrameMismatch,
@@ -199,7 +211,10 @@ impl fmt::Display for PivQualificationError {
                 write!(f, "PIV classifier has no reference-valid vectors")
             }
             Self::InvalidClassifierGate => {
-                write!(f, "PIV classifier gate values must be finite probabilities in [0,1]")
+                write!(
+                    f,
+                    "PIV classifier gate values must be finite probabilities in [0,1]"
+                )
             }
             Self::InvalidCoverageGate => {
                 write!(f, "PIV regional coverage gate is invalid")
@@ -230,10 +245,16 @@ impl fmt::Display for PivQualificationError {
                 write!(f, "PIV and LPT coordinate-frame identities differ")
             }
             Self::MethodMismatch => {
-                write!(f, "cross-diagnostic comparison requires one PIV and one LPT estimate")
+                write!(
+                    f,
+                    "cross-diagnostic comparison requires one PIV and one LPT estimate"
+                )
             }
             Self::NonFiniteDerivedValue => {
-                write!(f, "PIV qualification calculation produced a non-finite value")
+                write!(
+                    f,
+                    "PIV qualification calculation produced a non-finite value"
+                )
             }
         }
     }
@@ -288,12 +309,10 @@ pub fn compute_piv_classifier_metrics(
     } else {
         0.0
     };
-    let false_removal =
-        counts.valid_vectors_rejected as f64 / reference_valid as f64;
-    let valid_retention =
-        counts.valid_vectors_retained as f64 / reference_valid as f64;
-    let accuracy = (counts.invalid_vectors_rejected + counts.valid_vectors_retained) as f64
-        / total as f64;
+    let false_removal = counts.valid_vectors_rejected as f64 / reference_valid as f64;
+    let valid_retention = counts.valid_vectors_retained as f64 / reference_valid as f64;
+    let accuracy =
+        (counts.invalid_vectors_rejected + counts.valid_vectors_retained) as f64 / total as f64;
 
     if ![
         precision,
@@ -365,9 +384,7 @@ fn wilson_interval(successes: u64, samples: u64) -> Result<(f64, f64), PivQualif
     let z2 = WILSON_Z_95 * WILSON_Z_95;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width = WILSON_Z_95
-        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
-        / denominator;
+    let half_width = WILSON_Z_95 * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
     let lower = (center - half_width).max(0.0);
     let upper = (center + half_width).min(1.0);
     if !lower.is_finite() || !upper.is_finite() {
@@ -455,7 +472,9 @@ pub fn evaluate_regional_coverage(
             wilson_95_lower: lower,
             wilson_95_upper: upper,
             wilson_interval_contains_nominal: match (lower, upper) {
-                (Some(lo), Some(hi)) => Some(lo <= gate.nominal_coverage && gate.nominal_coverage <= hi),
+                (Some(lo), Some(hi)) => {
+                    Some(lo <= gate.nominal_coverage && gate.nominal_coverage <= hi)
+                }
                 _ => None,
             },
             disposition,
@@ -579,8 +598,6 @@ pub fn compare_piv_lpt_velocity(
     })
 }
 
-
-
 /// Run a manufactured classifier, regional-coverage and PIV/LPT comparison
 /// smoke check for the offline auditor. These are synthetic summaries, not
 /// experimental PIV measurements or a physical cross-validation result.
@@ -605,10 +622,26 @@ pub fn reference_self_check() -> Result<(), PivQualificationError> {
     }
 
     let regional = [
-        RegionalCoverageCounts { region: FlowRegion::Bulk, sample_count: 1_000, covered_count: 950 },
-        RegionalCoverageCounts { region: FlowRegion::NearWall, sample_count: 1_000, covered_count: 945 },
-        RegionalCoverageCounts { region: FlowRegion::ShearLayer, sample_count: 1_000, covered_count: 952 },
-        RegionalCoverageCounts { region: FlowRegion::Wake, sample_count: 1_000, covered_count: 948 },
+        RegionalCoverageCounts {
+            region: FlowRegion::Bulk,
+            sample_count: 1_000,
+            covered_count: 950,
+        },
+        RegionalCoverageCounts {
+            region: FlowRegion::NearWall,
+            sample_count: 1_000,
+            covered_count: 945,
+        },
+        RegionalCoverageCounts {
+            region: FlowRegion::ShearLayer,
+            sample_count: 1_000,
+            covered_count: 952,
+        },
+        RegionalCoverageCounts {
+            region: FlowRegion::Wake,
+            sample_count: 1_000,
+            covered_count: 948,
+        },
     ];
     let coverage = evaluate_regional_coverage(
         &regional,
@@ -670,10 +703,26 @@ mod tests {
 
     fn regional_counts() -> [RegionalCoverageCounts; 4] {
         [
-            RegionalCoverageCounts { region: FlowRegion::Bulk, sample_count: 1_000, covered_count: 950 },
-            RegionalCoverageCounts { region: FlowRegion::NearWall, sample_count: 1_000, covered_count: 945 },
-            RegionalCoverageCounts { region: FlowRegion::ShearLayer, sample_count: 1_000, covered_count: 952 },
-            RegionalCoverageCounts { region: FlowRegion::Wake, sample_count: 1_000, covered_count: 948 },
+            RegionalCoverageCounts {
+                region: FlowRegion::Bulk,
+                sample_count: 1_000,
+                covered_count: 950,
+            },
+            RegionalCoverageCounts {
+                region: FlowRegion::NearWall,
+                sample_count: 1_000,
+                covered_count: 945,
+            },
+            RegionalCoverageCounts {
+                region: FlowRegion::ShearLayer,
+                sample_count: 1_000,
+                covered_count: 952,
+            },
+            RegionalCoverageCounts {
+                region: FlowRegion::Wake,
+                sample_count: 1_000,
+                covered_count: 948,
+            },
         ]
     }
 
@@ -750,11 +799,19 @@ mod tests {
         counts[1].covered_count = 700;
         let report = evaluate_regional_coverage(&counts, coverage_gate()).unwrap();
         assert_eq!(
-            report.iter().find(|item| item.region == FlowRegion::NearWall).unwrap().disposition,
+            report
+                .iter()
+                .find(|item| item.region == FlowRegion::NearWall)
+                .unwrap()
+                .disposition,
             CoverageDisposition::Undercoverage
         );
-        assert!(report.iter().filter(|item| item.region != FlowRegion::NearWall)
-            .all(|item| item.disposition == CoverageDisposition::WithinTargetBand));
+        assert!(
+            report
+                .iter()
+                .filter(|item| item.region != FlowRegion::NearWall)
+                .all(|item| item.disposition == CoverageDisposition::WithinTargetBand)
+        );
     }
 
     #[test]
@@ -762,7 +819,9 @@ mod tests {
         let counts = regional_counts();
         assert_eq!(
             evaluate_regional_coverage(&counts[..3], coverage_gate()).unwrap_err(),
-            PivQualificationError::MissingCoverageRegion { region: FlowRegion::Wake }
+            PivQualificationError::MissingCoverageRegion {
+                region: FlowRegion::Wake
+            }
         );
     }
 
@@ -773,7 +832,11 @@ mod tests {
         counts[1].covered_count = 48;
         let report = evaluate_regional_coverage(&counts, coverage_gate()).unwrap();
         assert_eq!(
-            report.iter().find(|item| item.region == FlowRegion::NearWall).unwrap().disposition,
+            report
+                .iter()
+                .find(|item| item.region == FlowRegion::NearWall)
+                .unwrap()
+                .disposition,
             CoverageDisposition::InsufficientSamples
         );
     }
@@ -785,33 +848,62 @@ mod tests {
             classifier_gate(),
             &regional_counts(),
             coverage_gate(),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(report.overall_eligible);
     }
 
     #[test]
     fn piv_lpt_velocity_comparison_uses_conservative_bounds() {
         let piv = vector(DiagnosticMethod::Piv, "acq-piv", "e-piv", [1.0, 2.0, 3.0]);
-        let lpt = vector(DiagnosticMethod::LptShakeTheBox, "acq-lpt", "e-lpt", [1.08, 1.95, 3.02]);
+        let lpt = vector(
+            DiagnosticMethod::LptShakeTheBox,
+            "acq-lpt",
+            "e-lpt",
+            [1.08, 1.95, 3.02],
+        );
         let report = compare_piv_lpt_velocity(&piv, &lpt).unwrap();
-        assert_eq!(report.disposition, VectorComparisonDisposition::WithinConservativeBounds);
-        assert_eq!(report.acquisition_dependence,
-            AcquisitionDependence::DistinctAcquisitionIdsButCorrelationUnquantified);
+        assert_eq!(
+            report.disposition,
+            VectorComparisonDisposition::WithinConservativeBounds
+        );
+        assert_eq!(
+            report.acquisition_dependence,
+            AcquisitionDependence::DistinctAcquisitionIdsButCorrelationUnquantified
+        );
         assert_eq!(report.combined_absolute_bound_m_s, [0.1; 3]);
     }
 
     #[test]
     fn shared_acquisition_is_not_reported_as_independent_cross_validation() {
-        let piv = vector(DiagnosticMethod::Piv, "shared-images", "e-piv", [1.0, 2.0, 3.0]);
-        let lpt = vector(DiagnosticMethod::LptShakeTheBox, "shared-images", "e-lpt", [1.0, 2.0, 3.0]);
+        let piv = vector(
+            DiagnosticMethod::Piv,
+            "shared-images",
+            "e-piv",
+            [1.0, 2.0, 3.0],
+        );
+        let lpt = vector(
+            DiagnosticMethod::LptShakeTheBox,
+            "shared-images",
+            "e-lpt",
+            [1.0, 2.0, 3.0],
+        );
         let report = compare_piv_lpt_velocity(&piv, &lpt).unwrap();
-        assert_eq!(report.acquisition_dependence, AcquisitionDependence::SharedAcquisition);
+        assert_eq!(
+            report.acquisition_dependence,
+            AcquisitionDependence::SharedAcquisition
+        );
     }
 
     #[test]
     fn mismatched_coordinate_frames_are_rejected() {
         let piv = vector(DiagnosticMethod::Piv, "acq-piv", "e-piv", [1.0, 2.0, 3.0]);
-        let mut lpt = vector(DiagnosticMethod::LptShakeTheBox, "acq-lpt", "e-lpt", [1.0, 2.0, 3.0]);
+        let mut lpt = vector(
+            DiagnosticMethod::LptShakeTheBox,
+            "acq-lpt",
+            "e-lpt",
+            [1.0, 2.0, 3.0],
+        );
         lpt.coordinate_frame_id = "other-frame".to_owned();
         assert_eq!(
             compare_piv_lpt_velocity(&piv, &lpt).unwrap_err(),
@@ -822,9 +914,17 @@ mod tests {
     #[test]
     fn discrepancy_above_combined_velocity_bounds_is_flagged() {
         let piv = vector(DiagnosticMethod::Piv, "acq-piv", "e-piv", [1.0, 2.0, 3.0]);
-        let lpt = vector(DiagnosticMethod::LptShakeTheBox, "acq-lpt", "e-lpt", [1.3, 2.0, 3.0]);
+        let lpt = vector(
+            DiagnosticMethod::LptShakeTheBox,
+            "acq-lpt",
+            "e-lpt",
+            [1.3, 2.0, 3.0],
+        );
         let report = compare_piv_lpt_velocity(&piv, &lpt).unwrap();
-        assert_eq!(report.disposition, VectorComparisonDisposition::OutsideConservativeBounds);
+        assert_eq!(
+            report.disposition,
+            VectorComparisonDisposition::OutsideConservativeBounds
+        );
         assert_eq!(report.within_bound_by_component, [false, true, true]);
     }
 
@@ -834,7 +934,9 @@ mod tests {
         counts[0].covered_count = counts[0].sample_count + 1;
         assert!(matches!(
             evaluate_regional_coverage(&counts, coverage_gate()),
-            Err(PivQualificationError::CoverageCountExceedsSampleCount { region: FlowRegion::Bulk })
+            Err(PivQualificationError::CoverageCountExceedsSampleCount {
+                region: FlowRegion::Bulk
+            })
         ));
     }
 }
