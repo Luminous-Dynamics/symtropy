@@ -179,3 +179,9 @@ This is an independent fixed-point reimplementation of the published pseudocode 
 ## Source and data rights for the 3D k-coverage reproduction
 
 The paper directly cites the GPL-3.0 repository `IvanNik17/python-3d-analysis-libraries` for example code/model references. The repository README links separately licensed CC BY 4.0 Mendeley datasets: GGG-BenchmarkSfM v4 (DOI 10.17632/bzxk2n78s9.4) and GGG — Rough or Noisy? v2 (DOI 10.17632/xtv5y29xvz.2). Keep software licensing separate from dataset licensing. Do not copy GPL-3.0 code into this crate; independently implement the algorithm, use exact versioned licensed data files where the model mapping is verified, and pin every source file and digest. The exact mapping to the paper's two models remains under verification; see issue #7002 and the roadmap.
+
+### Paper baseline semantic correction (v0.2)
+
+The globally informed greedy baseline now runs on the **nominal binary visibility matrix**, matching the paper's set multi-cover formulation. It does not use finite-pose robust coverage to select candidates or compute SBW. Its receipt reports robust counts and nominal/robust failure-domain diversity only as additional diagnostics. Therefore `requested_k_covered` and `attainable_capped_target_covered` describe nominal modeled visibility; they must never be read as physical detection or robust observability claims.
+
+The baseline uses fixed-point `exp(-slack)` lookup values (scale 1e15), integer score arithmetic and deterministic lexicographic ties. It uses selection-order cleanup because the paper's set-valued cleanup pseudocode does not specify an ordering. This is a documented deterministic transcription, not bit-for-bit replication of the authors' implementation. The paper itself calls the heuristic unguaranteed and reports no theoretical approximation bound.
