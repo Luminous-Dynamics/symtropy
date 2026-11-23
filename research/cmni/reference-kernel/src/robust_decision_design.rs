@@ -129,7 +129,7 @@ pub fn rank_designs_by_robust_decision_value(
     }
     validate_policy(policy)?;
 
-    let prior_best = prior_best_action(problem);
+    let prior_best = prior_best_action(problem)?;
     let expected_scenario_ids = validate_candidate_family(candidates)?;
     let common_receipt = candidates[0].dependence_scope_receipt_id.clone();
 
@@ -161,7 +161,7 @@ pub fn rank_designs_by_robust_decision_value(
 
         for _ in 0..policy_count {
             let scenario_utilities =
-                scenario_policy_utilities(problem, candidate, &policy_indices);
+                scenario_policy_utilities(problem, candidate, &policy_indices)?;
             let worst_case_utility = scenario_utilities
                 .iter()
                 .copied()
@@ -181,7 +181,7 @@ pub fn rank_designs_by_robust_decision_value(
         }
 
         let robust_policy_utilities =
-            scenario_policy_utilities(problem, candidate, &best_policy);
+            scenario_policy_utilities(problem, candidate, &best_policy)?;
         let clairvoyant_post_information_utility_upper_bound = clairvoyant_by_scenario
             .iter()
             .copied()
@@ -200,7 +200,7 @@ pub fn rank_designs_by_robust_decision_value(
                     outcome_count,
                 )
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
         let worst_case_eig = eig_by_scenario
             .iter()
             .copied()
@@ -288,7 +288,7 @@ struct PriorBestAction {
     expected_utility: f64,
 }
 
-fn prior_best_action(problem: &RobustDecisionProblem) -> PriorBestAction {
+fn prior_best_action(problem: &RobustDecisionProblem) -> Result<PriorBestAction, ModelError> {
     let mut best_index = 0usize;
     let mut best_utility = f64::NEG_INFINITY;
     for (action_index, utilities) in problem.action_utilities.iter().enumerate() {
@@ -297,15 +297,20 @@ fn prior_best_action(problem: &RobustDecisionProblem) -> PriorBestAction {
             .zip(problem.state_probabilities.iter())
             .map(|(utility, probability)| utility * probability)
             .sum::<f64>();
+        if !expected_utility.is_finite() {
+            return Err(ModelError::NonFiniteValue(
+                "robust_decision_prior_expected_utility",
+            ));
+        }
         if expected_utility > best_utility {
             best_index = action_index;
             best_utility = expected_utility;
         }
     }
-    PriorBestAction {
+    Ok(PriorBestAction {
         action_id: problem.action_ids[best_index].clone(),
         expected_utility: best_utility,
-    }
+    })
 }
 
 fn scenario_policy_utilities(
@@ -330,7 +335,12 @@ fn scenario_policy_utilities(
                         * problem.action_utilities[action_index][state_index];
                 }
             }
-            expected_utility
+            if !expected_utility.is_finite() {
+                return Err(ModelError::NonFiniteValue(
+                    "robust_decision_scenario_expected_utility",
+                ));
+            }
+            Ok(expected_utility)
         })
         .collect()
 }
@@ -360,11 +370,17 @@ fn finite_state_expected_information_gain(
             let joint_probability = state_probability * likelihood;
             let marginal_probability = outcome_probabilities[outcome_index];
             if joint_probability > 0.0 && marginal_probability > 0.0 {
-                information_gain += joint_probability * (likelihood / marginal_probability).ln();
+                information_gain +=
+                    joint_probability * (likelihood.ln() - marginal_probability.ln());
             }
         }
     }
-    information_gain.max(0.0)
+    if !information_gain.is_finite() {
+        return Err(ModelError::NonFiniteValue(
+            "robust_decision_expected_information_gain",
+        ));
+    }
+    Ok(information_gain.max(0.0))
 }
 
 fn deterministic_policy_count(
