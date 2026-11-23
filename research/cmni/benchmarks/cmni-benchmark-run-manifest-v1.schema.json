@@ -1,0 +1,629 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/cmni/benchmarks/cmni-benchmark-run-manifest-v1.schema.json",
+  "title": "CMNI Benchmark Run Manifest v1",
+  "description": "Reproducibility contract for one CMNI benchmark run. JSON Schema validates local shape; cross-field, source-overlap, and cryptographic checks require the independent verifier.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "repository",
+    "artifacts",
+    "comparison_contract",
+    "environment",
+    "qualification",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cmni-benchmark-run-manifest-v1"
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "task",
+        "family",
+        "claim_boundary",
+        "created_at"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9._/-]+$"
+        },
+        "task": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 256
+        },
+        "family": {
+          "enum": [
+            "analytic",
+            "synthetic",
+            "published_reproduction",
+            "source_held_out",
+            "physical_validation",
+            "campaign"
+          ]
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 12,
+          "maxLength": 2000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "split_unit": {
+          "enum": [
+            "none",
+            "source_family",
+            "experiment",
+            "calibration_block",
+            "analysis_pipeline",
+            "campaign"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 4000
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "full_name",
+        "commit_sha",
+        "working_tree_clean",
+        "branch"
+      ],
+      "properties": {
+        "full_name": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "commit_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "base_commit_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "working_tree_clean": {
+          "type": "boolean"
+        },
+        "tree_sha": {
+          "$ref": "#/$defs/gitSha"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "model",
+        "run_configuration",
+        "utility_definition",
+        "result_bundle"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/artifact"
+        },
+        "model": {
+          "$ref": "#/$defs/artifact"
+        },
+        "run_configuration": {
+          "$ref": "#/$defs/artifact"
+        },
+        "utility_definition": {
+          "$ref": "#/$defs/artifact"
+        },
+        "source_split_manifest": {
+          "$ref": "#/$defs/artifact"
+        },
+        "candidate_set": {
+          "$ref": "#/$defs/artifact"
+        },
+        "dependence_scenario_set": {
+          "$ref": "#/$defs/artifact"
+        },
+        "result_bundle": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "source_split": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "train_ids",
+        "validation_ids",
+        "test_ids",
+        "overlap_check"
+      ],
+      "properties": {
+        "unit": {
+          "enum": [
+            "source_family",
+            "experiment",
+            "calibration_block",
+            "analysis_pipeline",
+            "campaign"
+          ]
+        },
+        "train_ids": {
+          "$ref": "#/$defs/uniqueIdList"
+        },
+        "validation_ids": {
+          "$ref": "#/$defs/uniqueIdList"
+        },
+        "test_ids": {
+          "$ref": "#/$defs/uniqueIdList"
+        },
+        "overlap_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "checker",
+            "checker_sha256"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "passed",
+                "failed",
+                "not_run"
+              ]
+            },
+            "checker": {
+              "type": "string",
+              "minLength": 1
+            },
+            "checker_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "blind_test_accessed": {
+          "type": "boolean"
+        },
+        "deviation_report": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "comparison_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparison_group_id",
+        "candidate_set_sha256",
+        "scenario_set_sha256",
+        "utility_sha256",
+        "resource_budget",
+        "baselines",
+        "compute_accounting"
+      ],
+      "properties": {
+        "comparison_group_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "candidate_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scenario_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "utility_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "resource_budget": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resource",
+              "unit",
+              "limit",
+              "accounting_rule"
+            ],
+            "properties": {
+              "resource": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "limit": {
+                "type": "number",
+                "minimum": 0
+              },
+              "accounting_rule": {
+                "type": "string",
+                "minLength": 8
+              }
+            }
+          }
+        },
+        "compute_accounting": {
+          "enum": [
+            "matched_total_compute",
+            "matched_wall_time",
+            "matched_high_fidelity_calls",
+            "reported_only"
+          ]
+        },
+        "baselines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method_id",
+              "version",
+              "configuration_sha256"
+            ],
+            "properties": {
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "commit_sha": {
+                "$ref": "#/$defs/gitSha"
+              },
+              "configuration_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "implementation_uri": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "architecture",
+        "target",
+        "rustc",
+        "hardware",
+        "cargo_lock_sha256"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rustc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cargo_lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "hardware": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cpu",
+            "memory_bytes"
+          ],
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "minLength": 1
+            },
+            "memory_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "gpu": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "gpu_memory_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "container_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_head_ci",
+        "independent_review",
+        "physical_validation"
+      ],
+      "properties": {
+        "exact_head_ci": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "tested_commit_sha",
+            "workflow_run_ids"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "passed",
+                "failed",
+                "pending",
+                "not_run",
+                "not_applicable"
+              ]
+            },
+            "tested_commit_sha": {
+              "$ref": "#/$defs/gitSha"
+            },
+            "workflow_run_ids": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "uniqueItems": true
+            },
+            "platforms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "checks_digest_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "independent_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "passed",
+                "failed",
+                "pending",
+                "not_run",
+                "not_applicable"
+              ]
+            },
+            "reviewer_group": {
+              "type": "string"
+            },
+            "report": {
+              "$ref": "#/$defs/artifact"
+            }
+          }
+        },
+        "physical_validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "passed",
+                "failed",
+                "pending",
+                "not_run",
+                "not_applicable"
+              ]
+            },
+            "measurement_campaign": {
+              "$ref": "#/$defs/artifact"
+            },
+            "review_report": {
+              "$ref": "#/$defs/artifact"
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "metrics"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "failed",
+            "aborted",
+            "not_run"
+          ]
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metric_id",
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "metric_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lower_bound": {
+                "type": "number"
+              },
+              "upper_bound": {
+                "type": "number"
+              },
+              "confidence_level": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "slice_id": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            }
+          }
+        },
+        "abstained": {
+          "type": "boolean"
+        },
+        "failure_reason": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "sha256"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "type": "string"
+        }
+      }
+    },
+    "uniqueIdList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "benchmark": {
+            "properties": {
+              "family": {
+                "enum": [
+                  "published_reproduction",
+                  "source_held_out",
+                  "physical_validation"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "benchmark"
+        ]
+      },
+      "then": {
+        "required": [
+          "source_split"
+        ],
+        "properties": {
+          "source_split": {
+            "type": "object"
+          },
+          "artifacts": {
+            "required": [
+              "source_split_manifest"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
