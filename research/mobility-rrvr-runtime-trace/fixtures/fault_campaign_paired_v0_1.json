@@ -19,7 +19,9 @@
     "fault_injector_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "native_adapter_revision": "native-adapter-6749-fixture",
     "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1",
-    "fault_injector_fault_domain_id": "injector-control-plane-a"
+    "fault_injector_fault_domain_id": "injector-control-plane-a",
+    "fault_injector_id": "fault-injector-daemon",
+    "native_adapter_id": "rrvr-gazebo-adapter"
   },
   "reset": {
     "kind": "simulator_snapshot_restore",
