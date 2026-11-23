@@ -381,8 +381,7 @@ mod tests {
         let local_max = SVector::from([1.0, 2.0]);
 
         let (world_min, world_max) =
-            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
-                .unwrap();
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max).unwrap();
 
         let point = matrix * local_min + translation;
         for axis in 0..2 {
@@ -409,9 +408,14 @@ mod tests {
             let widths = SVector::<f64, 4>::from_fn(|_, _| sample().abs() * 4.0);
             let local_max = local_min + widths;
 
-            let (world_min, world_max) =
-                transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
-                    .unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
+            let result = transform_aabb_affine_outward(
+                &matrix,
+                &translation,
+                &local_min,
+                &local_max,
+            );
+            let (world_min, world_max) = result
+                .unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
 
             for corner in 0..16 {
                 let point = SVector::<f64, 4>::from_fn(|axis, _| {
