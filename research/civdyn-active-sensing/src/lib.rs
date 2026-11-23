@@ -591,8 +591,9 @@ pub fn render_csv() -> String {
                 .iter()
                 .map(|decision| {
                     format!(
-                        "{}:{}:{}",
-                        format!("{}[{}]", decision.outcome, decision.world_ids),
+                        "{}[{}]:{}:{}",
+                        decision.outcome,
+                        decision.world_ids,
                         decision.action_id,
                         decision.worst_case_regret_service_units
                     )
