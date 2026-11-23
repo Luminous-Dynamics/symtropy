@@ -111,6 +111,7 @@ struct KnownAnswerFile {
 struct KnownAnswer {
     case_id: String,
     greedy_expected_cost_numerator: u64,
+    scarcity_greedy_expected_cost_numerator: u64,
     exact_expected_cost_numerator: u64,
     exact_quality_rejection_numerator: u64,
 }
@@ -149,11 +150,15 @@ struct CaseResult {
     scenario_count: usize,
     decision_node_count: usize,
     greedy_expected_cost_numerator: u64,
+    scarcity_greedy_expected_cost_numerator: u64,
     exact_expected_cost_numerator: u64,
-    regret_numerator: u64,
+    myopic_regret_numerator: u64,
+    scarcity_greedy_regret_numerator: u64,
     greedy_quality_rejection_numerator: u64,
+    scarcity_greedy_quality_rejection_numerator: u64,
     exact_quality_rejection_numerator: u64,
     greedy_policy: PolicyForest,
+    scarcity_greedy_policy: PolicyForest,
     exact_policy: PolicyForest,
     non_anticipativity_verified: bool,
     hidden_quality_is_evaluator_only: bool,
@@ -169,8 +174,10 @@ struct Report {
     scenario_leaf_count: usize,
     decision_node_count: usize,
     greedy_expected_cost_numerator: u64,
+    scarcity_greedy_expected_cost_numerator: u64,
     exact_expected_cost_numerator: u64,
-    greedy_regret_numerator: u64,
+    myopic_regret_numerator: u64,
+    scarcity_greedy_regret_numerator: u64,
     exact_policy_non_anticipativity_verified: bool,
     recommendations_are_non_binding: bool,
     capacity_reservations_created: bool,
@@ -561,6 +568,13 @@ type BestCandidate = (
     Vec<DecisionNode>,
 );
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DecisionRule {
+    MyopicImmediateCost,
+    ScarcityAndDueDate,
+    Exact,
+}
+
 fn partition_scenarios(
     case: &PolicyCase,
     scenario_indices: &[usize],
@@ -590,12 +604,67 @@ fn group_probability(case: &PolicyCase, indices: &[usize]) -> Result<u64, String
     })
 }
 
+fn scarcity_priority_ranks(
+    case: &PolicyCase,
+    period: usize,
+    completed_before: &BTreeMap<String, String>,
+    observation: &Observation,
+) -> BTreeMap<String, usize> {
+    let failed: BTreeSet<&str> = observation.failed_resource_ids.iter().map(String::as_str).collect();
+    let unknown: BTreeSet<&str> = observation.unknown_resource_ids.iter().map(String::as_str).collect();
+    let resource_by_id: BTreeMap<&str, &Resource> = case.resources.iter()
+        .map(|resource| (resource.resource_id.as_str(), resource))
+        .collect();
+
+    let mut remaining: Vec<(&Job, usize)> = case.jobs.iter()
+        .filter(|job| !completed_before.contains_key(&job.job_id))
+        .map(|job| {
+            let eligible_count = job.routes.iter().filter(|route| {
+                if failed.contains(route.resource_id.as_str()) || unknown.contains(route.resource_id.as_str()) {
+                    return false;
+                }
+                resource_by_id.get(route.resource_id.as_str())
+                    .is_some_and(|resource| resource.capacity_units_by_period.iter().skip(period).any(|capacity| *capacity > 0))
+            }).count();
+            (job, eligible_count)
+        })
+        .collect();
+
+    remaining.sort_by(|(left_job, left_count), (right_job, right_count)| {
+        left_job.due_period.cmp(&right_job.due_period)
+            .then(left_count.cmp(right_count))
+            .then(left_job.job_id.cmp(&right_job.job_id))
+    });
+
+    remaining.into_iter().enumerate()
+        .map(|(rank, (job, _))| (job.job_id.clone(), rank))
+        .collect()
+}
+
+fn action_priority_key(
+    case: &PolicyCase,
+    period: usize,
+    action: &[Assignment],
+    priority_ranks: &BTreeMap<String, usize>,
+) -> (Reverse<usize>, Vec<usize>, u64, Vec<Assignment>) {
+    let mut assigned_ranks: Vec<usize> = action.iter()
+        .filter_map(|assignment| priority_ranks.get(&assignment.job_id).copied())
+        .collect();
+    assigned_ranks.sort_unstable();
+    (
+        Reverse(action.len()),
+        assigned_ranks,
+        immediate_action_cost(case, period, action).unwrap_or(u64::MAX),
+        action.to_vec(),
+    )
+}
+
 fn solve_group(
     case: &PolicyCase,
     indices: &[usize],
     period: usize,
     completed_before: &BTreeMap<String, String>,
-    exact: bool,
+    decision_rule: DecisionRule,
 ) -> Result<DecisionNode, String> {
     if indices.is_empty() || period >= case.horizon {
         return Err(fail("decision_group_empty_or_period_out_of_range"));
@@ -613,7 +682,7 @@ fn solve_group(
         .ok_or_else(|| fail("decision_history_missing_current_observation"))?;
     let mut actions = enumerate_actions(case, period, completed_before, observation)?;
 
-    if !exact {
+    if decision_rule == DecisionRule::MyopicImmediateCost {
         actions.sort_by_key(|action| {
             (
                 Reverse(action.len()),
@@ -621,6 +690,10 @@ fn solve_group(
                 action.clone(),
             )
         });
+        actions.truncate(1);
+    } else if decision_rule == DecisionRule::ScarcityAndDueDate {
+        let priority_ranks = scarcity_priority_ranks(case, period, completed_before, observation);
+        actions.sort_by_key(|action| action_priority_key(case, period, action, &priority_ranks));
         actions.truncate(1);
     }
 
@@ -644,7 +717,7 @@ fn solve_group(
                     child_indices,
                     period + 1,
                     &completed_after_action,
-                    exact,
+                    decision_rule,
                 )?;
                 total = total
                     .checked_add(child.expected_cost_numerator)
@@ -670,7 +743,7 @@ fn solve_group(
         if replace {
             best = Some((total, action, completed_after_action, children));
         }
-        if !exact {
+        if decision_rule != DecisionRule::Exact {
             break;
         }
     }
@@ -695,12 +768,12 @@ fn solve_group(
     })
 }
 
-fn build_policy(case: &PolicyCase, exact: bool) -> Result<PolicyForest, String> {
+fn build_policy(case: &PolicyCase, decision_rule: DecisionRule) -> Result<PolicyForest, String> {
     let indices: Vec<usize> = (0..case.scenarios.len()).collect();
     let empty_completed = BTreeMap::new();
     let roots = partition_scenarios(case, &indices, 0, &empty_completed)?
         .values()
-        .map(|group| solve_group(case, group, 0, &empty_completed, exact))
+        .map(|group| solve_group(case, group, 0, &empty_completed, decision_rule))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(PolicyForest { roots })
 }
@@ -998,33 +1071,45 @@ fn policy_node_count(policy: &PolicyForest) -> usize {
 }
 
 fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
-    let greedy_policy = build_policy(case, false)?;
-    let exact_policy = build_policy(case, true)?;
+    let greedy_policy = build_policy(case, DecisionRule::MyopicImmediateCost)?;
+    let scarcity_greedy_policy = build_policy(case, DecisionRule::ScarcityAndDueDate)?;
+    let exact_policy = build_policy(case, DecisionRule::Exact)?;
+
     let greedy_nodes = verify_policy(case, &greedy_policy)?;
+    let scarcity_greedy_nodes = verify_policy(case, &scarcity_greedy_policy)?;
     let exact_nodes = verify_policy(case, &exact_policy)?;
     if greedy_nodes != policy_node_count(&greedy_policy)
+        || scarcity_greedy_nodes != policy_node_count(&scarcity_greedy_policy)
         || exact_nodes != policy_node_count(&exact_policy)
     {
         return Err(fail("policy_node_count_or_verification_mismatch"));
     }
+
     let greedy_replayed = replay_policy(case, &greedy_policy)?;
+    let scarcity_greedy_replayed = replay_policy(case, &scarcity_greedy_policy)?;
     let exact_replayed = replay_policy(case, &exact_policy)?;
 
     let greedy_cost = greedy_policy.roots.iter().try_fold(0_u64, |total, node| {
-        total
-            .checked_add(node.expected_cost_numerator)
+        total.checked_add(node.expected_cost_numerator)
             .ok_or_else(|| fail("greedy_root_cost_overflow"))
     })?;
+    let scarcity_greedy_cost = scarcity_greedy_policy.roots.iter().try_fold(0_u64, |total, node| {
+        total.checked_add(node.expected_cost_numerator)
+            .ok_or_else(|| fail("scarcity_greedy_root_cost_overflow"))
+    })?;
     let exact_cost = exact_policy.roots.iter().try_fold(0_u64, |total, node| {
-        total
-            .checked_add(node.expected_cost_numerator)
+        total.checked_add(node.expected_cost_numerator)
             .ok_or_else(|| fail("exact_root_cost_overflow"))
     })?;
-    if greedy_replayed != greedy_cost || exact_replayed != exact_cost {
+
+    if greedy_replayed != greedy_cost
+        || scarcity_greedy_replayed != scarcity_greedy_cost
+        || exact_replayed != exact_cost
+    {
         return Err(fail("independent_scenario_replay_cost_mismatch"));
     }
-    if exact_cost > greedy_cost {
-        return Err(fail("exact_policy_cost_exceeds_myopic_baseline"));
+    if exact_cost > greedy_cost || exact_cost > scarcity_greedy_cost {
+        return Err(fail("exact_policy_cost_exceeds_declared_greedy_baseline"));
     }
 
     Ok(CaseResult {
@@ -1034,11 +1119,16 @@ fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
         scenario_count: case.scenarios.len(),
         decision_node_count: exact_nodes,
         greedy_expected_cost_numerator: greedy_cost,
+        scarcity_greedy_expected_cost_numerator: scarcity_greedy_cost,
         exact_expected_cost_numerator: exact_cost,
-        regret_numerator: greedy_cost - exact_cost,
+        myopic_regret_numerator: greedy_cost - exact_cost,
+        scarcity_greedy_regret_numerator: scarcity_greedy_cost - exact_cost,
         greedy_quality_rejection_numerator: quality_rejection_numerator(case, &greedy_policy)?,
+        scarcity_greedy_quality_rejection_numerator:
+            quality_rejection_numerator(case, &scarcity_greedy_policy)?,
         exact_quality_rejection_numerator: quality_rejection_numerator(case, &exact_policy)?,
         greedy_policy,
+        scarcity_greedy_policy,
         exact_policy,
         non_anticipativity_verified: true,
         hidden_quality_is_evaluator_only: true,
@@ -1067,6 +1157,8 @@ fn validate_known_answers(answers: &KnownAnswerFile, cases: &[PolicyCase]) -> Re
             .ok_or_else(|| fail("known_answer_missing_case"))?;
         let result = evaluate_case(case)?;
         if result.greedy_expected_cost_numerator != answer.greedy_expected_cost_numerator
+            || result.scarcity_greedy_expected_cost_numerator
+                != answer.scarcity_greedy_expected_cost_numerator
             || result.exact_expected_cost_numerator != answer.exact_expected_cost_numerator
             || result.exact_quality_rejection_numerator != answer.exact_quality_rejection_numerator
         {
@@ -1079,6 +1171,7 @@ fn validate_known_answers(answers: &KnownAnswerFile, cases: &[PolicyCase]) -> Re
 fn evaluate(corpus: &Corpus) -> Result<Report, String> {
     let mut cases = Vec::new();
     let mut total_greedy = 0_u64;
+    let mut total_scarcity_greedy = 0_u64;
     let mut total_exact = 0_u64;
     let mut total_scenarios = 0_usize;
     let mut total_nodes = 0_usize;
@@ -1087,6 +1180,9 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         total_greedy = total_greedy
             .checked_add(result.greedy_expected_cost_numerator)
             .ok_or_else(|| fail("report_greedy_cost_overflow"))?;
+        total_scarcity_greedy = total_scarcity_greedy
+            .checked_add(result.scarcity_greedy_expected_cost_numerator)
+            .ok_or_else(|| fail("report_scarcity_greedy_cost_overflow"))?;
         total_exact = total_exact
             .checked_add(result.exact_expected_cost_numerator)
             .ok_or_else(|| fail("report_exact_cost_overflow"))?;
@@ -1103,8 +1199,10 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         scenario_leaf_count: total_scenarios,
         decision_node_count: total_nodes,
         greedy_expected_cost_numerator: total_greedy,
+        scarcity_greedy_expected_cost_numerator: total_scarcity_greedy,
         exact_expected_cost_numerator: total_exact,
-        greedy_regret_numerator: total_greedy.saturating_sub(total_exact),
+        myopic_regret_numerator: total_greedy.saturating_sub(total_exact),
+        scarcity_greedy_regret_numerator: total_scarcity_greedy.saturating_sub(total_exact),
         exact_policy_non_anticipativity_verified: true,
         recommendations_are_non_binding: true,
         capacity_reservations_created: false,
@@ -1170,7 +1268,7 @@ mod tests {
             .iter()
             .find(|case| case.scenario_family_id == "quality-outcome-uncertainty")
             .unwrap();
-        let policy = build_policy(case, true).unwrap();
+        let policy = build_policy(case, DecisionRule::Exact).unwrap();
         let relevant = case
             .scenarios
             .iter()
@@ -1209,13 +1307,13 @@ mod tests {
             .find(|case| case.scenario_family_id == "quality-outcome-uncertainty")
             .unwrap()
             .clone();
-        let original_policy = build_policy(&original, true).unwrap();
+        let original_policy = build_policy(&original, DecisionRule::Exact).unwrap();
 
         let mut mutated = original.clone();
         for scenario in &mut mutated.scenarios {
             scenario.hidden_quality_rejections.clear();
         }
-        let mutated_policy = build_policy(&mutated, true).unwrap();
+        let mutated_policy = build_policy(&mutated, DecisionRule::Exact).unwrap();
         assert_eq!(original_policy, mutated_policy);
     }
 
@@ -1223,7 +1321,7 @@ mod tests {
     fn scenario_permutation_does_not_change_optimal_policy_or_cost() {
         let corpus = corpus();
         let original = corpus.cases[0].clone();
-        let expected = build_policy(&original, true).unwrap();
+        let expected = build_policy(&original, DecisionRule::Exact).unwrap();
         let expected_cost = expected
             .roots
             .iter()
@@ -1232,7 +1330,7 @@ mod tests {
 
         let mut permuted = original;
         permuted.scenarios.reverse();
-        let actual = build_policy(&permuted, true).unwrap();
+        let actual = build_policy(&permuted, DecisionRule::Exact).unwrap();
         let actual_cost = actual
             .roots
             .iter()
@@ -1250,7 +1348,7 @@ mod tests {
             .iter()
             .find(|case| case.scenario_family_id == "qualification-unknown")
             .unwrap();
-        let policy = build_policy(case, true).unwrap();
+        let policy = build_policy(case, DecisionRule::Exact).unwrap();
         let unknown_node = policy
             .roots
             .iter()
@@ -1276,8 +1374,8 @@ mod tests {
     fn myopic_policy_exposes_the_shared_bottleneck_opportunity_cost() {
         let corpus = corpus();
         let case = &corpus.cases[0];
-        let greedy = build_policy(case, false).unwrap();
-        let exact = build_policy(case, true).unwrap();
+        let greedy = build_policy(case, DecisionRule::MyopicImmediateCost).unwrap();
+        let exact = build_policy(case, DecisionRule::Exact).unwrap();
         assert_eq!(greedy.roots[0].assignments[0].job_id, "JOB-FLEX");
         assert_eq!(exact.roots[0].assignments[0].job_id, "JOB-ONLY-A");
     }
@@ -1301,22 +1399,31 @@ mod tests {
     }
 
     #[test]
-    fn exact_policy_never_costs_more_than_myopic_policy_for_frozen_cases() {
+    fn scarcity_and_due_date_baseline_prioritizes_the_only_a_job() {
+        let corpus = corpus();
+        let case = &corpus.cases[0];
+        let policy = build_policy(case, DecisionRule::ScarcityAndDueDate).unwrap();
+        assert_eq!(
+            policy.roots[0].assignments,
+            vec![Assignment {
+                job_id: "JOB-ONLY-A".into(),
+                resource_id: "RESOURCE-A".into()
+            }]
+        );
+    }
+
+    #[test]
+    fn exact_policy_never_costs_more_than_either_greedy_baseline() {
         let corpus = corpus();
         for case in &corpus.cases {
-            let greedy = build_policy(case, false).unwrap();
-            let exact = build_policy(case, true).unwrap();
-            let greedy_cost: u64 = greedy
-                .roots
-                .iter()
-                .map(|node| node.expected_cost_numerator)
-                .sum();
-            let exact_cost: u64 = exact
-                .roots
-                .iter()
-                .map(|node| node.expected_cost_numerator)
-                .sum();
+            let greedy = build_policy(case, DecisionRule::MyopicImmediateCost).unwrap();
+            let scarcity = build_policy(case, DecisionRule::ScarcityAndDueDate).unwrap();
+            let exact = build_policy(case, DecisionRule::Exact).unwrap();
+            let greedy_cost: u64 = greedy.roots.iter().map(|node| node.expected_cost_numerator).sum();
+            let scarcity_cost: u64 = scarcity.roots.iter().map(|node| node.expected_cost_numerator).sum();
+            let exact_cost: u64 = exact.roots.iter().map(|node| node.expected_cost_numerator).sum();
             assert!(exact_cost <= greedy_cost, "{}", case.case_id);
+            assert!(exact_cost <= scarcity_cost, "{}", case.case_id);
             verify_policy(case, &exact).unwrap();
         }
     }
@@ -1325,12 +1432,18 @@ mod tests {
     fn independent_scenario_replay_matches_both_policy_objectives_for_all_cases() {
         let corpus = corpus();
         for case in &corpus.cases {
-            let greedy = build_policy(case, false).unwrap();
-            let exact = build_policy(case, true).unwrap();
+            let greedy = build_policy(case, DecisionRule::MyopicImmediateCost).unwrap();
+            let scarcity = build_policy(case, DecisionRule::ScarcityAndDueDate).unwrap();
+            let exact = build_policy(case, DecisionRule::Exact).unwrap();
             let greedy_replayed = replay_policy(case, &greedy).unwrap();
+            let scarcity_replayed = replay_policy(case, &scarcity).unwrap();
             let exact_replayed = replay_policy(case, &exact).unwrap();
             let greedy_reported: u64 = greedy
                 .roots
+                .iter()
+                .map(|node| node.expected_cost_numerator)
+                .sum();
+            let scarcity_reported: u64 = scarcity.roots
                 .iter()
                 .map(|node| node.expected_cost_numerator)
                 .sum();
@@ -1340,6 +1453,7 @@ mod tests {
                 .map(|node| node.expected_cost_numerator)
                 .sum();
             assert_eq!(greedy_replayed, greedy_reported, "{}", case.case_id);
+            assert_eq!(scarcity_replayed, scarcity_reported, "{}", case.case_id);
             assert_eq!(exact_replayed, exact_reported, "{}", case.case_id);
         }
     }
@@ -1348,7 +1462,7 @@ mod tests {
     fn independent_replay_rejects_time_indexed_capacity_overbooking() {
         let corpus = corpus();
         let case = &corpus.cases[0];
-        let mut policy = build_policy(case, true).unwrap();
+        let mut policy = build_policy(case, DecisionRule::Exact).unwrap();
         let root = policy.roots.first_mut().unwrap();
         root.assignments.push(Assignment {
             job_id: "JOB-FLEX".into(),
