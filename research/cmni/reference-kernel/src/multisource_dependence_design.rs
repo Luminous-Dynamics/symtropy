@@ -237,7 +237,7 @@ pub fn rank_designs_under_finite_correlation_scenarios(
         ranking_reversed = Some(reversed);
     }
 
-    scores.sort_by(|left, right| left.robust_rank.cmp(&right.robust_rank));
+    scores.sort_by_key(|score| score.robust_rank);
     let robust_preferred_candidate_id = scores[0].candidate_id.clone();
 
     Ok(MultiSourceDependenceDesignRanking {
@@ -508,19 +508,19 @@ pub(crate) fn scalar_parameter_information_and_source_gradient(
     }
     let mut covariance = vec![vec![0.0; observation_count]; observation_count];
 
-    for row in 0..observation_count {
-        for column in 0..observation_count {
-            covariance[row][column] = if row == column {
+    for (row, covariance_row) in covariance.iter_mut().enumerate() {
+        for (column, covariance_value) in covariance_row.iter_mut().enumerate() {
+            *covariance_value = if row == column {
                 candidate.independent_observation_noise_variances[row]
             } else {
                 0.0
             };
-            for source_row in 0..source_count {
-                for source_column in 0..source_count {
+            for (source_row, correlation_row) in correlation.iter().enumerate() {
+                for (source_column, correlation_value) in correlation_row.iter().enumerate() {
                     let source_covariance = candidate.source_standard_deviations[source_row]
-                        * correlation[source_row][source_column]
+                        * correlation_value
                         * candidate.source_standard_deviations[source_column];
-                    covariance[row][column] += candidate.source_jacobians[row][source_row]
+                    *covariance_value += candidate.source_jacobians[row][source_row]
                         * source_covariance
                         * candidate.source_jacobians[column][source_column];
                 }
