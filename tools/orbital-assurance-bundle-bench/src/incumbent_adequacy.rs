@@ -326,7 +326,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || !valid_sha256(&case.scope_sha256)
         || case.action_ids.is_empty()
         || case.action_ids.len() > MAX_ACTIONS
-        || case.worlds.len() > MAX_WORLDS
+        || case.expected_world_ids.is_empty()
+        || case.expected_world_ids.len() > MAX_WORLDS
+        || case.worlds.len() > MAX_SCENARIOS
+        || case.loss_model_set.expected_scenario_ids.is_empty()
+        || case.loss_model_set.expected_scenario_ids.len() > MAX_SCENARIOS
         || case.materiality_margin < 0
         || case.switching_cost < 0
         || !valid_gate_states(case)
@@ -360,12 +364,85 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
 
-    // An empty surviving-world set is not certainty and cannot justify retention.
+    // A source-pinned physical-world inventory and a separate joint loss-model inventory
+    // are mandatory. Physical-world coverage does not imply loss-model coverage.
+    if !valid_id(&case.world_set_receipt_id)
+        || !valid_sha256(&case.world_set_receipt_sha256)
+        || !valid_commit(&case.loss_model_set.source_commit)
+        || !valid_sha256(&case.loss_model_set.source_receipt_sha256)
+        || !valid_id(&case.loss_model_set.source_case_id)
+        || !valid_id(&case.loss_model_set.source_manifest_id)
+        || !valid_sha256(&case.loss_model_set.source_scenarios_sha256)
+        || !valid_sha256(&case.loss_model_set.expected_scenario_ids_sha256)
+        || !valid_sha256(&case.loss_model_set.projected_scenarios_sha256)
+        || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
+        || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
+    {
+        return invalid_input(case, "upstream world or loss-model receipt pins are malformed");
+    }
+
+    let expected_world_ids = case.expected_world_ids.iter().cloned().collect::<BTreeSet<_>>();
+    if expected_world_ids.len() != case.expected_world_ids.len()
+        || expected_world_ids.iter().any(|id| !valid_id(id))
+        || digest_ids(&case.expected_world_ids).as_deref()
+            != Ok(case.expected_world_ids_sha256.as_str())
+    {
+        return invalid_input(case, "planned physical-world inventory or digest is invalid");
+    }
+
+    let expected_scenario_ids = case
+        .loss_model_set
+        .expected_scenario_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    if expected_scenario_ids.len() != case.loss_model_set.expected_scenario_ids.len()
+        || expected_scenario_ids.iter().any(|id| !valid_id(id))
+        || digest_ids(&case.loss_model_set.expected_scenario_ids).as_deref()
+            != Ok(case.loss_model_set.expected_scenario_ids_sha256.as_str())
+    {
+        return invalid_input(case, "planned joint loss-scenario inventory or digest is invalid");
+    }
     if case.worlds.is_empty() {
         return abstain(case, "NO_SURVIVING_WORLDS", Some(retention_threshold));
     }
-    if case.worlds.len() > MAX_WORLDS {
-        return invalid_input(case, "surviving-world set exceeds bound");
+    if case.worlds.len() > MAX_SCENARIOS {
+        return invalid_input(case, "joint loss-scenario set exceeds bound");
+    }
+
+    let projected_digest = match projected_scenarios_digest(&case.worlds) {
+        Ok(value) => value,
+        Err(_) => {
+            return invalid_input(
+                case,
+                "projected joint loss-scenario manifest cannot be encoded",
+            );
+        }
+    };
+    if projected_digest != case.loss_model_set.projected_scenarios_sha256 {
+        return invalid_input(case, "projected joint loss-scenario digest mismatch");
+    }
+    let actual_scenario_ids = case
+        .worlds
+        .iter()
+        .map(|world| world.scenario_id.clone())
+        .collect::<BTreeSet<_>>();
+    let actual_world_ids = case
+        .worlds
+        .iter()
+        .map(|world| world.world_id.clone())
+        .collect::<BTreeSet<_>>();
+    if actual_scenario_ids != expected_scenario_ids {
+        return invalid_input(
+            case,
+            "observed joint scenarios do not match planned loss-model inventory",
+        );
+    }
+    if actual_world_ids != expected_world_ids {
+        return invalid_input(
+            case,
+            "joint loss scenarios do not cover the exact surviving physical-world inventory",
+        );
     }
 
     // External/producer state gates take precedence over numerical comparison.
@@ -374,6 +451,30 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
     if case.world_set_state == "STALE" {
         return abstain(case, "STALE_WORLD_SET", Some(retention_threshold));
+    }
+    if case.loss_model_set.state == "STALE" {
+        return abstain(case, "STALE_LOSS_MODEL_SET", Some(retention_threshold));
+    }
+    if case.loss_model_set.state == "INDETERMINATE" {
+        return abstain(
+            case,
+            "INDETERMINATE_LOSS_MODEL_SET",
+            Some(retention_threshold),
+        );
+    }
+    if case.loss_model_set.state == "OUT_OF_PROFILE" {
+        return abstain(
+            case,
+            "LOSS_MODEL_SET_OUT_OF_PROFILE",
+            Some(retention_threshold),
+        );
+    }
+    if case.loss_model_set.state == "INADEQUATE" {
+        return abstain(
+            case,
+            "LOSS_MODEL_SET_INADEQUATE",
+            Some(retention_threshold),
+        );
     }
     if case.domain_closure_state == "OPEN" {
         return abstain(case, "DOMAIN_NOT_CLOSED", Some(retention_threshold));
@@ -414,18 +515,52 @@ fn evaluate_case(case: &Case) -> CaseResult {
         return abstain(case, "INDETERMINATE_EVIDENCE", Some(retention_threshold));
     }
 
-    let mut world_ids = BTreeSet::new();
+    let mut scenario_ids = BTreeSet::new();
     let mut total_loss_rows = 0usize;
     let mut validated_worlds = Vec::with_capacity(case.worlds.len());
     let mut incumbent_infeasible = false;
 
     for world in &case.worlds {
-        if !valid_id(&world.world_id)
-            || !world_ids.insert(world.world_id.as_str())
+        if !valid_id(&world.scenario_id)
+            || !scenario_ids.insert(world.scenario_id.as_str())
+            || !valid_id(&world.world_id)
+            || !expected_world_ids.contains(&world.world_id)
+            || !valid_id(&world.loss_model_id)
             || !valid_id(&world.loss_unit)
             || !valid_sha256(&world.scope_sha256)
+            || !matches!(
+                world.evidence_status.as_str(),
+                "admissible" | "inadmissible" | "indeterminate" | "out_of_profile"
+            )
         {
-            return invalid_input(case, "world identity is duplicate, empty or malformed");
+            return invalid_input(
+                case,
+                "joint loss-scenario identity, model, status or scope is malformed",
+            );
+        }
+        if world.evidence_status == "out_of_profile" {
+            return abstain(
+                case,
+                "LOSS_SCENARIO_OUT_OF_PROFILE",
+                Some(retention_threshold),
+            );
+        }
+        if world.evidence_status == "indeterminate" || world.evidence_status == "inadmissible" {
+            return abstain(
+                case,
+                "LOSS_SCENARIO_EVIDENCE_INDETERMINATE",
+                Some(retention_threshold),
+            );
+        }
+        let Some(evidence_receipt_id) = world.evidence_receipt_id.as_deref() else {
+            return abstain(
+                case,
+                "LOSS_SCENARIO_RECEIPT_MISSING",
+                Some(retention_threshold),
+            );
+        };
+        if !valid_id(evidence_receipt_id) {
+            return invalid_input(case, "joint loss-scenario evidence receipt ID is malformed");
         }
         if world.loss_unit != case.loss_unit {
             return abstain(case, "LOSS_UNIT_MISMATCH", Some(retention_threshold));
@@ -465,7 +600,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
             {
                 return invalid_input(
                     case,
-                    "loss row is malformed, duplicated or not feasible in its world",
+                    "loss row is malformed, duplicated or not feasible in its joint scenario",
                 );
             }
         }
@@ -480,14 +615,16 @@ fn evaluate_case(case: &Case) -> CaseResult {
         let incumbent_feasible = feasible.contains(&case.incumbent_action_id);
         incumbent_infeasible |= !incumbent_feasible;
         validated_worlds.push(ValidatedWorld {
+            scenario_id: world.scenario_id.clone(),
             world_id: world.world_id.clone(),
+            loss_model_id: world.loss_model_id.clone(),
+            evidence_receipt_id: evidence_receipt_id.to_owned(),
             feasible_action_ids: feasible,
             losses,
         });
     }
 
-    // Canonical world ordering makes receipts invariant to input row permutation.
-    validated_worlds.sort_by(|left, right| left.world_id.cmp(&right.world_id));
+    validated_worlds.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
     // An infeasible incumbent is an unconditional review trigger. Do not surface
     // a replacement candidate: this evaluator never selects or authorizes actions.
@@ -495,7 +632,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
         let assessments = validated_worlds
             .iter()
             .map(|world| WorldAssessment {
+                scenario_id: world.scenario_id.clone(),
                 world_id: world.world_id.clone(),
+                loss_model_id: world.loss_model_id.clone(),
                 incumbent_feasible: world
                     .feasible_action_ids
                     .contains(&case.incumbent_action_id),
@@ -584,7 +723,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 .checked_sub(reference_loss)
                 .expect("difference of two non-negative i64 losses is representable");
             WorldAssessment {
+                scenario_id: world.scenario_id.clone(),
                 world_id: world.world_id.clone(),
+                loss_model_id: world.loss_model_id.clone(),
                 incumbent_feasible: true,
                 incumbent_loss: Some(incumbent_loss),
                 reference_common_action_loss: Some(reference_loss),
