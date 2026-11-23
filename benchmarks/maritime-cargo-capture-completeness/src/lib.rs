@@ -153,7 +153,9 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
             || event.event_class != profile.event_class
             || event.event_time < profile.window_start
             || event.event_time >= profile.window_end
-            || expected.insert(event.event_id.clone(), event.event_time).is_some()
+            || expected
+                .insert(event.event_id.clone(), event.event_time)
+                .is_some()
         {
             return CaptureReport::with_disposition(Disposition::NotEvaluable);
         }
@@ -229,7 +231,13 @@ mod tests {
             configuration_digest: "config-v1".to_owned(),
             expected_configuration_digest: "config-v1".to_owned(),
             sequence_semantics_qualified: true,
-            failure_domains: set(&["source-power", "source-clock", "source-reader", "source-network", "source-store"]),
+            failure_domains: set(&[
+                "source-power",
+                "source-clock",
+                "source-reader",
+                "source-network",
+                "source-store",
+            ]),
         }
     }
 
@@ -242,11 +250,14 @@ mod tests {
             coverage_complete: true,
             independently_qualified: true,
             failure_domains: set(&["reference-power", "reference-clock", "reference-sensor"]),
-            events: events.iter().map(|event_id| ReferenceEvent {
-                event_id: (*event_id).to_owned(),
-                event_class: "GATE_OUT".to_owned(),
-                event_time: 10,
-            }).collect(),
+            events: events
+                .iter()
+                .map(|event_id| ReferenceEvent {
+                    event_id: (*event_id).to_owned(),
+                    event_class: "GATE_OUT".to_owned(),
+                    event_time: 10,
+                })
+                .collect(),
         }
     }
 
@@ -262,7 +273,10 @@ mod tests {
         }
     }
 
-    fn case(reference: Option<IndependentReference>, captured_events: Vec<CapturedEvent>) -> CaptureCase {
+    fn case(
+        reference: Option<IndependentReference>,
+        captured_events: Vec<CapturedEvent>,
+    ) -> CaptureCase {
         CaptureCase {
             profile: Some(profile()),
             reference,
@@ -273,9 +287,15 @@ mod tests {
 
     fn known_case(case_id: &str) -> CaptureCase {
         match case_id {
-            "complete" => case(Some(reference(&["e1", "e2"])), vec![captured("e1"), captured("e2")]),
+            "complete" => case(
+                Some(reference(&["e1", "e2"])),
+                vec![captured("e1"), captured("e2")],
+            ),
             "known_no_event" => case(Some(reference(&[])), vec![]),
-            "missing_event" => case(Some(reference(&["e1", "e2", "e3"])), vec![captured("e1"), captured("e3")]),
+            "missing_event" => case(
+                Some(reference(&["e1", "e2", "e3"])),
+                vec![captured("e1"), captured("e3")],
+            ),
             "detected_but_not_durable" | "ack_without_durable_persistence" => {
                 let mut event = captured("e1");
                 event.durably_persisted = false;
@@ -299,7 +319,12 @@ mod tests {
             "shared_clock_dependency" => {
                 let mut p = profile();
                 p.failure_domains.insert("reference-clock".to_owned());
-                CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 }
+                CaptureCase {
+                    profile: Some(p),
+                    reference: Some(reference(&["e1"])),
+                    captured_events: vec![captured("e1")],
+                    as_of: 20,
+                }
             }
             "missing_independent_reference" => case(None, vec![captured("e1")]),
             "reference_capture_not_qualified" => {
@@ -317,7 +342,12 @@ mod tests {
                 p.sequence_semantics_qualified = false;
                 CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 }
             }
-            "missing_profile" => CaptureCase { profile: None, reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 },
+            "missing_profile" => CaptureCase {
+                profile: None,
+                reference: Some(reference(&["e1"])),
+                captured_events: vec![captured("e1")],
+                as_of: 20,
+            },
             _ => panic!("unknown fixture case: {case_id}"),
         }
     }
@@ -326,7 +356,10 @@ mod tests {
     fn frozen_expected_dispositions_match_independent_tsv_oracle() {
         let fixture = include_str!("../fixtures/capture-v0.1.tsv");
         let mut count = 0usize;
-        for line in fixture.lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
+        for line in fixture
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        {
             let fields: Vec<&str> = line.split('|').collect();
             assert_eq!(fields.len(), 2, "malformed fixture row: {line}");
             let actual = evaluate(&known_case(fields[0]));
@@ -338,9 +371,15 @@ mod tests {
 
     #[test]
     fn removing_a_persisted_event_cannot_improve_completeness() {
-        let complete = case(Some(reference(&["e1", "e2"])), vec![captured("e1"), captured("e2")]);
+        let complete = case(
+            Some(reference(&["e1", "e2"])),
+            vec![captured("e1"), captured("e2")],
+        );
         let incomplete = case(Some(reference(&["e1", "e2"])), vec![captured("e1")]);
-        assert_eq!(evaluate(&complete).disposition, Disposition::QualifiedWithinDeclaredEnvelope);
+        assert_eq!(
+            evaluate(&complete).disposition,
+            Disposition::QualifiedWithinDeclaredEnvelope
+        );
         assert_eq!(evaluate(&incomplete).disposition, Disposition::Incomplete);
     }
 
@@ -350,8 +389,14 @@ mod tests {
         p.failure_domains.insert("reference-clock".to_owned());
         let test = CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 };
         let report = evaluate(&test);
-        assert_eq!(report.disposition, Disposition::NotIdentifiable);
-        assert_eq!(report.shared_failure_domains, vec!["reference-clock".to_owned()]);
+        assert_eq!(
+            report.disposition,
+            Disposition::NotIdentifiable
+        );
+        assert_eq!(
+            report.shared_failure_domains,
+            vec!["reference-clock".to_owned()]
+        );
     }
 
     #[test]
@@ -371,7 +416,10 @@ mod tests {
     #[test]
     fn duplicate_identical_delivery_is_idempotent() {
         let report = evaluate(&known_case("exact_duplicate_delivery"));
-        assert_eq!(report.disposition, Disposition::QualifiedWithinDeclaredEnvelope);
+        assert_eq!(
+            report.disposition,
+            Disposition::QualifiedWithinDeclaredEnvelope
+        );
         assert_eq!(report.reconciled_event_count, 1);
     }
 
@@ -391,18 +439,33 @@ mod tests {
 
     #[test]
     fn empty_or_unqualified_observation_is_not_identifiable() {
-        assert_eq!(evaluate(&known_case("missing_independent_reference")).disposition, Disposition::NotIdentifiable);
-        assert_eq!(evaluate(&known_case("reference_capture_not_qualified")).disposition, Disposition::NotIdentifiable);
+        assert_eq!(
+            evaluate(&known_case("missing_independent_reference")).disposition,
+            Disposition::NotIdentifiable
+        );
+        assert_eq!(
+            evaluate(&known_case("reference_capture_not_qualified")).disposition,
+            Disposition::NotIdentifiable
+        );
     }
 
     #[test]
     fn profile_mismatch_or_unsupported_sequence_is_not_evaluable() {
-        assert_eq!(evaluate(&known_case("profile_configuration_mismatch")).disposition, Disposition::NotEvaluable);
-        assert_eq!(evaluate(&known_case("unsupported_sequence_contract")).disposition, Disposition::NotEvaluable);
+        assert_eq!(
+            evaluate(&known_case("profile_configuration_mismatch")).disposition,
+            Disposition::NotEvaluable
+        );
+        assert_eq!(
+            evaluate(&known_case("unsupported_sequence_contract")).disposition,
+            Disposition::NotEvaluable
+        );
     }
 
     #[test]
     fn missing_profile_is_unknown_not_complete() {
-        assert_eq!(evaluate(&known_case("missing_profile")).disposition, Disposition::Unknown);
+        assert_eq!(
+            evaluate(&known_case("missing_profile")).disposition,
+            Disposition::Unknown
+        );
     }
 }
