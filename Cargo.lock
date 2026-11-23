@@ -9327,6 +9327,7 @@ dependencies = [
  "nalgebra 0.34.2",
  "proptest",
  "serde",
+ "smallvec",
  "symtropy-math",
 ]
 
