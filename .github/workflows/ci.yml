@@ -55,19 +55,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Check Formatting
-      shell: bash
-      run: |
-        cargo fmt --all
-        cargo fmt --all -- --check
-        if [[ "${{ runner.os }}" == "Linux" ]]; then
-          while IFS= read -r file; do
-            if [[ "$file" == tools/ehd-reference-audit/src/*.rs ]]; then
-              echo "EHD_AUDIT_FORMAT_BEGIN:$file"
-              cat "$file"
-              echo "EHD_AUDIT_FORMAT_END:$file"
-            fi
-          done < <(git diff --name-only -- '*.rs')
-        fi
+      run: cargo fmt --all -- --check
 
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
