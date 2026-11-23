@@ -28,7 +28,7 @@ A parent can have a child only when all of these independently scoped facts hold
 3. Persistence is either Committed or DefinitelyNotCommitted, with a confirmed persistence verdict; InFlight and IndeterminateCommit remain blocked.
 4. The controller-queue fence is quiescent, confirmed, and targets the exact child's boot/controller epoch.
 5. The downstream graph is independently reported quiescent, confirmed, and targets that same child epoch.
-6. Both NoEffect and quiescence have claim-specific observer quorums tied to this exact parent attempt/epoch and the same declared fault-profile revision; the two proof sets must be independent under the common-cause contract.
+6. Both NoEffect and quiescence have claim-specific observer quorums tied to this exact parent attempt/epoch and the same declared fault-profile revision; the two proof sets must be independent under the common-cause contract. The proof envelopes reuse the existing OwnerEvidenceRef type, and evidence IDs, claim IDs, proof artifacts and observation IDs cannot be replayed across attempts.
 
 Applied, partial, unknown, disputed, and not_observed are never retryable parent outcomes. Committed, in_flight, or indeterminate_commit persistence is never sufficient for a retry edge. A fence for a different epoch is not transferable.
 
