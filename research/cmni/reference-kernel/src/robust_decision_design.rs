@@ -373,20 +373,20 @@ pub struct RandomizedRobustDecisionDesignRanking {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct FiniteGameStrategy {
-    support: Vec<usize>,
-    probabilities: Vec<f64>,
-    value: f64,
-    feasibility_residual: f64,
+pub(crate) struct FiniteGameStrategy {
+    pub(crate) support: Vec<usize>,
+    pub(crate) probabilities: Vec<f64>,
+    pub(crate) value: f64,
+    pub(crate) feasibility_residual: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct FiniteGameSolution {
-    maximizing_policy_mixture: FiniteGameStrategy,
-    minimizing_scenario_mixture: FiniteGameStrategy,
-    primal_dual_gap: f64,
-    maximum_complementarity_residual: f64,
-    basis_evaluations: usize,
+pub(crate) struct FiniteGameSolution {
+    pub(crate) maximizing_policy_mixture: FiniteGameStrategy,
+    pub(crate) minimizing_scenario_mixture: FiniteGameStrategy,
+    pub(crate) primal_dual_gap: f64,
+    pub(crate) maximum_complementarity_residual: f64,
+    pub(crate) basis_evaluations: usize,
 }
 
 /// Rank designs by a finite zero-sum game over randomized policies and
@@ -699,7 +699,7 @@ fn validate_randomized_policy(policy: RandomizedRobustDecisionPolicy) -> Result<
     Ok(())
 }
 
-fn solve_finite_zero_sum_game(
+pub(crate) fn solve_finite_zero_sum_game(
     payoffs: &[Vec<f64>],
     feasibility_tolerance: f64,
     duality_gap_tolerance: f64,
