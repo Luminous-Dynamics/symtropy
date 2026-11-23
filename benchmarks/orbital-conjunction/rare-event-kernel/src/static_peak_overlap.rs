@@ -281,7 +281,7 @@ mod tests {
         assert_eq!(report.overlap_position, [3.0, 4.0, 5.0]);
         assert_eq!(report.overlap_covariance, diagonal(2.0, 2.0, 2.0));
         let expected =
-            -0.5 * (3.0 * TAU.ln() + (8.0_f64.powi(3)).ln() + 3.0);
+            -0.5 * (3.0 * TAU.ln() + (8.0_f64.powi(3)).ln() + 6.0);
         assert!((report.log_integral_of_density_product - expected).abs() < 1.0e-13);
     }
 
