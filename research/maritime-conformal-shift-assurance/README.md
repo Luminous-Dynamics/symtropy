@@ -116,6 +116,13 @@ Signed long-run coverage error can conceal extended undercoverage if later overc
 
 A method should not be called better than SAOCP or PACE unless compared on matched seeds, shifts, missingness masks, interval width, non-cancelling coverage debt, calibration sample sizes and runtime. Compare methods on the same hidden truth; only the evaluator may access missing labels.
 
+For a window with N outcomes, C observed covered labels and M missing labels, the no-assumption identification interval is:
+
+- lower = C / N (every missing label treated as uncovered);
+- upper = (C + M) / N (every missing label treated as covered).
+
+The evaluator-only latent coverage must lie within these bounds. The online method receives neither the missing residuals nor the latent coverage. This partial-identification interval is deliberately conservative; it is not an estimate under MCAR/MAR/MNAR and becomes narrower only as independently adjudicated outcomes arrive.
+
 ## Required metrics
 
 Each method/window row emits an 18-column evidence receipt:
