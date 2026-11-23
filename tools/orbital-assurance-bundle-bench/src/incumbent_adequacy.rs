@@ -556,7 +556,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .count(),
         threshold_exceeded_cases: cases
             .iter()
-            .filter(|case| case.trigger_reason == "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD")
+            .filter(|case| case.trigger_reason == "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD")
             .count(),
         expected_result_mismatches: cases
             .iter()
@@ -601,11 +601,14 @@ mod tests {
     }
 
     #[test]
-    fn stable_incumbent_is_retained_with_exact_regret() {
+    fn stable_incumbent_is_retained_against_common_action_comparator() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "baseline_retain");
         assert_eq!(result.disposition, "RETAIN_INCUMBENT");
-        assert_eq!(result.worst_case_regret, Some(5));
+        assert_eq!(result.worst_case_improvement, Some(5));
+        assert_eq!(result.reference_common_action_id.as_deref(), Some("B"));
+        assert_eq!(result.current_worst_case_loss, Some(100));
+        assert_eq!(result.reference_common_worst_case_loss, Some(95));
     }
 
     #[test]
@@ -613,15 +616,19 @@ mod tests {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "decision_irrelevant_shift");
         assert_eq!(result.disposition, "RETAIN_INCUMBENT");
-        assert_eq!(result.worst_case_regret, Some(0));
+        assert_eq!(result.worst_case_improvement, Some(0));
+        assert_eq!(result.reference_common_action_id.as_deref(), Some("A"));
     }
 
     #[test]
-    fn different_world_optima_can_still_support_incumbent_retention() {
+    fn opposite_world_optima_use_one_common_non_anticipative_comparator() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "opposite_optima_within_margin");
         assert_eq!(result.disposition, "RETAIN_INCUMBENT");
-        assert_eq!(result.worst_case_regret, Some(4));
+        assert_eq!(result.worst_case_improvement, Some(0));
+        assert_eq!(result.reference_common_action_id.as_deref(), Some("A"));
+        assert_eq!(result.current_worst_case_loss, Some(104));
+        assert_eq!(result.reference_common_worst_case_loss, Some(104));
     }
 
     #[test]
@@ -631,7 +638,7 @@ mod tests {
         assert_eq!(result.disposition, "REOPTIMIZATION_WARRANTED");
         assert_eq!(
             result.trigger_reason,
-            "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD"
+            "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD"
         );
     }
 
@@ -640,7 +647,7 @@ mod tests {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "threshold_equality");
         assert_eq!(result.disposition, "RETAIN_INCUMBENT");
-        assert_eq!(result.worst_case_regret, result.retention_threshold);
+        assert_eq!(result.worst_case_improvement, result.retention_threshold);
     }
 
     #[test]
@@ -652,7 +659,7 @@ mod tests {
             result.trigger_reason,
             "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD"
         );
-        assert_eq!(result.worst_case_regret, None);
+        assert_eq!(result.worst_case_improvement, None);
     }
 
     #[test]
