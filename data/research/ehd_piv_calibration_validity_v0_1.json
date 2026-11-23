@@ -1,0 +1,146 @@
+{
+  "contract_id": "ehd_piv_calibration_validity_v0_1",
+  "version": "0.1.0",
+  "status": "prospective_policy_kernel_not_statistical_drift_or_physical_validation",
+  "issue": 7184,
+  "crate": "tools/ehd-piv-calibration-validity",
+  "certificate_fingerprints": [
+    "predictor",
+    "preprocessing",
+    "acquisition_protocol",
+    "instrument",
+    "calibration",
+    "clock",
+    "reference_graph",
+    "observer_state"
+  ],
+  "feature_support": {
+    "v0": "finite_scalar_minimum_maximum_bounds",
+    "limitation": "rectangular marginal bounds do not prove joint support or exchangeability"
+  },
+  "methods": {
+    "static_exchangeable": {
+      "supported_by_v0": true,
+      "assumption": "calibration and live independent units remain exchangeable within the frozen admitted scope",
+      "unsupported_shift_action": "recalibration_required"
+    },
+    "weighted_covariate_shift": {
+      "supported_by_v0": "policy_gate_only",
+      "required_external_evidence": [
+        "density_ratio_estimator_id",
+        "finite_ratio_evidence",
+        "conditional_law_stability_evidence_id"
+      ],
+      "required_thresholds": [
+        "minimum_effective_sample_size",
+        "maximum_normalized_weight",
+        "minimum_overlap_fraction"
+      ],
+      "does_not_prove": "covariate shift or conditional outcome-law stability"
+    },
+    "rolling_split_conformal": {
+      "supported_by_v0": false
+    },
+    "adaptive_conformal_inference": {
+      "supported_by_v0": false
+    },
+    "change_point_detection": {
+      "supported_by_v0": false
+    },
+    "local_or_subgroup_conformal": {
+      "supported_by_v0": false
+    }
+  },
+  "invalidators": {
+    "hard": [
+      "predictor_change",
+      "preprocessing_change",
+      "acquisition_change",
+      "instrument_change",
+      "calibration_change",
+      "clock_change",
+      "reference_graph_change",
+      "observer_state_change",
+      "conditional_residual_drift",
+      "reference_unqualified",
+      "shared_cause_unresolved",
+      "clock_discontinuity",
+      "acquisition_protocol_change"
+    ],
+    "scope": [
+      "feature_outside_scope",
+      "feature_support_unknown",
+      "certificate_expired"
+    ],
+    "evidence": [
+      "missing_identity",
+      "replayed_identity",
+      "out_of_order_tick",
+      "calibration_cluster_reuse",
+      "nonfinite_feature",
+      "insufficient_weighted_support"
+    ]
+  },
+  "dispositions": [
+    "QualifiedInAdmittedScope",
+    "QualifiedWithWarning",
+    "RecalibrationRequired",
+    "IndependentDiagnosticRequired",
+    "AbstainOutOfEnvelope",
+    "AbstainInsufficientEvidence",
+    "AlreadySuspended"
+  ],
+  "requalification": {
+    "requires_new_certificate_id": true,
+    "predictor_must_be_frozen": true,
+    "independent_reference_qualified": true,
+    "external_evidence_receipt_required": true,
+    "fresh_calibration_clusters": true,
+    "sealed_test_clusters": true,
+    "calibration_test_disjoint": true,
+    "calibration_disjoint_from_prior_observed_and_calibration_clusters": true,
+    "same_certificate_can_self_restore": false
+  },
+  "benchmarks": {
+    "whole_field_coverage_target": "95_percent_nominal_with_cluster_level_confidence_intervals",
+    "functional_coverage_separate": true,
+    "coverage_by_flow_family_region_and_sensor_state": true,
+    "sharpness_at_matched_coverage": true,
+    "cumulative_miscoverage_and_maximum_consecutive_misses": true,
+    "false_alarm_missed_shift_detection_delay": true,
+    "false_safe_challenge": "zero_observed_on_frozen_hard_controls_with_finite_sample_upper_bound",
+    "weighted_support_metrics": [
+      "effective_sample_size",
+      "maximum_normalized_weight",
+      "overlap_fraction",
+      "ratio_tail_diagnostics"
+    ],
+    "system_metrics": [
+      "p50_latency",
+      "p95_latency",
+      "p99_latency",
+      "diagnostic_cost",
+      "recalibration_cost",
+      "abstention_rate"
+    ]
+  },
+  "explicit_nonclaims": [
+    "no conformal quantile implementation",
+    "no density-ratio estimation",
+    "no conditional-law test",
+    "no statistical change-point detector",
+    "no authenticated receipt or custody verification",
+    "no physical EHD experiment",
+    "no physical passivity proof",
+    "no SOTA superiority claim"
+  ],
+  "references": {
+    "svgp_kan": "https://doi.org/10.1016/j.aitf.2026.100034",
+    "local_weighted_conformal": "https://doi.org/10.1093/jrsssb/qkae103",
+    "conditional_conformal": "https://doi.org/10.1093/jrsssb/qkaf008",
+    "online_conformal_regret": "https://arxiv.org/abs/2602.16537",
+    "weighted_conformal_preprint": "https://arxiv.org/abs/2611.20052",
+    "piv_roadmap": "https://doi.org/10.1088/1361-6501/ad774b",
+    "holodrops": "https://doi.org/10.5194/amt-19-6973-2026"
+  }
+}
