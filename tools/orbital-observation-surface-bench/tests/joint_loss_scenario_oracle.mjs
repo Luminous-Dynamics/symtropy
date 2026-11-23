@@ -232,7 +232,8 @@ function evaluateCase(item) {
       const regret=subtract(loss,bestByScenario.get(scenario.scenario_id),"joint regret");
       if (rationalZero(regret)) bestCount += 1;
       perScenario.push({
-        scenario_id:scenario.scenario_id,world_id:scenario.world_id,loss:asJson(loss),joint_regret:asJson(regret),
+        scenario_id:scenario.scenario_id,world_id:scenario.world_id,loss_model_id:scenario.loss_model_id,
+        loss:asJson(loss),joint_regret:asJson(regret),
         _loss:loss,_regret:regret
       });
     }
