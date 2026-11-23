@@ -97,7 +97,7 @@ This motivates additional CMNI benchmark dimensions:
 
 The TestBED paper itself notes that task difficulty and method choices matter: static and random baselines are essential, and no aggregate should hide task-level variability.
 
-## 6. CMNI extension after baseline reproduction
+## 7. CMNI extension after baseline reproduction
 
 Only after the pinned paper recipe is reproduced should we add a hidden-source dependence variant. The baseline Action-BED design/action policy must not receive the hidden dependence-scenario ID. The CMNI variant should optimize or evaluate worst-case expected future loss over the same finite admitted scenarios.
 
@@ -113,7 +113,7 @@ For the shared task, report:
 
 The finite CMNI oracles are not substitutes for reproducing Action-BED. They provide an independent exact reference on small tasks and a robust hidden-scenario extension.
 
-## 7. Current status
+## 8. Current status
 
 - Pinned TestBED source and recipe: inspected.
 - Exact environment lock: not created.
