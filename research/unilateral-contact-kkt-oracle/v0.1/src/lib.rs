@@ -4,8 +4,10 @@
 //!
 //! The declared problem is:
 //!
-//!     minimize 0.5 * lambda^T A lambda + b^T lambda
-//!     subject to lambda >= 0
+//! ```text
+//! minimize 0.5 * lambda^T A lambda + b^T lambda
+//! subject to lambda >= 0
+//! ```
 //!
 //! A must be symmetric positive semidefinite. Under this condition, KKT
 //! feasibility is sufficient for global optimality of the declared QP.
