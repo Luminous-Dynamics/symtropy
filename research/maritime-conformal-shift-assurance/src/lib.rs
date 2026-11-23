@@ -196,9 +196,13 @@ impl PolicyState {
         }
     }
 
-    fn observe(&mut self, residual: ResidualPair, missed: bool) {
-        // This method is called only when an outcome was actually observed.
-        // Missing outcomes never cross the policy/evaluator boundary.
+    fn observe(&mut self, feedback: Option<(ResidualPair, bool)>) {
+        // Missing outcomes cross the policy/evaluator boundary as None.
+        // Their hidden residual and coverage result are never passed in.
+        let Some((residual, missed)) = feedback else {
+            return;
+        };
+
         if self.method.uses_rolling_history() {
             self.history.push_back(residual);
             while self.history.len() > ROLLING_WINDOW_SIZE {
@@ -415,10 +419,11 @@ fn evaluate_method(
             metrics.observed_arrival_covered += usize::from(arrival_covered);
             metrics.observed_handling_covered += usize::from(handling_covered);
             // Only the observed outcome crosses into the online calibrator.
-            state.observe(sample.residual, !joint_covered);
+            state.observe(Some((sample.residual, !joint_covered)));
         } else {
             metrics.missing += 1;
-            // Evaluator-only hidden truth is not passed into the policy.
+            // Missing feedback is explicit; evaluator-only truth stays private.
+            state.observe(None);
         }
         metrics.final_alpha_milli = state.alpha_milli;
     }
@@ -549,7 +554,7 @@ mod tests {
         ];
         let mut state = PolicyState::new(Method::RollingJoint, &calibration);
         let before = state.history.len();
-        // Missing feedback invokes no update and carries no hidden residual.
+        state.observe(None);
         assert_eq!(state.history.len(), before);
     }
 
@@ -564,14 +569,13 @@ mod tests {
         ];
         let mut state = PolicyState::new(Method::RollingJoint, &calibration);
         let before = state.prediction().expect("initial prediction");
-        state.observe(
+        state.observe(Some((
             ResidualPair {
                 arrival_abs_hours: 100,
                 handling_abs_hours: 400,
             },
-            true,
             false,
-        );
+        )));
         let after = state.prediction().expect("updated prediction");
         assert_eq!(state.history.len(), ROLLING_WINDOW_SIZE);
         assert!(after.arrival_half_width_hours >= before.arrival_half_width_hours);
