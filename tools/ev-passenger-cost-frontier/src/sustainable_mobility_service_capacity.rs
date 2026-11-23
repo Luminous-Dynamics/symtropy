@@ -131,7 +131,9 @@ pub struct SustainableServiceCapacityReport {
 
 #[derive(Debug, Clone, Copy)]
 enum ScheduledEvent {
-    ChargeComplete { channel_id: u8 },
+    ChargeComplete {
+        channel_id: u8,
+    },
     MissionComplete {
         aircraft_id: u8,
         mission_sequence: u32,
@@ -741,10 +743,7 @@ mod tests {
     }
 
     fn service_opportunity_id_for_test(aircraft_id: &str, mission_sequence: u32) -> String {
-        format!(
-            "{}-mission-{mission_sequence:06}",
-            aircraft_id
-        )
+        format!("{}-mission-{mission_sequence:06}", aircraft_id)
     }
 
     #[derive(Debug, PartialEq)]
@@ -985,24 +984,18 @@ mod tests {
                 canonical_service_opportunity_digest(&result.service_opportunities)
                     .expect("canonical opportunity digest")
             );
-            assert!(
-                result
-                    .service_opportunities
-                    .iter()
-                    .all(|opportunity| {
-                        opportunity.start_seconds
-                            + u64::from(opportunity.mission_duration_seconds)
-                            <= input.horizon_seconds
-                    })
-            );
+            assert!(result.service_opportunities.iter().all(|opportunity| {
+                opportunity.start_seconds + u64::from(opportunity.mission_duration_seconds)
+                    <= input.horizon_seconds
+            }));
 
-            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> =
-                BTreeMap::new();
+            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> = BTreeMap::new();
             for opportunity in &result.service_opportunities {
-                assert!(opportunity.opportunity_id.ends_with(&format!(
-                    "mission-{:06}",
-                    opportunity.mission_sequence
-                )));
+                assert!(
+                    opportunity
+                        .opportunity_id
+                        .ends_with(&format!("mission-{:06}", opportunity.mission_sequence))
+                );
                 by_aircraft
                     .entry(&opportunity.aircraft_id)
                     .or_default()
@@ -1010,8 +1003,14 @@ mod tests {
             }
             for opportunities in by_aircraft.values_mut() {
                 opportunities.sort_by_key(|item| item.mission_sequence);
-                assert_eq!(opportunities.first().map(|item| item.mission_sequence), Some(0));
-                assert_eq!(opportunities.first().map(|item| item.start_seconds), Some(0));
+                assert_eq!(
+                    opportunities.first().map(|item| item.mission_sequence),
+                    Some(0)
+                );
+                assert_eq!(
+                    opportunities.first().map(|item| item.start_seconds),
+                    Some(0)
+                );
                 for (index, opportunity) in opportunities.iter().enumerate() {
                     assert_eq!(opportunity.mission_sequence as usize, index);
                     if let Some(next) = opportunities.get(index + 1) {
@@ -1054,13 +1053,11 @@ mod tests {
                     .expect("canonical opportunity digest")
             );
             assert!(result.service_opportunities.iter().all(|opportunity| {
-                opportunity.start_seconds
-                    + u64::from(opportunity.mission_duration_seconds)
+                opportunity.start_seconds + u64::from(opportunity.mission_duration_seconds)
                     <= input.horizon_seconds
             }));
 
-            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> =
-                BTreeMap::new();
+            let mut by_aircraft: BTreeMap<&str, Vec<&CapacityServiceOpportunity>> = BTreeMap::new();
             for opportunity in &result.service_opportunities {
                 assert_eq!(
                     opportunity.opportunity_id,
@@ -1076,8 +1073,14 @@ mod tests {
             }
             for opportunities in by_aircraft.values_mut() {
                 opportunities.sort_by_key(|item| item.mission_sequence);
-                assert_eq!(opportunities.first().map(|item| item.mission_sequence), Some(0));
-                assert_eq!(opportunities.first().map(|item| item.start_seconds), Some(0));
+                assert_eq!(
+                    opportunities.first().map(|item| item.mission_sequence),
+                    Some(0)
+                );
+                assert_eq!(
+                    opportunities.first().map(|item| item.start_seconds),
+                    Some(0)
+                );
                 for (index, opportunity) in opportunities.iter().enumerate() {
                     assert_eq!(opportunity.mission_sequence as usize, index);
                     if let Some(next) = opportunities.get(index + 1) {
