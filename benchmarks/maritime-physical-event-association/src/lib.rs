@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet};
 #[cfg(test)]
 use std::collections::VecDeque;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimeRole {
