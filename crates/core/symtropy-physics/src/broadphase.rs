@@ -508,7 +508,191 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
 mod tests {
     use super::*;
     use crate::body::RigidBody;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::{HyperBox, Point, Sphere};
+
+    // Independent HyperBox reference: transform all eight vertices directly,
+    // without using support_aabb or Aabb::from_body from the production path.
+    fn independent_vertex_aabb(body: &RigidBody<3>) -> (SVector<f64, 3>, SVector<f64, 3>) {
+        let cube = body
+            .collider
+            .as_any()
+            .downcast_ref::<HyperBox<3>>()
+            .expect("oracle fixtures use HyperBox colliders");
+        assert_eq!(cube.half_extents, [0.5; 3]);
+
+        let mut min = SVector::<f64, 3>::from_element(f64::INFINITY);
+        let mut max = SVector::<f64, 3>::from_element(f64::NEG_INFINITY);
+        for corner in 0..8 {
+            let local = Point::new(std::array::from_fn(|axis| {
+                if corner & (1 << axis) == 0 {
+                    -cube.half_extents[axis]
+                } else {
+                    cube.half_extents[axis]
+                }
+            }));
+            let world = body.transform.transform_point(&local).0;
+            for axis in 0..3 {
+                min[axis] = min[axis].min(world[axis]);
+                max[axis] = max[axis].max(world[axis]);
+            }
+        }
+        (min, max)
+    }
+
+    fn independent_hyperbox_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
+        let bounds: Vec<_> = bodies.iter().map(independent_vertex_aabb).collect();
+        let mut pairs = Vec::new();
+
+        for i in 0..bodies.len() {
+            for j in (i + 1)..bodies.len() {
+                let a = &bodies[i];
+                let b = &bodies[j];
+                if a.body_type == BodyType::Static && b.body_type == BodyType::Static {
+                    continue;
+                }
+                if (a.collision_group & b.collision_mask == 0)
+                    || (b.collision_group & a.collision_mask == 0)
+                {
+                    continue;
+                }
+
+                let mut overlaps = true;
+                for axis in 0..3 {
+                    if bounds[i].1[axis] < bounds[j].0[axis]
+                        || bounds[j].1[axis] < bounds[i].0[axis]
+                    {
+                        overlaps = false;
+                        break;
+                    }
+                }
+                if !overlaps {
+                    continue;
+                }
+
+                let (ha, hb) = if a.handle < b.handle {
+                    (a.handle, b.handle)
+                } else {
+                    (b.handle, a.handle)
+                };
+                pairs.push(BroadphasePair(ha, hb));
+            }
+        }
+
+        pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        pairs.dedup();
+        pairs
+    }
+
+    fn independent_oracle_scene(
+        static_count: usize,
+        moving_count: usize,
+        clustered: bool,
+    ) -> Vec<RigidBody<3>> {
+        use std::f64::consts::FRAC_PI_4;
+        use symtropy_math::{Bivector, Rotor, Transform};
+
+        let mut bodies = Vec::with_capacity(static_count + moving_count);
+        for index in 0..static_count {
+            let position = if clustered {
+                Point::new([
+                    (index % 4) as f64 * 0.2,
+                    ((index / 4) % 4) as f64 * 0.2,
+                    ((index / 16) % 4) as f64 * 0.2,
+                ])
+            } else {
+                Point::new([index as f64 * 3.0, 0.0, 0.0])
+            };
+            let filter = 1u32 << (index % 2);
+            let mut body = RigidBody::<3>::static_body(
+                BodyHandle(index),
+                position,
+                Box::new(HyperBox::<3>::cube(0.5)),
+            );
+            body.collision_group = filter;
+            body.collision_mask = filter;
+            bodies.push(body);
+        }
+
+        for index in 0..moving_count {
+            let position = if clustered {
+                Point::new([
+                    (index % 4) as f64 * 0.1 + 0.05,
+                    ((index / 4) % 4) as f64 * 0.1 + 0.05,
+                    ((index / 16) % 4) as f64 * 0.1 + 0.05,
+                ])
+            } else {
+                let static_index = index * static_count / moving_count.max(1);
+                Point::new([static_index as f64 * 3.0, 0.0, 0.0])
+            };
+            let rotation = Rotor::from_plane_angle(
+                &Bivector::unit_plane(0, 1),
+                if index % 2 == 0 { FRAC_PI_4 } else { 0.0 },
+            );
+            let transform = Transform {
+                translation: position,
+                rotation,
+            };
+            let filter = 1u32 << (index % 2);
+            let mut body = RigidBody::<3>::new(
+                BodyHandle(static_count + index),
+                BodyType::Dynamic,
+                transform,
+                Box::new(HyperBox::<3>::cube(0.5)),
+                1.0,
+                SVector::from_element(1.0),
+            );
+            body.collision_group = filter;
+            body.collision_mask = filter;
+            bodies.push(body);
+        }
+        bodies
+    }
+
+    #[test]
+    fn independent_vertex_oracle_qualifies_broadphase_across_spatial_regimes() {
+        // Includes sparse and clustered geometry, bilateral filter exclusion,
+        // rotated bodies, the flat-cache path, and the 50-dynamic fallback.
+        for (static_count, moving_count, clustered) in [
+            (64usize, 1usize, false),
+            (64, 8, true),
+            (128, 32, false),
+            (128, 8, true),
+            (16, 50, true),
+        ] {
+            let bodies =
+                independent_oracle_scene(static_count, moving_count, clustered);
+            let expected = independent_hyperbox_pair_oracle(&bodies);
+            let full = find_pairs(&bodies);
+            assert_eq!(
+                full, expected,
+                "full broadphase disagrees with independent oracle: static={static_count}, moving={moving_count}, clustered={clustered}"
+            );
+
+            let mut static_cache = StaticBroadphase::new();
+            static_cache.rebuild(&bodies);
+            let incremental = find_pairs_incremental(&bodies, &static_cache);
+            assert_eq!(
+                incremental, expected,
+                "incremental broadphase disagrees with independent oracle: static={static_count}, moving={moving_count}, clustered={clustered}"
+            );
+
+            // Check that output pair identity/order is independent of insertion
+            // order when the engine takes the LBVH path.
+            if static_count == 64 && moving_count == 8 && clustered {
+                let reversed: Vec<_> = bodies.into_iter().rev().collect();
+                let reversed_expected = independent_hyperbox_pair_oracle(&reversed);
+                let reversed_full = find_pairs(&reversed);
+                assert_eq!(reversed_full, reversed_expected);
+                let mut reversed_cache = StaticBroadphase::new();
+                reversed_cache.rebuild(&reversed);
+                assert_eq!(
+                    find_pairs_incremental(&reversed, &reversed_cache),
+                    reversed_expected
+                );
+                assert_eq!(reversed_expected, expected);
+            }
+        }
+    }
 
     #[test]
     fn overlapping_pair_detected() {
