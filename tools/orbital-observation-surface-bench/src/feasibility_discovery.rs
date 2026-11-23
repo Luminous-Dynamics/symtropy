@@ -473,7 +473,9 @@ fn build_policy(
     class_options: &BTreeMap<String, Vec<String>>,
     branches: BTreeMap<String, String>,
 ) -> Result<PolicyMetric, String> {
-    let scenarios = &base.scenario_manifest.scenarios;
+    let mut sorted_scenarios = base.scenario_manifest.scenarios.iter().collect::<Vec<_>>();
+    sorted_scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let scenarios = sorted_scenarios;
     let actions = &base.actions;
     let mut action_cost_upper_bound = ActionCost {
         reference_trials: 0,
@@ -491,7 +493,7 @@ fn build_policy(
     let total_cost_upper_bound = checked_add_cost(query_cost, &action_cost_upper_bound)?;
     let mut per_scenario = Vec::with_capacity(scenarios.len());
 
-    for scenario in scenarios {
+    for scenario in &scenarios {
         let outcome_id = observations
             .get(&scenario.world_id)
             .ok_or_else(|| format!("scenario world {} has no query outcome", scenario.world_id))?;
@@ -810,8 +812,10 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
         .min_by(|left, right| left.compare_exact(right))
         .map(Rational::canonicalized);
 
-    let mut query_reports = Vec::with_capacity(case.query_universe.queries.len());
-    for query in &case.query_universe.queries {
+    let mut sorted_queries = case.query_universe.queries.iter().collect::<Vec<_>>();
+    sorted_queries.sort_by(|left, right| left.query_id.cmp(&right.query_id));
+    let mut query_reports = Vec::with_capacity(sorted_queries.len());
+    for query in sorted_queries {
         let (report, mut policies) = evaluate_one_query(&case.base_decision, query)?;
         query_reports.push(report);
         policy_metrics.append(&mut policies);
