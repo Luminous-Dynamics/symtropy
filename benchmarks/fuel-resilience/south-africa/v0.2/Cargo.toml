@@ -11,3 +11,6 @@ description = "Grade-aware, time-expanded fuel-network accounting benchmark"
 [[bin]]
 name = "safrb-network"
 path = "src/main.rs"
+
+[workspace]
+# This benchmark is intentionally standalone, outside the parent Symtropy workspace.
