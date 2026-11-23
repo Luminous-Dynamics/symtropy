@@ -26,7 +26,8 @@
         "benchmark_id",
         "task",
         "family",
-        "claim_boundary"
+        "claim_boundary",
+        "created_at"
       ],
       "properties": {
         "benchmark_id": {
@@ -85,7 +86,8 @@
       "required": [
         "full_name",
         "commit_sha",
-        "working_tree_clean"
+        "working_tree_clean",
+        "branch"
       ],
       "properties": {
         "full_name": {
@@ -220,7 +222,8 @@
         "scenario_set_sha256",
         "utility_sha256",
         "resource_budget",
-        "baselines"
+        "baselines",
+        "compute_accounting"
       ],
       "properties": {
         "comparison_group_id": {
@@ -319,7 +322,8 @@
         "architecture",
         "target",
         "rustc",
-        "hardware"
+        "hardware",
+        "cargo_lock_sha256"
       ],
       "properties": {
         "os": {
@@ -584,5 +588,42 @@
         "minLength": 1
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "benchmark": {
+            "properties": {
+              "family": {
+                "enum": [
+                  "published_reproduction",
+                  "source_held_out",
+                  "physical_validation"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "benchmark"
+        ]
+      },
+      "then": {
+        "required": [
+          "source_split"
+        ],
+        "properties": {
+          "source_split": {
+            "type": "object"
+          },
+          "artifacts": {
+            "required": [
+              "source_split_manifest"
+            ]
+          }
+        }
+      }
+    }
+  ]
 }
