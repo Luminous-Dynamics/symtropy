@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital GSD k-Coverage Source Admission Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "status",
+    "paper",
+    "method_parameters_reported",
+    "equation",
+    "geometry_method",
+    "model_families",
+    "upstream_code_repository",
+    "datasets",
+    "blockers",
+    "synthetic_prototype",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-gsd-kcoverage.source-admission.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-GSD-KCOVER-001"
+    },
+    "status": {
+      "enum": [
+        "SOURCE_ADMISSION_INCOMPLETE",
+        "SOURCE_ADMITTED"
+      ]
+    },
+    "paper": {
+      "type": "object"
+    },
+    "method_parameters_reported": {
+      "type": "object"
+    },
+    "equation": {
+      "type": "object"
+    },
+    "geometry_method": {
+      "type": "object"
+    },
+    "model_families": {
+      "type": "array",
+      "minItems": 2
+    },
+    "upstream_code_repository": {
+      "type": "object"
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 2
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "synthetic_prototype": {
+      "type": "object"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,141 @@
+name: Orbital GSD k-Coverage Voxel Visibility Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-gsd-kcoverage-bench/**"
+      - "docs/research/orbital-gsd-kcoverage/**"
+      - ".github/workflows/orbital-gsd-kcoverage.yml"
+  push:
+    branches:
+      - "research/orbital-gsd-kcoverage-v0-1"
+    paths:
+      - "tools/orbital-gsd-kcoverage-bench/**"
+      - "docs/research/orbital-gsd-kcoverage/**"
+      - ".github/workflows/orbital-gsd-kcoverage.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Synthetic 3D voxel visibility and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen case and schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          case = json.loads(Path("docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-gsd-kcoverage/orbital_gsd_kcoverage_v0_1.schema.json").read_text())
+          assert case["benchmark_id"] == "ORBITAL-GSD-KCOVER-VOXEL-001"
+          assert case["evidence_class"] == "synthetic"
+          assert case["claim_ceiling"] == "synthetic_3d_voxel_surface_candidate_view_visibility_only"
+          assert len(case["grid"]["occupied_cells"]) == len({tuple(cell) for cell in case["grid"]["occupied_cells"]})
+          assert case["grid"]["dimensions"] == [7, 5, 5]
+          assert case["camera"]["horizontal_pixel_count"] > 0
+          assert schema["properties"]["camera"]["required"] == [
+              "horizontal_fov_rad", "horizontal_pixel_count",
+              "gsd_max_m_per_pixel", "max_oblique_angle_rad"
+          ]
+          print("synthetic voxel visibility case/schema structure valid")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml --bin orbital-gsd-kcoverage-bench -- docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json "$GITHUB_SHA" > /tmp/gsd-rust-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml --bin orbital-gsd-kcoverage-bench -- docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json "$GITHUB_SHA" > /tmp/gsd-rust-b.json
+          cmp /tmp/gsd-rust-a.json /tmp/gsd-rust-b.json
+          jq -e '
+            .schema == "luminous.orbital-gsd-kcoverage.receipt.v0.1" and
+            .source_commit == env.GITHUB_SHA and
+            .evidence_class == "synthetic" and
+            .authority_granted == false and
+            .structural_acceptance_authorized == false and
+            .flight_authorized == false and
+            .physical_validation == "NOT_ASSESSED"
+          ' /tmp/gsd-rust-a.json
+      - name: Independent standard-library 3D oracle
+        run: |
+          python3 tools/orbital-gsd-kcoverage-bench/tests/reference_oracle.py docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json "$GITHUB_SHA" > /tmp/gsd-python.json
+      - name: Compare Rust receipt with independent oracle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/gsd-rust-a.json").read_text())
+          oracle = json.loads(Path("/tmp/gsd-python.json").read_text())
+          assert rust == oracle
+          assert rust["interior_empty_cell_count"] == 1
+          assert rust["multi_normal_patch_count"] > 0
+          assert rust["candidate_view_count"] > 0
+          assert rust["visible_relation_count"] >= rust["candidate_view_count"]
+          assert all(view["source_feature_id"] in view["visible_feature_ids"]
+                     for view in rust["candidate_views"])
+          assert rust["augmentation_candidate_attempt_count"] == (
+              rust["augmented_candidate_view_count"]
+              + rust["augmentation_rejected_max_oblique_count"]
+              + rust["augmentation_rejected_source_occlusion_count"]
+              + rust["augmentation_rejected_source_visibility_count"]
+          )
+          assert rust["augmentation_rejected_max_oblique_count"] > 0
+          max_oblique_millideg = round(
+              rust["max_oblique_angle_microrad"] / 1_000_000 * 180 / 3.141592653589793 * 1000
+          )
+          augmented = [
+              view for view in rust["candidate_views"]
+              if view["generation_kind"] == "AUGMENTED_TILT_AZIMUTH"
+          ]
+          assert all(view["tilt_degrees_millideg"] <= max_oblique_millideg for view in augmented)
+          print("Rust 3D voxel visibility receipt exactly matches independent Python oracle; every augmented view observes its source within obliquity bounds")
+          PY
+      - name: Create exact-head evidence manifest
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          rust = Path("/tmp/gsd-rust-a.json").read_bytes()
+          oracle = Path("/tmp/gsd-python.json").read_bytes()
+          manifest = {
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "benchmark_id": "ORBITAL-GSD-KCOVER-VOXEL-001",
+              "fixture_sha256": hashlib.sha256(Path("docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json").read_bytes()).hexdigest(),
+              "schema_sha256": hashlib.sha256(Path("docs/research/orbital-gsd-kcoverage/orbital_gsd_kcoverage_v0_1.schema.json").read_bytes()).hexdigest(),
+              "rust_receipt_sha256": hashlib.sha256(rust).hexdigest(),
+              "python_receipt_sha256": hashlib.sha256(oracle).hexdigest(),
+              "claim_ceiling": "synthetic_3d_voxel_surface_candidate_view_visibility_only",
+              "physical_validation": "NOT_ASSESSED"
+          }
+          Path("/tmp/gsd-evidence-manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-gsd-kcoverage-evidence
+          path: |
+            /tmp/gsd-rust-a.json
+            /tmp/gsd-python.json
+            /tmp/gsd-evidence-manifest.json
+            docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json
+            docs/research/orbital-gsd-kcoverage/orbital_gsd_kcoverage_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30

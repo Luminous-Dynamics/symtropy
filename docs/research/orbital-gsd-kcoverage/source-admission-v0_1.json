@@ -1,0 +1,135 @@
+{
+  "schema": "luminous.orbital-gsd-kcoverage.source-admission.v0.1",
+  "benchmark_id": "ORBITAL-GSD-KCOVER-001",
+  "status": "SOURCE_ADMISSION_INCOMPLETE",
+  "paper": {
+    "authors": [
+      "Waleed Bin Khalid",
+      "Chul Min Yeum"
+    ],
+    "title": "Ground Sample Distance Constrained k-Coverage Viewpoint Planning via Set Multi-Cover Formulation",
+    "arxiv": "2610.36450",
+    "submitted_utc": "2026-10-27",
+    "urls": [
+      "https://arxiv.org/abs/2610.36450",
+      "https://borowiecki.dev/pdf/2610.36450"
+    ]
+  },
+  "method_parameters_reported": {
+    "max_oblique_angle_deg": 45,
+    "max_oblique_angle_rad": 0.7853981633974483,
+    "max_gsd_m_per_pixel": 0.0005,
+    "nadir_gsd_setpoint_m_per_pixel": 0.00025,
+    "slant_range_m": 0.3394,
+    "perpendicular_distance_m": 0.24,
+    "voxel_sizes_m": [
+      0.04,
+      0.06,
+      0.08,
+      0.1
+    ],
+    "requested_k": [
+      1,
+      3,
+      5
+    ],
+    "overlap_thresholds": [
+      0.5,
+      0.7
+    ],
+    "augmentation_tilt_deg": {
+      "start": 1,
+      "stop_inclusive": 90,
+      "step": 1
+    },
+    "augmentation_azimuth_deg": {
+      "start": 0,
+      "stop_inclusive": 360,
+      "step": 30
+    },
+    "ilp_time_limit_seconds": 3600,
+    "overlap_pruning_voxel_sizes_m": [
+      0.1
+    ],
+    "camera_horizontal_fov_rad": null,
+    "camera_horizontal_pixel_count": null,
+    "camera_intrinsics_status": "NOT_ADMITTED_MISSING_SOURCE_PIN"
+  },
+  "equation": {
+    "gsd": "Rs * 2 * tan(FOV/2) / (w * cos(alpha))",
+    "slant_range": "sqrt(d^2 + h^2)",
+    "perpendicular_distance": "Rs * cos(alpha)",
+    "nadir_gsd": "GSD_max * cos(alpha)^2",
+    "gsd_camera_intrinsics_status": "BLOCKED_UNTIL_FOV_AND_PIXEL_WIDTH_PINNED"
+  },
+  "geometry_method": {
+    "padded_voxel_grid": true,
+    "exterior_empty_cell_flood_fill": true,
+    "outward_boundary_face_normals": true,
+    "multiple_normals_retained_when_face_normal_sum_cancels": true,
+    "ray_occlusion_tolerance": "voxel_size * sqrt(3) / 2",
+    "visibility_sample": "voxel_centres",
+    "visibility_claim": "geometric_candidate_visibility_only"
+  },
+  "model_families": [
+    {
+      "name": "Angel Statue point cloud",
+      "paper_source_mapping": "UNVERIFIED",
+      "candidate_files": [
+        "Python Libraries for Mesh, Point Cloud, and Data Visualization (Part 1 and Part 2)/point_cloud/angelStatue_lp.txt",
+        "GGG-BenchmarkSfM v4 file mapping: UNVERIFIED"
+      ]
+    },
+    {
+      "name": "Rooster mesh",
+      "paper_source_mapping": "UNVERIFIED",
+      "candidate_files": [
+        "How to Voxelize Meshes and Point Clouds in Python/mesh/rooster.obj",
+        "GGG-BenchmarkSfM v4 file mapping: UNVERIFIED"
+      ]
+    }
+  ],
+  "upstream_code_repository": {
+    "url": "https://github.com/IvanNik17/python-3d-analysis-libraries",
+    "revision": "main",
+    "readme_blob_sha": "3c79c75fb0bd56356fdcfd3b9e297fdf1fe19cb0",
+    "license_blob_sha": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+    "license": "GPL-3.0",
+    "reuse_policy": "INDEPENDENT_REIMPLEMENTATION_ONLY_NO_GPL_CODE_COPIED"
+  },
+  "datasets": [
+    {
+      "title": "GGG-BenchmarkSfM",
+      "version": 4,
+      "doi": "10.17632/bzxk2n78s9.4",
+      "url": "https://data.mendeley.com/datasets/bzxk2n78s9/4",
+      "stated_license": "CC BY 4.0",
+      "dataset_to_paper_model_mapping": "UNVERIFIED",
+      "file_sha256_manifest_status": "NOT_CREATED"
+    },
+    {
+      "title": "GGG — Rough or Noisy? Metrics for Noise Detection",
+      "version": 2,
+      "doi": "10.17632/xtv5y29xvz.2",
+      "url": "https://data.mendeley.com/datasets/xtv5y29xvz/2",
+      "stated_license": "CC BY 4.0",
+      "dataset_to_paper_model_mapping": "UNVERIFIED",
+      "file_sha256_manifest_status": "NOT_CREATED"
+    }
+  ],
+  "blockers": [
+    "Recover and pin horizontal camera FOV and horizontal pixel width used by the paper/source implementation.",
+    "Map the paper's Angel Statue and Rooster model instances to exact versioned input files.",
+    "Download only rights-cleared dataset files, preserve CC BY attribution and any modification notices.",
+    "Record SHA-256 digests for each raw file and every preprocessing output.",
+    "Recover the exact camera orientation, candidate generation, FOV, raycast and augmentation parameters before claiming a source-faithful reproduction."
+  ],
+  "synthetic_prototype": {
+    "status": "EXECUTABLE",
+    "fixture": "fixtures/voxel-visibility-v0_1.json",
+    "camera_intrinsics_are_synthetic": true,
+    "source_faithful_reproduction": false,
+    "physical_qualification": false
+  },
+  "claim_ceiling": "3D synthetic voxel-surface candidate-view visibility only"
+}
