@@ -18,6 +18,7 @@ pub mod uwb_fault_hypothesis_integrity;
 pub mod uwb_hypothesis_discrimination;
 pub mod decision_relevant_discrimination;
 pub mod decision_impact_weighted_discrimination;
+pub mod decision_impact_interval_robustness;
 pub mod active_evidence_discrimination;
 pub mod active_evidence_decision_planner;
 pub mod active_evidence_reliability_planner;
