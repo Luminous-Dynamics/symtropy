@@ -412,8 +412,7 @@ mod tests {
             maximum_iterations: 0,
             ..config()
         };
-        let result =
-            decide_peak_overlap_convergence(observation(0, 100.0), value).unwrap();
+        let result = decide_peak_overlap_convergence(observation(0, 100.0), value).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::CoppolaOneStep);
     }
 
