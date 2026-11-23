@@ -356,6 +356,249 @@ fn observation_digests(node: &ObservationNode) -> Result<(String, String), Strin
     Ok((observation_digest, sha256_hex(&information_bytes)))
 }
 
+#[derive(Debug, Clone)]
+struct CapacityMetadata {
+    architecture_id: String,
+    report_digest: String,
+    opportunity_digest: String,
+    architecture_digest: String,
+    opportunity_count: usize,
+    qualified_count: usize,
+}
+
+struct DerivedServiceInputs {
+    requests: Vec<ScenarioRequest>,
+    opportunities: Vec<ScenarioOpportunity>,
+    capacity: CapacityMetadata,
+}
+
+fn source_weather_state(state: SourceWeatherState) -> WeatherState {
+    match state {
+        SourceWeatherState::Go => WeatherState::Go,
+        SourceWeatherState::NoGo => WeatherState::NoGo,
+        SourceWeatherState::Unknown => WeatherState::Unknown,
+    }
+}
+
+fn source_permission_state(state: SourcePermissionState) -> PermissionState {
+    match state {
+        SourcePermissionState::Approved => PermissionState::Approved,
+        SourcePermissionState::Denied => PermissionState::Denied,
+        SourcePermissionState::Unknown => PermissionState::Unknown,
+    }
+}
+
+fn flight_weather_evidence_digest(window: &FlightWindow) -> Result<String, String> {
+    let bytes = serde_json::to_vec(&(
+        window.window_id.as_str(),
+        window.start_seconds,
+        window.end_seconds,
+        window.weather_state,
+        &window.evidence,
+    ))
+    .map_err(|error| format!("flight_weather_evidence_serialization_failed:{error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn flight_permission_evidence_digest(window: &FlightWindow) -> Result<String, String> {
+    let bytes = serde_json::to_vec(&(
+        window.window_id.as_str(),
+        window.start_seconds,
+        window.end_seconds,
+        window.permission_state,
+        &window.evidence,
+    ))
+    .map_err(|error| format!("flight_permission_evidence_serialization_failed:{error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn validate_node_flight_observation(
+    node: &ObservationNode,
+    linked_input: &LinkedServiceQualityInput,
+) -> Result<(), String> {
+    let matches = linked_input
+        .flight_windows
+        .iter()
+        .filter(|window| window.window_id == node.flight_window_id)
+        .collect::<Vec<_>>();
+    if matches.len() != 1 {
+        return Err(format!(
+            "information_node_flight_window_missing_or_ambiguous:{}",
+            node.node_id
+        ));
+    }
+    let window = matches[0];
+    let evidence = &window.evidence;
+    if window.start_seconds > node.decision_time_seconds
+        || node.decision_time_seconds >= window.end_seconds
+        || evidence.site_id != linked_input.site_id
+        || evidence.site_configuration_digest != linked_input.site_configuration_digest
+        || evidence.evidence_class == crate::sustainable_mobility_service_quality::EvidenceClass::Unknown
+        || evidence.observed_at_seconds > node.decision_time_seconds
+        || evidence.valid_from_seconds > node.decision_time_seconds
+        || evidence.valid_until_seconds < node.decision_time_seconds
+        || source_weather_state(window.weather_state) != node.weather_state
+        || source_permission_state(window.permission_state) != node.permission_state
+        || flight_weather_evidence_digest(window)? != node.weather_evidence_digest
+        || flight_permission_evidence_digest(window)? != node.permission_evidence_digest
+    {
+        return Err(format!(
+            "information_node_weather_permission_evidence_invalid:{}",
+            node.node_id
+        ));
+    }
+    Ok(())
+}
+
+fn derive_service_inputs(
+    input: &NonanticipativeOracleInput,
+) -> Result<DerivedServiceInputs, Vec<String>> {
+    let linked_report = evaluate_linked_service_quality(
+        &input.linked_service_input,
+        &input.capacity_input,
+    )?;
+    let capacity_report = evaluate_sustainable_service_capacity(&input.capacity_input)?;
+    let selected_results = capacity_report
+        .architecture_results
+        .iter()
+        .filter(|result| {
+            result.architecture_id == input.linked_service_input.source_architecture_id
+        })
+        .collect::<Vec<_>>();
+    let selected_architectures = input
+        .capacity_input
+        .architectures
+        .iter()
+        .filter(|architecture| {
+            architecture.architecture_id == input.linked_service_input.source_architecture_id
+        })
+        .collect::<Vec<_>>();
+    if selected_results.len() != 1 || selected_architectures.len() != 1 {
+        return Err(vec![
+            "nonanticipative_capacity_architecture_missing_or_ambiguous".to_owned(),
+        ]);
+    }
+    let selected = selected_results[0];
+    let architecture = selected_architectures[0];
+    let report_bytes = serde_json::to_vec(&capacity_report)
+        .map_err(|error| vec![format!("capacity_report_serialization_failed:{error}")])?;
+    let architecture_bytes = serde_json::to_vec(architecture)
+        .map_err(|error| vec![format!("capacity_architecture_serialization_failed:{error}")])?;
+    let opportunity_bytes = serde_json::to_vec(&selected.service_opportunities)
+        .map_err(|error| vec![format!("capacity_opportunity_serialization_failed:{error}")])?;
+    let report_digest = sha256_hex(&report_bytes);
+    let architecture_digest = sha256_hex(&architecture_bytes);
+    let opportunity_digest = sha256_hex(&opportunity_bytes);
+    if linked_report.capacity_source_report_digest != report_digest
+        || linked_report.capacity_architecture_configuration_digest != architecture_digest
+        || linked_report.capacity_service_opportunity_digest != opportunity_digest
+    {
+        return Err(vec![
+            "linked_capacity_source_digest_reconciliation_failed".to_owned(),
+        ]);
+    }
+
+    let mut requests = input
+        .linked_service_input
+        .requests
+        .iter()
+        .map(|request| ScenarioRequest {
+            request_id: request.request_id.clone(),
+            arrival_seconds: request.arrival_seconds,
+            accept_by_seconds: request.accept_by_seconds,
+            deadline_seconds: request.deadline_seconds,
+            required_service_seconds: request.required_service_seconds,
+            payload_units: request.payload_units,
+            allowed_mode: match request.allowed_mode {
+                ServiceMode::AerialOnly => AllowedMode::AerialOnly,
+                ServiceMode::FallbackOnly => AllowedMode::FallbackOnly,
+                ServiceMode::Either => AllowedMode::Either,
+            },
+        })
+        .collect::<Vec<_>>();
+    requests.sort_by(|left, right| left.request_id.cmp(&right.request_id));
+
+    let mut opportunities = Vec::new();
+    let mut used_opportunity_ids = BTreeSet::new();
+    for qualification in &input
+        .linked_service_input
+        .aerial_opportunity_qualifications
+    {
+        let Some(receipt) = selected
+            .service_opportunities
+            .iter()
+            .find(|receipt| receipt.opportunity_id == qualification.opportunity_id)
+        else {
+            return Err(vec![format!(
+                "nonanticipative_qualification_not_in_capacity_report:{}",
+                qualification.opportunity_id
+            )]);
+        };
+        if !used_opportunity_ids.insert(receipt.opportunity_id.as_str()) {
+            return Err(vec![format!(
+                "nonanticipative_capacity_receipt_reused:{}",
+                receipt.opportunity_id
+            )]);
+        }
+        opportunities.push(ScenarioOpportunity {
+            opportunity_id: receipt.opportunity_id.clone(),
+            resource_id: receipt.aircraft_id.clone(),
+            mode: OpportunityMode::Aerial,
+            start_seconds: receipt.start_seconds,
+            max_service_duration_seconds: receipt.mission_duration_seconds,
+            turnaround_seconds: receipt.turnaround_seconds,
+            max_payload_units: qualification.max_payload_units,
+        });
+    }
+    for fallback in &input.linked_service_input.fallback_opportunities {
+        if !used_opportunity_ids.insert(fallback.opportunity_id.as_str()) {
+            return Err(vec![format!(
+                "nonanticipative_opportunity_id_duplicate:{}",
+                fallback.opportunity_id
+            )]);
+        }
+        opportunities.push(ScenarioOpportunity {
+            opportunity_id: fallback.opportunity_id.clone(),
+            resource_id: fallback.fallback_resource_id.clone(),
+            mode: match fallback.fallback_mode {
+                FallbackMode::GroundCourier => OpportunityMode::GroundCourier,
+                FallbackMode::Locker => OpportunityMode::Locker,
+                FallbackMode::Amr => OpportunityMode::Amr,
+            },
+            start_seconds: fallback.start_seconds,
+            max_service_duration_seconds: fallback.max_service_duration_seconds,
+            turnaround_seconds: 0,
+            max_payload_units: fallback.max_payload_units,
+        });
+    }
+    opportunities.sort_by(|left, right| {
+        (
+            left.start_seconds,
+            left.resource_id.as_str(),
+            left.opportunity_id.as_str(),
+        )
+            .cmp(&(
+                right.start_seconds,
+                right.resource_id.as_str(),
+                right.opportunity_id.as_str(),
+            ))
+    });
+
+    Ok(DerivedServiceInputs {
+        requests,
+        opportunities,
+        capacity: CapacityMetadata {
+            architecture_id: selected.architecture_id.clone(),
+            report_digest,
+            opportunity_digest,
+            architecture_digest,
+            opportunity_count: selected.service_opportunities.len(),
+            qualified_count: linked_report.capacity_opportunities_qualified
+                + input.linked_service_input.fallback_opportunities.len(),
+        },
+    })
+}
+
 fn scenario_score(
     state: &SearchState,
     requests: &[ScenarioRequest],
