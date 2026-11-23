@@ -108,7 +108,6 @@ pub struct NavigationOutcomeRiskAssessment {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NavigationOutcomeRiskError {
     InvalidIdentityOrCommitment,
-    SelectedActionMismatch,
     MissingActionInReliablePlan(u64),
     DuplicateActionInReliablePlan(u64),
     InvalidReliabilityRecord,
@@ -130,7 +129,6 @@ impl fmt::Display for NavigationOutcomeRiskError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidIdentityOrCommitment => write!(f, "outcome-risk action or model commitment is missing"),
-            Self::SelectedActionMismatch => write!(f, "outcome-risk contract does not describe the selected planner action"),
             Self::MissingActionInReliablePlan(id) => write!(f, "selected action {id} is absent from the reliability-aware Pareto frontier"),
             Self::DuplicateActionInReliablePlan(id) => write!(f, "action {id} occurs more than once in the reliability-aware Pareto frontier"),
             Self::InvalidReliabilityRecord => write!(f, "admitted acquisition-reliability record is malformed"),
@@ -154,9 +152,9 @@ impl std::error::Error for NavigationOutcomeRiskError {}
 
 /// Assess a finite action-outcome law using mean, VaR and upper-tail AVaR.
 ///
-/// The action must be the recommendation in the reliability-aware plan. The
-/// total mass of QualifiedObservation branches must fall inside that exact
-/// action's admitted fresh-valid-qualified acquisition interval. Failed and
+/// The action must occur exactly once in the reliability-admitted Pareto
+/// frontier. The total mass of QualifiedObservation branches must fall inside
+/// that exact action's admitted fresh-valid-qualified acquisition interval. Failed and
 /// invalid branches retain the baseline residual impact. The result remains a
 /// planning assessment; it does not update beliefs or navigation authority.
 pub fn assess_navigation_outcome_risk(
@@ -174,9 +172,6 @@ pub fn assess_navigation_outcome_risk(
         || contract.scenario_law_sha256.iter().all(|byte| *byte == 0)
     {
         return Err(NavigationOutcomeRiskError::InvalidIdentityOrCommitment);
-    }
-    if reliable_plan.recommended_action_id != Some(contract.action_id) {
-        return Err(NavigationOutcomeRiskError::SelectedActionMismatch);
     }
     if robust_impact.action_id != contract.action_id
         || robust_impact.decision_partition_sha256 != contract.decision_partition_sha256
@@ -858,8 +853,31 @@ mod tests {
                 &robust_impact(7),
                 &law,
             ),
-            Err(NavigationOutcomeRiskError::SelectedActionMismatch)
+            Err(NavigationOutcomeRiskError::MissingActionInReliablePlan(7))
         );
+    }
+
+    #[test]
+    fn non_recommended_admitted_frontier_action_can_be_risk_assessed() {
+        let scenarios = vec![scenario(
+            1,
+            PROBABILITY_SCALE,
+            NavigationObservationOutcomeKind::QualifiedObservation,
+            250_000_000,
+        )];
+        let law = contract(950_000_000, 0, scenarios);
+        let mut plan = reliable_plan(8, 0.99, 1.0);
+        plan.pareto_frontier.push(
+            reliable_plan(7, 0.99, 1.0).pareto_frontier.remove(0)
+        );
+        let result = assess_navigation_outcome_risk(
+            &plan,
+            &robust_impact(7),
+            &law,
+        )
+        .unwrap();
+        assert_eq!(result.action_id, 7);
+        assert_eq!(plan.recommended_action_id, Some(8));
     }
 
     #[test]
