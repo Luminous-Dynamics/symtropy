@@ -219,7 +219,7 @@ fn validate_probability_manifest(
             add_error(&mut errors, "probability_manifest_leaf_identity_duplicate_or_empty");
         }
     }
-    if expected != *leaf_ids {
+    if &expected != leaf_ids {
         add_error(&mut errors, "probability_manifest_leaf_coverage_mismatch");
     }
 
