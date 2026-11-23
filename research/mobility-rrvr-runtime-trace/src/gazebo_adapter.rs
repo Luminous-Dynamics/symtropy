@@ -537,18 +537,27 @@ pub fn reconcile_fault_dispatch<T: GazeboFaultInjectorTransport>(
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObservedFaultSignature {
     pub observer_id: String,
     pub observer_revision: String,
     pub observer_fault_domain_id: String,
-    pub signature_sha256: String,
+    /// Digest of the signature computed from observed state, not supplied by
+    /// the campaign oracle.
+    pub observed_signature_sha256: String,
+    pub raw_artifact_id: String,
+    pub raw_artifact_sha256: String,
     pub world_epoch: String,
+    pub clock_id: String,
     pub simulation_step: u64,
+    pub simulation_time_ns: u64,
 }
 
-/// The observer must be a separate subsystem from the injector. The concrete
-/// implementation supplies raw evidence to the execution-evidence bundle.
+/// The observer is deliberately blind to the campaign's expected signature.
+/// It receives scope/target coordinates and returns its own measured result.
+/// The caller compares observed_signature_sha256 to the pre-committed expected
+/// digest only after the raw observation has been produced.
 pub trait GazeboIndependentObserver {
     type Error: std::fmt::Display;
 
@@ -556,10 +565,49 @@ pub trait GazeboIndependentObserver {
         &mut self,
         target_id: &str,
         fault_id: &str,
-        expected_signature_sha256: &str,
         world_epoch: &str,
+        clock_id: &str,
         simulation_step: u64,
     ) -> Result<ObservedFaultSignature, Self::Error>;
+}
+
+pub fn validate_blinded_observation(
+    observed: &ObservedFaultSignature,
+    plan: &CompiledCampaignPlan,
+    fault: &FaultInjection,
+    target: &GazeboTargetBinding,
+    session: &GazeboAdapterSession,
+) -> Result<(), GazeboAdapterError> {
+    if !nonempty(&observed.observer_id)
+        || !nonempty(&observed.observer_revision)
+        || !nonempty(&observed.observer_fault_domain_id)
+        || !nonempty(&observed.raw_artifact_id)
+        || !nonempty(&observed.world_epoch)
+        || !nonempty(&observed.clock_id)
+        || !valid_sha256(&observed.observed_signature_sha256)
+        || !valid_sha256(&observed.raw_artifact_sha256)
+    {
+        return Err(GazeboAdapterError::InvalidTargetBinding);
+    }
+    if observed.observer_id == plan.platform.fault_injector_id
+        || observed.observer_revision != plan.platform.observer_stack_revision
+        || observed.observer_fault_domain_id == plan.platform.fault_injector_fault_domain_id
+    {
+        return Err(GazeboAdapterError::TargetFaultDomainMismatch);
+    }
+    if observed.world_epoch != session.world_epoch || observed.world_epoch != target.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if observed.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    if observed.simulation_step < fault.scheduled_simulation_step {
+        return Err(GazeboAdapterError::SimulationStepNotReached);
+    }
+    if observed.observed_signature_sha256 != fault.expected_delivery_signature_sha256 {
+        return Err(GazeboAdapterError::WorldStateDigestMismatch);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
