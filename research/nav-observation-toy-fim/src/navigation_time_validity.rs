@@ -769,6 +769,43 @@ mod tests {
     }
 
     #[test]
+    fn increasing_observation_age_or_prediction_horizon_cannot_promote_a_claim() {
+        let base_nowcast = evaluate_navigation_time_validity(
+            policy(),
+            input(NavigationTimeClaimKind::DecisionEpochNowcast),
+        )
+        .unwrap();
+        assert_eq!(
+            base_nowcast.disposition,
+            NavigationTimeDisposition::DecisionEpochNowcastApplicable
+        );
+
+        let mut older = input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        older.measurement_event_time = interval(-100, -100);
+        let older_result = evaluate_navigation_time_validity(policy(), older).unwrap();
+        assert_ne!(
+            older_result.disposition,
+            NavigationTimeDisposition::DecisionEpochNowcastApplicable
+        );
+
+        let mut short_horizon = input(NavigationTimeClaimKind::FutureEpochPrediction);
+        short_horizon.target_valid_time = interval(40, 45);
+        let short_result = evaluate_navigation_time_validity(policy(), short_horizon).unwrap();
+        assert_eq!(
+            short_result.disposition,
+            NavigationTimeDisposition::FutureEpochPredictionApplicable
+        );
+
+        let mut longer_horizon = short_horizon;
+        longer_horizon.target_valid_time = interval(40, 100);
+        let long_result = evaluate_navigation_time_validity(policy(), longer_horizon).unwrap();
+        assert_eq!(
+            long_result.disposition,
+            NavigationTimeDisposition::PredictionHorizonExceeded
+        );
+    }
+
+    #[test]
     fn unsupported_predictor_revision_or_domain_cannot_pass_temporal_gate() {
         let mut candidate = input(NavigationTimeClaimKind::DecisionEpochNowcast);
         candidate.estimator_or_predictor_revision_sha256 = [0x68; SHA256_BYTES];
