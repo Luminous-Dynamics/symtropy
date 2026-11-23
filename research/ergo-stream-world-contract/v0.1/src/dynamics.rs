@@ -102,20 +102,40 @@ impl fmt::Display for DynamicsTransferErrorV0 {
             Self::UnknownTargetTransitionState => "target transition references an unknown state",
             Self::UnknownSourceTransitionAction => "source transition references an unknown action",
             Self::UnknownTargetTransitionAction => "target transition references an unknown action",
-            Self::NonDeterministicSourceSystem => "source system has multiple outcomes for one state/action pair",
-            Self::NonDeterministicTargetSystem => "target system has multiple outcomes for one state/action pair",
+            Self::NonDeterministicSourceSystem => {
+                "source system has multiple outcomes for one state/action pair"
+            }
+            Self::NonDeterministicTargetSystem => {
+                "target system has multiple outcomes for one state/action pair"
+            }
             Self::StateMapIncomplete => "state correspondence must cover both systems",
             Self::StateMapNotInjective => "state correspondence must be one-to-one",
-            Self::UnknownSourceStateMapping => "state correspondence references an unknown source state",
-            Self::UnknownTargetStateMapping => "state correspondence references an unknown target state",
+            Self::UnknownSourceStateMapping => {
+                "state correspondence references an unknown source state"
+            }
+            Self::UnknownTargetStateMapping => {
+                "state correspondence references an unknown target state"
+            }
             Self::ActionMapIncomplete => "action correspondence must cover both systems",
             Self::ActionMapNotInjective => "action correspondence must be one-to-one",
-            Self::UnknownSourceActionMapping => "action correspondence references an unknown source action",
-            Self::UnknownTargetActionMapping => "action correspondence references an unknown target action",
-            Self::ActionKindMapNotInjective => "distinct source action kinds must map to distinct target action kinds",
-            Self::InconsistentActionKindMapping => "one source action kind maps to inconsistent target kinds",
-            Self::TransitionCountMismatch => "source and target systems have different transition counts",
-            Self::TransitionMismatch => "mapped state/action transition is absent or has a different outcome",
+            Self::UnknownSourceActionMapping => {
+                "action correspondence references an unknown source action"
+            }
+            Self::UnknownTargetActionMapping => {
+                "action correspondence references an unknown target action"
+            }
+            Self::ActionKindMapNotInjective => {
+                "distinct source action kinds must map to distinct target action kinds"
+            }
+            Self::InconsistentActionKindMapping => {
+                "one source action kind maps to inconsistent target kinds"
+            }
+            Self::TransitionCountMismatch => {
+                "source and target systems have different transition counts"
+            }
+            Self::TransitionMismatch => {
+                "mapped state/action transition is absent or has a different outcome"
+            }
         };
         formatter.write_str(message)
     }
@@ -210,10 +230,7 @@ pub fn validate_dynamics_correspondence(
                 {
                     return Err(DynamicsTransferErrorV0::ActionKindMapNotInjective);
                 }
-                action_kind_map.push((
-                    mapping.source_action_kind,
-                    mapping.target_action_kind,
-                ));
+                action_kind_map.push((mapping.source_action_kind, mapping.target_action_kind));
             }
         }
     }
@@ -343,15 +360,8 @@ mod tests {
         DynamicsCorrespondenceV0,
     ) {
         let source = FiniteTransitionSystemV0 {
-            states: vec![
-                StateV0 { id: 1 },
-                StateV0 { id: 2 },
-                StateV0 { id: 3 },
-            ],
-            actions: vec![
-                ActionV0 { id: 10, kind: 1 },
-                ActionV0 { id: 20, kind: 2 },
-            ],
+            states: vec![StateV0 { id: 1 }, StateV0 { id: 2 }, StateV0 { id: 3 }],
+            actions: vec![ActionV0 { id: 10, kind: 1 }, ActionV0 { id: 20, kind: 2 }],
             transitions: vec![
                 TransitionV0 {
                     from_state_id: 1,
@@ -377,11 +387,7 @@ mod tests {
         };
 
         let target = FiniteTransitionSystemV0 {
-            states: vec![
-                StateV0 { id: 11 },
-                StateV0 { id: 12 },
-                StateV0 { id: 13 },
-            ],
+            states: vec![StateV0 { id: 11 }, StateV0 { id: 12 }, StateV0 { id: 13 }],
             actions: vec![
                 ActionV0 { id: 110, kind: 100 },
                 ActionV0 { id: 120, kind: 200 },
