@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-route-tree-known-answers-v0.1",
+  "title": "MFG-ROUTE-TREE-OPT-001 independent known answers v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "answer_count",
+    "answers"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-route-tree-known-answers-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ROUTE-TREE-OPT-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "answer_count": {
+      "const": 120
+    },
+    "answers": {
+      "type": "array",
+      "minItems": 120,
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "greedy_plan",
+          "exact_policy_plan",
+          "greedy_expected_cost_numerator",
+          "exact_expected_cost_numerator",
+          "clairvoyant_lower_bound_numerator"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "greedy_plan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "primary_route_id",
+              "recourse_by_information_set"
+            ],
+            "properties": {
+              "primary_route_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recourse_by_information_set": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "exact_policy_plan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "primary_route_id",
+              "recourse_by_information_set"
+            ],
+            "properties": {
+              "primary_route_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recourse_by_information_set": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "greedy_expected_cost_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "exact_expected_cost_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "clairvoyant_lower_bound_numerator": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
