@@ -18,7 +18,8 @@ Ma–Lü's equal-spin MP horizon relation gives
 \[
 \frac{\mu}{r_h^2}=\frac{(1+q^2)^2}{2},\qquad
 \nu_h=\frac{q}{1+q^2},\qquad
-\chi=\frac{a}{\sqrt{\mu}}=\sqrt2\,\nu_h.
+\chi=\frac{a}{\mu},\qquad
+\chi r_h=\frac{2q}{(1+q^2)^2}.
 \]
 But Symtropy fixes \(\nu_S=\Omega_HR_H\), not \(\nu_h\). Already at zero coupling,
 \[
@@ -118,3 +119,6 @@ This result is a first-order-coupling, equal-spin, slow-rotation parameter conve
 
 
 **Parameter versus charge:** the displayed \(\mu/R_H^2\) is only the converted background Myers–Perry parameter in Ma–Lü's perturbative construction. It is **not** the corrected ADM mass. The physical ADM mass must be extracted separately from the asymptotic \(1/R^2\) coefficient of the fully transformed metric, including the \(H_1\) correction and with the ensemble specified. Likewise, fixed background parameters, fixed \((R_H,\Omega_H)\), and fixed thermodynamic potentials/charges are distinct comparison ensembles.
+
+
+**Source-convention correction:** the published Eq. (10) is chi=a/mu. In this fixed-boundary map the scale-explicit combination is chi*R_H, with series 2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3. The earlier square-root-based chi expression has been superseded.
