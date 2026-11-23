@@ -142,11 +142,9 @@ pub fn rank_designs_by_robust_decision_value(
         let action_count = problem.action_ids.len();
         let outcome_count = candidate.outcome_ids.len();
         let policy_count = deterministic_policy_count(action_count, outcome_count)?;
-        total_policy_evaluations = total_policy_evaluations
-            .checked_add(policy_count)
-            .ok_or(ModelError::InvalidParameter(
-                "robust_decision_policy_evaluation_count_overflow",
-            ))?;
+        total_policy_evaluations = total_policy_evaluations.checked_add(policy_count).ok_or(
+            ModelError::InvalidParameter("robust_decision_policy_evaluation_count_overflow"),
+        )?;
         if total_policy_evaluations > policy.max_policy_evaluations {
             return Err(ModelError::InvalidParameter(
                 "robust_decision_policy_evaluation_cap_exceeded",
@@ -180,8 +178,7 @@ pub fn rank_designs_by_robust_decision_value(
             increment_policy(&mut policy_indices, action_count);
         }
 
-        let robust_policy_utilities =
-            scenario_policy_utilities(problem, candidate, &best_policy)?;
+        let robust_policy_utilities = scenario_policy_utilities(problem, candidate, &best_policy)?;
         let clairvoyant_post_information_utility_upper_bound = clairvoyant_by_scenario
             .iter()
             .copied()
@@ -228,9 +225,7 @@ pub fn rank_designs_by_robust_decision_value(
         let net_robust_decision_value = if budget_feasible {
             let net_value = robust_evsi - cost_in_utility_units;
             if !net_value.is_finite() {
-                return Err(ModelError::NonFiniteValue(
-                    "robust_decision_net_value",
-                ));
+                return Err(ModelError::NonFiniteValue("robust_decision_net_value"));
             }
             Some(net_value)
         } else {
@@ -268,12 +263,8 @@ pub fn rank_designs_by_robust_decision_value(
     }
 
     scores.sort_by(|left, right| {
-        let left_value = left
-            .net_robust_decision_value
-            .unwrap_or(f64::NEG_INFINITY);
-        let right_value = right
-            .net_robust_decision_value
-            .unwrap_or(f64::NEG_INFINITY);
+        let left_value = left.net_robust_decision_value.unwrap_or(f64::NEG_INFINITY);
+        let right_value = right.net_robust_decision_value.unwrap_or(f64::NEG_INFINITY);
         right_value
             .total_cmp(&left_value)
             .then_with(|| left.candidate_id.cmp(&right.candidate_id))
@@ -340,9 +331,7 @@ fn scenario_policy_utilities(
         .iter()
         .map(|scenario| {
             let mut expected_utility = 0.0;
-            for (state_index, state_probability) in
-                problem.state_probabilities.iter().enumerate()
-            {
+            for (state_index, state_probability) in problem.state_probabilities.iter().enumerate() {
                 for (outcome_index, likelihood) in
                     scenario.outcome_likelihoods[state_index].iter().enumerate()
                 {
@@ -369,9 +358,7 @@ fn finite_state_expected_information_gain(
 ) -> Result<f64, ModelError> {
     let mut outcome_probabilities = vec![0.0; outcome_count];
     for (state_index, state_probability) in state_probabilities.iter().enumerate() {
-        for (outcome_index, likelihood) in
-            outcome_likelihoods[state_index].iter().enumerate()
-        {
+        for (outcome_index, likelihood) in outcome_likelihoods[state_index].iter().enumerate() {
             outcome_probabilities[outcome_index] += state_probability * likelihood;
         }
     }
@@ -381,9 +368,7 @@ fn finite_state_expected_information_gain(
         if *state_probability == 0.0 {
             continue;
         }
-        for (outcome_index, likelihood) in
-            outcome_likelihoods[state_index].iter().enumerate()
-        {
+        for (outcome_index, likelihood) in outcome_likelihoods[state_index].iter().enumerate() {
             let joint_probability = state_probability * likelihood;
             let marginal_probability = outcome_probabilities[outcome_index];
             if joint_probability > 0.0 && marginal_probability > 0.0 {
@@ -406,9 +391,11 @@ fn deterministic_policy_count(
 ) -> Result<usize, ModelError> {
     let mut count = 1usize;
     for _ in 0..outcome_count {
-        count = count.checked_mul(action_count).ok_or(ModelError::InvalidParameter(
-            "robust_decision_policy_count_overflow",
-        ))?;
+        count = count
+            .checked_mul(action_count)
+            .ok_or(ModelError::InvalidParameter(
+                "robust_decision_policy_count_overflow",
+            ))?;
     }
     Ok(count)
 }
@@ -477,10 +464,10 @@ fn validate_decision_problem(problem: &RobustDecisionProblem) -> Result<(), Mode
 }
 
 fn validate_policy(policy: RobustDecisionDesignPolicy) -> Result<(), ModelError> {
-    if !policy.remaining_resource_budget.is_finite()
-        || !policy.cost_to_utility_rate.is_finite()
-    {
-        return Err(ModelError::NonFiniteValue("robust_decision_policy_budget_or_rate"));
+    if !policy.remaining_resource_budget.is_finite() || !policy.cost_to_utility_rate.is_finite() {
+        return Err(ModelError::NonFiniteValue(
+            "robust_decision_policy_budget_or_rate",
+        ));
     }
     if policy.remaining_resource_budget < 0.0 || policy.cost_to_utility_rate < 0.0 {
         return Err(ModelError::InvalidParameter(
@@ -696,24 +683,14 @@ mod tests {
             .expect("stable candidate");
 
         assert!(
-            (ambiguous.worst_case_expected_information_gain_nats - 2.0_f64.ln()).abs()
-                < 1.0e-12
+            (ambiguous.worst_case_expected_information_gain_nats - 2.0_f64.ln()).abs() < 1.0e-12
         );
         assert!(
-            (stable.worst_case_expected_information_gain_nats - 0.1927447570217574).abs()
-                < 1.0e-12
+            (stable.worst_case_expected_information_gain_nats - 0.1927447570217574).abs() < 1.0e-12
         );
         assert!((ambiguous.robust_post_information_utility - 0.5).abs() < 1.0e-12);
-        assert!(
-            ambiguous
-                .robust_expected_value_of_sample_information
-                .abs()
-                < 1.0e-12
-        );
-        assert!(
-            (ambiguous.clairvoyant_post_information_utility_upper_bound - 1.0).abs()
-                < 1.0e-12
-        );
+        assert!(ambiguous.robust_expected_value_of_sample_information.abs() < 1.0e-12);
+        assert!((ambiguous.clairvoyant_post_information_utility_upper_bound - 1.0).abs() < 1.0e-12);
         assert!((ambiguous.non_anticipativity_gap - 0.5).abs() < 1.0e-12);
         assert!((ambiguous.net_robust_decision_value.unwrap() + 0.05).abs() < 1.0e-12);
 
@@ -738,10 +715,7 @@ mod tests {
             ],
             action_ids: vec!["choose-0".to_owned(), "choose-1".to_owned()],
             state_probabilities: vec![0.25, 0.25, 0.25, 0.25],
-            action_utilities: vec![
-                vec![1.0, 1.0, 0.0, 0.0],
-                vec![0.0, 0.0, 1.0, 1.0],
-            ],
+            action_utilities: vec![vec![1.0, 1.0, 0.0, 0.0], vec![0.0, 0.0, 1.0, 1.0]],
         };
         let nuisance_likelihoods = vec![
             vec![1.0, 0.0],
@@ -765,12 +739,9 @@ mod tests {
                 },
             ],
         };
-        let result = rank_designs_by_robust_decision_value(
-            &nuisance_problem,
-            &[candidate],
-            policy(),
-        )
-        .expect("nuisance-only signal");
+        let result =
+            rank_designs_by_robust_decision_value(&nuisance_problem, &[candidate], policy())
+                .expect("nuisance-only signal");
         let score = &result.scores[0];
 
         assert!((score.worst_case_expected_information_gain_nats - 2.0_f64.ln()).abs() < 1.0e-12);
