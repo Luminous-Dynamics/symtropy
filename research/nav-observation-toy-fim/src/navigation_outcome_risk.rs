@@ -605,7 +605,7 @@ mod tests {
                     ambiguous_decision_pair_count: 1,
                     disposition: crate::decision_relevant_discrimination::DecisionProjectionDisposition::DecisionAmbiguityRemains,
                     minimum_positive_normalized_gap: Some(0.25),
-                    outcome_model_sha256: [0x21; 32],
+                    outcome_model_sha256: [0x77; 32],
                     normalization_sha256: [0x31; 32],
                     separated_decision_hypothesis_pairs: vec![(1, 2)],
                     unresolved_decision_hypothesis_pairs: vec![(1, 3)],
