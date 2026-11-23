@@ -704,6 +704,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_unpinned_fault_injector_or_native_adapter_identity() {
+        let mut injector = valid_manifest();
+        injector.platform.fault_injector_sha256 = "unknown".into();
+        assert_eq!(injector.validate(), Err(CampaignError::InvalidDigest));
+
+        let mut native = valid_manifest();
+        native.platform.native_adapter_revision.clear();
+        assert_eq!(native.validate(), Err(CampaignError::InvalidPlatformProfile));
+    }
+
+    #[test]
     fn rejects_duplicate_scenario_and_fault_identities() {
         let mut scenario = valid_manifest();
         let duplicate_scenario_id = scenario.scenarios[0].scenario_id.clone();
