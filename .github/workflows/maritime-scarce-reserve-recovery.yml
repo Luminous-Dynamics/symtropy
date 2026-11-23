@@ -58,7 +58,9 @@ jobs:
           grep -q '^stale_field_sensor,BLOCKED_STALE_EVIDENCE,' /tmp/maritime-scarce-reserve.csv
           grep -q '^incomplete_capture_sensor,BLOCKED_INCOMPLETE_CAPTURE,' /tmp/maritime-scarce-reserve.csv
           grep -q '^overbudget_independent_audit,OVER_BUDGET,' /tmp/maritime-scarce-reserve.csv
-          grep -q ',a_critical_reserve_outage,hold,30,30,A,false,true,true,' /tmp/maritime-scarce-reserve.csv
-          grep -q ',a_critical_a_consent_revoked,reserve_to_b,30,80,A,true,false,true,' /tmp/maritime-scarce-reserve.csv
-          grep -q ',b_critical_b_consent_revoked,reserve_to_a,80,30,B,true,true,false,' /tmp/maritime-scarce-reserve.csv
+          grep -q ',a_critical_reserve_outage,hold,false,30,30,A,false,true,true,' /tmp/maritime-scarce-reserve.csv
+          grep -q ',a_critical_a_consent_revoked,reserve_to_b,true,30,80,A,true,false,true,' /tmp/maritime-scarce-reserve.csv
+          grep -q ',b_critical_b_consent_revoked,reserve_to_a,true,80,30,B,true,true,false,' /tmp/maritime-scarce-reserve.csv
+          grep -q ',a_critical_reserve_ready,reserve_to_a,true,80,30,NONE,true,true,true,BOTH_VALID,0,7,0,7,' /tmp/maritime-scarce-reserve.csv
+          grep -q ',b_critical_reserve_ready,reserve_to_b,true,30,80,NONE,true,true,true,BOTH_VALID,0,7,0,7,' /tmp/maritime-scarce-reserve.csv
           echo "Maritime scarce-reserve known-answer and participant-incidence contract passed."
