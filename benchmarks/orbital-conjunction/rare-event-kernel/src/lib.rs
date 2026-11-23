@@ -34,8 +34,8 @@ pub mod ncdot_pointwise;
 pub mod ncdot_sphere;
 pub mod relative_covariance;
 pub mod residual;
-pub mod static_peak_overlap;
 pub mod sequential;
+pub mod static_peak_overlap;
 pub mod stats;
 pub mod trajectory;
 
@@ -52,15 +52,15 @@ pub use relative_covariance::{
     DcpCrossCovarianceInputs, RelativeNcdotConditionals, RelativeNcdotCovarianceInputs,
     StateCovariance6, build_relative_ncdot_conditionals, dcp_secondary_primary_cross_covariance,
 };
-pub use static_peak_overlap::{
-    PositionGaussian3, StaticPeakOverlapInputs, StaticPeakOverlapReport, static_peak_overlap,
-};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use static_peak_overlap::{
+    PositionGaussian3, StaticPeakOverlapInputs, StaticPeakOverlapReport, static_peak_overlap,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
