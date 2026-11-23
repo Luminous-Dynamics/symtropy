@@ -53,6 +53,7 @@ The evaluate_retained_set function provides the common evaluation path for exter
 The general module supports:
 - arbitrary 3D contact positions and varying contact normals;
 - per-contact material tangent hints, projected into each contact plane to orient anisotropic friction;
+- full-versus-reduced finite-direction support evaluation and exact/greedy contact-subset selection;
 - per-contact anisotropic friction semi-axes;
 - an inscribed, equally spaced polyhedral friction cone with a declared ray count;
 - lower and upper per-contact normal-load fractions summing to a feasible fixed unit total load.
@@ -123,7 +124,7 @@ A candidate selector is not promoted merely because it reduces point count or ru
 
 ## Tests
 
-The unit suite contains 27 tests across both models and covers:
+The unit suite contains 30 tests across both models and covers:
 - exact zero deficit for the full set;
 - a known two-point subset preserving both positive and negative moment extrema;
 - greedy agreement with exact selection on a symmetric known-answer patch;
@@ -133,6 +134,9 @@ The unit suite contains 27 tests across both models and covers:
 - varying contact normals and bounded load allocation;
 - per-contact anisotropic friction and material tangent-hint orientation;
 - rejection of tangent hints parallel to their contact normal;
+- full-patch vs reduced-patch support comparison under the general model;
+- exact general-model subset selection and greedy work/deficit accounting;
+- mandatory minimum-load contact retention;
 - minimum normal-load constraints;
 - friction-polyhedron ray-count convergence;
 - infeasible aggregate load bounds;
