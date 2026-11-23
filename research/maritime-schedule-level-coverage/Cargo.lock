@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "maritime-schedule-level-coverage"
+version = "0.1.0"
