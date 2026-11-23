@@ -35,6 +35,11 @@ pub struct NavigationRiskSelectionPolicy {
     pub expected_impact_uncertainty_model_sha256: [u8; 32],
     pub maximum_action_latency_ns: u64,
     pub maximum_action_energy_uj: u64,
+    /// All candidates must use the same AVaR confidence level.
+    pub expected_avar_confidence_level_parts_per_billion: u64,
+    pub minimum_acquisition_probability_lower_bound: f64,
+    pub minimum_independent_campaign_blocks: usize,
+    pub maximum_reliability_confidence_error_probability: f64,
     pub maximum_mean_residual_impact_parts_per_billion: u32,
     pub maximum_var_residual_impact_parts_per_billion: u32,
     pub maximum_avar_residual_impact_parts_per_billion: u32,
@@ -152,7 +157,7 @@ pub fn plan_navigation_outcome_risk_frontier(
         if candidate.dependency_group_id == 0 {
             return Err(NavigationRiskSelectionError::InvalidDependencyGroup(id));
         }
-        validate_risk(&candidate.risk, id)?;
+        validate_risk(policy, &candidate.risk, id)?;
         validate_commitments(policy, &candidate.risk, id)?;
 
         let reason = if candidate.worst_case_latency_ns > policy.maximum_action_latency_ns
@@ -232,6 +237,15 @@ fn validate_policy(
         || policy.expected_impact_uncertainty_model_sha256.iter().all(|byte| *byte == 0)
         || policy.maximum_action_latency_ns == 0
         || policy.maximum_action_energy_uj == 0
+        || policy.expected_avar_confidence_level_parts_per_billion == 0
+        || policy.expected_avar_confidence_level_parts_per_billion >= PROBABILITY_SCALE
+        || !policy.minimum_acquisition_probability_lower_bound.is_finite()
+        || policy.minimum_acquisition_probability_lower_bound <= 0.0
+        || policy.minimum_acquisition_probability_lower_bound > 1.0
+        || policy.minimum_independent_campaign_blocks == 0
+        || !policy.maximum_reliability_confidence_error_probability.is_finite()
+        || policy.maximum_reliability_confidence_error_probability <= 0.0
+        || policy.maximum_reliability_confidence_error_probability >= 1.0
         || policy.maximum_mean_residual_impact_parts_per_billion > RISK_SCALE
         || policy.maximum_var_residual_impact_parts_per_billion > RISK_SCALE
         || policy.maximum_avar_residual_impact_parts_per_billion > RISK_SCALE
@@ -268,6 +282,7 @@ fn validate_commitments(
 }
 
 fn validate_risk(
+    policy: &NavigationRiskSelectionPolicy,
     risk: &NavigationOutcomeRiskAssessment,
     expected_action_id: u64,
 ) -> Result<(), NavigationRiskSelectionError> {
@@ -281,10 +296,10 @@ fn validate_risk(
     if risk.action_id != expected_action_id
         || risk.scenario_count == 0
         || total_probability != PROBABILITY_SCALE
-        || risk.avar_confidence_level_parts_per_billion == 0
-        || risk.avar_confidence_level_parts_per_billion >= PROBABILITY_SCALE
+        || risk.avar_confidence_level_parts_per_billion
+            != policy.expected_avar_confidence_level_parts_per_billion
         || risk.avar_tail_probability_mass_parts_per_billion
-            != PROBABILITY_SCALE - risk.avar_confidence_level_parts_per_billion
+            != PROBABILITY_SCALE - policy.expected_avar_confidence_level_parts_per_billion
         || risk.mean_residual_impact_upper_parts_per_billion > RISK_SCALE
         || risk.value_at_risk_upper_parts_per_billion > RISK_SCALE
         || risk.avar_residual_impact_upper_parts_per_billion > RISK_SCALE
@@ -305,15 +320,23 @@ fn validate_risk(
         || risk.reliability_source_manifest_sha256.iter().all(|byte| *byte == 0)
         || risk.reliability_calibration_cohort_sha256.iter().all(|byte| *byte == 0)
         || risk.reliability_bound_method_sha256.iter().all(|byte| *byte == 0)
-        || risk.independent_campaign_block_count == 0
+        || risk.independent_campaign_block_count < policy.minimum_independent_campaign_blocks
         || !risk.reliability_probability_lower_bound.is_finite()
         || !risk.reliability_probability_upper_bound.is_finite()
         || risk.reliability_probability_lower_bound < 0.0
         || risk.reliability_probability_upper_bound > 1.0
         || risk.reliability_probability_lower_bound > risk.reliability_probability_upper_bound
+        || risk.reliability_probability_lower_bound
+            < policy.minimum_acquisition_probability_lower_bound
         || !risk.reliability_confidence_error_probability.is_finite()
         || risk.reliability_confidence_error_probability <= 0.0
+        || risk.reliability_confidence_error_probability
+            > policy.maximum_reliability_confidence_error_probability
         || risk.reliability_confidence_error_probability >= 1.0
+        || (risk.qualified_observation_probability_mass_parts_per_billion as f64
+            / PROBABILITY_SCALE as f64) < risk.reliability_probability_lower_bound
+        || (risk.qualified_observation_probability_mass_parts_per_billion as f64
+            / PROBABILITY_SCALE as f64) > risk.reliability_probability_upper_bound
     {
         return Err(NavigationRiskSelectionError::InvalidRiskAssessment(
             expected_action_id,
@@ -429,6 +452,10 @@ mod tests {
             expected_impact_uncertainty_model_sha256: [0x55; 32],
             maximum_action_latency_ns: 1_000,
             maximum_action_energy_uj: 1_000,
+            expected_avar_confidence_level_parts_per_billion: 950_000_000,
+            minimum_acquisition_probability_lower_bound: 0.8,
+            minimum_independent_campaign_blocks: 10,
+            maximum_reliability_confidence_error_probability: 0.05,
             maximum_mean_residual_impact_parts_per_billion: 900_000_000,
             maximum_var_residual_impact_parts_per_billion: 900_000_000,
             maximum_avar_residual_impact_parts_per_billion: 900_000_000,
@@ -588,8 +615,8 @@ mod tests {
     #[test]
     fn preference_order_changes_only_the_tie_break_policy() {
         let candidates = [
-            candidate(1, 200_000_000, 400_000_000, 600_000_000, 800_000_000, 300, 300),
-            candidate(2, 200_000_000, 500_000_000, 500_000_000, 700_000_000, 300, 300),
+            candidate(1, 200_000_000, 400_000_000, 600_000_000, 700_000_000, 300, 300),
+            candidate(2, 200_000_000, 500_000_000, 500_000_000, 800_000_000, 300, 300),
         ];
         let mut avar_policy = policy();
         avar_policy.preference = NavigationRiskSelectionPreference::AvarThenWorstThenLatency;
