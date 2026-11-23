@@ -274,7 +274,7 @@ impl ConditionalVelocityDistribution {
         }
 
         let (expected_inward_normal_speed, log_expected_inward_normal_speed, fallback_used) =
-            if conditional_normal_variance <= variance_tolerance {
+            if conditional_normal_variance <= 0.0 {
                 let inward_speed = match zero_variance_mode {
                     ZeroConditionalVarianceMode::NasaCompatibility => {
                         (-dot(mean_relative_velocity, direction)).max(0.0)
@@ -690,6 +690,57 @@ mod tests {
         assert_eq!(mathematical.expected_inward_normal_speed, 1.0);
         assert!(nasa.zero_variance_fallback_used);
         assert!(mathematical.zero_variance_fallback_used);
+    }
+
+    #[test]
+    fn tiny_positive_directional_variance_keeps_the_positive_variance_formula() {
+        let blocks = RelativePositionVelocityCovarianceBlocks {
+            position: identity_matrix(),
+            velocity_position: [[0.0; 3]; 3],
+            velocity: [[0.0; 3], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0e-24]],
+        };
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("tiny positive PSD covariance");
+        let report = distribution
+            .evaluate_direction(
+                [0.0; 3],
+                [0.0, 0.0, 1.0],
+                1.0,
+                [0.0, 0.0, 1.0],
+                0.0,
+                ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit,
+            )
+            .expect("tiny positive variance");
+        assert!(report.conditional_normal_variance > 0.0);
+        assert!(!report.zero_variance_fallback_used);
+        assert!(report.expected_inward_normal_speed > 0.0);
+        assert_eq!(report.zero_variance_mode, ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit);
+    }
+
+    #[test]
+    fn tiny_negative_directional_variance_within_roundoff_tolerance_uses_zero_policy() {
+        let blocks = RelativePositionVelocityCovarianceBlocks {
+            position: identity_matrix(),
+            velocity_position: [[0.0; 3]; 3],
+            velocity: [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, -1.0e-14]],
+        };
+        let distribution =
+            ConditionalVelocityDistribution::new(blocks, ConditionalVelocityConfig::default())
+                .expect("small negative eigenvalue inside declared roundoff tolerance");
+        let report = distribution
+            .evaluate_direction(
+                [0.0; 3],
+                [0.0, 0.0, -2.0],
+                1.0,
+                [0.0, 0.0, 1.0],
+                0.0,
+                ZeroConditionalVarianceMode::MathematicalZeroVarianceLimit,
+            )
+            .expect("negative roundoff directional variance");
+        assert!(report.conditional_normal_variance < 0.0);
+        assert!(report.zero_variance_fallback_used);
+        assert_eq!(report.expected_inward_normal_speed, 2.0);
     }
 
     #[test]
