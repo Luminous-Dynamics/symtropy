@@ -517,6 +517,11 @@ jobs:
               .task_success_rate_ppm == 1000000
               and .safety_rate_ppm == 1000000
               and .false_confirmed_count == 1
+              and .false_confirm_rate_ppm == 1000000
+              and .delivery_decision_coverage_ppm == 1000000
+              and .delivery_classification_accuracy_ppm == 833333
+              and .delivery_truth_not_delivered_count == 1
+              and .delivery_truth_delivered_count == 5
               and .median_trace_reduction_ppm == 625000)
             and (.arm_summaries[] | select(.arm == "task_only") |
               .safety_scored_count == 6
