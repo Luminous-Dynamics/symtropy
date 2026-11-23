@@ -11,10 +11,9 @@
 
 use super::matching::{GraphMatchErrorV0, UniqueIncidenceSignatureBaselineV0};
 use super::transfer::{
-    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0,
-    InterventionTransferWitnessV0, StructuralCorrespondenceV0, StructuralTransferWitnessV0,
-    StructureV0, TransferErrorV0, validate_intervention_correspondence,
-    validate_structural_correspondence,
+    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0, InterventionTransferWitnessV0,
+    StructuralCorrespondenceV0, StructuralTransferWitnessV0, StructureV0, TransferErrorV0,
+    validate_intervention_correspondence, validate_structural_correspondence,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
