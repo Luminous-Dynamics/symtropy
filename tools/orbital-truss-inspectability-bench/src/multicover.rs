@@ -219,8 +219,6 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
 
     Ok(IndexedProblem {
         feature_ids,
-        requested_k,
-        feature_ids,
         view_ids: problem.views.iter().map(|view| view.view_id.clone()).collect(),
         requested_k,
         failure_domain_ids,
