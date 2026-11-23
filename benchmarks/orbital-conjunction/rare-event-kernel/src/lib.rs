@@ -36,15 +36,15 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-pub use lebedev::{
-    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
-    SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
-    integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
-};
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use lebedev::{
+    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
+    SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
+    integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
