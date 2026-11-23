@@ -450,8 +450,8 @@ fn action_feasible(action: Action, world: &World) -> bool {
 
 fn mode_allows_action(mode: ObservationMode, action: Action) -> bool {
     match mode {
-        ObservationMode::NoObservation | ObservationMode::AdvisoryOnly => action == Action::Hold,
-        ObservationMode::IndependentWitness => true,
+        ObservationMode::NoObservation | ObservationMode::IndependentWitness => true,
+        ObservationMode::AdvisoryOnly => action == Action::Hold,
     }
 }
 
@@ -818,8 +818,8 @@ fn oracle_world_outcome(world: &World, action_index: usize) -> Option<(u32, u32,
 #[cfg(test)]
 fn oracle_mode_allows(mode: ObservationMode, action_index: usize) -> bool {
     match mode {
-        ObservationMode::NoObservation | ObservationMode::AdvisoryOnly => action_index == 2,
-        ObservationMode::IndependentWitness => action_index < 3,
+        ObservationMode::NoObservation | ObservationMode::IndependentWitness => action_index < 3,
+        ObservationMode::AdvisoryOnly => action_index == 2,
     }
 }
 
@@ -1143,6 +1143,21 @@ mod tests {
                 .all(|(_, action)| *action == Action::Hold)
         );
         assert_eq!(baseline.world_decisions.len(), WORLD_COUNT);
+    }
+
+    #[test]
+    fn no_observation_may_choose_any_action_but_hard_feasibility_forces_hold() {
+        let results = evaluate_benchmark();
+        let baseline = candidate(&results, "no_observation");
+        let policy = baseline.solution.as_ref().expect("robust baseline");
+
+        assert_eq!(
+            policy.actions_by_partition,
+            vec![(0, Action::Hold)]
+        );
+        assert!(WORLDS.iter().all(|world| action_feasible(Action::Hold, world)));
+        assert!(!WORLDS.iter().all(|world| action_feasible(Action::ReserveToA, world)));
+        assert!(!WORLDS.iter().all(|world| action_feasible(Action::ReserveToB, world)));
     }
 
     #[test]
