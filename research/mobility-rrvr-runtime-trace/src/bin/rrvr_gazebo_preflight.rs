@@ -99,6 +99,8 @@ fn run() -> Result<(), String> {
         "scene_broadcaster_revision": profile.scene_broadcaster_revision,
         "scene_broadcaster_sha256": profile.scene_broadcaster_sha256,
         "scene_broadcaster_loaded": profile.scene_broadcaster_loaded,
+        "required_delivery_observer_quorum": plan.platform.required_delivery_observer_quorum,
+        "observer_profiles": plan.platform.observer_profiles,
         "capabilities": profile.capabilities,
         "selected_stepping_method": stepping_method_name(stepping_method),
         "live_simulator_discovery_performed": false,
