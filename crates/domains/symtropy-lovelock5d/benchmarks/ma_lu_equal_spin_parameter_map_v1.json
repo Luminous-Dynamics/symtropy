@@ -1,53 +1,48 @@
 {
+  "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_parameter_map",
-  "checks": {
-    "angular_velocity_relation_exact": true,
-    "chi_rh_series_exact_through_nu11": true,
-    "coupling_coefficient_identity": true,
-    "eq50_equal_spin_mass_series_through_y4": true,
-    "horizon_relation_exact": true,
-    "inverse_q_series_exact_through_nu11": true,
-    "printed_chi_a_over_mu_exact": true
-  },
-  "claim_ceiling": "Exact kinematic parameter relations and first-coupling coefficient normalization only. No corrected metric/gauge comparison or finite-coupling EGB result is claimed.",
-  "coupling_map": {
-    "dimensionless_same_horizon": "alpha_R/r_h^2=lambda/4",
-    "first_order_map": "alpha_R=alpha_GB/4",
-    "ma_lu_action": "R+alpha_R*Riemann^2",
-    "scope": "First-order correction about a Ricci-flat Myers-Perry background only",
-    "symtropy_action": "R+alpha_GB*L_GB/4"
+  "status": "exact_symbolic_version_of_record_relations_derived",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "published": "2026-05-08",
+    "version": "JHEP version of record",
+    "equations": [
+      "(2.1)",
+      "(2.2)",
+      "(2.9)",
+      "(3.9)"
+    ]
   },
   "definitions": {
-    "chi": "a/mu",
-    "chi_times_r_h": "2*q/(1+q^2)^2",
-    "mu_over_rh2": "(1+q^2)^2/2",
+    "q": "a/r_h",
     "nu_h": "Omega_H*r_h=q/(1+q^2)",
-    "q": "a/r_h"
+    "chi": "a/sqrt(mu)",
+    "mu_over_rh2": "(1+q^2)^2/2"
   },
-  "environment": {
-    "python": "3.13.5",
-    "sympy": "1.14.0"
+  "exact": {
+    "mu_over_rh2": "(q**2+1)**2/2",
+    "nu_h_of_q": "q/(q**2+1)",
+    "chi_of_q": "sqrt(2)*q/(q**2+1)",
+    "chi_equals_sqrt2_nu_h": "exact"
   },
-  "exact_equal_spin_relations": {
-    "chi_times_rh_of_q": "2*q/(q**2 + 1)**2",
-    "mu_over_rh2": "(q**2 + 1)**2/2",
-    "nu_h_of_q": "q/(q**2 + 1)",
-    "q_of_nu_exact_small_root": "(1-sqrt(1-4*nu_h^2))/(2*nu_h)",
-    "valid_subextremal_branch": "0<=nu_h<1/2, 0<=q<1"
+  "series": {
+    "q_of_nu_h_through_nu11": "nu_h+nu_h**3+2*nu_h**5+5*nu_h**7+14*nu_h**9+42*nu_h**11+O(nu_h**13)",
+    "chi_of_nu_h": "sqrt(2)*nu_h exact",
+    "mu_over_rh2_of_chi": "1/2+chi**2/2+5*chi**4/8+7*chi**6/8+O(chi**8)"
   },
-  "schema_version": 1,
-  "series_about_zero_spin": {
-    "chi_rh_series_variable": "y=chi*r_h",
-    "chi_times_rh_of_nu_h_through_nu11": "-28*nu**11 - 10*nu**9 - 4*nu**7 - 2*nu**5 - 2*nu**3 + 2*nu",
-    "q_minus_nu_h_order": "O(nu_h^3)",
-    "q_of_nu_h_through_nu11": "42*nu**11 + 14*nu**9 + 5*nu**7 + 2*nu**5 + nu**3 + nu"
+  "coupling": {
+    "alpha_R": "alpha_GB/4",
+    "scope": "First-order source identity on Ricci-flat MP only"
   },
-  "source_equations": {
-    "ma_lu_eq_10": "chi_a=a/mu, chi_b=b/mu",
-    "ma_lu_eq_4": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
-    "ma_lu_eq_50": "mu/r_h^2=1/2+(chi*r_h)^2/4+9*(chi*r_h)^4/32+O((chi*r_h)^6)",
-    "ma_lu_eq_6": "Omega_H=a/(r_h^2+a^2)"
+  "checks": {
+    "horizon_equation_exact": true,
+    "angular_velocity_exact": true,
+    "printed_chi_a_over_sqrt_mu": true,
+    "inverse_q_series_through_nu11": true,
+    "chi_relation_through_nu11": true,
+    "Eq3_9_mass_series_through_chi6": true,
+    "first_coupling_action_normalization": true
   },
-  "source_sha256": "6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c",
-  "status": "exact_symbolic_parameter_relations_derived"
+  "claim_ceiling": "Exact equal-spin MP kinematics, Eq. (3.9) series, and first-coupling normalization only. No corrected metric, finite-coupling branch, or existence theorem is implied."
 }
