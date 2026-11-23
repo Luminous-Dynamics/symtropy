@@ -44,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 126 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, and 12 in `ncdot_integrand.rs`. Exact-head workflow [#258](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45133669358) passed on `1a05cbb5817e4d7d3f2166b672c9d0bd09707f6a`: all 126 tests, formatting, strict Clippy, checkout verification and artifact upload passed. Artifact SHA-256: `1c889bf9bcfb1683b749466ea0ae474bc586df2f012efb4277c674c771e8d4d5`.
+The current authored test corpus contains 134 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 12 in `ncdot_integrand.rs`, and 8 in `orbital_energy.rs`. Exact-head workflow [#258](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45133669358) passed on `1a05cbb5817e4d7d3f2166b672c9d0bd09707f6a`: all 126 tests, formatting, strict Clippy, checkout verification and artifact upload passed. Artifact SHA-256: `1c889bf9bcfb1683b749466ea0ae474bc586df2f012efb4277c674c771e8d4d5`.
 
 ## Important limitations
 
