@@ -387,6 +387,7 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     require_sha256(&platform.profile_sha256)?;
     require_sha256(&platform.environment_artifact_sha256)?;
     require_sha256(&platform.scene_broadcaster_sha256)?;
+    require_sha256(&platform.observer_binary_sha256)?;
     require_sha256(&platform.fault_injector_sha256)?;
     Ok(())
 }
