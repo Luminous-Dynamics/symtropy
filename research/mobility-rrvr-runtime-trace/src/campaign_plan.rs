@@ -348,9 +348,7 @@ impl CompiledCampaignPlan {
             firmware_revision: manifest.platform.firmware_revision.clone(),
             calibration_revision: manifest.platform.calibration_revision.clone(),
             observer_stack_revision: manifest.platform.observer_stack_revision.clone(),
-            required_delivery_observer_quorum: manifest
-                .platform
-                .required_delivery_observer_quorum,
+            required_delivery_observer_quorum: manifest.platform.required_delivery_observer_quorum,
             observer_profiles: manifest.platform.observer_profiles.clone(),
             fault_injector_id: manifest.platform.fault_injector_id.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
