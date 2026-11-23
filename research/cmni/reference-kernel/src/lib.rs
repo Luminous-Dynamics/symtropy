@@ -30,6 +30,7 @@ pub use robust_decision_design::{
     RobustDecisionDesignRanking, RobustDecisionDesignScore, RobustDecisionLikelihoodScenario,
     RobustDecisionProblem,
 };
+pub(crate) use robust_decision_design::solve_finite_zero_sum_game;
 
 mod robust_campaign_planning;
 pub use robust_campaign_planning::{
