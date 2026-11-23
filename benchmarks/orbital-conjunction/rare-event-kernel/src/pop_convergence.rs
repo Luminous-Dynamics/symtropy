@@ -119,7 +119,9 @@ pub struct PeakOverlapConvergenceDecision {
     pub current_vs_two_back_md2: Option<f64>,
     /// Derived CARA iteration boundaries for this configuration.
     pub acceleration_iteration: usize,
+    /// Iteration boundary after which the logarithmic averaging schedule ends.
     pub averaging_iteration: usize,
+    /// Iteration boundary after which the two-cycle oscillation check is eligible.
     pub oscillation_iteration: usize,
 }
 
