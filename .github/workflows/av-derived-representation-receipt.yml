@@ -27,6 +27,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
       - name: Assert exact checkout
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
 
