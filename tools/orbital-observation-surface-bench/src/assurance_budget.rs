@@ -530,8 +530,14 @@ mod tests {
         assert_eq!(result.alpha_used.as_ref().unwrap().numerator, 1);
         assert_eq!(result.alpha_used.as_ref().unwrap().denominator, 20);
         assert_eq!(result.alpha_remaining.unwrap().numerator, 0);
-        assert_eq!(result.joint_lower_confidence.as_ref().unwrap().numerator, 19);
-        assert_eq!(result.joint_lower_confidence.as_ref().unwrap().denominator, 20);
+        assert_eq!(
+            result.joint_lower_confidence.as_ref().unwrap().numerator,
+            19
+        );
+        assert_eq!(
+            result.joint_lower_confidence.as_ref().unwrap().denominator,
+            20
+        );
         assert!(!result.independence_assumed);
     }
 
