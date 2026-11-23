@@ -20,7 +20,7 @@ A nowcast whose target is strictly after the decision cutoff is rejected as a fu
 
 ## Interval and chronology semantics
 
-All six time intervals use integer nanoseconds, closed lower/upper endpoints and one common normalized time-basis SHA-256 commitment.
+All six time intervals use integer nanoseconds, closed lower/upper endpoints and one common normalized time-basis SHA-256 commitment. The caller must normalize source clock readings through Mycelix Position #435 and supply that exact clock-correlation manifest commitment. Source clock identity, correlation validity interval and correlation uncertainty remain #435's responsibility; this module does not reinterpret raw device ticks.
 
 For two intervals A (earlier) and B (later):
 - If A.upper <= B.lower, their nondecreasing order is proven.
@@ -43,6 +43,13 @@ All arithmetic is checked. The policy includes separate maximum age, acquisition
 The evaluator reports historical-only, nowcast-applicable or future-prediction-applicable only when the associated temporal contract is supported. It distinguishes stale observations, acquisition/processing delay overruns, future-data leakage, overlapping chronology, target mismatch, future target assigned to a nowcast, a target before decision time and prediction-horizon excess.
 
 Malformed intervals, missing evidence commitments or mismatched time bases are rejected as errors. An overlapping ordering interval yields INDETERMINATE, not an optimistic disposition.
+
+## Owner composition
+
+- Mycelix Position #435 owns source clock/time-scale identity, versioned clock correlation, validity interval and time uncertainty. Symtropy consumes its normalized intervals and exact correlation-manifest commitment; it does not implement a competing clock converter.
+- Mycelix Position #6404 owns adapter-facing observation/estimate/prediction type semantics. Event-time, nowcast and future-prediction kinds here are a narrow benchmark/applicability projection, not a replacement Position API.
+- Mycelix stream-timebase #6054 owns stream identity, boot/clock epochs, sequence scope, duplicate and reorder semantics. This kernel starts after batch payload completeness and stream ordering have been qualified.
+- Symtropy #7041 owns domain support. This gate matches the frozen estimator/predictor revision and support-manifest digests supplied by that owner; it does not infer support from the digest.
 
 ## Kept separate from spatial integrity
 
