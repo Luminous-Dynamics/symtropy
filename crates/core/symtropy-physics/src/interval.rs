@@ -323,8 +323,7 @@ mod tests {
         let local_max = SVector::from([4.0, 5.0, 2.0]);
 
         let (world_min, world_max) =
-            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
-                .unwrap();
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max).unwrap();
 
         for axis in 0..3 {
             assert!(world_min[axis] <= local_min[axis] + translation[axis]);
@@ -336,11 +335,8 @@ mod tests {
 
     #[test]
     fn affine_aabb_encloses_all_transformed_corners_with_rotation_and_shear() {
-        let matrix = SMatrix::<f64, 3, 3>::from_row_slice(&[
-            0.0, -1.0, 0.25,
-            1.0, 0.0, 0.5,
-            0.125, -0.25, 1.0,
-        ]);
+        let matrix =
+            SMatrix::<f64, 3, 3>::from_row_slice(&[0.0, -1.0, 0.25, 1.0, 0.0, 0.5, 0.125, -0.25, 1.0]);
         let translation = SVector::from([1.25, -2.5, 0.75]);
         let local_min = SVector::from([-2.0, -0.5, 1.0]);
         let local_max = SVector::from([3.0, 2.0, 4.0]);
