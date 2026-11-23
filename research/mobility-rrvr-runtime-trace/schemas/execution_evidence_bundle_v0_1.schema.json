@@ -620,11 +620,7 @@
       "additionalProperties": false,
       "required": [
         "verdict",
-        "observer_id",
-        "observer_revision",
-        "observer_fault_domain_id",
-        "observed_fault_signature_sha256",
-        "receipt"
+        "members"
       ],
       "properties": {
         "verdict": {
@@ -635,58 +631,12 @@
             "not_observed"
           ]
         },
-        "observer_id": {
-          "oneOf": [
-            {
-              "type": "string",
-              "minLength": 1
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "observer_revision": {
-          "oneOf": [
-            {
-              "type": "string",
-              "minLength": 1
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "observer_fault_domain_id": {
-          "oneOf": [
-            {
-              "type": "string",
-              "minLength": 1
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "observed_fault_signature_sha256": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/sha256"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "receipt": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/fault_receipt"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "members": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/observer_delivery_member"
+          }
         }
       }
     },
@@ -752,6 +702,47 @@
         "partial_effect",
         "permit_replay"
       ]
+    },
+    "observer_delivery_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer_id",
+        "observer_revision",
+        "observer_binary_sha256",
+        "common_cause_domains",
+        "observed_fault_signature_sha256",
+        "receipt"
+      ],
+      "properties": {
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_binary_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "common_cause_domains": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "observed_fault_signature_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt": {
+          "$ref": "#/$defs/fault_receipt"
+        }
+      }
     }
   }
 }
