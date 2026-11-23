@@ -359,3 +359,31 @@ The comparison transports both the horizon radius and physical angular velocity.
 For the MP-connected branch, \(c_B=c_H=0\). The transformed \(B_{21},F_{21},H_{21}\) profiles make all four original Symtropy rows vanish exactly: \(E_b=E_f=E_g=E_h=0\). The \(E_f\) algebraic pivot recovers \(F_{21}\); the horizon sensitivity outputs \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\) are not \(c_B,c_H\).
 
 The complete equal-spin angular block now passes direct component checks. The mass coefficient also matches Eq. (3.4) through \(\chi^2\). The combined claim is a first-coupling \(O(\chi^2)\) metric/charge overlap, not finite-coupling existence, interval uniqueness, or hyperbolicity.
+
+
+## 16. Ma–Lü spin-10 thermodynamic charge reproduction (23 November 2026)
+
+The publisher version of record provides an additional high-order benchmark independent of the Symtropy differential-equation rows. A public exact-symbolic script now reproduces the equal-spin specialization of:
+- Eq. (3.9), the horizon mass parameter \(\mu/r_h^2\), through \(\chi^{10}\);
+- Eq. (3.4), the ADM/Komar mass correction \(\Delta M\), through \(\chi^{10}\);
+- the zero-coupling conversion to Symtropy's \(\nu_S=\Omega_HR_H\), through \(\nu_S^{10}\).
+
+The equal-spin mass correction is
+\[
+\Delta M=2\pi-\frac{47\pi}{10}\chi^2
++\frac{1683\pi}{280}\chi^4-\frac{2047\pi}{420}\chi^6
++\frac{37921\pi}{6160}\chi^8-\frac{90107\pi}{20020}\chi^{10}
++O(\chi^{12}).
+\]
+The independent \(H_1\) asymptotic coefficient reproduces the first two terms through \(\chi^2\) using the 5D Komar prefactor \(3\pi/8\). This checks the metric-derived charge separately from the paper's higher-order thermodynamic series.
+
+At fixed Symtropy boundaries, the **total** corrected \(M/R_H^2\) is presently derived only through \(O(\epsilon_S\nu_S^2)\); each \(J/R_H^3\) is derived through \(O(\epsilon_S\nu_S^3)\). The standalone coupling correction \(\alpha_R\Delta M\), transported through the GR spin map, is known through \(\nu_S^{10}\). These are separate order claims; do not conflate them.
+
+Exact public-script replay:
+- Script: verify_ma_lu_equal_spin_thermodynamic_charge_series.py
+- Public Git blob SHA-1: e75dcd96941dadbc1f5f0940521d959060dbc776
+- SHA-256: 038f21d147e07da45e1e3bb68e73b9bba8b3f5e102b2e05e250a068b09e31242
+- Python 3.13.5 / SymPy 1.14.0
+- all eight exact identities and negative controls pass.
+
+The publisher article's data/code availability statement says that no associated research data were provided and no code was deposited. Symtropy's source-pinned, executable coefficient fixtures can therefore improve independent reproducibility. That is a reproducibility advantage, not a claim of better physics or numerical performance.
