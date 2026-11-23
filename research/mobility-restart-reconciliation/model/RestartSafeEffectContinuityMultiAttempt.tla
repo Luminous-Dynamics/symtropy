@@ -114,7 +114,7 @@ NativeAcceptCurrentAttempt ==
                 /\ s.ticketAttempt = i
                 /\ s.ticketBootEpoch = s.bootEpoch
                 /\ s.ticketControllerEpoch = s.controllerEpoch
-                /\ s.attempts[i - 1].status = "reconciled"
+                /\ s.attempts[i - 1].status \in {"reconciled", "reconciled_no_dispatch"}
                 /\ s.attempts[i - 1].controllerFenceBootEpoch = s.bootEpoch
                 /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.controllerEpoch
                 /\ s.attempts[i - 1].downstreamFenceBootEpoch = s.bootEpoch
@@ -411,7 +411,7 @@ IssueRecoveryPermit ==
     LET i == s.activeAttempt IN
         /\ s.processStatus = "running"
         /\ i < MaxAttempts
-        /\ s.attempts[i].status = "reconciled"
+        /\ s.attempts[i].status \in {"reconciled", "reconciled_no_dispatch"}
         /\ s.recoveryPermit \in {"absent", "consumed"}
         /\ s.permitUseCount < MaxAttempts - 1
         /\ s' = [s EXCEPT
@@ -426,7 +426,7 @@ CreateFreshTicket ==
     /\ s.processStatus = "running"
     /\ s.recoveryPermit = "issued"
     /\ s.permitForAttempt \in Attempts
-    /\ s.attempts[s.permitForAttempt - 1].status = "reconciled"
+    /\ s.attempts[s.permitForAttempt - 1].status \in {"reconciled", "reconciled_no_dispatch"}
     /\ s' = [s EXCEPT
                 !.ticketStatus = "fresh",
                 !.ticketAttempt = s.permitForAttempt,
@@ -445,7 +445,7 @@ ReserveNextAttempt ==
         /\ s.ticketBootEpoch = s.bootEpoch
         /\ s.ticketControllerEpoch = s.controllerEpoch
         /\ s.attempts[i].status = "unreserved"
-        /\ s.attempts[i - 1].status = "reconciled"
+        /\ s.attempts[i - 1].status \in {"reconciled", "reconciled_no_dispatch"}
         /\ s' = [s EXCEPT
                     !.activeAttempt = i,
                     !.attempts[i].status = "reserved",
@@ -630,7 +630,7 @@ ReservationPrecedesAcceptance ==
             ReservationFactsHold(i))
 
 RetryParentIsQualified(i) ==
-    /\ s.attempts[i - 1].status = "reconciled"
+    /\ s.attempts[i - 1].status \in {"reconciled", "reconciled_no_dispatch"}
     /\ s.attempts[i - 1].physicalOutcome = "no_effect"
     /\ s.attempts[i - 1].physicalObserverQualified
     /\ s.attempts[i - 1].downstreamObserverQualified
