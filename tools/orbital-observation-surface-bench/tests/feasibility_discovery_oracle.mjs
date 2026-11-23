@@ -238,7 +238,7 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
   const publicRows=perScenario.map(({_loss,_ws,_class,...row})=>row);
   return {
     policy_id:policyId(queryId,branches),query_id:queryId??null,
-    branch_actions:branches,observation_class_world_ids:Object.fromEntries(classes),
+    branch_actions:branches,observation_class_world_ids:classes,
     worst_case_loss:jsonR(worstLoss),worst_case_wait_and_see_regret:jsonR(worstWs),
     worst_case_outcome_class_regret:jsonR(worstClass),
     worst_loss_scenario_ids:perScenario.filter(x=>cmpR(x._loss,worstLoss)===0).map(x=>x.scenario_id),
