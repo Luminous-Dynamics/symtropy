@@ -67,3 +67,18 @@ The same stacked research branch now adds `src/acquisition.rs`, exposed as `acqu
 This is intentionally a transparent calibration baseline tailored to the current two-scale synthetic generator. Perfect recovery on this generator is not evidence of general structural discovery; the purpose is to establish a reproducible lower-complexity comparator and expose how much the first generator rewards a simple timing/pattern heuristic.
 
 **Verification for this extension:** pending on its exact latest head; do not infer from the earlier witness-only pass.
+
+## Conservative graph-correspondence baseline extension
+
+The branch also adds `src/matching.rs`, exposed as `matching`:
+
+- `UniqueIncidenceSignatureBaselineV0` proposes a source-target node mapping only when every directed/undirected incidence signature is unique.
+- It matches relation instances under explicit preserve-order, reverse-order or unordered transforms.
+- It requires a consistent one-to-one relation-kind mapping and validates its candidate through the separate structural-witness validator.
+- It abstains on symmetric / ambiguous node signatures instead of making an arbitrary mapping.
+- Tests cover a relabelled and reversed asymmetric fixture, ambiguous symmetric leaves, and inconsistent target relation kinds.
+- `GRAPH_MATCHING_BASELINE_V0_1.md` documents the algorithm and its limitations.
+
+This is a conservative degree/incidence-signature baseline, not a complete graph-isomorphism or graph-edit solver. A strong VF2-style / graph-edit comparator remains required before making claims against classical graph matching.
+
+**Verification for the combined transfer, passive extractor and graph-matching branch:** pending on the exact latest head.
