@@ -162,7 +162,10 @@ pub fn evaluate_structure_preservation(
             actual: evaluation_domain.len(),
         });
     }
-    let domain_cells = evaluation_domain.iter().filter(|included| **included).count();
+    let domain_cells = evaluation_domain
+        .iter()
+        .filter(|included| **included)
+        .count();
     if domain_cells == 0 {
         return Err(FieldMetricError::EmptyEvaluationDomain);
     }
@@ -200,10 +203,8 @@ pub fn evaluate_structure_preservation(
     }
 
     let vector_coverage_fraction = reconstructed_vector_cells as f64 / domain_cells as f64;
-    let relative_l2_on_available_vectors = safe_ratio(
-        vector_error_squared.sqrt(),
-        reference_vector_squared.sqrt(),
-    );
+    let relative_l2_on_available_vectors =
+        safe_ratio(vector_error_squared.sqrt(), reference_vector_squared.sqrt());
     let normalized_rmse_on_available_vectors = if reconstructed_vector_cells == 0 {
         None
     } else {
@@ -246,17 +247,15 @@ pub fn evaluate_structure_preservation(
                 return Err(FieldMetricError::NonFiniteReference { index: center });
             }
 
-            let reconstruction_has_stencil = stencil
-                .iter()
-                .all(|index| reconstruction.valid[*index]);
+            let reconstruction_has_stencil =
+                stencil.iter().all(|index| reconstruction.valid[*index]);
             let omega_reconstruction = if reconstruction_has_stencil {
                 derivative_reconstructed_cells += 1;
                 let value = vorticity(reconstruction, west, east, south, north);
                 if !value.is_finite() {
                     return Err(FieldMetricError::NonFiniteReconstruction { index: center });
                 }
-                vorticity_error_squared +=
-                    (value - omega_reference) * (value - omega_reference);
+                vorticity_error_squared += (value - omega_reference) * (value - omega_reference);
                 reference_vorticity_squared += omega_reference * omega_reference;
                 Some(value)
             } else {
@@ -270,8 +269,12 @@ pub fn evaluate_structure_preservation(
                 weak_structure_cells += 1;
                 weak_reference_magnitude_sum += reference_magnitude;
                 if let Some(omega) = omega_reconstruction {
-                    let signed_prediction =
-                        omega * if omega_reference.is_sign_negative() { -1.0 } else { 1.0 };
+                    let signed_prediction = omega
+                        * if omega_reference.is_sign_negative() {
+                            -1.0
+                        } else {
+                            1.0
+                        };
                     weak_signed_prediction_sum += signed_prediction;
                     let predicts_structure = omega.abs() >= config.weak_vorticity_min;
                     if predicts_structure {
@@ -310,10 +313,7 @@ pub fn evaluate_structure_preservation(
 
     let derivative_coverage_fraction =
         derivative_reconstructed_cells as f64 / derivative_reference_cells as f64;
-    let weak_structure_recall = ratio(
-        weak_structure_retained_cells,
-        weak_structure_cells,
-    );
+    let weak_structure_recall = ratio(weak_structure_retained_cells, weak_structure_cells);
     let weak_structure_sign_agreement =
         ratio(weak_structure_sign_agreement_cells, weak_structure_cells);
     let weak_structure_precision = safe_ratio(
@@ -326,10 +326,8 @@ pub fn evaluate_structure_preservation(
             + (weak_structure_cells - weak_structure_retained_cells)
             + false_positive_weak_support_cells) as f64,
     );
-    let weak_structure_signed_amplitude_ratio = safe_ratio(
-        weak_signed_prediction_sum,
-        weak_reference_magnitude_sum,
-    );
+    let weak_structure_signed_amplitude_ratio =
+        safe_ratio(weak_signed_prediction_sum, weak_reference_magnitude_sum);
     let weak_structure_signed_amplitude_bias =
         weak_structure_signed_amplitude_ratio.map(|ratio| ratio - 1.0);
     let false_support_rate_in_background =
@@ -445,13 +443,7 @@ fn validate_config(config: &StructureConfig) -> Result<(), FieldMetricError> {
     Ok(())
 }
 
-fn vorticity(
-    field: &VectorField2D,
-    west: usize,
-    east: usize,
-    south: usize,
-    north: usize,
-) -> f64 {
+fn vorticity(field: &VectorField2D, west: usize, east: usize, south: usize, north: usize) -> f64 {
     let dv_dx = (field.v[east] - field.v[west]) / (2.0 * field.spacing_x);
     let du_dy = (field.u[north] - field.u[south]) / (2.0 * field.spacing_y);
     dv_dx - du_dy
@@ -524,13 +516,9 @@ mod tests {
     #[test]
     fn exact_reconstruction_preserves_weak_vorticity() {
         let reference = field(41, 41, 0.05);
-        let report = evaluate_structure_preservation(
-            &reference,
-            &reference,
-            &domain(41, 41),
-            &config(),
-        )
-        .expect("valid exact fixture");
+        let report =
+            evaluate_structure_preservation(&reference, &reference, &domain(41, 41), &config())
+                .expect("valid exact fixture");
         assert_eq!(report.disposition, Ok(()));
         assert_eq!(report.weak_structure_recall, Some(1.0));
         assert_eq!(report.weak_structure_precision, Some(1.0));
@@ -655,7 +643,9 @@ mod tests {
         );
         assert_eq!(
             result,
-            Err(FieldMetricError::ReferenceVectorMissing { index: 20 * 41 + 20 })
+            Err(FieldMetricError::ReferenceVectorMissing {
+                index: 20 * 41 + 20
+            })
         );
     }
 
@@ -682,12 +672,7 @@ mod tests {
         let mut invalid = config();
         invalid.weak_vorticity_max = invalid.weak_vorticity_min;
         assert_eq!(
-            evaluate_structure_preservation(
-                &reference,
-                &reference,
-                &domain(41, 41),
-                &invalid
-            ),
+            evaluate_structure_preservation(&reference, &reference, &domain(41, 41), &invalid),
             Err(FieldMetricError::InvalidConfiguration {
                 field: "weak_vorticity_band"
             })
