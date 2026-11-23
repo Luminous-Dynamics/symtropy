@@ -318,3 +318,23 @@ The exact local script was run with Python 3.13.5 / mpmath 1.3.0 before publicat
 - spin2_green_projection_gauss_legendre_replay_v1.json
 
 This is a second numerical quadrature family. It is not an interval enclosure, action-row replay or finite-\(\lambda\) BVP result.
+
+
+## Correction and exact-source replay: Ma--Lü convention map (23 November 2026)
+
+The earlier candidate shorthand chi=Omega_H*r_H is superseded. The paper prints chi=a/mu (Eq. 16), and its horizon/angular-velocity equations imply, for equal spins q=a/r_h and nu=Omega_H*r_h:
+\[
+\mu/r_h^2=(1+q^2)^2/2,\quad \nu=q/(1+q^2),\quad
+\chi r_h=2q/(1+q^2)^2.
+\]
+The exact small-spin series are q=nu+nu^3+2nu^5+5nu^7+14nu^9+42nu^11+O(nu^13) and chi*r_h=2nu-2nu^3-2nu^5-4nu^7-10nu^9-28nu^11+O(nu^13). Therefore the physical MP spin q agrees with Symtropy's nu through O(nu^2), while the paper's printed chi has a distinct leading normalization. The dimensional convention in Eq. (16) still requires an explicit length-rescaling explanation.
+
+A new SymPy parameter-map verifier has been committed and exact-public-source replayed locally:
+- source Git blob SHA-1: 5d17da9c52e0668d699d591c608a5bc18eb98efc
+- source SHA-256: dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3
+- Python 3.13.5 / SymPy 1.14.0
+- all five exact symbolic checks pass, including the inverse series through nu^11.
+
+Artifacts: derive_ma_lu_equal_spin_parameter_map.py, ma_lu_equal_spin_parameter_map_v1.json, ma_lu_equal_spin_parameter_map_v1.md, and ma_lu_equal_spin_parameter_map_replay_v1.json.
+
+The candidate first-coupling conversion alpha_R=alpha_GB/4 is supported by the Ricci-flat Euler-tensor identity in the accompanying note, but the corrected metric/gauge map is still open.
