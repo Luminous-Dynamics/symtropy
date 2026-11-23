@@ -33,9 +33,7 @@ use symtropy_math::{Point, Shape, Transform};
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
 use crate::body::BodyHandle;
-use crate::contact::{
-    ContactManifold, ContactPoint, ContactPointBuffer, MAX_CANDIDATE_CONTACTS,
-};
+use crate::contact::{ContactManifold, ContactPoint, ContactPointBuffer, MAX_CANDIDATE_CONTACTS};
 
 /// Metadata for shapes that are not convex (like TriangleMeshes).
 /// Since `symtropy-physics` doesn't depend on `symtropy-mesh` directly,
