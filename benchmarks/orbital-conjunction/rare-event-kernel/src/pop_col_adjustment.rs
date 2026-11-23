@@ -46,9 +46,11 @@ pub enum PopColAdjustmentStatus {
     OriginalCenterNonnegativeEnergy,
     /// The proposed overlap center already satisfies the energy-change cap.
     CandidateWithinEnergyLimit,
-    /// The candidate exceeded the cap and the source-compatible fraction
-    /// search selected a point on the original-to-candidate segment.
-    EnergyLimitedCandidate,
+    /// The candidate exceeded the cap and the source-compatible search
+    /// selected a point on the original-to-candidate segment. This status
+    /// does not imply that the selected point satisfies the cap; inspect the
+    /// adjusted relative-energy-change value and search convergence flag.
+    EnergyLimitFractionSelected,
 }
 
 /// Replay diagnostics for the source-compatible CoL fraction minimization.
@@ -112,6 +114,10 @@ pub struct PopColAdjustmentReport {
     /// Relative energy change of the unadjusted candidate; absent only when
     /// the original specific energy is nonnegative.
     pub proposed_relative_energy_change: Option<f64>,
+    /// Actual relative energy change at the returned fraction. This can
+    /// exceed the policy limit when the source-compatible search does not
+    /// find a sufficiently accurate minimum.
+    pub adjusted_relative_energy_change: Option<f64>,
     /// Search trace sufficient to audit the fraction-selection path.
     pub search: PopColFractionSearchReport,
 }
@@ -152,6 +158,7 @@ pub fn adjust_pop_col_energy_limited_center(
             adjustment_fraction: 1.0,
             adjusted_col_position_km: input.proposed_overlap_position_km,
             proposed_relative_energy_change: None,
+            adjusted_relative_energy_change: None,
             search,
         });
     }
@@ -171,6 +178,7 @@ pub fn adjust_pop_col_energy_limited_center(
             adjustment_fraction: 1.0,
             adjusted_col_position_km: input.proposed_overlap_position_km,
             proposed_relative_energy_change: Some(relative_energy_change),
+            adjusted_relative_energy_change: Some(relative_energy_change),
             search,
         });
     }
@@ -237,13 +245,17 @@ pub fn adjust_pop_col_energy_limited_center(
     let adjusted_col_position_km = adjusted_energy.candidate_col_position_km;
 
     Ok(PopColAdjustmentReport {
-        status: PopColAdjustmentStatus::EnergyLimitedCandidate,
+        status: PopColAdjustmentStatus::EnergyLimitFractionSelected,
         original_energy,
         proposed_energy,
         adjusted_energy,
         adjustment_fraction: selected_fraction,
         adjusted_col_position_km,
         proposed_relative_energy_change: Some(relative_energy_change),
+        adjusted_relative_energy_change: Some(relative_energy_change(
+            original_energy.specific_orbital_energy_km2_per_s2,
+            adjusted_energy.specific_orbital_energy_km2_per_s2,
+        )?),
         search: PopColFractionSearchReport {
             refinement_attempted,
             refinement_converged,
@@ -645,11 +657,12 @@ mod tests {
         let result = adjust_pop_col_energy_limited_center(input, config).unwrap();
         assert_eq!(
             result.status,
-            PopColAdjustmentStatus::EnergyLimitedCandidate
+            PopColAdjustmentStatus::EnergyLimitFractionSelected
         );
         assert!(result.adjustment_fraction > 0.0 && result.adjustment_fraction < 1.0);
         assert_eq!(result.search.initial_sample_count, 201);
         assert!(result.adjusted_energy.specific_orbital_energy_km2_per_s2 < 0.0);
+        assert!(result.adjusted_relative_energy_change.unwrap() <= 0.11);
     }
 
     #[test]
