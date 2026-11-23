@@ -114,6 +114,8 @@ For finite-sample 95% split-conformal field coverage, 19 independent calibration
 
 ## 8. Paradigm-shift roadmap
 
+The shared repository CI compiles the EHD reference audit and runs format, tests and strict Clippy for this standalone fitter and its UQ-005 dependency on Ubuntu, Windows and macOS. Exact-head results must be kept distinct from earlier base failures; no pending, skipped or cancelled leg counts as a pass.
+
 1. **Measurement-to-decision twin:** link each raw asset, processing configuration, field residual, covariance model, uncertainty set, integrated quantity and decision receipt by immutable evidence identity.
 2. **Experiment co-design:** choose seeding, pulse separation, window overlap, camera arrangement and reference diagnostics to maximize identifiability and reduce the uncertainty of the actual engineering quantity—not merely minimize vector RMS error.
 3. **Active-observer accounting:** treat tracer, illumination, probes and LPT as possible interventions. Compare diagnostic-on/off states with randomized, drift-balanced schedules and record persistence after removal.
