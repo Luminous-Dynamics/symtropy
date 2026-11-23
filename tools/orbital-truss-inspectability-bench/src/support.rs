@@ -610,8 +610,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(receipt.case_count, SUPPORT_CASE_COUNT);
         assert_eq!(
-            receipt.expected_outcome_matches,
-            SUPPORT_CASE_COUNT,
+            receipt.expected_outcome_matches, SUPPORT_CASE_COUNT,
             "support-envelope corpus mismatches: {mismatches:?}"
         );
         assert_eq!(receipt.expected_outcome_mismatches, 0);
