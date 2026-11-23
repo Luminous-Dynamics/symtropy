@@ -1,4 +1,5 @@
 pub mod decision_identifiability;
+pub mod feasibility_discovery;
 pub mod feasibility_regret;
 pub mod joint_loss_scenarios;
 pub mod regret_calibration;
