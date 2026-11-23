@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-attempt-lineage-v0.1.json",
-  "title": "RRVR Multi-Attempt Physical-Effect Lineage v0.1",
+  "title": "RRVR Multi-Attempt Physical-Effect Lineage with Observer Assurance v0.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "version",
     "logical_effect_id",
-    "attempts"
+    "attempts",
+    "fault_profile_revision"
   ],
   "properties": {
     "version": {
@@ -24,6 +25,10 @@
       "items": {
         "$ref": "#/$defs/attempt"
       }
+    },
+    "fault_profile_revision": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
@@ -243,7 +248,8 @@
         "physical_outcome",
         "mission_resolution",
         "controller_queue_fence",
-        "downstream_quiescence"
+        "downstream_quiescence",
+        "observer_assurance"
       ],
       "properties": {
         "attempt_id": {
@@ -282,6 +288,131 @@
         },
         "downstream_quiescence": {
           "$ref": "#/$defs/fence"
+        },
+        "observer_assurance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/attempt_observer_assurance"
+            }
+          ]
+        }
+      }
+    },
+    "observer_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer_id",
+        "observer_revision",
+        "observation_id",
+        "common_cause_domains",
+        "raw_artifact_id",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "common_cause_domains": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "observer_quorum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_model_revision",
+        "required_independent_members",
+        "members"
+      ],
+      "properties": {
+        "fault_model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_independent_members": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 32
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/observer_member"
+          }
+        }
+      }
+    },
+    "attempt_observer_assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_outcome_claim_id",
+        "physical_outcome_asserted_value",
+        "physical_outcome_claim_scope_sha256",
+        "physical_outcome_quorum",
+        "downstream_quiescence_claim_id",
+        "downstream_quiescence_asserted_value",
+        "downstream_quiescence_claim_scope_sha256",
+        "downstream_quiescence_quorum"
+      ],
+      "properties": {
+        "physical_outcome_claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_outcome_asserted_value": {
+          "const": "no_effect"
+        },
+        "physical_outcome_claim_scope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "physical_outcome_quorum": {
+          "$ref": "#/$defs/observer_quorum"
+        },
+        "downstream_quiescence_claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "downstream_quiescence_asserted_value": {
+          "const": "quiescent"
+        },
+        "downstream_quiescence_claim_scope_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "downstream_quiescence_quorum": {
+          "$ref": "#/$defs/observer_quorum"
         }
       }
     }
