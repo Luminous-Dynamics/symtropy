@@ -45,15 +45,23 @@ The range candidates are provided in a strictly increasing, predeclared configur
 
 ## 4. Untouched-acquisition validation
 
-The validation cohort is never used to select the range or estimate `S`. Pair separations are binned in physical units using the median nearest-neighbour spacing. For every lag bin and component pair, the implementation compares the mean held-out correlation with the prediction from the frozen fit. It reports the maximum absolute discrepancy.
+The validation cohort is never used to select the range or estimate `S`. Pair separations are binned in physical units using the median nearest-neighbour spacing. For every lag bin and component pair, the implementation compares the mean held-out lag covariance with the frozen model using the **calibration** zero-lag scale `C0_cal = S + N`. The validation cohort's own zero-lag variance is never used to normalize away an amplitude shift.
+
+Validation therefore has two distinct covariance gates:
+
+1. **Correlation-shape error:** compare held-out lag cross-covariance to the frozen spatial component, normalized by the calibration `C0_cal`.
+2. **Marginal variance scale:** for each component, report `C0_validation[a,a] / C0_cal[a,a]` and the maximum absolute relative deviation from 1. The initial prospective relative-error limit is 0.10, frozen in the fit configuration.
+
+If a component has zero calibration variance and non-zero held-out variance, that is a separate hard variance-scale mismatch; it is not hidden behind an undefined or infinite ratio. Components with zero variance in both cohorts have no ratio and do not create a false mismatch.
 
 A same-component negative correlation lobe is flagged only when the mean across independent acquisition clusters is below zero by the predeclared z threshold. The validation disposition is one of:
 
-- `Qualified`: held-out maximum absolute correlation discrepancy is within the frozen bound and no resolved negative lobe is detected.
+- `Qualified`: shape error and the separate variance-scale gate both pass, with no resolved negative lobe.
 - `RejectedNegativeCorrelationLobe`: the fitted nonnegative Wendland family cannot represent the held-out evidence.
-- `RejectedHeldOutCorrelationFit`: the held-out correlation discrepancy exceeds the frozen bound.
+- `RejectedHeldOutVarianceScale`: the independent holdout's marginal covariance amplitude differs beyond the frozen tolerance, or a previously zero component becomes non-zero.
+- `RejectedHeldOutCorrelationFit`: the held-out correlation-shape discrepancy exceeds its frozen bound.
 
-The maximum-error gate and negative-lobe z threshold are stored in the fit record; validation cannot override them. Correlation normalization uses one variance scale estimated across the complete holdout, while every acquisition contributes exactly one lag-bin statistic and one independent-cluster observation. Individual vector pairs are not counted as independent samples. The report is bound to the exact fit configuration, reference assessment, calibration manifest, selected range and spatial covariance; it cannot be applied to a substituted fit. A qualified report can create a UQ-005 `SpatialErrorKernel` using its required `wendland_c2_anisotropic_3d` model identifier (the current isotropic fit is represented by equal x/y/z length scales). The fit exposes `local_nugget_covariance_for_uq005()` for N, and the validation report exports S. The report is bound to the fit configuration, reference-uncertainty assessment, calibration manifest, selected length scale and covariance matrix.
+The shape-error bound, variance-scale bound and negative-lobe z threshold are stored in the fit record; validation cannot override them. Each acquisition contributes one lag-bin statistic and one independent-cluster observation. Individual vector pairs are not counted as independent samples. The report remains cluster-aware and the two covariance gates cannot substitute for one another. The report is bound to the exact fit configuration, reference assessment, calibration manifest, selected range and spatial covariance; it cannot be applied to a substituted fit. A qualified report can create a UQ-005 `SpatialErrorKernel` using its required `wendland_c2_anisotropic_3d` model identifier (the current isotropic fit is represented by equal x/y/z length scales). The fit exposes `local_nugget_covariance_for_uq005()` for N, and the validation report exports S. The report is bound to the fit configuration, reference-uncertainty assessment, calibration manifest, selected length scale and covariance matrix.
 
 **Double-counting rule:** the fitted `N` must be supplied as each face sample's local velocity covariance. UQ-005 adds `S` through cross-location covariance. Supplying `C(0)` as local covariance and then adding `S` again is invalid.
 
