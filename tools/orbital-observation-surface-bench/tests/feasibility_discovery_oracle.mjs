@@ -198,8 +198,9 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
         const candidate=scenario.action_outcomes[candidateId];
         if(candidate.feasibility_status!=="feasible"||candidate.loss===null)
           fail("class comparator not feasible throughout outcome class");
-        const value=rat(candidate.loss,"outcome class loss");
-        if(worstForAction===null||cmpR(value,worstForAction)>0) worstForAction=value;
+        const loss=rat(candidate.loss,"outcome class loss");
+        const regret=subR(loss,bestScenarioLoss(scenario),"class action regret");
+        if(worstForAction===null||cmpR(regret,worstForAction)>0) worstForAction=regret;
       }
       if(worstForAction===null) fail("empty outcome class");
       if(candidateId===branches[outcomeId]) selectedWorst=worstForAction;
