@@ -447,6 +447,8 @@ mod tests {
             reliability,
         };
         ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: DOMAIN,
+            expected_acquisition_protocol_sha256: PROTOCOL,
             reason: ReliableEvidencePlanReason::BestExpectedDecisionResolution,
             recommended_action_id: Some(2),
             pareto_frontier: vec![assessment],
@@ -559,11 +561,55 @@ mod tests {
         assert_eq!(provenance.source_manifest_sha256, [0x81; 32]);
         assert_eq!(provenance.calibration_cohort_sha256, [0x91; 32]);
         assert_eq!(provenance.bound_method_sha256, [0xa1; 32]);
+        assert_eq!(report.selected_reliability_domain_fingerprint_sha256, Some(DOMAIN));
+        assert_eq!(report.selected_reliability_acquisition_protocol_sha256, Some(PROTOCOL));
         assert_eq!(report.disposition, EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit);
         assert!(report.eligible_for_independent_posterior_audit);
         assert!(!report.posterior_updated);
         assert!(!report.navigation_authorized);
         assert_eq!(ledger.attempts_for_action(2), 1);
+    }
+
+    #[test]
+    fn reliable_plan_domain_mismatch_rejects_before_attempt_mutation() {
+        let plan = reliable_plan();
+        let mut ledger = ledger();
+        let mut wrong_domain = request(2, 121);
+        wrong_domain.domain_fingerprint_sha256 = [0x12; 32];
+        assert_eq!(
+            record_reliably_selected_evidence_outcome(
+                &plan,
+                &mut ledger,
+                wrong_domain,
+                AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x34; 32] },
+                PRE_STATE,
+                None,
+                None,
+            ),
+            Err(EvidenceTransactionError::ReliabilityDomainMismatch)
+        );
+        assert!(ledger.events().is_empty());
+    }
+
+    #[test]
+    fn reliable_plan_protocol_mismatch_rejects_before_attempt_mutation() {
+        let plan = reliable_plan();
+        let mut ledger = ledger();
+        let mut wrong_protocol = request(2, 122);
+        wrong_protocol.acquisition_protocol_sha256 = [0x23; 32];
+        assert_eq!(
+            record_reliably_selected_evidence_outcome(
+                &plan,
+                &mut ledger,
+                wrong_protocol,
+                AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x35; 32] },
+                PRE_STATE,
+                None,
+                None,
+            ),
+            Err(EvidenceTransactionError::ReliabilityProtocolMismatch)
+        );
+        assert!(ledger.events().is_empty());
     }
 
     #[test]
