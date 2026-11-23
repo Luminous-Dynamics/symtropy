@@ -57,12 +57,13 @@ The gate establishes mathematical covariance structure only. It does not prove:
 
 ## 4. Manufactured negative controls
 
-The authored tests include:
+The six authored new tests include:
 - rank-deficient PSD matrices;
 - a roundoff-scale negative eigenvalue just within the tolerance;
 - an indefinite symmetric matrix with all four diagonal entries positive;
 - material matrix asymmetry;
-- a zero-variance functional with a nonzero cross-covariance.
+- a zero-variance functional with a nonzero cross-covariance;
+- invariance of the PSD disposition under independent rescaling of the mass-flow and momentum-flux units.
 
 The full existing propagation tests continue to exercise local covariance, shared modes, and spatial cross-location contributions.
 
