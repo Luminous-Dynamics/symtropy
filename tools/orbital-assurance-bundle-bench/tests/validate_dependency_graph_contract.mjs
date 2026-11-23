@@ -15,7 +15,7 @@ if (schema.$schema !== "https://json-schema.org/draft/2020-12/schema"
 if (corpus.schema !== schema.properties.schema.const
   || corpus.evidence_class !== schema.properties.evidence_class.const
   || corpus.claim_ceiling !== schema.properties.claim_ceiling.const
-  || !Array.isArray(corpus.cases) || corpus.cases.length !== 7) {
+  || !Array.isArray(corpus.cases) || corpus.cases.length !== 9) {
   throw new Error("dependency graph corpus does not match its v0.1 contract");
 }
 const ids = new Set();
