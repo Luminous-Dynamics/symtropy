@@ -15,8 +15,8 @@
 //! orbit, update an equinoctial state/Jacobian, or implement the full
 //! PeakOverlapPos iteration.
 
-use crate::conditional_velocity::Matrix3;
 use crate::KernelError;
+use crate::conditional_velocity::Matrix3;
 
 /// Inputs to the pinned CARA center-of-linearity energy calculation.
 ///
@@ -75,10 +75,7 @@ pub fn conditional_velocity_at_col(
         return Err(KernelError::NonFiniteValue);
     }
 
-    let displacement = subtract(
-        candidate_col_position_km,
-        expansion_center_position_km,
-    );
+    let displacement = subtract(candidate_col_position_km, expansion_center_position_km);
     let sensitivity = matrix_vector(beta_per_second, displacement);
     let conditional_velocity = add(expansion_center_velocity_km_per_s, sensitivity);
     if !finite_vector(displacement) || !finite_vector(conditional_velocity) {
@@ -122,8 +119,7 @@ pub fn calculate_pop_col_energy(
     if !speed_km_per_s.is_finite() {
         return Err(KernelError::NumericalOverflow);
     }
-    let kinetic_specific_energy_km2_per_s2 =
-        0.5 * speed_km_per_s * speed_km_per_s;
+    let kinetic_specific_energy_km2_per_s2 = 0.5 * speed_km_per_s * speed_km_per_s;
     let potential_specific_energy_km2_per_s2 =
         -input.gravitational_parameter_km3_per_s2 / radius_km;
     let specific_orbital_energy_km2_per_s2 =
@@ -156,27 +152,18 @@ fn finite_matrix(matrix: Matrix3) -> bool {
 }
 
 fn subtract(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] - right[0],
-        left[1] - right[1],
-        left[2] - right[2],
-    ]
+    [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
 }
 
 fn add(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] + right[0],
-        left[1] + right[1],
-        left[2] + right[2],
-    ]
+    [left[0] + right[0], left[1] + right[1], left[2] + right[2]]
 }
 
 fn matrix_vector(matrix: Matrix3, vector: [f64; 3]) -> [f64; 3] {
     let mut output = [0.0; 3];
     for (row, value) in output.iter_mut().enumerate() {
-        *value = matrix[row][0] * vector[0]
-            + matrix[row][1] * vector[1]
-            + matrix[row][2] * vector[2];
+        *value =
+            matrix[row][0] * vector[0] + matrix[row][1] * vector[1] + matrix[row][2] * vector[2];
     }
     output
 }
@@ -213,11 +200,7 @@ mod tests {
 
     #[test]
     fn conditional_velocity_matches_pinned_linear_relation() {
-        let beta = [
-            [0.001, 0.0, 0.0],
-            [0.0, 0.002, 0.0],
-            [0.0, 0.0, 0.003],
-        ];
+        let beta = [[0.001, 0.0, 0.0], [0.0, 0.002, 0.0], [0.0, 0.0, 0.003]];
         let (displacement, velocity) = conditional_velocity_at_col(
             [7000.0, 0.0, 0.0],
             [0.0, 7.5, 0.0],
@@ -265,11 +248,7 @@ mod tests {
             [7000.0, 0.0, 0.0],
             [0.0, 7.5, 0.0],
             [7010.0, 20.0, -30.0],
-            [
-                [0.001, 0.0, 0.0],
-                [0.0, 0.002, 0.0],
-                [0.0, 0.0, 0.003],
-            ],
+            [[0.001, 0.0, 0.0], [0.0, 0.002, 0.0], [0.0, 0.0, 0.003]],
             EARTH_GM_KM3_PER_S2,
         ))
         .expect("adjusted CoL energy");
