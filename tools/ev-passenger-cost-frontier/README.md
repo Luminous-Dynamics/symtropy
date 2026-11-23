@@ -278,7 +278,7 @@ The frozen fixture replays:
 `offer_created → accepted → executing → unresolved`
 and finishes at ledger version 4. It deliberately leaves `lease-001` unresolved and reserved. The CLI report sets ledger mutation, market, dispatch and physical mutation authority to false.
 
-The module currently contains 14 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
+The module currently contains 18 focused Rust test definitions covering concurrency, idempotency, payload conflict, unresolved retention, terminal evidence, invalid transition, stale writer, digest mutation, previous-link mutation and event reordering. SHA-256 here provides an integrity-linked event chain; it does not authenticate producers or prove durable storage. Exact-head Actions run [#45042240520](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45042240520) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (171 tests passed, 0 failed across test binaries). Clippy is not included and remains unverified.
 
 Source: `src/mobility_commitment_journal.rs`; CLI: `src/bin/mobility_commitment_journal_screen.rs`; strict schema: `schemas/mobility_commitment_journal_v0_1.schema.json`; fixture: `fixtures/mobility_commitment_journal_v0_1.json`.
 
@@ -460,3 +460,24 @@ The report compares the exact nonanticipative policy against a separately comput
 Frozen tree: one root decision, then a 0.4 high-demand branch revealing a hidden urgent aerial-only request and a 0.6 low-demand branch. Expected known answer: the common nonanticipative policy can deliver 1.0 on-time request in expectation; the clairvoyant full-information upper bound is 1.4, giving a 0.4 on-time-request VPI. These are synthetic design-time values until the exact-head Rust workflow passes.
 
 Strict scenario schema: `schemas/nonanticipative_service_oracle_v0_1.schema.json`; linked service input: `fixtures/nonanticipative_linked_service_v0_1.json`; scenario tree: `fixtures/nonanticipative_service_oracle_v0_1.json`; dossier: `docs/research/NONANTICIPATIVE_SERVICE_ORACLE_BENCHMARK_V0_1.md`.
+
+
+## MOBILITY-SERVICE-RISK-ENVELOPE-001 — tail service and probability ambiguity
+
+The risk-envelope child of [#6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921) is tracked in [#7196](https://github.com/Luminous-Dynamics/symtropy/issues/7196). It composes [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133) and leaves demand/weather calibration with [#6460](https://github.com/Luminous-Dynamics/symtropy/issues/6460).
+
+Run with the exact upstream tree, linked service input, capacity input and probability manifest:
+
+    cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_service_risk_envelope_screen -- \
+      tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json \
+      tools/ev-passenger-cost-frontier/fixtures/nonanticipative_linked_service_v0_1.json \
+      tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+      tools/ev-passenger-cost-frontier/fixtures/mobility_service_risk_envelope_v0_1.json
+
+The evaluator re-runs the nonanticipative service oracle and computes exact integer nominal expectations, lower-tail CVaR for on-time/completed service, upper-tail CVaR for lateness/unserved outcomes, and total-variation robust expectation sensitivity. CVaR consumes fractional probability mass at the tail boundary. The TV ball is a declared finite total-variation set, not Wasserstein or moment-based DRO.
+
+Unknown and stress-only probability bases are rejected from probabilistic calculations. Synthetic probabilities are admitted for arithmetic fixtures only; the report never grants a calibration or field-risk claim. Historical and forecast provenance require dataset/calibration references and chronological train/issue/holdout fields, but #6460 remains the owner of actual probability calibration.
+
+The strict schema and synthetic probability manifest are in schemas/mobility_service_risk_envelope_v0_1.schema.json and fixtures/mobility_service_risk_envelope_v0_1.json. The evaluator contains 14 focused Rust test definitions for fractional-tail arithmetic, rare-event sensitivity, TV radius boundaries, probability provenance, temporal holdout, leaf coverage and input-order invariance.
+
+Research dossier: docs/research/MOBILITY_SERVICE_RISK_ENVELOPE_BENCHMARK_V0_1.md. The result is conditional arithmetic over the supplied finite scenario tree. It is not a calibrated risk guarantee, a physical reliability estimate or flight/market/dispatch authority. Exact-head formatting, compilation and test verification remains pending until the branch workflow completes.

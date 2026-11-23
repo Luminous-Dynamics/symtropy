@@ -24,7 +24,8 @@ use crate::sustainable_mobility_service_capacity::{
 };
 use crate::sustainable_mobility_service_quality::{
     EvidenceClass, FallbackMode, FlightEvidence, FulfilmentMode, LinkedServiceQualityInput,
-    PermissionState, RequestDisposition, ServiceRequest, WeatherState, evaluate_linked_service_quality,
+    PermissionState, RequestDisposition, ServiceRequest, WeatherState,
+    evaluate_linked_service_quality,
 };
 
 const MAX_REQUESTS: usize = 4;
@@ -1657,7 +1658,7 @@ mod tests {
 
     fn linked_fixture() -> LinkedServiceQualityInput {
         serde_json::from_str(include_str!(
-            "../fixtures/sustainable_mobility_service_quality_linked_v0_1.json"
+            "../fixtures/nonanticipative_linked_service_v0_1.json"
         ))
         .expect("linked service fixture must parse")
     }
@@ -1835,12 +1836,12 @@ mod tests {
             .expect("high")
             .request_reveals[0]
             .clone();
-        let low = tree
+        let high = tree
             .nodes
             .iter_mut()
-            .find(|node| node.node_id == "low-demand")
-            .expect("low");
-        low.request_reveals.push(repeated);
+            .find(|node| node.node_id == "high-demand")
+            .expect("high");
+        high.request_reveals.push(repeated);
         let errors =
             evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
                 .expect_err("same request re-revealed on one path");
