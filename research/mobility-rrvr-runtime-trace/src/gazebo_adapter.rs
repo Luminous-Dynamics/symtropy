@@ -115,6 +115,12 @@ pub enum GazeboAdapterError {
     TargetFaultDomainMismatch,
     InvalidIdempotencyContext,
     TransportFailure,
+    ObserverQuorumUnqualified,
+    ObserverIdentityMismatch,
+    ObserverCommonCauseOverlap,
+    ObserverSignatureMismatch,
+    ObserverEpochMismatch,
+    ObserverStepMismatch,
 }
 
 fn nonempty(value: &str) -> bool {
