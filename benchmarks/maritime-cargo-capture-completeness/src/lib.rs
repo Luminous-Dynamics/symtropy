@@ -345,7 +345,12 @@ mod tests {
             "unsupported_sequence_contract" => {
                 let mut p = profile();
                 p.sequence_semantics_qualified = false;
-                CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 }
+                CaptureCase {
+                    profile: Some(p),
+                    reference: Some(reference(&["e1"])),
+                    captured_events: vec![captured("e1")],
+                    as_of: 20,
+                }
             }
             "missing_profile" => CaptureCase {
                 profile: None,
