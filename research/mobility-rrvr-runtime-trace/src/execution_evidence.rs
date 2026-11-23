@@ -913,6 +913,24 @@ impl ExecutionEvidenceBundle {
                 }
             }
 
+            let phase_receipts: Vec<&FaultEvidenceReceipt> = [
+                event.target_resolution.receipt.as_ref(),
+                event.dispatch.receipt.as_ref(),
+                event.execution.receipt.as_ref(),
+                event.delivery_observation.receipt.as_ref(),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+            for adjacent in phase_receipts.windows(2) {
+                if adjacent[0].clock_id != adjacent[1].clock_id
+                    || adjacent[0].simulation_step > adjacent[1].simulation_step
+                    || adjacent[0].simulation_time_ns > adjacent[1].simulation_time_ns
+                {
+                    return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                }
+            }
+
             if event.target_resolution.status == TargetResolutionStatus::Unknown {
                 reconcile_required = true;
             }
@@ -1040,6 +1058,22 @@ mod tests {
             .as_mut()
             .unwrap()
             .simulation_step += 1;
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_incomparable_receipt_clocks_within_one_fault_event() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0]
+            .dispatch
+            .receipt
+            .as_mut()
+            .unwrap()
+            .clock_id = "different-clock-domain".into();
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
