@@ -858,6 +858,58 @@ mod tests {
     }
 
     #[test]
+    fn exact_search_covers_the_full_twenty_view_boundary() {
+        let views = (0..MAX_EXACT_VIEWS)
+            .map(|index| {
+                let view_id = format!("VIEW-{index:02}");
+                let domain_id = format!("DOMAIN-{index:02}");
+                PlanningView {
+                    view_id,
+                    failure_domain_id: domain_id,
+                    cost_units: 1,
+                    nominal_feature_ids: vec!["F1".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned()],
+                }
+            })
+            .collect();
+        let problem = problem(vec![feature("F1", 1)], views, MAX_EXACT_VIEWS, 20);
+
+        let receipt = solve(&problem).unwrap();
+        let all_subsets = 1_u64 << MAX_EXACT_VIEWS;
+        assert_eq!(receipt.subsets_evaluated, all_subsets);
+        assert_eq!(receipt.budget_eligible_subsets, all_subsets);
+        assert_eq!(receipt.nominally_feasible_subsets, all_subsets - 1);
+        assert_eq!(receipt.robustly_feasible_subsets, all_subsets - 1);
+        assert_eq!(
+            receipt.exact_optimum.unwrap().selected_view_ids,
+            vec!["VIEW-00"]
+        );
+    }
+
+    #[test]
+    fn exact_search_rejects_more_than_twenty_candidate_views() {
+        let views = (0..=MAX_EXACT_VIEWS)
+            .map(|index| {
+                let view_id = format!("VIEW-{index:02}");
+                let domain_id = format!("DOMAIN-{index:02}");
+                PlanningView {
+                    view_id,
+                    failure_domain_id: domain_id,
+                    cost_units: 1,
+                    nominal_feature_ids: vec!["F1".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned()],
+                }
+            })
+            .collect();
+        let problem = problem(vec![feature("F1", 1)], views, MAX_EXACT_VIEWS + 1, 21);
+
+        assert_eq!(
+            solve(&problem),
+            Err("PLANNING_PROBLEM_BOUNDS_INVALID".to_owned())
+        );
+    }
+
+    #[test]
     fn input_rejects_robust_visibility_not_present_in_nominal_set() {
         let problem = problem(
             vec![feature("F1", 1)],
