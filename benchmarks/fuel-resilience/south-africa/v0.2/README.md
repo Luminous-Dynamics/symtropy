@@ -42,6 +42,10 @@ cargo run --manifest-path Cargo.toml --release --locked
 
 The standalone workflow uses the repository-pinned Rust 1.96.0 toolchain and runs these checks on pushes to the research branch. A green workflow establishes the crate's software checks only; it does not validate a physical South African network.
 
+## Draft national stock-policy source audit
+
+The July 2026 Draft Strategic Petroleum Stocks Policy contains material internal conflicts in its stockholding targets and its disruption-cost arithmetic. SAFRB preserves the executive-summary and detailed-table variants rather than selecting one, and treats the policy lead-time and pipeline-replenishment statements as uncalibrated draft claims. See [POLICY_CONSISTENCY_AUDIT.md](research/POLICY_CONSISTENCY_AUDIT.md) and the source register.
+
 ## Deliberate limitations
 
 - The executable's three-node chain and all of its volumes/capacities are synthetic known-answer fixtures.
