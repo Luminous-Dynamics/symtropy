@@ -191,7 +191,7 @@ def evaluate(case):
         outside.append("ALL_SUPPORT_EXCEEDS_MAXIMUM_GSD")
 
     if outside:
-        status = "PROVEN_OUTSIDE_SENSING_ENVELOPE"
+        status = "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE"
         reasons = sorted(outside)
     else:
         distance_pass = (
@@ -210,7 +210,7 @@ def evaluate(case):
             and gsd_upper <= sensor["maximum_gsd_m_per_px"] + EPS
         )
         if distance_pass and fov_pass and incidence_pass and gsd_pass:
-            status = "CERTIFIED_WITHIN_SENSING_ENVELOPE"
+            status = "CONDITIONAL_WITHIN_SENSING_ENVELOPE"
             reasons = [
                 "WHOLE_SUPPORT_RANGE_BOUNDS_PASS",
                 "WHOLE_SUPPORT_FOV_BOUND_PASSES",
