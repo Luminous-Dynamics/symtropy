@@ -112,6 +112,7 @@ pub struct AerialServiceOpportunity {
     pub aircraft_id: String,
     pub start_seconds: u64,
     pub max_service_duration_seconds: u32,
+    pub max_payload_units: u16,
     pub turnaround_seconds: u32,
     pub capacity_reference: String,
 }
@@ -124,6 +125,7 @@ pub struct FallbackServiceOpportunity {
     pub fallback_mode: FallbackMode,
     pub start_seconds: u64,
     pub max_service_duration_seconds: u32,
+    pub max_payload_units: u16,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -358,6 +360,7 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
             || request.arrival_seconds > input.horizon_seconds
             || request.accept_by_seconds > input.horizon_seconds
             || request.deadline_seconds < request.arrival_seconds
+            || request.accept_by_seconds > request.deadline_seconds
             || request.deadline_seconds > input.horizon_seconds
             || request.required_service_seconds == 0
             || request.required_service_seconds > MAX_SERVICE_SECONDS
@@ -374,6 +377,7 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
     }
 
     let mut opportunity_ids = BTreeSet::new();
+    let mut capacity_references = BTreeSet::new();
     let mut by_aircraft: BTreeMap<&str, Vec<&AerialServiceOpportunity>> = BTreeMap::new();
     for opportunity in &input.aerial_opportunities {
         let end = opportunity
@@ -386,8 +390,11 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
             || opportunity.start_seconds > input.horizon_seconds
             || opportunity.max_service_duration_seconds == 0
             || opportunity.max_service_duration_seconds > MAX_SERVICE_SECONDS
+            || opportunity.max_payload_units == 0
+            || opportunity.max_payload_units > MAX_PAYLOAD_UNITS
             || opportunity.turnaround_seconds > MAX_SERVICE_SECONDS
             || opportunity.capacity_reference.trim().is_empty()
+            || !capacity_references.insert(opportunity.capacity_reference.as_str())
             || end.is_none_or(|value| value > input.horizon_seconds)
         {
             add_error(
@@ -430,6 +437,8 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
             || opportunity.start_seconds > input.horizon_seconds
             || opportunity.max_service_duration_seconds == 0
             || opportunity.max_service_duration_seconds > MAX_SERVICE_SECONDS
+            || opportunity.max_payload_units == 0
+            || opportunity.max_payload_units > MAX_PAYLOAD_UNITS
             || end.is_none_or(|value| value > input.horizon_seconds)
         {
             add_error(
@@ -471,6 +480,7 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
             || window.evidence.method_id.trim().is_empty()
             || window.evidence.evidence_reference.trim().is_empty()
             || window.evidence.observed_at_seconds > window.start_seconds
+            || window.evidence.valid_from_seconds > window.evidence.observed_at_seconds
             || window.evidence.valid_from_seconds > window.start_seconds
             || window.evidence.valid_until_seconds < window.end_seconds
         {
@@ -698,10 +708,12 @@ fn evaluate_policy(
                     let aerial = &input.aerial_opportunities[opportunity.index];
                     aerial.max_service_duration_seconds
                         >= input.requests[*index].required_service_seconds
+                        && aerial.max_payload_units >= input.requests[*index].payload_units
                 } else {
                     let fallback = &input.fallback_opportunities[opportunity.index];
                     fallback.max_service_duration_seconds
                         >= input.requests[*index].required_service_seconds
+                        && fallback.max_payload_units >= input.requests[*index].payload_units
                 }
             })
             .collect();
