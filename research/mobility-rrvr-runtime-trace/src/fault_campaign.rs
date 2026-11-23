@@ -408,6 +408,7 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
         return Err(CampaignError::InvalidObserverProfile);
     }
     let mut observer_ids = BTreeSet::new();
+    let mut observer_common_cause_domains = BTreeSet::new();
     for observer in &platform.observer_profiles {
         if !nonempty(&observer.observer_id)
             || !nonempty(&observer.revision)
@@ -422,6 +423,13 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
             return Err(CampaignError::InvalidObserverProfile);
         }
         require_sha256(&observer.binary_sha256)?;
+        for domain in &observer.common_cause_domains {
+            if domain == &platform.fault_injector_fault_domain_id
+                || !observer_common_cause_domains.insert(domain.as_str())
+            {
+                return Err(CampaignError::InvalidObserverProfile);
+            }
+        }
     }
     Ok(())
 }
@@ -756,6 +764,36 @@ mod tests {
         let mut platform = valid_manifest();
         platform.platform.environment_artifact_sha256 = "latest".into();
         assert_eq!(platform.validate(), Err(CampaignError::InvalidDigest));
+    }
+
+    #[test]
+    fn rejects_duplicate_or_shared_observer_common_cause_domains() {
+        let mut duplicate = valid_manifest();
+        duplicate.platform.observer_profiles[0]
+            .common_cause_domains
+            .push("observer-host-a".into());
+        assert_eq!(
+            duplicate.validate(),
+            Err(CampaignError::InvalidObserverProfile)
+        );
+
+        let mut shared = valid_manifest();
+        shared.platform.observer_profiles[1]
+            .common_cause_domains
+            .push("observer-host-a".into());
+        assert_eq!(
+            shared.validate(),
+            Err(CampaignError::InvalidObserverProfile)
+        );
+
+        let mut injector_overlap = valid_manifest();
+        injector_overlap.platform.observer_profiles[0]
+            .common_cause_domains
+            .push(injector_overlap.platform.fault_injector_fault_domain_id.clone());
+        assert_eq!(
+            injector_overlap.validate(),
+            Err(CampaignError::InvalidObserverProfile)
+        );
     }
 
     #[test]
