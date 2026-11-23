@@ -685,6 +685,27 @@ mod tests {
     }
 
     #[test]
+    fn ambiguous_required_producers_block_graph_adequacy() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "ambiguous_dependency_source");
+        assert_eq!(result.disposition, "DEPENDENCY_SOURCE_UNAVAILABLE");
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "DEPENDENCY_SOURCE_UNAVAILABLE"
+                && finding.detail.contains("found 2")
+        }));
+    }
+
+    #[test]
+    fn dependency_cycles_fail_closed() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "dependency_cycle");
+        assert_eq!(result.disposition, "INVALID_GRAPH");
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "INVALID_GRAPH" && finding.detail.contains("cycle")
+        }));
+    }
+
+    #[test]
     fn input_permutation_is_deterministic() {
         let expected = evaluate(&fixture()).expect("corpus evaluates");
         let mut permuted = fixture();
