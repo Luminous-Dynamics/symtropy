@@ -107,7 +107,7 @@ jobs:
             and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .result == "pass"
-            and .evaluation.summary.case_count == 9
+            and .evaluation.summary.case_count == 7
             and .evaluation.summary.expected_result_mismatches == 0
             and .evaluation.summary.authority_grants == 0
             and .evaluation.authority_granted == false
@@ -134,7 +134,7 @@ jobs:
             and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .result == "pass"
-            and .evaluation.summary.case_count == 7
+            and .evaluation.summary.case_count == 9
             and .evaluation.summary.graph_complete_cases >= 1
             and .evaluation.summary.common_mode_omission_cases >= 1
             and .evaluation.summary.source_unavailable_cases >= 1
