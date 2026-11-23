@@ -355,8 +355,8 @@ fn find_sampled_extrema(
 
         let value = log_rates[start];
         if value != f64::NEG_INFINITY {
-            let left = (start > 0).then_some(log_rates[start - 1]);
-            let right = (end + 1 < log_rates.len()).then_some(log_rates[end + 1]);
+            let left = (start > 0).then(|| log_rates[start - 1]);
+            let right = (end + 1 < log_rates.len()).then(|| log_rates[end + 1]);
             let greater_left = left.is_some_and(|other| value > other);
             let greater_right = right.is_some_and(|other| value > other);
             let lower_left = left.is_some_and(|other| value < other);
@@ -687,8 +687,8 @@ mod tests {
     #[test]
     fn known_incomplete_horizon_never_qualifies() {
         let samples = [
-            sample(0, 0.0, 0.0, 10, LebedevRule::Points6),
-            sample(1, 2.0, 0.0, 10, LebedevRule::Points6),
+            sample(0, 0.0, 0.0, 6, LebedevRule::Points6),
+            sample(1, 2.0, 0.0, 6, LebedevRule::Points6),
         ];
         let mut declared = horizon(2.0, 2.0);
         declared.coverage_claim = TemporalHorizonCoverageClaim::KnownIncomplete;
