@@ -205,6 +205,7 @@ pub struct PortfolioReport {
 enum ScenarioRejection {
     SingularNuisanceInformation,
     NonIdentifiablePhysicalInformation,
+    InsufficientModelSeparation,
 }
 
 #[derive(Clone, Debug)]
@@ -290,6 +291,9 @@ pub fn evaluate_portfolio_problem(
             }
             Err(ScenarioRejection::NonIdentifiablePhysicalInformation) => {
                 report.rejection_counts.non_identifiable_physical_information += 1;
+            }
+            Err(ScenarioRejection::InsufficientModelSeparation) => {
+                report.rejection_counts.insufficient_model_separation += 1;
             }
         }
     }
@@ -566,7 +570,7 @@ fn evaluate_selected_portfolio(
         return Ok(Err(ScenarioRejection::NonIdentifiablePhysicalInformation));
     }
     if worst_model_separation < problem.minimum_worst_case_model_separation {
-        return Ok(Err(ScenarioRejection::NonIdentifiablePhysicalInformation));
+        return Ok(Err(ScenarioRejection::InsufficientModelSeparation));
     }
 
     let mut candidate_ids: Vec<String> = selected_indices
@@ -1057,8 +1061,7 @@ mod tests {
         }
         let report = evaluate_portfolio_problem(&problem).unwrap();
         assert!(report.pareto_frontier.is_empty());
-        assert!(report.rejection_counts.insufficient_model_separation > 0
-            || report.rejection_counts.non_identifiable_physical_information > 0);
+        assert!(report.rejection_counts.insufficient_model_separation > 0);
     }
 
     #[test]
