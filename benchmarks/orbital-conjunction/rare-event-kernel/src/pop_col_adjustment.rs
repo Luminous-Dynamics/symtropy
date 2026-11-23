@@ -164,7 +164,7 @@ pub fn adjust_pop_col_energy_limited_center(
     )?;
 
     if relative_energy_change <= config.maximum_relative_energy_change {
-        let search = empty_search(0, 1.0);
+        let search = empty_search();
         return Ok(PopColAdjustmentReport {
             status: PopColAdjustmentStatus::CandidateWithinEnergyLimit,
             original_energy,
