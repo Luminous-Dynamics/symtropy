@@ -1,0 +1,174 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001",
+  "site_id": "single-service-site-v01",
+  "site_configuration_digest": "sha256:service-site-v01",
+  "horizon_seconds": 28800,
+  "source_architecture_id": "fixed_dock4_reference_profile",
+  "requests": [
+    {
+      "request_id": "request-first-arrival",
+      "arrival_seconds": 0,
+      "accept_by_seconds": 0,
+      "deadline_seconds": 4000,
+      "required_service_seconds": 240,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-tight-deadline",
+      "arrival_seconds": 0,
+      "accept_by_seconds": 0,
+      "deadline_seconds": 400,
+      "required_service_seconds": 240,
+      "payload_units": 1,
+      "service_class": "urgent",
+      "allowed_mode": "aerial_only"
+    }
+  ],
+  "aerial_opportunity_qualifications": [
+    {
+      "opportunity_id": "aircraft-00-mission-000000",
+      "max_payload_units": 100,
+      "evidence": {
+        "aircraft_id": "aircraft-00",
+        "architecture_configuration_digest": "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-payload-envelope-v0.1",
+        "evidence_reference": "synthetic://payload-qualification/aircraft-00-mission-000000",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 0,
+        "valid_from_seconds": 0,
+        "valid_until_seconds": 345,
+        "capacity_opportunity_id": "aircraft-00-mission-000000",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
+      }
+    },
+    {
+      "opportunity_id": "aircraft-00-mission-000001",
+      "max_payload_units": 100,
+      "evidence": {
+        "aircraft_id": "aircraft-00",
+        "architecture_configuration_digest": "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-payload-envelope-v0.1",
+        "evidence_reference": "synthetic://payload-qualification/aircraft-00-mission-000001",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 345,
+        "valid_from_seconds": 0,
+        "valid_until_seconds": 690,
+        "capacity_opportunity_id": "aircraft-00-mission-000001",
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01"
+      }
+    }
+  ],
+  "fallback_opportunities": [],
+  "flight_windows": [
+    {
+      "window_id": "flight-window-early",
+      "start_seconds": 0,
+      "end_seconds": 3600,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/early",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 0,
+        "valid_from_seconds": 0,
+        "valid_until_seconds": 3600
+      }
+    },
+    {
+      "window_id": "flight-window-weather-no-go",
+      "start_seconds": 3600,
+      "end_seconds": 7200,
+      "weather_state": "no_go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/weather-no-go",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 3590,
+        "valid_from_seconds": 3590,
+        "valid_until_seconds": 7200
+      }
+    },
+    {
+      "window_id": "flight-window-clear",
+      "start_seconds": 7200,
+      "end_seconds": 10800,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/clear",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 7190,
+        "valid_from_seconds": 7190,
+        "valid_until_seconds": 10800
+      }
+    },
+    {
+      "window_id": "flight-window-unknown-permission",
+      "start_seconds": 10800,
+      "end_seconds": 14400,
+      "weather_state": "go",
+      "permission_state": "unknown",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/unknown-permission",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 10790,
+        "valid_from_seconds": 10790,
+        "valid_until_seconds": 14400
+      }
+    },
+    {
+      "window_id": "flight-window-late-clear",
+      "start_seconds": 14400,
+      "end_seconds": 28800,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/clear-late",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 14390,
+        "valid_from_seconds": 14390,
+        "valid_until_seconds": 28800
+      }
+    }
+  ],
+  "blocked_intervals": [
+    {
+      "interval_id": "dock-maintenance-window",
+      "start_seconds": 8700,
+      "end_seconds": 9000,
+      "kind": "maintenance"
+    }
+  ],
+  "policies": [
+    "first_come_first_served",
+    "earliest_deadline_first"
+  ],
+  "claim_ceiling": "Linked deterministic request admission using aircraft/time opportunities re-evaluated from the capacity event simulator; synthetic payload and flight-window evidence only. No route planning, flight/dispatch, physical, market, regulatory or customer-delivery authority."
+}
