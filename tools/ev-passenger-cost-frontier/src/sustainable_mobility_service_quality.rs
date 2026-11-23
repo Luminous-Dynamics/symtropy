@@ -233,6 +233,75 @@ pub struct LinkedServiceQualityInput {
     pub claim_ceiling: String,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExactOracleStatus {
+    Evaluated,
+    NotRunBoundsExceeded,
+    NodeLimitReached,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ExactOracleScore {
+    pub completed_on_time: usize,
+    pub completed_late: usize,
+    pub completed_by_horizon: usize,
+    pub in_progress_at_horizon: usize,
+    pub total_lateness_seconds: u64,
+    pub total_latency_seconds: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ExactOracleAssignment {
+    pub request_id: String,
+    pub opportunity_id: String,
+    pub fulfilment_mode: FulfilmentMode,
+    pub service_start_seconds: u64,
+    pub projected_completion_seconds: u64,
+    pub disposition: RequestDisposition,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ExactOraclePolicyGap {
+    pub policy: AdmissionPolicy,
+    pub on_time_completion_gap: usize,
+    pub completed_by_horizon_gap: usize,
+    pub lateness_excess_seconds: u64,
+    pub latency_excess_seconds: u64,
+    pub in_progress_excess: usize,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ExactOracleReport {
+    pub status: ExactOracleStatus,
+    pub request_bound: usize,
+    pub opportunity_bound: usize,
+    pub search_node_limit: usize,
+    pub search_nodes: usize,
+    pub best_score: Option<ExactOracleScore>,
+    pub best_assignments: Vec<ExactOracleAssignment>,
+    pub policy_gaps: Vec<ExactOraclePolicyGap>,
+    pub objective: &'static str,
+}
+
+const MAX_EXACT_ORACLE_REQUESTS: usize = 8;
+const MAX_EXACT_ORACLE_OPPORTUNITIES: usize = 8;
+const MAX_EXACT_ORACLE_NODES: usize = 1_000_000;
+
+#[derive(Debug, Clone)]
+struct ExactOracleCandidate {
+    request_index: usize,
+    completion_seconds: u64,
+    mode: FulfilmentMode,
+}
+
+#[derive(Debug, Clone)]
+struct ExactOracleBest {
+    score: ExactOracleScore,
+    assignments: Vec<Option<ExactOracleAssignment>>,
+    canonical_key: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct LinkedServiceQualityReport {
     pub schema_version: String,
@@ -245,6 +314,7 @@ pub struct LinkedServiceQualityReport {
     pub capacity_opportunities_in_source: usize,
     pub capacity_opportunities_qualified: usize,
     pub policy_results: Vec<ServicePolicyResult>,
+    pub exact_oracle: ExactOracleReport,
     pub service_quality_is_physical_performance_claim: bool,
     pub claim_ceiling: &'static str,
 }
@@ -255,6 +325,7 @@ pub enum RequestDisposition {
     RejectedAfterAcceptanceCutoff,
     CompletedOnTime,
     CompletedLate,
+    InProgressAtHorizon,
     Unserved,
 }
 
@@ -275,7 +346,10 @@ pub struct RequestOutcome {
     pub opportunity_id: Option<String>,
     pub arrival_seconds: u64,
     pub service_start_seconds: Option<u64>,
+    /// Present only when the service actually completed within the model horizon.
     pub service_completion_seconds: Option<u64>,
+    /// A projected completion beyond the horizon is not counted as a completed service.
+    pub projected_completion_seconds: Option<u64>,
     pub latency_seconds: Option<u64>,
     pub queue_wait_seconds: Option<u64>,
     pub denial_reason: Option<String>,
@@ -289,9 +363,13 @@ pub struct ServicePolicyResult {
     pub rejected_requests: usize,
     pub completed_on_time: usize,
     pub completed_late: usize,
+    pub in_progress_requests: usize,
     pub unserved_requests: usize,
+    /// Completed services only; in-progress assignments are reported separately.
     pub served_by_aerial: usize,
     pub served_by_fallback: usize,
+    pub in_progress_by_aerial: usize,
+    pub in_progress_by_fallback: usize,
     pub aerial_opportunities_available: usize,
     pub aerial_opportunities_blocked: usize,
     pub aerial_opportunities_unused: usize,
