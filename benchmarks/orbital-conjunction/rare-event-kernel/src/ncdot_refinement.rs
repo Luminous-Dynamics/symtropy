@@ -263,13 +263,11 @@ pub fn decide_ncdot_refinement(
         let peak_rate = rates[peak];
         let tolerance = policy.peak_relative_drop_tolerance * peak_rate;
         let left_gap = (peak > 0).then(|| epochs[peak] - epochs[peak - 1]);
-        let right_gap =
-            (peak + 1 < count).then(|| epochs[peak + 1] - epochs[peak]);
+        let right_gap = (peak + 1 < count).then(|| epochs[peak + 1] - epochs[peak]);
 
         if let Some(gap) = left_gap {
             let left_drop = peak_rate - rates[peak - 1];
-            let opposite_gap_is_too_large =
-                right_gap.is_some_and(|other| gap >= 2.0 * other);
+            let opposite_gap_is_too_large = right_gap.is_some_and(|other| gap >= 2.0 * other);
             if left_drop > tolerance || opposite_gap_is_too_large {
                 peak_insertions.push(midpoint(epochs[peak - 1], epochs[peak])?);
             }
@@ -277,8 +275,7 @@ pub fn decide_ncdot_refinement(
 
         if let Some(gap) = right_gap {
             let right_drop = peak_rate - rates[peak + 1];
-            let opposite_gap_is_too_large =
-                left_gap.is_some_and(|other| gap >= 2.0 * other);
+            let opposite_gap_is_too_large = left_gap.is_some_and(|other| gap >= 2.0 * other);
             if right_drop > tolerance || opposite_gap_is_too_large {
                 peak_insertions.push(midpoint(epochs[peak], epochs[peak + 1])?);
             }
