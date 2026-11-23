@@ -60,6 +60,9 @@ pub enum ReliableEvidencePlanReason {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReliableActiveEvidencePlan {
     pub reason: ReliableEvidencePlanReason,
+    /// Exact domain and acquisition protocol under which #7082 admitted the probability interval.
+    pub expected_domain_fingerprint_sha256: [u8; 32],
+    pub expected_acquisition_protocol_sha256: [u8; 32],
     pub recommended_action_id: Option<u64>,
     pub pareto_frontier: Vec<ReliableEvidenceActionAssessment>,
     pub reliability_rejections: Vec<RejectedAcquisitionReliability>,
@@ -120,6 +123,8 @@ pub fn plan_active_evidence_with_reliability(
     };
     if baseline.as_ref().is_some_and(|plan| plan.reason == AcquisitionPlanReason::TargetAlreadySatisfied) {
         return Ok(ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+            expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
             reason: ReliableEvidencePlanReason::TargetAlreadySatisfied,
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
@@ -148,6 +153,8 @@ pub fn plan_active_evidence_with_reliability(
 
     if resource_feasible.is_empty() {
         return Ok(ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+            expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
             reason: ReliableEvidencePlanReason::NoReliablyAdmittedAction,
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
@@ -183,6 +190,8 @@ pub fn plan_active_evidence_with_reliability(
 
     if admitted_candidates.is_empty() {
         return Ok(ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+            expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
             reason: ReliableEvidencePlanReason::NoReliablyAdmittedAction,
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
@@ -212,6 +221,8 @@ pub fn plan_active_evidence_with_reliability(
         Ok(plan) => plan,
         Err(ActiveEvidenceDecisionError::Acquisition(ActiveEvidenceAcquisitionError::NoFeasibleAction)) => {
             return Ok(ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+            expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
                 reason: ReliableEvidencePlanReason::NoConditionalActionValue,
                 recommended_action_id: None,
                 pareto_frontier: Vec::new(),
@@ -228,6 +239,8 @@ pub fn plan_active_evidence_with_reliability(
 
     if combined_plan.recommended_action_id.is_none() {
         return Ok(ReliableActiveEvidencePlan {
+            expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+            expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
             reason: ReliableEvidencePlanReason::NoConditionalActionValue,
             recommended_action_id: None,
             pareto_frontier: Vec::new(),
@@ -344,6 +357,8 @@ pub fn plan_active_evidence_with_reliability(
     let recommended_action_id = selected.conditional.action.action_id;
     let conditional_target_reached = selected.conditional.action.reaches_target_if_acquisition_qualifies;
     Ok(ReliableActiveEvidencePlan {
+        expected_domain_fingerprint_sha256: reliability_policy.expected_domain_fingerprint_sha256,
+        expected_acquisition_protocol_sha256: reliability_policy.expected_acquisition_protocol_sha256,
         reason,
         recommended_action_id: Some(recommended_action_id),
         pareto_frontier: frontier,
