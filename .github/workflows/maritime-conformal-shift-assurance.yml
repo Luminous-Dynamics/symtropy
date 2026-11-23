@@ -41,13 +41,14 @@ jobs:
         run: cargo check --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all-targets
       - name: Run tests
         run: cargo test --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all-targets
-      - name: Verify deterministic 12-row receipt
+      - name: Verify deterministic 12-row, 15-column receipt
         run: |
           set -euo pipefail
           cargo run --quiet --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --bin conformal-shift-audit > /tmp/conformal-shift.csv
           cargo run --quiet --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --bin conformal-shift-audit > /tmp/conformal-shift-replay.csv
           cmp /tmp/conformal-shift.csv /tmp/conformal-shift-replay.csv
           test "$(wc -l < /tmp/conformal-shift.csv)" -eq 13
+          head -n 1 /tmp/conformal-shift.csv | awk -F, '{ if (NF != 15) exit 1 }'
           grep -q '^FIXED_MARGINAL_SPLIT,STATIONARY,' /tmp/conformal-shift.csv
           grep -q '^FIXED_JOINT_SPLIT,TEMPORAL_DRIFT,' /tmp/conformal-shift.csv
           grep -q '^ROLLING_JOINT,BURST_TAIL,' /tmp/conformal-shift.csv
