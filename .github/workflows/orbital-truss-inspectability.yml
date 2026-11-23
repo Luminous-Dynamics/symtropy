@@ -131,7 +131,7 @@ jobs:
           rust = json.loads(Path("/tmp/planning-a.json").read_text())
           oracle = json.loads(Path("/tmp/planning-oracle.json").read_text())
           assert rust == oracle
-          assert rust["case_count"] == 5
+          assert rust["case_count"] == 8
           cases = {case["case_id"]: case for case in rust["cases"]}
           trap = cases["OP-001-GREEDY-TRAP"]["planning"]
           assert trap["exact_optimum"]["selected_view_ids"] == ["VIEW-B", "VIEW-C"]
@@ -153,7 +153,7 @@ jobs:
           assert shortfall["candidate_pool_coverage"][0]["robust_view_count"] == 2
           pareto = cases["OP-005-COST-COUNT-PARETO"]["planning"]["pareto_frontier"]
           assert [(item["total_cost_units"], item["selected_view_count"]) for item in pareto] == [(2, 2), (3, 1)]
-          print("Rust exact planner and independent Python oracle agree on five frozen cases and expected adversarial properties")
+          print("Rust exact planner and independent Python oracle agree on eight frozen cases, including orthogonal k-view and failure-domain controls")
           PY
       - name: Create exact-head evidence manifest
         if: success()
