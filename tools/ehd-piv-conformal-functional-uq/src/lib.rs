@@ -27,10 +27,5 @@ pub enum FlowRegion {
 }
 
 impl FlowRegion {
-    pub const ALL: [Self; 4] = [
-        Self::Bulk,
-        Self::NearWall,
-        Self::ShearLayer,
-        Self::Wake,
-    ];
+    pub const ALL: [Self; 4] = [Self::Bulk, Self::NearWall, Self::ShearLayer, Self::Wake];
 }
