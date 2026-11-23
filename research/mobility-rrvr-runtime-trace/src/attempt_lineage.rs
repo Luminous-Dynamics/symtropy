@@ -917,14 +917,15 @@ mod tests {
     #[test]
     fn refuses_replayed_receipt_identity_and_cross_attempt_scope() {
         let mut duplicate = valid_recording();
-        duplicate.attempts[1]
-            .mission_resolution
-            .receipt
-            .evidence_id = duplicate.attempts[0]
+        let prior_evidence_id = duplicate.attempts[0]
             .physical_outcome
             .receipt
             .evidence_id
             .clone();
+        duplicate.attempts[1]
+            .mission_resolution
+            .receipt
+            .evidence_id = prior_evidence_id;
         assert_eq!(
             duplicate.validate(),
             Err(LineageError::DuplicateEvidenceIdentity)
