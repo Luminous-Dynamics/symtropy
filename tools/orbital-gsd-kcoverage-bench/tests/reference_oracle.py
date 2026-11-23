@@ -160,6 +160,14 @@ class Grid:
         return False
 
 
+def cross(a,b):
+    return (
+        a[1]*b[2]-a[2]*b[1],
+        a[2]*b[0]-a[0]*b[2],
+        a[0]*b[1]-a[1]*b[0],
+    )
+
+
 def evaluate(case,raw,source_commit):
     if case["schema"]!=CASE_SCHEMA or case["benchmark_id"]!=BENCHMARK_ID:
         raise ValueError("CASE_IDENTITY_INVALID")
@@ -167,11 +175,22 @@ def evaluate(case,raw,source_commit):
             or case["claim_ceiling"]!="synthetic_3d_voxel_surface_candidate_view_visibility_only"):
         raise ValueError("CASE_CLAIM_CEILING_INVALID")
     cam=case["camera"]
+    aug=case["augmentation"]
     if (not 0<cam["horizontal_fov_rad"]<math.pi
             or cam["horizontal_pixel_count"]<=0
             or cam["gsd_max_m_per_pixel"]<=0
             or not 0<=cam["max_oblique_angle_rad"]<math.pi/2):
         raise ValueError("CAMERA_MODEL_INVALID")
+    if aug["requested_k"]<=0 or aug["requested_k"]>20:
+        raise ValueError("REQUESTED_K_OUT_OF_BOUNDS")
+    if (len(aug["tilt_angles_deg"])>90 or len(aug["azimuth_angles_deg"])>12
+            or any(not math.isfinite(v) or v<1 or v>90 for v in aug["tilt_angles_deg"])
+            or any(not math.isfinite(v) or v<0 or v>=360 for v in aug["azimuth_angles_deg"])):
+        raise ValueError("AUGMENTATION_ANGLE_INPUT_INVALID")
+    if len(aug["tilt_angles_deg"])!=len(set(aug["tilt_angles_deg"])):
+        raise ValueError("DUPLICATE_TILT_ANGLE")
+    if len(aug["azimuth_angles_deg"])!=len(set(aug["azimuth_angles_deg"])):
+        raise ValueError("DUPLICATE_AZIMUTH_ANGLE")
 
     grid=Grid(case["grid"])
     fov_scale=2*math.tan(cam["horizontal_fov_rad"]/2)
@@ -183,13 +202,8 @@ def evaluate(case,raw,source_commit):
     surfaces=grid.surfaces()
     views=[]
 
-    for surface in surfaces:
-        normal=tuple(value/1e6 for value in surface["normal_q1e6"])
-        centre=grid.centre(surface["cell"])
-        position=add(centre,mul(normal,perpendicular))
-        optical=mul(normal,-1.0)
-        if grid.occluded(position,centre,surface["cell"]):
-            continue
+    def visible_features(position,position_direction):
+        optical=mul(position_direction,-1.0)
         visible=[]
         for target in surfaces:
             target_normal=tuple(value/1e6 for value in target["normal_q1e6"])
@@ -198,7 +212,7 @@ def evaluate(case,raw,source_commit):
             distance=norm(ray)
             if distance<=1e-12 or distance>slant_range+1e-10:
                 continue
-            deviation=angle(normal,target_normal)
+            deviation=angle(position_direction,target_normal)
             if deviation is None or deviation>cam["max_oblique_angle_rad"]+1e-10:
                 continue
             fov=angle(optical,ray)
@@ -210,27 +224,102 @@ def evaluate(case,raw,source_commit):
             if grid.occluded(position,target_centre,target["cell"]):
                 continue
             visible.append(target["feature_id"])
+        return sorted(visible)
+
+    # Initial candidate viewpoints along each surface-patch normal.
+    for surface in surfaces:
+        normal=unit(tuple(value/1e6 for value in surface["normal_q1e6"]))
+        centre=grid.centre(surface["cell"])
+        position=add(centre,mul(normal,perpendicular))
+        if grid.occluded(position,centre,surface["cell"]):
+            continue
+        visible=visible_features(position,normal)
         views.append({
             "view_id":f"VIEW-{len(views)}",
             "source_feature_id":surface["feature_id"],
             "source_cell":surface["cell"],
-            "normal_q1e6":surface["normal_q1e6"],
+            "position_direction_q1e6":[quant(value,1e6) for value in normal],
             "position_um":[quant(value,1e6) for value in position],
-            "optical_axis_q1e6":[quant(value,1e6) for value in optical],
-            "visible_feature_ids":sorted(visible)
+            "optical_axis_q1e6":[quant(value,1e6) for value in mul(normal,-1.0)],
+            "generation_kind":"INITIAL_NORMAL",
+            "tilt_degrees_millideg":None,
+            "azimuth_degrees_millideg":None,
+            "visible_feature_ids":visible
         })
 
+    initial_candidate_view_count=len(views)
+    initial_coverage=[
+        sum(surface["feature_id"] in view["visible_feature_ids"] for view in views)
+        for surface in surfaces
+    ]
+    undercovered=[
+        surface["feature_id"]
+        for surface,count in zip(surfaces,initial_coverage)
+        if count<aug["requested_k"]
+    ]
+    upper_bound=(
+        len(undercovered)*len(aug["tilt_angles_deg"])*len(aug["azimuth_angles_deg"])
+    )
+    if initial_candidate_view_count+upper_bound>20000:
+        raise ValueError("CANDIDATE_VIEW_LIMIT_EXCEEDED")
+
+    # Deterministic local tangent basis, using the least-aligned Cartesian axis.
+    for surface,count in zip(surfaces,initial_coverage):
+        if count>=aug["requested_k"]:
+            continue
+        normal=unit(tuple(value/1e6 for value in surface["normal_q1e6"]))
+        reference=(
+            (1.0,0.0,0.0) if abs(normal[0])<=abs(normal[1]) and abs(normal[0])<=abs(normal[2])
+            else (0.0,1.0,0.0) if abs(normal[1])<=abs(normal[2])
+            else (0.0,0.0,1.0)
+        )
+        tangent_one=unit(sub(reference,mul(normal,dot(reference,normal))))
+        tangent_two=unit(cross(normal,tangent_one))
+        centre=grid.centre(surface["cell"])
+
+        for tilt_deg in aug["tilt_angles_deg"]:
+            beta=math.radians(tilt_deg)
+            for azimuth_deg in aug["azimuth_angles_deg"]:
+                phi=math.radians(azimuth_deg)
+                tangent=add(mul(tangent_one,math.cos(phi)),mul(tangent_two,math.sin(phi)))
+                direction=unit(add(mul(normal,math.cos(beta)),mul(tangent,math.sin(beta))))
+                position=add(centre,mul(direction,perpendicular))
+                if grid.occluded(position,centre,surface["cell"]):
+                    continue
+                visible=visible_features(position,direction)
+                views.append({
+                    "view_id":f"VIEW-{len(views)}",
+                    "source_feature_id":surface["feature_id"],
+                    "source_cell":surface["cell"],
+                    "position_direction_q1e6":[quant(value,1e6) for value in direction],
+                    "position_um":[quant(value,1e6) for value in position],
+                    "optical_axis_q1e6":[quant(value,1e6) for value in mul(direction,-1.0)],
+                    "generation_kind":"AUGMENTED_TILT_AZIMUTH",
+                    "tilt_degrees_millideg":quant(tilt_deg,1e3),
+                    "azimuth_degrees_millideg":quant(azimuth_deg,1e3),
+                    "visible_feature_ids":visible
+                })
+
+    augmented_candidate_view_count=len(views)-initial_candidate_view_count
     coverage=[]
-    for surface in surfaces:
+    for index,surface in enumerate(surfaces):
         seen=sorted(
             view["view_id"] for view in views
             if surface["feature_id"] in view["visible_feature_ids"]
         )
         coverage.append({
             "feature_id":surface["feature_id"],
+            "initial_candidate_view_count":initial_coverage[index],
             "candidate_view_count":len(seen),
             "seen_by_view_ids":seen
         })
+    requested_k_covered=all(row["candidate_view_count"]>=aug["requested_k"] for row in coverage)
+    any_unobservable=any(row["candidate_view_count"]==0 for row in coverage)
+    disposition=(
+        "INFEASIBLE" if any_unobservable
+        else "FEASIBLE" if requested_k_covered
+        else "INDETERMINATE"
+    )
 
     return {
         "schema":RECEIPT_SCHEMA,
@@ -241,7 +330,7 @@ def evaluate(case,raw,source_commit):
         "source_input_sha256":hashlib.sha256(raw).hexdigest(),
         "evidence_class":"synthetic",
         "claim_ceiling":case["claim_ceiling"],
-        "disposition":"FEASIBLE" if all(row["candidate_view_count"]>0 for row in coverage) else "INFEASIBLE",
+        "disposition":disposition,
         "grid_dimensions":grid.dims,
         "occupied_cell_count":len(grid.occupied),
         "exterior_empty_cell_count":len(grid.exterior),
@@ -256,6 +345,11 @@ def evaluate(case,raw,source_commit):
         "max_oblique_angle_microrad":quant(cam["max_oblique_angle_rad"],1e6),
         "slant_range_max_um":quant(slant_range,1e6),
         "perpendicular_distance_um":quant(perpendicular,1e6),
+        "requested_k":aug["requested_k"],
+        "initial_candidate_view_count":initial_candidate_view_count,
+        "augmented_candidate_view_count":augmented_candidate_view_count,
+        "undercovered_feature_ids_before_augmentation":undercovered,
+        "requested_k_covered_after_augmentation":requested_k_covered,
         "candidate_view_count":len(views),
         "visible_relation_count":sum(len(view["visible_feature_ids"]) for view in views),
         "surface_features":surfaces,
@@ -266,7 +360,6 @@ def evaluate(case,raw,source_commit):
         "flight_authorized":False,
         "physical_validation":"NOT_ASSESSED"
     }
-
 
 def main():
     if len(sys.argv)!=3:
