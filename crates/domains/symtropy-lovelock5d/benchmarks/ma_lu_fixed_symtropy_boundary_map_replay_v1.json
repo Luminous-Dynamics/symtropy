@@ -12,7 +12,10 @@
     "sha256": "ba521444eb0eac65a57ac3370076f7da095146185a75f606cd4a9ba7548bc004",
     "git_blob_sha1": "1ae41e4bbefcb24ffa47bff791c84126f1c8864a"
   },
-  "environment": {"python": "3.13.5", "sympy": "1.14.0"},
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
   "checks": {
     "horizon_values": true,
     "nuS_and_radius_expansions": true,
@@ -25,5 +28,10 @@
     "negative_control_nu_h_vs_nu_S": true,
     "negative_control_chi_factor": true
   },
-  "claim_ceiling": "Exact local algebraic series in the displayed first-coupling and slow-rotation truncation. No corrected metric component match, original EOM residual, finite-coupling solution or existence theorem is claimed."
+  "claim_ceiling": "Exact local algebraic series in the displayed first-coupling and slow-rotation truncation. No corrected metric component match, original EOM residual, finite-coupling solution or existence theorem is claimed.",
+  "parameter_interpretation": {
+    "mu_over_R_H2": "converted background MP mass parameter, not corrected ADM mass",
+    "ADM_mass": "separate asymptotic charge extraction from the fully transformed metric, including H1",
+    "ensembles": "Ma-Lu fixed background data, fixed Symtropy (R_H,Omega_H), and thermodynamic fixed-potential/charge ensembles are distinct"
+  }
 }
