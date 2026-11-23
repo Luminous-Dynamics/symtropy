@@ -471,8 +471,10 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     }
 
     if !exclusion_inventory_matches {
-        unwitnessed_exclusion_ids.extend(set_difference(&expected_exclusions, &observed_exclusions));
-        unwitnessed_exclusion_ids.extend(set_difference(&observed_exclusions, &expected_exclusions));
+        unwitnessed_exclusion_ids
+            .extend(set_difference(&expected_exclusions, &observed_exclusions));
+        unwitnessed_exclusion_ids
+            .extend(set_difference(&observed_exclusions, &expected_exclusions));
     }
     unwitnessed_exclusion_ids.sort();
     unwitnessed_exclusion_ids.dedup();
@@ -767,6 +769,9 @@ mod tests {
             .find(|case| case.case_id == "extra_exclusion")
             .expect("extra exclusion control exists");
         assert_eq!(case.status, "NEGATIVE_SPACE_UNWITNESSED");
-        assert_eq!(case.unwitnessed_exclusion_ids, vec!["exclude-extra".to_owned()]);
+        assert_eq!(
+            case.unwitnessed_exclusion_ids,
+            vec!["exclude-extra".to_owned()]
+        );
     }
 }
