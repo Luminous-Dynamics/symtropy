@@ -169,7 +169,7 @@ fn outward_up(value: f64) -> Result<f64, OutwardIntervalError> {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RangeMinWitness {
     pub start_index: usize,
     pub end_index_exclusive: usize,
@@ -207,7 +207,7 @@ impl From<OutwardIntervalError> for RangeMinIndexError {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct RangeMinNode {
     lower: f64,
     upper: f64,
@@ -560,7 +560,7 @@ mod tests {
         for (r, q) in [(0.1, 5.0), (0.2, 4.0), (0.3, 3.5), (0.4, 3.0), (0.5, 4.0)] {
             index.append(interval(r), interval(q)).unwrap();
         }
-        let result = index.prove_future_prefix(0, 5, interval(0.35), interval(2.5)).unwrap();
+        let result = index.prove_future_prefix(0, 5, interval(0.4), interval(2.5)).unwrap();
         let RollingRangeDecision::ProvenPass(witness) = result else {
             panic!("expected conservative pass");
         };
