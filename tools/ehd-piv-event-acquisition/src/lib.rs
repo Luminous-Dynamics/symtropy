@@ -20,8 +20,6 @@ use std::error::Error;
 use std::fmt;
 
 pub const MAX_ILLUMINATION_OPTIONS: usize = 16;
-const POSITIVE_FLOOR: f64 = f64::MIN_POSITIVE;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SpatialIlluminationMode {
     FullField,
@@ -235,7 +233,6 @@ struct FeasibleCandidate {
     event_rate_lower: f64,
     event_rate_upper: f64,
     particle_density_upper: f64,
-    velocity_upper: f64,
     buffer_utilization_upper: f64,
     displacement_upper_pixels: f64,
     clock_uncertainty_fraction_upper: f64,
@@ -361,10 +358,7 @@ pub fn plan_event_acquisition(
             .min(buffer_limited_window)
             .min(displacement_limited_window);
 
-        if !minimum_window.is_finite()
-            || !maximum_window.is_finite()
-                && maximum_window != f64::INFINITY
-            || maximum_window <= 0.0
+        if !minimum_window.is_finite() || !maximum_window.is_finite() || maximum_window <= 0.0
         {
             return Err(EventPlanError::NonFiniteDerivedValue);
         }
@@ -418,7 +412,6 @@ pub fn plan_event_acquisition(
             event_rate_lower,
             event_rate_upper,
             particle_density_upper,
-            velocity_upper,
             buffer_utilization_upper: buffer_utilization,
             displacement_upper_pixels: displacement_upper,
             clock_uncertainty_fraction_upper: clock_fraction,
@@ -784,7 +777,7 @@ mod tests {
                 200_000.0,
                 0.03,
                 1.0,
-                4.0,
+                1.0,
                 ObserverImpact::AssessedNonPerturbing,
             ),
             option(
@@ -802,7 +795,7 @@ mod tests {
                 800_000.0,
                 0.12,
                 0.96,
-                1.0,
+                4.0,
                 ObserverImpact::PotentiallyPerturbing,
             ),
         ]
