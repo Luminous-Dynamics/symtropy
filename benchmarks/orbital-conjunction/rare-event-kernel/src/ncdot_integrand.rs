@@ -306,7 +306,7 @@ fn evaluate_prepared_direction(
         } else {
             conditional_mean.abs().ln() - log_sigma - 0.5 * core::f64::consts::LN_2
         };
-        let eta = conditional_mean / (sigma * SQRT_2);
+        let eta = (conditional_mean / sigma) / SQRT_2;
         let log_shape = if eta.is_finite() {
             gaussian_flux_shape_log(eta)?
         } else if conditional_mean > 0.0 {
@@ -507,16 +507,18 @@ fn validate_positive_semidefinite(matrix: &[[f64; 3]; 3]) -> Result<(), KernelEr
         .flatten()
         .map(|value| value.abs())
         .fold(1.0_f64, f64::max);
-    let tolerance = 1.0e-12 * scale.powi(3);
-    if matrix[0][0] < -tolerance.sqrt()
-        || matrix[1][1] < -tolerance.sqrt()
-        || matrix[2][2] < -tolerance.sqrt()
+    let diagonal_tolerance = 1.0e-12 * scale;
+    let minor_tolerance = 1.0e-12 * scale.powi(2);
+    let determinant_tolerance = 1.0e-12 * scale.powi(3);
+    if matrix[0][0] < -diagonal_tolerance
+        || matrix[1][1] < -diagonal_tolerance
+        || matrix[2][2] < -diagonal_tolerance
     {
         return Err(KernelError::NegativeConditionalVelocityVariance);
     }
     for (i, j) in [(0, 1), (0, 2), (1, 2)] {
         let minor = matrix[i][i] * matrix[j][j] - matrix[i][j] * matrix[i][j];
-        if minor < -tolerance {
+        if minor < -minor_tolerance {
             return Err(KernelError::NegativeConditionalVelocityVariance);
         }
     }
@@ -526,7 +528,7 @@ fn validate_positive_semidefinite(matrix: &[[f64; 3]; 3]) -> Result<(), KernelEr
             * (matrix[0][1] * matrix[2][2] - matrix[1][2] * matrix[0][2])
         + matrix[0][2]
             * (matrix[0][1] * matrix[1][2] - matrix[1][1] * matrix[0][2]);
-    if determinant < -tolerance {
+    if determinant < -determinant_tolerance {
         return Err(KernelError::NegativeConditionalVelocityVariance);
     }
     Ok(())
