@@ -347,30 +347,6 @@ fn hopcroft_karp_matching(
 ) -> (usize, Vec<Option<usize>>) {
     const UNREACHED: usize = usize::MAX;
 
-    fn build_layers(
-        graph: &[Vec<usize>],
-        right_to_left: &[Option<usize>],
-        distance: &mut [usize],
-    ) -> usize {
-        let mut queue = VecDeque::new();
-        for (left, slot) in distance.iter_mut().enumerate() {
-            if left < graph.len() && graph[left].len() >= 0 && left < graph.len() {
-                // Unmatched left vertices are roots of the alternating BFS.
-                // The left-side matching is reconstructed by the caller below.
-                *slot = UNREACHED;
-            }
-        }
-        for left in 0..graph.len() {
-            if !distance[left].eq(&UNREACHED) {
-                continue;
-            }
-            // A left vertex whose matched right edge points back to it is
-            // already matched; roots are filled explicitly by the caller.
-        }
-        queue.clear();
-        let _ = right_to_left;
-        UNREACHED
-    }
 
     let left_count = graph.len();
     let mut left_to_right = vec![None; left_count];
@@ -1298,7 +1274,7 @@ mod tests {
         let edge_slots = node_count * node_count;
         for mask in 0usize..(1usize << edge_slots) {
             let mut graph = vec![Vec::new(); node_count];
-            for (left, edges) in graph.iter_mut().enumerate() {
+            for edges in &mut graph {
                 for right in 0..node_count {
                     let bit = left * node_count + right;
                     if (mask & (1usize << bit)) != 0 {
@@ -1335,7 +1311,6 @@ mod tests {
                         edges.push(right);
                     }
                 }
-                let _ = left;
             }
             assert_eq!(
                 classify_graph_hopcroft_karp(&graph, node_count),
