@@ -1,0 +1,35 @@
+name: Fan Article Release Packet
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/fan_article_release_packet_v0_1.schema.json"
+      - "fixtures/manufacturing/fan_article_release_packet_v0_1.json"
+      - "docs/tech/FAN_ARTICLE_RELEASE_PACKET_V0_1.md"
+      - "tools/fan-article-release-packet-check/**"
+      - ".github/workflows/fan-article-release-packet.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "schemas/manufacturing/fan_article_release_packet_v0_1.schema.json"
+      - "fixtures/manufacturing/fan_article_release_packet_v0_1.json"
+      - "tools/fan-article-release-packet-check/**"
+      - ".github/workflows/fan-article-release-packet.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/fan-article-release-packet-check/Cargo.toml -- --check
+      - name: Run adversarial release-gate tests
+        run: cargo test --manifest-path tools/fan-article-release-packet-check/Cargo.toml
+      - name: Validate incomplete intake packet
+        run: cargo run --manifest-path tools/fan-article-release-packet-check/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/fan-article-release-packet-check/Cargo.toml -- -D warnings
