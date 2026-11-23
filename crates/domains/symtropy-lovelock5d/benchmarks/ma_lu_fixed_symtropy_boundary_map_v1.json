@@ -8,7 +8,8 @@
     "nu_S": "Omega_H*R_H",
     "epsilon_R": "alpha_R/r_h^2",
     "epsilon_S": "alpha_R/R_H^2",
-    "chi": "a/sqrt(mu)"
+    "chi": "a/mu (Ma-Lu Eq. 10)",
+    "chi_times_R_H": "(a/mu)*R_H"
   },
   "horizon_values": {
     "mu_over_rh2": "(1+q^2)^2/2",
@@ -25,26 +26,26 @@
     "r_h_over_R_H": "1-(5/3)*epsilon_S-nu_S^2/2-(127/90)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
     "a_over_R_H": "nu_S+(16/3)*epsilon_S*nu_S-(2068/45)*epsilon_S*nu_S^3+O(epsilon_S^2,nu_S^5)",
     "mu_over_R_H2": "1/2-(5/3)*epsilon_S+nu_S^2/2+(454/45)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
-    "chi": "sqrt(2)*(nu_S-nu_S^3/2+7*epsilon_S*nu_S-(5509/90)*epsilon_S*nu_S^3)+O(epsilon_S^2,nu_S^5)"
+    "chi_times_R_H": "2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3+O(epsilon_S^2,nu_S^5)"
   },
   "checks": {
     "horizon_values_from_H2_H4_H7": true,
     "nuS_and_radius_expansions": true,
     "inverse_q_series": true,
     "a_and_mu_maps": true,
-    "chi_map": true,
     "GR_exact_limit": true,
     "negative_control_omit_H7": true,
     "negative_control_omit_H2_H4": true,
     "negative_control_nu_h_vs_nu_S": true,
-    "negative_control_chi_factor": true
+    "negative_control_chi_factor": true,
+    "chi_times_RH_map": true
   },
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0"
   },
   "local_prototype_source_sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
-  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), through the displayed orders. No corrected metric component comparison, full EOM residual, finite-coupling solution or existence theorem is claimed.",
+  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H). chi=a/mu as in Ma-Lu Eq. 10. mu/R_H^2 is converted background MP parameter, not corrected ADM mass. No H5/H6 angular-diagonal metric match or finite-coupling solution is claimed.",
   "parameter_interpretation": {
     "mu_over_R_H2": "Converted background Myers-Perry mass parameter only; not the corrected ADM mass.",
     "physical_ADM_mass": "Must be independently extracted from the asymptotic 1/R^2 coefficient of the fully transformed metric, including the H1 correction and the selected ensemble.",
