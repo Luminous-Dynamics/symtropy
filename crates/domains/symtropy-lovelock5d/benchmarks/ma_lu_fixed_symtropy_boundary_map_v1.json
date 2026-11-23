@@ -1,54 +1,58 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_parameter_map",
-  "status": "exact_symbolic_first_coupling_parameter_map_derived_locally",
+  "status": "exact_symbolic_version_of_record_fixed_boundary_map_derived",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "published": "2026-05-08",
+    "version": "JHEP version of record",
+    "equations": [
+      "(2.2)",
+      "(2.8)",
+      "(2.9)",
+      "(2.12)"
+    ]
+  },
   "definitions": {
     "q": "a/r_h",
     "nu_h": "Omega_H*r_h",
     "nu_S": "Omega_H*R_H",
     "epsilon_R": "alpha_R/r_h^2",
     "epsilon_S": "alpha_R/R_H^2",
-    "chi": "a/mu (Ma-Lu Eq. 10)",
-    "chi_times_R_H": "(a/mu)*R_H"
+    "chi": "a/sqrt(mu)"
   },
   "horizon_values": {
     "mu_over_rh2": "(1+q^2)^2/2",
-    "H2_h_through_q2": "838*q^2/45-16/3",
-    "H4_h_through_q2": "4141*q^2/45-88/3",
-    "H7_h_through_q2": "10/3-578*q^2/45",
-    "nuS_of_q_epsilonR": "q-q^3/2-7*epsilon_R*q+(5509/90)*epsilon_R*q^3",
-    "R_H_over_r_h_of_q_epsilonR": "1+q^2/2+(5/3)*epsilon_R-(503/90)*epsilon_R*q^2"
+    "H2_h": "838*q^2/45-16/3",
+    "H4_h": "4141*q^2/45-88/3",
+    "H7_h": "10/3-578*q^2/45",
+    "nuS_of_q_epsR": "q-q^3/2-7*epsR*q+(5509/90)*epsR*q^3",
+    "RH_over_rh_of_q_epsR": "1+q^2/2+(5/3)*epsR-(503/90)*epsR*q^2"
   },
-  "fixed_symtropy_boundary_expansions": {
-    "epsilon_R": "epsilon_S*(1+nu_S^2)+O(epsilon_S^2,nu_S^4)",
-    "q": "nu_S+nu_S^3/2+epsilon_S*(7*nu_S-(3619/90)*nu_S^3)+O(epsilon_S^2,nu_S^5)",
-    "R_H_over_r_h": "1+(5/3)*epsilon_S+nu_S^2/2+(277/90)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
-    "r_h_over_R_H": "1-(5/3)*epsilon_S-nu_S^2/2-(127/90)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
-    "a_over_R_H": "nu_S+(16/3)*epsilon_S*nu_S-(2068/45)*epsilon_S*nu_S^3+O(epsilon_S^2,nu_S^5)",
-    "mu_over_R_H2": "1/2-(5/3)*epsilon_S+nu_S^2/2+(454/45)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
-    "chi_times_R_H": "2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3+O(epsilon_S^2,nu_S^5)"
+  "fixed_boundary_expansions": {
+    "q": "nu_S+nu_S^3/2+epsilon_S*(7*nu_S-3619*nu_S^3/90)+O(epsilon_S^2,nu_S^5)",
+    "R_H/r_h": "1+5*epsilon_S/3+nu_S^2/2+277*epsilon_S*nu_S^2/90+O(epsilon_S^2,nu_S^4)",
+    "r_h/R_H": "1-5*epsilon_S/3-nu_S^2/2-127*epsilon_S*nu_S^2/90+O(epsilon_S^2,nu_S^4)",
+    "a/R_H": "nu_S+16*epsilon_S*nu_S/3-2068*epsilon_S*nu_S^3/45+O(epsilon_S^2,nu_S^5)",
+    "mu_background/R_H^2": "1/2-5*epsilon_S/3+nu_S^2/2+454*epsilon_S*nu_S^2/45+O(epsilon_S^2,nu_S^4)",
+    "chi": "sqrt(2)*(nu_S-nu_S^3/2+7*epsilon_S*nu_S-5509*epsilon_S*nu_S^3/90)+O(epsilon_S^2,nu_S^5)"
   },
+  "epsilon_conversion": "epsilon_R=epsilon_S*(1+nu_S^2)+O(epsilon_S^2,nu_S^4)",
   "checks": {
-    "horizon_values_from_H2_H4_H7": true,
-    "nuS_and_radius_expansions": true,
+    "horizon_H2_H4_H7": true,
+    "nuS_and_radius_series": true,
     "inverse_q_series": true,
-    "a_and_mu_maps": true,
-    "GR_exact_limit": true,
+    "fixed_boundary_all_coefficients": true,
+    "GR_limit": true,
     "negative_control_omit_H7": true,
     "negative_control_omit_H2_H4": true,
     "negative_control_nu_h_vs_nu_S": true,
-    "negative_control_chi_factor": true,
-    "chi_times_RH_map": true
+    "negative_control_truncated_spin_chi": true
   },
-  "environment": {
-    "python": "3.13.5",
-    "sympy": "1.14.0"
+  "interpretation": {
+    "mu_background_over_R_H2": "Converted background MP parameter, not corrected ADM mass",
+    "chi": "Ma-Lu Eq. (2.9) chi=a/sqrt(mu)"
   },
-  "local_prototype_source_sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
-  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H). chi=a/mu as in Ma-Lu Eq. 10. mu/R_H^2 is converted background MP parameter, not corrected ADM mass. No H5/H6 angular-diagonal metric match or finite-coupling solution is claimed.",
-  "parameter_interpretation": {
-    "mu_over_R_H2": "Converted background Myers-Perry mass parameter only; not the corrected ADM mass.",
-    "physical_ADM_mass": "Must be independently extracted from the asymptotic 1/R^2 coefficient of the fully transformed metric, including the H1 correction and the selected ensemble.",
-    "ma_lu_parameter_ensemble": "The perturbative construction holds the background MP parameters/horizon data fixed; the fixed-Symtropy (R_H,Omega_H) map is a reparameterization and must not be mistaken for the thermodynamic fixed-(T,Omega) or fixed-charge ensembles."
-  }
+  "claim_ceiling": "Exact first-order-coupling equal-spin slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), using JHEP version of record. Not a finite-coupling solution."
 }
