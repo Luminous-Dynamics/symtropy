@@ -6,7 +6,7 @@
   "policy": "confidence_bounded_event_window_plus_receipt_qualified_illumination_choice",
   "maximum_illumination_options": 16,
   "interval_constraints": [
-    "minimum_event_information_lower_bound",
+    "minimum_retained_event_information_lower_bound_after_measured_packet_loss",
     "velocity_displacement_upper_bound",
     "event_buffer_utilization_upper_bound",
     "clock_uncertainty_upper_bound",
@@ -35,7 +35,10 @@
     "minimum_information_above_buffer_or_displacement_limit_abstains",
     "no_unqualified_illumination_mode_is_selected",
     "no_silent_event_loss_is_accepted",
-    "perturbative_illumination_requires_post_measurement_observer_requalification"
+    "perturbative_illumination_requires_post_measurement_observer_requalification",
+    "measured_packet_loss_is_included_in_minimum_retained_event_count",
+    "clock_precision_infeasibility_has_explicit_abstention_reason",
+    "buffer_and_displacement_infeasibility_have_explicit_abstention_reasons"
   ],
   "comparator_lanes": [
     "frame_based_multi_pass_piv",
@@ -62,5 +65,6 @@
     "no_raw_event_stream_processing",
     "no_physical_ehd_validation",
     "no_passivity_proof"
-  ]
+  ],
+  "authored_rust_unit_tests": 23
 }
