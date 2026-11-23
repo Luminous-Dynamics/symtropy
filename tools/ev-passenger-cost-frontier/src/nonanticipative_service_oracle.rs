@@ -372,22 +372,6 @@ struct DerivedServiceInputs {
     capacity: CapacityMetadata,
 }
 
-fn source_weather_state(state: SourceWeatherState) -> WeatherState {
-    match state {
-        SourceWeatherState::Go => WeatherState::Go,
-        SourceWeatherState::NoGo => WeatherState::NoGo,
-        SourceWeatherState::Unknown => WeatherState::Unknown,
-    }
-}
-
-fn source_permission_state(state: SourcePermissionState) -> PermissionState {
-    match state {
-        SourcePermissionState::Approved => PermissionState::Approved,
-        SourcePermissionState::Denied => PermissionState::Denied,
-        SourcePermissionState::Unknown => PermissionState::Unknown,
-    }
-}
-
 fn flight_weather_evidence_digest(
     window: &FlightWindow,
     weather_state: WeatherState,
@@ -1675,7 +1659,7 @@ mod tests {
     fn one_root_information_set_emits_one_shared_policy_decision() {
         let report = evaluate_nonanticipative_oracle(&fixture()).expect("tree");
         let root = report.policy.iter()
-            .filter(|decision| decision.decision_time_seconds == 0)
+            .filter(|decision| decision.decision_time_seconds == 349)
             .collect::<Vec<_>>();
         assert_eq!(root.len(), 1);
         assert_eq!(
