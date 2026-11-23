@@ -83,8 +83,8 @@ pub use pop_convergence::{
     decide_peak_overlap_convergence,
 };
 pub use refinement_scheduler::{
-    RefinementCandidate, RefinementCandidateId, RankedRefinementCandidate,
-    RefinementScheduleError, RefinementScheduleReport, schedule_refinements,
+    RankedRefinementCandidate, RefinementCandidate, RefinementCandidateId, RefinementScheduleError,
+    RefinementScheduleReport, schedule_refinements,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
