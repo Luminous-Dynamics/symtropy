@@ -1,0 +1,94 @@
+name: AV Sequential Acquisition Benchmark Integrity
+
+on:
+  push:
+    branches:
+      - research/av-sequential-acquisition-v0
+    paths:
+      - "research/av-sequential-acquisition-v0/**"
+      - "tools/av-sequential-acquisition-evaluator/**"
+      - ".github/workflows/av-sequential-acquisition.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-sequential-acquisition-v0/**"
+      - "tools/av-sequential-acquisition-evaluator/**"
+      - ".github/workflows/av-sequential-acquisition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-sequential-acquisition-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ env.QUALIFIED_SHA }}
+
+jobs:
+  sequential-acquisition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate workload and candidate submission schemas
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-sequential-acquisition-v0/"
+          workload_schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          scorecard_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(workload_schema)
+          Draft202012Validator.check_schema(submission_schema)
+          Draft202012Validator.check_schema(scorecard_schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          Draft202012Validator(workload_schema).validate(workload)
+          Draft202012Validator(submission_schema).validate(submission)
+          ids = [row["episode_id"] for row in workload["episodes"]]
+          assert len(ids) == 4 and len(set(ids)) == 4
+          assert ids == [row["episode_id"] for row in truth["episodes"]]
+          assert ids == [row["episode_id"] for row in submission["predictions"]]
+          assert "hidden_state" not in json.dumps(workload)
+          assert "realized_outcomes" not in json.dumps(workload)
+          PY
+      - name: Run exact-oracle and adversarial tests
+        run: |
+          python -m unittest discover -s tools/av-sequential-acquisition-evaluator -p "test_*.py" -v
+      - name: Score finite reference policy
+        run: |
+          python tools/av-sequential-acquisition-evaluator/evaluate.py \
+            --workload research/av-sequential-acquisition-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-sequential-acquisition-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/av-sequential-acquisition-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-sequential-acquisition-scorecard.json
+      - name: Assert exact finite oracle selections
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-sequential-acquisition-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          report = json.load(open("/tmp/av-sequential-acquisition-scorecard.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(report)
+          assert report["totals"]["episode_count"] == 4
+          assert report["totals"]["oracle_action_set_matches"] == 4
+          assert report["totals"]["mean_regret_vs_exact_nonadaptive_oracle"] <= 1e-9
+          rows = {row["episode_id"]: row for row in report["per_episode"]}
+          assert rows["sa-001-eig-trap"]["selected_action_ids"] == ["hazard_cue"]
+          assert rows["sa-002-sequential-complementarity"]["selected_action_ids"] == ["read_x", "read_y"]
+          assert rows["sa-003-deadline-inversion"]["selected_action_ids"] == ["quick_audio_cue"]
+          assert rows["sa-004-permission-fallback"]["selected_action_ids"] == ["audio_triage"]
+          PY

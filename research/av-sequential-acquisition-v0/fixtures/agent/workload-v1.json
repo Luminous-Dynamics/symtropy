@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-sequential-acquisition-v0",
+  "description": "Finite synthetic sequential observation plans. Candidate-visible priors, decision losses, acquisition likelihoods, permissions, deadlines and budgets; no raw sensor media.",
+  "episodes": [
+    {
+      "episode_id": "sa-001-eig-trap",
+      "scenario_family": "eig_trap",
+      "prior_by_state": {
+        "hazard_a": 0.1,
+        "hazard_b": 0.1,
+        "safe_a": 0.4,
+        "safe_b": 0.4
+      },
+      "decision_loss_by_state": {
+        "warn": {
+          "hazard_a": 0,
+          "hazard_b": 0,
+          "safe_a": 5,
+          "safe_b": 5
+        },
+        "stay": {
+          "hazard_a": 5,
+          "hazard_b": 5,
+          "safe_a": 0,
+          "safe_b": 0
+        }
+      },
+      "granted_permissions": [
+        "ambient_audio",
+        "ordinary_video"
+      ],
+      "deadline_tick": 3,
+      "budget": {
+        "max_acquisition_cost_units": 0.3,
+        "max_audio_bytes": 12000,
+        "max_video_frames": 16,
+        "max_input_tokens": 2048,
+        "max_energy_joules": 10
+      },
+      "actions": [
+        {
+          "action_id": "subtype_detail",
+          "modality": "video",
+          "permissions_required": [
+            "ordinary_video"
+          ],
+          "acquisition_cost_units": 0.05,
+          "duration_ticks": 1,
+          "audio_bytes": 0,
+          "video_frames": 8,
+          "input_tokens": 256,
+          "energy_joules": 1,
+          "outcomes": [
+            {
+              "outcome_id": "type_a",
+              "likelihood_by_state": {
+                "hazard_a": 0.5,
+                "hazard_b": 0,
+                "safe_a": 0.5,
+                "safe_b": 0
+              }
+            },
+            {
+              "outcome_id": "type_b",
+              "likelihood_by_state": {
+                "hazard_a": 0,
+                "hazard_b": 0.5,
+                "safe_a": 0,
+                "safe_b": 0.5
+              }
+            }
+          ]
+        },
+        {
+          "action_id": "hazard_cue",
+          "modality": "audio",
+          "permissions_required": [
+            "ambient_audio"
+          ],
+          "acquisition_cost_units": 0.1,
+          "duration_ticks": 1,
+          "audio_bytes": 3200,
+          "video_frames": 0,
+          "input_tokens": 128,
+          "energy_joules": 0.5,
+          "outcomes": [
+            {
+              "outcome_id": "cue",
+              "likelihood_by_state": {
+                "hazard_a": 0.95,
+                "hazard_b": 0.95,
+                "safe_a": 0.05,
+                "safe_b": 0.05
+              }
+            },
+            {
+              "outcome_id": "no_cue",
+              "likelihood_by_state": {
+                "hazard_a": 0.05,
+                "hazard_b": 0.05,
+                "safe_a": 0.95,
+                "safe_b": 0.95
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "sa-002-sequential-complementarity",
+      "scenario_family": "sequential_complementarity",
+      "prior_by_state": {
+        "s00": 0.25,
+        "s01": 0.25,
+        "s10": 0.25,
+        "s11": 0.25
+      },
+      "decision_loss_by_state": {
+        "same_bits": {
+          "s00": 0,
+          "s01": 1,
+          "s10": 1,
+          "s11": 0
+        },
+        "different_bits": {
+          "s00": 1,
+          "s01": 0,
+          "s10": 0,
+          "s11": 1
+        }
+      },
+      "granted_permissions": [
+        "ordinary_video",
+        "ambient_audio"
+      ],
+      "deadline_tick": 4,
+      "budget": {
+        "max_acquisition_cost_units": 0.25,
+        "max_audio_bytes": 1000,
+        "max_video_frames": 4,
+        "max_input_tokens": 1024,
+        "max_energy_joules": 4
+      },
+      "actions": [
+        {
+          "action_id": "read_x",
+          "modality": "video",
+          "permissions_required": [
+            "ordinary_video"
+          ],
+          "acquisition_cost_units": 0.1,
+          "duration_ticks": 1,
+          "audio_bytes": 0,
+          "video_frames": 1,
+          "input_tokens": 64,
+          "energy_joules": 1,
+          "outcomes": [
+            {
+              "outcome_id": "x0",
+              "likelihood_by_state": {
+                "s00": 1,
+                "s01": 1,
+                "s10": 0,
+                "s11": 0
+              }
+            },
+            {
+              "outcome_id": "x1",
+              "likelihood_by_state": {
+                "s00": 0,
+                "s01": 0,
+                "s10": 1,
+                "s11": 1
+              }
+            }
+          ]
+        },
+        {
+          "action_id": "read_y",
+          "modality": "audio",
+          "permissions_required": [
+            "ambient_audio"
+          ],
+          "acquisition_cost_units": 0.1,
+          "duration_ticks": 1,
+          "audio_bytes": 256,
+          "video_frames": 0,
+          "input_tokens": 64,
+          "energy_joules": 1,
+          "outcomes": [
+            {
+              "outcome_id": "y0",
+              "likelihood_by_state": {
+                "s00": 1,
+                "s01": 0,
+                "s10": 1,
+                "s11": 0
+              }
+            },
+            {
+              "outcome_id": "y1",
+              "likelihood_by_state": {
+                "s00": 0,
+                "s01": 1,
+                "s10": 0,
+                "s11": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "sa-003-deadline-inversion",
+      "scenario_family": "deadline_inversion",
+      "prior_by_state": {
+        "hazard": 0.2,
+        "safe": 0.8
+      },
+      "decision_loss_by_state": {
+        "warn": {
+          "hazard": 0,
+          "safe": 5
+        },
+        "stay": {
+          "hazard": 5,
+          "safe": 0
+        }
+      },
+      "granted_permissions": [
+        "ambient_audio",
+        "ordinary_video"
+      ],
+      "deadline_tick": 3,
+      "budget": {
+        "max_acquisition_cost_units": 0.3,
+        "max_audio_bytes": 6000,
+        "max_video_frames": 24,
+        "max_input_tokens": 2048,
+        "max_energy_joules": 10
+      },
+      "actions": [
+        {
+          "action_id": "high_resolution_review",
+          "modality": "video",
+          "permissions_required": [
+            "ordinary_video"
+          ],
+          "acquisition_cost_units": 0.08,
+          "duration_ticks": 5,
+          "audio_bytes": 0,
+          "video_frames": 24,
+          "input_tokens": 1024,
+          "energy_joules": 5,
+          "outcomes": [
+            {
+              "outcome_id": "hazard_seen",
+              "likelihood_by_state": {
+                "hazard": 0.99,
+                "safe": 0.01
+              }
+            },
+            {
+              "outcome_id": "clear",
+              "likelihood_by_state": {
+                "hazard": 0.01,
+                "safe": 0.99
+              }
+            }
+          ]
+        },
+        {
+          "action_id": "quick_audio_cue",
+          "modality": "audio",
+          "permissions_required": [
+            "ambient_audio"
+          ],
+          "acquisition_cost_units": 0.1,
+          "duration_ticks": 1,
+          "audio_bytes": 4000,
+          "video_frames": 0,
+          "input_tokens": 128,
+          "energy_joules": 0.5,
+          "outcomes": [
+            {
+              "outcome_id": "cue",
+              "likelihood_by_state": {
+                "hazard": 0.95,
+                "safe": 0.05
+              }
+            },
+            {
+              "outcome_id": "no_cue",
+              "likelihood_by_state": {
+                "hazard": 0.05,
+                "safe": 0.95
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "sa-004-permission-fallback",
+      "scenario_family": "permission_fallback",
+      "prior_by_state": {
+        "threat": 0.1,
+        "benign": 0.9
+      },
+      "decision_loss_by_state": {
+        "contain": {
+          "threat": 0,
+          "benign": 2
+        },
+        "ignore": {
+          "threat": 20,
+          "benign": 0
+        }
+      },
+      "granted_permissions": [
+        "ambient_audio"
+      ],
+      "deadline_tick": 4,
+      "budget": {
+        "max_acquisition_cost_units": 0.3,
+        "max_audio_bytes": 6000,
+        "max_video_frames": 4,
+        "max_input_tokens": 1024,
+        "max_energy_joules": 5
+      },
+      "actions": [
+        {
+          "action_id": "secure_camera_review",
+          "modality": "video",
+          "permissions_required": [
+            "sensitive_video_capture"
+          ],
+          "acquisition_cost_units": 0.05,
+          "duration_ticks": 1,
+          "audio_bytes": 0,
+          "video_frames": 4,
+          "input_tokens": 256,
+          "energy_joules": 1,
+          "outcomes": [
+            {
+              "outcome_id": "threat_seen",
+              "likelihood_by_state": {
+                "threat": 0.99,
+                "benign": 0.01
+              }
+            },
+            {
+              "outcome_id": "clear",
+              "likelihood_by_state": {
+                "threat": 0.01,
+                "benign": 0.99
+              }
+            }
+          ]
+        },
+        {
+          "action_id": "audio_triage",
+          "modality": "audio",
+          "permissions_required": [
+            "ambient_audio"
+          ],
+          "acquisition_cost_units": 0.15,
+          "duration_ticks": 1,
+          "audio_bytes": 5000,
+          "video_frames": 0,
+          "input_tokens": 128,
+          "energy_joules": 0.5,
+          "outcomes": [
+            {
+              "outcome_id": "cue",
+              "likelihood_by_state": {
+                "threat": 0.5,
+                "benign": 0.1
+              }
+            },
+            {
+              "outcome_id": "no_cue",
+              "likelihood_by_state": {
+                "threat": 0.5,
+                "benign": 0.9
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
