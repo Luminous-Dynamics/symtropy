@@ -162,7 +162,10 @@
         "simulation_interfaces_revision",
         "scene_broadcaster_id",
         "scene_broadcaster_revision",
-        "scene_broadcaster_sha256"
+        "scene_broadcaster_sha256",
+        "observer_id",
+        "observer_fault_domain_id",
+        "observer_binary_sha256"
       ],
       "properties": {
         "platform_id": {
@@ -247,6 +250,17 @@
           "minLength": 1
         },
         "scene_broadcaster_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_binary_sha256": {
           "$ref": "#/$defs/sha256"
         }
       }
