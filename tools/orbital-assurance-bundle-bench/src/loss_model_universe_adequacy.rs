@@ -300,7 +300,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
                         "MODEL_RECEIPT_ALIAS",
                         Some(first),
                         None,
-                        &format!("source receipt {receipt_id} is shared by models {first} and {second}"),
+                        &format!(
+                            "source receipt {receipt_id} is shared by models {first} and {second}"
+                        ),
                     ));
                     receipt_owners.insert(receipt_id, first);
                 }
