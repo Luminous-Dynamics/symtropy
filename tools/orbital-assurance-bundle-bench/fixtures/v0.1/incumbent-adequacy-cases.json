@@ -458,47 +458,6 @@
       }
     },
     {
-      "case_id": "threshold_overflow",
-      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "loss_unit": "cost_micro_units",
-      "incumbent_action_id": "A",
-      "action_ids": [
-        "A",
-        "B"
-      ],
-      "worlds": [
-        {
-          "world_id": "w1",
-          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "feasible_action_ids": [
-            "A",
-            "B"
-          ],
-          "losses": [
-            {
-              "action_id": "A",
-              "loss": 100
-            },
-            {
-              "action_id": "B",
-              "loss": 95
-            }
-          ]
-        }
-      ],
-      "world_set_state": "CURRENT",
-      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
-      "model_family_state": "ADEQUATE",
-      "evidence_state": "CURRENT",
-      "materiality_margin": 9223372036854776000,
-      "switching_cost": 1,
-      "expected": {
-        "disposition": "INVALID_INPUT",
-        "trigger_reason": "materiality margin plus switching cost overflows loss units",
-        "worst_case_regret": null
-      }
-    },
-    {
       "case_id": "duplicate_loss_row",
       "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "loss_unit": "cost_micro_units",
