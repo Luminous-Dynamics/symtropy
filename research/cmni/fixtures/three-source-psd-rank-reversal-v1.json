@@ -1,0 +1,152 @@
+{
+  "schema_version": "cmni.multisource_psd_dependence_design.v1",
+  "benchmark_id": "three-source-psd-rank-reversal-v1",
+  "status": "synthetic_finite_scenario_oracle",
+  "dependence_scope_receipt_id": "receipt:three-source-psd-dependence-set-v1",
+  "source_standard_deviations": [
+    1,
+    1,
+    1
+  ],
+  "prior_parameter_variance": 1,
+  "correlation_scenarios": [
+    {
+      "scenario_id": "independent",
+      "matrix": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "psd": true
+    },
+    {
+      "scenario_id": "negative-source-correlation",
+      "matrix": [
+        [
+          1,
+          -0.75,
+          0
+        ],
+        [
+          -0.75,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "psd": true
+    },
+    {
+      "scenario_id": "positive-source-correlation",
+      "matrix": [
+        [
+          1,
+          0.75,
+          0
+        ],
+        [
+          0.75,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "psd": true
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "nominal-winner",
+      "observation_sensitivities": [
+        -2,
+        -2
+      ],
+      "independent_observation_noise_variances": [
+        1,
+        1
+      ],
+      "source_jacobians": [
+        [
+          -1,
+          1,
+          0
+        ],
+        [
+          0,
+          2,
+          0
+        ]
+      ],
+      "nominal_independence_eig_nats": 0.4489707966029793,
+      "worst_case_scenario_id": "negative-source-correlation",
+      "worst_case_eig_nats": 0.3404385439840655,
+      "best_case_scenario_id": "positive-source-correlation",
+      "best_case_eig_nats": 0.6974390524056411,
+      "nominal_rank": 1,
+      "robust_rank": 2
+    },
+    {
+      "candidate_id": "robust-winner",
+      "observation_sensitivities": [
+        2,
+        0.5
+      ],
+      "independent_observation_noise_variances": [
+        1,
+        1
+      ],
+      "source_jacobians": [
+        [
+          -2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "nominal_independence_eig_nats": 0.3589198965751584,
+      "worst_case_scenario_id": "independent",
+      "worst_case_eig_nats": 0.3589198965751584,
+      "best_case_scenario_id": "independent",
+      "best_case_eig_nats": 0.3589198965751584,
+      "nominal_rank": 2,
+      "robust_rank": 1
+    }
+  ],
+  "expected": {
+    "nominal_independence_preferred_candidate_id": "nominal-winner",
+    "finite_scenario_minimax_preferred_candidate_id": "robust-winner",
+    "ranking_reversed": true,
+    "worst_case_eig_regret_of_nominal_choice": 0.018481352591092903
+  },
+  "non_claims": [
+    "Only three explicitly supplied PSD correlation scenarios are evaluated",
+    "No continuous elliptope worst-case optimization",
+    "The receipt ID is a placeholder, not an authenticated evidence source",
+    "The eigenvalue and Cholesky calculations use floating-point arithmetic, not formal interval proofs",
+    "Synthetic Gaussian linear scalar-parameter model, not physical detector data"
+  ]
+}
