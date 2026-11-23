@@ -430,9 +430,7 @@ fn action_feasible(action: Action, world: &World) -> bool {
 
 fn mode_allows_action(mode: ObservationMode, action: Action) -> bool {
     match mode {
-        ObservationMode::NoObservation | ObservationMode::AdvisoryOnly => {
-            action == Action::Hold
-        }
+        ObservationMode::NoObservation | ObservationMode::AdvisoryOnly => action == Action::Hold,
         ObservationMode::IndependentWitness => true,
     }
 }
@@ -605,9 +603,7 @@ fn evidence_blocker(sensor: &SensorSpec) -> Option<&'static str> {
         DependencyDisposition::Revoked => {
             return Some("BLOCKED_REVOKED_DEPENDENCY");
         }
-        DependencyDisposition::Shared
-            if sensor.mode == ObservationMode::IndependentWitness =>
-        {
+        DependencyDisposition::Shared if sensor.mode == ObservationMode::IndependentWitness => {
             return Some("BLOCKED_SHARED_DEPENDENCY");
         }
         DependencyDisposition::Separated | DependencyDisposition::Shared => {}
@@ -699,12 +695,8 @@ fn evaluate_sensor(sensor: &SensorSpec) -> CandidateResult {
         return result;
     }
 
-    let Some(solution) = solve_policy(
-        &WORLDS,
-        &sensor.outcome_partitions,
-        sensor.mode,
-        cost,
-    ) else {
+    let Some(solution) = solve_policy(&WORLDS, &sensor.outcome_partitions, sensor.mode, cost)
+    else {
         let mut result = blocked("NO_COMMON_FEASIBLE_ACTION");
         result.acquisition_cost_service_units = Some(cost);
         return result;
@@ -790,16 +782,12 @@ struct OraclePolicy {
 
 fn oracle_world_outcome(world: &World, action_index: usize) -> Option<(u32, u32, u8)> {
     match action_index {
-        0 if world.reserve_available && world.a_authorized => Some((
-            80,
-            30,
-            u8::from(world.critical != Participant::A),
-        )),
-        1 if world.reserve_available && world.b_authorized => Some((
-            30,
-            80,
-            u8::from(world.critical != Participant::B),
-        )),
+        0 if world.reserve_available && world.a_authorized => {
+            Some((80, 30, u8::from(world.critical != Participant::A)))
+        }
+        1 if world.reserve_available && world.b_authorized => {
+            Some((30, 80, u8::from(world.critical != Participant::B)))
+        }
         2 => Some((30, 30, 1)),
         _ => None,
     }
@@ -820,8 +808,7 @@ fn oracle_best_world_value(world: &World) -> Option<(u32, u32, u8)> {
         };
         let candidate = (a, b, misses);
         let candidate_is_better = best.is_none_or(|incumbent| {
-            misses < incumbent.2
-                || (misses == incumbent.2 && a + b > incumbent.0 + incumbent.1)
+            misses < incumbent.2 || (misses == incumbent.2 && a + b > incumbent.0 + incumbent.1)
         });
         if candidate_is_better {
             best = Some(candidate);
@@ -830,13 +817,8 @@ fn oracle_best_world_value(world: &World) -> Option<(u32, u32, u8)> {
     best
 }
 
-fn oracle_regret(
-    world: &World,
-    action_index: usize,
-    acquisition_cost: u32,
-) -> Option<Regret> {
-    let (actual_a, actual_b, actual_misses) =
-        oracle_world_outcome(world, action_index)?;
+fn oracle_regret(world: &World, action_index: usize, acquisition_cost: u32) -> Option<Regret> {
+    let (actual_a, actual_b, actual_misses) = oracle_world_outcome(world, action_index)?;
     let (best_a, best_b, best_misses) = oracle_best_world_value(world)?;
     Some(Regret {
         additional_critical_deadlines_missed: actual_misses.saturating_sub(best_misses),
@@ -910,14 +892,9 @@ fn enumerate_oracle_policies(
     best: &mut Option<OraclePolicy>,
 ) {
     if position == unique.len() {
-        let Some(candidate) = oracle_policy_score(
-            worlds,
-            labels,
-            unique,
-            mode,
-            acquisition_cost,
-            current,
-        ) else {
+        let Some(candidate) =
+            oracle_policy_score(worlds, labels, unique, mode, acquisition_cost, current)
+        else {
             return;
         };
         if best
@@ -981,21 +958,19 @@ pub fn render_csv() -> String {
     );
 
     for result in evaluate_benchmark() {
-        let worst_misses = result
-            .solution
-            .as_ref()
-            .map_or_else(|| "NA".to_owned(), |solution| {
+        let worst_misses = result.solution.as_ref().map_or_else(
+            || "NA".to_owned(),
+            |solution| {
                 solution
                     .worst_regret
                     .additional_critical_deadlines_missed
                     .to_string()
-            });
-        let worst_service_loss = result
-            .solution
-            .as_ref()
-            .map_or_else(|| "NA".to_owned(), |solution| {
-                solution.worst_regret.service_loss_units.to_string()
-            });
+            },
+        );
+        let worst_service_loss = result.solution.as_ref().map_or_else(
+            || "NA".to_owned(),
+            |solution| solution.worst_regret.service_loss_units.to_string(),
+        );
         let acquisition_cost = result
             .acquisition_cost_service_units
             .map_or_else(|| "NA".to_owned(), |value| value.to_string());
@@ -1103,10 +1078,12 @@ mod tests {
                 service_loss_units: 50,
             }
         );
-        assert!(solution
-            .actions_by_partition
-            .iter()
-            .all(|(_, action)| *action == Action::Hold));
+        assert!(
+            solution
+                .actions_by_partition
+                .iter()
+                .all(|(_, action)| *action == Action::Hold)
+        );
         assert_eq!(baseline.world_decisions.len(), WORLD_COUNT);
     }
 
@@ -1117,10 +1094,12 @@ mod tests {
         let solution = shared.solution.as_ref().expect("evaluated advisory signal");
 
         assert_eq!(solution.actions_by_partition.len(), 2);
-        assert!(solution
-            .actions_by_partition
-            .iter()
-            .all(|(_, action)| *action == Action::Hold));
+        assert!(
+            solution
+                .actions_by_partition
+                .iter()
+                .all(|(_, action)| *action == Action::Hold)
+        );
         assert_eq!(
             solution.worst_regret,
             Regret {
@@ -1233,23 +1212,17 @@ mod tests {
                 .as_slice()
                 .try_into()
                 .expect("five-world partition");
-            let production = solve_policy(
-                &WORLDS,
-                &labels,
-                ObservationMode::IndependentWitness,
-                0,
-            )
-            .expect("hold is feasible in every partition");
-            let oracle = exhaustive_oracle(
-                &WORLDS,
-                &labels,
-                ObservationMode::IndependentWitness,
-                0,
-            )
-            .expect("at least one feasible deterministic policy");
+            let production = solve_policy(&WORLDS, &labels, ObservationMode::IndependentWitness, 0)
+                .expect("hold is feasible in every partition");
+            let oracle =
+                exhaustive_oracle(&WORLDS, &labels, ObservationMode::IndependentWitness, 0)
+                    .expect("at least one feasible deterministic policy");
 
             assert_eq!(production.worst_regret, oracle.worst_regret);
-            assert_eq!(production.partition_regrets.len(), oracle.partition_regrets.len());
+            assert_eq!(
+                production.partition_regrets.len(),
+                oracle.partition_regrets.len()
+            );
             assert_eq!(
                 production
                     .partition_regrets
@@ -1277,20 +1250,10 @@ mod tests {
     fn all_three_named_observation_policies_match_exhaustive_oracle() {
         for sensor in [&NO_OBSERVATION, &SENSORS[0], &SENSORS[1]] {
             let cost = acquisition_cost(sensor).expect("valid synthetic acquisition cost");
-            let production = solve_policy(
-                &WORLDS,
-                &sensor.outcome_partitions,
-                sensor.mode,
-                cost,
-            )
-            .expect("valid deterministic policy");
-            let oracle = exhaustive_oracle(
-                &WORLDS,
-                &sensor.outcome_partitions,
-                sensor.mode,
-                cost,
-            )
-            .expect("independent exhaustive oracle");
+            let production = solve_policy(&WORLDS, &sensor.outcome_partitions, sensor.mode, cost)
+                .expect("valid deterministic policy");
+            let oracle = exhaustive_oracle(&WORLDS, &sensor.outcome_partitions, sensor.mode, cost)
+                .expect("independent exhaustive oracle");
 
             assert_eq!(production.worst_regret, oracle.worst_regret);
             assert_eq!(
