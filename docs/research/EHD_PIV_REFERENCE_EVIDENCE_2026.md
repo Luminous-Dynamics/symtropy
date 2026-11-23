@@ -207,3 +207,28 @@ The competitive differentiator is a verifiable chain from bytes and instrument e
 - ASME V&V 20-2009 (R2021), *Verification and Validation in Computational Fluid Dynamics and Heat Transfer*.
 - NISTIR 8298 (2020), DOI: 10.6028/NIST.IR.8298.
 - UQ-009 observer-effect evidence: DOI 10.1007/s00348-026-04322-y and DOI 10.1016/j.elstat.2026.104261.
+
+
+## 13. Executable reference verifier — 23 November 2026
+
+A first Rust reference implementation is now authored at:
+
+`tools/ehd-piv-acquisition-evidence/`
+
+It adds the following executable surface:
+
+- `verify_asset_reader`: streams the exact source bytes through SHA-256 and counts bytes from the same read stream. It rejects length or digest mismatch.
+- `verify_manifest_directory`: validates the manifest digest, reopens each source asset under a declared evidence root, rejects path traversal, absolute/non-canonical paths and symlink components, checks canonical path containment, and rehashes every file before producing a verified-asset report.
+- `AcquisitionManifest::canonical_bytes` / `manifest_sha256`: deterministic UTF-8 JSON with fixed schema/canonicalization versions, fixed Rust struct field order, sorted asset/dependency arrays and sorted dependence-group lists.
+- `set_dependency_graph_digest`: binds explicit shared-cause edges and the dependence-group IDs carried by asset records.
+- `cohort_partition`: computes connected dependence components using union-find across both asset-declared dependence groups and explicit shared-cause edges. It refuses a cohort selection that omits another acquisition in the same connected component.
+- `validate_disjoint_cohorts`: rejects overlap across acquisition IDs, dependence components, asset IDs or reference-evidence IDs across declared cohort roles.
+- `ReferenceAssessment::claim_scope`: allows only residual-covariance claims when reference-uncertainty or PIV/reference cross-covariance evidence is missing. A complete metadata record only makes a PIV-only decomposition eligible for independent review; it does not certify it.
+
+The standalone crate has a dedicated three-platform workflow at `.github/workflows/ehd-piv-acquisition-evidence.yml`, and its authored negative controls cover known-answer SHA-256, byte mutation, length mutation, manifest order invariance, bound digest mutation, duplicate assets/paths, unsafe paths, directory rehash, symlink rejection on Unix, transitive shared-cause leakage, dependence-group leakage without explicit edge rows, cross-cohort reference-evidence overlap and reference/cross-covariance claim boundaries.
+
+**Current validation boundary:** source, README, example manifest and workflow have been committed to the UQ-008 branch. Rust formatting, compilation, tests and Clippy have not been executed in the authoring environment (Cargo/rustc/rustfmt are unavailable). The dedicated hosted workflow is the next executable check; its queued or in-progress state must not be reported as a pass.
+
+**Important filesystem threat-model limit:** the reference verifier rejects symlink components and checks canonical containment, but standard-library path checks are not a race-hardened hostile-local-user opener. Use a read-only immutable snapshot/content store. A multi-user adversarial deployment should replace the open path with an OS-level beneath/no-symlink file-descriptor primitive (for example Linux openat2 resolution constraints) before claiming resistance to concurrent path substitution.
+
+The manifest/digest layer still proves byte identity only. It cannot prove authorship, custody, calibration validity, physical truth, or that the experiment owner declared every material shared cause.
