@@ -1576,6 +1576,19 @@ mod tests {
             indexed.edges.iter().map(Vec::len).sum::<usize>()
         );
         assert!(indexed.pair_evaluations <= baseline.pair_evaluations);
+        // The source is BusinessEventTime and the witness is SensorObservationTime.
+        // A witness wholly after the business interval remains rejected even if its
+        // numeric interval gap is within the profile tolerance.
+        assert_eq!(
+            case.profile.as_ref().unwrap().source_time_role,
+            TimeRole::BusinessEventTime
+        );
+        assert_eq!(
+            case.profile.as_ref().unwrap().witness_time_role,
+            TimeRole::SensorObservationTime
+        );
+        assert!(!baseline.edges[0].contains(&3));
+        assert!(!indexed.edges[0].contains(&3));
     }
 
     #[test]
