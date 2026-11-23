@@ -1058,15 +1058,29 @@ impl SpatialFitValidation {
             || self.validation_to_calibration_variance_ratio.iter().flatten().any(|ratio| {
                 !ratio.is_finite() || *ratio < 0.0
             })
-            || self.variance_ratio_confidence_interval_95.iter().any(|interval| {
-                match interval {
-                    [Some(lower), Some(upper)] => !lower.is_finite() || !upper.is_finite() || lower < &0.0 || lower > upper,
-                    [None, None] => true,
-                    _ => true,
+            || (0..3).any(|component| {
+                let ratio = self.validation_to_calibration_variance_ratio[component];
+                let interval = self.variance_ratio_confidence_interval_95[component];
+                match self.variance_scale_status_by_component[component] {
+                    VarianceScaleStatus::Equivalent => match (ratio, interval) {
+                        (Some(ratio), [Some(lower), Some(upper)]) => {
+                            !ratio.is_finite()
+                                || ratio <= 0.0
+                                || !lower.is_finite()
+                                || !upper.is_finite()
+                                || lower <= 0.0
+                                || lower > ratio
+                                || ratio > upper
+                                || lower < 1.0 - fit.maximum_validation_relative_variance_error
+                                || upper > 1.0 + fit.maximum_validation_relative_variance_error
+                        }
+                        _ => true,
+                    },
+                    VarianceScaleStatus::NotApplicableZeroVariance => {
+                        ratio.is_some() || interval != [None, None]
+                    }
+                    VarianceScaleStatus::Rejected | VarianceScaleStatus::Inconclusive => true,
                 }
-            })
-            || self.variance_scale_status_by_component.iter().any(|status| {
-                !matches!(status, VarianceScaleStatus::Equivalent | VarianceScaleStatus::NotApplicableZeroVariance)
             })
             || !self.maximum_allowed_validation_relative_variance_error.is_finite()
             || self.maximum_allowed_validation_relative_variance_error != fit.maximum_validation_relative_variance_error
@@ -1351,6 +1365,43 @@ mod tests {
         );
         assert!(
             (report.maximum_validation_relative_variance_error - 1.25).abs() < 1.0e-10
+        );
+        assert!(matches!(
+            report.to_spatial_error_kernel(&fit),
+            Err(SpatialFitError::ValidationNotQualified)
+        ));
+    }
+
+    #[test]
+    fn uncertain_variance_ratio_is_inconclusive_not_a_pass() {
+        let calibration = synthetic_fields("cal-uncertain-scale", 256, 0x9191, 2.0);
+        let fit = fit_spatial_error_kernel(&calibration, &config(), &"a".repeat(64)).unwrap();
+        let mut validation = synthetic_fields("val-uncertain-scale", 256, 0xa1a1, 2.0);
+        let alternate_scale = 1.99_f64.sqrt();
+        for (index, field) in validation.iter_mut().enumerate() {
+            let scale = if index % 2 == 0 { 0.1 } else { alternate_scale };
+            for residual in &mut field.residuals_m_s {
+                residual[0] *= scale;
+            }
+        }
+        let report = validate_spatial_error_kernel(
+            &fit,
+            &validation,
+            &"b".repeat(64),
+            "uncertain-variance-scale-receipt",
+        )
+        .unwrap();
+        assert!(
+            (report.validation_to_calibration_variance_ratio[0].unwrap() - 1.0).abs()
+                < 0.02
+        );
+        assert_eq!(
+            report.variance_scale_status_by_component[0],
+            VarianceScaleStatus::Inconclusive
+        );
+        assert_eq!(
+            report.status,
+            QualificationStatus::InconclusiveHeldOutVarianceScale
         );
         assert!(matches!(
             report.to_spatial_error_kernel(&fit),
