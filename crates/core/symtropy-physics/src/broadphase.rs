@@ -659,8 +659,7 @@ mod tests {
             (128, 8, true),
             (16, 50, true),
         ] {
-            let bodies =
-                independent_oracle_scene(static_count, moving_count, clustered);
+            let bodies = independent_oracle_scene(static_count, moving_count, clustered);
             let expected = independent_hyperbox_pair_oracle(&bodies);
             let full = find_pairs(&bodies);
             assert_eq!(
