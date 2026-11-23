@@ -70,6 +70,10 @@ When both physical-outcome and downstream-quiescence quorums are qualified, thei
 
 At initialization, both observer claims are `not_applicable`. The TLA variable `observerIndependent=TRUE` is an initial abstraction setting; it does not fabricate an already-observed physical quorum. Once an observed physical outcome is projected, the separate claim-specific observer proofs become mandatory. A disputed observation must project `observerIndependent=FALSE` and a disputed observer status.
 
+## v0.1 scope boundary
+
+This version models one original physical-effect attempt (`attempt-1`) and one recovery-authority admission (`attempt-2`). It verifies the evidence required to admit that recovery command, including the captured admission facts. It does **not yet** project the subsequent physical outcome of `attempt-2`, a second nested recovery cycle, or repeated recovery attempts. Those require a new evidence-scope/version design so the recovery attempt's own physical outcome, persistence and downstream graph cannot be confused with the original attempt. The current CLI/fixture must not be used to claim multi-cycle recovery verification.
+
 ## Critical semantics
 
 - `appliedEffectCount <= 1` is enforced even though the TLA TypeOK type domain permits 0..2; the 2 state is an explicit invariant counterexample.
