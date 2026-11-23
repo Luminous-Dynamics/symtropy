@@ -94,6 +94,10 @@ impl<const D: usize> Shape<D> for ConvexHull<D> {
         (Point(self.center), self.radius)
     }
 
+    fn local_aabb(&self) -> Option<crate::shape::LocalAabb<D>> {
+        crate::shape::LocalAabb::from_points(&self.vertices)
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

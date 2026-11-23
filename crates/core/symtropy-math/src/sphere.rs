@@ -48,6 +48,10 @@ impl<const D: usize> Shape<D> for Sphere<D> {
         (self.center, self.radius)
     }
 
+    fn local_aabb(&self) -> Option<crate::shape::LocalAabb<D>> {
+        crate::shape::LocalAabb::from_center_radius(&self.center, self.radius)
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

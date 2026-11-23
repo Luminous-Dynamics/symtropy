@@ -85,6 +85,24 @@ impl<const D: usize> Shape<D> for Capsule<D> {
         (Point::origin(), self.half_height + self.radius)
     }
 
+    fn local_aabb(&self) -> Option<crate::shape::LocalAabb<D>> {
+        if self.axis >= D
+            || !self.half_height.is_finite()
+            || !self.radius.is_finite()
+            || self.half_height < 0.0
+            || self.radius < 0.0
+        {
+            return None;
+        }
+
+        let mut rounded_min = SVector::<f64, D>::from_element(-self.radius);
+        let mut rounded_max = SVector::<f64, D>::from_element(self.radius);
+        rounded_min[self.axis] = -self.half_height - self.radius;
+        rounded_max[self.axis] = self.half_height + self.radius;
+
+        crate::shape::LocalAabb::from_rounded_endpoints_outward(rounded_min, rounded_max)
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

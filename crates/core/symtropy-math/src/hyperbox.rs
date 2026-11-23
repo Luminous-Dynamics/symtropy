@@ -64,6 +64,10 @@ impl<const D: usize> Shape<D> for HyperBox<D> {
         (Point::origin(), radius)
     }
 
+    fn local_aabb(&self) -> Option<crate::shape::LocalAabb<D>> {
+        crate::shape::LocalAabb::from_half_extents(self.half_extents)
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
