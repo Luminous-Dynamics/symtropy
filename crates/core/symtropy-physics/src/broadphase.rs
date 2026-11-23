@@ -681,6 +681,29 @@ mod tests {
     }
 
     #[test]
+    fn aabb_separation_witness_handles_adjacent_f64_boundary_and_tangency() {
+        let left = Aabb {
+            min: SVector::from([0.0, 0.0, 0.0]),
+            max: SVector::from([1.0, 1.0, 1.0]),
+        };
+        let adjacent = f64::from_bits(1.0f64.to_bits() + 1);
+        let one_ulp_gap = Aabb {
+            min: SVector::from([adjacent, 0.0, 0.0]),
+            max: SVector::from([2.0, 1.0, 1.0]),
+        };
+        let witness = left
+            .separation_witness(&one_ulp_gap)
+            .expect("one representable step creates strict separation");
+        assert!(witness.verify(&left, &one_ulp_gap));
+
+        let tangent = Aabb {
+            min: SVector::from([1.0, 0.0, 0.0]),
+            max: SVector::from([2.0, 1.0, 1.0]),
+        };
+        assert!(left.separation_witness(&tangent).is_none());
+    }
+
+    #[test]
     fn aabb_separation_witness_rejects_changed_endpoint_snapshot() {
         let left = Aabb {
             min: SVector::zeros(),
