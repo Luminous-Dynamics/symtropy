@@ -785,7 +785,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 incumbent_feasible: world
                     .feasible_action_ids
                     .contains(&case.incumbent_action_id),
-                incumbent_loss: world.losses.get(&case.incumbent_action_id).copied(),
+                incumbent_loss: world
+                    .feasible_action_ids
+                    .contains(&case.incumbent_action_id)
+                    .then(|| world.losses.get(&case.incumbent_action_id).copied())
+                    .flatten(),
                 reference_common_action_loss: None,
                 incumbent_minus_reference_loss: None,
             })
@@ -1026,6 +1030,31 @@ mod tests {
             .iter()
             .find(|item| item.case_id == id)
             .expect("case exists")
+    }
+
+    #[test]
+    fn unsupported_projection_identifiers_fail_closed() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "unknown_projection_id");
+        assert_eq!(result.disposition, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "unsupported loss unit projection contract"
+        );
+    }
+
+    #[test]
+    fn infeasible_action_losses_are_preserved_but_not_used_as_feasible_losses() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        let result = case(&report, "incumbent_infeasible");
+        let assessment = result
+            .world_assessments
+            .iter()
+            .find(|assessment| assessment.scenario_id == "incumbent_infeasible-joint-2")
+            .expect("infeasible joint scenario exists");
+        assert!(!assessment.incumbent_feasible);
+        assert_eq!(assessment.incumbent_loss, None);
+        assert_eq!(result.disposition, "REOPTIMIZATION_WARRANTED");
     }
 
     #[test]
