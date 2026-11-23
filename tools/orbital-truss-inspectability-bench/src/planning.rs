@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PLANNING_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-receipt.v0.4";
+    "luminous.orbital-truss-inspectability.planning-receipt.v0.5";
 pub const MAX_EXACT_VIEWS: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -87,6 +87,19 @@ pub struct KCoverageFeatureReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NominalKCoverageExact {
+    pub algorithm: String,
+    pub candidate_view_count: usize,
+    pub subsets_evaluated: u64,
+    pub minimum_cardinality_certified: bool,
+    pub selected_view_ids: Vec<String>,
+    pub selected_view_count: usize,
+    pub requested_k_covered: bool,
+    pub attainable_capped_target_covered: bool,
+    pub feature_coverage: Vec<KCoverageFeatureReport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PublishedKCoverageGreedy {
     pub algorithm: String,
     pub arithmetic: String,
@@ -99,6 +112,9 @@ pub struct PublishedKCoverageGreedy {
     pub robust_requested_k_covered: bool,
     pub nominal_failure_domain_requirements_met: bool,
     pub robust_failure_domain_requirements_met: bool,
+    pub exact_reference_minimum_view_count: usize,
+    pub view_count_gap_vs_exact: Option<usize>,
+    pub relative_gap_basis_points_vs_exact: Option<u64>,
     pub feature_coverage: Vec<KCoverageFeatureReport>,
 }
 
@@ -114,6 +130,7 @@ pub struct PlanningReceipt {
     pub planning_disposition: PlanningDisposition,
     pub candidate_view_count: usize,
     pub candidate_pool_coverage: Vec<FeatureCoverage>,
+    pub nominal_k_exact: NominalKCoverageExact,
     pub max_selected_views: usize,
     pub max_total_cost_units: u64,
     pub subsets_evaluated: u64,
@@ -573,8 +590,183 @@ const EXP_NEGATIVE_FIXED_1E15: [u64; 21] = [
     2_061_154,
 ];
 
+fn search_nominal_k_combination(
+    problem: &PlanningProblem,
+    ordered_view_indices: &[usize],
+    targets: &[usize],
+    target_size: usize,
+    start_position: usize,
+    chosen: &mut Vec<usize>,
+    covered_counts: &mut [usize],
+    subsets_evaluated: &mut u64,
+) -> Option<Vec<usize>> {
+    if chosen.len() == target_size {
+        *subsets_evaluated += 1;
+        return covered_counts
+            .iter()
+            .zip(targets)
+            .all(|(actual, required)| actual >= required)
+            .then(|| chosen.clone());
+    }
+
+    let needed = target_size - chosen.len();
+    if ordered_view_indices.len().saturating_sub(start_position) < needed {
+        return None;
+    }
+    let last_start = ordered_view_indices.len() - needed;
+    for position in start_position..=last_start {
+        let view_index = ordered_view_indices[position];
+        chosen.push(view_index);
+        for feature_id in &problem.views[view_index].nominal_feature_ids {
+            let feature_index = problem
+                .features
+                .iter()
+                .position(|feature| feature.feature_id == *feature_id)
+                .expect("validated feature id");
+            covered_counts[feature_index] += 1;
+        }
+
+        let result = search_nominal_k_combination(
+            problem,
+            ordered_view_indices,
+            targets,
+            target_size,
+            position + 1,
+            chosen,
+            covered_counts,
+            subsets_evaluated,
+        );
+
+        for feature_id in &problem.views[view_index].nominal_feature_ids {
+            let feature_index = problem
+                .features
+                .iter()
+                .position(|feature| feature.feature_id == *feature_id)
+                .expect("validated feature id");
+            covered_counts[feature_index] -= 1;
+        }
+        chosen.pop();
+        if result.is_some() {
+            return result;
+        }
+    }
+    None
+}
+
+fn k_coverage_feature_reports(
+    candidate_coverage: &[FeatureCoverage],
+    selected_coverage: &[FeatureCoverage],
+) -> Vec<KCoverageFeatureReport> {
+    selected_coverage
+        .iter()
+        .zip(candidate_coverage)
+        .map(|(selected_feature, candidate_feature)| {
+            let attainable_capped_target = selected_feature
+                .required_view_count
+                .min(candidate_feature.nominal_view_count);
+            KCoverageFeatureReport {
+                feature_id: selected_feature.feature_id.clone(),
+                requested_k: selected_feature.required_view_count,
+                available_candidate_views: candidate_feature.nominal_view_count,
+                available_robust_candidate_views: candidate_feature.robust_view_count,
+                attainable_capped_target,
+                selected_views: selected_feature.nominal_view_count,
+                selected_robust_views: selected_feature.robust_view_count,
+                requested_k_met: selected_feature.nominal_view_count
+                    >= selected_feature.required_view_count,
+                attainable_target_met: selected_feature.nominal_view_count
+                    >= attainable_capped_target,
+                robust_requested_k_met: selected_feature.robust_view_count
+                    >= selected_feature.required_view_count,
+                required_failure_domains: selected_feature.required_failure_domains,
+                selected_nominal_failure_domains: selected_feature.nominal_failure_domain_count,
+                selected_robust_failure_domains: selected_feature.robust_failure_domain_count,
+                nominal_failure_domain_requirement_met: selected_feature
+                    .nominal_failure_domain_count
+                    >= selected_feature.required_failure_domains,
+                robust_failure_domain_requirement_met: selected_feature
+                    .robust_failure_domain_count
+                    >= selected_feature.required_failure_domains,
+            }
+        })
+        .collect()
+}
+
+fn exact_nominal_k_coverage(
+    problem: &PlanningProblem,
+) -> Result<NominalKCoverageExact, String> {
+    let candidate_coverage = coverage_records(problem, &vec![true; problem.views.len()]);
+    let targets = candidate_coverage
+        .iter()
+        .map(|feature| feature.required_view_count.min(feature.nominal_view_count))
+        .collect::<Vec<_>>();
+    let mut ordered_view_indices = (0..problem.views.len()).collect::<Vec<_>>();
+    ordered_view_indices.sort_by(|left, right| {
+        problem.views[*left]
+            .view_id
+            .cmp(&problem.views[*right].view_id)
+    });
+
+    let mut subsets_evaluated = 0_u64;
+    let mut chosen_solution = None;
+    for target_size in 0..=problem.views.len() {
+        let mut chosen = Vec::with_capacity(target_size);
+        let mut covered_counts = vec![0_usize; problem.features.len()];
+        chosen_solution = search_nominal_k_combination(
+            problem,
+            &ordered_view_indices,
+            &targets,
+            target_size,
+            0,
+            &mut chosen,
+            &mut covered_counts,
+            &mut subsets_evaluated,
+        );
+        if chosen_solution.is_some() {
+            break;
+        }
+    }
+    let chosen = chosen_solution
+        .ok_or_else(|| "NOMINAL_K_CAPPED_TARGET_UNEXPECTEDLY_INFEASIBLE".to_owned())?;
+    let mut selected = vec![false; problem.views.len()];
+    for index in chosen {
+        selected[index] = true;
+    }
+    let mut selected_view_ids = problem
+        .views
+        .iter()
+        .zip(&selected)
+        .filter(|(_, include)| **include)
+        .map(|(view, _)| view.view_id.clone())
+        .collect::<Vec<_>>();
+    selected_view_ids.sort();
+    let selected_view_count = selected_view_ids.len();
+    let selected_coverage = coverage_records(problem, &selected);
+    let feature_coverage =
+        k_coverage_feature_reports(&candidate_coverage, &selected_coverage);
+    let requested_k_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.requested_k_met);
+    let attainable_capped_target_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.attainable_target_met);
+
+    Ok(NominalKCoverageExact {
+        algorithm: "EXACT_NOMINAL_K_COVERAGE_V0_1".to_owned(),
+        candidate_view_count: problem.views.len(),
+        subsets_evaluated,
+        minimum_cardinality_certified: true,
+        selected_view_ids,
+        selected_view_count,
+        requested_k_covered,
+        attainable_capped_target_covered,
+        feature_coverage,
+    })
+}
+
 fn published_style_k_coverage_greedy(
     problem: &PlanningProblem,
+    exact_reference_minimum_view_count: usize,
 ) -> Result<PublishedKCoverageGreedy, String> {
     let candidate_counts = coverage_records(problem, &vec![true; problem.views.len()]);
     // The paper's visibility matrix is nominal and binary: one count per distinct
@@ -737,38 +929,8 @@ fn published_style_k_coverage_greedy(
         .ok_or_else(|| "PUBLISHED_GREEDY_TOTAL_COST_OVERFLOW".to_owned())?;
     let selected_coverage = coverage_records(problem, &selected);
 
-    let feature_coverage = selected_coverage
-        .iter()
-        .zip(&candidate_counts)
-        .map(|(selected_feature, candidate_feature)| {
-            let attainable_capped_target = selected_feature
-                .required_view_count
-                .min(candidate_feature.nominal_view_count);
-            KCoverageFeatureReport {
-                feature_id: selected_feature.feature_id.clone(),
-                requested_k: selected_feature.required_view_count,
-                available_candidate_views: candidate_feature.nominal_view_count,
-                available_robust_candidate_views: candidate_feature.robust_view_count,
-                attainable_capped_target,
-                selected_views: selected_feature.nominal_view_count,
-                selected_robust_views: selected_feature.robust_view_count,
-                requested_k_met: selected_feature.nominal_view_count
-                    >= selected_feature.required_view_count,
-                attainable_target_met: selected_feature.nominal_view_count
-                    >= attainable_capped_target,
-                robust_requested_k_met: selected_feature.robust_view_count
-                    >= selected_feature.required_view_count,
-                required_failure_domains: selected_feature.required_failure_domains,
-                selected_nominal_failure_domains: selected_feature.nominal_failure_domain_count,
-                selected_robust_failure_domains: selected_feature.robust_failure_domain_count,
-                nominal_failure_domain_requirement_met: selected_feature
-                    .nominal_failure_domain_count
-                    >= selected_feature.required_failure_domains,
-                robust_failure_domain_requirement_met: selected_feature.robust_failure_domain_count
-                    >= selected_feature.required_failure_domains,
-            }
-        })
-        .collect::<Vec<_>>();
+    let feature_coverage =
+        k_coverage_feature_reports(&candidate_counts, &selected_coverage);
     let requested_k_covered = feature_coverage
         .iter()
         .all(|feature| feature.requested_k_met);
@@ -784,6 +946,14 @@ fn published_style_k_coverage_greedy(
     let robust_failure_domain_requirements_met = feature_coverage
         .iter()
         .all(|feature| feature.robust_failure_domain_requirement_met);
+    let view_count_gap_vs_exact = attainable_capped_target_covered
+        .then(|| selected_view_ids.len().checked_sub(exact_reference_minimum_view_count))
+        .flatten();
+    let relative_gap_basis_points_vs_exact = view_count_gap_vs_exact.and_then(|gap| {
+        (exact_reference_minimum_view_count > 0).then(|| {
+            ((gap as u128) * 10_000 / exact_reference_minimum_view_count as u128) as u64
+        })
+    });
     Ok(PublishedKCoverageGreedy {
         algorithm: "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_2".to_owned(),
         arithmetic: "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties;selection_order_cleanup".to_owned(),
@@ -800,6 +970,9 @@ fn published_style_k_coverage_greedy(
         robust_requested_k_covered,
         nominal_failure_domain_requirements_met,
         robust_failure_domain_requirements_met,
+        exact_reference_minimum_view_count,
+        view_count_gap_vs_exact,
+        relative_gap_basis_points_vs_exact,
         feature_coverage,
     })
 }
@@ -1047,7 +1220,11 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         .exact_optimum
         .as_ref()
         .map(|plan| plan.total_cost_units);
-    let published_k_coverage_greedy = published_style_k_coverage_greedy(problem)?;
+    let nominal_k_exact = exact_nominal_k_coverage(problem)?;
+    let published_k_coverage_greedy = published_style_k_coverage_greedy(
+        problem,
+        nominal_k_exact.selected_view_count,
+    )?;
     let greedy_next_best_view = greedy_solution(problem, true);
     let cheapest_first = greedy_solution(problem, false);
     let greedy_cost_gap_units = match (exact_cost, greedy_next_best_view.robustly_covered) {
@@ -1072,6 +1249,7 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         planning_disposition,
         candidate_view_count: problem.views.len(),
         candidate_pool_coverage,
+        nominal_k_exact,
         max_selected_views: problem.max_selected_views,
         max_total_cost_units: problem.max_total_cost_units,
         subsets_evaluated: search.results.subsets_evaluated,
@@ -1505,7 +1683,7 @@ pub const PLANNING_CORPUS_SCHEMA: &str =
     "luminous.orbital-truss-inspectability.planning-corpus.v0.2";
 pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-002";
 pub const PLANNING_CORPUS_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.4";
+    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.5";
 pub const PLANNING_CASE_COUNT: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
