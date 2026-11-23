@@ -198,7 +198,7 @@ fn validate_and_pair(
     policy: &DecisionImpactIntervalPolicy,
 ) -> Result<Vec<PairResolution>, RobustDecisionImpactError> {
     if point.action_id == 0
-        || point.class_pair_count == 0
+        || point.decision_class_pair_count == 0
         || point.class_pair_assessments.len() != point.decision_class_pair_count
         || point.total_relative_impact_weight == 0
     {
@@ -212,7 +212,9 @@ fn validate_and_pair(
     if point.decision_partition_sha256 != policy.expected_decision_partition_sha256 {
         return Err(RobustDecisionImpactError::PartitionMismatch);
     }
-    if point.impact_model_sha256.iter().all(|byte| *byte == 0) {
+    if point.impact_model_sha256.iter().all(|byte| *byte == 0)
+        || policy.expected_impact_model_sha256.iter().all(|byte| *byte == 0)
+    {
         return Err(RobustDecisionImpactError::MissingImpactModelCommitment);
     }
     if point.impact_model_sha256 != policy.expected_impact_model_sha256 {
