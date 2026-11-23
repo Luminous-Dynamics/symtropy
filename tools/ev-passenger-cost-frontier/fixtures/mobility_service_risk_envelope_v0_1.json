@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-SERVICE-RISK-ENVELOPE-001",
+  "tail_mass_ppm": 100000,
+  "total_variation_radius_ppm": 200000,
+  "probability_manifest": {
+    "schema_version": "0.1.0",
+    "benchmark_id": "MOBILITY-SERVICE-PROBABILITY-SET-001",
+    "probability_set_id": "synthetic-mobility-service-two-branch-v01",
+    "probability_basis": "synthetic",
+    "probability_source_reference": "fixture://nonanticipative-service-oracle-v0.1/two-branch-probabilities",
+    "scenario_tree_revision": "2d785039bc009b2f51d48db7a7b24e9ec3ad316d",
+    "scenario_tree_reference": "https://github.com/Luminous-Dynamics/symtropy/blob/2d785039bc009b2f51d48db7a7b24e9ec3ad316d/tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json",
+    "scenario_tree_benchmark_id": "NONANTICIPATIVE-SERVICE-ORACLE-001",
+    "expected_leaf_node_ids": [
+      "high-demand",
+      "low-demand"
+    ],
+    "source_dataset_digest": null,
+    "calibration_report_digest": null,
+    "geography": "synthetic-single-site",
+    "service_population": "synthetic-on-demand-delivery-requests",
+    "service_class": "synthetic-aerial-and-fallback-service",
+    "joint_event_definition": "Joint path for later request arrival, aerial opportunity/weather/permission and fallback availability; probabilities are synthetic fixture weights, not observed event frequencies.",
+    "data_version": "synthetic-two-branch-v0.1",
+    "training_cutoff_seconds": null,
+    "evaluation_window_start_seconds": null,
+    "evaluation_window_end_seconds": null,
+    "forecast_issue_time_seconds": null,
+    "sample_count": null,
+    "effective_sample_size_milli": null,
+    "expert_panel_count": null,
+    "elicitation_protocol_reference": null
+  },
+  "claim_ceiling": "Exact synthetic finite-scenario tail-risk and total-variation sensitivity arithmetic only; no calibrated probability, field reliability, distributionally robust guarantee, flight, dispatch or market authority."
+}
