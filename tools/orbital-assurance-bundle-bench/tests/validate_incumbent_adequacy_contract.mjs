@@ -16,6 +16,14 @@ if (corpus.schema !== schema.properties.schema.const
   || !Array.isArray(corpus.cases) || corpus.cases.length !== 16) {
   throw new Error("incumbent adequacy corpus does not match its v0.1 contract");
 }
+const antiClairvoyance = corpus.cases.find(item => item.case_id === "opposite_optima_within_margin");
+if (!antiClairvoyance || antiClairvoyance.materiality_margin !== 3
+  || antiClairvoyance.switching_cost !== 0
+  || antiClairvoyance.expected?.disposition !== "RETAIN_INCUMBENT"
+  || antiClairvoyance.expected?.worst_case_improvement !== 0
+  || antiClairvoyance.worlds.length !== 2) {
+  throw new Error("anti-clairvoyance control must retain at margin 3 with zero common-action improvement");
+}
 const ids = new Set();
 for (const item of corpus.cases) {
   if (!item.case_id || ids.has(item.case_id) || !Array.isArray(item.action_ids)
@@ -26,6 +34,7 @@ for (const item of corpus.cases) {
   for (const world of item.worlds) {
     if (!/^[0-9a-f]{64}$/.test(world.scope_sha256)
       || typeof world.loss_unit !== "string" || !world.loss_unit
+      || world.loss_unit !== item.loss_unit
       || !Array.isArray(world.feasible_action_ids) || !Array.isArray(world.losses)) {
       throw new Error("invalid world scope or loss matrix in " + item.case_id);
     }
