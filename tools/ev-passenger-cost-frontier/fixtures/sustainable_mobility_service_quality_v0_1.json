@@ -45,8 +45,8 @@
     },
     {
       "request_id": "request-weather-blocked",
-      "arrival_seconds": 1700,
-      "accept_by_seconds": 1750,
+      "arrival_seconds": 2500,
+      "accept_by_seconds": 2500,
       "deadline_seconds": 4500,
       "required_service_seconds": 600,
       "payload_units": 1,
@@ -121,7 +121,8 @@
       "start_seconds": 600,
       "max_service_duration_seconds": 600,
       "turnaround_seconds": 45,
-      "capacity_reference": "synthetic://6909/dock4/slot-01"
+      "capacity_reference": "synthetic://6909/dock4/slot-01",
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "aerial-early-02",
@@ -129,7 +130,8 @@
       "start_seconds": 1800,
       "max_service_duration_seconds": 600,
       "turnaround_seconds": 45,
-      "capacity_reference": "synthetic://6909/dock4/slot-02"
+      "capacity_reference": "synthetic://6909/dock4/slot-02",
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "aerial-weather-01",
@@ -137,7 +139,8 @@
       "start_seconds": 3900,
       "max_service_duration_seconds": 600,
       "turnaround_seconds": 45,
-      "capacity_reference": "synthetic://6909/dock4/slot-03"
+      "capacity_reference": "synthetic://6909/dock4/slot-03",
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "aerial-maintenance-01",
@@ -145,7 +148,8 @@
       "start_seconds": 7500,
       "max_service_duration_seconds": 600,
       "turnaround_seconds": 45,
-      "capacity_reference": "synthetic://6909/dock4/slot-04"
+      "capacity_reference": "synthetic://6909/dock4/slot-04",
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "aerial-unknown-permission-01",
@@ -153,7 +157,8 @@
       "start_seconds": 12000,
       "max_service_duration_seconds": 600,
       "turnaround_seconds": 45,
-      "capacity_reference": "synthetic://6909/dock4/slot-05"
+      "capacity_reference": "synthetic://6909/dock4/slot-05",
+      "max_payload_units": 100
     }
   ],
   "fallback_opportunities": [
@@ -162,42 +167,48 @@
       "fallback_resource_id": "van-01",
       "fallback_mode": "ground_courier",
       "start_seconds": 600,
-      "max_service_duration_seconds": 1200
+      "max_service_duration_seconds": 1200,
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "fallback-locker-early",
       "fallback_resource_id": "locker-01",
       "fallback_mode": "locker",
       "start_seconds": 1800,
-      "max_service_duration_seconds": 900
+      "max_service_duration_seconds": 900,
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "fallback-amr-weather",
       "fallback_resource_id": "amr-01",
       "fallback_mode": "amr",
       "start_seconds": 3900,
-      "max_service_duration_seconds": 600
+      "max_service_duration_seconds": 600,
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "fallback-van-after-no-go",
       "fallback_resource_id": "van-01",
       "fallback_mode": "ground_courier",
       "start_seconds": 7500,
-      "max_service_duration_seconds": 1200
+      "max_service_duration_seconds": 1200,
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "fallback-locker-later",
       "fallback_resource_id": "locker-01",
       "fallback_mode": "locker",
       "start_seconds": 9000,
-      "max_service_duration_seconds": 900
+      "max_service_duration_seconds": 900,
+      "max_payload_units": 100
     },
     {
       "opportunity_id": "fallback-van-unknown-permission",
       "fallback_resource_id": "van-01",
       "fallback_mode": "ground_courier",
       "start_seconds": 12000,
-      "max_service_duration_seconds": 1200
+      "max_service_duration_seconds": 1200,
+      "max_payload_units": 100
     }
   ],
   "flight_windows": [
