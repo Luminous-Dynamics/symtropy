@@ -114,6 +114,45 @@ There are 52 set partitions of five worlds. The test suite compares the producti
 
 These are not directly comparable to the finite recourse benchmark. They are baseline owners to reproduce on their own matched problem definitions.
 
+## Faithful reproduction contract for the yard-scheduling SOTA
+
+The 2026 NoisyNet-A3C paper is a useful local-operation baseline, but its instance counts require care:
+- Section 5.1 describes 10 simulation instance sets (I1–I10) and Table 4 lists 10 configurations.
+- Table 6 and Figures 5–6 label results I1–I12; the prose describes ten test cases, while later analysis refers to I1–I12.
+- The paper says CPLEX 20.1 obtains certified optima for the small cases I1–I6; I7–I12 do not have guaranteed CPLEX reference solutions because the solver exceeds its configured time limit / overflows.
+- The method is trained and compared across 30 independent runs in parts of the simulation analysis, and the paper reports a 30-day Q3 2024 operational-data case study for Haitian Terminal.
+- The paper explicitly distinguishes NoisyNet parameter noise (training exploration) from environmental disturbance modelling. It states that the method alone does not guarantee robustness to vessel berthing delays or internal-truck congestion, and that the model is a single-vessel berthing-shift formulation rather than a hub-scale hundreds-of-cranes/thousands-of-tasks problem.
+
+Reproduction protocol before any comparison:
+1. Resolve the I1–I10 vs I1–I12 discrepancy against the published supplementary materials and authors where necessary; preserve every reported row and mark unresolved correspondence rather than silently dropping cases.
+2. Rebuild the MILP objective, vessel/quay-crane precedence, yard-crane path and safety-distance constraints, internal-truck waiting model, and all units.
+3. Reproduce CPLEX 20.1 results on the small certified-optimum instances; report optimality gaps only where an actual bound exists. For larger instances, compare against best-known feasible values and runtime, not a fictional optimality gap.
+4. Reproduce Actor-Critic, A3C and NoisyNet-A3C with the paper's backbone, hyperparameter search space, random-seed protocol, parallelism and stopping criteria. Publish mean, median, dispersion and confidence intervals, not a single best run.
+5. Replicate the 30-day Q3 2024 day-by-day baseline only if the underlying logs and data rights are available. Otherwise label the result as a paper reproduction, not a new operational replication.
+6. Add an independent disturbance suite: vessel arrival delay, quay-crane failure, internal-truck congestion, yard health loss, reefer/energy constraint, common-cause telemetry outage, reserve berth contention and participant-rights revocation.
+7. Report original paper KPIs separately from end-to-end service: yard crane operating time, internal-truck waiting, vessel delay, cargo service, receiver deadline misses, reserve displacement, energy/emissions and evidence false-admission rates.
+
+The paper's DOI is https://doi.org/10.3389/fmars.2026.1953124. Specific results (23.9% and 21.7%) are author-reported in that paper's 30-day terminal case study, not transferable targets for this synthetic recourse benchmark.
+
+## Commercial positioning and integration comparators
+
+This programme should complement installed TOS and planning platforms rather than pretend to replace their operational control role.
+
+- **Kaleris N4** presents itself as the terminal operational foundation integrating vessel, yard, rail, gate and control-room operations, with advanced optimization for RTGs, terminal trucks and yard intelligence. Vendor overview: https://kaleris.com/terminal-operating-system/kaleris-n4-tos/
+- **Tideworks Mainsail 10 + Spinnaker** went live at POMTOC at PortMiami in March 2026. Tideworks describes a cloud TOS, planning system and standardized API integration framework. Deployment reference: https://tideworks.com/pomtoc-accelerates-terminal-modernization-to-support-regional-trade-growth-with-tideworks-cloud-tos/
+- **Portchain Quay** positions itself as a dedicated terminal berth-planning tool, including crane/labour resources, maintenance schedules, vessel tracking, scenario planning and real-time collaboration. Product reference: https://portchain.com/portchain-quay
+- **project44 Ocean Visibility** offers carrier/forwarder connections, multimodal shipment stitching, predicted ETAs and exception handling. Its 150+ connections, 98% global ocean-volume coverage and 350K+ daily container figures are vendor-reported coverage claims, not independent measurements of event truth or physical receipt. Product reference: https://www.project44.com/platform/visibility/ocean/
+
+Integration strategy:
+1. Consume TOS plans and actual dispatch receipts as owner-scoped operational inputs.
+2. Consume berth and carrier visibility feeds while preserving source, timestamp role, revision, correction and dependency lineage.
+3. Qualify evidence independently before it changes resource eligibility or a recovery policy.
+4. Present bounded recourse recommendations and participant displacement to the responsible operator.
+5. Keep execution and commitments with the authorized TOS/operator/participant systems.
+6. Independently reconcile physical custody, delivery, service and resource use after execution.
+
+The differentiator is cross-system evidence assurance and network-level decision quality, not replacing each vendor's native execution system.
+
 ## Standards and integration boundaries
 
 - **DCSA Track & Trace 3.0.0** was published on 30 September 2026 with IoT/reefer events, corrections/withdrawals and intermediary exchange. DCSA says initial access is for members and DCSA+ partners, with public availability planned for H2 2027. Do not assume unrestricted public access. https://dcsa.org/newsroom/track-and-trace-3-0-0-iot-reefer-visibility
