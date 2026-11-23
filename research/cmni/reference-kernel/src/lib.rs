@@ -33,10 +33,10 @@ pub use robust_decision_design::{
 
 mod robust_campaign_planning;
 pub use robust_campaign_planning::{
-    plan_non_anticipative_robust_campaign, RobustCampaignAcquisition,
-    RobustCampaignContinuation, RobustCampaignOutcomeBranch, RobustCampaignPlanNode,
-    RobustCampaignPlanningPolicy, RobustCampaignPlanningResult, RobustCampaignScenarioLikelihood,
-    RobustCampaignScenarioScore, RobustCampaignStop,
+    plan_non_anticipative_robust_campaign, RobustCampaignAcquisition, RobustCampaignContinuation,
+    RobustCampaignOutcomeBranch, RobustCampaignPlanNode, RobustCampaignPlanningPolicy,
+    RobustCampaignPlanningResult, RobustCampaignScenarioLikelihood, RobustCampaignScenarioScore,
+    RobustCampaignStop,
 };
 
 mod design_decision;
