@@ -344,7 +344,15 @@ pub fn transfer_normal_impulse(
         selected.achieved[1] - target_center[1],
     ]);
     let impulse_sum_error = impulse_sum - total_impulse;
-    let exact_tolerance = 1.0e-12 * total_impulse.max(1.0);
+    if !moment_error_norm.is_finite()
+        || !center_of_pressure_error_norm.is_finite()
+        || !impulse_sum_error.is_finite()
+    {
+        return Err(TransferError::new("resultant wrench transfer residual is non-finite"));
+    }
+    let coordinate_scale = norm2(target_center).max(norm2(selected.achieved)).max(1.0);
+    let center_tolerance = 1.0e-12 * coordinate_scale;
+    let impulse_tolerance = 1.0e-12 * total_impulse.max(1.0);
 
     Ok(TemporalTransferReport {
         source_contact_ids: old.iter().map(|contact| contact.contact_id.clone()).collect(),
@@ -357,8 +365,8 @@ pub fn transfer_normal_impulse(
         center_of_pressure_error_norm,
         impulse_sum_error,
         allocations,
-        exact_wrench_preservation: center_of_pressure_error_norm <= exact_tolerance
-            && impulse_sum_error.abs() <= exact_tolerance,
+        exact_wrench_preservation: center_of_pressure_error_norm <= center_tolerance
+            && impulse_sum_error.abs() <= impulse_tolerance,
     })
 }
 
