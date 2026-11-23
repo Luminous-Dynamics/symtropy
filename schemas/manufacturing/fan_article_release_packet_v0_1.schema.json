@@ -175,7 +175,8 @@
         "loads_and_forces",
         "keep_out_zones",
         "downstream_operation",
-        "prohibited_uses"
+        "prohibited_uses",
+        "fixture_operation_risk_review_ref"
       ],
       "properties": {
         "operation_id": {
@@ -242,6 +243,9 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "fixture_operation_risk_review_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
         }
       }
     },
@@ -967,6 +971,9 @@
               },
               "downstream_operation": {
                 "$ref": "#/$defs/nonempty_string"
+              },
+              "fixture_operation_risk_review_ref": {
+                "$ref": "#/$defs/evidence_ref"
               }
             }
           },
