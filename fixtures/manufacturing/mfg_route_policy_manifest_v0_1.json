@@ -1,0 +1,23 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-route-policy-case-v0.1",
+  "benchmark_id": "MFG-ROUTE-ROBUST-001",
+  "families": [
+    "nominal",
+    "supplier-variability",
+    "common-cause-disruption",
+    "maintenance-calibration",
+    "material-quality-inspection",
+    "demand-surge-capacity"
+  ],
+  "case_count": 120,
+  "policy_ids": [
+    "cheapest_admissible",
+    "fastest_admissible",
+    "reliability_first",
+    "expected_cost",
+    "fixed_priority"
+  ],
+  "evidence_class": "synthetic",
+  "independent_known_answers": "fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json",
+  "claim_ceiling": "No real-world supplier, route reliability, resource capacity, production output, quality, or delivery claim."
+}
