@@ -189,14 +189,7 @@ struct Enclosure {
 
 impl Enclosure {
     fn point(value: f64) -> Option<Self> {
-        if value.is_finite() {
-            Some(Self {
-                lower: next_down(value),
-                upper: next_up(value),
-            })
-        } else {
-            None
-        }
+        widen(value, value)
     }
 
     fn add(self, other: Self) -> Option<Self> {
@@ -324,11 +317,19 @@ fn energy_enclosure(
     x_lower: f64,
     x_upper: f64,
 ) -> Option<Enclosure> {
+    if !x_lower.is_finite()
+        || !x_upper.is_finite()
+        || x_lower < 0.0
+        || x_upper > 1.0
+        || x_lower > x_upper
+    {
+        return None;
+    }
     let x = Enclosure {
         lower: next_down(x_lower),
         upper: next_up(x_upper),
     };
-    if !x.lower.is_finite() || !x.upper.is_finite() || x.lower < 0.0 || x.upper > 1.0 {
+    if !x.lower.is_finite() || !x.upper.is_finite() {
         return None;
     }
 
@@ -438,8 +439,8 @@ fn classify_energy_interval(
         Some(value) => value,
         None => return IntervalSafety::Unresolved,
     };
-    let reference_abs_min = (-reference.upper).max(0.0);
-    let reference_abs_max = (-reference.lower).max(0.0);
+    let reference_abs_min = next_down(-reference.upper).max(0.0);
+    let reference_abs_max = next_up(-reference.lower).max(0.0);
     let tolerance_min = match Enclosure::point(relative_tolerance)
         .and_then(|value| value.scale(reference_abs_min))
     {
