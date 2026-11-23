@@ -3,7 +3,8 @@
 //! This module checks whether a proposed state/action mapping commutes with
 //! deterministic finite-state evolution:
 //!
-//!     phi(delta_source(state, action)) == delta_target(phi(state), psi(action))
+//! For every source state and action, the mapped source successor must equal the
+//! target successor reached from the mapped state under the mapped action.
 //!
 //! It is a finite transition-system witness, not a continuous-time model,
 //! causal identification procedure, isolated evaluator or scientific
