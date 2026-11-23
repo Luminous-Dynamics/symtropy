@@ -269,6 +269,7 @@ fn event_context(observation: &PhysicalObservation) -> EventContext<'_> {
 struct CandidateGraph {
     edges: Vec<Vec<usize>>,
     pair_evaluations: usize,
+    index_nodes_visited: usize,
 }
 
 fn candidate_graph(
@@ -309,19 +310,123 @@ fn candidate_graph(
     CandidateGraph {
         edges,
         pair_evaluations,
+        index_nodes_visited: 0,
     }
 }
 
 #[cfg(test)]
 #[derive(Default)]
 struct IntervalContextIndex {
-    by_lower: Vec<(i64, usize)>,
-    by_upper: Vec<(i64, usize)>,
+    /// Sorted as (lower endpoint, upper endpoint, original witness index).
+    by_lower: Vec<(i64, i64, usize)>,
+    /// Segment-tree maximum upper endpoint for each lower-sorted range.
+    max_upper: Vec<i64>,
+}
+
+#[cfg(test)]
+impl IntervalContextIndex {
+    fn build_max_upper(&mut self) {
+        self.by_lower.sort_unstable();
+        if self.by_lower.is_empty() {
+            self.max_upper.clear();
+            return;
+        }
+        self.max_upper = vec![i64::MIN; self.by_lower.len().saturating_mul(4).max(1)];
+        Self::build_node(&self.by_lower, &mut self.max_upper, 1, 0, self.by_lower.len());
+    }
+
+    fn build_node(
+        entries: &[(i64, i64, usize)],
+        tree: &mut [i64],
+        node: usize,
+        start: usize,
+        end: usize,
+    ) -> i64 {
+        if end - start == 1 {
+            tree[node] = entries[start].1;
+            return tree[node];
+        }
+        let middle = start + (end - start) / 2;
+        let left_max = Self::build_node(entries, tree, node * 2, start, middle);
+        let right_max = Self::build_node(entries, tree, node * 2 + 1, middle, end);
+        tree[node] = left_max.max(right_max);
+        tree[node]
+    }
+
+    fn query(
+        &self,
+        lower_limit: usize,
+        minimum_upper: i128,
+        candidates: &mut Vec<usize>,
+    ) -> usize {
+        if lower_limit == 0 || self.by_lower.is_empty() {
+            return 0;
+        }
+        let mut nodes_visited = 0;
+        Self::query_node(
+            &self.by_lower,
+            &self.max_upper,
+            1,
+            0,
+            self.by_lower.len(),
+            lower_limit,
+            minimum_upper,
+            candidates,
+            &mut nodes_visited,
+        );
+        nodes_visited
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn query_node(
+        entries: &[(i64, i64, usize)],
+        tree: &[i64],
+        node: usize,
+        start: usize,
+        end: usize,
+        lower_limit: usize,
+        minimum_upper: i128,
+        candidates: &mut Vec<usize>,
+        nodes_visited: &mut usize,
+    ) {
+        *nodes_visited += 1;
+        if start >= lower_limit || i128::from(tree[node]) < minimum_upper {
+            return;
+        }
+        if end - start == 1 {
+            candidates.push(entries[start].2);
+            return;
+        }
+        let middle = start + (end - start) / 2;
+        Self::query_node(
+            entries,
+            tree,
+            node * 2,
+            start,
+            middle,
+            lower_limit,
+            minimum_upper,
+            candidates,
+            nodes_visited,
+        );
+        Self::query_node(
+            entries,
+            tree,
+            node * 2 + 1,
+            middle,
+            end,
+            lower_limit,
+            minimum_upper,
+            candidates,
+            nodes_visited,
+        );
+    }
 }
 
 /// Test-only candidate-window implementation. Exact event context is still
-/// required; the interval index then reports precisely those witness intervals
-/// satisfying lower <= source.upper and upper >= source.lower - tolerance.
+/// required; a lower-endpoint prefix and a segment-tree maximum-upper bound
+/// report exactly those witness intervals satisfying:
+/// witness.lower <= source.upper AND witness.upper >= source.lower - tolerance.
 /// This is equivalent to the frozen v0.1 temporal predicate for the typed
 /// BusinessEventTime / SensorObservationTime role pair.
 #[cfg(test)]
@@ -332,16 +437,18 @@ fn candidate_graph_interval_indexed(
 ) -> CandidateGraph {
     let mut indexes = BTreeMap::<EventContext<'_>, IntervalContextIndex>::new();
     for (index, event) in witness.iter().enumerate() {
-        let context = indexes.entry(event_context(event)).or_default();
-        context.by_lower.push((event.event_time.lower, index));
-        context.by_upper.push((event.event_time.upper, index));
+        indexes
+            .entry(event_context(event))
+            .or_default()
+            .by_lower
+            .push((event.event_time.lower, event.event_time.upper, index));
     }
     for context in indexes.values_mut() {
-        context.by_lower.sort_unstable();
-        context.by_upper.sort_unstable();
+        context.build_max_upper();
     }
 
     let mut pair_evaluations = 0usize;
+    let mut index_nodes_visited = 0usize;
     let mut edges = Vec::with_capacity(source.len());
     for source_event in source {
         let Some(context) = indexes.get(&event_context(source_event)) else {
@@ -349,48 +456,29 @@ fn candidate_graph_interval_indexed(
             continue;
         };
 
-        let lower_prefix = context
+        let lower_limit = context
             .by_lower
-            .partition_point(|(lower, _)| *lower <= source_event.event_time.upper);
-        let earliest_allowed_upper =
+            .partition_point(|(lower, _, _)| *lower <= source_event.event_time.upper);
+        let minimum_upper =
             i128::from(source_event.event_time.lower) - i128::from(profile.max_interval_gap);
-        let upper_suffix = context
-            .by_upper
-            .partition_point(|(upper, _)| i128::from(*upper) < earliest_allowed_upper);
+        let mut possible_witnesses = Vec::new();
+        index_nodes_visited += context.query(lower_limit, minimum_upper, &mut possible_witnesses);
+        possible_witnesses.sort_unstable();
 
-        let lower_candidate_count = lower_prefix;
-        let upper_candidate_count = context.by_upper.len() - upper_suffix;
         let mut source_edges = Vec::new();
-        if lower_candidate_count <= upper_candidate_count {
-            for &(lower, index) in &context.by_lower[..lower_prefix] {
-                if i128::from(witness[index].event_time.upper) >= earliest_allowed_upper
-                    && lower <= source_event.event_time.upper
-                {
-                    pair_evaluations += 1;
-                    if admissible_edge(source_event, &witness[index], profile) {
-                        source_edges.push(index);
-                    }
-                }
-            }
-        } else {
-            for &(upper, index) in &context.by_upper[upper_suffix..] {
-                if i128::from(upper) >= earliest_allowed_upper
-                    && witness[index].event_time.lower <= source_event.event_time.upper
-                {
-                    pair_evaluations += 1;
-                    if admissible_edge(source_event, &witness[index], profile) {
-                        source_edges.push(index);
-                    }
-                }
+        for index in possible_witnesses {
+            pair_evaluations += 1;
+            if admissible_edge(source_event, &witness[index], profile) {
+                source_edges.push(index);
             }
         }
-        source_edges.sort_unstable();
         edges.push(source_edges);
     }
 
     CandidateGraph {
         edges,
         pair_evaluations,
+        index_nodes_visited,
     }
 }
 
