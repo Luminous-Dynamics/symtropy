@@ -6,28 +6,48 @@
 
 ## 1. What already exists in the field
 
-RRVR must not claim novelty for formal specification, model checking, recorded-trace validation, ROS event tracing or conventional robot performance measurement.
+RRVR must not claim novelty for formal specification, model checking, recorded-trace validation, ROS event tracing, or policy recovery benchmarks.
 
-| Baseline | Established capability | Gap RRVR targets |
+| Baseline | Established capability | What RRVR should add (not replace) |
 |---|---|---|
-| TLC / TLA+ | Exhaustive bounded state exploration, invariant checks and counterexample traces | Map physical owner evidence and effect identity into the model |
-| Reflow `tla.trace` | Validate each recorded state/action step as behavior of a TLA+ specification | Separate attempt/effect identity, independent no-effect and graph-quiescence claims, owner receipts |
-| TLA+ trace validation research | Map runtime implementation states to specification states; can expose implementation/specification divergence | Domain-specific evidence qualification and common-cause-aware observer proofs |
-| `ros2_tracing` / LTTng | Low-overhead ROS 2 runtime event tracepoints and trace analysis | Semantically bind middleware events to physical outcomes, exact attempt IDs, downstream graph fences and authority |
-| NIST robotic performance assessment | Component/system test methods for perception, mobility, dexterity and safety | Recovery correctness, evidence quality and irreversible-effect handling |
-| Long-horizon manipulation benchmarks | Task progress, partial completion, error propagation, recovery cost and horizon sensitivity | Evidence-qualified physical-effect continuity across restarts |
+| TLC / TLA+ | Bounded/exhaustive state exploration, invariant checking and counterexample traces | Owner-evidence semantics for physical effects, persistence, fencing and recovery authority |
+| Reflow `tla.trace` and research trace-validation frameworks | Validate recorded implementation states/actions against a TLA+ specification | Exact effect/attempt/epoch lineage; physically grounded owner receipts; evidence completeness and observer fault model |
+| `ros2_tracing` / LTTng | Low-overhead ROS 2 runtime tracepoints and causal runtime analysis | Semantically connect message/callback traces to physical outcomes and downstream graph quiescence |
+| NIST Performance Assessment Framework for Robotic Systems | Task-driven component test methods for perception, mobility, dexterity and safety, composed into system-level performance models | Add recovery authorization correctness, physical-effect continuity and recovery evidence quality |
+| RoboRecover (2026) | Policy recovery from execution-induced intermediate states across RoboTwin and LIBERO | Add a safety/evidence overlay to the same recovery points: determine whether an attempted recovery is actually authorized and whether the physical task effect is known |
 
-Sources and prior art:
-- [Reflow TLA+ plugin](https://reflow.io/docs/plugins/tla-plus/): `tla.trace` requires the initial state and validates each later transition; the plugin distinguishes specification checking from checking implementation traces.
-- [TLA+ trace validation](https://docs.tlapl.us/using:tlc:trace_validation): recorded implementation states can be compared with a specification; this checks the captured subset of executions, not every possible execution.
-- [ros2_tracing](https://github.com/ros2/ros2_tracing): tracepoints for ROS 2 and supported middleware, with Trace Compass analysis.
-- [NIST Performance Assessment Framework for Robotic Systems](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems): perception, mobility, dexterity and safety component measurements composed into system performance models.
-- Zheng et al., [Long-horizon embodied manipulation: a survey of methods, trends, and challenges](https://doi.org/10.1007/s44336-026-00048-x), 16 November 2026: identifies partial completion, error propagation, recovery cost and horizon-dependent degradation as shortcomings of binary success reporting.
-- Al-Batati et al., [ROS 2 in a Nutshell: A Survey](https://doi.org/10.1145/3815113), 21 August 2026: analyzes ROS 2 middleware, real-time scheduling, security/safety and distributed/multi-robot systems.
+### Closest policy-recovery SOTA: RoboRecover
+
+RoboRecover is the closest current benchmark for recovery-policy capability, and RRVR should use it as a complementary substrate rather than claim to beat it with a trace checker.
+
+Its September 24, 2026 preprint contains 2,000 scenarios: 1,000 each on RoboTwin and LIBERO, with fixed 800/200 train/test splits on each platform. It evaluates six policies per platform across four recovery stages and four deviation types, with nine Stage–Type combinations represented in each test set. Its protocol replays the action prefix so candidate policies start from the same reconstructed recovery condition.
+
+Published results:
+- LIBERO best fixed-policy overall Recovery Success Rate (RSR): `64.40%` (`π0.5`); UnifoLM has `98.83%` initial-state success but only `48.00%` recovery RSR.
+- RoboTwin highest fixed-policy Overall RSR: `59.50%` (LingBot-VA); highest category-balanced Macro-9 RSR: `55.62%` (Fast-WAM).
+- A retrospective per-scenario best-of-six oracle reaches `95.63%` on RoboTwin and `91.80%` on LIBERO. This is an oracle upper reference, not a deployable policy.
+- LIBERO interventions raise direct `π0.5` recovery RSR from `64.4%` to `77.0%` with Monitor+Reversion; Monitor+Correction reaches `75.5%`. Reversion changes the starting state; Correction introduces a short external controller, so these are not like-for-like fixed-policy comparisons.
+
+The key conclusion is not that RRVR must produce a higher RSR. It is that recovery success and recovery authorization are different questions. A controller can produce a successful trajectory from an execution-deviation state while the system still lacks evidence that an earlier physical effect did not occur or that an old command is quiescent. RRVR should report policy RSR and evidence-gate correctness separately.
+
+Sources:
+- [RoboRecover, arXiv:2609.28952](https://arxiv.org/abs/2609.28952), posted 24 September 2026; see its fixed split and task coverage, matched recovery baselines, stage/type comparisons and intervention results.
+- [NIST Performance Assessment Framework for Robotic Systems](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems): composes task-specific perception, mobility, dexterity and safety component measures into integrated assembly performance models.
+- [Reflow TLA+ plugin](https://reflow.io/docs/plugins/tla-plus/) and [TLA+ trace validation](https://docs.tlapl.us/using:tlc:trace_validation): prior art for recorded-trace/model compatibility.
+- [Cirstea et al., Validating Traces of Distributed Programs Against TLA+ Specifications, SEFM 2024](https://doi.org/10.1007/978-3-031-77382-2_8): reduces compatibility of recorded distributed-program traces with a TLA+ specification to constrained TLC model checking.
+- [ros2_tracing, IEEE RA-L 2022](https://doi.org/10.1109/LRA.2022.3174346): the paper reports 0.0033 ms average end-to-end message-latency overhead with its full ROS 2 instrumentation in its tested workload. This is a reference measurement, not a universal guarantee or a directly comparable RRVR projection target.
 
 ## 2. The contribution we should try to establish
 
 The research hypothesis is that a runtime/model bridge becomes materially more useful for physical robotics when it carries *evidence-qualified physical-effect identity* rather than only event names and state snapshots.
+
+**Paradigm shift:** treat a robot operation as an externally consequential transaction whose physical effect may outlive the process that initiated it. Recovery is not a policy retry; it is a proof-carrying admission decision. The system may resume mutation only after reconciling (a) the logical effect and attempt identity, (b) persistence outcome, (c) the old controller queue, (d) all downstream driver/firmware work, (e) independent physical outcome evidence, and (f) the authority/binding state for the new attempt. When any of these is unknown, partial, disputed, stale or mismatched, the safe result is a hold plus reconciliation—not another physical command.
+
+This leads to a two-plane architecture:
+- **Operational plane:** low-latency runtime guard at the native acceptance boundary. It consumes typed, scoped owner receipts and one-shot recovery authority before admitting a new mutation.
+- **Assurance plane:** append-only provenance, exact action/state trace replay through pinned TLC, counterexample preservation, and independent simulator/HIL/physical audit.
+
+Neither plane can replace the other. Fast guards do not establish their own correctness; offline model checking does not authenticate physical observations.
 
 RRVR's candidate differentiators:
 - stable logical-effect ID that survives retries;
@@ -37,7 +57,9 @@ RRVR's candidate differentiators:
 - two non-interchangeable observer claims: physical physical-outcome and downstream graph quiescence;
 - an explicit fault-model revision and observer dependency graph for common-cause qualification;
 - one-shot recovery authority, live-binding and M1/M2 freshness captured at admission;
-- exact raw owner receipt/artifact commitments and source clock identity.
+- exact raw owner receipt/artifact commitments and source clock identity;
+- an exact owner-asserted value per evidence record, bound into the claim-scope digest;
+- a separate exact-action/exact-successor-state TLC trace harness plus a deliberately mutated wrong-action negative control.
 
 The projection deliberately refuses to turn `unknown`, `partial`, `disputed`, stale, wrong-attempt or missing owner evidence into a safe state. It also does not infer that a state/action sequence conforms to the TLA model; that requires a separate formal trace checker.
 
