@@ -104,7 +104,7 @@ def diagnostic(case, robust_only):
         "unique_geometric_support_count": len(angle_keys),
         "distinct_failure_domain_count": len(domains),
         "information_matrix_q1e9": [
-            [quantize(abs(value), MATRIX_SCALE) for value in row]
+            [quantize_signed(value, MATRIX_SCALE) for value in row]
             for row in matrix
         ],
         "eigenvalues_q1e9": [quantize(value, MATRIX_SCALE) for value in eigenvalues],
