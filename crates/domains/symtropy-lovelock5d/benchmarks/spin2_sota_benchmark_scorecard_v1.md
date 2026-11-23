@@ -255,3 +255,12 @@ They share the mathematical integral but use distinct quadrature algorithms. Bot
 ## Ma--Lü map correction and replay (23 November 2026)
 
 The paper's Eq. (16) prints chi=a/mu, not a/sqrt(mu), and it is not chi=Omega_H*r_H. For equal spins, its Eqs. (4), (6), (16) imply mu/r_h^2=(1+q^2)^2/2, nu=q/(1+q^2), and chi*r_h=2q/(1+q^2)^2, with q=a/r_h, nu=Omega_H*r_h. Exact inversion gives q=nu+nu^3+2nu^5+... and chi*r_h=2nu-2nu^3-2nu^5+.... The parameter-map script was replayed locally from its exact public blob; all symbolic checks pass. Do not use the earlier shorthand conversion for higher-spin comparisons.
+
+
+## First-coupling 5D MP cross-check: action identity established; validity envelope added
+
+The Ricci-flat Euler-tensor identity now establishes the exact first-coupling source map \(\alpha_R=\alpha_{GB}/4\), so \(\epsilon_R=\lambda/4\) at matched horizon radius. This is a source-level identity about a Ricci-flat MP background, not a finite-coupling equivalence or a completed metric comparison.
+
+The exact Ma--Lü equal-spin kinematic map is checked through \(\nu^{11}\), using the paper's printed \(\chi=a/\mu\) convention. The corrected task and artifacts explicitly prohibit the earlier shorthand \(\chi=\Omega_Hr_H\) at finite spin.
+
+The newly opened #6955 adds a perturbative validity envelope because Wu--Lü (2025) found rotation/ensemble-dependent divergences in first-order MP thermodynamic corrections. Report spin-series truncation, coupling-series truncation, metric/invariant correction size and ensemble dependence separately. A divergent perturbative observable is not proof that the full nonlinear solution fails to exist.
