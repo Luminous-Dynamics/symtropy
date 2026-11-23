@@ -25,7 +25,7 @@ This preserves the interoperability role of CCSDS 508.0-B-1 / ISO 19389 while ad
 
 ## Schema
 
-The normative draft for this profile revision is [caem-v0.1.schema.json](./caem-v0.1.schema.json). It uses JSON Schema Draft 2020-12. Producers must reject unknown top-level fields for v0.1; profile extensions belong under the explicit `extensions` object and must be independently versioned.
+The normative draft for this profile revision is [caem-v0.1.schema.json](./caem-v0.1.schema.json). It uses JSON Schema Draft 2020-12. A structurally representative, deliberately unqualified example is [example-caem-v0.1.json](./example-caem-v0.1.json); its object identifiers, hashes and numeric result are placeholders, not real conjunction evidence. Producers must reject unknown top-level fields for v0.1; profile extensions belong under the explicit `extensions` object and must be independently versioned.
 
 ## Semantic invariants not expressible by JSON Schema alone
 
