@@ -1,0 +1,436 @@
+//! End-to-end software composition for decision-aware evidence acquisition.
+//!
+//! Composes the decision-aware planner, consume-once attempt ledger and
+//! time-of-validity gate. The result is only staging for a later independent
+//! posterior audit. This module never updates hypotheses, protection levels,
+//! health or authority. The attempt ledger remains an in-memory research kernel.
+
+use std::fmt;
+
+use crate::active_evidence_attempt_ledger::{
+    AcquisitionAttemptOutcome, ActiveEvidenceAttemptError, ActiveEvidenceAttemptLedger,
+    AdmittedAttemptReceipt, EvidenceAttemptRequest,
+};
+use crate::active_evidence_decision_planner::{
+    ActiveEvidenceDecisionPlan, ActiveEvidenceDecisionReason,
+};
+use crate::navigation_time_validity::{
+    NavigationTimeDisposition, NavigationTimeValidityError, NavigationTimeValidityInput,
+    NavigationTimeValidityPolicy, NavigationTimeValidityReport, evaluate_navigation_time_validity,
+};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EvidenceTransactionDisposition {
+    AcquisitionFailed,
+    AcquiredEvidenceInvalid,
+    ReconciliationRequired,
+    TemporallyInapplicable(NavigationTimeDisposition),
+    ReadyForIndependentPosteriorAudit,
+    ReadyForIndependentForecastAudit,
+    HistoricalReplayOnly,
+    TimeAssessmentMissing,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EvidenceTransactionReport {
+    pub action_id: u64,
+    pub attempt_id: u64,
+    pub admitted_attempt: AdmittedAttemptReceipt,
+    pub decision_reason: ActiveEvidenceDecisionReason,
+    pub hypothesis_inventory_sha256: [u8; 32],
+    pub decision_partition_sha256: [u8; 32],
+    pub disposition: EvidenceTransactionDisposition,
+    pub time_report: Option<NavigationTimeValidityReport>,
+    pub eligible_for_independent_posterior_audit: bool,
+    /// Always false. The posterior/fault-envelope owner must perform the update.
+    pub posterior_updated: bool,
+    /// Always false. Neither planning nor evidence acquisition grants authority.
+    pub navigation_authorized: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EvidenceTransactionError {
+    PlanHasNoRecommendedAction,
+    PlanMissingInventoryOrDecisionPartition,
+    PlanMissingDecisionAssignments,
+    AttemptDoesNotMatchRecommendedAction,
+    AttemptLedger(ActiveEvidenceAttemptError),
+    TimeValidity(NavigationTimeValidityError),
+}
+
+impl fmt::Display for EvidenceTransactionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlanHasNoRecommendedAction => write!(f, "decision-aware plan has no recommended acquisition action"),
+            Self::PlanMissingInventoryOrDecisionPartition => write!(f, "decision-aware plan is missing its inventory or decision-partition commitment"),
+            Self::PlanMissingDecisionAssignments => write!(f, "decision-aware plan is missing frozen hypothesis-to-decision assignments"),
+            Self::AttemptDoesNotMatchRecommendedAction => write!(f, "attempt action does not match the plan's recommendation"),
+            Self::AttemptLedger(error) => write!(f, "attempt ledger rejected transition: {error}"),
+            Self::TimeValidity(error) => write!(f, "time-validity assessment failed: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for EvidenceTransactionError {}
+
+/// Consume one executor outcome for the exact action selected by the plan.
+///
+/// Unknown outcomes remain globally blocking until explicitly reconciled.
+/// Failed and invalid outcomes do not reach the time gate. A qualified payload
+/// is eligible for independent posterior audit only when it is a time-valid
+/// decision-epoch nowcast. A future prediction and historical estimate remain
+/// separate result classes. Missing temporal evidence fails closed.
+pub fn record_selected_evidence_outcome(
+    plan: &ActiveEvidenceDecisionPlan,
+    ledger: &mut ActiveEvidenceAttemptLedger,
+    request: EvidenceAttemptRequest,
+    outcome: AcquisitionAttemptOutcome,
+    observed_navigation_state_sha256: [u8; 32],
+    time_assessment: Option<(NavigationTimeValidityPolicy, NavigationTimeValidityInput)>,
+) -> Result<EvidenceTransactionReport, EvidenceTransactionError> {
+    let selected_action_id = plan.recommended_action_id
+        .ok_or(EvidenceTransactionError::PlanHasNoRecommendedAction)?;
+    let inventory = plan.hypothesis_inventory_sha256
+        .ok_or(EvidenceTransactionError::PlanMissingInventoryOrDecisionPartition)?;
+    let partition = plan.decision_partition_sha256
+        .ok_or(EvidenceTransactionError::PlanMissingInventoryOrDecisionPartition)?;
+    if plan.decision_assignments.as_ref().is_none_or(|items| items.is_empty()) {
+        return Err(EvidenceTransactionError::PlanMissingDecisionAssignments);
+    }
+    if request.action_id != selected_action_id {
+        return Err(EvidenceTransactionError::AttemptDoesNotMatchRecommendedAction);
+    }
+
+    let admitted = ledger.begin_attempt(request)
+        .map_err(EvidenceTransactionError::AttemptLedger)?;
+    ledger.record_outcome(request.attempt_id, outcome, observed_navigation_state_sha256)
+        .map_err(EvidenceTransactionError::AttemptLedger)?;
+
+    let (disposition, time_report, audit_eligible) = match outcome {
+        AcquisitionAttemptOutcome::FailedOrTimedOut { .. } =>
+            (EvidenceTransactionDisposition::AcquisitionFailed, None, false),
+        AcquisitionAttemptOutcome::AcquiredButInvalid { .. } =>
+            (EvidenceTransactionDisposition::AcquiredEvidenceInvalid, None, false),
+        AcquisitionAttemptOutcome::UnknownOrUnreconciled { .. } =>
+            (EvidenceTransactionDisposition::ReconciliationRequired, None, false),
+        AcquisitionAttemptOutcome::QualifiedEvidenceAvailable { .. } => {
+            match time_assessment {
+                None => (EvidenceTransactionDisposition::TimeAssessmentMissing, None, false),
+                Some((policy, input)) => {
+                    let report = evaluate_navigation_time_validity(policy, input)
+                        .map_err(EvidenceTransactionError::TimeValidity)?;
+                    let (stage, eligible) = match report.disposition {
+                        NavigationTimeDisposition::DecisionEpochNowcastApplicable =>
+                            (EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit, true),
+                        NavigationTimeDisposition::FutureEpochPredictionApplicable =>
+                            (EvidenceTransactionDisposition::ReadyForIndependentForecastAudit, false),
+                        NavigationTimeDisposition::HistoricalEventTimeOnly =>
+                            (EvidenceTransactionDisposition::HistoricalReplayOnly, false),
+                        other => (EvidenceTransactionDisposition::TemporallyInapplicable(other), false),
+                    };
+                    (stage, Some(report), eligible)
+                }
+            }
+        }
+    };
+
+    Ok(EvidenceTransactionReport {
+        action_id: request.action_id,
+        attempt_id: request.attempt_id,
+        admitted_attempt: admitted,
+        decision_reason: plan.reason,
+        hypothesis_inventory_sha256: inventory,
+        decision_partition_sha256: partition,
+        disposition,
+        time_report,
+        eligible_for_independent_posterior_audit: audit_eligible,
+        posterior_updated: false,
+        navigation_authorized: false,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::active_evidence_acquisition::{ActiveEvidencePolicy, EvidenceActionCandidate, EvidenceActionKind};
+    use crate::active_evidence_attempt_ledger::{ActiveEvidenceAttemptPolicy, ResolvedAcquisitionOutcome, AcquisitionAttemptDisposition};
+    use crate::active_evidence_decision_planner::plan_active_evidence_with_decision_relevance;
+    use crate::decision_relevant_discrimination::{HypothesisDecisionAssignment, project_decision_relevant_discrimination};
+    use crate::navigation_time_validity::{NavigationTimeClaimKind, NavigationTimeInterval};
+    use crate::uwb_hypothesis_discrimination::{UwbHypothesisDiscriminationReport, UwbHypothesisPairSeparation};
+
+    const DOMAIN: [u8; 32] = [0x11; 32];
+    const PROTOCOL: [u8; 32] = [0x22; 32];
+    const PRE_STATE: [u8; 32] = [0x44; 32];
+
+    fn nav_policy() -> ActiveEvidencePolicy {
+        ActiveEvidencePolicy {
+            current_protection_level_upper_m: 3.0,
+            target_protection_level_upper_m: 1.0,
+            maximum_action_latency_ns: 100,
+            maximum_action_energy_uj: 1_000,
+            require_new_dependency_group: false,
+            already_observed_dependency_groups: vec![10],
+        }
+    }
+
+    fn candidate(id: u64, pl: f64) -> EvidenceActionCandidate {
+        EvidenceActionCandidate {
+            action_id: id,
+            kind: EvidenceActionKind::RequestIndependentAnchor,
+            dependency_group_id: 20 + id,
+            conditional_post_action_protection_level_upper_m: pl,
+            worst_case_latency_ns: 30,
+            worst_case_energy_uj: 200,
+            available: true,
+            freshness_and_calibration_preconditions_met: true,
+        }
+    }
+
+    fn upstream(action_id: u64, gaps: [f64; 3]) -> UwbHypothesisDiscriminationReport {
+        let pair_ids = [(1, 2), (1, 3), (2, 3)];
+        let pair_separations: Vec<_> = pair_ids.into_iter().zip(gaps).map(
+            |((lower_hypothesis_id, upper_hypothesis_id), normalized_outcome_gap)| {
+                UwbHypothesisPairSeparation {
+                    lower_hypothesis_id,
+                    upper_hypothesis_id,
+                    normalized_outcome_gap,
+                    guaranteed_distinguishable: normalized_outcome_gap > 0.0,
+                }
+            }
+        ).collect();
+        let separated = pair_separations.iter().filter(|pair| pair.guaranteed_distinguishable).count();
+        UwbHypothesisDiscriminationReport {
+            action_id,
+            hypothesis_inventory_sha256: [0x55; 32],
+            outcome_model_sha256: [action_id as u8; 32],
+            normalization_sha256: [0x66; 32],
+            hypothesis_count: 3,
+            hypothesis_pair_count: 3,
+            distinguishable_pair_count: separated,
+            ambiguous_pair_count: 3 - separated,
+            minimum_positive_gap: pair_separations.iter().filter(|pair| pair.guaranteed_distinguishable).map(|pair| pair.normalized_outcome_gap).reduce(f64::min),
+            maximum_pair_gap: pair_separations.iter().map(|pair| pair.normalized_outcome_gap).fold(0.0, f64::max),
+            conditional_on_successful_valid_observation: true,
+            pair_separations,
+        }
+    }
+
+    fn projected(action_id: u64, gaps: [f64; 3]) -> crate::decision_relevant_discrimination::DecisionRelevantDiscriminationReport {
+        project_decision_relevant_discrimination(
+            &upstream(action_id, gaps),
+            action_id,
+            &[1, 2, 3],
+            [0x55; 32],
+            &[
+                HypothesisDecisionAssignment { hypothesis_id: 1, decision_class_id: 10 },
+                HypothesisDecisionAssignment { hypothesis_id: 2, decision_class_id: 10 },
+                HypothesisDecisionAssignment { hypothesis_id: 3, decision_class_id: 20 },
+            ],
+            [0x77; 32],
+        ).unwrap()
+    }
+
+    fn plan() -> ActiveEvidenceDecisionPlan {
+        let candidates = [candidate(1, 3.0), candidate(2, 2.5)];
+        let reports = [projected(1, [1.0, 0.0, 0.0]), projected(2, [0.0, 2.0, 2.0])];
+        let result = plan_active_evidence_with_decision_relevance(&nav_policy(), &candidates, &reports).unwrap();
+        assert_eq!(result.recommended_action_id, Some(2));
+        result
+    }
+
+    fn ledger() -> ActiveEvidenceAttemptLedger {
+        ActiveEvidenceAttemptLedger::new(ActiveEvidenceAttemptPolicy {
+            expected_domain_fingerprint_sha256: DOMAIN,
+            expected_acquisition_protocol_sha256: PROTOCOL,
+            maximum_attempts_per_action: 3,
+        }).unwrap()
+    }
+
+    fn request(action_id: u64, attempt_id: u64) -> EvidenceAttemptRequest {
+        EvidenceAttemptRequest {
+            action_id,
+            attempt_id,
+            action_contract_sha256: [0x33; 32],
+            domain_fingerprint_sha256: DOMAIN,
+            acquisition_protocol_sha256: PROTOCOL,
+            pre_attempt_navigation_state_sha256: PRE_STATE,
+        }
+    }
+
+    fn time_policy() -> NavigationTimeValidityPolicy {
+        NavigationTimeValidityPolicy {
+            policy_id: 8,
+            policy_sha256: [0x88; 32],
+            expected_time_basis_sha256: [0x99; 32],
+            expected_estimator_or_predictor_revision_sha256: [0xaa; 32],
+            expected_model_domain_support_sha256: [0xbb; 32],
+            maximum_observation_age_ns: 100,
+            maximum_acquisition_to_receipt_delay_ns: 30,
+            maximum_receipt_to_processing_complete_ns: 20,
+            maximum_prediction_horizon_ns: 50,
+        }
+    }
+
+    fn time_input(kind: NavigationTimeClaimKind) -> NavigationTimeValidityInput {
+        let interval = |lower_ns, upper_ns| NavigationTimeInterval {
+            lower_ns,
+            upper_ns,
+            time_basis_sha256: [0x99; 32],
+        };
+        NavigationTimeValidityInput {
+            result_id: 300,
+            episode_id: 400,
+            claim_kind: kind,
+            measurement_event_time: interval(10, 10),
+            payload_receipt_time: interval(20, 20),
+            processing_start_time: interval(21, 21),
+            processing_completion_time: interval(25, 25),
+            decision_cutoff_time: interval(30, 30),
+            target_valid_time: interval(30, 30),
+            clock_correlation_sha256: [0xcc; 32],
+            source_manifest_sha256: [0xdd; 32],
+            estimator_or_predictor_revision_sha256: [0xaa; 32],
+            model_domain_support_sha256: [0xbb; 32],
+        }
+    }
+
+    fn qualified() -> AcquisitionAttemptOutcome {
+        AcquisitionAttemptOutcome::QualifiedEvidenceAvailable {
+            payload_sha256: [0xee; 32],
+            qualification_receipt_sha256: [0xff; 32],
+        }
+    }
+
+    #[test]
+    fn only_the_recommended_action_can_start_an_attempt() {
+        let mut ledger = ledger();
+        assert_eq!(
+            record_selected_evidence_outcome(
+                &plan(), &mut ledger, request(1, 100),
+                AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x21; 32] },
+                PRE_STATE, None,
+            ),
+            Err(EvidenceTransactionError::AttemptDoesNotMatchRecommendedAction)
+        );
+        assert!(ledger.events().is_empty());
+    }
+
+    #[test]
+    fn unknown_outcome_blocks_every_action_until_reconciled() {
+        let selected_plan = plan();
+        let mut ledger = ledger();
+        let report = record_selected_evidence_outcome(
+            &selected_plan, &mut ledger, request(2, 100),
+            AcquisitionAttemptOutcome::UnknownOrUnreconciled { unknown_reason_sha256: [0x31; 32] },
+            PRE_STATE, None,
+        ).unwrap();
+        assert_eq!(report.disposition, EvidenceTransactionDisposition::ReconciliationRequired);
+        assert!(!report.posterior_updated);
+        assert!(!report.navigation_authorized);
+        assert_eq!(ledger.begin_attempt(request(1, 101)), Err(ActiveEvidenceAttemptError::UnresolvedOutcomeBlocksNewAttempt(100)));
+
+        ledger.reconcile_unknown(
+            100,
+            ResolvedAcquisitionOutcome::FailedOrTimedOut { failure_reason_sha256: [0x32; 32] },
+            [0x33; 32],
+            PRE_STATE,
+        ).unwrap();
+        assert_eq!(ledger.unresolved_attempt_id(), None);
+        assert!(matches!(ledger.attempt(100).unwrap().disposition, AcquisitionAttemptDisposition::Reconciled { .. }));
+    }
+
+    #[test]
+    fn valid_nowcast_only_reaches_independent_audit_staging() {
+        let mut ledger = ledger();
+        let report = record_selected_evidence_outcome(
+            &plan(), &mut ledger, request(2, 102), qualified(), PRE_STATE,
+            Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+        ).unwrap();
+        assert_eq!(report.disposition, EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit);
+        assert!(report.eligible_for_independent_posterior_audit);
+        assert_eq!(report.time_report.unwrap().disposition, NavigationTimeDisposition::DecisionEpochNowcastApplicable);
+        assert!(!report.posterior_updated);
+        assert!(!report.navigation_authorized);
+    }
+
+    #[test]
+    fn qualified_but_stale_observation_is_not_admitted_to_current_audit() {
+        let mut ledger = ledger();
+        let mut stale = time_input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        stale.measurement_event_time.lower_ns = 0;
+        stale.measurement_event_time.upper_ns = 0;
+        stale.payload_receipt_time.lower_ns = 25;
+        stale.payload_receipt_time.upper_ns = 25;
+        stale.processing_start_time.lower_ns = 26;
+        stale.processing_start_time.upper_ns = 26;
+        stale.processing_completion_time.lower_ns = 27;
+        stale.processing_completion_time.upper_ns = 27;
+        stale.decision_cutoff_time.lower_ns = 150;
+        stale.decision_cutoff_time.upper_ns = 150;
+        stale.target_valid_time.lower_ns = 150;
+        stale.target_valid_time.upper_ns = 150;
+        let report = record_selected_evidence_outcome(
+            &plan(), &mut ledger, request(2, 103), qualified(), PRE_STATE,
+            Some((time_policy(), stale)),
+        ).unwrap();
+        assert_eq!(report.disposition, EvidenceTransactionDisposition::TemporallyInapplicable(NavigationTimeDisposition::StaleObservation));
+        assert!(!report.eligible_for_independent_posterior_audit);
+        assert_eq!(ledger.begin_attempt(request(2, 104)), Err(ActiveEvidenceAttemptError::ActionAlreadyQualified(2)));
+    }
+
+    #[test]
+    fn future_prediction_and_historical_estimate_remain_distinct_from_nowcast() {
+        let mut future_ledger = ledger();
+        let mut future = time_input(NavigationTimeClaimKind::FutureEpochPrediction);
+        future.target_valid_time.lower_ns = 40;
+        future.target_valid_time.upper_ns = 45;
+        let future_report = record_selected_evidence_outcome(
+            &plan(), &mut future_ledger, request(2, 105), qualified(), PRE_STATE,
+            Some((time_policy(), future)),
+        ).unwrap();
+        assert_eq!(future_report.disposition, EvidenceTransactionDisposition::ReadyForIndependentForecastAudit);
+        assert!(!future_report.eligible_for_independent_posterior_audit);
+
+        let mut historical_ledger = ledger();
+        let mut historical = time_input(NavigationTimeClaimKind::EventTimeEstimate);
+        historical.target_valid_time = historical.measurement_event_time;
+        let historical_report = record_selected_evidence_outcome(
+            &plan(), &mut historical_ledger, request(2, 106), qualified(), PRE_STATE,
+            Some((time_policy(), historical)),
+        ).unwrap();
+        assert_eq!(historical_report.disposition, EvidenceTransactionDisposition::HistoricalReplayOnly);
+        assert!(!historical_report.eligible_for_independent_posterior_audit);
+    }
+
+    #[test]
+    fn failure_invalidity_and_missing_time_never_become_audit_eligible() {
+        let mut failed_ledger = ledger();
+        let failed = record_selected_evidence_outcome(
+            &plan(), &mut failed_ledger, request(2, 107),
+            AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x41; 32] },
+            PRE_STATE, Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+        ).unwrap();
+        assert_eq!(failed.disposition, EvidenceTransactionDisposition::AcquisitionFailed);
+        assert!(failed.time_report.is_none());
+        assert!(!failed.eligible_for_independent_posterior_audit);
+
+        let mut invalid_ledger = ledger();
+        let invalid = record_selected_evidence_outcome(
+            &plan(), &mut invalid_ledger, request(2, 108),
+            AcquisitionAttemptOutcome::AcquiredButInvalid { payload_sha256: [0x42; 32], invalidity_receipt_sha256: [0x43; 32] },
+            PRE_STATE, None,
+        ).unwrap();
+        assert_eq!(invalid.disposition, EvidenceTransactionDisposition::AcquiredEvidenceInvalid);
+        assert!(invalid.time_report.is_none());
+        assert!(!invalid.eligible_for_independent_posterior_audit);
+
+        let mut no_time_ledger = ledger();
+        let no_time = record_selected_evidence_outcome(
+            &plan(), &mut no_time_ledger, request(2, 109), qualified(), PRE_STATE, None,
+        ).unwrap();
+        assert_eq!(no_time.disposition, EvidenceTransactionDisposition::TimeAssessmentMissing);
+        assert!(!no_time.eligible_for_independent_posterior_audit);
+        assert!(!no_time.posterior_updated);
+    }
+}
