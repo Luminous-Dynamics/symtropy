@@ -38,7 +38,7 @@ The planner preserves four separate objectives:
 
 There is no weighted scalar between metres, time, energy and pair separation.
 
-If a target-reaching action exists, the policy selects the one with the greatest decision-relevant pair separation, followed by latency, energy and action ID. If no action reaches the target but a decision-relevant discriminator exists, it selects the best separation/PL/latency/energy trade-off. If no decision-relevant separation exists, a genuine positive conditional PL reduction can still be selected; same-decision parameter separation alone cannot justify a non-improving action.
+If a target-reaching action exists, the policy selects the one with the greatest decision-relevant pair separation, followed by latency, energy and action ID. Its reason distinguishes a target-reaching PL reduction from a genuinely decision-resolving action. If no action reaches the target but a decision-relevant discriminator exists, it selects the best separation/PL/latency/energy trade-off. If no decision-relevant separation exists, a genuine positive conditional PL reduction can still be selected; same-decision parameter separation alone cannot justify a non-improving action.
 
 A projection with zero decision-incompatible pairs is not treated as a successful sensing action.
 
