@@ -341,15 +341,17 @@ pub fn plan_active_evidence_with_reliability(
         (ReliableEvidencePlanReason::BestExpectedProtectionReduction, selected)
     };
 
+    let recommended_action_id = selected.conditional.action.action_id;
+    let conditional_target_reached = selected.conditional.action.reaches_target_if_acquisition_qualifies;
     Ok(ReliableActiveEvidencePlan {
         reason,
-        recommended_action_id: Some(selected.conditional.action.action_id),
+        recommended_action_id: Some(recommended_action_id),
         pareto_frontier: frontier,
         reliability_rejections: admission.rejected_actions,
         hypothesis_inventory_sha256: combined_plan.hypothesis_inventory_sha256,
         decision_partition_sha256: combined_plan.decision_partition_sha256,
         decision_assignments: combined_plan.decision_assignments,
-        conditional_target_reached: selected.conditional.action.reaches_target_if_acquisition_qualifies,
+        conditional_target_reached,
         authority_transition_not_authorized_by_plan: true,
     })
 }
