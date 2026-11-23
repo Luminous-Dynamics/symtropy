@@ -317,7 +317,7 @@ fn scenario_policy_utilities(
     problem: &RobustDecisionProblem,
     candidate: &RobustDecisionDesignCandidate,
     policy_by_outcome: &[usize],
-) -> Vec<f64> {
+) -> Result<Vec<f64>, ModelError> {
     candidate
         .scenarios
         .iter()
@@ -349,7 +349,7 @@ fn finite_state_expected_information_gain(
     state_probabilities: &[f64],
     outcome_likelihoods: &[Vec<f64>],
     outcome_count: usize,
-) -> f64 {
+) -> Result<f64, ModelError> {
     let mut outcome_probabilities = vec![0.0; outcome_count];
     for (state_index, state_probability) in state_probabilities.iter().enumerate() {
         for (outcome_index, likelihood) in
