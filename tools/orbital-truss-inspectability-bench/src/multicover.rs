@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const MULTICOVER_CORPUS_SCHEMA: &str = "luminous.orbital-truss.multicover-scale-corpus.v0.2";
 pub const MULTICOVER_BENCHMARK_ID: &str = "ORBITAL-MULTICOVER-SCALE-002";
-pub const MULTICOVER_RECEIPT_SCHEMA: &str = "luminous.orbital-truss.multicover-scale-receipt.v0.2";
+pub const MULTICOVER_RECEIPT_SCHEMA: &str = "luminous.orbital-truss.multicover-scale-receipt.v0.3";
 pub const MAX_CANDIDATE_VIEWS: usize = 100_000;
 pub const MAX_FEATURES: usize = 250_000;
 pub const MAX_VISIBILITY_EDGES: usize = 50_000_000;
@@ -730,7 +730,7 @@ fn overlap_pruning_baseline(
 
 pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt, String> {
     let indexed = validate_problem(problem)?;
-    let nominal_selection = select_greedily(&indexed)?;
+    let nominal_selection = select_greedily(&indexed, false)?;
     let selected = nominal_selection.selected;
     let selection_order = nominal_selection.selection_order;
     let cleanup_removed = nominal_selection.cleanup_removed;
@@ -833,7 +833,7 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         });
     let robust_selection_companion = RobustSelectionCompanion {
         algorithm: "ROBUST_VISIBILITY_GLOBALLY_INFORMED_GREEDY_K_VARIANT_V0_1".to_owned(),
-        selected_view_count: robust_selected_count,
+        robust_selected_view_count: robust_selected_count,
         selected_view_ids: robust_selected_view_ids,
         selection_order_view_ids: robust_selection_order_view_ids,
         cleanup_removed_view_ids: robust_cleanup_removed_view_ids,
