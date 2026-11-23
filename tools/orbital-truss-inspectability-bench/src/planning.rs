@@ -526,12 +526,11 @@ fn solution_from_selection(problem: &PlanningProblem, selected: &[bool]) -> Plan
         .map(|feature| feature.feature_id.clone())
         .collect::<Vec<_>>();
     let mut uncovered_feature_ids = undercovered_view_count_feature_ids.clone();
-    uncovered_feature_ids.extend(
-        undercovered_failure_domain_feature_ids
-            .iter()
-            .filter(|id| !uncovered_feature_ids.contains(id))
-            .cloned(),
-    );
+    for feature_id in &undercovered_failure_domain_feature_ids {
+        if !uncovered_feature_ids.contains(feature_id) {
+            uncovered_feature_ids.push(feature_id.clone());
+        }
+    }
     uncovered_feature_ids.sort();
 
     let mut selected_view_ids = problem
