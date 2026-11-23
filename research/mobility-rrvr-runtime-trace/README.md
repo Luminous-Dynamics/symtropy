@@ -193,3 +193,6 @@ The durable-dispatch research branch adds three important protections beyond the
 - a pinned Gazebo world-statistics receipt that cross-checks discrete step requests against independently published iterations and sim_time values.
 
 The campaign now requires a non-shared observer identity/fault domain and pins the observer binary. The ROS/Gazebo pairing is validated against the supported LTS combinations Jazzy/Harmonic or Lyrical/Jetty. The checked-in Gazebo profile remains a synthetic placeholder fixture; the code is still transport-neutral and does not establish a live simulator connection. See issue #7148.
+
+
+The WorldStatistics evidence is also freshness-bound: reset commits the initial sample and collector monotonic clock, and each fault requires a new artifact with increasing receive time in the same clock/world epoch. This prevents stale cached stats from being accepted as evidence of a newly executed step. Because Gazebo publishes the stats topic at a throttled rate, live transports must wait for an observed sample under a bounded timeout; the timeout never advances physics.
