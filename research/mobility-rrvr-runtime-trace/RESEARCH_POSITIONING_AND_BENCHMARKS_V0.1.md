@@ -349,3 +349,15 @@ This avoids a common metric trap: a system that instantly retries can show low a
 
 These sources reinforce that RRVR is an orthogonal assurance overlay. The target is not to outperform RoboCasa on raw task success or SafeVLA on its own safety specifications. The target is to make the same recovery-policy episodes evidence-complete and fail closed under declared faults, without suppressing valid positive-control recovery.
 
+
+
+## 10. Compiled plan identity and replay integrity
+
+The manifest is the experiment definition; the compiled plan is the immutable instruction artifact consumed by future platform adapters. The new compiler separates three levels of commitment:
+- source-manifest hash over exact input bytes;
+- pair commitment over the shared experiment conditions and ordered fault list;
+- scenario schedule hash over the exact ordered event array.
+
+A top-level plan hash binds the full body, while the compiled file itself has a separate artifact digest. The verifier requires both the exact source-manifest bytes and an externally pinned expected plan hash. This prevents a consumer from accepting an internally self-consistent but substituted plan merely because it carries its own newly computed digest.
+
+The first compiler campaign is a software known-answer fixture. It must not be confused with execution of any fault injector. A later simulator adapter must emit per-injection receipts bound to plan SHA, pair/scenario/fault IDs and exact injector revision; ROS/controller/driver/HIL adapters must preserve that identity. Report plan validation, injection delivery, event observation, physical effect and safety review as distinct gates.

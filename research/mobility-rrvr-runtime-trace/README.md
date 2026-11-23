@@ -128,3 +128,24 @@ The four-arm reference fixture includes a positive pair and a negative pair comp
 - Tracking: [#7025](https://github.com/Luminous-Dynamics/symtropy/issues/7025)
 
 The campaign CLI emits exact input/profile digests, pair/scenario/control counts, declared and covered layers/cut points, and explicit false claim-ceiling fields. A PASS qualifies only the manifest as complete and internally comparable; it does not mean fault injection executed, platform inventory was authenticated, or physical safety was established.
+
+
+## Deterministic compiled campaign plan v0.1
+
+The campaign manifest can now be compiled into a canonical plan with:
+- exact source-manifest SHA-256;
+- a pair commitment shared by comparator/full-RRVR arms;
+- a per-scenario digest of the exact ordered fault schedule;
+- a top-level plan SHA-256 and separate compiled-file artifact digest;
+- full platform, injector, native adapter, runtime monitor and reset bindings.
+
+The compiler CLI is rrvr_campaign_compile. The companion rrvr_campaign_verify CLI checks the strict plan structure, per-schedule digests, pair membership/equivalence/commitments, required layer/cut coverage, top-level digest, exact source-manifest bytes, canonical bytes and an externally pinned expected plan digest.
+
+- Implementation: src/campaign_plan.rs
+- Compiler: src/bin/rrvr_campaign_compile.rs
+- Verifier: src/bin/rrvr_campaign_verify.rs
+- Schema: schemas/compiled_campaign_plan_v0_1.schema.json
+- Specification: [CAMPAIGN_PLAN_V0.1.md](CAMPAIGN_PLAN_V0.1.md)
+- Tracking: [#7027](https://github.com/Luminous-Dynamics/symtropy/issues/7027)
+
+CI compiles the same source twice and compares exact bytes, verifies the compiled plan and rejects a mutated fault event. A verified plan remains an instruction artifact only: it does not run the injector, create native authority, or establish physical safety.

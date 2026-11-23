@@ -116,3 +116,12 @@ Prior art must remain visible: the [October 2026 IETF individual Internet-Drafts
 6. Attempt physical trials only under a separately reviewed safety case, calibrated independent observation, declared abort conditions and applicable protective measures.
 
 A simulator result remains a simulator result; it is not HIL or physical evidence.
+
+
+## Deterministic plan compilation
+
+The validated manifest is compiled into one immutable plan by [CAMPAIGN_PLAN_V0.1.md](CAMPAIGN_PLAN_V0.1.md). The plan binds the exact source manifest bytes, full platform/reset/fault-model profile, pair-level experimental equivalence and per-scenario ordered fault schedule. The compiler emits pair commitments shared by all arms in a pair, scenario schedule digests, and a top-level plan hash.
+
+The companion verifier checks the compiled plan against the exact source manifest and an externally pinned expected plan digest. An embedded self-hash is not a signature; the consumer must receive the expected digest through a trusted release record or authenticated channel.
+
+The compiled plan is intended to become the stable input to simulator/ROS/controller/driver/HIL adapters. These adapters must preserve fault order, cut point, target identity, fault-domain identity and parameter digest. They return separate execution receipts and may not rewrite the plan. A compiled plan is not proof that a fault was injected or delivered.

@@ -10,6 +10,7 @@
 //! no owner fact is filled with an optimistic default.
 
 pub mod attempt_lineage;
+pub mod campaign_plan;
 pub mod fault_campaign;
 
 use serde::Deserialize;
