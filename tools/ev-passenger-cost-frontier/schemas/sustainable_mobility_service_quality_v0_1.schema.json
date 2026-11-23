@@ -206,6 +206,7 @@
         "aircraft_id",
         "start_seconds",
         "max_service_duration_seconds",
+        "max_payload_units",
         "turnaround_seconds",
         "capacity_reference"
       ],
@@ -239,6 +240,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256
+        },
+        "max_payload_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
         }
       }
     },
@@ -250,7 +256,8 @@
         "fallback_resource_id",
         "fallback_mode",
         "start_seconds",
-        "max_service_duration_seconds"
+        "max_service_duration_seconds",
+        "max_payload_units"
       ],
       "properties": {
         "opportunity_id": {
@@ -279,6 +286,11 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 86400
+        },
+        "max_payload_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
         }
       }
     },
