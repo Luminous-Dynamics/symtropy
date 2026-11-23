@@ -43,7 +43,7 @@ Hard constraints are applied before objective comparison:
 - reserve capacity can be allocated to at most one participant;
 - a reserve assignment is infeasible when the reserve berth is unavailable;
 - a participant's reassignment is infeasible when its current authorization is absent or revoked;
-- advisory-only or no-observation policies cannot use reserve capacity;
+- an advisory-only source cannot qualify reserve availability; a no-observation policy may still propose any action that is feasible across every still-possible world, but this fixture's reserve outage and consent-revocation worlds make both reserve assignments non-robust, so hold is selected;
 - unknown, potentially-correlated, revoked, stale, incomplete, ambiguous, unmatched or unauthorised evidence cannot qualify an independent observation.
 
 The participant-level outcomes (A units, B units, missed critical participant, authorization disposition and reserve use) are emitted separately. We do not collapse distributional incidence into a hidden fairness weight. The CSV also emits each observation partition's regret separately from each world-level regret, so the decision boundary and aggregate worst-case are independently inspectable.
