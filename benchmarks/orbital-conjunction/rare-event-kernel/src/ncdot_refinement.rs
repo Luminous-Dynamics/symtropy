@@ -168,7 +168,6 @@ pub fn decide_ncdot_refinement(
 
     let epochs = &snapshot.epochs_seconds;
     let rates = &snapshot.collision_rates;
-    let md2 = &snapshot.effective_md2;
     let count = epochs.len();
     let maximum_rate = rates.iter().copied().fold(0.0_f64, f64::max);
     let maximum_index = rates
@@ -972,7 +971,7 @@ mod tests {
             1.0,
             1.0 + 2.0 * f64::EPSILON,
         );
-        let result = decide_ncdot_refinement(&input, policy(), 1).unwrap();
+        let result = decide_ncdot_refinement(&input, policy(), 1);
         assert_eq!(result, Err(KernelError::NcdotRefinementResolutionLimit));
     }
 
