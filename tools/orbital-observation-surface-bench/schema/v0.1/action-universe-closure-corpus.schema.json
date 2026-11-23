@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital action-universe closure corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-action-closure.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "finite-source-bound-action-closure-structure-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ids": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_id",
+        "boundary_kind",
+        "system_config_version",
+        "time_window_start",
+        "time_window_end",
+        "component_inventory_sha256",
+        "actor_authority_boundary",
+        "operating_envelope_id",
+        "prerequisites_version",
+        "policy_version",
+        "snapshot_sha256",
+        "current_snapshot_sha256"
+      ],
+      "properties": {
+        "scope_id": {
+          "$ref": "#/$defs/id"
+        },
+        "boundary_kind": {
+          "type": "string",
+          "enum": [
+            "finite_bounded",
+            "unbounded"
+          ]
+        },
+        "system_config_version": {
+          "$ref": "#/$defs/id"
+        },
+        "time_window_start": {
+          "$ref": "#/$defs/id"
+        },
+        "time_window_end": {
+          "$ref": "#/$defs/id"
+        },
+        "component_inventory_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "actor_authority_boundary": {
+          "$ref": "#/$defs/id"
+        },
+        "operating_envelope_id": {
+          "$ref": "#/$defs/id"
+        },
+        "prerequisites_version": {
+          "$ref": "#/$defs/id"
+        },
+        "policy_version": {
+          "$ref": "#/$defs/id"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "current_snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partition_id",
+        "classification",
+        "coverage_witness_receipt_id",
+        "action_ids",
+        "exclusion_ids"
+      ],
+      "properties": {
+        "partition_id": {
+          "$ref": "#/$defs/id"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "present",
+            "excluded",
+            "not_applicable",
+            "indeterminate"
+          ]
+        },
+        "coverage_witness_receipt_id": {
+          "$ref": "#/$defs/id"
+        },
+        "action_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "exclusion_ids": {
+          "$ref": "#/$defs/ids"
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "partition_id",
+        "payload_sha256",
+        "positive_witness_receipt_id"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/id"
+        },
+        "partition_id": {
+          "$ref": "#/$defs/id"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "positive_witness_receipt_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exclusion_id",
+        "partition_id",
+        "reason_code",
+        "evidence_receipt_id",
+        "negative_space_witness_receipt_id"
+      ],
+      "properties": {
+        "exclusion_id": {
+          "$ref": "#/$defs/id"
+        },
+        "partition_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason_code": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "evidence_receipt_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "negative_space_witness_receipt_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "enumerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enumerator_id",
+        "method_id",
+        "algorithm_sha256",
+        "source_registry_id",
+        "scope_id",
+        "scope_snapshot_sha256",
+        "execution_receipt_id",
+        "dependency_ids",
+        "action_ids",
+        "dependency_inventory_receipt_id",
+        "dependency_ids_sha256"
+      ],
+      "properties": {
+        "enumerator_id": {
+          "$ref": "#/$defs/id"
+        },
+        "method_id": {
+          "$ref": "#/$defs/id"
+        },
+        "algorithm_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "source_registry_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope_snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/id"
+        },
+        "dependency_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "action_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "dependency_inventory_receipt_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "dependency_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "scope",
+        "expected_partition_ids",
+        "expected_partition_ids_sha256",
+        "partitions",
+        "expected_action_ids",
+        "expected_action_ids_sha256",
+        "expected_action_payloads_sha256",
+        "actions",
+        "expected_exclusion_ids",
+        "expected_exclusion_ids_sha256",
+        "exclusions",
+        "enumerators"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "expected_partition_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_partition_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "partitions": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/partition"
+          }
+        },
+        "expected_action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_action_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "expected_action_payloads_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "expected_exclusion_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "expected_exclusion_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "exclusions": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/exclusion"
+          }
+        },
+        "enumerators": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/enumerator"
+          }
+        }
+      }
+    }
+  }
+}

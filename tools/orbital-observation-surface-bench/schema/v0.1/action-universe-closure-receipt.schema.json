@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital action-universe closure receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "corpus_sha256",
+    "result",
+    "evidence_class",
+    "claim_ceiling",
+    "summary",
+    "cases",
+    "physical_qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-action-closure.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "adversarial-controls-detected"
+      ]
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "finite-source-bound-action-closure-structure-only"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "closed_within_declared_scope_cases",
+        "enumerator_disagreement_cases",
+        "partition_omitted_cases",
+        "negative_space_unwitnessed_cases",
+        "common_cause_unresolved_cases",
+        "scope_drift_cases",
+        "stale_snapshot_cases",
+        "indeterminate_cases"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "closed_within_declared_scope_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enumerator_disagreement_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "partition_omitted_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "negative_space_unwitnessed_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "common_cause_unresolved_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scope_drift_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_snapshot_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indeterminate_cases": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "status",
+          "scope_id",
+          "scope_snapshot_sha256",
+          "expected_partition_count",
+          "observed_partition_count",
+          "expected_action_count",
+          "observed_action_count",
+          "expected_exclusion_count",
+          "observed_exclusion_count",
+          "common_dependency_ids",
+          "enumerator_reports",
+          "missing_partition_ids",
+          "unwitnessed_exclusion_ids",
+          "physical_qualification_granted",
+          "authority_granted"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CLOSED_WITHIN_DECLARED_SCOPE",
+              "ENUMERATOR_DISAGREEMENT",
+              "PARTITION_OMITTED",
+              "NEGATIVE_SPACE_UNWITNESSED",
+              "COMMON_CAUSE_UNRESOLVED",
+              "SCOPE_DRIFT",
+              "STALE_SNAPSHOT",
+              "CLOSURE_INDETERMINATE"
+            ]
+          },
+          "scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expected_partition_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observed_partition_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_action_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observed_action_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_exclusion_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "observed_exclusion_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "common_dependency_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enumerator_reports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enumerator_id",
+                "method_id",
+                "source_registry_id",
+                "action_count",
+                "matched_planned_inventory"
+              ],
+              "properties": {
+                "enumerator_id": {
+                  "type": "string"
+                },
+                "method_id": {
+                  "type": "string"
+                },
+                "source_registry_id": {
+                  "type": "string"
+                },
+                "action_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "matched_planned_inventory": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "missing_partition_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unwitnessed_exclusion_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "physical_qualification_granted": {
+            "const": false
+          },
+          "authority_granted": {
+            "const": false
+          }
+        }
+      }
+    },
+    "physical_qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    }
+  }
+}

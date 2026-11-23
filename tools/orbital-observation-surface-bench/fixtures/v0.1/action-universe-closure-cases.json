@@ -1,0 +1,1255 @@
+{
+  "schema": "luminous.orbital-action-closure.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "finite-source-bound-action-closure-structure-only",
+  "cases": [
+    {
+      "case_id": "bounded_closed",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "shared_registry",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "e7954c833cca6e12a8d3144b13c4cff1ff3c06c992359261d477ff0e3b3af7f5",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "enumerator_disagreement",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "partition_omitted",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unwitnessed_exclusion",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": ""
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "scope_drift",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "d7a0a349d87eeed566dd6e9c52ee4beedadf22b46c19e42f00e1164965bb807d"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "stale_enumerator",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "d7a0a349d87eeed566dd6e9c52ee4beedadf22b46c19e42f00e1164965bb807d",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unbounded_scope",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "unbounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "dependency_evidence_missing",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "extra_exclusion",
+      "scope": {
+        "scope_id": "orbital-maintenance-v1",
+        "boundary_kind": "finite_bounded",
+        "system_config_version": "vehicle-config-2026-11",
+        "time_window_start": "2026-11-23T00:00:00Z",
+        "time_window_end": "2026-11-24T00:00:00Z",
+        "component_inventory_sha256": "65e8c528b0b5a37b019766720b87da98e637dc441ef58262acc762f460235fee",
+        "actor_authority_boundary": "maintenance-technician-only",
+        "operating_envelope_id": "LEO-maintenance-envelope-v1",
+        "prerequisites_version": "prereqs-v7",
+        "policy_version": "maintenance-policy-v3",
+        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836"
+      },
+      "expected_partition_ids": [
+        "partition-a",
+        "partition-b",
+        "partition-c"
+      ],
+      "expected_partition_ids_sha256": "37744eb76df75ca522bf2774e91883e074a2cfcb9ff864ef3767208b930e9a48",
+      "partitions": [
+        {
+          "partition_id": "partition-a",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-a",
+          "action_ids": [
+            "act-a"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-b",
+          "classification": "present",
+          "coverage_witness_receipt_id": "coverage-b",
+          "action_ids": [
+            "act-b"
+          ],
+          "exclusion_ids": []
+        },
+        {
+          "partition_id": "partition-c",
+          "classification": "excluded",
+          "coverage_witness_receipt_id": "coverage-c",
+          "action_ids": [],
+          "exclusion_ids": [
+            "exclude-c",
+            "exclude-extra"
+          ]
+        }
+      ],
+      "expected_action_ids": [
+        "act-a",
+        "act-b"
+      ],
+      "expected_action_ids_sha256": "c78e5fcb4e44ad5d79c6d83bac0c3aebb849678b4ad0587958c02d48e0148492",
+      "expected_action_payloads_sha256": "d9385948f562b7e64dab08f42ab101521719cddeb2bb6ed7f4d067f713bb5f26",
+      "actions": [
+        {
+          "action_id": "act-a",
+          "partition_id": "partition-a",
+          "payload_sha256": "e5ed9097509755339e896963258086fb6e91beb98760a5051fdaabe29a007cec",
+          "positive_witness_receipt_id": "positive-act-a"
+        },
+        {
+          "action_id": "act-b",
+          "partition_id": "partition-b",
+          "payload_sha256": "b43abbbf2cfc7c24a7585b1505f1fba463c6af6f541c98f619a598afafc89c63",
+          "positive_witness_receipt_id": "positive-act-b"
+        }
+      ],
+      "expected_exclusion_ids": [
+        "exclude-c"
+      ],
+      "expected_exclusion_ids_sha256": "826899dc9603285c26dece11ae8ef455161d1316b5422952c8ac2a1b938401fb",
+      "exclusions": [
+        {
+          "exclusion_id": "exclude-c",
+          "partition_id": "partition-c",
+          "reason_code": "outside-operating-envelope",
+          "evidence_receipt_id": "exclusion-evidence-c",
+          "negative_space_witness_receipt_id": "negative-space-c"
+        },
+        {
+          "exclusion_id": "exclude-extra",
+          "partition_id": "partition-c",
+          "reason_code": "unplanned-exclusion",
+          "evidence_receipt_id": "extra-exclusion-evidence",
+          "negative_space_witness_receipt_id": "extra-negative-space"
+        }
+      ],
+      "enumerators": [
+        {
+          "enumerator_id": "enum-registry",
+          "method_id": "registry-catalogue-walk-v1",
+          "algorithm_sha256": "91a75b344ce540b983d8a6cd17bafc252a11ec4f0202a9cb90ac04ad1e9ec402",
+          "source_registry_id": "catalogue-alpha",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-registry",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-registry",
+          "dependency_ids_sha256": "e51e7218b59663ebfa3130529d971903e159d2cd074b207607625270d514ff12",
+          "dependency_ids": [
+            "api:catalogue-alpha",
+            "schema:actions-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        },
+        {
+          "enumerator_id": "enum-model",
+          "method_id": "model-based-prerequisite-enumeration-v1",
+          "algorithm_sha256": "37ceaffa5d8a0e4a3af10cc0f70ce0e9be3528a0b0c69dea9d1ff5b894baddcc",
+          "source_registry_id": "catalogue-beta",
+          "scope_id": "orbital-maintenance-v1",
+          "scope_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+          "execution_receipt_id": "execution-model",
+          "dependency_inventory_receipt_id": "dependency-inventory-enum-model",
+          "dependency_ids_sha256": "045effde52877ccf0afda526b2b8f78a5b73ede33634c657b14b5ee14f191eeb",
+          "dependency_ids": [
+            "api:catalogue-beta",
+            "ontology:capabilities-v1"
+          ],
+          "action_ids": [
+            "act-a",
+            "act-b"
+          ]
+        }
+      ]
+    }
+  ]
+}

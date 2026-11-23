@@ -1,0 +1,71 @@
+name: orbital action-universe closure v0.1
+
+on:
+  push:
+    branches:
+      - research/orbital-action-universe-closure-v0-1
+  pull_request:
+    branches:
+      - research/orbital-feasibility-regret-v0-1
+    paths:
+      - "tools/orbital-observation-surface-bench/**"
+      - "research/orbital/ACTION_UNIVERSE_CLOSURE_BENCHMARK_V0_1.md"
+      - "research/orbital/DECISION_ASSURANCE_TOURNAMENT_V0_1.md"
+      - ".github/workflows/orbital-action-universe-closure-v0-1.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-action-universe-closure-v0-1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate frozen corpus schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/action-universe-closure-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/action-universe-closure-cases.json
+      - name: Verify rustfmt
+        run: cargo fmt --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- --check
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Generate source-pinned closure receipt
+        run: |
+          mkdir -p artifacts
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin action-universe-closure -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/action-universe-closure-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/action-universe-closure-receipt-v0.1.json
+      - name: Run independent Node oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/action_universe_closure_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/action-universe-closure-cases.json \
+            > artifacts/action-universe-closure-oracle-v0.1.json
+      - name: Validate closure receipt schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/action-universe-closure-receipt.schema.json \
+            artifacts/action-universe-closure-receipt-v0.1.json
+      - name: Compare Rust receipt and independent oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_action_universe_closure.mjs \
+            artifacts/action-universe-closure-receipt-v0.1.json \
+            artifacts/action-universe-closure-oracle-v0.1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbital-action-universe-closure-v0.1-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error
