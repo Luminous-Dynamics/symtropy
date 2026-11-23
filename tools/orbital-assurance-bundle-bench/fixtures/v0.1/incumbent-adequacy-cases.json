@@ -106,7 +106,11 @@
         ],
         "expected_scenario_ids_sha256": "47807a59e3c2e11b18ec36dbca35b65e0670c32d4180ea3df0655b6deac5dc0b",
         "projected_scenarios_sha256": "01f2b8e8002de7794396cc4c20c1693fc60e88432debc5d360c6a2c75d73da2a"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "baseline_retain"
     },
     {
       "case_id": "decision_irrelevant_shift",
@@ -211,7 +215,11 @@
         ],
         "expected_scenario_ids_sha256": "35efb1ca2a388a13359350e252f28a87cfc840ae01954cee830ee16f5e3ef81f",
         "projected_scenarios_sha256": "22621f2629571b157d0cea29ff73dd695c37c1c8e280a4e8f3d2cb372aa4fde9"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "decision_irrelevant_shift"
     },
     {
       "case_id": "opposite_optima_within_margin",
@@ -316,7 +324,11 @@
         ],
         "expected_scenario_ids_sha256": "a619a222335285d60ca7f88061b9d6f63f324c16edc7398dde1d293cbef1fac9",
         "projected_scenarios_sha256": "fc46439fd0ad13061671e73c53e2989f7fdd31aa8c6f681f704d2a47da174cb5"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "opposite_optima_within_margin"
     },
     {
       "case_id": "threshold_exceeded",
@@ -392,7 +404,11 @@
         ],
         "expected_scenario_ids_sha256": "f0381c012ef9a0a52832a27f058f0f40df2d7b2047bc06e2103ec12ae80d5714",
         "projected_scenarios_sha256": "4ff0de4bae9fcbc1711c5badf4efd2597f497e030e6004a250204dee2b199800"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "threshold_exceeded"
     },
     {
       "case_id": "threshold_equality",
@@ -468,7 +484,11 @@
         ],
         "expected_scenario_ids_sha256": "f8a5c8dee30f3fd7f5dc8cfd8d680528923bc97051e850e28f64836c8bee8cb0",
         "projected_scenarios_sha256": "4faac74b2a2607cfe7410e741c8ddd4c48b94131f17d0c05cb320ca5fa75fb4d"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "threshold_equality"
     },
     {
       "case_id": "incumbent_infeasible",
@@ -566,7 +586,11 @@
         ],
         "expected_scenario_ids_sha256": "b584b9c921ef120c14f1cad60742759c7476184044b8339c13629373b9835c8a",
         "projected_scenarios_sha256": "b686db0675da8df69eaabae167564f6d9dc53a04adacff4b984540e580f554f2"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "incumbent_infeasible"
     },
     {
       "case_id": "no_surviving_worlds",
@@ -610,7 +634,11 @@
         "expected_scenario_ids": [],
         "expected_scenario_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "projected_scenarios_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "no_surviving_worlds"
     },
     {
       "case_id": "domain_open",
@@ -686,7 +714,11 @@
         ],
         "expected_scenario_ids_sha256": "d61c6577cff23d1d6788d7187c41f1f7ae60329d074e1bc4d1e7626ce34b5241",
         "projected_scenarios_sha256": "7a4a3c415ea72d10a64ca617c3a13bec298eead3b4c467a1705806bb8aaab3b7"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "domain_open"
     },
     {
       "case_id": "stale_evidence",
@@ -762,7 +794,11 @@
         ],
         "expected_scenario_ids_sha256": "ed1c44e18254e4377acdee7383498a0a620242df94f5de6ab8ad15ffb66c8c81",
         "projected_scenarios_sha256": "30c1c906a62e9943bb15f428bf516c1f2f3b21c13ee72dfcfc0c22beffb46f3d"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "stale_evidence"
     },
     {
       "case_id": "incomplete_loss_matrix",
@@ -832,7 +868,11 @@
         ],
         "expected_scenario_ids_sha256": "9d7e38c91c3069db0d4898c2e9c698e3174346d0958c9c35c7397b5eb93e5826",
         "projected_scenarios_sha256": "94e651cfcaa197716579c3be8dcc43e93fd015c6cde0fbddc784f8872ad2e69e"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "incomplete_loss_matrix"
     },
     {
       "case_id": "duplicate_loss_row",
@@ -914,7 +954,11 @@
         ],
         "expected_scenario_ids_sha256": "0dafa062ba166762f1a53ede0b74e07c5c4b1922d7af4634cd14a954bf2ee1a6",
         "projected_scenarios_sha256": "7f9573e5168ebb8bfbe0509e2de05041cef06f4083b47aab00ce51a690ef1fdb"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "duplicate_loss_row"
     },
     {
       "case_id": "scope_mismatch",
@@ -990,7 +1034,11 @@
         ],
         "expected_scenario_ids_sha256": "5df5943bcb74493885594ea5cdbeb5357e7a5cb0e026baefec6fbc73dea2d949",
         "projected_scenarios_sha256": "62c722fb6606ea66287768ba30d4a16026d57242c7dbfe17105e5be92a91f9e1"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "scope_mismatch"
     },
     {
       "case_id": "model_inadequate",
@@ -1066,7 +1114,11 @@
         ],
         "expected_scenario_ids_sha256": "da190497fcef11a53784d48139969b3f790c8dfd884af8e6755ad9718636db40",
         "projected_scenarios_sha256": "17c7c2fe349d5424d3bda57a6ed092c083484aa2a54b731efb0d10b3cc01862f"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "model_inadequate"
     },
     {
       "case_id": "loss_unit_mismatch",
@@ -1171,7 +1223,11 @@
         ],
         "expected_scenario_ids_sha256": "cbd7cb4412f56b92c51124bfea022164af8b0f9b2faa7b5421596eb5a7ac3623",
         "projected_scenarios_sha256": "c9e537a8f49ac76639d7fe462dd1c445db431001bd0c0da945a0e5e7d04b6b72"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_unit_mismatch"
     },
     {
       "case_id": "dependency_graph_inadequate",
@@ -1276,7 +1332,11 @@
         ],
         "expected_scenario_ids_sha256": "fce6aef06466c25391e827bea4c9fff03478c71065cdbb235adbe3c3ad38308a",
         "projected_scenarios_sha256": "a7cea47a0ffecfe0d5bba09018154f1a645857abaa2e061b44457cf4c3764dc0"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "dependency_graph_inadequate"
     },
     {
       "case_id": "dependency_graph_stale",
@@ -1381,7 +1441,11 @@
         ],
         "expected_scenario_ids_sha256": "a8ba63c3c7246b00732495f2d3d4392700498fb239c02ffccce94ad0558db46f",
         "projected_scenarios_sha256": "0e2a0ecd6ed0cc73d50ec4d3b3a976810ba6f418ccd72f560e58982b1bb49093"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "dependency_graph_stale"
     },
     {
       "case_id": "loss_model_set_stale",
@@ -1486,7 +1550,11 @@
         ],
         "expected_scenario_ids_sha256": "b6748bee0afb8523370d294919ad944a952cdeb339d26e06ae4b16417e5dd5d4",
         "projected_scenarios_sha256": "88f99fb56f9551b1fab47cd5ab028aeb78f8cc3fe2d869a2c9288235a23c5790"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_model_set_stale"
     },
     {
       "case_id": "loss_model_set_inadequate",
@@ -1591,7 +1659,11 @@
         ],
         "expected_scenario_ids_sha256": "9cd91ad251ea3a072bf30203cdcefb3a41ac0d53ad5fa3bc5c34da323ff28e5c",
         "projected_scenarios_sha256": "6373ff96d2dfece3bef4c3d96e1afe22d7bb11faaa4413b71d6f5779e51fae1d"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_model_set_inadequate"
     },
     {
       "case_id": "loss_model_set_out_of_profile",
@@ -1696,7 +1768,11 @@
         ],
         "expected_scenario_ids_sha256": "2e0a3ba4d8a9281230ca38bb72b9f65e71c68b6b83445ce5c1a3775f289c99f6",
         "projected_scenarios_sha256": "74605ad9dbf2939f6ee1d900b3a6db8d692d708c8f314f6693709f0ab17ba126"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_model_set_out_of_profile"
     },
     {
       "case_id": "loss_scenario_out_of_profile",
@@ -1801,7 +1877,11 @@
         ],
         "expected_scenario_ids_sha256": "4ad0955594ebfe76e47a06af904d8d65c1cabfd785ef7e955bc900f7456a583f",
         "projected_scenarios_sha256": "a70a9f177e4a2865e7e9ca7abf2dbca6316686ddd4b12ce06ac6560ed9aa24b6"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_scenario_out_of_profile"
     },
     {
       "case_id": "loss_scenario_indeterminate",
@@ -1906,7 +1986,11 @@
         ],
         "expected_scenario_ids_sha256": "ac9ece5c3d8714dc026d60639c81bb6ae919708a0b1aa9183866b506a52444e1",
         "projected_scenarios_sha256": "5ee95606d76e14c643eb4c81250d5ad9688b5da99eb6935bb495242adb7a8e9e"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_scenario_indeterminate"
     },
     {
       "case_id": "joint_scenario_omission",
@@ -1982,7 +2066,11 @@
         ],
         "expected_scenario_ids_sha256": "1f3e3d80dea854cff7b9140c4d17e10697298771593982277590e0a639375b74",
         "projected_scenarios_sha256": "53b7a2cc1f46d2b833ed9c3e07998b047f2d099ce92eb94eca2a54b2626e9709"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "joint_scenario_omission"
     },
     {
       "case_id": "physical_world_omission",
@@ -2058,7 +2146,11 @@
         ],
         "expected_scenario_ids_sha256": "d6c8777d7f62e97731b467947ee36219a53337518c0e431ce5b565370f145c58",
         "projected_scenarios_sha256": "a92d7f8642abd30a11ea5a0266f623bcfd2a481078f7abdd9bd937104f633dcb"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "physical_world_omission"
     },
     {
       "case_id": "loss_model_source_pin_malformed",
@@ -2163,7 +2255,11 @@
         ],
         "expected_scenario_ids_sha256": "98fa5d93fab9e6b963d0fd324fc5d19f7ca907c6e3c15c03692631a2a41ae74f",
         "projected_scenarios_sha256": "3c69f915636a57a4c150ad7b54c65a57ea6e1f3c7b542c413a18db14c7311244"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_model_source_pin_malformed"
     },
     {
       "case_id": "loss_scenario_receipt_missing",
@@ -2268,7 +2364,11 @@
         ],
         "expected_scenario_ids_sha256": "99e6848088c5573d73b6444aa4a631acb0c96e680ea02f8f6286c9f8b92949f6",
         "projected_scenarios_sha256": "d49dfd00f2651c877272b1a1a1d1839712a75386658d2a03d1e5e6e633f6b8de"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "loss_scenario_receipt_missing"
     },
     {
       "case_id": "multi_loss_models_same_world",
@@ -2372,7 +2472,11 @@
         ],
         "expected_scenario_ids_sha256": "2a0f185d06de8c8a964a9ac34987d67f4de3e3019d97d84ebbdb0646e1bca4af",
         "projected_scenarios_sha256": "fc0edb337a5f53db59512e6c46e35ed31c86d57fd185406c000a87630d0fef49"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "multi_loss_models_same_world"
     },
     {
       "case_id": "fractional_loss_projection",
@@ -2448,7 +2552,11 @@
         ],
         "expected_scenario_ids_sha256": "b08de739824969f4cc7d880d3f8ef45b58aaae9cfdff3c499a8014d65b56e7fd",
         "projected_scenarios_sha256": "2ffbb5606f7ef23ef40312de95a3c50c1904322e656d6724d8af0981d89581b3"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "fractional_loss_projection"
     },
     {
       "case_id": "inexact_loss_projection",
@@ -2553,7 +2661,11 @@
         ],
         "expected_scenario_ids_sha256": "685f787a617e25f12fe1ab0944775aa1995c1b5cabd16aeeea76b726ed62feab",
         "projected_scenarios_sha256": "244128cbbd25db22bcdb709ebcb9c048adb9996eb352eb8413beced3a09e4260"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "inexact_loss_projection"
     },
     {
       "case_id": "projected_loss_mismatch",
@@ -2631,7 +2743,11 @@
         ],
         "expected_scenario_ids_sha256": "44a8ee25b68ffc4fdccceb21f7b0406630628191e1c6f9703d4c9b5378279c74",
         "projected_scenarios_sha256": "28ed4728bcee935bb56a68cd5d7be38f8c5ee3063347c153ec3ed515fb75ce3d"
-      }
+      },
+      "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
+      "world_set_claim_ceiling": "exact-finite-world-decision-set-algebra-only",
+      "world_set_source_commit": "3c92ef673af06a714873839186b5cab0f293535d",
+      "world_set_source_case_id": "projected_loss_mismatch"
     }
   ]
 }
