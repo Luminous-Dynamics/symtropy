@@ -70,7 +70,10 @@
             "incumbent_infeasible_cases",
             "threshold_exceeded_cases",
             "expected_result_mismatches",
-            "authority_grants"
+            "authority_grants",
+            "loss_model_set_blocked_cases",
+            "loss_scenario_evidence_blocked_cases",
+            "joint_scenario_inventory_blocked_cases"
           ],
           "properties": {
             "case_count": {
@@ -106,6 +109,18 @@
             },
             "authority_grants": {
               "const": 0
+            },
+            "loss_model_set_blocked_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "loss_scenario_evidence_blocked_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "joint_scenario_inventory_blocked_cases": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         },
@@ -129,7 +144,20 @@
               "reference_common_action_id",
               "current_worst_case_loss",
               "reference_common_worst_case_loss",
-              "worst_case_improvement"
+              "worst_case_improvement",
+              "world_set_receipt_id",
+              "world_set_receipt_sha256",
+              "world_ids_sha256",
+              "world_set_state",
+              "loss_model_state",
+              "loss_model_source_case_id",
+              "loss_model_source_commit",
+              "loss_model_source_receipt_sha256",
+              "loss_model_manifest_id",
+              "source_loss_scenarios_sha256",
+              "projected_scenarios_sha256",
+              "joint_scenario_count",
+              "loss_model_ids"
             ],
             "properties": {
               "case_id": {
@@ -170,7 +198,10 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "scenario_id",
                     "world_id",
+                    "loss_model_id",
+                    "evidence_receipt_id",
                     "incumbent_feasible",
                     "incumbent_loss",
                     "reference_common_action_loss",
@@ -202,6 +233,15 @@
                         "integer",
                         "null"
                       ]
+                    },
+                    "scenario_id": {
+                      "type": "string"
+                    },
+                    "loss_model_id": {
+                      "type": "string"
+                    },
+                    "evidence_receipt_id": {
+                      "type": "string"
                     }
                   }
                 }
@@ -238,6 +278,61 @@
                   "null"
                 ],
                 "minimum": 0
+              },
+              "world_set_receipt_id": {
+                "$ref": "#/$defs/sha"
+              },
+              "world_set_receipt_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "world_ids_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "world_set_state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "UNAVAILABLE"
+                ]
+              },
+              "loss_model_state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "INDETERMINATE",
+                  "OUT_OF_PROFILE",
+                  "INADEQUATE"
+                ]
+              },
+              "loss_model_source_case_id": {
+                "type": "string"
+              },
+              "loss_model_source_commit": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "loss_model_source_receipt_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "loss_model_manifest_id": {
+                "type": "string"
+              },
+              "source_loss_scenarios_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "projected_scenarios_sha256": {
+                "$ref": "#/$defs/sha"
+              },
+              "joint_scenario_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "loss_model_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
               }
             }
           }
