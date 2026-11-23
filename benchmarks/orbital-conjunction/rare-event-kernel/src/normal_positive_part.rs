@@ -11,11 +11,9 @@
 //! This is a scalar primitive, not the full Ncdot integrand.
 
 use crate::KernelError;
-use core::f64::consts::PI;
-
 const SQRT_TWO: f64 = core::f64::consts::SQRT_2;
-const LOG_SQRT_TWO_PI: f64 = 0.5 * (2.0 * PI).ln();
-const INV_SQRT_TWO_PI: f64 = 1.0 / (2.0 * PI).sqrt();
+const LOG_SQRT_TWO_PI: f64 = 0.918_938_533_204_672_7;
+const INV_SQRT_TWO_PI: f64 = 0.398_942_280_401_432_7;
 const POSITIVE_TAIL_THRESHOLD: f64 = 12.0;
 
 /// Numerical branch used for the Gaussian positive-part expectation.
@@ -297,6 +295,18 @@ mod tests {
             );
             assert_eq!(report.branch, GaussianPositivePartBranch::PositiveMeanAsymptotic);
         }
+    }
+
+    #[test]
+    fn positive_tail_transition_at_twelve_matches_high_precision_reference() {
+        let report = gaussian_negative_part_expectation(12.0, 1.0)
+            .expect("asymptotic transition point");
+        assert_eq!(report.branch, GaussianPositivePartBranch::PositiveMeanAsymptotic);
+        assert!(
+            (report.log_expectation - (-77.909_100_545_007_35)).abs() < 2.0e-11,
+            "log expectation={:.17e}",
+            report.log_expectation
+        );
     }
 
     #[test]
