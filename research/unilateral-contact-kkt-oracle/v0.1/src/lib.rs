@@ -469,8 +469,10 @@ fn solve_dense(
     let solution_norm: f64 = solution.iter().map(|value| value.abs()).sum();
     let rhs_scale = original_rhs
         .iter()
-        .fold(1.0_f64, |maximum, value| maximum.max(value.abs()));
-    let residual_scale = rhs_scale.max(matrix_scale * solution_norm);
+        .fold(f64::MIN_POSITIVE, |maximum, value| maximum.max(value.abs()));
+    let residual_scale = rhs_scale
+        .max(matrix_scale * solution_norm)
+        .max(f64::MIN_POSITIVE);
     let mut maximum_residual = 0.0_f64;
     for i in 0..dimension {
         let predicted = original_matrix[i]
