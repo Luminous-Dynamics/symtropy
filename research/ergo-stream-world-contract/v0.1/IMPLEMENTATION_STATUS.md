@@ -52,3 +52,18 @@ A follow-on implementation is staged in [ERGO-STREAM-TRANSFER-001 #7171](https:/
 This is a finite witness validator, not an analogy-discovery learner, causal proof, authenticated observation system, hidden-world service or isolation boundary. It does not yet implement the multi-world generator, false-unification family, active discriminating interventions, or non-identifiability protocol.
 
 **Verification for this extension:** pending exact-head Rust 1.96 formatting, tests and strict Clippy. The previous v0.1 focused pass and repository CI pass remain attached to the parent #7152 head, not this extension.
+
+## Passive acquisition baseline extension
+
+The same stacked research branch now adds `src/acquisition.rs`, exposed as `acquisition`:
+
+- `PassiveGapPatternBaselineV0` is a simple batch baseline using only public sequence, channel, symbol and tick fields.
+- It estimates a two-scale timing threshold from the observed smallest and largest inter-frame gaps, segments where a gap exceeds the midpoint, clusters exact observed event signatures, and forms adjacent-pair motifs.
+- It explicitly omits an unfinished final segment unless the caller marks end-of-stream.
+- It abstains with an empty snapshot when the stream has no separable timing scale.
+- It rejects inconsistent prefixes, non-contiguous sequence numbers and non-monotonic timestamps.
+- Tests compare its output against the existing hidden evaluator, include alphabet permutation, open-tail, no-gap abstention and malformed-time/sequence controls.
+
+This is intentionally a transparent calibration baseline tailored to the current two-scale synthetic generator. Perfect recovery on this generator is not evidence of general structural discovery; the purpose is to establish a reproducible lower-complexity comparator and expose how much the first generator rewards a simple timing/pattern heuristic.
+
+**Verification for this extension:** pending on its exact latest head; do not infer from the earlier witness-only pass.
