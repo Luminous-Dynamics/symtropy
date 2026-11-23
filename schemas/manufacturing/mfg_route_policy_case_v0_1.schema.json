@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-route-policy-case-v0.1",
+  "title": "MFG-ROUTE-ROBUST-001 synthetic route policy case corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "family_manifest",
+    "case_count",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-route-policy-case-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ROUTE-ROBUST-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "family_manifest": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_family_id",
+          "case_count",
+          "replication_seeds"
+        ],
+        "properties": {
+          "scenario_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_count": {
+            "const": 20
+          },
+          "replication_seeds": {
+            "type": "array",
+            "minItems": 20,
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        }
+      }
+    },
+    "case_count": {
+      "const": 120
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 120,
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "scenario_family_id",
+          "seed",
+          "decision_cutoff_hour",
+          "request",
+          "route_candidates",
+          "evaluator_only"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "decision_cutoff_hour": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "request": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "quantity_units",
+              "deadline_hours",
+              "budget_units",
+              "unserved_penalty_units"
+            ],
+            "properties": {
+              "quantity_units": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "deadline_hours": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "budget_units": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000000
+              },
+              "unserved_penalty_units": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000000
+              }
+            }
+          },
+          "route_candidates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_id",
+                "owner_disposition",
+                "blockers",
+                "visible_to_policy",
+                "evidence_observed_hour",
+                "quote_valid_until_hour",
+                "cost_units",
+                "lead_time_hours",
+                "declared_capacity_units",
+                "route_failure_probability_ppm",
+                "common_cause_group_id",
+                "common_cause_failure_probability_ppm",
+                "declared_priority"
+              ],
+              "properties": {
+                "route_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "owner_disposition": {
+                  "enum": [
+                    "feasible",
+                    "infeasible",
+                    "unknown",
+                    "unsupported"
+                  ]
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "visible_to_policy": {
+                  "type": "boolean"
+                },
+                "evidence_observed_hour": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "quote_valid_until_hour": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "cost_units": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000000
+                },
+                "lead_time_hours": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "declared_capacity_units": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "route_failure_probability_ppm": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "common_cause_group_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "common_cause_failure_probability_ppm": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "declared_priority": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "evaluator_only": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "failed_common_cause_group_ids",
+              "failed_route_ids",
+              "additional_delay_hours_by_route"
+            ],
+            "properties": {
+              "failed_common_cause_group_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "failed_route_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "additional_delay_hours_by_route": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
