@@ -262,13 +262,21 @@ impl WindowMetrics {
         mean(self.handling_width_sum, self.total)
     }
 
+    fn non_cancelling_coverage_debt_pp(self) -> f64 {
+        (90.0 - self.latent_joint_coverage_pct()).max(0.0)
+    }
+
+    fn observed_coverage_optimism_pp(self) -> f64 {
+        self.observed_joint_coverage_pct() - self.latent_joint_coverage_pct()
+    }
+
     fn claim_status(self) -> &'static str {
         if self.missing > 0 {
             "NOT_CERTIFIED_MISSINGNESS"
         } else if self.observed_joint_coverage_pct() < 90.0 {
             "OBSERVED_UNDER_TARGET"
         } else {
-            "OBSERVED_AT_OR_ABOVE_TARGET"
+            "OBSERVED_AT_OR_ABOVE_TARGET_UNCERTIFIED"
         }
     }
 }
@@ -445,7 +453,7 @@ fn evaluate_suite() -> Vec<PolicyReport> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "policy,window,total_samples,observed_samples,missing_samples,observed_joint_coverage_pct,latent_joint_coverage_pct,observed_arrival_coverage_pct,observed_handling_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,final_alpha_milli,claim_status\n",
+        "policy,window,total_samples,observed_samples,missing_samples,observed_joint_coverage_pct,latent_joint_coverage_pct,non_cancelling_coverage_debt_pp,observed_coverage_optimism_pp,observed_arrival_coverage_pct,observed_handling_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,final_alpha_milli,claim_status\n",
     );
 
     for report in evaluate_suite() {
@@ -456,7 +464,7 @@ pub fn render_csv() -> String {
         {
             let metrics = report.windows[index];
             output.push_str(&format!(
-                "{},{},{},{},{},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{},{}\n",
+                "{},{},{},{},{},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{},{}\n",
                 report.method.id(),
                 window.id(),
                 metrics.total,
@@ -464,6 +472,8 @@ pub fn render_csv() -> String {
                 metrics.missing,
                 metrics.observed_joint_coverage_pct(),
                 metrics.latent_joint_coverage_pct(),
+                metrics.non_cancelling_coverage_debt_pp(),
+                metrics.observed_coverage_optimism_pp(),
                 metrics.observed_arrival_coverage_pct(),
                 metrics.observed_handling_coverage_pct(),
                 metrics.mean_arrival_width(),
@@ -544,6 +554,32 @@ mod tests {
     }
 
     #[test]
+    fn local_undercoverage_debt_cannot_be_cancelled_by_a_later_overcovered_window() {
+        let undercovered = WindowMetrics {
+            total: 100,
+            observed: 100,
+            observed_joint_covered: 70,
+            latent_joint_covered: 70,
+            ..WindowMetrics::default()
+        };
+        let overcovered = WindowMetrics {
+            total: 100,
+            observed: 100,
+            observed_joint_covered: 100,
+            latent_joint_covered: 100,
+            ..WindowMetrics::default()
+        };
+
+        assert_eq!(undercovered.non_cancelling_coverage_debt_pp(), 20.0);
+        assert_eq!(overcovered.non_cancelling_coverage_debt_pp(), 0.0);
+        assert_eq!(
+            undercovered.non_cancelling_coverage_debt_pp()
+                + overcovered.non_cancelling_coverage_debt_pp(),
+            20.0
+        );
+    }
+
+    #[test]
     fn rolling_calibration_does_not_update_from_missing_outcomes() {
         let calibration = vec![
             ResidualPair {
@@ -610,7 +646,7 @@ mod tests {
         let mut lines = output.lines();
         let header = lines.next().expect("CSV header");
         let width = header.split(',').count();
-        assert_eq!(width, 13);
+        assert_eq!(width, 15);
 
         let rows = lines.collect::<Vec<_>>();
         assert_eq!(rows.len(), 12);
