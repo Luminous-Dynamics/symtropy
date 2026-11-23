@@ -8,7 +8,9 @@
 //! The projection is conditional on the upstream outcome-set enclosures,
 //! complete hypothesis inventory, frozen decision partition and successful,
 //! valid acquisition. It does not update hypotheses, protection levels or
-//! navigation authority.
+//! navigation authority. Digest values are upstream-supplied commitments:
+//! this module checks nonzero/equality conditions and preserves them, but does
+//! not recompute or authenticate the digests.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
