@@ -189,6 +189,7 @@ pub struct RejectedIlluminationCounts {
     pub spatial_coverage_insufficient: usize,
     pub event_buffer_infeasible: usize,
     pub displacement_infeasible: usize,
+    pub clock_resolution_infeasible: usize,
     pub temporal_window_infeasible: usize,
 }
 
@@ -338,12 +339,14 @@ pub fn plan_event_acquisition(
                 rejected,
             ));
         }
-        let minimum_window = config.minimum_window_seconds
-            .max(snapshot.minimum_events_required as f64 / retained_event_rate_lower)
-            .max(
-                k * snapshot.clock_standard_uncertainty_seconds
-                    / config.maximum_clock_uncertainty_fraction,
-            );
+        let event_information_window =
+            snapshot.minimum_events_required as f64 / retained_event_rate_lower;
+        let clock_limited_window = k * snapshot.clock_standard_uncertainty_seconds
+            / config.maximum_clock_uncertainty_fraction;
+        let minimum_window = config
+            .minimum_window_seconds
+            .max(event_information_window)
+            .max(clock_limited_window);
         let buffer_limited_window = snapshot.buffer_capacity_events as f64
             * config.maximum_buffer_utilization
             / event_rate_upper;
@@ -370,7 +373,12 @@ pub fn plan_event_acquisition(
             let displacement_is_binding = minimum_window > displacement_limited_window;
             let other_time_limit_is_binding = minimum_window
                 > config.maximum_window_seconds.min(option.maximum_window_seconds);
-            if buffer_is_binding && !displacement_is_binding && !other_time_limit_is_binding {
+            let clock_is_dominant_lower_bound = clock_limited_window
+                >= event_information_window.max(config.minimum_window_seconds)
+                && clock_limited_window > maximum_window;
+            if clock_is_dominant_lower_bound {
+                rejected.clock_resolution_infeasible += 1;
+            } else if buffer_is_binding && !displacement_is_binding && !other_time_limit_is_binding {
                 rejected.event_buffer_infeasible += 1;
             } else if displacement_is_binding && !buffer_is_binding && !other_time_limit_is_binding {
                 rejected.displacement_infeasible += 1;
@@ -486,6 +494,8 @@ fn abstain(
 fn determine_abstention(rejected: &RejectedIlluminationCounts) -> EventPlanAbstention {
     if rejected.temporal_window_infeasible > 0 {
         EventPlanAbstention::TemporalWindowInfeasible
+    } else if rejected.clock_resolution_infeasible > 0 {
+        EventPlanAbstention::ClockResolutionInsufficient
     } else if rejected.event_buffer_infeasible > 0
         && rejected.displacement_infeasible == 0
     {
@@ -494,15 +504,17 @@ fn determine_abstention(rejected: &RejectedIlluminationCounts) -> EventPlanAbste
         && rejected.event_buffer_infeasible == 0
     {
         EventPlanAbstention::DisplacementBoundInfeasible
+    } else if rejected.event_buffer_infeasible > 0
+        || rejected.displacement_infeasible > 0
+    {
+        EventPlanAbstention::TemporalWindowInfeasible
     } else if rejected.event_rate_exceeded > 0 {
         EventPlanAbstention::EventRateExceedsAllValidatedModes
     } else if rejected.particle_density_exceeded > 0 {
         EventPlanAbstention::ParticleDensityExceedsAllValidatedModes
     } else if rejected.spatial_coverage_insufficient > 0 {
         EventPlanAbstention::SpatialCoverageUnavailable
-    } else if rejected.unavailable > 0 {
-        EventPlanAbstention::NoAvailableCalibratedIlluminationMode
-    } else if rejected.missing_receipt > 0 {
+    } else if rejected.unavailable > 0 || rejected.missing_receipt > 0 {
         EventPlanAbstention::NoAvailableCalibratedIlluminationMode
     } else {
         EventPlanAbstention::NoAvailableCalibratedIlluminationMode
@@ -1021,6 +1033,19 @@ mod tests {
         assert_eq!(
             report.abstention_reason,
             Some(EventPlanAbstention::DisplacementBoundInfeasible)
+        );
+    }
+
+    #[test]
+    fn insufficient_clock_precision_abstains_with_specific_reason() {
+        let mut sample = snapshot();
+        sample.clock_standard_uncertainty_seconds = 1.0e-3;
+        let mut config = config();
+        config.maximum_clock_uncertainty_fraction = 1.0e-5;
+        let report = plan_event_acquisition(&sample, &config, &catalog()).unwrap();
+        assert_eq!(
+            report.abstention_reason,
+            Some(EventPlanAbstention::ClockResolutionInsufficient)
         );
     }
 
