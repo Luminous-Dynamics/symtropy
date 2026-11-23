@@ -159,6 +159,8 @@ fn visible_observations(
     let mut keys = BTreeSet::new();
     for observation in &visible {
         if observation.record_key.trim().is_empty()
+            || observation.revision_id.trim().is_empty()
+            || !is_sha256_hex(&observation.payload_sha256)
             || !keys.insert(observation.record_key.clone())
             || observation.canonical_box_id.trim().is_empty()
             || observation.event_kind.trim().is_empty()
