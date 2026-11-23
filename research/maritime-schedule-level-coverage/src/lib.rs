@@ -270,9 +270,11 @@ impl ScheduleMetrics {
         let z2 = z * z;
         let denominator = 1.0 + z2 / n;
         let center = (p + z2 / (2.0 * n)) / denominator;
-        let half_width =
-            z * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt() / denominator;
-        ((center - half_width).max(0.0) * 100.0, (center + half_width).min(1.0) * 100.0)
+        let half_width = z * ((p * (1.0 - p) / n) + (z2 / (4.0 * n * n))).sqrt() / denominator;
+        (
+            (center - half_width).max(0.0) * 100.0,
+            (center + half_width).min(1.0) * 100.0,
+        )
     }
 
     fn per_call_coverage_pct(self) -> f64 {
@@ -371,10 +373,8 @@ impl MethodReport {
 }
 
 fn evaluate_suite() -> Vec<MethodReport> {
-    let calibration = generate_calibration_with_count(
-        0x0025_CA11_2026,
-        BONFERRONI_FINITE_CALIBRATION_SCHEDULES,
-    );
+    let calibration =
+        generate_calibration_with_count(0x0025_CA11_2026, BONFERRONI_FINITE_CALIBRATION_SCHEDULES);
     let windows = generate_test_windows(0x025C_E572_2026);
 
     Method::ALL
