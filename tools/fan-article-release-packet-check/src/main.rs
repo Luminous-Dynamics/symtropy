@@ -129,6 +129,8 @@ fn released_packet() -> Value {
     packet["operation"]["keep_out_zones"] =
         json!(["electrical connector", "rotating impeller envelope"]);
     packet["operation"]["downstream_operation"] = json!("Independent post-assembly inspection");
+    packet["operation"]["fixture_operation_risk_review_ref"] =
+        evidence("engineering-owner", "fixture-operation-risk-review");
 
     packet["geometry"]["controlled_drawing_ref"] = evidence("product-owner", "fixture-drawing");
     packet["geometry"]["native_cad_ref"] = evidence("design-owner", "native-cad");
@@ -287,6 +289,14 @@ mod tests {
             "{:?}",
             validate_packet(&validator, &packet)
         );
+    }
+
+    #[test]
+    fn fabrication_release_requires_fixture_operation_risk_review() {
+        let validator = validator();
+        let mut packet = released_packet();
+        packet["operation"]["fixture_operation_risk_review_ref"] = Value::Null;
+        assert!(!validator.is_valid(&packet));
     }
 
     #[test]
