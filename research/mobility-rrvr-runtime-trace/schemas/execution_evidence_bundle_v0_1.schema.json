@@ -698,7 +698,8 @@
         "target_resolution",
         "dispatch",
         "execution",
-        "delivery_observation"
+        "delivery_observation",
+        "world_statistics"
       ],
       "properties": {
         "planned_fault": {
@@ -715,6 +716,9 @@
         },
         "delivery_observation": {
           "$ref": "#/$defs/delivery_observation"
+        },
+        "world_statistics": {
+          "$ref": "#/$defs/world_statistics"
         }
       }
     },
@@ -890,6 +894,72 @@
             "harmonic",
             "jetty"
           ]
+        }
+      }
+    },
+    "world_statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "message_type",
+        "producer_id",
+        "producer_revision",
+        "raw_artifact_id",
+        "raw_artifact_sha256",
+        "run_id",
+        "run_epoch",
+        "world_epoch",
+        "clock_id",
+        "iterations",
+        "simulation_time_ns"
+      ],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message_type": {
+          "const": "gz.msgs.WorldStatistics"
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulation_time_ns": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
