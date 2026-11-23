@@ -927,7 +927,11 @@ impl SpatialFitValidation {
             || self.maximum_allowed_absolute_correlation_fit_error <= 0.0
             || self.maximum_allowed_absolute_correlation_fit_error != fit.maximum_validation_correlation_error
             || !self.maximum_validation_relative_variance_error.is_finite()
+            || self.maximum_validation_relative_variance_error < 0.0
             || self.maximum_validation_relative_variance_error > fit.maximum_validation_relative_variance_error
+            || self.validation_to_calibration_variance_ratio.iter().flatten().any(|ratio| {
+                !ratio.is_finite() || *ratio < 0.0
+            })
             || !self.maximum_allowed_validation_relative_variance_error.is_finite()
             || self.maximum_allowed_validation_relative_variance_error != fit.maximum_validation_relative_variance_error
             || self.zero_to_nonzero_variance_component_detected
