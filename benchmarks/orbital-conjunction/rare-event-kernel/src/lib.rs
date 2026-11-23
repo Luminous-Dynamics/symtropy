@@ -45,8 +45,10 @@ pub use conditional_velocity::{
 };
 pub use gaussian_overlap::{
     CovarianceConditionDiagnostics, GaussianOverlapConfig, GaussianOverlapCovariancePolicy,
-    GaussianOverlapReport, GaussianPositionDistribution3, gaussian_position_overlap,
-    overlap_step_mahalanobis_squared,
+    CovarianceDefiniteness, GaussianOverlapReport, GaussianPositionDistribution3,
+    NasaCovarianceClipReport, NasaPeakOverlapConfig, NasaPeakOverlapReport,
+    gaussian_position_overlap, nasa_covariance_eigenvalue_clip,
+    nasa_peak_overlap_compatibility, overlap_step_mahalanobis_squared,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
@@ -153,6 +155,10 @@ pub enum KernelError {
     InvalidGaussianOverlapConfig,
     /// Gaussian covariance exceeds the configured condition estimate.
     IllConditionedCovariance,
+    /// NASA PeakOverlapPos clipping factor or symmetry tolerance is invalid.
+    InvalidNasaPeakOverlapConfig,
+    /// A deterministic symmetric eigendecomposition did not reach its residual threshold.
+    EigenDecompositionDidNotConverge,
 }
 
 impl fmt::Display for KernelError {
@@ -213,6 +219,12 @@ impl fmt::Display for KernelError {
             }
             Self::IllConditionedCovariance => {
                 "Gaussian covariance exceeds the configured condition estimate"
+            }
+            Self::InvalidNasaPeakOverlapConfig => {
+                "NASA PeakOverlapPos clipping factor or symmetry tolerance is invalid"
+            }
+            Self::EigenDecompositionDidNotConverge => {
+                "symmetric eigendecomposition did not converge within its iteration budget"
             }
         };
         f.write_str(message)
