@@ -201,6 +201,18 @@ fn interval_gap(left: &TimeEnclosure, right: &TimeEnclosure) -> i128 {
     }
 }
 
+fn temporal_role_order_valid(
+    source: &PhysicalObservation,
+    witness: &PhysicalObservation,
+) -> bool {
+    match (source.event_time.role, witness.event_time.role) {
+        (TimeRole::BusinessEventTime, TimeRole::SensorObservationTime) => {
+            witness.event_time.upper <= source.event_time.lower
+        }
+        _ => true,
+    }
+}
+
 fn admissible_edge(
     source: &PhysicalObservation,
     witness: &PhysicalObservation,
@@ -210,6 +222,7 @@ fn admissible_edge(
         && source.event_kind == witness.event_kind
         && source.facility_id == witness.facility_id
         && source.operation_ref == witness.operation_ref
+        && temporal_role_order_valid(source, witness)
         && interval_gap(&source.event_time, &witness.event_time)
             <= i128::from(profile.max_interval_gap)
 }
@@ -563,9 +576,9 @@ mod tests {
                     "GATE_OUT",
                     "DGT-GATE-1",
                     "OP-17",
-                    10,
-                    11,
-                    12,
+                    14,
+                    15,
+                    16,
                 )],
                 vec![observation!(
                     "wit-Z",
@@ -573,9 +586,9 @@ mod tests {
                     "GATE_OUT",
                     "DGT-GATE-1",
                     "OP-17",
-                    14,
-                    15,
-                    16,
+                    10,
+                    11,
+                    12,
                 )],
             ),
             "outside_tolerance" => case(
@@ -650,6 +663,19 @@ mod tests {
                     10,
                     10,
                     11,
+                )],
+            ),
+            "sensor_time_after_business_event" => case(
+                source,
+                vec![observation!(
+                    "wit-Z",
+                    "BOX-1",
+                    "GATE_OUT",
+                    "DGT-GATE-1",
+                    "OP-17",
+                    12,
+                    12,
+                    13,
                 )],
             ),
             "ambiguous_perfect" => case(
@@ -977,7 +1003,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 28);
+        assert_eq!(count, 29);
     }
 
     #[test]
@@ -1084,6 +1110,13 @@ mod tests {
         assert_eq!(report.disposition, Disposition::Unmatched);
         assert_eq!(report.source_visible_count, 0);
         assert_eq!(report.witness_visible_count, 1);
+    }
+
+    #[test]
+    fn sensor_observation_must_not_follow_the_business_event_time() {
+        let report = evaluate(&known_case("sensor_time_after_business_event"));
+        assert_eq!(report.disposition, Disposition::Unmatched);
+        assert_eq!(report.candidate_edge_count, 0);
     }
 
     #[test]
