@@ -26,10 +26,18 @@ pub enum NavigationRiskSelectionPreference {
     VarThenAvarThenWorst,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NavigationActionProtocolCommitment {
+    pub action_id: u64,
+    pub acquisition_protocol_sha256: [u8; 32],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct NavigationRiskSelectionPolicy {
     pub expected_domain_fingerprint_sha256: [u8; 32],
-    pub expected_acquisition_protocol_sha256: [u8; 32],
+    /// Predeclared per-action protocol allowlist. Different sensing modalities
+    /// may use different protocols, but every protocol is bound to one action.
+    pub action_protocol_commitments: Vec<NavigationActionProtocolCommitment>,
     pub expected_decision_partition_sha256: [u8; 32],
     pub expected_impact_model_sha256: [u8; 32],
     pub expected_impact_uncertainty_model_sha256: [u8; 32],
@@ -80,7 +88,7 @@ pub enum NavigationRiskPlanReason {
 pub struct NavigationOutcomeRiskParetoPlan {
     pub reason: NavigationRiskPlanReason,
     pub expected_domain_fingerprint_sha256: [u8; 32],
-    pub expected_acquisition_protocol_sha256: [u8; 32],
+    pub action_protocol_commitments: Vec<NavigationActionProtocolCommitment>,
     pub recommended_action_id: Option<u64>,
     pub pareto_frontier: Vec<NavigationRiskActionAssessment>,
     pub rejected_actions: Vec<(u64, NavigationRiskActionRejectionReason)>,
@@ -219,7 +227,7 @@ pub fn plan_navigation_outcome_risk_frontier(
     Ok(NavigationOutcomeRiskParetoPlan {
         reason,
         expected_domain_fingerprint_sha256: policy.expected_domain_fingerprint_sha256,
-        expected_acquisition_protocol_sha256: policy.expected_acquisition_protocol_sha256,
+        action_protocol_commitments: policy.action_protocol_commitments.clone(),
         recommended_action_id,
         pareto_frontier: frontier,
         rejected_actions: rejected,
@@ -231,7 +239,7 @@ fn validate_policy(
     policy: &NavigationRiskSelectionPolicy,
 ) -> Result<(), NavigationRiskSelectionError> {
     if policy.expected_domain_fingerprint_sha256.iter().all(|byte| *byte == 0)
-        || policy.expected_acquisition_protocol_sha256.iter().all(|byte| *byte == 0)
+        || policy.action_protocol_commitments.is_empty()
         || policy.expected_decision_partition_sha256.iter().all(|byte| *byte == 0)
         || policy.expected_impact_model_sha256.iter().all(|byte| *byte == 0)
         || policy.expected_impact_uncertainty_model_sha256.iter().all(|byte| *byte == 0)
@@ -253,6 +261,15 @@ fn validate_policy(
     {
         return Err(NavigationRiskSelectionError::InvalidPolicy);
     }
+    let mut seen_actions = BTreeSet::new();
+    for binding in &policy.action_protocol_commitments {
+        if binding.action_id == 0
+            || binding.acquisition_protocol_sha256.iter().all(|byte| *byte == 0)
+            || !seen_actions.insert(binding.action_id)
+        {
+            return Err(NavigationRiskSelectionError::InvalidPolicy);
+        }
+    }
     Ok(())
 }
 
@@ -264,7 +281,13 @@ fn validate_commitments(
     if risk.domain_fingerprint_sha256 != policy.expected_domain_fingerprint_sha256 {
         return Err(NavigationRiskSelectionError::DomainMismatch(action_id));
     }
-    if risk.acquisition_protocol_sha256 != policy.expected_acquisition_protocol_sha256 {
+    let expected_protocol = policy
+        .action_protocol_commitments
+        .iter()
+        .find(|binding| binding.action_id == action_id)
+        .map(|binding| binding.acquisition_protocol_sha256)
+        .ok_or(NavigationRiskSelectionError::AcquisitionProtocolMismatch(action_id))?;
+    if risk.acquisition_protocol_sha256 != expected_protocol {
         return Err(NavigationRiskSelectionError::AcquisitionProtocolMismatch(action_id));
     }
     if risk.decision_partition_sha256 != policy.expected_decision_partition_sha256 {
@@ -446,7 +469,12 @@ mod tests {
     fn policy() -> NavigationRiskSelectionPolicy {
         NavigationRiskSelectionPolicy {
             expected_domain_fingerprint_sha256: [0x11; 32],
-            expected_acquisition_protocol_sha256: [0x22; 32],
+            action_protocol_commitments: (1..=20)
+                .map(|action_id| NavigationActionProtocolCommitment {
+                    action_id,
+                    acquisition_protocol_sha256: [0x22; 32],
+                })
+                .collect(),
             expected_decision_partition_sha256: [0x33; 32],
             expected_impact_model_sha256: [0x44; 32],
             expected_impact_uncertainty_model_sha256: [0x55; 32],
@@ -609,6 +637,45 @@ mod tests {
         assert_eq!(
             plan_navigation_outcome_risk_frontier(&policy(), &[bad]),
             Err(NavigationRiskSelectionError::InvalidRiskAssessment(1))
+        );
+    }
+
+    #[test]
+    fn action_specific_protocol_allowlist_supports_multimodal_comparison() {
+        let mut first = candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800);
+        let mut second = candidate(2, 350_000_000, 400_000_000, 450_000_000, 600_000_000, 400, 400);
+        second.risk.acquisition_protocol_sha256 = [0x77; 32];
+
+        let mut cfg = policy();
+        cfg.action_protocol_commitments
+            .iter_mut()
+            .find(|item| item.action_id == 2)
+            .unwrap()
+            .acquisition_protocol_sha256 = [0x77; 32];
+
+        let plan = plan_navigation_outcome_risk_frontier(&cfg, &[first, second]).unwrap();
+        assert_eq!(plan.pareto_frontier.len(), 2);
+        assert!(plan.action_protocol_commitments.iter().any(|item|
+            item.action_id == 1 && item.acquisition_protocol_sha256 == [0x22; 32]
+        ));
+        assert!(plan.action_protocol_commitments.iter().any(|item|
+            item.action_id == 2 && item.acquisition_protocol_sha256 == [0x77; 32]
+        ));
+    }
+
+    #[test]
+    fn undeclared_or_mismatched_action_protocol_rejects() {
+        let mut undeclared = candidate(21, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800);
+        assert_eq!(
+            plan_navigation_outcome_risk_frontier(&policy(), &[undeclared]),
+            Err(NavigationRiskSelectionError::AcquisitionProtocolMismatch(21))
+        );
+
+        let mut mismatch = candidate(2, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800);
+        mismatch.risk.acquisition_protocol_sha256 = [0x99; 32];
+        assert_eq!(
+            plan_navigation_outcome_risk_frontier(&policy(), &[mismatch]),
+            Err(NavigationRiskSelectionError::AcquisitionProtocolMismatch(2))
         );
     }
 
