@@ -1,0 +1,259 @@
+{
+  "schema_version": "ergo-agent-transfer-bundle-v0",
+  "agent_submission_binding": {
+    "submission_schema_version": "symthaea-open-world-research-episode-v0",
+    "submission_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "source_episode_id": "source-episode-001",
+    "target_episode_id": "target-episode-014",
+    "source_evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "target_evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "structural_transfer": {
+    "schema_version": "ergo-transfer-proposal-v0",
+    "map_kind": "induced_embedding",
+    "source": {
+      "episode_id": "source-episode-001",
+      "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "structure": {
+        "nodes": [
+          {
+            "id": 1,
+            "evidence_ids": [
+              "E0001"
+            ]
+          },
+          {
+            "id": 2,
+            "evidence_ids": [
+              "E0002"
+            ]
+          },
+          {
+            "id": 3,
+            "evidence_ids": [
+              "E0003"
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "id": 10,
+            "kind": 1,
+            "orientation": "directed",
+            "participants": [
+              1,
+              2
+            ],
+            "evidence_ids": [
+              "E0004"
+            ]
+          },
+          {
+            "id": 11,
+            "kind": 1,
+            "orientation": "directed",
+            "participants": [
+              2,
+              3
+            ],
+            "evidence_ids": [
+              "E0005"
+            ]
+          }
+        ]
+      },
+      "scope": {
+        "node_ids": [
+          1,
+          2
+        ],
+        "relation_ids": [
+          10
+        ],
+        "excluded_node_ids": [
+          3
+        ],
+        "excluded_relation_ids": [
+          11
+        ]
+      }
+    },
+    "target": {
+      "episode_id": "target-episode-014",
+      "evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "structure": {
+        "nodes": [
+          {
+            "id": 11,
+            "evidence_ids": [
+              "E0011"
+            ]
+          },
+          {
+            "id": 12,
+            "evidence_ids": [
+              "E0012"
+            ]
+          },
+          {
+            "id": 13,
+            "evidence_ids": [
+              "E0013"
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "id": 110,
+            "kind": 100,
+            "orientation": "directed",
+            "participants": [
+              11,
+              12
+            ],
+            "evidence_ids": [
+              "E0014"
+            ]
+          },
+          {
+            "id": 111,
+            "kind": 100,
+            "orientation": "directed",
+            "participants": [
+              12,
+              13
+            ],
+            "evidence_ids": [
+              "E0015"
+            ]
+          }
+        ]
+      },
+      "scope": {
+        "node_ids": [
+          11,
+          12
+        ],
+        "relation_ids": [
+          110
+        ],
+        "excluded_node_ids": [
+          13
+        ],
+        "excluded_relation_ids": [
+          111
+        ]
+      }
+    },
+    "correspondence": {
+      "nodes": [
+        {
+          "source_node_id": 1,
+          "target_node_id": 11
+        },
+        {
+          "source_node_id": 2,
+          "target_node_id": 12
+        }
+      ],
+      "relation_kinds": [
+        {
+          "source_kind": 1,
+          "target_kind": 100,
+          "participant_transform": "preserve_order"
+        }
+      ],
+      "relations": [
+        {
+          "source_relation_id": 10,
+          "target_relation_id": 110
+        }
+      ]
+    },
+    "assumptions": [
+      "Relation IDs and kinds are domain-local.",
+      "Only the declared source and target induced substructures are claimed to correspond."
+    ],
+    "alternative_correspondences": [],
+    "unresolved": false,
+    "counterexample_evidence_ids": []
+  },
+  "dynamics_transfer": {
+    "map_kind": "deterministic_transition_commutation",
+    "source_scope": {
+      "state_ids": [
+        1,
+        2,
+        3
+      ],
+      "action_ids": [
+        10
+      ],
+      "excluded_state_ids": [],
+      "excluded_action_ids": []
+    },
+    "target_scope": {
+      "state_ids": [
+        11,
+        12,
+        13
+      ],
+      "action_ids": [
+        110
+      ],
+      "excluded_state_ids": [],
+      "excluded_action_ids": []
+    },
+    "state_mappings": [
+      {
+        "source_state_id": 1,
+        "target_state_id": 11
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 12
+      },
+      {
+        "source_state_id": 3,
+        "target_state_id": 13
+      }
+    ],
+    "action_mappings": [
+      {
+        "source_action_id": 10,
+        "target_action_id": 110,
+        "source_action_kind": 1,
+        "target_action_kind": 100
+      }
+    ],
+    "predicted_transitions": [
+      {
+        "source_from_state_id": 1,
+        "source_action_id": 10,
+        "source_to_state_id": 2,
+        "predicted_target_from_state_id": 11,
+        "predicted_target_action_id": 110,
+        "predicted_target_to_state_id": 12
+      },
+      {
+        "source_from_state_id": 2,
+        "source_action_id": 10,
+        "source_to_state_id": 3,
+        "predicted_target_from_state_id": 12,
+        "predicted_target_action_id": 110,
+        "predicted_target_to_state_id": 13
+      }
+    ],
+    "assumptions": [
+      "The declared source transition sample is deterministic over this scope.",
+      "The target transition predictions are frozen before evaluator-owned target transitions are released."
+    ],
+    "unresolved": false
+  },
+  "unresolved": false,
+  "alternatives": [],
+  "known_non_transfer_boundaries": [
+    "No claim is made about states or actions outside the declared dynamics scope.",
+    "Qualitative effect-sign agreement is not causal qualification."
+  ]
+}
