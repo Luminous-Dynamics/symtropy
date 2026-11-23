@@ -26,4 +26,8 @@ path = "src/bin/rrvr_attempt_lineage.rs"
 name = "rrvr_campaign_validate"
 path = "src/bin/rrvr_campaign_validate.rs"
 
+[[bin]]
+name = "rrvr_campaign_compile"
+path = "src/bin/rrvr_campaign_compile.rs"
+
 [workspace]
