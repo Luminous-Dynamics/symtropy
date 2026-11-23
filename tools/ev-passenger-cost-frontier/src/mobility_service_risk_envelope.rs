@@ -10,12 +10,12 @@
 //! ambiguity sensitivity bound over the upstream leaf distribution.
 //!
 //! A total-variation ball is not a Wasserstein or moment ambiguity set. The
-use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
 //! evaluator does not calibrate probabilities; that evidence remains owned by
 //! #6460. Stress-only scenarios are not probability-weighted here.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
 use crate::nonanticipative_service_oracle::{
     NonanticipativeOracleStatus, NonanticipativeServiceOracleInput,
