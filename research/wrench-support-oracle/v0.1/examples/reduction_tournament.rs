@@ -5,13 +5,13 @@
 //! candidate geometry, friction assumptions and wrench-direction sets.
 
 use wrench_support_oracle::general::{
-    ContactFrame, ContactWrenchModel, ExactContactSelectorConfig,
-    GreedyContactSelectorConfig, select_exact_contact_subset, select_greedy_contact_subset,
+    ContactFrame, ContactWrenchModel, ExactContactSelectorConfig, GreedyContactSelectorConfig,
+    select_exact_contact_subset, select_greedy_contact_subset,
 };
 use wrench_support_oracle::{
-    ContactPatch, ContactPoint, ExactSelectorConfig, GreedySelectorConfig,
-    WrenchDirection, WrenchSupportReport, evaluate_retained_set, select_deepest_area_subset,
-    select_exact_subset, select_greedy_subset,
+    ContactPatch, ContactPoint, ExactSelectorConfig, GreedySelectorConfig, WrenchDirection,
+    WrenchSupportReport, evaluate_retained_set, select_deepest_area_subset, select_exact_subset,
+    select_greedy_subset,
 };
 
 fn axes() -> Vec<WrenchDirection> {
@@ -78,8 +78,7 @@ fn print_planar(
     report: &WrenchSupportReport,
     direction_count: usize,
 ) {
-    let support_evaluations =
-        report.subsets_evaluated * direction_count as u64 * 2;
+    let support_evaluations = report.subsets_evaluated * direction_count as u64 * 2;
     println!(
         "planar,{scenario},{policy},{candidate_count},{},{:.9},{:.9},{},{},{}",
         report.retained_point_ids.len(),
@@ -104,7 +103,13 @@ fn run_planar_scenario(
             maximum_subsets: 1_000_000,
         },
     )?;
-    print_planar(name, "exact-oracle", patch.points.len(), &exact, patch.directions.len());
+    print_planar(
+        name,
+        "exact-oracle",
+        patch.points.len(),
+        &exact,
+        patch.directions.len(),
+    );
 
     let greedy = select_greedy_subset(
         &patch,
@@ -113,11 +118,23 @@ fn run_planar_scenario(
             maximum_evaluations: 100_000,
         },
     )?;
-    print_planar(name, "greedy", patch.points.len(), &greedy, patch.directions.len());
+    print_planar(
+        name,
+        "greedy",
+        patch.points.len(),
+        &greedy,
+        patch.directions.len(),
+    );
 
     if include_best_n {
         let best_n = select_deepest_area_subset(&patch, keep)?;
-        print_planar(name, "symtropy-best-n", patch.points.len(), &best_n, patch.directions.len());
+        print_planar(
+            name,
+            "symtropy-best-n",
+            patch.points.len(),
+            &best_n,
+            patch.directions.len(),
+        );
     }
 
     // Sanity-check the exported retained-set evaluator against the exact report.
