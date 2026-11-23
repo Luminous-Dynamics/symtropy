@@ -614,8 +614,7 @@ fn published_style_k_coverage_greedy(
                 .ok_or_else(|| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?;
             let weight = numerator / (denominator as u128);
             weights.push(
-                u64::try_from(weight)
-                    .map_err(|_| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?,
+                u64::try_from(weight).map_err(|_| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?,
             );
         }
 
@@ -696,9 +695,7 @@ fn published_style_k_coverage_greedy(
                 let loses_coverage = problem.views[*index]
                     .robust_feature_ids
                     .iter()
-                    .any(|feature_id| {
-                        problem.features[feature_index].feature_id == *feature_id
-                    });
+                    .any(|feature_id| problem.features[feature_index].feature_id == *feature_id);
                 if loses_coverage
                     && covered_counts[feature_index].saturating_sub(1)
                         < attainable_targets[feature_index]
@@ -764,7 +761,9 @@ fn published_style_k_coverage_greedy(
             }
         })
         .collect::<Vec<_>>();
-    let requested_k_covered = feature_coverage.iter().all(|feature| feature.requested_k_met);
+    let requested_k_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.requested_k_met);
     let attainable_capped_target_covered = feature_coverage
         .iter()
         .all(|feature| feature.attainable_target_met);
