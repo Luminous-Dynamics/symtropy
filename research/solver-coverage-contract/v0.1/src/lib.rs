@@ -20,7 +20,10 @@ pub struct ValidationError {
 
 impl ValidationError {
     fn new(path: impl Into<String>, reason: impl Into<String>) -> Self {
-        Self { path: path.into(), reason: reason.into() }
+        Self {
+            path: path.into(),
+            reason: reason.into(),
+        }
     }
 }
 
@@ -116,10 +119,16 @@ pub struct ObservableKey {
 impl ObservableKey {
     fn validate(&self, path: &str) -> Result<(), ValidationError> {
         if !non_empty(&self.entity_id) {
-            return Err(ValidationError::new(format!("{path}.entity_id"), "must not be empty"));
+            return Err(ValidationError::new(
+                format!("{path}.entity_id"),
+                "must not be empty",
+            ));
         }
         if !non_empty(&self.observable_id) {
-            return Err(ValidationError::new(format!("{path}.observable_id"), "must not be empty"));
+            return Err(ValidationError::new(
+                format!("{path}.observable_id"),
+                "must not be empty",
+            ));
         }
         Ok(())
     }
@@ -155,7 +164,11 @@ pub enum UncertaintySemantics {
     /// A value was produced, but the producer did not quantify uncertainty.
     NotQuantified { reason: String },
     /// A producer-defined interval in the declared value unit.
-    Interval { lower: f64, upper: f64, method_id: String },
+    Interval {
+        lower: f64,
+        upper: f64,
+        method_id: String,
+    },
 }
 
 impl UncertaintySemantics {
@@ -163,18 +176,34 @@ impl UncertaintySemantics {
         match self {
             Self::NotQuantified { reason } => {
                 if !non_empty(reason) {
-                    return Err(ValidationError::new(path, "NotQuantified requires a reason"));
+                    return Err(ValidationError::new(
+                        path,
+                        "NotQuantified requires a reason",
+                    ));
                 }
             }
-            Self::Interval { lower, upper, method_id } => {
+            Self::Interval {
+                lower,
+                upper,
+                method_id,
+            } => {
                 if !lower.is_finite() || !upper.is_finite() || lower > upper {
-                    return Err(ValidationError::new(path, "interval must be finite and lower <= upper"));
+                    return Err(ValidationError::new(
+                        path,
+                        "interval must be finite and lower <= upper",
+                    ));
                 }
                 if value < *lower || value > *upper {
-                    return Err(ValidationError::new(path, "produced value lies outside its declared interval"));
+                    return Err(ValidationError::new(
+                        path,
+                        "produced value lies outside its declared interval",
+                    ));
                 }
                 if !non_empty(method_id) {
-                    return Err(ValidationError::new(path, "interval requires a method identity"));
+                    return Err(ValidationError::new(
+                        path,
+                        "interval requires a method identity",
+                    ));
                 }
             }
         }
@@ -214,10 +243,16 @@ pub struct ConstraintRowCoverage {
 impl ConstraintRowCoverage {
     fn validate(&self, path: &str) -> Result<bool, ValidationError> {
         if self.reserved_rows > self.capacity_rows {
-            return Err(ValidationError::new(path, "reserved rows exceed configured capacity"));
+            return Err(ValidationError::new(
+                path,
+                "reserved rows exceed configured capacity",
+            ));
         }
         if self.admitted_rows > self.reserved_rows {
-            return Err(ValidationError::new(path, "admitted rows exceed reserved rows"));
+            return Err(ValidationError::new(
+                path,
+                "admitted rows exceed reserved rows",
+            ));
         }
 
         let requested_partition = checked_sum(
@@ -237,7 +272,11 @@ impl ConstraintRowCoverage {
         }
 
         let admitted_partition = checked_sum(
-            &[self.solved_rows, self.not_converged_rows, self.execution_aborted_rows],
+            &[
+                self.solved_rows,
+                self.not_converged_rows,
+                self.execution_aborted_rows,
+            ],
             path,
         )?;
         if admitted_partition != self.admitted_rows {
@@ -375,10 +414,16 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
         let path = format!("request.observables[{index}]");
         spec.key.validate(&path)?;
         if !non_empty(&spec.unit) || !non_empty(&spec.frame_id) {
-            return Err(ValidationError::new(&path, "unit and frame_id are required"));
+            return Err(ValidationError::new(
+                &path,
+                "unit and frame_id are required",
+            ));
         }
         if spec.required && !spec.requested {
-            return Err(ValidationError::new(&path, "a required observable must be requested"));
+            return Err(ValidationError::new(
+                &path,
+                "a required observable must be requested",
+            ));
         }
         if specs.insert(spec.key.clone(), spec).is_some() {
             return Err(ValidationError::new(&path, "duplicate observable key"));
@@ -388,10 +433,17 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
     let mut required_families = BTreeSet::new();
     for family in &request.required_row_families {
         if !required_families.insert(*family) {
-            return Err(ValidationError::new("request.required_row_families", "duplicate row family"));
+            return Err(ValidationError::new(
+                "request.required_row_families",
+                "duplicate row family",
+            ));
         }
     }
-    for spec in request.observables.iter().filter(|spec| spec.row_family.is_some()) {
+    for spec in request
+        .observables
+        .iter()
+        .filter(|spec| spec.row_family.is_some())
+    {
         if !required_families.contains(&spec.row_family.expect("checked Some")) {
             return Err(ValidationError::new(
                 "request.observables.row_family",
@@ -404,11 +456,14 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
     for (index, result) in receipt.observable_results.iter().enumerate() {
         let path = format!("observable_results[{index}]");
         result.key.validate(&path)?;
-        let spec = specs.get(&result.key).ok_or_else(|| {
-            ValidationError::new(&path, "unexpected observable result key")
-        })?;
+        let spec = specs
+            .get(&result.key)
+            .ok_or_else(|| ValidationError::new(&path, "unexpected observable result key"))?;
         if results.insert(result.key.clone(), result).is_some() {
-            return Err(ValidationError::new(&path, "duplicate observable result key"));
+            return Err(ValidationError::new(
+                &path,
+                "duplicate observable result key",
+            ));
         }
         validate_observable_result(spec, result, &path)?;
     }
@@ -416,13 +471,19 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
     for key in specs.keys() {
         if !results.contains_key(key) {
             return Err(ValidationError::new(
-                format!("observable_results[{}:{}]", key.entity_id, key.observable_id),
+                format!(
+                    "observable_results[{}:{}]",
+                    key.entity_id, key.observable_id
+                ),
                 "requested/catalogued observable has no disposition",
             ));
         }
     }
     if results.len() != specs.len() {
-        return Err(ValidationError::new("observable_results", "result count does not match frozen catalog"));
+        return Err(ValidationError::new(
+            "observable_results",
+            "result count does not match frozen catalog",
+        ));
     }
 
     let mut row_records = BTreeMap::new();
@@ -441,18 +502,26 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
             return Err(ValidationError::new(&path, "unexpected row family"));
         }
         if row_records.insert(rows.family, rows).is_some() {
-            return Err(ValidationError::new(&path, "duplicate row-family coverage record"));
+            return Err(ValidationError::new(
+                &path,
+                "duplicate row-family coverage record",
+            ));
         }
         if !rows.validate(&path)? {
             required_rows_solved = false;
         }
         requested_rows = checked_sum(&[requested_rows, rows.requested_rows], &path)?;
         solved_rows = checked_sum(&[solved_rows, rows.solved_rows], &path)?;
-        capacity_dropped_rows = checked_sum(&[capacity_dropped_rows, rows.capacity_dropped_rows], &path)?;
-        sleeping_skipped_rows = checked_sum(&[sleeping_skipped_rows, rows.sleeping_skipped_rows], &path)?;
+        capacity_dropped_rows =
+            checked_sum(&[capacity_dropped_rows, rows.capacity_dropped_rows], &path)?;
+        sleeping_skipped_rows =
+            checked_sum(&[sleeping_skipped_rows, rows.sleeping_skipped_rows], &path)?;
         unsupported_rows = checked_sum(&[unsupported_rows, rows.unsupported_rows], &path)?;
         not_converged_rows = checked_sum(&[not_converged_rows, rows.not_converged_rows], &path)?;
-        execution_aborted_rows = checked_sum(&[execution_aborted_rows, rows.execution_aborted_rows], &path)?;
+        execution_aborted_rows = checked_sum(
+            &[execution_aborted_rows, rows.execution_aborted_rows],
+            &path,
+        )?;
     }
 
     for family in &request.required_row_families {
@@ -464,7 +533,10 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
         }
     }
     if row_records.len() != required_families.len() {
-        return Err(ValidationError::new("row_coverage", "row-family record count mismatch"));
+        return Err(ValidationError::new(
+            "row_coverage",
+            "row-family record count mismatch",
+        ));
     }
 
     let mut row_attribution_complete = true;
@@ -477,7 +549,10 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
             let rows = row_records.get(&family).expect("row family checked above");
             if rows.requested_rows > 0 && rows.solved_rows == 0 {
                 return Err(ValidationError::new(
-                    format!("observable_results[{}:{}]", key.entity_id, key.observable_id),
+                    format!(
+                        "observable_results[{}:{}]",
+                        key.entity_id, key.observable_id
+                    ),
                     "cannot report a row-linked value as Produced when no requested rows in its family were solved",
                 ));
             }
@@ -547,9 +622,14 @@ fn validate_observable_result(
     match result.disposition {
         ObservableDisposition::Produced => {
             if !spec.requested {
-                return Err(ValidationError::new(path, "unrequested observable cannot be Produced"));
+                return Err(ValidationError::new(
+                    path,
+                    "unrequested observable cannot be Produced",
+                ));
             }
-            let value = result.value.ok_or_else(|| ValidationError::new(path, "Produced requires a value"))?;
+            let value = result
+                .value
+                .ok_or_else(|| ValidationError::new(path, "Produced requires a value"))?;
             if !value.is_finite() {
                 return Err(ValidationError::new(path, "Produced value must be finite"));
             }
@@ -561,34 +641,64 @@ fn validate_observable_result(
             })?;
             uncertainty.validate(value, &format!("{path}.uncertainty"))?;
             if result.reason.is_some() {
-                return Err(ValidationError::new(path, "Produced cannot carry an omission reason"));
+                return Err(ValidationError::new(
+                    path,
+                    "Produced cannot carry an omission reason",
+                ));
             }
         }
         ObservableDisposition::NotRequested => {
             if spec.requested {
-                return Err(ValidationError::new(path, "requested observable cannot be NotRequested"));
+                return Err(ValidationError::new(
+                    path,
+                    "requested observable cannot be NotRequested",
+                ));
             }
-            if result.value.is_some() || result.producer_id.is_some()
-                || result.uncertainty.is_some() || result.reason.is_some()
+            if result.value.is_some()
+                || result.producer_id.is_some()
+                || result.uncertainty.is_some()
+                || result.reason.is_some()
             {
-                return Err(ValidationError::new(path, "NotRequested cannot carry a value or production metadata"));
+                return Err(ValidationError::new(
+                    path,
+                    "NotRequested cannot carry a value or production metadata",
+                ));
             }
         }
         ObservableDisposition::Missing => {
-            return Err(ValidationError::new(path, "Missing is a protocol-completeness failure"));
+            return Err(ValidationError::new(
+                path,
+                "Missing is a protocol-completeness failure",
+            ));
         }
         disposition => {
             if !spec.requested {
-                return Err(ValidationError::new(path, "unrequested observable must be NotRequested"));
+                return Err(ValidationError::new(
+                    path,
+                    "unrequested observable must be NotRequested",
+                ));
             }
             if result.value.is_some() || result.uncertainty.is_some() {
-                return Err(ValidationError::new(path, "non-produced disposition cannot carry a value or uncertainty"));
+                return Err(ValidationError::new(
+                    path,
+                    "non-produced disposition cannot carry a value or uncertainty",
+                ));
             }
             if !result.reason.as_deref().is_some_and(non_empty) {
-                return Err(ValidationError::new(path, "non-produced disposition requires a reason"));
+                return Err(ValidationError::new(
+                    path,
+                    "non-produced disposition requires a reason",
+                ));
             }
-            if result.producer_id.as_deref().is_some_and(|producer| !non_empty(producer)) {
-                return Err(ValidationError::new(path, "producer_id, when present, must not be empty"));
+            if result
+                .producer_id
+                .as_deref()
+                .is_some_and(|producer| !non_empty(producer))
+            {
+                return Err(ValidationError::new(
+                    path,
+                    "producer_id, when present, must not be empty",
+                ));
             }
             let _ = disposition;
         }
@@ -626,7 +736,11 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
                 out.push(1);
                 push_string(&mut out, &reason);
             }
-            Some(UncertaintySemantics::Interval { lower, upper, method_id }) => {
+            Some(UncertaintySemantics::Interval {
+                lower,
+                upper,
+                method_id,
+            }) => {
                 out.push(2);
                 out.extend_from_slice(&lower.to_bits().to_be_bytes());
                 out.extend_from_slice(&upper.to_bits().to_be_bytes());
@@ -642,9 +756,16 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
     for row in rows {
         out.push(row.family as u8);
         for count in [
-            row.capacity_rows, row.reserved_rows, row.requested_rows, row.admitted_rows,
-            row.solved_rows, row.not_converged_rows, row.sleeping_skipped_rows,
-            row.capacity_dropped_rows, row.unsupported_rows, row.execution_aborted_rows,
+            row.capacity_rows,
+            row.reserved_rows,
+            row.requested_rows,
+            row.admitted_rows,
+            row.solved_rows,
+            row.not_converged_rows,
+            row.sleeping_skipped_rows,
+            row.capacity_dropped_rows,
+            row.unsupported_rows,
+            row.execution_aborted_rows,
         ] {
             push_u64(&mut out, count);
         }
@@ -688,7 +809,10 @@ mod tests {
 
     fn contact_spec() -> ObservableSpec {
         ObservableSpec {
-            key: ObservableKey { entity_id: "body-1".into(), observable_id: "contact.normal_impulse".into() },
+            key: ObservableKey {
+                entity_id: "body-1".into(),
+                observable_id: "contact.normal_impulse".into(),
+            },
             requested: true,
             required: true,
             unit: "N*s".into(),
@@ -887,7 +1011,10 @@ mod tests {
             first.request.canonical_request_preimage(),
             second.request.canonical_request_preimage()
         );
-        assert_eq!(canonical_receipt_preimage(&first), canonical_receipt_preimage(&second));
+        assert_eq!(
+            canonical_receipt_preimage(&first),
+            canonical_receipt_preimage(&second)
+        );
     }
 
     #[test]
