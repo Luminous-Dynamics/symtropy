@@ -187,6 +187,8 @@ pub struct RejectedIlluminationCounts {
     pub event_rate_exceeded: usize,
     pub particle_density_exceeded: usize,
     pub spatial_coverage_insufficient: usize,
+    pub event_buffer_infeasible: usize,
+    pub displacement_infeasible: usize,
     pub temporal_window_infeasible: usize,
 }
 
@@ -329,8 +331,15 @@ pub fn plan_event_acquisition(
             continue;
         }
 
+        let retained_event_rate_lower = event_rate_lower * (1.0 - packet_loss);
+        if retained_event_rate_lower <= 0.0 || !retained_event_rate_lower.is_finite() {
+            return Ok(abstain(
+                EventPlanAbstention::InsufficientEventInformation,
+                rejected,
+            ));
+        }
         let minimum_window = config.minimum_window_seconds
-            .max(snapshot.minimum_events_required as f64 / event_rate_lower)
+            .max(snapshot.minimum_events_required as f64 / retained_event_rate_lower)
             .max(
                 k * snapshot.clock_standard_uncertainty_seconds
                     / config.maximum_clock_uncertainty_fraction,
@@ -357,7 +366,17 @@ pub fn plan_event_acquisition(
             return Err(EventPlanError::NonFiniteDerivedValue);
         }
         if minimum_window > maximum_window {
-            rejected.temporal_window_infeasible += 1;
+            let buffer_is_binding = minimum_window > buffer_limited_window;
+            let displacement_is_binding = minimum_window > displacement_limited_window;
+            let other_time_limit_is_binding = minimum_window
+                > config.maximum_window_seconds.min(option.maximum_window_seconds);
+            if buffer_is_binding && !displacement_is_binding && !other_time_limit_is_binding {
+                rejected.event_buffer_infeasible += 1;
+            } else if displacement_is_binding && !buffer_is_binding && !other_time_limit_is_binding {
+                rejected.displacement_infeasible += 1;
+            } else {
+                rejected.temporal_window_infeasible += 1;
+            }
             continue;
         }
 
@@ -413,7 +432,9 @@ pub fn plan_event_acquisition(
     let option = &options[best.option_index];
     let expected_lower = best.event_rate_lower * best.selected_window_seconds
         * (1.0 - packet_loss);
-    let expected_upper = best.event_rate_upper * best.selected_window_seconds;
+    let expected_upper = best.event_rate_upper
+        * best.selected_window_seconds
+        * (1.0 - packet_loss);
     if !expected_lower.is_finite() || !expected_upper.is_finite() {
         return Err(EventPlanError::NonFiniteDerivedValue);
     }
@@ -465,6 +486,14 @@ fn abstain(
 fn determine_abstention(rejected: &RejectedIlluminationCounts) -> EventPlanAbstention {
     if rejected.temporal_window_infeasible > 0 {
         EventPlanAbstention::TemporalWindowInfeasible
+    } else if rejected.event_buffer_infeasible > 0
+        && rejected.displacement_infeasible == 0
+    {
+        EventPlanAbstention::EventBufferCapacityInsufficient
+    } else if rejected.displacement_infeasible > 0
+        && rejected.event_buffer_infeasible == 0
+    {
+        EventPlanAbstention::DisplacementBoundInfeasible
     } else if rejected.event_rate_exceeded > 0 {
         EventPlanAbstention::EventRateExceedsAllValidatedModes
     } else if rejected.particle_density_exceeded > 0 {
@@ -955,6 +984,43 @@ mod tests {
         assert_eq!(
             report.abstention_reason,
             Some(EventPlanAbstention::TemporalWindowInfeasible)
+        );
+    }
+
+    #[test]
+    fn packet_loss_is_included_in_minimum_retained_event_count() {
+        let mut sample = snapshot();
+        sample.packet_loss_fraction = Some(0.10);
+        let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
+        let plan = report.plan.unwrap();
+        assert!(
+            plan.expected_retained_event_count_lower
+                >= sample.minimum_events_required as f64
+        );
+    }
+
+    #[test]
+    fn event_buffer_constraint_has_a_specific_abstention_reason() {
+        let mut sample = snapshot();
+        sample.buffer_capacity_events = 1_000;
+        sample.minimum_events_required = 800;
+        let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
+        assert_eq!(
+            report.abstention_reason,
+            Some(EventPlanAbstention::EventBufferCapacityInsufficient)
+        );
+    }
+
+    #[test]
+    fn displacement_constraint_has_a_specific_abstention_reason() {
+        let mut sample = snapshot();
+        sample.velocity_magnitude_pixels_per_second = 100_000.0;
+        sample.velocity_standard_uncertainty_pixels_per_second = 0.0;
+        sample.maximum_displacement_pixels = 1.0;
+        let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
+        assert_eq!(
+            report.abstention_reason,
+            Some(EventPlanAbstention::DisplacementBoundInfeasible)
         );
     }
 
