@@ -104,3 +104,23 @@ The fixture is synthetic, not a physical trial. Receipts set authority_granted=f
 ## Frozen v0.1 input bounds
 
 The corpus contains exactly 12 uniquely identified cases. Each case must supply a non-empty coordinate-frame identifier. Each view must supply 1–256 finite pose perturbations. Runtime validation enforces these bounds independently of the schema and CI preflight.
+
+
+## v0.2 research increment: evidence-qualified viewpoint selection
+
+planning.rs composes the existing geometry result into a small exact set-multicover planner. It accepts an explicit positive integer cost for every candidate view, an inspection-view count limit, and a total cost limit. It does not generate or assume viewpoints: candidate IDs and their nominal/robust feature coverage come from evaluate_case.
+
+For up to 20 candidate views, the planner exhaustively enumerates all subsets and reports the exact robust-feasible optimum, a cost/count Pareto frontier, a marginal robust-coverage-per-cost greedy baseline, and a cheapest-first baseline. The exact objective is lexicographic: total cost units, then view count, then sorted view IDs. The greedy ratio uses integer cross-multiplication rather than floating-point comparison. Duplicate declared failure-domain labels never count as independent coverage.
+
+The planner separates four outcomes:
+
+- FEASIBLE: a robust plan exists inside the declared view and cost budgets;
+- INFEASIBLE: even the full candidate set lacks nominal coverage or declared domain diversity;
+- INDETERMINATE: nominal full-candidate coverage exists but robust full-candidate coverage does not;
+- BUDGET_INFEASIBLE: full-candidate robust coverage exists, but no robust plan fits the declared budgets.
+
+The current unit tests include an adversarial greedy trap (exact plan: two views; greedy: three), duplicate-domain rejection, nominal-only abstention, and budget/geometric separation. This is an abstract coverage-matrix algorithm test, not an executed 3D inspection benchmark and not a claim of planner superiority over published methods.
+
+The API problem_from_case / plan_case binds costs to an existing evaluated Case. A subsequent benchmark increment should freeze an external planning fixture, implement a separately authored Python oracle, and add candidate-generation, routing, reachability and uncertainty-family holdouts before any SOTA comparison.
+
+All receipts remain synthetic-only and hard-code no authority, no structural acceptance, no flight authorization, and physical_validation=NOT_ASSESSED.
