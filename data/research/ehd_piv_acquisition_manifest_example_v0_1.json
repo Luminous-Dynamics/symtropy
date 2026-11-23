@@ -1,0 +1,41 @@
+{
+  "schema_version": "ehd_piv_acquisition_manifest_v0_1",
+  "canonicalization_version": "serde_json_v1_sorted_inventory",
+  "manifest_id": "example-acquisition-manifest-001",
+  "source_release_id": "example-laboratory-campaign-001",
+  "protocol_fingerprint": "example-frozen-piv-protocol-v1",
+  "reference_assessment_id": "example-reference-assessment-001",
+  "observer_state_id": "example-observer-state-001",
+  "split_policy_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "dependency_graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "assets": [
+    {
+      "asset_id": "example-raw-image-pair-001",
+      "role": "raw_image_pair",
+      "relative_path": "raw/acquisition-001.bin",
+      "byte_length": 12,
+      "media_type": "application/octet-stream",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "acquisition_id": "acquisition-001",
+      "dependence_group_ids": [
+        "camera-calibration-001",
+        "timing-chain-001"
+      ],
+      "reference_evidence_id": "reference-evidence-001",
+      "clock_domain": "camera-clock-001",
+      "captured_at_utc": "2026-11-23T08:00:00Z"
+    }
+  ],
+  "dependency_edges": [
+    {
+      "acquisition_id": "acquisition-001",
+      "shared_cause_id": "camera-calibration-001",
+      "shared_cause_kind": "camera_calibration"
+    },
+    {
+      "acquisition_id": "acquisition-001",
+      "shared_cause_id": "timing-chain-001",
+      "shared_cause_kind": "clock_synchronization"
+    }
+  ]
+}
