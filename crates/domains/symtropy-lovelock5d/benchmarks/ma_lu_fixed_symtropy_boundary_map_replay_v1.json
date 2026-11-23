@@ -1,78 +1,31 @@
 {
   "schema_version": 1,
-  "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_replay",
+  "artifact_kind": "ma_lu_fixed_symtropy_boundary_map_replay",
   "status": "exact_public_source_blob_replayed_locally",
-  "local_source": {
-    "path": "/tmp/verify_ma_lu_fixed_boundary_map.py",
-    "sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
-    "git_blob_sha1": "35b6c831abfcb3185a1d51cf5eedeef8a713a60f"
-  },
-  "result_fixture": {
-    "path": "/tmp/ma_lu_fixed_symtropy_boundary_map_v1.json",
-    "sha256": "ba521444eb0eac65a57ac3370076f7da095146185a75f606cd4a9ba7548bc004",
-    "git_blob_sha1": "1ae41e4bbefcb24ffa47bff791c84126f1c8864a"
+  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_symtropy_boundary_map.py",
+  "source": {
+    "git_blob_sha1": "f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9",
+    "sha256": "b4ee4ad64b9dbc87893260b4a804216462871a638e4bc592d2498250a41ece67",
+    "exact_bytes_match": true
   },
   "environment": {
     "python": "3.13.5",
     "sympy": "1.14.0"
   },
-  "checks": {
-    "horizon_values": true,
-    "nuS_and_radius_expansions": true,
-    "inverse_series": true,
-    "a_and_mu_maps": true,
-    "chi_map": true,
-    "GR_exact_limit": true,
-    "negative_control_omit_H7": true,
-    "negative_control_omit_H2_H4": true,
-    "negative_control_nu_h_vs_nu_S": true,
-    "negative_control_chi_factor": true
-  },
-  "claim_ceiling": "Exact local replay of the public fixed-boundary symbolic verifier and exact first-order-coupling, equal-spin, slow-rotation parameter map. mu/R_H^2 is the converted background MP parameter, not corrected ADM mass. No H5/H6 angular-diagonal metric match, corrected ADM mass, finite-coupling branch, interval existence or hyperbolicity result is claimed.",
-  "parameter_interpretation": {
-    "chi": "a/mu (Ma-Lu Eq. 10)",
-    "chi_times_R_H": "2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3",
-    "mu_over_R_H2": "converted background MP parameter, not corrected ADM mass"
-  },
-  "public_verifier": {
-    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_symtropy_boundary_map.py",
-    "git_blob_sha1": "e957b15d264850512c0af0799f98ad5af8afe60e",
-    "sha256": "584fa6bbb2d0754f9fc842397bd8e8597f9bd0736b00da1cea8057223b2fa677",
-    "exact_bytes_match": true
-  },
-  "local_independent_rederivation": {
-    "python": "3.13.5",
-    "sympy": "1.14.0",
-    "method": "independent SymPy reconstruction of the published horizon H2/H4/H7 values and fixed-boundary series",
-    "checks": [
-      "nuS(q,epsilon_R) through q^3",
-      "R_H/r_h through q^2",
-      "inverse q(nu_S,epsilon_R)",
-      "q, R_H/r_h, r_h/R_H, a/R_H, background mu/R_H^2, chi*R_H maps",
-      "GR limit",
-      "negative controls for H7, H2/H4, nu_h versus nu_S, and chi factor"
-    ],
-    "result": "all_exact_symbolic_checks_pass"
-  },
-  "exact_public_replay": {
-    "environment": {
-      "python": "3.13.5",
-      "sympy": "1.14.0"
-    },
-    "execution": "Exact committed Git blob fetched, hash-checked and executed locally",
+  "execution": {
+    "command": "python3 verify_ma_lu_fixed_symtropy_boundary_map.py --output ma_lu_fixed_symtropy_boundary_map_v1.json",
     "checks": {
       "horizon_H2_H4_H7": true,
       "nuS_and_radius_series": true,
       "inverse_q_series": true,
-      "a_and_mu_parameter_maps": true,
-      "chi_times_RH_map": true,
-      "GR_exact_limit": true,
+      "fixed_boundary_all_coefficients": true,
+      "GR_limit": true,
       "negative_control_omit_H7": true,
       "negative_control_omit_H2_H4": true,
       "negative_control_nu_h_vs_nu_S": true,
-      "negative_control_sqrt2_chi": true
+      "negative_control_truncated_spin_chi": true
     },
-    "result": "FIXED_BOUNDARY_MAP_ALL_EXACT_SYMBOLIC_CHECKS_PASS",
-    "truncation_note": "Intermediate nuS(q,eR) and RH/rh expansions are truncated consistently at q^3 (order argument 4); earlier q^5 remainder leakage is fixed."
-  }
+    "result": "ALL_FIXED_BOUNDARY_EXACT_SYMBOLIC_CHECKS_PASS"
+  },
+  "claim_ceiling": "Exact first-order-coupling fixed-(R_H,Omega_H) parameter conversion using the JHEP version-of-record chi=a/sqrt(mu). mu_background/R_H^2 is not corrected ADM mass. No finite-coupling result."
 }
