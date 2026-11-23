@@ -130,3 +130,9 @@ The compiled plan is intended to become the stable input to simulator/ROS/contro
 ## Execution receipt contract
 
 Every fault injection in a frozen campaign now binds an expected delivery-signature digest, target revision/profile digest and scheduled simulator step. The compiled plan also pins the injector identity, injector failure domain and native adapter identity. These are not descriptive labels: the execution evidence validator compares them against the target-resolution, dispatch, injector-execution and independent-observation receipts. See [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md).
+
+## Observer qualification in the frozen campaign
+
+The platform profile pins required_delivery_observer_quorum and observer_profiles[]. Each observer profile is an ID/revision/binary digest plus a list of common-cause domains. The manifest validator rejects duplicate or empty dependency names, overlap among declared observer dependencies, overlap with the injector failure domain and a quorum larger than the available profile set.
+
+The execution bundle must supply a receipt from each member of a confirming/refuting quorum. The validator checks that every profile matches the compiled plan and that all declared dependencies are pairwise disjoint. This is deliberately conservative: it rejects a campaign profile whose declared observers cannot form the required independent quorum.
