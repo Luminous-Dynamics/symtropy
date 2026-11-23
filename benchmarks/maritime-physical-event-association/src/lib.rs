@@ -900,6 +900,16 @@ mod tests {
                 test.profile.as_mut().unwrap().profile_sha256 = "not-a-digest".to_owned();
                 test
             }
+            "source_time_role_mismatch" => {
+                let mut test = case(source, witness);
+                test.source_events[0].event_time.role = TimeRole::SensorObservationTime;
+                test
+            }
+            "witness_time_role_mismatch" => {
+                let mut test = case(source, witness);
+                test.witness_events[0].event_time.role = TimeRole::BusinessEventTime;
+                test
+            }
             "invalid_source_digest" => {
                 let mut test = case(source, witness);
                 test.source_events[0].payload_sha256 = "not-a-digest".to_owned();
@@ -973,7 +983,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 26);
+        assert_eq!(count, 28);
     }
 
     #[test]
@@ -1129,6 +1139,8 @@ mod tests {
         );
         assert_eq!(receipt.source_revision_id, "rev-1");
         assert_eq!(receipt.witness_revision_id, "rev-1");
+        assert_eq!(receipt.source_time_role, TimeRole::BusinessEventTime);
+        assert_eq!(receipt.witness_time_role, TimeRole::SensorObservationTime);
         assert_eq!(
             receipt.source_payload_sha256,
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -1153,6 +1165,18 @@ mod tests {
                 "{case_id}"
             );
         }
+    }
+
+    #[test]
+    fn mismatched_temporal_roles_fail_closed() {
+        assert_eq!(
+            evaluate(&known_case("source_time_role_mismatch")).disposition,
+            Disposition::NotEvaluable
+        );
+        assert_eq!(
+            evaluate(&known_case("witness_time_role_mismatch")).disposition,
+            Disposition::NotEvaluable
+        );
     }
 
     #[test]
