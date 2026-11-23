@@ -297,27 +297,25 @@ Primary records:
 - [Akribeia arXiv v2](https://arxiv.org/abs/2607.07418v2)
 - [Physical Review D accepted paper, accepted 12 November 2026](https://doi.org/10.1103/3kz2-6dvv)
 
-### Ma--Lü: direct first-coupling 5D Myers--Perry overlap, with conventions pinned
+### Ma--Lü: direct first-coupling 5D Myers–Perry overlap — version of record
 
-Ma and Lü, *Quadratic curvature correction to 5D Myers--Perry metric*, JHEP 05 (2026) 081, arXiv:2512.23797, solve the linear-coupling \(R_{\mu\nu\rho\sigma}^2\) correction around the general two-spin 5D Myers--Perry family. Their published Eq. (10) is \(\chi_a=a/\mu,\ \chi_b=b/\mu\), not \(a/\sqrt{\mu}\). For equal spins \(q=a/r_h\), the exact background relations are
+Ma and Lü, *Quadratic curvature correction to 5D Myers–Perry metric*, JHEP 05 (2026) 081, DOI 10.1007/JHEP05(2026)081, is the direct five-dimensional first-coupling comparator. The publisher version of record was published 8 May 2026. Use its Eqs. (2.8), (2.9), (2.12), (3.3), and (3.4); do not use the earlier arXiv-v1 text extraction for conventions.
+
+Eq. (2.9) defines \(\chi_a=a/\sqrt{\mu}\), \(\chi_b=b/\sqrt{\mu}\). For equal spins, \(q=a/r_h\), \(\nu_h=\Omega_Hr_h=q/(1+q^2)\), and \(\chi=\sqrt2\,\nu_h\) exactly. Version-of-record Eq. (2.8) has both angular-axis factors \(x^2d\psi^2\) and \((1-x^2)d\phi^2\).
+
+The first-coupling source identity on Ricci-flat MP gives \(\alpha_R=\alpha_{GB}/4\). This is not a finite-coupling equivalence. The equal-spin H5/H6 functions and all \(d\psi^2,d\phi^2,d\phi\,d\psi\) metric components reduce exactly to the Hopf-fibre form through \(O(\alpha_Ra^2)\), including axis regularity.
+
+At fixed Symtropy \((R_H,\Omega_H)\), the transformed radial/time/fibre profiles reproduce \(B_{21},F_{21},H_{21}\); all four original action-derived rows \(E_b,E_f,E_g,E_h\) vanish exactly on the MP-connected branch with \(c_B=c_H=0\). The positive \(E_f\) pivot independently reconstructs \(F_{21}\). The equal-spin asymptotic charge also agrees with Eq. (3.4) through \(\chi^2\):
 \[
-\mu/r_h^2=(1+q^2)^2/2,\qquad
-\nu_h=\Omega_Hr_h=q/(1+q^2),\qquad
-\chi r_h=2q/(1+q^2)^2.
+\Delta M_{\rm metric}=\frac{3\pi}{8}\left(\frac{16}{3}-\frac{188}{15}\chi^2\right)
+=2\pi-\frac{47\pi}{10}\chi^2+O(\chi^4).
 \]
-The scale-explicit rotation variable for coefficient matching is \(\chi r_h\); the paper's printed dimensional convention must not be silently replaced.
 
-The first-coupling action-source identity is now established on Ricci-flat MP: the Gauss--Bonnet and Riemann-squared Euler tensors reduce to the same background source, giving \(\alpha_R=\alpha_{GB}/4\) or \(\epsilon_R=\lambda/4\) at the same horizon. This is not a finite-coupling equivalence.
-
-A fixed-Symtropy boundary conversion has been derived between Ma--Lü \((r_h,\mu,a,\Omega_H)\) and Symtropy \((R_H,\Omega_H)\). It distinguishes \(\nu_h=\Omega_Hr_h\) from \(\nu_S=\Omega_HR_H\), and records \(\chi R_H=2\nu_S-2\nu_S^3+(52/3)\epsilon_S\nu_S-(2344/15)\epsilon_S\nu_S^3+\cdots\), with \(\epsilon_S=\alpha_R/R_H^2\).
-
-At the first-coupling \(O(a^2)\) level, the transformed radial/temporal/fibre-cross-term profiles reproduce Symtropy's \(B_{21},F_{21},H_{21}\). Substitution into all four original even-sector action rows \(E_b,E_f,E_g,E_h\), using the MP-connected horizon-mode offsets \(c_B=c_H=0\), gives exact rational zero. The horizon sensitivities \(B'_{21}(1)=106/9\) and \(H_{21}(1)=-14/3\) are outputs, not the \(c_B,c_H\) inputs.
-
-**Open boundary:** the independent Ma--Lü \(H_5,H_6\) angular-diagonal \(d\phi^2,d\psi^2\) components have not yet been certified against the complete equal-spin Symtropy angular block. The corrected ADM mass also remains to be extracted from the transformed asymptotics including \(H_1\). No full five-dimensional metric match or finite-coupling solution is claimed until those checks pass.
+This is a first-coupling, equal-spin, slow-spin overlap through \(O(\chi^2)\), not a finite-coupling nonlinear solution. See #6915 and #6965 for the evidence ledger and remaining gates.
 
 Primary records:
-- [Ma--Lü arXiv:2512.23797](https://arxiv.org/abs/2512.23797)
 - [JHEP version of record, 8 May 2026](https://doi.org/10.1007/JHEP05(2026)081)
+- [Publisher article page](https://link.springer.com/article/10.1007/JHEP05(2026)081)
 - [Fixed-boundary task #6965](https://github.com/Luminous-Dynamics/symtropy/issues/6965)
 - [Metric comparator #6915](https://github.com/Luminous-Dynamics/symtropy/issues/6915)
 
@@ -338,43 +336,26 @@ Static Lovelock characteristic cones, gauge-fixed strong hyperbolicity, linear s
 Every public SOTA table must identify, for each numeric result: theory/action, dimension, background/branch, spin and coupling, perturbative order, gauge/normalization, arithmetic, resolution, whether it is a pointwise residual, global norm, profile error, observable error or interval bound, and whether it is independently verified. Values from different metric classes must not be ranked as if they were the same score.
 
 
-## 12. Ma--Lü convention correction and exact parameter replay (23 November 2026)
+## 12. Ma–Lü version-of-record correction and parameter replay
 
-The published PDF Eq. (10) is \(\chi=a/\mu\), not \(a/\sqrt{\mu}\). For equal spins \(q=a/r_h\),
+The JHEP version of record defines \(\chi=a/\sqrt{\mu}\), not \(a/\mu\). For equal spins,
 \[
 \mu/r_h^2=(1+q^2)^2/2,\quad
 \nu_h=q/(1+q^2),\quad
-\chi r_h=2q/(1+q^2)^2.
+\chi=\sqrt2\,\nu_h.
 \]
-The inverse \(q(\nu_h)\) series and the independent Eq. (50) mass-parameter series are checked by the exact-symbolic parameter-map script, whose public blob is SHA-1 956ad645c8b90882441a6a76ba89e11dcac99144 and SHA-256 6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c.
+The inverse q(\(\nu_h\)) series through \(\nu_h^{11}\) and Eq. (3.9) through \(\chi^6\) are exact-symbolically checked. Parameter-map and fixed-boundary scripts are byte-matched to their public source and locally replayed.
 
-A separate first-coupling fixed-Symtropy-boundary map now uses \(\chi R_H\), not a square-root-based \(\chi\). The corresponding metric comparison has reached exact zero in all four original Symtropy even-sector rows for the radial/time-sector profiles, with the \(H_5/H_6\) angular-diagonal check still open. See issue #6965 and the four-row evidence in #6915.
- 
-## 13. First-coupling identity and perturbative failure mode
+## 13. First-coupling source identity and perturbative failure mode
 
-The Ma--Lü first-coupling source identity is now analytically closed on Ricci-flat Myers--Perry: the Gauss--Bonnet and Riemann-squared Euler tensors both reduce to \(2R_\mu{}^{\alpha\beta\gamma}R_{\nu\alpha\beta\gamma}-\frac12g_{\mu\nu}Riemann^2\). The candidate normalization is therefore \(\alpha_R=\alpha_{GB}/4\), with \(\epsilon_R=\lambda/4\) for the matched horizon radius. See the new Euler-identity note and fixture in the benchmark directory.
+The Ricci-flat Euler-tensor identity gives \(\alpha_R=\alpha_{GB}/4\) at first coupling. This is a source-level identity, not a finite-coupling equivalence. Wu and Lü (2025) show rotation- and ensemble-dependent divergences in first-order quadratic-curvature thermodynamic corrections; some may be perturbative artifacts rather than proof that a full nonlinear branch does not exist. Track spin-series truncation, coupling-series truncation, metric/invariant correction size, ensemble response, and full branch existence separately. See #6955.
 
-A second caveat is essential: Wu and Lü's 2025 PRD paper finds that first-order quadratic-curvature thermodynamic corrections of MP can develop divergences for generic rotation parameters, with the outcome dependent on ensemble. They argue some divergences may be perturbative artifacts rather than nonexistence of a full nonlinear solution. Thus a high-order spin expansion is not automatically uniform near extremality. Issue [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955) now owns the validity envelope, separating:
-- spin-series truncation;
-- coupling-series truncation \(O(\epsilon_R^2)\);
-- metric and invariant correction magnitudes;
-- ensemble-dependent thermodynamic response;
-- full nonlinear branch existence.
+## 14. Fixed-boundary comparison coordinates
 
-Do not conflate a divergent first-order thermodynamic coefficient with failure of the full finite-coupling EGB branch.
+The comparison transports both the horizon radius and physical angular velocity. It distinguishes \(\nu_h=\Omega_Hr_h\) from \(\nu_S=\Omega_HR_H\). At first coupling and fixed Symtropy \((R_H,\Omega_H)\), the exact-symbolic parameter map is recorded in the benchmark fixture. Here \(\mu/R_H^2\) is only the converted background MP parameter; the corrected ADM charge is a separate quantity and has now been checked independently against Eq. (3.4) through \(\chi^2\).
 
+## 15. Original-row and complete angular-block result
 
-## 14. Fixed-boundary Ma--Lü map: horizon radius and physical spin must be transported together
+For the MP-connected branch, \(c_B=c_H=0\). The transformed \(B_{21},F_{21},H_{21}\) profiles make all four original Symtropy rows vanish exactly: \(E_b=E_f=E_g=E_h=0\). The \(E_f\) algebraic pivot recovers \(F_{21}\); the horizon sensitivity outputs \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\) are not \(c_B,c_H\).
 
-The equal-spin radial gauge has \(R^2=A(1+\alpha_RH_7)\), so the comparison requires both the radius map and the physical horizon angular velocity map. The exact-symbolic first-coupling calculation in #6965 gives the fixed-Symtropy conversion in terms of \(\nu_S=\Omega_HR_H\) and \(\epsilon_S=\alpha_R/R_H^2\). In particular, the GR limit is already \(R_H^2=r_h^2+a^2\); at first coupling, the \(H_7\) orbit-space shift and the \(H_2/H_4\) angular-velocity terms contribute independently.
-
-The machine-readable expansions live in ma_lu_fixed_symtropy_boundary_map_v1.json. Treat \(\mu/R_H^2\) there only as the transformed background MP parameter, not the corrected ADM mass. Extract the physical ADM charge from the full transformed metric, including \(H_1\), when the metric comparison is executed.
-
-This improves the benchmark contract: compare candidates at the same \((R_H,\Omega_H,\epsilon_S)\), not at parameters that merely share the same old-coordinate \(r_h\) or background \(q\).
-
-
-## 15. Exact original-row Ma--Lü overlap and remaining component gate
-
-The fixed-boundary first-coupling profiles reproduce the original Symtropy \(E_b,E_f,E_g,E_h\) action rows exactly on the MP-connected branch (\(c_B=c_H=0\)); the \(E_f\) algebraic pivot independently recovers \(F_{21}\). The first-order frame-dragging function also matches at the \(O(a)\) order entering the \(O(a^2)\) equations. This is stronger than a reduced-equation-only or profile-fit comparison.
-
-The claim remains deliberately bounded: the \(H_5,H_6\) angular-diagonal components are unverified, so the full five-dimensional metric is not yet accepted as matched. The transformed ADM mass must be independently extracted, and no finite-coupling/interval existence result is inferred.
+The complete equal-spin angular block now passes direct component checks. The mass coefficient also matches Eq. (3.4) through \(\chi^2\). The combined claim is a first-coupling \(O(\chi^2)\) metric/charge overlap, not finite-coupling existence, interval uniqueness, or hyperbolicity.
