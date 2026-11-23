@@ -312,6 +312,88 @@ fn candidate_graph(
     }
 }
 
+#[cfg(test)]
+#[derive(Default)]
+struct IntervalContextIndex {
+    by_lower: Vec<(i64, usize)>,
+    by_upper: Vec<(i64, usize)>,
+}
+
+/// Test-only candidate-window implementation. Exact event context is still
+/// required; the interval index then reports precisely those witness intervals
+/// satisfying lower <= source.upper and upper >= source.lower - tolerance.
+/// This is equivalent to the frozen v0.1 temporal predicate for the typed
+/// BusinessEventTime / SensorObservationTime role pair.
+#[cfg(test)]
+fn candidate_graph_interval_indexed(
+    source: &[PhysicalObservation],
+    witness: &[PhysicalObservation],
+    profile: &CorrelationProfile,
+) -> CandidateGraph {
+    let mut indexes = BTreeMap::<EventContext<'_>, IntervalContextIndex>::new();
+    for (index, event) in witness.iter().enumerate() {
+        let context = indexes.entry(event_context(event)).or_default();
+        context.by_lower.push((event.event_time.lower, index));
+        context.by_upper.push((event.event_time.upper, index));
+    }
+    for context in indexes.values_mut() {
+        context.by_lower.sort_unstable();
+        context.by_upper.sort_unstable();
+    }
+
+    let mut pair_evaluations = 0usize;
+    let mut edges = Vec::with_capacity(source.len());
+    for source_event in source {
+        let Some(context) = indexes.get(&event_context(source_event)) else {
+            edges.push(Vec::new());
+            continue;
+        };
+
+        let lower_prefix = context
+            .by_lower
+            .partition_point(|(lower, _)| *lower <= source_event.event_time.upper);
+        let earliest_allowed_upper = i128::from(source_event.event_time.lower)
+            - i128::from(profile.max_interval_gap);
+        let upper_suffix = context.by_upper.partition_point(|(upper, _)| {
+            i128::from(*upper) < earliest_allowed_upper
+        });
+
+        let lower_candidate_count = lower_prefix;
+        let upper_candidate_count = context.by_upper.len() - upper_suffix;
+        let mut source_edges = Vec::new();
+        if lower_candidate_count <= upper_candidate_count {
+            for &(lower, index) in &context.by_lower[..lower_prefix] {
+                if i128::from(witness[index].event_time.upper) >= earliest_allowed_upper
+                    && lower <= source_event.event_time.upper
+                {
+                    pair_evaluations += 1;
+                    if admissible_edge(source_event, &witness[index], profile) {
+                        source_edges.push(index);
+                    }
+                }
+            }
+        } else {
+            for &(upper, index) in &context.by_upper[upper_suffix..] {
+                if i128::from(upper) >= earliest_allowed_upper
+                    && witness[index].event_time.lower <= source_event.event_time.upper
+                {
+                    pair_evaluations += 1;
+                    if admissible_edge(source_event, &witness[index], profile) {
+                        source_edges.push(index);
+                    }
+                }
+            }
+        }
+        source_edges.sort_unstable();
+        edges.push(source_edges);
+    }
+
+    CandidateGraph {
+        edges,
+        pair_evaluations,
+    }
+}
+
 fn augment_matching(
     left: usize,
     graph: &[Vec<usize>],
@@ -1386,6 +1468,150 @@ mod tests {
             event.published_at = 11;
         }
         assert_eq!(evaluate(&narrow).disposition, Disposition::Ambiguous);
+    }
+
+    #[test]
+    fn interval_indexed_candidate_window_matches_full_scan_on_boundary_panel() {
+        let source = vec![
+            observation!("s0", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 100, 110, 111),
+            observation!("s1", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 200, 200, 201),
+            observation!("s2", "BOX-2", "GATE_IN", "SITE-2", "OP-2", 300, 305, 306),
+        ];
+        let witness = vec![
+            observation!("w0", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 90, 95, 96),
+            observation!("w1", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 95, 100, 101),
+            observation!("w2", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 108, 112, 113),
+            observation!("w3", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 111, 115, 116),
+            observation!("w4", "BOX-1", "GATE_OUT", "SITE-1", "OP-1", 116, 120, 121),
+            observation!("w5", "BOX-2", "GATE_IN", "SITE-2", "OP-2", 290, 295, 296),
+            observation!("w6", "BOX-2", "GATE_IN", "SITE-2", "OP-2", 299, 301, 302),
+            observation!("w7", "BOX-2", "GATE_IN", "SITE-2", "OP-2", 306, 310, 311),
+        ];
+        let case = case(source, witness);
+        let baseline = candidate_graph(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        let indexed = candidate_graph_interval_indexed(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        assert_eq!(indexed.edges, baseline.edges);
+        assert_eq!(
+            indexed.pair_evaluations,
+            indexed.edges.iter().map(Vec::len).sum::<usize>()
+        );
+        assert!(indexed.pair_evaluations <= baseline.pair_evaluations);
+    }
+
+    #[test]
+    fn interval_indexed_candidate_window_matches_full_scan_on_seeded_mixed_contexts() {
+        let mut state = 0x6a09_e667_f3bc_c909u64;
+        let mut next = || {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            state
+        };
+        let mut source = Vec::new();
+        let mut witness = Vec::new();
+        for index in 0..96 {
+            let box_id = format!("BOX-{}", next() % 5);
+            let kind = if next() % 2 == 0 { "GATE_IN" } else { "GATE_OUT" };
+            let facility = format!("SITE-{}", next() % 3);
+            let operation = format!("OP-{}", next() % 4);
+            let lower = (next() % 800) as i64;
+            let upper = lower + (next() % 24) as i64;
+            source.push(observation!(
+                &format!("s-{index}"),
+                &box_id,
+                kind,
+                &facility,
+                &operation,
+                lower,
+                upper,
+                upper + 1,
+            ));
+        }
+        for index in 0..96 {
+            let box_id = format!("BOX-{}", next() % 5);
+            let kind = if next() % 2 == 0 { "GATE_IN" } else { "GATE_OUT" };
+            let facility = format!("SITE-{}", next() % 3);
+            let operation = format!("OP-{}", next() % 4);
+            let lower = (next() % 800) as i64;
+            let upper = lower + (next() % 24) as i64;
+            witness.push(observation!(
+                &format!("w-{index}"),
+                &box_id,
+                kind,
+                &facility,
+                &operation,
+                lower,
+                upper,
+                upper + 1,
+            ));
+        }
+        let case = case(source, witness);
+        let baseline = candidate_graph(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        let indexed = candidate_graph_interval_indexed(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        assert_eq!(indexed.edges, baseline.edges);
+        assert_eq!(
+            indexed.pair_evaluations,
+            indexed.edges.iter().map(Vec::len).sum::<usize>()
+        );
+    }
+
+    #[test]
+    fn interval_indexed_candidate_window_reduces_dense_context_evaluations() {
+        let mut source = Vec::new();
+        let mut witness = Vec::new();
+        for index in 0..128 {
+            let time = 10_000 + index * 100;
+            source.push(observation!(
+                &format!("s-{index}"),
+                "BOX-ONE",
+                "GATE_OUT",
+                "SITE-ONE",
+                "OP-ONE",
+                time,
+                time,
+                time,
+            ));
+            witness.push(observation!(
+                &format!("w-{index}"),
+                "BOX-ONE",
+                "GATE_OUT",
+                "SITE-ONE",
+                "OP-ONE",
+                time - 1,
+                time - 1,
+                time - 1,
+            ));
+        }
+        let case = case(source, witness);
+        let baseline = candidate_graph(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        let indexed = candidate_graph_interval_indexed(
+            &case.source_events,
+            &case.witness_events,
+            case.profile.as_ref().unwrap(),
+        );
+        assert_eq!(indexed.edges, baseline.edges);
+        assert_eq!(indexed.pair_evaluations, 128);
+        assert_eq!(baseline.pair_evaluations, 128 * 128);
     }
 
     #[test]
