@@ -250,9 +250,7 @@ pub enum Disposition {
     IndependentDiagnosticRequired {
         reason: Reason,
     },
-    AbstainOutOfEnvelope {
-        feature: String,
-    },
+    AbstainOutOfEnvelope { feature: String },
     AbstainInsufficientEvidence {
         reason: Reason,
     },
@@ -981,7 +979,9 @@ mod tests {
     fn requalification_requires_fresh_disjoint_calibration_and_sealed_test_clusters() {
         let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
         let mut changed = evidence("e-1", 11);
-        changed.signals.insert(ShiftSignal::ConditionalResidualDriftDetected);
+        changed
+            .signals
+            .insert(ShiftSignal::ConditionalResidualDriftDetected);
         let _ = supervisor.observe(&changed);
 
         let mut next = certificate();
