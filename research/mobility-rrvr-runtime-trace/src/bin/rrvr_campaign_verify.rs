@@ -27,13 +27,11 @@ fn digest_hex(bytes: &[u8]) -> String {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 && args.len() != 5 {
-        return Err(
-            concat!(
-                "usage: rrvr_campaign_verify <compiled-plan.json> <source-manifest.json> ",
-                "<expected-plan-sha256> [report.json]"
-            )
-                .to_owned(),
-        );
+        return Err(concat!(
+            "usage: rrvr_campaign_verify <compiled-plan.json> <source-manifest.json> ",
+            "<expected-plan-sha256> [report.json]"
+        )
+        .to_owned());
     }
 
     let plan_bytes =
@@ -63,13 +61,11 @@ fn run() -> Result<(), String> {
         return Err("compiled plan bytes are not in the declared canonical encoding".to_owned());
     }
     if !plan.plan_sha256.eq_ignore_ascii_case(expected_plan_sha256) {
-        return Err(
-            concat!(
-                "compiled plan digest does not match the externally pinned ",
-                "expected digest"
-            )
-            .to_owned()
-        );
+        return Err(concat!(
+            "compiled plan digest does not match the externally pinned ",
+            "expected digest"
+        )
+        .to_owned());
     }
 
     let report = json!({
