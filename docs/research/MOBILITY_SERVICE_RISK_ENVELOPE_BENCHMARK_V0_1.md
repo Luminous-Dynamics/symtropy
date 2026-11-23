@@ -6,7 +6,7 @@
 **Implementation issue:** [#7196](https://github.com/Luminous-Dynamics/symtropy/issues/7196)  
 **Branch:** research/mobility-service-risk-envelope-v0-1  
 **Research cut-off:** 24 November 2026  
-**Status:** source-level evaluator, strict probability manifest, synthetic fixture, CLI, 14 Rust test definitions and workflow integration; exact-head Rust verification pending.
+**Status:** source-level evaluator, strict probability manifest, synthetic fixture, CLI, 15 Rust test definitions and workflow integration; exact-head Rust verification pending.
 
 ## 1. The gap: exact policy does not imply calibrated risk
 
@@ -84,12 +84,12 @@ The report includes a canonical digest of the actual supplied scenario-tree cont
 
 ## 5. Independent arithmetic and negative controls
 
-The 14 focused Rust test definitions cover:
+The 15 focused Rust test definitions cover:
 - a fractional lower-tail CVaR boundary;
 - a fractional upper-tail CVaR boundary;
 - a rare severe outcome that barely moves the nominal mean but strongly affects tail risk;
 - TV radius zero reproducing nominal expectation;
-- TV radius one moving all feasible mass to the adverse extreme;
+- TV radius one moving all feasible mass to the adverse extreme, plus exhaustive three-leaf enumeration for every integer ambiguity radius;
 - exact probability-mass normalization;
 - rejection of stress-only and unknown probability bases;
 - rejection of historical training/evaluation overlap;
