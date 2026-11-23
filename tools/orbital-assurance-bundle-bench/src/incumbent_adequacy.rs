@@ -18,6 +18,8 @@ const MAX_ROWS: usize = 65536;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const JOINT_LOSS_RECEIPT_SCHEMA: &str = "luminous.orbital-joint-loss-scenario.receipt.v0.1";
 const JOINT_LOSS_CLAIM_CEILING: &str = "finite-joint-loss-scenario-regret-algebra-only";
+const WORLD_SET_RECEIPT_SCHEMA: &str = "luminous.orbital-decision-identifiability.receipt.v0.1";
+const WORLD_SET_CLAIM_CEILING: &str = "exact-finite-world-decision-set-algebra-only";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -87,6 +89,10 @@ pub struct Case {
     pub action_ids: Vec<String>,
     pub worlds: Vec<World>,
     pub world_set_state: String,
+    pub world_set_receipt_schema: String,
+    pub world_set_claim_ceiling: String,
+    pub world_set_source_commit: String,
+    pub world_set_source_case_id: String,
     pub world_set_receipt_id: String,
     pub world_set_receipt_sha256: String,
     pub expected_world_ids: Vec<String>,
@@ -131,6 +137,10 @@ pub struct CaseResult {
     pub materiality_margin: i64,
     pub switching_cost: i64,
     pub retention_threshold: Option<i64>,
+    pub world_set_receipt_schema: String,
+    pub world_set_claim_ceiling: String,
+    pub world_set_source_commit: String,
+    pub world_set_source_case_id: String,
     pub world_set_receipt_id: String,
     pub world_set_receipt_sha256: String,
     pub world_ids_sha256: String,
@@ -316,6 +326,10 @@ fn result(
         materiality_margin: case.materiality_margin,
         switching_cost: case.switching_cost,
         retention_threshold,
+        world_set_receipt_schema: case.world_set_receipt_schema.clone(),
+        world_set_claim_ceiling: case.world_set_claim_ceiling.clone(),
+        world_set_source_commit: case.world_set_source_commit.clone(),
+        world_set_source_case_id: case.world_set_source_case_id.clone(),
         world_set_receipt_id: case.world_set_receipt_id.clone(),
         world_set_receipt_sha256: case.world_set_receipt_sha256.clone(),
         world_ids_sha256: case.expected_world_ids_sha256.clone(),
@@ -413,7 +427,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     // A source-pinned physical-world inventory and a separate joint loss-model inventory
     // are mandatory. Physical-world coverage does not imply loss-model coverage.
-    if !valid_id(&case.world_set_receipt_id)
+    if case.world_set_receipt_schema != WORLD_SET_RECEIPT_SCHEMA
+        || case.world_set_claim_ceiling != WORLD_SET_CLAIM_CEILING
+        || !valid_commit(&case.world_set_source_commit)
+        || !valid_id(&case.world_set_source_case_id)
+        || !valid_id(&case.world_set_receipt_id)
         || !valid_sha256(&case.world_set_receipt_sha256)
         || !valid_commit(&case.loss_model_set.source_commit)
         || !valid_sha256(&case.loss_model_set.source_receipt_sha256)
