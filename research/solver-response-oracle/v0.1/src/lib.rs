@@ -678,6 +678,13 @@ mod tests {
     }
 
     #[test]
+    fn work_unit_schema_must_match() {
+        let (full, mut reduced) = zero_pair();
+        reduced.work_unit_schema_digest = "different-unit-schema".to_owned();
+        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+    }
+
+    #[test]
     fn consumed_work_cannot_exceed_budget() {
         let (full, mut reduced) = zero_pair();
         reduced.work_consumed_units = reduced.work_budget_units + 1;
