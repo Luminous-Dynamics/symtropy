@@ -46,7 +46,7 @@ The no-observation baseline must choose one action feasible in all worlds. Its m
 ### Observation alternatives
 
 | Observation | Evidence ceiling | Energy | Delay | Worst regret | Regret reduction vs no observation |
-|---|---|---:|---:|---|
+|---|---|---:|---:|---:|---:|
 | no_observation | No new evidence | 0 kWh | 0 ticks | 70 service_units | 0 service_units |
 | shared_tos_signal | Advisory only; shared gateway | 1 kWh | 0 ticks | 71 service_units | -1 service_unit |
 | independent_field_inspection | Independent observation candidate | 2 kWh | 1 tick | 5 service_units | 65 service_units |
