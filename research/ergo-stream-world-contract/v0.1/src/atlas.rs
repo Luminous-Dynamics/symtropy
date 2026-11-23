@@ -11,7 +11,7 @@
 
 use super::matching::{GraphMatchErrorV0, UniqueIncidenceSignatureBaselineV0};
 use super::transfer::{
-    ActionCorrespondenceV0, EffectSignV0, EffectTransformV0, InterventionObservationV0,
+    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0,
     InterventionTransferWitnessV0, StructuralCorrespondenceV0, StructuralTransferWitnessV0,
     StructureV0, TransferErrorV0, validate_intervention_correspondence,
     validate_structural_correspondence,
@@ -338,6 +338,7 @@ fn intervention_divergent_pair() -> TransferAtlasPolicyViewV0 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::transfer::EffectTransformV0;
 
     #[test]
     fn unique_incidence_baseline_transfers_relabelled_reverse_pair() {
