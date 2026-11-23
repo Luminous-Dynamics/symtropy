@@ -335,6 +335,11 @@ impl<const D: usize> PhysicsWorld<D> {
             if self.net_id_map.contains_key(&net_id) {
                 return Err(format!("duplicate NetId({})", net_id.0));
             }
+            if body.body_type == crate::body::BodyType::Static
+                || body.body_type == crate::body::BodyType::Kinematic
+            {
+                self.static_tree_dirty = true;
+            }
             let handle = self.allocate_handle();
             body.handle = handle;
             body.net_id = Some(net_id);
@@ -2559,5 +2564,55 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod deterministic_bulk_broadphase_invalidation_tests {
+    use super::*;
+
+    #[test]
+    fn deterministic_bulk_static_and_kinematic_insertion_invalidates_cache() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.static_broadphase.rebuild(&world.bodies);
+        world.static_tree_dirty = false;
+
+        let static_body =
+            RigidBody::static_body(BodyHandle(100), Point::origin(), Box::new(Sphere::unit()));
+        let kinematic_body = RigidBody::new(
+            BodyHandle(101),
+            crate::body::BodyType::Kinematic,
+            Transform::from_translation(Point::new([2.0, 0.0, 0.0])),
+            Box::new(Sphere::unit()),
+            0.0,
+            SVector::zeros(),
+        );
+
+        let handles = world
+            .add_bodies_deterministic(vec![(NetId(20), kinematic_body), (NetId(10), static_body)])
+            .expect("distinct NetIds should insert");
+
+        assert_eq!(handles, vec![BodyHandle(0), BodyHandle(1)]);
+        assert!(world.static_tree_dirty);
+        assert_eq!(world.static_broadphase.len(), 0);
+        assert_eq!(world.body_count(), 2);
+    }
+
+    #[test]
+    fn deterministic_bulk_dynamic_insertion_keeps_clean_static_cache() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.static_broadphase.rebuild(&world.bodies);
+        world.static_tree_dirty = false;
+
+        world
+            .add_bodies_deterministic(vec![(
+                NetId(10),
+                RigidBody::dynamic_sphere(BodyHandle(100), Point::origin(), 0.5, 1.0),
+            )])
+            .expect("unique NetId should insert");
+
+        assert!(!world.static_tree_dirty);
+        assert_eq!(world.static_broadphase.len(), 0);
+        assert_eq!(world.body_count(), 1);
     }
 }
