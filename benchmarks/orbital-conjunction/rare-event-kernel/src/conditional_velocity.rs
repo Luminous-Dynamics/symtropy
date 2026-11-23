@@ -376,21 +376,19 @@ fn checked_symmetric(
 ) -> Result<(Matrix3, f64), KernelError> {
     let scale = max_abs_matrix(matrix).max(f64::MIN_POSITIVE);
     let mut maximum_residual: f64 = 0.0;
-    for i in 0..3 {
-        for j in (i + 1)..3 {
-            maximum_residual = maximum_residual.max((matrix[i][j] - matrix[j][i]).abs());
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().skip(i + 1) {
+            maximum_residual = maximum_residual.max((*value - matrix[j][i]).abs());
         }
     }
     if maximum_residual > relative_tolerance * scale {
         return Err(KernelError::NonSymmetricMatrix);
     }
 
-    let mut symmetric = matrix;
-    for i in 0..3 {
-        for j in (i + 1)..3 {
-            let value = 0.5 * (matrix[i][j] + matrix[j][i]);
-            symmetric[i][j] = value;
-            symmetric[j][i] = value;
+    let mut symmetric = [[0.0; 3]; 3];
+    for (i, row) in symmetric.iter_mut().enumerate() {
+        for (j, value) in row.iter_mut().enumerate() {
+            *value = 0.5 * (matrix[i][j] + matrix[j][i]);
         }
     }
     Ok((symmetric, maximum_residual))
@@ -401,8 +399,12 @@ fn cholesky_3x3(matrix: Matrix3) -> Result<Matrix3, KernelError> {
     for row in 0..3 {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for k in 0..column {
-                value -= lower[row][k] * lower[column][k];
+            for (left, right) in lower[row]
+                .iter()
+                .zip(lower[column].iter())
+                .take(column)
+            {
+                value -= left * right;
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {
@@ -422,7 +424,7 @@ fn cholesky_3x3(matrix: Matrix3) -> Result<Matrix3, KernelError> {
 
 fn inverse_from_cholesky(lower: Matrix3) -> Result<Matrix3, KernelError> {
     let mut inverse = [[0.0; 3]; 3];
-    for column in 0..3 {
+    for (column, _) in inverse[0].iter().enumerate() {
         let mut forward = [0.0; 3];
         for row in 0..3 {
             let mut value = if row == column { 1.0 } else { 0.0 };
@@ -450,14 +452,13 @@ fn inverse_from_cholesky(lower: Matrix3) -> Result<Matrix3, KernelError> {
 
     // Matrix inversion from a symmetric Cholesky factor should be symmetric;
     // only remove the last-bit solve asymmetry here.
-    for i in 0..3 {
-        for j in (i + 1)..3 {
-            let value = 0.5 * (inverse[i][j] + inverse[j][i]);
-            inverse[i][j] = value;
-            inverse[j][i] = value;
+    let mut symmetric_inverse = [[0.0; 3]; 3];
+    for (i, row) in symmetric_inverse.iter_mut().enumerate() {
+        for (j, value) in row.iter_mut().enumerate() {
+            *value = 0.5 * (inverse[i][j] + inverse[j][i]);
         }
     }
-    Ok(inverse)
+    Ok(symmetric_inverse)
 }
 
 fn minimum_symmetric_eigenvalue(mut matrix: Matrix3) -> Result<f64, KernelError> {
@@ -493,16 +494,33 @@ fn minimum_symmetric_eigenvalue(mut matrix: Matrix3) -> Result<f64, KernelError>
         matrix[p][q] = 0.0;
         matrix[q][p] = 0.0;
 
-        for k in 0..3 {
+        let mut updated = matrix;
+        for (k, row) in updated.iter_mut().enumerate() {
             if k != p && k != q {
                 let akp = matrix[k][p];
                 let akq = matrix[k][q];
-                matrix[k][p] = cosine * akp - sine * akq;
-                matrix[p][k] = matrix[k][p];
-                matrix[k][q] = sine * akp + cosine * akq;
-                matrix[q][k] = matrix[k][q];
+                row[p] = cosine * akp - sine * akq;
+                row[q] = sine * akp + cosine * akq;
             }
         }
+
+        let column_p = updated.iter().map(|row| row[p]).collect::<Vec<_>>();
+        let column_q = updated.iter().map(|row| row[q]).collect::<Vec<_>>();
+        let mut row_p = updated[p];
+        let mut row_q = updated[q];
+        for (k, value) in column_p.iter().enumerate() {
+            if k != p && k != q {
+                row_p[k] = *value;
+            }
+        }
+        for (k, value) in column_q.iter().enumerate() {
+            if k != p && k != q {
+                row_q[k] = *value;
+            }
+        }
+        updated[p] = row_p;
+        updated[q] = row_q;
+        matrix = updated;
     }
 
     let eigenvalue = matrix[0][0].min(matrix[1][1]).min(matrix[2][2]);
