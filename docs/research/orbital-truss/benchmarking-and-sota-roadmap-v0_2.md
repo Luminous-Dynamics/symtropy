@@ -46,7 +46,7 @@ https://arxiv.org/abs/2610.36450
 
 The paper defines per-surface-voxel k-viewpoint coverage under a geometric image-quality model. Candidate viewpoints are generated along outward surface directions; candidates are screened by distance, viewing angle, field of view and occlusion; under-covered voxels receive additional candidates. The selection method is a set multi-cover problem.
 
-Reported experiment settings include two public 3D models, voxel sizes 0.04/0.06/0.08/0.10 m, maximum GSD 0.5 mm/pixel, a 0.25 mm/pixel setpoint, k values 1/3/5, overlap thresholds 50%/70%, augmentation tilt 1–90 degrees and azimuth 0–360 degrees. The ILP time limit is 3,600 seconds.
+Reported experiment settings include two public 3D models, voxel sizes 0.04/0.06/0.08/0.10 m, maximum GSD 0.5 mm/pixel, a 0.25 mm/pixel setpoint, k values 1/3/5, overlap thresholds 50%/70%, augmentation tilt 1–90 degrees and azimuth 0–360 degrees. The ILP time limit is 3,600 seconds. The paper specifies maximum obliquity α=45°, slant range Rs=0.3394 m, perpendicular distance h=0.2400 m, and GSD = Rs·2·tan(0.5·θ_FOV)/(w·cos(α)), with Rs=sqrt(d²+h²) and h=Rs·cos(α). The nadir GSD setpoint is GSDmax·cos²(α). It voxelizes a padded model, flood-fills the exterior empty cells, derives outward boundary-face normals (retaining multiple normals on edges/thin walls), and filters seed viewpoints by raycast using τ=s·sqrt(3)/2. Candidate augmentation and all unit/frame assumptions must be reproduced exactly or marked as deviations.
 
 The authors compare a dynamically weighted deficit/scarcity greedy method with sequential overlap pruning and ILP on the same candidate pools. The greedy method uses 3.00–16.39% more viewpoints than the reported ILP results across the tested configurations. The paper explicitly states that ILP viewpoint counts are proven minima only when optimality is certified. It also reports a small number of configurations with 99.93–99.96% requested coverage because the candidate pool could not supply the full k demand.
 
@@ -54,7 +54,13 @@ Important semantic detail: the algorithm sets a per-voxel attainable target k*(v
 
 Limitations stated by the paper: known static geometry; voxel-center sensing approximation; no minimum viewpoint separation; no UAV reachability/dynamics; no collision-safe trajectories; no downstream reconstruction-quality assessment; two structures. Therefore this paper is a direct selection comparator, not a complete flight/inspection comparator.
 
-Paper code status: the arXiv text describes a Python/Open3D implementation and references public model assets; no dedicated author code repository was identified in the manuscript. We should seek author clarification or a permitted implementation artifact before claiming an exact code reproduction.
+Paper code and data admission (checked 23 November 2026): the paper's reference [10] directly cites https://github.com/IvanNik17/python-3d-analysis-libraries. The inspected `main` revision's README blob is `3c79c75fb0bd56356fdcfd3b9e297fdf1fe19cb0`; its LICENSE blob is `f288702d2fa16d3cdf0035b15a9fcbc552cd88e7`, SPDX GPL-3.0. The README identifies the Angel Statue mesh/point cloud, Rooster mesh and Bunny point cloud in the repository folders and links two versioned Mendeley datasets.
+
+The data packages have distinct, explicitly stated CC BY 4.0 licences:
+- GGG-BenchmarkSfM v4, DOI 10.17632/bzxk2n78s9.4: https://data.mendeley.com/datasets/bzxk2n78s9/4. Its landing page describes six objects with images and high-resolution scanned ground truth.
+- GGG — Rough or Noisy? v2, DOI 10.17632/xtv5y29xvz.2: https://data.mendeley.com/datasets/xtv5y29xvz/2. Its landing page describes 15 objects with point clouds, vertices, normals, faces and manual noise/not-noise segmentations.
+
+Keep code and data rights separate. Reimplement the algorithms independently in Rust; do not copy/adapt GPL-3.0 repository code into this crate unless Luminous deliberately accepts GPL-3.0 compatibility obligations. Prefer versioned CC BY 4.0 dataset files for the reproduction, preserve attribution and modification notices, and pin every exact file, dataset version and SHA-256. The exact mapping from each paper model/figure to the specific Mendeley asset still needs file-manifest verification; until then, preserve the mapping as unknown rather than claiming an exact source-file match.
 
 Primary sources: arXiv abstract and full HTML, including the method, parameter table, results and limitations.
 
@@ -156,3 +162,8 @@ These thresholds are research goals. They must be preregistered and revised if t
 6. Add qualified sensor outcomes, decision policies and AP242/QIF evidence only through the existing owner interfaces.
 
 The success criterion is not fewer selected views on a toy matrix. It is more independently verified, decision-useful inspection outcomes per lifecycle cost, under matched sensing, reachability and safety constraints, with every limitation and unknown preserved.
+
+
+## Rights-aware source pinning update — 23 November 2026
+
+The direct reproduction issue is [#7002](https://github.com/Luminous-Dynamics/symtropy/issues/7002). Its source review establishes that the paper does cite a public code/model repository (GPL-3.0), while the two Mendeley data packages linked from that repository separately state CC BY 4.0. This distinction matters: the reproduction should implement the methods independently, prefer the licensed dataset files, preserve attribution and pin each asset hash. The individual paper-to-dataset file mapping remains unverified and must not be invented.

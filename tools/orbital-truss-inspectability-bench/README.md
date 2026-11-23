@@ -174,3 +174,8 @@ This baseline is kept separate from the robust-domain-aware greedy. It follows t
 - whether the selected set happens to fit the caller's declared budgets.
 
 This is an independent fixed-point reimplementation of the published pseudocode on the current synthetic visibility matrix, not an exact reproduction of the paper's 3D candidate generation, source meshes or parameter sweep. The heuristic has no theoretical approximation guarantee stated by the paper.
+
+
+## Source and data rights for the 3D k-coverage reproduction
+
+The paper directly cites the GPL-3.0 repository `IvanNik17/python-3d-analysis-libraries` for example code/model references. The repository README links separately licensed CC BY 4.0 Mendeley datasets: GGG-BenchmarkSfM v4 (DOI 10.17632/bzxk2n78s9.4) and GGG — Rough or Noisy? v2 (DOI 10.17632/xtv5y29xvz.2). Keep software licensing separate from dataset licensing. Do not copy GPL-3.0 code into this crate; independently implement the algorithm, use exact versioned licensed data files where the model mapping is verified, and pin every source file and digest. The exact mapping to the paper's two models remains under verification; see issue #7002 and the roadmap.
