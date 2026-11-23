@@ -41,7 +41,7 @@ At a location:
 - Both matrices must be positive semidefinite.
 - The calibration mean residual profile is preserved as a separate bias diagnostic. It is not silently removed from a reported engineering result.
 
-The range candidates are provided in a strictly increasing, predeclared configuration. Each acquisition receives equal weight. A candidate is rejected when no identifiable spatial component can be estimated, when `S` is not positive semidefinite, or when `N=C(0)-S` is not positive semidefinite.
+The range candidates are provided in a strictly increasing, predeclared configuration. The synthetic helper uses the same 0.05 absolute held-out correlation-error screening target carried by the machine-readable contract; it is not a measured universal standard. Each acquisition receives equal weight. A candidate is rejected when no identifiable spatial component can be estimated, when `S` is not positive semidefinite, or when `N=C(0)-S` is not positive semidefinite.
 
 ## 4. Untouched-acquisition validation
 
