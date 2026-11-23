@@ -195,3 +195,6 @@ The executable benchmark overlay preserves native task and safety outcomes and c
 Metrics preserve task success and safety separately, add successful-but-unsafe outcomes, recovery success, false Confirmed/Refuted decisions, unknown verdicts, delivery coverage, duplicate effects, blind redispatch, stale post-quiescence execution, false admission, operator interventions, mission/evidence latency, root-cause top-1/top-3 and median trace reduction. Rates use integer parts-per-million and latency quantiles use nearest-rank percentiles.
 
 Version 0.1 reports descriptive matched-pair differences; it does not calculate inferential confidence intervals. The benchmark scorer does not authenticate artifacts or adjudicate physical ground truth. Synthetic fixture metrics are test data, not performance claims.
+
+
+Cluster-aware inference is available as an explicit CLI mode with `--bootstrap-replicates N`. It resamples whole scenario clusters while keeping the five matched arms and every pair inside the selected cluster. It requires at least five clusters and 1,000 replicates; smaller corpora remain descriptive-only. The bootstrap report is emitted as a `.bootstrap.json` sidecar. The six-cluster CI fixture is synthetic and does not support empirical SOTA claims.
