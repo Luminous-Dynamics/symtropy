@@ -834,7 +834,11 @@ mod tests {
 
     #[test]
     fn reliability_adjustment_scales_conditional_value_without_claiming_a_measurement() {
-        let report = report_for_class_sizes(7, &[(1, 1), (2, 2)], &[(1, 2)], [0x44; 32]);
+        let mut report = report_for_class_sizes(7, &[(1, 1), (2, 2)], &[], [0x44; 32]);
+        report.decision_pair_separations[0].normalized_outcome_gap = 0.25;
+        report.decision_pair_separations[0].guaranteed_distinguishable = true;
+        report.distinguishable_decision_pair_count = 1;
+        report.ambiguous_decision_pair_count = 1;
         let conditional = assess_decision_impact_weighted_discrimination(
             &report,
             &policy(&[(1, 2, 5)]),
