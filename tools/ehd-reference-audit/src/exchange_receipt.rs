@@ -362,6 +362,17 @@ pub fn reference_self_check() -> Result<(), ReceiptError> {
             charged_reaction_impulse_ns: [0.5, -1.0, 0.0],
             neutral_impulse_ns: [-0.5, 1.0, 0.0],
         },
+        ExchangeEvent {
+            event_id: 3,
+            transfer_path_id: 51,
+            method: TransferMethod::ReducedCoulombDeposition,
+            charged_solver_id: 10,
+            neutral_solver_id: 20,
+            charged_frame_id: 7,
+            neutral_frame_id: 7,
+            charged_reaction_impulse_ns: [0.0; 3],
+            neutral_impulse_ns: [0.0; 3],
+        },
     ];
     let receipt = validate_exchange_events(
         &events,
