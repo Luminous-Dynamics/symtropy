@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_symtropy_full_metric_comparison_replay",
-  "status": "independent_local_exact_sympy_reconstruction_passed; individual_public_verifier_byte_replays_tracked_separately",
+  "status": "exact_public_source_replays_passed_for_parameter_map_fixed_boundary_map_ADM_mass_and_full_metric_comparator; original_row_fixture_verifier_replay_pending",
   "source": {
     "paper": "Ma and Lu, JHEP 05 (2026) 081",
     "doi": "10.1007/JHEP05(2026)081",
@@ -71,5 +71,13 @@
     "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
     "exact_blob_replay": "pending; independent equivalent local reconstruction is recorded above"
   },
-  "claim_ceiling": "Exact first-coupling O(chi^2) source overlap for angular components, fixed boundary, ADM mass and all four original Symtropy even rows. No finite-coupling branch, interval existence or hyperbolicity result."
+  "claim_ceiling": "Exact first-coupling O(chi^2) source overlap for the complete angular block, fixed boundary map, ADM mass and four original Symtropy even rows. The consolidated JHEP-version-of-record verifier has exact public-source replay; only the separate fixture-driven original-row verifier replay is still pending. No finite-coupling branch, interval existence or hyperbolicity result.",
+  "full_version_of_record_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
+    "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
+    "sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+    "exact_bytes_match": true,
+    "local_execution": "Python 3.13.5 / SymPy 1.14.0; full angular block, fixed-boundary series, negative controls and Eq. (3.4) ADM mass match pass."
+  },
+  "full_verifier_exact_replay": true
 }
