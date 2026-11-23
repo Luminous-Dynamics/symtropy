@@ -613,7 +613,12 @@ impl NominalKSearch<'_> {
         }
 
         let needed = self.target_size - self.chosen.len();
-        if self.ordered_view_indices.len().saturating_sub(start_position) < needed {
+        if self
+            .ordered_view_indices
+            .len()
+            .saturating_sub(start_position)
+            < needed
+        {
             return None;
         }
         let last_start = self.ordered_view_indices.len() - needed;
