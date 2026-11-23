@@ -84,9 +84,13 @@ pub struct BenchmarkCorpus {
 pub struct BenchmarkEpisode {
     pub episode_id: String,
     pub matched_pair_id: String,
+    pub cluster_id: String,
     pub arm: BenchmarkArm,
+    pub host_benchmark_id: String,
+    pub host_benchmark_revision: String,
     pub task_id: String,
     pub policy_id: String,
+    pub policy_wrapper_revision: String,
     pub policy_sha256: String,
     pub scene_sha256: String,
     pub action_prefix_sha256: String,
@@ -94,6 +98,9 @@ pub struct BenchmarkEpisode {
     pub platform_profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub fault_schedule_sha256: String,
+    pub safety_spec_revision: String,
+    pub delivery_adjudicator_revision: String,
+    pub root_cause_adjudicator_revision: String,
     pub native_task_success: bool,
     pub safety_verdict: SafetyVerdict,
     /// Normalized violation depth in millionths, in [0, 1_000_000].
@@ -126,8 +133,12 @@ pub struct BenchmarkEpisode {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct MatchedInput {
+    cluster_id: String,
+    host_benchmark_id: String,
+    host_benchmark_revision: String,
     task_id: String,
     policy_id: String,
+    policy_wrapper_revision: String,
     policy_sha256: String,
     scene_sha256: String,
     action_prefix_sha256: String,
@@ -135,13 +146,20 @@ struct MatchedInput {
     platform_profile_sha256: String,
     environment_artifact_sha256: String,
     fault_schedule_sha256: String,
+    safety_spec_revision: String,
+    delivery_adjudicator_revision: String,
+    root_cause_adjudicator_revision: String,
 }
 
 impl From<&BenchmarkEpisode> for MatchedInput {
     fn from(episode: &BenchmarkEpisode) -> Self {
         Self {
+            cluster_id: episode.cluster_id.clone(),
+            host_benchmark_id: episode.host_benchmark_id.clone(),
+            host_benchmark_revision: episode.host_benchmark_revision.clone(),
             task_id: episode.task_id.clone(),
             policy_id: episode.policy_id.clone(),
+            policy_wrapper_revision: episode.policy_wrapper_revision.clone(),
             policy_sha256: episode.policy_sha256.clone(),
             scene_sha256: episode.scene_sha256.clone(),
             action_prefix_sha256: episode.action_prefix_sha256.clone(),
@@ -149,6 +167,9 @@ impl From<&BenchmarkEpisode> for MatchedInput {
             platform_profile_sha256: episode.platform_profile_sha256.clone(),
             environment_artifact_sha256: episode.environment_artifact_sha256.clone(),
             fault_schedule_sha256: episode.fault_schedule_sha256.clone(),
+            safety_spec_revision: episode.safety_spec_revision.clone(),
+            delivery_adjudicator_revision: episode.delivery_adjudicator_revision.clone(),
+            root_cause_adjudicator_revision: episode.root_cause_adjudicator_revision.clone(),
         }
     }
 }
@@ -245,6 +266,7 @@ pub struct BenchmarkReport {
     pub benchmark_id: String,
     pub suite_revision: String,
     pub matched_pair_count: usize,
+    pub scenario_cluster_count: usize,
     pub matched_input_commitments: BTreeMap<String, String>,
     pub arm_summaries: Vec<ArmSummary>,
     pub paired_comparisons: Vec<PairedComparison>,
@@ -583,8 +605,15 @@ impl BenchmarkCorpus {
         for episode in &self.episodes {
             if !nonempty(&episode.episode_id)
                 || !nonempty(&episode.matched_pair_id)
+                || !nonempty(&episode.cluster_id)
+                || !nonempty(&episode.host_benchmark_id)
+                || !nonempty(&episode.host_benchmark_revision)
                 || !nonempty(&episode.task_id)
                 || !nonempty(&episode.policy_id)
+                || !nonempty(&episode.policy_wrapper_revision)
+                || !nonempty(&episode.safety_spec_revision)
+                || !nonempty(&episode.delivery_adjudicator_revision)
+                || !nonempty(&episode.root_cause_adjudicator_revision)
                 || !nonempty(&episode.raw_episode_artifact_id)
                 || !nonempty(&episode.raw_trace_artifact_id)
             {
@@ -706,6 +735,13 @@ impl BenchmarkCorpus {
             }
         }
 
+        let scenario_cluster_count = self
+            .episodes
+            .iter()
+            .map(|episode| episode.cluster_id.as_str())
+            .collect::<BTreeSet<_>>()
+            .len();
+
         let mut commitments = BTreeMap::new();
         for (pair_id, input) in &pair_inputs {
             commitments.insert(pair_id.clone(), digest_serializable(input)?);
@@ -736,6 +772,7 @@ impl BenchmarkCorpus {
             benchmark_id: self.benchmark_id.clone(),
             suite_revision: self.suite_revision.clone(),
             matched_pair_count: grouped.len(),
+            scenario_cluster_count,
             matched_input_commitments: commitments,
             arm_summaries,
             paired_comparisons,
@@ -772,9 +809,13 @@ mod tests {
         BenchmarkEpisode {
             episode_id: format!("{pair}-{}", arm.as_str()),
             matched_pair_id: pair.to_owned(),
+            cluster_id: "kitchen-pick-place-family".to_owned(),
             arm,
+            host_benchmark_id: "robocasa-fixture".to_owned(),
+            host_benchmark_revision: "2026.11-fixture".to_owned(),
             task_id: "pick-place".to_owned(),
             policy_id: "policy-fixture".to_owned(),
+            policy_wrapper_revision: "native-policy-wrapper-fixture-v1".to_owned(),
             policy_sha256: "1".repeat(64),
             scene_sha256: "2".repeat(64),
             action_prefix_sha256: "3".repeat(64),
@@ -782,6 +823,9 @@ mod tests {
             platform_profile_sha256: "4".repeat(64),
             environment_artifact_sha256: "5".repeat(64),
             fault_schedule_sha256: "6".repeat(64),
+            safety_spec_revision: "safety-stl-v0.3".to_owned(),
+            delivery_adjudicator_revision: "delivery-adjudicator-v0.1".to_owned(),
+            root_cause_adjudicator_revision: "root-cause-labels-v0.1".to_owned(),
             native_task_success: arm != BenchmarkArm::TaskOnly,
             safety_verdict: safety,
             safety_violation_severity_micros: if safety == SafetyVerdict::Unsafe {
@@ -849,6 +893,7 @@ mod tests {
         let second = corpus.validate_and_score(&"a".repeat(64)).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.matched_pair_count, 2);
+        assert_eq!(first.scenario_cluster_count, 1);
         assert_eq!(first.matched_input_commitments.len(), 2);
         assert_eq!(first.arm_summaries.len(), 5);
         assert_eq!(first.paired_comparisons.len(), 4);
