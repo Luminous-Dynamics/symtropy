@@ -630,9 +630,9 @@ mod tests {
                     "GATE_OUT",
                     "DGT-GATE-1",
                     "OP-17",
-                    10,
-                    10,
-                    11,
+                    16,
+                    16,
+                    17,
                 )],
                 vec![observation!(
                     "wit-Z",
@@ -640,9 +640,9 @@ mod tests {
                     "GATE_OUT",
                     "DGT-GATE-1",
                     "OP-17",
-                    16,
-                    16,
-                    17,
+                    10,
+                    10,
+                    11,
                 )],
             ),
             "wrong_site" => case(
@@ -1278,10 +1278,9 @@ mod tests {
 
     #[test]
     fn outside_tolerance_and_cardinality_mismatch_remain_unmatched() {
-        assert_eq!(
-            evaluate(&known_case("outside_tolerance")).disposition,
-            Disposition::Unmatched
-        );
+        let outside = evaluate(&known_case("outside_tolerance"));
+        assert_eq!(outside.disposition, Disposition::Unmatched);
+        assert_eq!(outside.candidate_edge_count, 0);
         assert_eq!(
             evaluate(&known_case("extra_source")).disposition,
             Disposition::Unmatched
