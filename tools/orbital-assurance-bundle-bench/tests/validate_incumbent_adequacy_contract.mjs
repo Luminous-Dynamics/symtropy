@@ -113,7 +113,10 @@ for (const item of corpus.cases) {
     const lossActionIds = new Set();
     for (const row of scenario.losses) {
       if (!Number.isSafeInteger(row.loss) || row.loss < 0 || !row.action_id
-        || !item.action_ids.includes(row.action_id) || lossActionIds.has(row.action_id)
+        || !item.action_ids.includes(row.action_id)
+        || (lossActionIds.has(row.action_id)
+          && !(item.case_id === "duplicate_loss_row"
+            && item.expected?.trigger_reason === "loss row is malformed, duplicated or references an unknown action"))
         || !Number.isSafeInteger(row.source_numerator) || row.source_numerator < 0
         || !Number.isSafeInteger(row.source_denominator) || row.source_denominator <= 0) {
         throw new Error("invalid source or projected loss row in " + item.case_id + "/" + scenario.scenario_id);
