@@ -37,6 +37,7 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
+pub mod space_time_partition;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -79,6 +80,12 @@ pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
+};
+pub use space_time_partition::{
+    NcEnvelopeReport, NonnegativeRationalInterval, Rational, SpaceTimeCellContribution,
+    SpaceTimeHorizon, SpaceTimePartition, SpaceTimePartitionError, SpaceTimeRateCell,
+    SpaceTimeScope, SpherePatch, SpherePatchId, TimeSlab, TimeSlabId,
+    verify_space_time_partition,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
