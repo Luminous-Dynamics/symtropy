@@ -330,6 +330,7 @@ pub enum ValidationError {
     UnexpectedRole,
     MissingRole,
     EmptyInventory,
+    EmptyPartialInventory,
     EmptyNotApplicableRationale,
     DimensionClassMismatch,
     InvalidPathWitness,
@@ -378,11 +379,17 @@ fn validate_path(role_binding_node_id: &str, witness: &DependencyWitness) -> boo
     if unique_nodes.len() != path.node_ids.len() {
         return false;
     }
-    !path.relations.iter().any(|relation| {
+    !path
+        .relations
+        .iter()
+        .any(|relation| *relation == DependencyRelation::IndependenceEstablishedForProfile)
+}
+
+fn path_has_unresolved_dependency(path: &PathWitness) -> bool {
+    path.relations.iter().any(|relation| {
         matches!(
             relation,
-            DependencyRelation::DependencyUnknown
-                | DependencyRelation::IndependenceEstablishedForProfile
+            DependencyRelation::PotentiallyCorrelated | DependencyRelation::DependencyUnknown
         )
     })
 }
@@ -443,6 +450,9 @@ fn validate_profile_and_projection(
                 match inventory {
                     DimensionInventory::Complete(witnesses) if witnesses.is_empty() => {
                         errors.insert(ValidationError::EmptyInventory);
+                    }
+                    DimensionInventory::Partial(witnesses) if witnesses.is_empty() => {
+                        errors.insert(ValidationError::EmptyPartialInventory);
                     }
                     DimensionInventory::Partial(_) | DimensionInventory::Unknown => {}
                     DimensionInventory::NotApplicable { rationale, owner }
@@ -560,6 +570,10 @@ fn assess_obligation(
     }
     finding.shared_paths.sort();
 
+    let path_has_unknown_relation = left_items
+        .iter()
+        .chain(right_items.iter())
+        .any(|item| path_has_unresolved_dependency(&item.path));
     let common_current = finding.shared_paths.iter().any(|shared| {
         left_items.iter().any(|item| {
             item.identity == shared.identity && item.currentness == EvidenceCurrentness::Current
@@ -576,6 +590,11 @@ fn assess_obligation(
     if common_current && projection_current {
         finding.disposition = SeparationDisposition::Shared;
         finding.notes.push("a required canonical dependency is shared".to_owned());
+    } else if path_has_unknown_relation {
+        finding.disposition = SeparationDisposition::Indeterminate;
+        finding.notes.push(
+            "dependency path contains an unknown or potentially correlated relation".to_owned(),
+        );
     } else if left_unknown || right_unknown || any_non_current || !projection_current {
         finding.disposition = SeparationDisposition::Indeterminate;
         finding.notes.push("dependency closure or currentness is unresolved".to_owned());
@@ -1062,6 +1081,61 @@ mod tests {
         assert_eq!(result.findings.len(), 2);
         assert_eq!(result.findings[0].disposition, SeparationDisposition::SeparatedForProfile);
         assert_eq!(result.findings[1].disposition, SeparationDisposition::SeparatedForProfile);
+    }
+
+    #[test]
+    fn potentially_correlated_or_unknown_path_relations_never_establish_separation() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        for relation in [
+            DependencyRelation::PotentiallyCorrelated,
+            DependencyRelation::DependencyUnknown,
+        ] {
+            let mut left = witness(
+                1,
+                MaritimeDependencyClass::PhysicalAcquisition,
+                "source-binding",
+                "source-reader",
+                "edge-a",
+            );
+            left.path.relations = vec![relation];
+            let (profile, projection) = projection(
+                DimensionInventory::Complete(vec![left]),
+                DimensionInventory::Complete(vec![witness(
+                    2,
+                    MaritimeDependencyClass::PhysicalAcquisition,
+                    "witness-binding",
+                    "witness-reader",
+                    "edge-b",
+                )]),
+                dimension,
+            );
+            let result = assess(&profile, &projection);
+            assert_eq!(
+                result.findings[0].disposition,
+                SeparationDisposition::Indeterminate,
+                "{relation:?}"
+            );
+            assert_eq!(result.disposition, ProfileDisposition::ProfileIndeterminate);
+        }
+    }
+
+    #[test]
+    fn empty_partial_inventory_is_invalid_not_an_empty_known_set() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let (profile, projection) = projection(
+            DimensionInventory::Partial(Vec::new()),
+            DimensionInventory::Complete(vec![witness(
+                2,
+                MaritimeDependencyClass::PhysicalAcquisition,
+                "witness-binding",
+                "witness-reader",
+                "edge-b",
+            )]),
+            dimension,
+        );
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
+        assert!(result.validation_errors.contains(&ValidationError::EmptyPartialInventory));
     }
 
     #[test]
