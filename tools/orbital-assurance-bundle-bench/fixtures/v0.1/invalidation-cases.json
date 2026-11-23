@@ -1173,11 +1173,6 @@
           "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "dependencies": [
             {
-              "node_id": "closure",
-              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            },
-            {
               "node_id": "domain_oracle",
               "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "expected_content_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
