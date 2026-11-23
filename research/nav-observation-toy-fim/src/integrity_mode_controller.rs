@@ -195,6 +195,8 @@ impl IntegrityModeController {
         }
 
         self.last_epoch_id = Some(frame.epoch_id);
+        let previous_observation_set_id = self.last_observation_set_id;
+        let previous_evidence_receipt_sha256 = self.last_evidence_receipt_sha256;
 
         if frame.observation_set_id != 0 {
             self.last_observation_set_id = Some(frame.observation_set_id);
@@ -322,11 +324,7 @@ impl IntegrityModeController {
             );
         }
 
-        if self
-            .last_observation_set_id
-            .is_some_and(|last| last == frame.observation_set_id)
-            && previous_mode == IntegrityMode::Normal
-        {
+        if previous_observation_set_id == Some(frame.observation_set_id) {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
@@ -335,11 +333,7 @@ impl IntegrityModeController {
             );
         }
 
-        if self
-            .last_evidence_receipt_sha256
-            .is_some_and(|last| last == frame.evidence_receipt_sha256)
-            && previous_mode == IntegrityMode::Normal
-        {
+        if previous_evidence_receipt_sha256 == Some(frame.evidence_receipt_sha256) {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
