@@ -302,3 +302,18 @@ Interpretation:
 - The 20 seeds within a family test reproducible scenario cases; they are not measured supplier reliability, independent physical campaigns or a statistical estimate of real-world failure rates.
 
 The useful initial result is methodological: the benchmark can expose a measurable trade-off, preserve abstentions and distinguish nominal decision cost from realized synthetic outcomes without converting the result into a single factory score. The next scientific step is to add non-anticipative fallback/recourse and independently reviewed failure-domain assumptions, not to claim that one of these simple policies beats industrial SOTA.
+
+
+## 15. Schema validation hardening (23 November 2026)
+
+The route-policy benchmark now performs actual JSON Schema validation rather than relying solely on strict Rust deserialization and fixture-level `jq` checks.
+
+Added:
+- pinned `jsonschema = 0.63.0` with default network-resolution features disabled;
+- offline Draft 2020-12 validation of the case corpus before deserialization;
+- a separate `mfg_route_policy_known_answers_v0_1.schema.json` for the known-answer fixture;
+- a Rust test that validates the frozen corpus and confirms an injected unknown root property is rejected.
+
+Focused workflow [#45178084155](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45178084155) passed on exact head `b7ab0ac0c5b7e96bb183dd148b52a6e421a44160`: format, schema and known-answer tests, report validation, negative controls, hashes, strict Clippy and artifact uploads.
+
+This establishes that both the declared schema and the typed Rust boundary are exercised. It still does not independently certify the correctness of the synthetic probability model, policy objective, hidden-state design or physical manufacturing claims.
