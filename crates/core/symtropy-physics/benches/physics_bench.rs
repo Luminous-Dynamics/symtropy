@@ -5,9 +5,9 @@ use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_ma
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
 use symtropy_physics::broadphase::Lbvh;
-use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
+use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -231,12 +231,7 @@ fn bench_broadphase_query_diagnostics(c: &mut Criterion) {
                 let x = (index % 16) as f64 * spacing;
                 let y = ((index / 16) % 16) as f64 * spacing;
                 let z = (index / 256) as f64 * spacing;
-                RigidBody::<3>::dynamic_sphere(
-                    BodyHandle(index),
-                    Point::new([x, y, z]),
-                    0.5,
-                    1.0,
-                )
+                RigidBody::<3>::dynamic_sphere(BodyHandle(index), Point::new([x, y, z]), 0.5, 1.0)
             })
             .collect();
 
