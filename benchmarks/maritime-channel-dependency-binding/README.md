@@ -56,6 +56,18 @@ The right-hand column is Mycelix #6121's current draft vocabulary. Maritime-spec
 
 This is an intentionally small mapping into an existing owner's general vocabulary, not a claim that the generic dimensions fully model every maritime fault domain. In particular, keep the detailed subtype and exact path in the evidence. Never combine two identities into one composite digest or treat a mapping decision as evidence that the inventory is complete.
 
+### Stage applicability is separately typed
+
+The adapter also checks whether a maritime dependency class is admissible at the stage where the profile places it. The current proposed policy is:
+
+- **Detection:** physical acquisition, sensors/readers, installation/read-point; power/UPS; measurement qualification, clock/time roots and calibration/metrology.
+- **Transport:** gateway/runtime, network/backhaul, brokers/intermediaries, transport fabrics, firmware/configuration, execution environment and applicable power domains.
+- **Persistence/retrieval:** database/event store, object store/archive/index, retrieval/export, persistence layers, network/broker dependencies, repository authority and applicable execution/power domains.
+- **Interpretation:** upstream source registry, resolver/transformation, schema/code-list, verifier implementation, measurement/time qualification and applicable execution environment.
+- **Governance/control:** repository authority, operator/tenant control, signing authority and applicable execution environment.
+
+Some dependencies legitimately span more than one stage (for example, an operator control domain or signing root). They may appear in multiple stage-specific inventories, each with its own role binding and path evidence. A class assigned to an unsupported stage is `ProfileInvalid`; it is not silently moved or relabelled. This mapping is proposed maritime policy and must be reviewed by the owner; it is not a universal taxonomy.
+
 ## Contract
 
 The projection binds:
@@ -85,7 +97,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 24 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 25 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
@@ -100,7 +112,8 @@ That is 900 deterministic identity-set cases. Additional tests cover:
 - revoked or contradictory projection; malformed/cyclic path;
 - `PotentiallyCorrelated` and `DependencyUnknown` relations;
 - duplicate paths without duplicate identity counting;
-- separate inventory comparisons for the same generic dimension at different evidence stages; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
+- separate inventory comparisons for the same generic dimension at different evidence stages;
+- rejection when a dependency class is placed in a stage outside its declared applicability set; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
 - profile/as-of mismatch, missing required dimension and owner-backed non-applicability;
 - fine-grained maritime component mapping and dimension-qualified identity equality.
 
