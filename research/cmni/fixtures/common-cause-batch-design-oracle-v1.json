@@ -1,0 +1,221 @@
+{
+  "schema_version": "cmni.common_cause_batch_design_oracle.v1",
+  "benchmark_id": "common-cause-rank-reversal-v1",
+  "status": "synthetic_analytical_oracle",
+  "seed": null,
+  "model": {
+    "parameter_names": [
+      "physical_component",
+      "measurement_artifact"
+    ],
+    "prior_mean": [
+      0,
+      0
+    ],
+    "prior_covariance": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "observation_model": "y_i = H_i theta + J_i u_i + epsilon_i",
+    "batch_size": 2,
+    "budget": 2,
+    "cost_per_candidate": 1,
+    "objective_coordinates": "dimensionless"
+  },
+  "candidates": [
+    {
+      "candidate_id": "A_SHARED_CALIBRATION",
+      "cost": 1,
+      "feasible": true,
+      "design_jacobian": [
+        [
+          1,
+          0
+        ]
+      ],
+      "independent_observation_covariance": [
+        [
+          0.1
+        ]
+      ],
+      "shared_sources": [
+        {
+          "source_id": "calibration:A-B",
+          "source_covariance": [
+            [
+              9
+            ]
+          ],
+          "observation_jacobian": [
+            [
+              1
+            ]
+          ]
+        }
+      ],
+      "lineage_coverage_complete": true
+    },
+    {
+      "candidate_id": "B_SHARED_CALIBRATION",
+      "cost": 1,
+      "feasible": true,
+      "design_jacobian": [
+        [
+          1,
+          0
+        ]
+      ],
+      "independent_observation_covariance": [
+        [
+          0.1
+        ]
+      ],
+      "shared_sources": [
+        {
+          "source_id": "calibration:A-B",
+          "source_covariance": [
+            [
+              9
+            ]
+          ],
+          "observation_jacobian": [
+            [
+              1
+            ]
+          ]
+        }
+      ],
+      "lineage_coverage_complete": true
+    },
+    {
+      "candidate_id": "C_COMPLEMENTARY",
+      "cost": 1,
+      "feasible": true,
+      "design_jacobian": [
+        [
+          0,
+          1
+        ]
+      ],
+      "independent_observation_covariance": [
+        [
+          20
+        ]
+      ],
+      "shared_sources": [],
+      "lineage_coverage_complete": true
+    }
+  ],
+  "expected": {
+    "portfolio_AB": {
+      "observation_covariance": [
+        [
+          9.1,
+          9
+        ],
+        [
+          9,
+          9.1
+        ]
+      ],
+      "posterior_covariance": [
+        [
+          0.900497512437811,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "a_optimal_trace_reduction": 0.09950248756218906,
+      "d_optimal_logdet_reduction": 0.10480787679324995
+    },
+    "portfolio_AC": {
+      "observation_covariance": [
+        [
+          9.1,
+          0
+        ],
+        [
+          0,
+          20
+        ]
+      ],
+      "posterior_covariance": [
+        [
+          0.900990099009901,
+          0
+        ],
+        [
+          0,
+          0.9523809523809523
+        ]
+      ],
+      "a_optimal_trace_reduction": 0.14662894860914663,
+      "d_optimal_logdet_reduction": 0.15305117449384148
+    },
+    "portfolio_AB_naive_independence_negative_control": {
+      "observation_covariance": [
+        [
+          9.1,
+          0
+        ],
+        [
+          0,
+          9.1
+        ]
+      ],
+      "posterior_covariance": [
+        [
+          0.8198198198198198,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "a_optimal_trace_reduction": 0.18018018018018017,
+      "d_optimal_logdet_reduction": 0.1986706947954842
+    },
+    "correct_a_optimal_ranking": [
+      "A_SHARED_CALIBRATION",
+      "C_COMPLEMENTARY"
+    ],
+    "correct_d_optimal_ranking": [
+      "A_SHARED_CALIBRATION",
+      "C_COMPLEMENTARY"
+    ],
+    "naive_independence_a_optimal_ranking": [
+      "A_SHARED_CALIBRATION",
+      "B_SHARED_CALIBRATION"
+    ],
+    "naive_independence_d_optimal_ranking": [
+      "A_SHARED_CALIBRATION",
+      "B_SHARED_CALIBRATION"
+    ],
+    "covariance_relative_tolerance": 1e-10,
+    "posterior_relative_tolerance": 1e-10
+  },
+  "assumptions": [
+    "Gaussian prior and Gaussian observation errors",
+    "Linear observation model",
+    "Fixed known covariance parameters",
+    "Shared calibration source is exactly the same latent variable in A and B",
+    "No shared uncertainty source is present in C",
+    "All candidate lineage records are complete"
+  ],
+  "non_claims": [
+    "Not a real PFNS dataset",
+    "Not an AIACHNE reproduction",
+    "Not a validated optimizer benchmark",
+    "Not evidence of SOTA superiority"
+  ]
+}
