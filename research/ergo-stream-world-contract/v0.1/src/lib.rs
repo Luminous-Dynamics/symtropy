@@ -10,6 +10,7 @@ pub mod acquisition;
 pub mod atlas;
 pub mod dynamics;
 pub mod matching;
+pub mod scoped;
 
 pub mod transfer;
 
