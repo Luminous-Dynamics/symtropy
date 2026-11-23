@@ -1672,7 +1672,7 @@ mod tests {
         let (problem, candidate) = randomized_fixture();
         let result = rank_designs_by_randomized_robust_decision_value(
             &problem,
-            &[candidate],
+            &[candidate.clone()],
             randomized_policy(),
         )
         .expect("finite randomized robust decision game");
