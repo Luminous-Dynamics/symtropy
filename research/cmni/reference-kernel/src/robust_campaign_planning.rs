@@ -190,11 +190,8 @@ pub fn plan_non_anticipative_robust_campaign(
         .ok_or(ModelError::InvalidParameter(
             "robust_campaign_terminal_choice_count_overflow",
         ))?;
-    let prior_best_index = best_prior_action(
-        state_probabilities,
-        action_utilities,
-        abstention_utility,
-    );
+    let prior_best_index =
+        best_prior_action(state_probabilities, action_utilities, abstention_utility);
     let prior_best_utility = expected_terminal_utility(
         prior_best_index,
         state_probabilities,
@@ -217,19 +214,15 @@ pub fn plan_non_anticipative_robust_campaign(
         let branch_choices = if policy.max_steps == 1 {
             build_stop_only_branch_choices(terminal_choice_count)
         } else {
-            build_branch_choices(
-                root_index,
-                acquisitions,
-                terminal_choice_count,
-                policy,
-            )?
+            build_branch_choices(root_index, acquisitions, terminal_choice_count, policy)?
         };
         let branch_count = checked_power(branch_choices.len(), root.outcome_ids.len())?;
-        total_tree_count = total_tree_count
-            .checked_add(branch_count)
-            .ok_or(ModelError::InvalidParameter(
-                "robust_campaign_policy_tree_count_overflow",
-            ))?;
+        total_tree_count =
+            total_tree_count
+                .checked_add(branch_count)
+                .ok_or(ModelError::InvalidParameter(
+                    "robust_campaign_policy_tree_count_overflow",
+                ))?;
         branch_choices_by_root.push(branch_choices);
     }
 
@@ -262,11 +255,12 @@ pub fn plan_non_anticipative_robust_campaign(
             &mut best,
             &mut clairvoyant_best_by_scenario,
         )?;
-        complete_policy_trees_evaluated = complete_policy_trees_evaluated
-            .checked_add(1)
-            .ok_or(ModelError::InvalidParameter(
-                "robust_campaign_policy_tree_count_overflow",
-            ))?;
+        complete_policy_trees_evaluated =
+            complete_policy_trees_evaluated
+                .checked_add(1)
+                .ok_or(ModelError::InvalidParameter(
+                    "robust_campaign_policy_tree_count_overflow",
+                ))?;
         scenario_policy_evaluations = scenario_policy_evaluations
             .checked_add(scenario_ids.len())
             .ok_or(ModelError::InvalidParameter(
@@ -279,17 +273,9 @@ pub fn plan_non_anticipative_robust_campaign(
         if branch_choices.is_empty() {
             continue;
         }
-        let combinations = branch_choice_combinations(
-            branch_choices,
-            root.outcome_ids.len(),
-        );
+        let combinations = branch_choice_combinations(branch_choices, root.outcome_ids.len());
         for combination in combinations {
-            let plan = materialize_campaign_plan(
-                root,
-                &combination,
-                acquisitions,
-                action_ids,
-            );
+            let plan = materialize_campaign_plan(root, &combination, acquisitions, action_ids);
             let evaluations = evaluate_acquisition_tree(
                 state_probabilities,
                 action_utilities,
@@ -305,11 +291,10 @@ pub fn plan_non_anticipative_robust_campaign(
                 &mut best,
                 &mut clairvoyant_best_by_scenario,
             )?;
-            complete_policy_trees_evaluated = complete_policy_trees_evaluated
-                .checked_add(1)
-                .ok_or(ModelError::InvalidParameter(
-                    "robust_campaign_policy_tree_count_overflow",
-                ))?;
+            complete_policy_trees_evaluated =
+                complete_policy_trees_evaluated.checked_add(1).ok_or(
+                    ModelError::InvalidParameter("robust_campaign_policy_tree_count_overflow"),
+                )?;
             scenario_policy_evaluations = scenario_policy_evaluations
                 .checked_add(scenario_ids.len())
                 .ok_or(ModelError::InvalidParameter(
@@ -346,10 +331,8 @@ pub fn plan_non_anticipative_robust_campaign(
         ));
     }
 
-    let maximum_path_resource_cost =
-        maximum_path_resource_cost(&best.plan, acquisitions)?;
-    let pathwise_budget_satisfied =
-        maximum_path_resource_cost <= policy.remaining_resource_budget;
+    let maximum_path_resource_cost = maximum_path_resource_cost(&best.plan, acquisitions)?;
+    let pathwise_budget_satisfied = maximum_path_resource_cost <= policy.remaining_resource_budget;
     if !pathwise_budget_satisfied {
         return Err(ModelError::InvalidParameter(
             "robust_campaign_selected_tree_violates_pathwise_budget",
@@ -364,8 +347,7 @@ pub fn plan_non_anticipative_robust_campaign(
             scenario_id: scenario_id.clone(),
             expected_terminal_utility: evaluation.expected_terminal_utility,
             expected_resource_cost: evaluation.expected_resource_cost,
-            cost_in_utility_units: evaluation.expected_resource_cost
-                * policy.cost_to_utility_rate,
+            cost_in_utility_units: evaluation.expected_resource_cost * policy.cost_to_utility_rate,
             net_expected_utility: evaluation.net_expected_utility,
         })
         .collect();
@@ -419,7 +401,10 @@ fn validate_problem(
             "robust_campaign_state_probability",
         ));
     }
-    if state_probabilities.iter().any(|probability| *probability < 0.0) {
+    if state_probabilities
+        .iter()
+        .any(|probability| *probability < 0.0)
+    {
         return Err(ModelError::InvalidParameter(
             "robust_campaign_state_probabilities_must_be_nonnegative",
         ));
@@ -444,9 +429,7 @@ fn validate_problem(
 }
 
 fn validate_policy(policy: RobustCampaignPlanningPolicy) -> Result<(), ModelError> {
-    if !policy.remaining_resource_budget.is_finite()
-        || !policy.cost_to_utility_rate.is_finite()
-    {
+    if !policy.remaining_resource_budget.is_finite() || !policy.cost_to_utility_rate.is_finite() {
         return Err(ModelError::NonFiniteValue(
             "robust_campaign_budget_or_cost_rate",
         ));
@@ -597,11 +580,12 @@ fn build_branch_choices(
         if total_path_cost > policy.remaining_resource_budget {
             continue;
         }
-        let terminal_maps = checked_power(
-            terminal_choice_count,
-            second.outcome_ids.len(),
-        )?;
-        if terminal_maps > policy.max_campaign_policy_trees.saturating_sub(choices.len()) {
+        let terminal_maps = checked_power(terminal_choice_count, second.outcome_ids.len())?;
+        if terminal_maps
+            > policy
+                .max_campaign_policy_trees
+                .saturating_sub(choices.len())
+        {
             return Err(ModelError::InvalidParameter(
                 "robust_campaign_policy_tree_cap_exceeded",
             ));
@@ -673,10 +657,7 @@ fn materialize_campaign_plan(
                 BranchChoice::Stop {
                     terminal_action_index,
                 } => RobustCampaignContinuation::Stop(RobustCampaignStop {
-                    terminal_action_id: terminal_action_id(
-                        action_ids,
-                        *terminal_action_index,
-                    ),
+                    terminal_action_id: terminal_action_id(action_ids, *terminal_action_index),
                 }),
                 BranchChoice::AcquireSecond {
                     option_index,
@@ -733,8 +714,7 @@ fn maximum_path_resource_cost(
                             "robust_campaign_selected_second_option_missing",
                         ))?,
                 };
-                maximum_continuation_cost =
-                    maximum_continuation_cost.max(continuation_cost);
+                maximum_continuation_cost = maximum_continuation_cost.max(continuation_cost);
             }
             let maximum_path_cost = root.cost + maximum_continuation_cost;
             if !maximum_path_cost.is_finite() {
@@ -807,8 +787,7 @@ fn evaluate_acquisition_tree(
         let mut expected_resource_cost = root.cost;
         for (state_index, state_probability) in state_probabilities.iter().enumerate() {
             for (outcome_index, branch_choice) in branch_choices.iter().enumerate() {
-                let root_likelihood =
-                    root_scenario.outcome_likelihoods[state_index][outcome_index];
+                let root_likelihood = root_scenario.outcome_likelihoods[state_index][outcome_index];
                 let branch_probability = state_probability * root_likelihood;
                 match branch_choice {
                     BranchChoice::Stop {
@@ -957,9 +936,11 @@ fn decode_base_indices(mut value: usize, base: usize, length: usize) -> Vec<usiz
 fn checked_power(base: usize, exponent: usize) -> Result<usize, ModelError> {
     let mut result = 1usize;
     for _ in 0..exponent {
-        result = result.checked_mul(base).ok_or(ModelError::InvalidParameter(
-            "robust_campaign_policy_count_overflow",
-        ))?;
+        result = result
+            .checked_mul(base)
+            .ok_or(ModelError::InvalidParameter(
+                "robust_campaign_policy_count_overflow",
+            ))?;
     }
     Ok(result)
 }
@@ -990,20 +971,14 @@ mod tests {
         ]
     }
 
-    fn scenario(
-        scenario_id: &str,
-        likelihoods: Vec<Vec<f64>>,
-    ) -> RobustCampaignScenarioLikelihood {
+    fn scenario(scenario_id: &str, likelihoods: Vec<Vec<f64>>) -> RobustCampaignScenarioLikelihood {
         RobustCampaignScenarioLikelihood {
             scenario_id: scenario_id.to_owned(),
             outcome_likelihoods: likelihoods,
         }
     }
 
-    fn acquisition(
-        option_id: &str,
-        likelihoods: Vec<Vec<f64>>,
-    ) -> RobustCampaignAcquisition {
+    fn acquisition(option_id: &str, likelihoods: Vec<Vec<f64>>) -> RobustCampaignAcquisition {
         RobustCampaignAcquisition {
             option_id: option_id.to_owned(),
             kind: InformationAcquisitionKind::IndependentCalibration,
@@ -1146,14 +1121,8 @@ mod tests {
             outcome_ids: vec!["reading-0".to_owned(), "reading-1".to_owned()],
             dependence_scope_receipt_id: RECEIPT.to_owned(),
             scenarios: vec![
-                scenario(
-                    "dependence-a",
-                    vec![vec![0.8, 0.2], vec![0.2, 0.8]],
-                ),
-                scenario(
-                    "dependence-b",
-                    vec![vec![0.8, 0.2], vec![0.2, 0.8]],
-                ),
+                scenario("dependence-a", vec![vec![0.8, 0.2], vec![0.2, 0.8]]),
+                scenario("dependence-b", vec![vec![0.8, 0.2], vec![0.2, 0.8]]),
             ],
         };
         let campaign = plan_non_anticipative_robust_campaign(
@@ -1217,14 +1186,8 @@ mod tests {
             outcome_ids: vec!["reading-0".to_owned(), "reading-1".to_owned()],
             dependence_scope_receipt_id: RECEIPT.to_owned(),
             scenarios: vec![
-                scenario(
-                    "forward",
-                    vec![vec![1.0, 0.0], vec![0.0, 1.0]],
-                ),
-                scenario(
-                    "reversed",
-                    vec![vec![0.0, 1.0], vec![1.0, 0.0]],
-                ),
+                scenario("forward", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+                scenario("reversed", vec![vec![0.0, 1.0], vec![1.0, 0.0]]),
             ],
         };
         let result = plan_non_anticipative_robust_campaign(
@@ -1243,7 +1206,10 @@ mod tests {
         )
         .expect("hidden-scenario robust campaign");
         assert!((result.worst_case_net_utility - 0.5).abs() < 1.0e-12);
-        assert!(matches!(result.selected_plan, RobustCampaignPlanNode::Stop(_)));
+        assert!(matches!(
+            result.selected_plan,
+            RobustCampaignPlanNode::Stop(_)
+        ));
         assert!((result.non_anticipativity_gap - 0.45).abs() < 1.0e-12);
     }
 
@@ -1272,10 +1238,9 @@ mod tests {
             outcome_branches, ..
         } = result.selected_plan
         {
-            assert!(outcome_branches.iter().all(|branch| matches!(
-                branch.continuation,
-                RobustCampaignContinuation::Stop(_)
-            )));
+            assert!(outcome_branches
+                .iter()
+                .all(|branch| matches!(branch.continuation, RobustCampaignContinuation::Stop(_))));
         }
     }
 
@@ -1311,7 +1276,10 @@ mod tests {
             },
         )
         .expect("stop policy should remain feasible");
-        assert!(matches!(result.selected_plan, RobustCampaignPlanNode::Stop(_)));
+        assert!(matches!(
+            result.selected_plan,
+            RobustCampaignPlanNode::Stop(_)
+        ));
         assert_eq!(result.maximum_path_resource_cost, 0.0);
         assert_eq!(result.pathwise_resource_budget, 0.1);
         assert!(result.pathwise_budget_satisfied);
