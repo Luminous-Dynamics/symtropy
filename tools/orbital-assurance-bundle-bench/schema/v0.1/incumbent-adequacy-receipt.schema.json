@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital finite-world incumbent adequacy receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "evaluation",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-incumbent-adequacy.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "$ref": "#/$defs/sha"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "summary",
+        "cases",
+        "authority_granted"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-finite-world-incumbent-adequacy-only"
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_count",
+            "retain_incumbent_cases",
+            "reoptimization_warranted_cases",
+            "abstain_cases",
+            "invalid_input_cases",
+            "incumbent_infeasible_cases",
+            "threshold_exceeded_cases",
+            "expected_result_mismatches",
+            "authority_grants"
+          ],
+          "properties": {
+            "case_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "retain_incumbent_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reoptimization_warranted_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "abstain_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_input_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "incumbent_infeasible_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "threshold_exceeded_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_result_mismatches": {
+              "const": 0
+            },
+            "authority_grants": {
+              "const": 0
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "disposition",
+              "trigger_reason",
+              "loss_unit",
+              "materiality_margin",
+              "switching_cost",
+              "retention_threshold",
+              "worst_case_regret",
+              "world_assessments",
+              "authority_granted",
+              "expected_result_matched"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "disposition": {
+                "enum": [
+                  "RETAIN_INCUMBENT",
+                  "REOPTIMIZATION_WARRANTED",
+                  "ABSTAIN",
+                  "INVALID_INPUT"
+                ]
+              },
+              "trigger_reason": {
+                "type": "string"
+              },
+              "loss_unit": {
+                "type": "string"
+              },
+              "materiality_margin": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "switching_cost": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "retention_threshold": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "worst_case_regret": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "world_assessments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "world_id",
+                    "incumbent_feasible",
+                    "incumbent_loss",
+                    "best_feasible_loss",
+                    "regret"
+                  ],
+                  "properties": {
+                    "world_id": {
+                      "type": "string"
+                    },
+                    "incumbent_feasible": {
+                      "type": "boolean"
+                    },
+                    "incumbent_loss": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "best_feasible_loss": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "regret": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "authority_granted": {
+                "const": false
+              },
+              "expected_result_matched": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
