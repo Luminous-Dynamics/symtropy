@@ -693,6 +693,85 @@ fn bench_broadphase_temporal_static_reuse(c: &mut Criterion) {
     group.finish();
 }
 
+
+fn bench_broadphase_static_churn(c: &mut Criterion) {
+    const FRAMES: usize = 16;
+    let mut group = c.benchmark_group("broadphase_static_churn_3d");
+
+    // One static body changes pose on every frame. The cache cannot be reused
+    // safely across that mutation, so the incremental path must rebuild its
+    // static entries before each query. This is the high-churn counterexample
+    // to the immutable-terrain multi-tick benchmark above.
+    for static_count in [256usize, 1024] {
+        for moving_count in [8usize, 32] {
+            let frames: Vec<Vec<RigidBody<3>>> = (0..FRAMES)
+                .map(|frame| {
+                    let mut bodies = static_heavy_broadphase_scene(static_count, moving_count);
+                    let changed_static = frame % static_count;
+                    let body = &mut bodies[changed_static];
+                    let x = changed_static as f64 * 3.0 + (frame as f64 + 1.0) * 0.05;
+                    body.transform = Transform::from_translation(Point::new([x, 0.0, 0.0]));
+                    bodies
+                })
+                .collect();
+
+            for (frame_index, bodies) in frames.iter().enumerate() {
+                let oracle_pairs = exhaustive_aabb_pair_oracle(bodies);
+                assert_eq!(
+                    broadphase::find_pairs(bodies),
+                    oracle_pairs,
+                    "static-churn LBVH mismatch at frame {frame_index}, static={static_count}, moving={moving_count}"
+                );
+
+                let mut cache = StaticBroadphase::new();
+                cache.rebuild(bodies);
+                assert_eq!(
+                    broadphase::find_pairs_incremental(bodies, &cache),
+                    oracle_pairs,
+                    "static-churn incremental mismatch at frame {frame_index}, static={static_count}, moving={moving_count}"
+                );
+            }
+
+            let case = format!(
+                "static_{static_count}_moving_{moving_count}_frames_{FRAMES}_one_static_mutation_per_frame"
+            );
+
+            group.bench_function(
+                BenchmarkId::new("static_cache_rebuild_each_tick_plus_query", &case),
+                |bench| {
+                    bench.iter(|| {
+                        let mut candidates = 0usize;
+                        let mut cache = StaticBroadphase::new();
+                        for bodies in &frames {
+                            cache.rebuild(black_box(bodies));
+                            candidates += broadphase::find_pairs_incremental(
+                                black_box(bodies),
+                                black_box(&cache),
+                            ).len();
+                        }
+                        black_box(candidates);
+                    });
+                },
+            );
+
+            group.bench_function(
+                BenchmarkId::new("full_lbvh_rebuild_each_tick", &case),
+                |bench| {
+                    bench.iter(|| {
+                        let mut candidates = 0usize;
+                        for bodies in &frames {
+                            candidates += broadphase::find_pairs(black_box(bodies)).len();
+                        }
+                        black_box(candidates);
+                    });
+                },
+            );
+        }
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -717,5 +796,7 @@ criterion_group!(
     bench_broadphase_stress_matrix,
     // Amortized static-cache reuse across moving multi-tick scenes
     bench_broadphase_temporal_static_reuse,
+    // Static cache invalidation under persistent geometry churn
+    bench_broadphase_static_churn,
 );
 criterion_main!(benches);
