@@ -5,6 +5,7 @@
 //! estimates probabilities, or grants operational authority.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 const SCHEMA: &str = "luminous.orbital-incumbent-adequacy.corpus.v0.1";
@@ -12,7 +13,10 @@ const CLAIM_CEILING: &str = "synthetic-finite-world-incumbent-adequacy-only";
 const MAX_CASES: usize = 128;
 const MAX_ACTIONS: usize = 4096;
 const MAX_WORLDS: usize = 4096;
-const MAX_ROWS: usize = 16384;
+const MAX_SCENARIOS: usize = 16384;
+const MAX_ROWS: usize = 65536;
+const JOINT_LOSS_RECEIPT_SCHEMA: &str = "luminous.orbital-joint-loss-scenario.receipt.v0.1";
+const JOINT_LOSS_CLAIM_CEILING: &str = "finite-joint-loss-scenario-regret-algebra-only";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -24,11 +28,36 @@ pub struct WorldLoss {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct World {
+    /// Unique joint physical-world / loss-model scenario ID.
+    pub scenario_id: String,
+    /// Physical/observation world ID. Multiple loss models may share this ID.
     pub world_id: String,
+    pub loss_model_id: String,
+    pub evidence_status: String,
+    pub evidence_receipt_id: Option<String>,
     pub loss_unit: String,
     pub scope_sha256: String,
     pub feasible_action_ids: Vec<String>,
     pub losses: Vec<WorldLoss>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct LossModelSetEvidence {
+    pub state: String,
+    pub source_receipt_schema: String,
+    pub source_claim_ceiling: String,
+    pub source_commit: String,
+    pub source_receipt_sha256: String,
+    pub source_case_id: String,
+    pub source_manifest_id: String,
+    /// Digest of the canonical loss-scenario records in the upstream #6939 receipt.
+    pub source_scenarios_sha256: String,
+    /// Exact joint scenario IDs planned by the loss-model manifest.
+    pub expected_scenario_ids: Vec<String>,
+    pub expected_scenario_ids_sha256: String,
+    /// Digest of the projected scenario rows consumed by this incumbent evaluator.
+    pub projected_scenarios_sha256: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -49,6 +78,11 @@ pub struct Case {
     pub action_ids: Vec<String>,
     pub worlds: Vec<World>,
     pub world_set_state: String,
+    pub world_set_receipt_id: String,
+    pub world_set_receipt_sha256: String,
+    pub expected_world_ids: Vec<String>,
+    pub expected_world_ids_sha256: String,
+    pub loss_model_set: LossModelSetEvidence,
     pub domain_closure_state: String,
     pub dependency_graph_state: String,
     pub model_family_state: String,
@@ -69,7 +103,9 @@ pub struct Corpus {
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct WorldAssessment {
+    pub scenario_id: String,
     pub world_id: String,
+    pub loss_model_id: String,
     pub incumbent_feasible: bool,
     pub incumbent_loss: Option<i64>,
     pub reference_common_action_loss: Option<i64>,
@@ -85,6 +121,15 @@ pub struct CaseResult {
     pub materiality_margin: i64,
     pub switching_cost: i64,
     pub retention_threshold: Option<i64>,
+    pub world_set_receipt_id: String,
+    pub world_ids_sha256: String,
+    pub loss_model_source_commit: String,
+    pub loss_model_source_receipt_sha256: String,
+    pub loss_model_manifest_id: String,
+    pub source_loss_scenarios_sha256: String,
+    pub projected_scenarios_sha256: String,
+    pub joint_scenario_count: usize,
+    pub loss_model_ids: Vec<String>,
     pub reference_common_action_id: Option<String>,
     pub current_worst_case_loss: Option<i64>,
     pub reference_common_worst_case_loss: Option<i64>,
@@ -131,10 +176,47 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
+fn valid_commit(value: &str) -> bool {
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn digest_ids(ids: &[String]) -> Result<String, String> {
+    let mut sorted = ids.to_vec();
+    sorted.sort();
+    let bytes = serde_json::to_vec(&sorted)
+        .map_err(|error| format!("cannot encode canonical ID inventory: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn projected_scenarios_digest(scenarios: &[World]) -> Result<String, String> {
+    let mut sorted = scenarios.to_vec();
+    for scenario in &mut sorted {
+        scenario.feasible_action_ids.sort();
+        scenario.losses.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+    }
+    sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let bytes = serde_json::to_vec(&sorted)
+        .map_err(|error| format!("cannot encode projected joint scenarios: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
 fn valid_gate_states(case: &Case) -> bool {
     matches!(
         case.world_set_state.as_str(),
         "CURRENT" | "STALE" | "UNAVAILABLE"
+    ) && matches!(
+        case.loss_model_set.state.as_str(),
+        "CURRENT" | "STALE" | "INDETERMINATE" | "OUT_OF_PROFILE" | "INADEQUATE"
     ) && matches!(
         case.domain_closure_state.as_str(),
         "CLOSED_WITHIN_DECLARED_SCOPE" | "OPEN" | "STALE" | "INADEQUATE"
@@ -168,7 +250,10 @@ struct ComparisonMetrics {
 
 #[derive(Debug)]
 struct ValidatedWorld {
+    scenario_id: String,
     world_id: String,
+    loss_model_id: String,
+    evidence_receipt_id: String,
     feasible_action_ids: BTreeSet<String>,
     losses: BTreeMap<String, i64>,
 }
@@ -192,6 +277,16 @@ fn result(
         materiality_margin: case.materiality_margin,
         switching_cost: case.switching_cost,
         retention_threshold,
+        world_set_receipt_id: case.world_set_receipt_id.clone(),
+        world_ids_sha256: case.expected_world_ids_sha256.clone(),
+        loss_model_source_commit: case.loss_model_set.source_commit.clone(),
+        loss_model_source_receipt_sha256: case.loss_model_set.source_receipt_sha256.clone(),
+        loss_model_manifest_id: case.loss_model_set.source_manifest_id.clone(),
+        source_loss_scenarios_sha256: case.loss_model_set.source_scenarios_sha256.clone(),
+        projected_scenarios_sha256: case.loss_model_set.projected_scenarios_sha256.clone(),
+        joint_scenario_count: case.worlds.len(),
+        loss_model_ids: case.worlds.iter().map(|world| world.loss_model_id.clone())
+            .collect::<BTreeSet<_>>().into_iter().collect(),
         reference_common_action_id: metrics.reference_common_action_id,
         current_worst_case_loss: metrics.current_worst_case_loss,
         reference_common_worst_case_loss: metrics.reference_common_worst_case_loss,
