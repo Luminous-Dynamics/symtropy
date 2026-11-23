@@ -789,7 +789,12 @@ mod tests {
         let mut injector_overlap = valid_manifest();
         injector_overlap.platform.observer_profiles[0]
             .common_cause_domains
-            .push(injector_overlap.platform.fault_injector_fault_domain_id.clone());
+            .push(
+                injector_overlap
+                    .platform
+                    .fault_injector_fault_domain_id
+                    .clone(),
+            );
         assert_eq!(
             injector_overlap.validate(),
             Err(CampaignError::InvalidObserverProfile)
