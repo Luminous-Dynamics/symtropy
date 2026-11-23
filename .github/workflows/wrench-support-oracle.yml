@@ -29,5 +29,7 @@ jobs:
         run: cargo fmt --manifest-path research/wrench-support-oracle/v0.1/Cargo.toml -- --check
       - name: Run tests
         run: cargo test --manifest-path research/wrench-support-oracle/v0.1/Cargo.toml --locked
+      - name: Run deterministic reduction tournament
+        run: cargo run --manifest-path research/wrench-support-oracle/v0.1/Cargo.toml --example reduction_tournament --locked
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/wrench-support-oracle/v0.1/Cargo.toml --locked --all-targets -- -D warnings
