@@ -135,6 +135,27 @@ The Rust unit tests include input-permutation invariance and an always-false aut
 
 **Claim ceiling:** this verifies dependency-graph invalidation semantics over a declared synthetic graph. It does not authenticate source receipts, prove that the dependency graph is complete, or grant authority. Omitted dependency edges remain an open-world assurance risk and require independent graph-authoring review.
 
+## Finite-world incumbent decision adequacy v0.1
+
+The crate now includes a separate incumbent-retention gate consuming a finite surviving-world set, a closed action universe, per-world feasible-action sets and exact loss rows. It computes regret per world against the best feasible action in that same world and takes the worst-case regret.
+
+The rule retains an incumbent only when it is feasible in every surviving world and worst-case regret is no greater than the explicit materiality margin plus explicit switching cost. Equality at the threshold retains. Infeasibility in any surviving world or regret strictly above the threshold yields a re-optimization review trigger; the evaluator never chooses or executes a replacement.
+
+An empty surviving-world set, open/stale domain closure, inadequate model family, stale/contradictory evidence, scope mismatch, or incomplete loss matrix abstains. This is important: lack of evidence cannot be interpreted as proof that the incumbent remains adequate.
+
+The 13 frozen synthetic cases cover:
+- stable incumbent and decision-irrelevant shift (retain);
+- different world-optimal actions but incumbent regret within the retention margin;
+- regret above the threshold and exact equality at the threshold;
+- incumbent infeasible in one surviving world;
+- no surviving worlds, open domain, inadequate model family, stale evidence and scope mismatch;
+- incomplete loss matrix and duplicate loss rows;
+- threshold-overflow arithmetic (tested through a typed Rust mutation so exact i64 boundary semantics are preserved across languages).
+
+The independent JS oracle is compared field-by-field against the Rust receipt. No probabilities are assigned to worlds. RADAR-style stochastic monitoring is a separate comparator and remains distinct from #6887's anytime-valid sequential evidence guarantees.
+
+**Claim ceiling:** synthetic finite-world incumbent adequacy only. It does not prove that the world set is complete, that real loss models are valid, or that a re-optimization is safe/authorized.
+
 ## Commands
 
 
