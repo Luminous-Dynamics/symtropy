@@ -511,7 +511,7 @@ pub fn plan_active_evidence_with_decision_relevance(
         .collect();
 
     let (reason, selected) = if !target_reaching.is_empty() {
-        let selected = *target_reaching
+        let selected = target_reaching
             .into_iter()
             .min_by(|left, right| {
                 right
@@ -521,6 +521,7 @@ pub fn plan_active_evidence_with_decision_relevance(
                     .then_with(|| left.action.worst_case_energy_uj.cmp(&right.action.worst_case_energy_uj))
                     .then_with(|| left.action.action_id.cmp(&right.action.action_id))
             })
+            .cloned()
             .ok_or(ActiveEvidenceDecisionError::InvalidDecisionReport(0))?;
         let reason = if selected.distinguishable_decision_pair_count > 0 {
             ActiveEvidenceDecisionReason::LowestLatencyDecisionResolvingAction
@@ -532,7 +533,7 @@ pub fn plan_active_evidence_with_decision_relevance(
         .iter()
         .any(|candidate| candidate.distinguishable_decision_pair_count > 0)
     {
-        let selected = *pareto_frontier
+        let selected = pareto_frontier
             .iter()
             .max_by(|left, right| {
                 left.distinguishable_decision_pair_count
@@ -542,10 +543,11 @@ pub fn plan_active_evidence_with_decision_relevance(
                     .then_with(|| right.action.worst_case_energy_uj.cmp(&left.action.worst_case_energy_uj))
                     .then_with(|| right.action.action_id.cmp(&left.action.action_id))
             })
+            .cloned()
             .ok_or(ActiveEvidenceDecisionError::InvalidDecisionReport(0))?;
         (ActiveEvidenceDecisionReason::BestDecisionDiscriminationAvailableButTargetNotReached, selected)
     } else {
-        let selected = *pareto_frontier
+        let selected = pareto_frontier
             .iter()
             .max_by(|left, right| {
                 left.conditional_protection_level_delta_m
@@ -554,6 +556,7 @@ pub fn plan_active_evidence_with_decision_relevance(
                     .then_with(|| right.action.worst_case_energy_uj.cmp(&left.action.worst_case_energy_uj))
                     .then_with(|| right.action.action_id.cmp(&left.action.action_id))
             })
+            .cloned()
             .ok_or(ActiveEvidenceDecisionError::InvalidDecisionReport(0))?;
         (ActiveEvidenceDecisionReason::BestProtectionReductionAvailableButTargetNotReached, selected)
     };
