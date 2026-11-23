@@ -51,7 +51,10 @@ jobs:
           grep -q '^shared_tos_signal,EVALUATED,ADVISORY_ONLY_NO_INDEPENDENT_CORROBORATION,1,1,0,3,1,2,71,-1,false,' /tmp/maritime-active-sensing.csv
           grep -q '^independent_field_inspection,EVALUATED,INDEPENDENT_OBSERVATION_CANDIDATE_NOT_DELIVERY_PROOF,2,1,1,3,5,3,5,65,true,' /tmp/maritime-active-sensing.csv
           grep -q '^unknown_dependency_feed,BLOCKED_UNKNOWN_DEPENDENCY,' /tmp/maritime-active-sensing.csv
+          grep -q '^potentially_correlated_feed,BLOCKED_POTENTIALLY_CORRELATED,' /tmp/maritime-active-sensing.csv
+          grep -q '^revoked_dependency_feed,BLOCKED_REVOKED_DEPENDENCY,' /tmp/maritime-active-sensing.csv
           grep -q '^ambiguous_event_camera,BLOCKED_AMBIGUOUS_ASSOCIATION,' /tmp/maritime-active-sensing.csv
+          grep -q '^unmatched_event_receipt,BLOCKED_UNMATCHED_ASSOCIATION,' /tmp/maritime-active-sensing.csv
           grep -q '^stale_field_sensor,BLOCKED_STALE_EVIDENCE,' /tmp/maritime-active-sensing.csv
           grep -q '^overbudget_independent_audit,OVER_BUDGET,' /tmp/maritime-active-sensing.csv
           echo "Maritime active-sensing known-answer contract passed."
