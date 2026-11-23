@@ -590,6 +590,63 @@ mod tests {
     }
 
     #[test]
+    fn translating_both_manifolds_preserves_transfer_and_moment_error() {
+        let previous = vec![old("old-a", -1.0, 0.0, 1.0), old("old-b", 1.0, 0.0, 1.0)];
+        let next = vec![new("new-a", -1.0, 0.0), new("new-b", 3.0, 0.0)];
+        let baseline = transfer_normal_impulse(&previous, &next).expect("baseline");
+        let shifted_previous = previous
+            .iter()
+            .map(|item| old(
+                &item.contact_id,
+                item.position[0] + 7.0,
+                item.position[1] - 4.0,
+                item.normal_impulse,
+            ))
+            .collect::<Vec<_>>();
+        let shifted_next = next
+            .iter()
+            .map(|item| new(
+                &item.contact_id,
+                item.position[0] + 7.0,
+                item.position[1] - 4.0,
+            ))
+            .collect::<Vec<_>>();
+        let shifted =
+            transfer_normal_impulse(&shifted_previous, &shifted_next).expect("shifted");
+
+        assert_eq!(baseline.retained_contact_ids, shifted.retained_contact_ids);
+        assert_eq!(baseline.allocations, shifted.allocations);
+        assert!((baseline.center_of_pressure_error_norm - shifted.center_of_pressure_error_norm).abs() < 1.0e-12);
+        assert!((baseline.moment_error_norm - shifted.moment_error_norm).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn positive_impulse_scaling_preserves_normalized_allocation() {
+        let previous = vec![
+            old("old-a", -1.0, 0.0, 1.0),
+            old("old-b", 1.0, 0.0, 3.0),
+        ];
+        let next = vec![new("new-a", -2.0, 0.0), new("new-b", 2.0, 0.0)];
+        let baseline = transfer_normal_impulse(&previous, &next).expect("baseline");
+        let scaled_previous = previous
+            .iter()
+            .map(|item| old(
+                &item.contact_id,
+                item.position[0],
+                item.position[1],
+                item.normal_impulse * 5.0,
+            ))
+            .collect::<Vec<_>>();
+        let scaled = transfer_normal_impulse(&scaled_previous, &next).expect("scaled");
+        assert_eq!(baseline.retained_contact_ids, scaled.retained_contact_ids);
+        assert_eq!(baseline.allocations.len(), scaled.allocations.len());
+        for (first, second) in baseline.allocations.iter().zip(&scaled.allocations) {
+            assert!((first.normalized_load_fraction - second.normalized_load_fraction).abs() < 1.0e-12);
+            assert!((second.normal_impulse - first.normal_impulse * 5.0).abs() < 1.0e-12);
+        }
+    }
+
+    #[test]
     fn non_finite_and_negative_previous_impulses_are_rejected() {
         assert!(
             transfer_normal_impulse(&[old("bad", 0.0, 0.0, f64::NAN)], &[new("new", 0.0, 0.0)])
