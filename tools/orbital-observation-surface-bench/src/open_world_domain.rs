@@ -175,12 +175,18 @@ fn payload_sha256(action_id: &str) -> String {
 
 fn canonical_domain_snapshot_sha256(domain: &DomainManifest) -> Result<String, String> {
     let mut canonical = domain.clone();
-    canonical.components.sort_by(|left, right| left.component_id.cmp(&right.component_id));
+    canonical
+        .components
+        .sort_by(|left, right| left.component_id.cmp(&right.component_id));
     for component in &mut canonical.components {
         component.capability_ids.sort();
     }
-    canonical.operations.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
-    canonical.actors.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
+    canonical
+        .operations
+        .sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
+    canonical
+        .actors
+        .sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
     for actor in &mut canonical.actors {
         actor.role_ids.sort();
     }
