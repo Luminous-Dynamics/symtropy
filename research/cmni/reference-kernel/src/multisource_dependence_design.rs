@@ -502,9 +502,7 @@ pub(crate) fn scalar_parameter_information_and_source_gradient(
 ) -> Result<(f64, Vec<f64>), ModelError> {
     let observation_count = candidate.observation_sensitivities.len();
     let source_count = candidate.source_standard_deviations.len();
-    if correlation.len() != source_count
-        || correlation.iter().any(|row| row.len() != source_count)
-    {
+    if correlation.len() != source_count || correlation.iter().any(|row| row.len() != source_count) {
         return Err(ModelError::MismatchedDataLengths);
     }
     let mut covariance = vec![vec![0.0; observation_count]; observation_count];
