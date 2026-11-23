@@ -85,7 +85,7 @@ fn run() -> Result<(), String> {
         "source_manifest_sha256": source_manifest_sha256,
         "plan_sha256": plan.plan_sha256,
         "compiled_plan_artifact_sha256": compiled_plan_artifact_sha256,
-        "platform_profile_sha256": plan.platform.platform_profile_sha256,
+        "platform_profile_sha256": plan.platform.profile_sha256,
         "environment_artifact_sha256": plan.platform.environment_artifact_sha256,
         "fault_injector_revision": plan.platform.fault_injector_revision,
         "fault_injector_sha256": plan.platform.fault_injector_sha256,
