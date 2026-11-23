@@ -1279,6 +1279,83 @@ mod tests {
         }
     }
 
+    fn generated_worlds(seed: u64) -> [World; WORLD_COUNT] {
+        std::array::from_fn(|index| {
+            let mut key = seed.wrapping_add((index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+            key ^= key >> 30;
+            key = key.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            key ^= key >> 27;
+            key = key.wrapping_mul(0x94D0_49BB_1331_11EB);
+            key ^= key >> 31;
+
+            World {
+                id: "generated_world",
+                critical: if key & 1 == 0 {
+                    Participant::A
+                } else {
+                    Participant::B
+                },
+                reserve_available: key & 2 != 0,
+                a_authorized: key & 4 != 0,
+                b_authorized: key & 8 != 0,
+            }
+        })
+    }
+
+    #[test]
+    fn generated_world_sets_match_exhaustive_oracle_for_every_partition() {
+        let partitions = all_partitions(WORLD_COUNT);
+        assert_eq!(partitions.len(), 52);
+
+        for seed in 0..64 {
+            let worlds = generated_worlds(seed);
+            for partition in &partitions {
+                let labels: [usize; WORLD_COUNT] = partition
+                    .as_slice()
+                    .try_into()
+                    .expect("five-world partition");
+                let production = solve_policy(
+                    &worlds,
+                    &labels,
+                    ObservationMode::IndependentWitness,
+                    0,
+                )
+                .expect("hold is feasible in every world");
+                let oracle = exhaustive_oracle(
+                    &worlds,
+                    &labels,
+                    ObservationMode::IndependentWitness,
+                    0,
+                )
+                .expect("independent exhaustive policy exists");
+
+                assert_eq!(production.worst_regret, oracle.worst_regret);
+                assert_eq!(
+                    production
+                        .partition_regrets
+                        .iter()
+                        .map(|(_, regret)| *regret)
+                        .collect::<Vec<_>>(),
+                    oracle.partition_regrets,
+                    "seed {seed}, partition {partition:?}"
+                );
+                assert_eq!(
+                    production
+                        .actions_by_partition
+                        .iter()
+                        .map(|(_, action)| *action)
+                        .collect::<Vec<_>>(),
+                    oracle
+                        .action_indices
+                        .iter()
+                        .map(|index| ACTIONS[*index])
+                        .collect::<Vec<_>>(),
+                    "seed {seed}, partition {partition:?}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn all_three_named_observation_policies_match_exhaustive_oracle() {
         for sensor in [&NO_OBSERVATION, &SENSORS[0], &SENSORS[1]] {
