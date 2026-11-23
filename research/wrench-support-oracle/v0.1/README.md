@@ -72,6 +72,24 @@ The exact optimum is obtained by assigning all lower bounds first, then allocati
 
 The cone is an inscribed polygonal approximation of the Coulomb friction ellipse/disk. More rays reduce angular conservatism but increase support-evaluation work. The module reports the chosen ray count; comparisons must hold it fixed or explicitly account for cone-approximation error. No spin friction or rolling-resistance torque is currently modeled.
 
+## Candidate-generation lineage contract
+
+The generator-lineage module validates a passive stage receipt for support-map contact generation. It keeps separate counters for:
+- perturbations requested, valid and invalid/degenerate;
+- support queries completed and failed;
+- completed query outcomes: shallow separation, duplicate geometry, candidate-admission capacity rejection, or candidate admission;
+- primary candidate admission and the full candidate pool;
+- candidate backing-buffer capacity versus explicit candidate admission limit;
+- best-N output and deliberate policy reduction;
+- final storage attempted/stored/dropped and inline spill usage;
+- diagnostic events expected/emitted/dropped and trace completeness.
+
+For the source-derived generator, the primary witness candidate occupies one of the eight admission slots. The temporary ArrayVec has 16 storage slots, but the explicit admission limit is eight. These values are not the same capacity.
+
+The contract checks exact count partitions with checked arithmetic. A query failure cannot be reclassified as a shallow separation. Candidate-admission drops cannot be hidden inside best-N reduction. Heap spill is not a dropped point. Diagnostic-buffer truncation makes evidence incomplete even when physical candidate counts reconcile.
+
+This module does not instrument the production generator yet. Runtime wiring must preserve support-query order, dedup order, candidate ordering, allocation and solver state; trace-on/off equivalence remains a separate required gate.
+
 ## Research baseline and next extensions
 
 Compare on frozen identical candidate sets:
@@ -126,7 +144,7 @@ A candidate selector is not promoted merely because it reduces point count or ru
 
 ## Tests
 
-The unit suite contains 30 tests across both models and covers:
+The unit suite contains 41 tests across the planar, generalized contact-wrench and candidate-lineage models, covering:
 - exact zero deficit for the full set;
 - a known two-point subset preserving both positive and negative moment extrema;
 - greedy agreement with exact selection on a symmetric known-answer patch;
@@ -140,6 +158,12 @@ The unit suite contains 30 tests across both models and covers:
 - full-patch vs reduced-patch support comparison under the general model;
 - exact general-model subset selection and greedy work/deficit accounting;
 - mandatory minimum-load contact retention;
+- support-query and candidate-stage count partitions;
+- the 16-slot temporary storage versus eight-point total admission distinction;
+- candidate-admission loss vs best-N reduction;
+- final fixed-capacity loss vs inline spill;
+- trace-buffer truncation as a separate evidence-completeness failure;
+- checked counter overflow and missing policy identity;
 - minimum normal-load constraints;
 - friction-polyhedron ray-count convergence;
 - infeasible aggregate load bounds;
