@@ -332,7 +332,9 @@ pub(crate) fn claim_scope_digest(
     sha256_hex(&bytes)
 }
 
-pub(crate) fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
+pub(crate) fn observer_quorum_is_qualified(
+    proof: &ObserverQuorumProof,
+) -> Result<bool, ProjectionError> {
     if !nonempty(&proof.fault_model_revision)
         || proof.required_independent_members < 2
         || proof.required_independent_members > 32
