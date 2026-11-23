@@ -1179,4 +1179,192 @@ mod tests {
             Err(KernelError::IllConditionedCovariance)
         );
     }
+    #[test]
+    fn symmetric_jacobi_eigensolver_reconstructs_full_covariance() {
+        let raw = [[4.0, 1.0, 0.0], [1.0, 3.0, 0.0], [0.0, 0.0, 2.0]];
+        let (eigenvalues, eigenvectors) = symmetric_eigendecomposition(raw).unwrap();
+        let reconstructed = reconstruct_symmetric(eigenvectors, eigenvalues).unwrap();
+        for row in 0..3 {
+            for column in 0..3 {
+                assert!((reconstructed[row][column] - raw[row][column]).abs() < 1.0e-12);
+            }
+        }
+        assert!(eigenvalues[0] <= eigenvalues[1] && eigenvalues[1] <= eigenvalues[2]);
+    }
+
+    #[test]
+    fn nasa_covariance_clip_preserves_raw_and_clipped_eigenvalue_evidence() {
+        let report = nasa_covariance_eigenvalue_clip(
+            covariance([-0.25, 4.0, 9.0]),
+            1.0,
+            1.0e-12,
+        )
+        .expect("positive clipping floor");
+        assert_eq!(report.raw_eigenvalues, [-0.25, 4.0, 9.0]);
+        assert_eq!(report.remediated_eigenvalues, [1.0, 4.0, 9.0]);
+        assert_eq!(report.input_definiteness, CovarianceDefiniteness::Indefinite);
+        assert!(report.clipping_applied);
+        assert_eq!(report.remediated_covariance, covariance([1.0, 4.0, 9.0]));
+        assert_eq!(
+            report.remediated_covariance_inverse,
+            covariance([1.0, 0.25, 1.0 / 9.0])
+        );
+    }
+
+    #[test]
+    fn nasa_covariance_clip_leaves_values_at_the_floor_unchanged() {
+        let report = nasa_covariance_eigenvalue_clip(
+            covariance([1.0, 2.0, 3.0]),
+            1.0,
+            1.0e-12,
+        )
+        .expect("floor equality");
+        assert_eq!(report.input_definiteness, CovarianceDefiniteness::PositiveDefinite);
+        assert!(!report.clipping_applied);
+        assert_eq!(report.raw_eigenvalues, [1.0, 2.0, 3.0]);
+        assert_eq!(report.remediated_eigenvalues, [1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn nasa_covariance_clip_refuses_singular_inverse_when_zero_floor_is_used() {
+        assert_eq!(
+            nasa_covariance_eigenvalue_clip(covariance([0.0, 2.0, 3.0]), 0.0, 1.0e-12),
+            Err(KernelError::NotPositiveDefinite)
+        );
+    }
+
+    #[test]
+    fn nasa_peak_overlap_applies_hbr_scaled_floor_to_source_and_precision_matrices() {
+        let config = NasaPeakOverlapConfig {
+            fclip: 0.1,
+            symmetry_relative_tolerance: 1.0e-12,
+        };
+        let report = nasa_peak_overlap_compatibility(
+            distribution([0.0; 3], covariance([-0.25, 4.0, 9.0])),
+            distribution([2.0, 4.0, 6.0], covariance([2.0, 2.0, 2.0])),
+            10.0,
+            config,
+        )
+        .expect("NASA-style positive floor");
+        assert_eq!(report.clip_floor, 1.0);
+        assert!(report.primary_remediation.clipping_applied);
+        assert!(!report.secondary_remediation.clipping_applied);
+        assert!(report.precision_remediation.clipping_applied);
+        assert_eq!(
+            report.primary_remediation.remediated_eigenvalues,
+            [1.0, 4.0, 9.0]
+        );
+        assert_eq!(
+            report.precision_remediation.remediated_eigenvalues,
+            [1.0, 1.0, 1.5]
+        );
+        assert!((report.overlap_covariance[0][0] - 2.0 / 3.0).abs() < 1.0e-12);
+        assert!((report.overlap_covariance[1][1] - 1.0).abs() < 1.0e-12);
+        assert!((report.overlap_covariance[2][2] - 1.0).abs() < 1.0e-12);
+        assert!((report.remediated_metric_covariance[0][0] - (100.0 + 2.0 / 3.0)).abs() < 1.0e-12);
+        assert_eq!(report.fclip, 0.1);
+    }
+
+    #[test]
+    fn nasa_peak_overlap_default_fclip_reproduces_static_isotropic_overlap() {
+        let report = nasa_peak_overlap_compatibility(
+            distribution([0.0; 3], covariance([4.0, 4.0, 4.0])),
+            distribution([2.0, 4.0, 6.0], covariance([4.0, 4.0, 4.0])),
+            1.0,
+            NasaPeakOverlapConfig::default(),
+        )
+        .expect("default NASA compatibility parameters");
+        assert_eq!(report.fclip, 1.0e-4);
+        assert_eq!(report.clip_floor, 1.0e-8);
+        assert_eq!(report.overlap_position, [1.0, 2.0, 3.0]);
+        assert_eq!(report.overlap_covariance, covariance([2.0, 2.0, 2.0]));
+        assert_eq!(report.remediated_metric_covariance, covariance([3.0, 3.0, 3.0]));
+        assert!(!report.primary_remediation.clipping_applied);
+        assert!(!report.secondary_remediation.clipping_applied);
+        assert!(!report.precision_remediation.clipping_applied);
+    }
+
+    #[test]
+    fn nasa_eigenvalue_floor_is_rotation_equivariant() {
+        let angle = 0.37_f64;
+        let cosine = angle.cos();
+        let sine = angle.sin();
+        let rotation = [
+            [cosine, -sine, 0.0],
+            [sine, cosine, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        let rotate = |matrix: Matrix3| {
+            let mut result = [[0.0; 3]; 3];
+            for row in 0..3 {
+                for column in 0..3 {
+                    for i in 0..3 {
+                        for j in 0..3 {
+                            result[row][column] +=
+                                rotation[row][i] * matrix[i][j] * rotation[column][j];
+                        }
+                    }
+                }
+            }
+            result
+        };
+        let original = covariance([-0.1, 2.0, 3.0]);
+        let clipped = nasa_covariance_eigenvalue_clip(original, 0.5, 1.0e-12).unwrap();
+        let rotated = nasa_covariance_eigenvalue_clip(rotate(original), 0.5, 1.0e-12).unwrap();
+        let expected = rotate(covariance([0.5, 2.0, 3.0]));
+        for row in 0..3 {
+            for column in 0..3 {
+                assert!((rotated.remediated_covariance[row][column] - expected[row][column]).abs() < 2.0e-12);
+            }
+        }
+        assert_eq!(clipped.remediated_eigenvalues, [0.5, 2.0, 3.0]);
+        assert_eq!(rotated.remediated_eigenvalues, [0.5, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn strict_overlap_and_nasa_compatibility_remediation_are_explicitly_distinct() {
+        let invalid = distribution([0.0; 3], covariance([-0.25, 4.0, 9.0]));
+        let valid = distribution([1.0; 3], covariance([2.0, 2.0, 2.0]));
+        assert_eq!(
+            gaussian_position_overlap(invalid, valid, 10.0, GaussianOverlapConfig::default()),
+            Err(KernelError::NotPositiveDefinite)
+        );
+        let nasa = nasa_peak_overlap_compatibility(
+            invalid,
+            valid,
+            10.0,
+            NasaPeakOverlapConfig {
+                fclip: 0.1,
+                ..NasaPeakOverlapConfig::default()
+            },
+        )
+        .expect("separate NASA repair policy");
+        assert!(nasa.primary_remediation.clipping_applied);
+        assert_eq!(
+            nasa.primary_remediation.input_definiteness,
+            CovarianceDefiniteness::Indefinite
+        );
+    }
+
+    #[test]
+    fn nasa_overlap_rejects_invalid_fclip_and_symmetry_tolerance() {
+        let valid = distribution([0.0; 3], covariance([1.0; 3]));
+        assert_eq!(
+            nasa_peak_overlap_compatibility(
+                valid,
+                valid,
+                1.0,
+                NasaPeakOverlapConfig {
+                    fclip: -1.0,
+                    ..NasaPeakOverlapConfig::default()
+                }
+            ),
+            Err(KernelError::InvalidNasaPeakOverlapConfig)
+        );
+        assert_eq!(
+            nasa_covariance_eigenvalue_clip(covariance([1.0; 3]), 1.0, 1.0e-3),
+            Err(KernelError::InvalidNasaPeakOverlapConfig)
+        );
+    }
+
 }
