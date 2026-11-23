@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use nalgebra::SVector;
+use nalgebra::{SMatrix, SVector, SymmetricEigen};
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere, Transform};
 use symtropy_physics::broadphase::{self, BroadphasePair, StaticBroadphase};
 use symtropy_physics::gjk;
@@ -535,6 +535,164 @@ fn canonical_broadphase_pair(a: BodyHandle, b: BodyHandle) -> BroadphasePair {
     }
 }
 
+// ═══ Benchmark-only principal-axis sweep-and-prune baseline ═══
+
+#[derive(Clone)]
+struct BenchPcaSapEntry {
+    body_index: usize,
+    min_projection: f64,
+    max_projection: f64,
+    aabb: broadphase::Aabb<3>,
+}
+
+/// Benchmark-only PCA sweep-and-prune implementation.
+///
+/// The sweep axis is the principal eigenvector of the covariance matrix of
+/// world-AABB centers, matching the high-level axis-selection idea documented
+/// by MuJoCo. Projection intervals are computed conservatively from each
+/// world AABB, and full 3D AABB overlap is checked before emitting a pair.
+///
+/// This is a benchmark comparator, not production code and not a replacement
+/// for the independent pair oracle.
+struct BenchPcaSap {
+    axis: SVector<f64, 3>,
+    entries: Vec<BenchPcaSapEntry>,
+}
+
+impl BenchPcaSap {
+    fn principal_axis(centers: &[SVector<f64, 3>]) -> SVector<f64, 3> {
+        let fallback = SVector::<f64, 3>::new(1.0, 0.0, 0.0);
+        if centers.len() < 2 {
+            return fallback;
+        }
+
+        let centroid = centers
+            .iter()
+            .copied()
+            .fold(SVector::<f64, 3>::zeros(), |sum, center| sum + center)
+            / centers.len() as f64;
+
+        let mut covariance = SMatrix::<f64, 3, 3>::zeros();
+        for center in centers {
+            let delta = *center - centroid;
+            covariance += delta * delta.transpose();
+        }
+
+        let decomposition = SymmetricEigen::new(covariance);
+        let principal_index = (0..3)
+            .max_by(|left, right| {
+                decomposition.eigenvalues[*left].total_cmp(&decomposition.eigenvalues[*right])
+            })
+            .unwrap_or(0);
+        let mut axis = decomposition
+            .eigenvectors
+            .column(principal_index)
+            .into_owned();
+        let norm = axis.norm();
+        if !norm.is_finite() || norm <= f64::EPSILON {
+            return fallback;
+        }
+        axis /= norm;
+
+        // Eigenvectors are sign-ambiguous. Canonicalize the first material
+        // component so the chosen sweep direction is stable under replay.
+        if let Some(pivot) = axis.iter().position(|component| component.abs() > 1e-12) {
+            if axis[pivot] < 0.0 {
+                axis = -axis;
+            }
+        }
+        axis
+    }
+
+    fn build(bodies: &[RigidBody<3>]) -> Self {
+        let aabbs: Vec<_> = bodies
+            .iter()
+            .map(broadphase::Aabb::from_body)
+            .collect();
+        let centers: Vec<_> = aabbs
+            .iter()
+            .map(|aabb| (aabb.min + aabb.max) * 0.5)
+            .collect();
+        let axis = Self::principal_axis(&centers);
+
+        let mut entries: Vec<_> = aabbs
+            .into_iter()
+            .enumerate()
+            .map(|(body_index, aabb)| {
+                let center = (aabb.min + aabb.max) * 0.5;
+                let half_extent = (aabb.max - aabb.min) * 0.5;
+                let projection_center = center.dot(&axis);
+                let projection_radius = axis.map(|component| component.abs()).dot(&half_extent);
+                BenchPcaSapEntry {
+                    body_index,
+                    min_projection: projection_center - projection_radius,
+                    max_projection: projection_center + projection_radius,
+                    aabb,
+                }
+            })
+            .collect();
+
+        // Stable tie-breaking by body handle makes interval ordering
+        // independent of incidental sort behavior.
+        entries.sort_by(|left, right| {
+            left.min_projection
+                .total_cmp(&right.min_projection)
+                .then_with(|| {
+                    bodies[left.body_index]
+                        .handle
+                        .cmp(&bodies[right.body_index].handle)
+                })
+        });
+
+        Self { axis, entries }
+    }
+
+    fn query_pairs(&self, bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
+        let mut active: Vec<usize> = Vec::new();
+        let mut pairs = Vec::new();
+
+        for current_index in 0..self.entries.len() {
+            let current = &self.entries[current_index];
+            active.retain(|&active_index| {
+                self.entries[active_index].max_projection >= current.min_projection
+            });
+
+            for &active_index in &active {
+                let previous = &self.entries[active_index];
+                let body_a = &bodies[previous.body_index];
+                let body_b = &bodies[current.body_index];
+
+                if body_a.body_type == BodyType::Static
+                    && body_b.body_type == BodyType::Static
+                {
+                    continue;
+                }
+                if (body_a.collision_group & body_b.collision_mask == 0)
+                    || (body_b.collision_group & body_a.collision_mask == 0)
+                {
+                    continue;
+                }
+                if !previous.aabb.overlaps(&current.aabb) {
+                    continue;
+                }
+
+                let (handle_a, handle_b) = if body_a.handle < body_b.handle {
+                    (body_a.handle, body_b.handle)
+                } else {
+                    (body_b.handle, body_a.handle)
+                };
+                pairs.push(BroadphasePair(handle_a, handle_b));
+            }
+
+            active.push(current_index);
+        }
+
+        pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        pairs.dedup();
+        pairs
+    }
+}
+
 fn bench_broadphase_static_bvh_tournament(c: &mut Criterion) {
     let mut group = c.benchmark_group("broadphase_static_bvh_tournament_3d");
 
@@ -575,6 +733,42 @@ fn bench_broadphase_static_bvh_tournament(c: &mut Criterion) {
 
         let full_pairs = broadphase::find_pairs(&bodies);
         assert_eq!(full_pairs, expected, "full LBVH mismatch in {scenario}");
+
+        let pca_sap = BenchPcaSap::build(&bodies);
+        let pca_sap_pairs = pca_sap.query_pairs(&bodies);
+        assert_eq!(
+            pca_sap_pairs, expected,
+            "PCA sweep-and-prune mismatch in {scenario}, axis={:?}",
+            pca_sap.axis
+        );
+
+        group.bench_function(
+            BenchmarkId::new("pca_sap_query_only", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(pca_sap.query_pairs(black_box(&bodies)));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("pca_sap_build_only", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(BenchPcaSap::build(black_box(&bodies)));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("pca_sap_build_plus_query", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    let sap = BenchPcaSap::build(black_box(&bodies));
+                    black_box(sap.query_pairs(black_box(&bodies)));
+                });
+            },
+        );
 
         group.bench_function(
             BenchmarkId::new("static_bvh_query_only", &scenario),
