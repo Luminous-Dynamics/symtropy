@@ -438,3 +438,24 @@ Exact-head verification for the 12×16 bitmask-DP plus explicit offline-informat
 
 
 **Information boundary:** a full-horizon exact assignment can use later revealed requests when choosing earlier opportunity assignments. The result is therefore labelled `clairvoyant_full_horizon_offline_upper_bound` and `deployable_online_policy=false`. A separate nonanticipative scenario-tree oracle is tracked in [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133).
+
+
+## NONANTICIPATIVE-SERVICE-ORACLE-001 — exact scenario-tree reference
+
+Issue: [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133)  
+Research dossier: `docs/research/SUSTAINABLE_MOBILITY_NONANTICIPATIVE_ORACLE_BENCHMARK_V0_1.md`
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin nonanticipative_service_oracle_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/nonanticipative_service_oracle_v0_1.json
+```
+
+Unlike the #7129 full-horizon exact assignment DP, this oracle chooses one action per **information-set digest**. Scenarios with identical revealed request/weather/permission/opportunity history share one root action. The public input embeds the linked #6921 request package and #6909 capacity package; the oracle reruns both, then resolves qualified aerial IDs to exact event-derived capacity receipts. Aircraft identity, start time, mission duration and turnaround are never hand-authored in this oracle input. Only source receipt IDs can appear in the observation tree.
+
+The frozen three-scenario challenge has a shared root at 349 seconds, then branches at 350 seconds: (a) no later request; (b) a later urgent request with weather go; (c) the same request with a newly revealed no-go state. The single source receipt is `aircraft-00-mission-000002`. The nonanticipative policy defers at the root and serves the later request only in the go branch. Its expected on-time count is 350,000 probability-weighted units; the clairvoyant upper bound has the same on-time count but 650,000 completed-by-horizon units vs 350,000 for the nonanticipative policy. The 300,000-unit completed-service difference is reported as value of perfect information, not as an attainable online gain.
+
+The report carries the exact capacity-source report, architecture and opportunity-set digests; `deployable_online_policy=false`; and dispatch, flight and physical-mutation authority are always false. The source currently contains 13 focused Rust tests, including an independently enumerated three-policy reference, source-receipt mismatch, unknown hand-authored opportunity field, future evidence, weather/permission denial, shared information-set identity, bounds and permutation controls.
+
+The implementation and synthetic fixture are committed, but **no Rust format, compilation or test pass is claimed for this branch until its exact-head Actions run succeeds**. The workflow is being wired to parse the strict schema/fixture, execute the CLI, assert the nonanticipative/clairvoyant known answer, hash the source and retain the report artifact. Clippy and field validation remain separate.
