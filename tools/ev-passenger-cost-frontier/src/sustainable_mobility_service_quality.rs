@@ -1189,7 +1189,10 @@ fn evaluate_policy(
     })
 }
 
-fn exact_score(assignments: &[Option<ExactOracleAssignment>], input: &ServiceQualityInput) -> ExactOracleScore {
+fn exact_score(
+    assignments: &[Option<ExactOracleAssignment>],
+    input: &ServiceQualityInput,
+) -> ExactOracleScore {
     let mut completed_on_time = 0_usize;
     let mut completed_late = 0_usize;
     let mut in_progress_at_horizon = 0_usize;
@@ -1211,12 +1214,11 @@ fn exact_score(assignments: &[Option<ExactOracleAssignment>], input: &ServiceQua
             continue;
         }
 
-        total_latency_seconds = total_latency_seconds
-            .saturating_add(
-                assignment
-                    .projected_completion_seconds
-                    .saturating_sub(request.arrival_seconds),
-            );
+        total_latency_seconds = total_latency_seconds.saturating_add(
+            assignment
+                .projected_completion_seconds
+                .saturating_sub(request.arrival_seconds),
+        );
         if assignment.projected_completion_seconds <= request.deadline_seconds {
             completed_on_time += 1;
         } else {
@@ -1317,8 +1319,7 @@ fn exact_policy_gap(
             .saturating_sub(policy_result.completed_on_time + policy_result.completed_late),
         lateness_excess_seconds: policy_lateness_seconds
             .saturating_sub(oracle.total_lateness_seconds),
-        latency_excess_seconds: policy_latency_seconds
-            .saturating_sub(oracle.total_latency_seconds),
+        latency_excess_seconds: policy_latency_seconds.saturating_sub(oracle.total_latency_seconds),
         in_progress_excess: policy_result
             .in_progress_requests
             .saturating_sub(oracle.in_progress_at_horizon),
@@ -1838,8 +1839,7 @@ pub fn evaluate_linked_service_quality(
         claim_ceiling: input.claim_ceiling.clone(),
     };
     let evaluated = evaluate_service_quality(&legacy_input).map_err(|errors| errors)?;
-    let exact_oracle =
-        exact_assignment_oracle(&legacy_input, &evaluated.policy_results)?;
+    let exact_oracle = exact_assignment_oracle(&legacy_input, &evaluated.policy_results)?;
 
     Ok(LinkedServiceQualityReport {
         schema_version: input.schema_version.clone(),
