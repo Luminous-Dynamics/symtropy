@@ -39,7 +39,15 @@ This crate is a protocol/evaluator contract. It does not implement an encoder, A
 
 Audio intervals use exact source sample indices, sample rate and source channel count. Video intervals use exact frame indices and rational source FPS. An audiovisual representation must name both exact spans. Clock domain and generation are inherited from the parent source identity; resets cannot silently preserve an old receipt.
 
-### Reproducibility
+### Integration status and video boundary
+
+The current #6897 lifecycle adapter is implemented for **audio-window actions**: it calls the canonical forecast/acceptance/result validator, then derives the parent source sample interval from the executor's delivered-audio receipt.
+
+A matching video parent adapter is intentionally not inferred yet. #6897's delivered frame receipt currently carries sequence/frame index and capture timestamp, but it does not yet make the source-native frame index or a source-frame clock mapping explicit enough to prove a derived source-frame interval without ambiguity. Until that envelope is added, a video caller must supply evaluator-attested parent evidence with a genuinely source-native frame mapping; do not relabel request-local frame sequence as source frame index. Audiovisual parents require both independently validated spans.
+
+This is a deliberate fail-closed boundary, not a claim that video derivation integration is complete.
+
+## Reproducibility
 
 Bit-exact replay is the default. Floating-point encoders may explicitly declare an absolute tolerance in integer ppm units. The receipt records the policy but does not claim that a replay was run; re-encoder verification must create a separate measured result.
 
