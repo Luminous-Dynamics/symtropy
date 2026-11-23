@@ -914,7 +914,7 @@ mod tests {
     fn trapezoidal_dominant_node_refinement_bisects_adjacent_intervals() {
         let input = snapshot(
             &[-10.0, 0.0, 10.0],
-            &[0.0, 50.0, 100.0],
+            &[0.0, 50.0, 50.0],
             &[2.0, 1.0, 2.0],
             -10.0,
             10.0,
