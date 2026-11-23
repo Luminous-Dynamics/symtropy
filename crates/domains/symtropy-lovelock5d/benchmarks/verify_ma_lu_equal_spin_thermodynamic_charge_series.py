@@ -76,7 +76,8 @@ def derive() -> dict:
     # Only the total coefficient through nu^2 is fully controlled because
     # the O(eps*nu^4+) background parameter redefinition is not yet derived.
     M_total_to_nu2=sp.series(
-        sp.Rational(3,4)*pi*mu_background+eps*deltaM_nu,nu,0,3
+        sp.series(sp.Rational(3,4)*pi*mu_background+eps*deltaM_nu,eps,0,2).removeO(),
+        nu,0,3
     ).removeO().expand()
     expected_M=(3*pi/(8*(1-nu**2))+eps*(sp.Rational(3,4)*pi-sp.Rational(11,6)*pi*nu**2))
     zero("fixed-boundary total ADM mass through eps*nu^2",
@@ -85,7 +86,10 @@ def derive() -> dict:
     # Eq. (3.2): J_a=pi*mu*a/2 and is unchanged by alpha at fixed (mu,a).
     # Reparameterize with the verified fixed-(R_H,Omega_H) map.
     a_over_R=nu+eps*(sp.Rational(16,3)*nu-sp.Rational(2068,45)*nu**3)
-    J_over_R3=sp.series(sp.Rational(1,2)*pi*mu_background*a_over_R,nu,0,4).removeO().expand()
+    J_over_R3=sp.series(
+        sp.series(sp.Rational(1,2)*pi*mu_background*a_over_R,eps,0,2).removeO(),
+        nu,0,4
+    ).removeO().expand()
     expected_J=pi*nu/(4*(1-nu**2))+eps*pi*(nu/2-sp.Rational(46,9)*nu**3)
     zero("fixed-boundary angular momentum through eps*nu^3",
          sp.series(J_over_R3-expected_J,nu,0,4).removeO())
