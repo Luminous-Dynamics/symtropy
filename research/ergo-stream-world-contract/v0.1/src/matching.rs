@@ -368,13 +368,13 @@ mod tests {
             id: 30,
             kind: 1,
             orientation: RelationOrientationV0::Directed,
-            participants: vec![1, 2],
+            participants: vec![3],
         });
         target.relations.push(RelationV0 {
             id: 130,
             kind: 101,
             orientation: RelationOrientationV0::Directed,
-            participants: vec![12, 11],
+            participants: vec![13],
         });
 
         assert_eq!(
