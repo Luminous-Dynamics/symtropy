@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital GSD k-Coverage Voxel Visibility Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "case_id",
+    "coordinate_frame_id",
+    "grid",
+    "camera"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-gsd-kcoverage.case.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-GSD-KCOVER-VOXEL-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_3d_voxel_surface_candidate_view_visibility_only"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin_m",
+        "voxel_size_m",
+        "dimensions",
+        "occupied_cells"
+      ],
+      "properties": {
+        "origin_m": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "voxel_size_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128
+          }
+        },
+        "occupied_cells": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizontal_fov_rad",
+        "horizontal_pixel_count",
+        "gsd_max_m_per_pixel",
+        "max_oblique_angle_rad"
+      ],
+      "properties": {
+        "horizontal_fov_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 3.141592653589793
+        },
+        "horizontal_pixel_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gsd_max_m_per_pixel": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_oblique_angle_rad": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1.5707963267948966
+        }
+      }
+    }
+  }
+}
