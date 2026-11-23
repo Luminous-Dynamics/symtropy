@@ -186,8 +186,8 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
   const totalCost=addCost(queryCost,actionCost);
   const scenarios=baseInfo.scenarios;
   const classRegretByOutcome=new Map();
-  // A non-anticipative class comparator chooses one common action for all worlds
-  // sharing the same public result. It cannot inspect the hidden scenario.
+  // Select one comparator action that is robust across the complete public
+  // observation class. Do not let the comparator see the hidden scenario.
   for(const [outcomeId,worlds] of Object.entries(classes)){
     const rows=classScenarios(scenarios,worlds);
     const options=classOptions[outcomeId];
