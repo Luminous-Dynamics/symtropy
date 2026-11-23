@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-known-answers-v0.1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "answer_count",
+    "answers",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-known-answers-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-MULTIPERIOD-POLICY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "answer_count": {
+      "const": 12
+    },
+    "answers": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "greedy_expected_cost_numerator",
+          "exact_expected_cost_numerator",
+          "exact_quality_rejection_numerator"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "greedy_expected_cost_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "exact_expected_cost_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "exact_quality_rejection_numerator": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
