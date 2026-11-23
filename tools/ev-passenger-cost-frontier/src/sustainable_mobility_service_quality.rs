@@ -595,7 +595,6 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
             || opportunity.max_service_duration_seconds > MAX_SERVICE_SECONDS
             || opportunity.max_payload_units == 0
             || opportunity.max_payload_units > MAX_PAYLOAD_UNITS
-            || end.is_none_or(|value| value > input.horizon_seconds)
         {
             add_error(
                 &mut errors,
@@ -807,6 +806,7 @@ fn evaluate_policy(
                     arrival_seconds: request.arrival_seconds,
                     service_start_seconds: None,
                     service_completion_seconds: None,
+                    projected_completion_seconds: None,
                     latency_seconds: None,
                     queue_wait_seconds: None,
                     denial_reason: Some("arrival_after_acceptance_cutoff".to_owned()),
@@ -992,11 +992,14 @@ fn evaluate_policy(
             let wait = assignment
                 .start_seconds
                 .saturating_sub(request.arrival_seconds);
-            let disposition = if assignment.completion_seconds <= request.deadline_seconds {
+            let disposition = if assignment.completion_seconds > input.horizon_seconds {
+                RequestDisposition::InProgressAtHorizon
+            } else if assignment.completion_seconds <= request.deadline_seconds {
                 RequestDisposition::CompletedOnTime
             } else {
                 RequestDisposition::CompletedLate
             };
+            let completed = disposition != RequestDisposition::InProgressAtHorizon;
             outcomes.insert(
                 request.request_id.clone(),
                 RequestOutcome {
@@ -1006,8 +1009,9 @@ fn evaluate_policy(
                     opportunity_id: Some(assignment.opportunity_id.clone()),
                     arrival_seconds: request.arrival_seconds,
                     service_start_seconds: Some(assignment.start_seconds),
-                    service_completion_seconds: Some(assignment.completion_seconds),
-                    latency_seconds: Some(latency),
+                    service_completion_seconds: completed.then_some(assignment.completion_seconds),
+                    projected_completion_seconds: Some(assignment.completion_seconds),
+                    latency_seconds: completed.then_some(latency),
                     queue_wait_seconds: Some(wait),
                     denial_reason: None,
                 },
@@ -1036,6 +1040,7 @@ fn evaluate_policy(
                     arrival_seconds: request.arrival_seconds,
                     service_start_seconds: None,
                     service_completion_seconds: None,
+                    projected_completion_seconds: None,
                     latency_seconds: None,
                     queue_wait_seconds: None,
                     denial_reason: Some(reason),
@@ -1065,10 +1070,21 @@ fn evaluate_policy(
         .iter()
         .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
         .count();
-    let unserved_requests = accepted_requests - completed_on_time - completed_late;
+    let in_progress_requests = outcomes
+        .iter()
+        .filter(|outcome| outcome.disposition == RequestDisposition::InProgressAtHorizon)
+        .count();
+    let unserved_requests =
+        accepted_requests - completed_on_time - completed_late - in_progress_requests;
     let served_by_aerial = outcomes
         .iter()
-        .filter(|outcome| outcome.fulfilment_mode == Some(FulfilmentMode::Aerial))
+        .filter(|outcome| {
+            outcome.fulfilment_mode == Some(FulfilmentMode::Aerial)
+                && matches!(
+                    outcome.disposition,
+                    RequestDisposition::CompletedOnTime | RequestDisposition::CompletedLate
+                )
+        })
         .count();
     let served_by_fallback = outcomes
         .iter()
@@ -1076,7 +1092,26 @@ fn evaluate_policy(
             matches!(
                 outcome.fulfilment_mode,
                 Some(FulfilmentMode::GroundCourier | FulfilmentMode::Locker | FulfilmentMode::Amr)
+            ) && matches!(
+                outcome.disposition,
+                RequestDisposition::CompletedOnTime | RequestDisposition::CompletedLate
             )
+        })
+        .count();
+    let in_progress_by_aerial = outcomes
+        .iter()
+        .filter(|outcome| {
+            outcome.fulfilment_mode == Some(FulfilmentMode::Aerial)
+                && outcome.disposition == RequestDisposition::InProgressAtHorizon
+        })
+        .count();
+    let in_progress_by_fallback = outcomes
+        .iter()
+        .filter(|outcome| {
+            matches!(
+                outcome.fulfilment_mode,
+                Some(FulfilmentMode::GroundCourier | FulfilmentMode::Locker | FulfilmentMode::Amr)
+            ) && outcome.disposition == RequestDisposition::InProgressAtHorizon
         })
         .count();
 
@@ -1120,9 +1155,12 @@ fn evaluate_policy(
         rejected_requests,
         completed_on_time,
         completed_late,
+        in_progress_requests,
         unserved_requests,
         served_by_aerial,
         served_by_fallback,
+        in_progress_by_aerial,
+        in_progress_by_fallback,
         aerial_opportunities_available,
         aerial_opportunities_blocked: blocked_aerial_ids.len(),
         aerial_opportunities_unused,
@@ -1130,11 +1168,11 @@ fn evaluate_policy(
         max_waiting_requests_peak,
         completed_requests_per_hour: total_completed as f64 / horizon_hours,
         aerial_opportunity_utilization_percent: percent(
-            served_by_aerial,
+            served_by_aerial + in_progress_by_aerial,
             input.aerial_opportunities.len(),
         ),
         fallback_opportunity_utilization_percent: percent(
-            served_by_fallback,
+            served_by_fallback + in_progress_by_fallback,
             input.fallback_opportunities.len(),
         ),
         fallback_share_of_completed_percent: percent(served_by_fallback, total_completed),
