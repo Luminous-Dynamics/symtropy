@@ -1087,7 +1087,9 @@ mod tests {
                 pair_id: "body-a/body-b".into(),
                 identity_mode: capacity::PointIdentityMode::StablePointIds,
                 reduction_policy_id: None,
-                point_capacity: Some(8),
+                candidate_buffer_capacity: Some(8),
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(8),
                 generated_points: vec![capacity::GeometricPointRecord {
                     point_id: "point-0".into(),
                     disposition: capacity::GeometricPointDisposition::Retained,
