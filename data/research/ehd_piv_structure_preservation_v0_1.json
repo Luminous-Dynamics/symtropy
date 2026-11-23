@@ -27,7 +27,10 @@
     "weak_structure_sign_agreement",
     "weak_structure_signed_amplitude_ratio",
     "weak_structure_signed_amplitude_bias",
-    "false_support_rate_in_background"
+    "false_support_rate_in_background",
+    "predicted_weak_support_cells",
+    "false_positive_weak_support_cells",
+    "background_prediction_available_cells"
   ],
   "prospective_targets": {
     "weak_structure_recall": 0.95,
@@ -70,5 +73,7 @@
     "no_empirical_uncertainty_calibration",
     "no_physical_EHD_experiment",
     "no_SOTA_superiority_claim"
-  ]
+  ],
+  "precision_definition": "true retained weak structures divided by all predicted weak support (wrong sign or inadequate amplitude and background false support count as false positives)",
+  "false_support_rate_definition": "false support in reference-defined background divided by background cells with valid reconstructed derivative stencils"
 }
