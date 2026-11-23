@@ -796,6 +796,158 @@ fn verify_policy(case: &PolicyCase, policy: &PolicyForest) -> Result<usize, Stri
     Ok(count)
 }
 
+fn unique_scenario_node<'a>(
+    nodes: &'a [DecisionNode],
+    scenario_id: &str,
+) -> Result<&'a DecisionNode, String> {
+    let matches: Vec<&DecisionNode> = nodes
+        .iter()
+        .filter(|node| node.scenario_ids.iter().any(|id| id == scenario_id))
+        .collect();
+    match matches.as_slice() {
+        [node] => Ok(*node),
+        [] => Err(fail("scenario_missing_from_policy_decision_node")),
+        _ => Err(fail("scenario_appears_in_multiple_sibling_policy_nodes")),
+    }
+}
+
+// Independent path replay: deliberately does not call the optimizer's action-cost,
+// action-enumeration or completed-state transition helpers.
+fn replay_scenario(case: &PolicyCase, policy: &PolicyForest, scenario_index: usize) -> Result<u64, String> {
+    let scenario = case
+        .scenarios
+        .get(scenario_index)
+        .ok_or_else(|| fail("replay_scenario_index_out_of_range"))?;
+    let mut candidates = policy.roots.as_slice();
+    let mut completed = BTreeMap::<String, String>::new();
+    let mut total_cost = 0_u64;
+
+    for period in 0..case.horizon {
+        let node = unique_scenario_node(candidates, &scenario.scenario_id)?;
+        if node.period != period {
+            return Err(fail("replay_policy_node_period_mismatch"));
+        }
+        let visible_history = history_prefix(case, scenario_index, period)?;
+        if node.observable_history != visible_history {
+            return Err(fail("replay_policy_visible_history_mismatch"));
+        }
+        if node.completed_routes_before != completed {
+            return Err(fail("replay_policy_completed_before_mismatch"));
+        }
+
+        let observation = visible_history
+            .last()
+            .ok_or_else(|| fail("replay_history_missing_current_observation"))?;
+        let mut assigned_jobs = BTreeSet::new();
+        let mut resource_use = BTreeMap::<String, u64>::new();
+
+        for assignment in &node.assignments {
+            if !assigned_jobs.insert(assignment.job_id.as_str())
+                || completed.contains_key(&assignment.job_id)
+            {
+                return Err(fail("replay_duplicate_or_already_completed_job"));
+            }
+
+            let job = case
+                .jobs
+                .iter()
+                .find(|candidate| candidate.job_id == assignment.job_id)
+                .ok_or_else(|| fail("replay_assignment_unknown_job"))?;
+            let route = job
+                .routes
+                .iter()
+                .find(|candidate| candidate.resource_id == assignment.resource_id)
+                .ok_or_else(|| fail("replay_assignment_route_not_qualified_for_job"))?;
+            let resource = case
+                .resources
+                .iter()
+                .find(|candidate| candidate.resource_id == assignment.resource_id)
+                .ok_or_else(|| fail("replay_assignment_unknown_resource"))?;
+
+            if observation.failed_resource_ids.contains(&assignment.resource_id)
+                || observation.unknown_resource_ids.contains(&assignment.resource_id)
+            {
+                return Err(fail("replay_assignment_uses_failed_or_unknown_resource"));
+            }
+
+            let used = resource_use.entry(assignment.resource_id.clone()).or_default();
+            *used = used
+                .checked_add(1)
+                .ok_or_else(|| fail("replay_resource_use_overflow"))?;
+            if *used > resource.capacity_units_by_period[period] {
+                return Err(fail("replay_time_indexed_resource_capacity_exceeded"));
+            }
+
+            let completion_period = u64::try_from(period + 1)
+                .map_err(|_| fail("replay_period_conversion_overflow"))?;
+            let due_period = u64::try_from(job.due_period)
+                .map_err(|_| fail("replay_due_period_conversion_overflow"))?;
+            let late_periods = completion_period.saturating_sub(due_period);
+            let tardy_cost = late_periods
+                .checked_mul(job.tardiness_penalty_per_period)
+                .ok_or_else(|| fail("replay_tardiness_cost_overflow"))?;
+            let route_cost = route
+                .production_cost_units
+                .checked_add(route.expected_quality_loss_units)
+                .and_then(|value| value.checked_add(tardy_cost))
+                .ok_or_else(|| fail("replay_route_cost_overflow"))?;
+            total_cost = total_cost
+                .checked_add(route_cost)
+                .ok_or_else(|| fail("replay_total_cost_overflow"))?;
+        }
+
+        for assignment in &node.assignments {
+            if completed
+                .insert(assignment.job_id.clone(), assignment.resource_id.clone())
+                .is_some()
+            {
+                return Err(fail("replay_job_completed_more_than_once"));
+            }
+        }
+        if node.completed_routes_after != completed {
+            return Err(fail("replay_completed_after_mismatch"));
+        }
+
+        if period + 1 < case.horizon {
+            candidates = node.children.as_slice();
+        } else if !node.children.is_empty() {
+            return Err(fail("replay_terminal_node_has_children"));
+        }
+    }
+
+    for job in &case.jobs {
+        if !completed.contains_key(&job.job_id) {
+            total_cost = total_cost
+                .checked_add(job.unserved_penalty_units)
+                .ok_or_else(|| fail("replay_unserved_cost_overflow"))?;
+        }
+    }
+    Ok(total_cost)
+}
+
+fn replay_policy(case: &PolicyCase, policy: &PolicyForest) -> Result<u64, String> {
+    let mut weighted_total = 0_u64;
+    for (index, scenario) in case.scenarios.iter().enumerate() {
+        let leaf_cost = replay_scenario(case, policy, index)?;
+        let weighted = leaf_cost
+            .checked_mul(scenario.probability_ppm)
+            .ok_or_else(|| fail("replay_weighted_cost_overflow"))?;
+        weighted_total = weighted_total
+            .checked_add(weighted)
+            .ok_or_else(|| fail("replay_policy_total_overflow"))?;
+    }
+
+    let reported_total = policy.roots.iter().try_fold(0_u64, |total, root| {
+        total
+            .checked_add(root.expected_cost_numerator)
+            .ok_or_else(|| fail("replay_reported_root_cost_overflow"))
+    })?;
+    if weighted_total != reported_total {
+        return Err(fail("independent_replay_cost_does_not_match_policy_report"));
+    }
+    Ok(weighted_total)
+}
+
 fn quality_rejection_numerator(case: &PolicyCase, policy: &PolicyForest) -> Result<u64, String> {
     fn visit(case: &PolicyCase, node: &DecisionNode, total: &mut u64) -> Result<(), String> {
         if node.children.is_empty() {
@@ -845,6 +997,8 @@ fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
     {
         return Err(fail("policy_node_count_or_verification_mismatch"));
     }
+    let greedy_replayed = replay_policy(case, &greedy_policy)?;
+    let exact_replayed = replay_policy(case, &exact_policy)?;
 
     let greedy_cost = greedy_policy.roots.iter().try_fold(0_u64, |total, node| {
         total
@@ -856,6 +1010,9 @@ fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
             .checked_add(node.expected_cost_numerator)
             .ok_or_else(|| fail("exact_root_cost_overflow"))
     })?;
+    if greedy_replayed != greedy_cost || exact_replayed != exact_cost {
+        return Err(fail("independent_scenario_replay_cost_mismatch"));
+    }
     if exact_cost > greedy_cost {
         return Err(fail("exact_policy_cost_exceeds_myopic_baseline"));
     }
@@ -1152,6 +1309,47 @@ mod tests {
             assert!(exact_cost <= greedy_cost, "{}", case.case_id);
             verify_policy(case, &exact).unwrap();
         }
+    }
+
+    #[test]
+    fn independent_scenario_replay_matches_both_policy_objectives_for_all_cases() {
+        let corpus = corpus();
+        for case in &corpus.cases {
+            let greedy = build_policy(case, false).unwrap();
+            let exact = build_policy(case, true).unwrap();
+            let greedy_replayed = replay_policy(case, &greedy).unwrap();
+            let exact_replayed = replay_policy(case, &exact).unwrap();
+            let greedy_reported: u64 = greedy
+                .roots
+                .iter()
+                .map(|node| node.expected_cost_numerator)
+                .sum();
+            let exact_reported: u64 = exact
+                .roots
+                .iter()
+                .map(|node| node.expected_cost_numerator)
+                .sum();
+            assert_eq!(greedy_replayed, greedy_reported, "{}", case.case_id);
+            assert_eq!(exact_replayed, exact_reported, "{}", case.case_id);
+        }
+    }
+
+    #[test]
+    fn independent_replay_rejects_time_indexed_capacity_overbooking() {
+        let corpus = corpus();
+        let case = &corpus.cases[0];
+        let mut policy = build_policy(case, true).unwrap();
+        let root = policy.roots.first_mut().unwrap();
+        root.assignments.push(Assignment {
+            job_id: "JOB-FLEX".into(),
+            resource_id: "RESOURCE-A".into(),
+        });
+        root.completed_routes_after
+            .insert("JOB-FLEX".into(), "RESOURCE-A".into());
+        assert_eq!(
+            replay_policy(case, &policy).unwrap_err(),
+            "replay_time_indexed_resource_capacity_exceeded"
+        );
     }
 
     #[test]
