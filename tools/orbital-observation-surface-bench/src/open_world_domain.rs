@@ -173,6 +173,29 @@ fn payload_sha256(action_id: &str) -> String {
     sha256_hex(format!("orbital-domain-action:v0.1:{action_id}").as_bytes())
 }
 
+fn canonical_domain_snapshot_sha256(domain: &DomainManifest) -> Result<String, String> {
+    let mut canonical = domain.clone();
+    canonical.components.sort_by(|left, right| left.component_id.cmp(&right.component_id));
+    for component in &mut canonical.components {
+        component.capability_ids.sort();
+    }
+    canonical.operations.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
+    canonical.actors.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
+    for actor in &mut canonical.actors {
+        actor.role_ids.sort();
+    }
+    let mut value = serde_json::to_value(canonical)
+        .map_err(|error| format!("failed to serialize canonical domain manifest: {error}"))?;
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| "canonical domain manifest must serialize as an object".to_owned())?;
+    object.remove("snapshot_sha256");
+    object.remove("current_snapshot_sha256");
+    let bytes = serde_json::to_vec(&value)
+        .map_err(|error| format!("failed to serialize canonical domain snapshot: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
 fn set_difference(left: &BTreeSet<String>, right: &BTreeSet<String>) -> Vec<String> {
     left.difference(right).cloned().collect()
 }
@@ -261,6 +284,11 @@ fn validate_domain(domain: &DomainManifest) -> Result<(), String> {
             "domain {} has invalid bounded manifest",
             domain.domain_id
         ));
+    }
+
+    let computed_snapshot = canonical_domain_snapshot_sha256(domain)?;
+    if computed_snapshot != domain.snapshot_sha256 {
+        return Err("domain manifest content does not match its snapshot digest".to_owned());
     }
 
     let mut component_ids = BTreeSet::new();
@@ -553,6 +581,31 @@ mod tests {
             case(&result, "outside_domain_action").status,
             "ENUMERATOR_OUTSIDE_DOMAIN"
         );
+    }
+
+    #[test]
+    fn domain_manifest_mutation_without_snapshot_rebinding_is_rejected() {
+        let mut corpus = fixture();
+        corpus.cases[0].domain.components[0].resource_capacity_milli += 1;
+        assert!(evaluate(&corpus).is_err());
+    }
+
+    #[test]
+    fn semantically_unordered_grammar_rows_have_canonical_snapshot_identity() {
+        let corpus = fixture();
+        let expected = evaluate(&corpus).expect("original grammar evaluates");
+        let mut permuted = fixture();
+        permuted.cases[0].domain.components.reverse();
+        for component in &mut permuted.cases[0].domain.components {
+            component.capability_ids.reverse();
+        }
+        permuted.cases[0].domain.operations.reverse();
+        permuted.cases[0].domain.actors.reverse();
+        for actor in &mut permuted.cases[0].domain.actors {
+            actor.role_ids.reverse();
+        }
+        let actual = evaluate(&permuted).expect("permuted grammar evaluates");
+        assert_eq!(actual.cases, expected.cases);
     }
 
     #[test]
