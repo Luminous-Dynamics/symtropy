@@ -277,6 +277,28 @@ fn validate_and_pair(
             .map_err(|_| RobustDecisionImpactError::ArithmeticOverflow)?));
     }
 
+    let class_ids: BTreeSet<u64> = point_pairs
+        .keys()
+        .flat_map(|(lower, upper)| [*lower, *upper])
+        .collect();
+    let expected_class_pair_count = class_ids
+        .len()
+        .checked_mul(class_ids.len().saturating_sub(1))
+        .and_then(|count| count.checked_div(2))
+        .ok_or(RobustDecisionImpactError::ArithmeticOverflow)?;
+    if expected_class_pair_count != point.decision_class_pair_count {
+        return Err(RobustDecisionImpactError::InvalidAssessment);
+    }
+    let ordered_class_ids: Vec<u64> = class_ids.into_iter().collect();
+    for index in 0..ordered_class_ids.len() {
+        for other_index in (index + 1)..ordered_class_ids.len() {
+            let key = (ordered_class_ids[index], ordered_class_ids[other_index]);
+            if !point_pairs.contains_key(&key) {
+                return Err(RobustDecisionImpactError::InvalidAssessment);
+            }
+        }
+    }
+
     if summed_pairs != point.total_cross_decision_hypothesis_pair_count
         || total_weight != point.total_relative_impact_weight
         || u32::try_from(weighted_resolution / total_weight).ok()
@@ -625,6 +647,22 @@ mod tests {
         )
         .unwrap();
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn incomplete_decision_class_pair_graph_rejects() {
+        let point = point_assessment(&[
+            (1, 2, 1, 1, 1),
+            (1, 3, 1, 0, 1),
+            (2, 4, 1, 0, 1),
+        ]);
+        assert_eq!(
+            assess_robust_decision_impact(
+                &point,
+                &policy(&[(1, 2, 1, 2), (1, 3, 1, 2), (2, 4, 1, 2)]),
+            ),
+            Err(RobustDecisionImpactError::InvalidAssessment)
+        );
     }
 
     #[test]
