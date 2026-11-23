@@ -378,6 +378,7 @@ jobs:
             .validation == "passed"
             and .preflight_scope == "captured_capability_profile_only"
             and (.simulation_interfaces_revision | length > 0)
+            and .gazebo_release == "harmonic"
             and .scene_broadcaster_id == "gz::sim::systems::SceneBroadcaster"
             and (.scene_broadcaster_sha256 | test("^[a-fA-F0-9]{64}$"))
             and .scene_broadcaster_loaded == true
