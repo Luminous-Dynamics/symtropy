@@ -312,6 +312,18 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
     }
     let req_by_id = reqs.iter().map(|r| (r.id, r)).collect::<BTreeMap<_, _>>();
+    for (model_id, model) in &models {
+        if let Some(requirement) = req_by_id.get(model_id) {
+            if model.family != requirement.family {
+                findings.push(finding(
+                    "MODEL_FAMILY_MISMATCH",
+                    Some(model_id),
+                    None,
+                    "producer model family differs from the independently registered model family",
+                ));
+            }
+        }
+    }
     let expected_models = reqs
         .iter()
         .map(|r| r.id.to_owned())
@@ -541,6 +553,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
         "MODEL_OUT_OF_PROFILE"
     } else if codes.contains("MODEL_SOURCE_UNAVAILABLE") {
         "MODEL_SOURCE_UNAVAILABLE"
+    } else if codes.contains("MODEL_FAMILY_MISMATCH") {
+        "MODEL_FAMILY_MISMATCH"
     } else if codes.contains("MODEL_SCOPE_MISMATCH") {
         "MODEL_SCOPE_MISMATCH"
     } else if codes.contains("MODEL_RECEIPT_ALIAS") {
@@ -660,6 +674,15 @@ mod tests {
             .find(|c| c.case_id == id)
             .expect("case exists")
     }
+    #[test]
+    fn producer_model_family_must_match_independent_grammar() {
+        let e = evaluate(&fixture()).expect("evaluate");
+        assert_eq!(
+            case(&e, "model_family_mismatch").disposition,
+            "MODEL_FAMILY_MISMATCH"
+        );
+    }
+
     #[test]
     fn model_scope_mismatch_is_explicit() {
         let e = evaluate(&fixture()).expect("evaluate");
