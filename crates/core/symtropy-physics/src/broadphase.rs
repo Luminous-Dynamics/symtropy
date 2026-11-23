@@ -41,9 +41,7 @@ impl<const D: usize> Aabb<D> {
     /// separation. Broadphase entry points must fail open when this is false.
     pub fn is_valid_finite(&self) -> bool {
         (0..D).all(|i| {
-            self.min[i].is_finite()
-                && self.max[i].is_finite()
-                && self.min[i] <= self.max[i]
+            self.min[i].is_finite() && self.max[i].is_finite() && self.min[i] <= self.max[i]
         })
     }
 
@@ -366,9 +364,7 @@ fn find_pairs_unpruned<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<Broadphas
     let mut pairs = Vec::new();
     for i in 0..bodies.len() {
         for j in (i + 1)..bodies.len() {
-            if bodies[i].body_type == BodyType::Static
-                && bodies[j].body_type == BodyType::Static
-            {
+            if bodies[i].body_type == BodyType::Static && bodies[j].body_type == BodyType::Static {
                 continue;
             }
             if !should_collide(&bodies[i], &bodies[j]) {
@@ -591,9 +587,7 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
     let mut pairs = Vec::new();
     for i in 0..bodies.len() {
         for j in (i + 1)..bodies.len() {
-            if bodies[i].body_type == BodyType::Static
-                && bodies[j].body_type == BodyType::Static
-            {
+            if bodies[i].body_type == BodyType::Static && bodies[j].body_type == BodyType::Static {
                 continue;
             }
             if !should_collide(&bodies[i], &bodies[j]) {
@@ -615,8 +609,7 @@ mod tests {
 
     #[test]
     fn non_finite_bounds_fail_open_in_brute_force_path() {
-        let mut invalid =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut invalid = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         invalid.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
         let distant =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([100.0, 0.0, 0.0]), 0.5, 1.0);
@@ -630,8 +623,7 @@ mod tests {
 
     #[test]
     fn non_finite_bounds_fail_open_in_lbvh_path() {
-        let mut invalid =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut invalid = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         invalid.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
 
         let mut bodies = vec![invalid];
