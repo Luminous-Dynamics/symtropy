@@ -496,6 +496,19 @@ mod tests {
     }
 
     #[test]
+    fn pre_first_bounded_set_abstentions_do_not_inflate_certified_margin() {
+        let mut audit = audit();
+        for sequence in 1..=25 {
+            let report = audit
+                .observe_completed_episode(event(sequence, sequence, false, None))
+                .unwrap();
+            assert_eq!(report.anytime_margin, 0.0);
+            assert_eq!(report.certified_upper_miss_sum, 0.0);
+            assert_eq!(report.true_running_miscoverage_upper, 0.0);
+        }
+    }
+
+    #[test]
     fn all_abstention_cannot_qualify_as_an_operational_success() {
         let mut audit = AnytimeEpisodeCoverageAudit::new(AnytimeEpisodeCoverageConfig {
             target_miscoverage: 0.05,
@@ -640,12 +653,13 @@ mod tests {
             .observe_completed_episode(event(1, 1, true, Some(true)))
             .unwrap();
         let variation = 1.0_f64.max(audit.predictable_variation);
-        let expected = STITCHED_MARGIN_COEFFICIENT
-            * (variation
-                * ((2.0 * variation).ln().ln().max(0.0)
-                    + LOG_LOG_COEFFICIENT
-                        * (STITCHED_LOG_CONSTANT / config().confidence_error_probability).ln()))
-            .sqrt()
+        let log_log = (2.0 * variation).ln().ln().max(0.0);
+        let log_delta =
+            (STITCHED_LOG_CONSTANT / config().confidence_error_probability).ln();
+        let expected = (SQRT_MARGIN_COEFFICIENT
+            * (variation * (log_log + LOG_LOG_COEFFICIENT * log_delta)).sqrt()
+            + LOG_LOG_MARGIN_COEFFICIENT * log_log
+            + LOG_MARGIN_COEFFICIENT * log_delta)
             / 1.0;
         assert!((first.anytime_margin - expected).abs() < 1e-12);
     }
