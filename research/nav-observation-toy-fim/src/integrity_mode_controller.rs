@@ -611,6 +611,7 @@ mod tests {
         assert_eq!(first.current_mode, IntegrityMode::Normal);
 
         replay.epoch_id = 5;
+        replay.observation_set_id += 1;
         let replayed_receipt = controller.observe(replay);
         assert_eq!(replayed_receipt.current_mode, IntegrityMode::Unknown);
         assert_eq!(
