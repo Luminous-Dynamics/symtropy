@@ -218,7 +218,7 @@ jobs:
             and (.platform.native_adapter_id | length > 0)
             and (.platform.native_adapter_revision | length > 0)
             and .platform.required_delivery_observer_quorum >= 2
-            and (.platform.observer_profiles | length >= .platform.required_delivery_observer_quorum)
+            and ((.platform.observer_profiles | length) >= .platform.required_delivery_observer_quorum)
             and ([.platform.observer_profiles[].binary_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
             and (.reset.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.reset.expected_initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
@@ -424,7 +424,9 @@ jobs:
             and ([.events[].dispatch.status] | all(. == "accepted"))
             and ([.events[].execution.status] | all(. == "executed"))
             and ([.events[].delivery_observation.verdict] | all(. == "confirmed"))
-            and ([.events[].planned_fault.expected_delivery_signature_sha256] == [.events[].delivery_observation.observed_fault_signature_sha256])
+            and ([.events[].delivery_observation.members | length] | all(. == 2))
+            and ([.events[].delivery_observation.members[].observer_binary_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.events[].planned_fault.expected_delivery_signature_sha256] == [.events[].delivery_observation.members[0].observed_fault_signature_sha256])
             and ([.events[].target_resolution.receipt.evidence_id, .events[].dispatch.receipt.evidence_id, .events[].execution.receipt.evidence_id, .events[].delivery_observation.receipt.evidence_id] | length == 16)
           ' "$BUNDLE"
 
