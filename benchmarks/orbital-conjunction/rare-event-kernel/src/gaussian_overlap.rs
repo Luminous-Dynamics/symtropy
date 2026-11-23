@@ -116,8 +116,10 @@ pub fn overlap_step_mahalanobis_squared(
     // Validate and invert the supplied covariance here. Accepting an arbitrary
     // caller-supplied inverse could make an indefinite metric look valid for
     // one particular displacement.
-    let (symmetric_metric, _) =
-        checked_symmetric(remediated_metric_covariance, config.symmetry_relative_tolerance)?;
+    let (symmetric_metric, _) = checked_symmetric(
+        remediated_metric_covariance,
+        config.symmetry_relative_tolerance,
+    )?;
     let (remediated_metric_inverse, metric_condition) = inverse_and_condition(symmetric_metric)?;
     if metric_condition.condition_estimate > config.maximum_condition_estimate {
         return Err(KernelError::IllConditionedCovariance);
@@ -163,10 +165,8 @@ pub fn gaussian_position_overlap(
         checked_symmetric(primary.covariance, config.symmetry_relative_tolerance)?;
     let (secondary_covariance, secondary_symmetry_residual) =
         checked_symmetric(secondary.covariance, config.symmetry_relative_tolerance)?;
-    let (primary_inverse, primary_condition) =
-        inverse_and_condition(primary_covariance)?;
-    let (secondary_inverse, secondary_condition) =
-        inverse_and_condition(secondary_covariance)?;
+    let (primary_inverse, primary_condition) = inverse_and_condition(primary_covariance)?;
+    let (secondary_inverse, secondary_condition) = inverse_and_condition(secondary_covariance)?;
 
     if primary_condition.condition_estimate > config.maximum_condition_estimate
         || secondary_condition.condition_estimate > config.maximum_condition_estimate
@@ -366,9 +366,7 @@ fn add_matrix(left: Matrix3, right: Matrix3) -> Matrix3 {
 fn matrix_vector(matrix: Matrix3, vector: [f64; 3]) -> [f64; 3] {
     let mut output = [0.0; 3];
     for (i, value) in output.iter_mut().enumerate() {
-        *value = matrix[i][0] * vector[0]
-            + matrix[i][1] * vector[1]
-            + matrix[i][2] * vector[2];
+        *value = matrix[i][0] * vector[0] + matrix[i][1] * vector[1] + matrix[i][2] * vector[2];
     }
     output
 }
@@ -394,7 +392,11 @@ fn finite_matrix(matrix: Matrix3) -> bool {
 }
 
 fn max_abs_matrix(matrix: Matrix3) -> f64 {
-    matrix.iter().flatten().map(|value| value.abs()).fold(0.0, f64::max)
+    matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0, f64::max)
 }
 
 /// Input covariance definiteness before NASA-style eigenvalue remediation.
@@ -595,9 +597,7 @@ pub fn nasa_covariance_eigenvalue_clip(
     };
 
     let remediated_eigenvalues = raw_eigenvalues.map(|value| value.max(clip_floor));
-    let clipping_applied = raw_eigenvalues
-        .iter()
-        .any(|value| *value < clip_floor);
+    let clipping_applied = raw_eigenvalues.iter().any(|value| *value < clip_floor);
     if remediated_eigenvalues.iter().any(|value| *value <= 0.0) {
         return Err(KernelError::NotPositiveDefinite);
     }
@@ -611,8 +611,7 @@ pub fn nasa_covariance_eigenvalue_clip(
     if inverse_eigenvalues.iter().any(|value| !value.is_finite()) {
         return Err(KernelError::NumericalOverflow);
     }
-    let remediated_covariance_inverse =
-        reconstruct_symmetric(eigenvectors, inverse_eigenvalues)?;
+    let remediated_covariance_inverse = reconstruct_symmetric(eigenvectors, inverse_eigenvalues)?;
     let remediated_log_determinant: f64 =
         remediated_eigenvalues.iter().map(|value| value.ln()).sum();
     if !remediated_log_determinant.is_finite() {
@@ -643,9 +642,7 @@ pub fn nasa_covariance_eigenvalue_clip(
     })
 }
 
-fn symmetric_eigendecomposition(
-    mut matrix: Matrix3,
-) -> Result<([f64; 3], Matrix3), KernelError> {
+fn symmetric_eigendecomposition(mut matrix: Matrix3) -> Result<([f64; 3], Matrix3), KernelError> {
     let mut eigenvectors = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
     let mut converged = false;
 
@@ -745,9 +742,7 @@ fn reconstruct_symmetric(
         for column in 0..3 {
             let mut value = 0.0;
             for axis in 0..3 {
-                value += eigenvectors[row][axis]
-                    * eigenvalues[axis]
-                    * eigenvectors[column][axis];
+                value += eigenvectors[row][axis] * eigenvalues[axis] * eigenvectors[column][axis];
             }
             matrix[row][column] = value;
         }
@@ -816,7 +811,10 @@ mod tests {
             .expect("valid equal isotropic distributions");
         assert_eq!(result.overlap_position, [1.0, 2.0, 3.0]);
         assert_eq!(result.overlap_covariance, covariance([2.0, 2.0, 2.0]));
-        assert_eq!(result.remediated_metric_covariance, covariance([3.0, 3.0, 3.0]));
+        assert_eq!(
+            result.remediated_metric_covariance,
+            covariance([3.0, 3.0, 3.0])
+        );
         assert_eq!(result.policy, GaussianOverlapCovariancePolicy::StrictSpd);
     }
 
@@ -828,17 +826,23 @@ mod tests {
             .expect("valid unequal isotropic distributions");
         assert!((result.overlap_position[0] - 2.0).abs() < 1.0e-13);
         assert_eq!(result.overlap_covariance, covariance([0.8, 0.8, 0.8]));
-        assert_eq!(result.remediated_metric_covariance, covariance([1.05, 1.05, 1.05]));
+        assert_eq!(
+            result.remediated_metric_covariance,
+            covariance([1.05, 1.05, 1.05])
+        );
     }
 
     #[test]
     fn hbr_metric_and_overlap_mahalanobis_are_distinct_from_raw_overlap_covariance() {
         let primary = distribution([0.0; 3], covariance([1.0, 2.0, 3.0]));
         let secondary = distribution([2.0, 0.0, 0.0], covariance([1.0, 2.0, 3.0]));
-        let result = gaussian_position_overlap(primary, secondary, 2.0, config())
-            .expect("valid covariance");
+        let result =
+            gaussian_position_overlap(primary, secondary, 2.0, config()).expect("valid covariance");
         assert_eq!(result.overlap_covariance, covariance([0.5, 1.0, 1.5]));
-        assert_eq!(result.remediated_metric_covariance, covariance([4.5, 5.0, 5.5]));
+        assert_eq!(
+            result.remediated_metric_covariance,
+            covariance([4.5, 5.0, 5.5])
+        );
         let md2 = overlap_step_mahalanobis_squared(
             [0.0, 0.0, 0.0],
             [3.0, 0.0, 0.0],
@@ -870,7 +874,10 @@ mod tests {
         let vector = |x: [f64; 3]| [x[1], x[2], x[0]];
         let transformed = gaussian_position_overlap(
             distribution(vector(primary.mean_position), permute(primary.covariance)),
-            distribution(vector(secondary.mean_position), permute(secondary.covariance)),
+            distribution(
+                vector(secondary.mean_position),
+                permute(secondary.covariance),
+            ),
             0.4,
             config(),
         )
@@ -951,18 +958,11 @@ mod tests {
             Err(KernelError::IllConditionedCovariance)
         );
     }
+
     #[test]
     fn non_diagonal_spd_fixture_matches_independent_precision_solution() {
-        let primary_covariance = [
-            [4.0, 1.0, 0.0],
-            [1.0, 3.0, 0.0],
-            [0.0, 0.0, 2.0],
-        ];
-        let secondary_covariance = [
-            [2.0, 0.5, 0.0],
-            [0.5, 1.0, 0.0],
-            [0.0, 0.0, 5.0],
-        ];
+        let primary_covariance = [[4.0, 1.0, 0.0], [1.0, 3.0, 0.0], [0.0, 0.0, 2.0]];
+        let secondary_covariance = [[2.0, 0.5, 0.0], [0.5, 1.0, 0.0], [0.0, 0.0, 5.0]];
         let result = gaussian_position_overlap(
             distribution([1.0, -2.0, 0.5], primary_covariance),
             distribution([-1.0, 3.0, 2.0], secondary_covariance),
@@ -980,8 +980,7 @@ mod tests {
             assert!((result.overlap_position[axis] - expected_mean[axis]).abs() < 2.0e-12);
             for column in 0..3 {
                 assert!(
-                    (result.overlap_covariance[axis][column]
-                        - expected_covariance[axis][column])
+                    (result.overlap_covariance[axis][column] - expected_covariance[axis][column])
                         .abs()
                         < 2.0e-12
                 );
@@ -1004,7 +1003,9 @@ mod tests {
         let reverse =
             gaussian_position_overlap(secondary, primary, 0.4, config()).expect("reverse");
         for axis in 0..3 {
-            assert!((forward.overlap_position[axis] - reverse.overlap_position[axis]).abs() < 1.0e-12);
+            assert!(
+                (forward.overlap_position[axis] - reverse.overlap_position[axis]).abs() < 1.0e-12
+            );
             for column in 0..3 {
                 assert!(
                     (forward.overlap_covariance[axis][column]
@@ -1069,11 +1070,13 @@ mod tests {
             [[1.3, 0.1, 0.2], [0.1, 4.0, 0.0], [0.2, 0.0, 2.5]],
         );
         let rotation = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]];
-        let rotate_vector = |v: [f64; 3]| [
-            rotation[0][0] * v[0] + rotation[0][1] * v[1] + rotation[0][2] * v[2],
-            rotation[1][0] * v[0] + rotation[1][1] * v[1] + rotation[1][2] * v[2],
-            rotation[2][0] * v[0] + rotation[2][1] * v[1] + rotation[2][2] * v[2],
-        ];
+        let rotate_vector = |v: [f64; 3]| {
+            [
+                rotation[0][0] * v[0] + rotation[0][1] * v[1] + rotation[0][2] * v[2],
+                rotation[1][0] * v[0] + rotation[1][1] * v[1] + rotation[1][2] * v[2],
+                rotation[2][0] * v[0] + rotation[2][1] * v[1] + rotation[2][2] * v[2],
+            ]
+        };
         let rotate_matrix = |matrix: Matrix3| {
             let mut output = [[0.0; 3]; 3];
             for row in 0..3 {
@@ -1091,7 +1094,10 @@ mod tests {
         let original =
             gaussian_position_overlap(primary, secondary, 0.4, config()).expect("original");
         let rotated = gaussian_position_overlap(
-            distribution(rotate_vector(primary.mean_position), rotate_matrix(primary.covariance)),
+            distribution(
+                rotate_vector(primary.mean_position),
+                rotate_matrix(primary.covariance),
+            ),
             distribution(
                 rotate_vector(secondary.mean_position),
                 rotate_matrix(secondary.covariance),
@@ -1106,8 +1112,7 @@ mod tests {
             assert!((rotated.overlap_position[axis] - expected_mean[axis]).abs() < 2.0e-12);
             for column in 0..3 {
                 assert!(
-                    (rotated.overlap_covariance[axis][column]
-                        - expected_covariance[axis][column])
+                    (rotated.overlap_covariance[axis][column] - expected_covariance[axis][column])
                         .abs()
                         < 2.0e-12
                 );
@@ -1154,12 +1159,7 @@ mod tests {
     fn mahalanobis_helper_rejects_nonsymmetric_metric() {
         let nonsymmetric = [[2.0, 0.1, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 2.0]];
         assert_eq!(
-            overlap_step_mahalanobis_squared(
-                [0.0; 3],
-                [1.0, 0.0, 0.0],
-                nonsymmetric,
-                config(),
-            ),
+            overlap_step_mahalanobis_squared([0.0; 3], [1.0, 0.0, 0.0], nonsymmetric, config(),),
             Err(KernelError::NonSymmetricMatrix)
         );
     }
@@ -1195,15 +1195,14 @@ mod tests {
 
     #[test]
     fn nasa_covariance_clip_preserves_raw_and_clipped_eigenvalue_evidence() {
-        let report = nasa_covariance_eigenvalue_clip(
-            covariance([-0.25, 4.0, 9.0]),
-            1.0,
-            1.0e-12,
-        )
-        .expect("positive clipping floor");
+        let report = nasa_covariance_eigenvalue_clip(covariance([-0.25, 4.0, 9.0]), 1.0, 1.0e-12)
+            .expect("positive clipping floor");
         assert_eq!(report.raw_eigenvalues, [-0.25, 4.0, 9.0]);
         assert_eq!(report.remediated_eigenvalues, [1.0, 4.0, 9.0]);
-        assert_eq!(report.input_definiteness, CovarianceDefiniteness::Indefinite);
+        assert_eq!(
+            report.input_definiteness,
+            CovarianceDefiniteness::Indefinite
+        );
         assert!(report.clipping_applied);
         assert_eq!(report.remediated_covariance, covariance([1.0, 4.0, 9.0]));
         assert_eq!(
@@ -1214,13 +1213,12 @@ mod tests {
 
     #[test]
     fn nasa_covariance_clip_leaves_values_at_the_floor_unchanged() {
-        let report = nasa_covariance_eigenvalue_clip(
-            covariance([1.0, 2.0, 3.0]),
-            1.0,
-            1.0e-12,
-        )
-        .expect("floor equality");
-        assert_eq!(report.input_definiteness, CovarianceDefiniteness::PositiveDefinite);
+        let report = nasa_covariance_eigenvalue_clip(covariance([1.0, 2.0, 3.0]), 1.0, 1.0e-12)
+            .expect("floor equality");
+        assert_eq!(
+            report.input_definiteness,
+            CovarianceDefiniteness::PositiveDefinite
+        );
         assert!(!report.clipping_applied);
         assert_eq!(report.raw_eigenvalues, [1.0, 2.0, 3.0]);
         assert_eq!(report.remediated_eigenvalues, [1.0, 2.0, 3.0]);
@@ -1279,7 +1277,10 @@ mod tests {
         assert_eq!(report.clip_floor, 1.0e-8);
         assert_eq!(report.overlap_position, [1.0, 2.0, 3.0]);
         assert_eq!(report.overlap_covariance, covariance([2.0, 2.0, 2.0]));
-        assert_eq!(report.remediated_metric_covariance, covariance([3.0, 3.0, 3.0]));
+        assert_eq!(
+            report.remediated_metric_covariance,
+            covariance([3.0, 3.0, 3.0])
+        );
         assert!(!report.primary_remediation.clipping_applied);
         assert!(!report.secondary_remediation.clipping_applied);
         assert!(!report.precision_remediation.clipping_applied);
@@ -1290,11 +1291,7 @@ mod tests {
         let angle = 0.37_f64;
         let cosine = angle.cos();
         let sine = angle.sin();
-        let rotation = [
-            [cosine, -sine, 0.0],
-            [sine, cosine, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
+        let rotation = [[cosine, -sine, 0.0], [sine, cosine, 0.0], [0.0, 0.0, 1.0]];
         let rotate = |matrix: Matrix3| {
             let mut result = [[0.0; 3]; 3];
             for row in 0..3 {
@@ -1315,7 +1312,10 @@ mod tests {
         let expected = rotate(covariance([0.5, 2.0, 3.0]));
         for row in 0..3 {
             for column in 0..3 {
-                assert!((rotated.remediated_covariance[row][column] - expected[row][column]).abs() < 2.0e-12);
+                assert!(
+                    (rotated.remediated_covariance[row][column] - expected[row][column]).abs()
+                        < 2.0e-12
+                );
             }
         }
         assert_eq!(clipped.remediated_eigenvalues, [0.5, 2.0, 3.0]);
@@ -1367,5 +1367,4 @@ mod tests {
             Err(KernelError::InvalidNasaPeakOverlapConfig)
         );
     }
-
 }
