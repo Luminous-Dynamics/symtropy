@@ -129,16 +129,32 @@ pub enum EventPlanDisposition {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EventPlanError {
-    EmptyIdentity { field: &'static str },
-    InvalidMetric { field: &'static str },
-    InvalidConfiguration { field: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
+    InvalidMetric {
+        field: &'static str,
+    },
+    InvalidConfiguration {
+        field: &'static str,
+    },
     InvalidBufferCapacity,
     InvalidEventRequirement,
-    TooManyOptions { actual: usize, maximum: usize },
-    EmptyOptionId { index: usize },
+    TooManyOptions {
+        actual: usize,
+        maximum: usize,
+    },
+    EmptyOptionId {
+        index: usize,
+    },
     DuplicateOptionId(String),
-    InvalidOptionLimit { option_id: String, field: &'static str },
-    MissingCalibrationReceipt { option_id: String },
+    InvalidOptionLimit {
+        option_id: String,
+        field: &'static str,
+    },
+    MissingCalibrationReceipt {
+        option_id: String,
+    },
     NonFiniteDerivedValue,
 }
 
@@ -154,10 +170,16 @@ impl fmt::Display for EventPlanError {
             }
             Self::InvalidBufferCapacity => write!(f, "event buffer capacity must be positive"),
             Self::InvalidEventRequirement => {
-                write!(f, "minimum event count must be positive and no greater than the buffer")
+                write!(
+                    f,
+                    "minimum event count must be positive and no greater than the buffer"
+                )
             }
             Self::TooManyOptions { actual, maximum } => {
-                write!(f, "illumination option count {actual} exceeds limit {maximum}")
+                write!(
+                    f,
+                    "illumination option count {actual} exceeds limit {maximum}"
+                )
             }
             Self::EmptyOptionId { index } => {
                 write!(f, "illumination option {index} has an empty ID")
@@ -167,10 +189,16 @@ impl fmt::Display for EventPlanError {
                 write!(f, "illumination option {option_id} has invalid {field}")
             }
             Self::MissingCalibrationReceipt { option_id } => {
-                write!(f, "illumination option {option_id} has no calibration receipt")
+                write!(
+                    f,
+                    "illumination option {option_id} has no calibration receipt"
+                )
             }
             Self::NonFiniteDerivedValue => {
-                write!(f, "event acquisition calculation produced a non-finite value")
+                write!(
+                    f,
+                    "event acquisition calculation produced a non-finite value"
+                )
             }
         }
     }
@@ -358,23 +386,26 @@ pub fn plan_event_acquisition(
             .min(buffer_limited_window)
             .min(displacement_limited_window);
 
-        if !minimum_window.is_finite() || !maximum_window.is_finite() || maximum_window <= 0.0
-        {
+        if !minimum_window.is_finite() || !maximum_window.is_finite() || maximum_window <= 0.0 {
             return Err(EventPlanError::NonFiniteDerivedValue);
         }
         if minimum_window > maximum_window {
             let buffer_is_binding = minimum_window > buffer_limited_window;
             let displacement_is_binding = minimum_window > displacement_limited_window;
             let other_time_limit_is_binding = minimum_window
-                > config.maximum_window_seconds.min(option.maximum_window_seconds);
+                > config
+                    .maximum_window_seconds
+                    .min(option.maximum_window_seconds);
             let clock_is_dominant_lower_bound = clock_limited_window
                 >= event_information_window.max(config.minimum_window_seconds)
                 && clock_limited_window > maximum_window;
             if clock_is_dominant_lower_bound {
                 rejected.clock_resolution_infeasible += 1;
-            } else if buffer_is_binding && !displacement_is_binding && !other_time_limit_is_binding {
+            } else if buffer_is_binding && !displacement_is_binding && !other_time_limit_is_binding
+            {
                 rejected.event_buffer_infeasible += 1;
-            } else if displacement_is_binding && !buffer_is_binding && !other_time_limit_is_binding {
+            } else if displacement_is_binding && !buffer_is_binding && !other_time_limit_is_binding
+            {
                 rejected.displacement_infeasible += 1;
             } else {
                 rejected.temporal_window_infeasible += 1;
@@ -385,11 +416,10 @@ pub fn plan_event_acquisition(
         // Geometric midpoint balances lower information and upper smearing /
         // buffer constraints in multiplicative scale.
         let selected_window = (minimum_window * maximum_window).sqrt();
-        let buffer_utilization = event_rate_upper * selected_window
-            / snapshot.buffer_capacity_events as f64;
+        let buffer_utilization =
+            event_rate_upper * selected_window / snapshot.buffer_capacity_events as f64;
         let displacement_upper = velocity_upper * selected_window;
-        let clock_fraction = k * snapshot.clock_standard_uncertainty_seconds
-            / selected_window;
+        let clock_fraction = k * snapshot.clock_standard_uncertainty_seconds / selected_window;
         let energy = option.energy_rate_mj_per_second * selected_window;
         if ![
             selected_window,
@@ -431,11 +461,8 @@ pub fn plan_event_acquisition(
     };
 
     let option = &options[best.option_index];
-    let expected_lower = best.event_rate_lower * best.selected_window_seconds
-        * (1.0 - packet_loss);
-    let expected_upper = best.event_rate_upper
-        * best.selected_window_seconds
-        * (1.0 - packet_loss);
+    let expected_lower = best.event_rate_lower * best.selected_window_seconds * (1.0 - packet_loss);
+    let expected_upper = best.event_rate_upper * best.selected_window_seconds * (1.0 - packet_loss);
     if !expected_lower.is_finite() || !expected_upper.is_finite() {
         return Err(EventPlanError::NonFiniteDerivedValue);
     }
@@ -489,17 +516,11 @@ fn determine_abstention(rejected: &RejectedIlluminationCounts) -> EventPlanAbste
         EventPlanAbstention::TemporalWindowInfeasible
     } else if rejected.clock_resolution_infeasible > 0 {
         EventPlanAbstention::ClockResolutionInsufficient
-    } else if rejected.event_buffer_infeasible > 0
-        && rejected.displacement_infeasible == 0
-    {
+    } else if rejected.event_buffer_infeasible > 0 && rejected.displacement_infeasible == 0 {
         EventPlanAbstention::EventBufferCapacityInsufficient
-    } else if rejected.displacement_infeasible > 0
-        && rejected.event_buffer_infeasible == 0
-    {
+    } else if rejected.displacement_infeasible > 0 && rejected.event_buffer_infeasible == 0 {
         EventPlanAbstention::DisplacementBoundInfeasible
-    } else if rejected.event_buffer_infeasible > 0
-        || rejected.displacement_infeasible > 0
-    {
+    } else if rejected.event_buffer_infeasible > 0 || rejected.displacement_infeasible > 0 {
         EventPlanAbstention::TemporalWindowInfeasible
     } else if rejected.event_rate_exceeded > 0 {
         EventPlanAbstention::EventRateExceedsAllValidatedModes
@@ -539,11 +560,17 @@ fn validate_snapshot(snapshot: &EventRegionSnapshot) -> Result<(), EventPlanErro
         ("stream_id", snapshot.stream_id.as_str()),
         ("camera_id", snapshot.camera_id.as_str()),
         ("clock_domain_id", snapshot.clock_domain_id.as_str()),
-        ("protocol_fingerprint", snapshot.protocol_fingerprint.as_str()),
+        (
+            "protocol_fingerprint",
+            snapshot.protocol_fingerprint.as_str(),
+        ),
         ("observer_state_id", snapshot.observer_state_id.as_str()),
         ("region_id", snapshot.region_id.as_str()),
         ("acquisition_id", snapshot.acquisition_id.as_str()),
-        ("dependence_cluster_id", snapshot.dependence_cluster_id.as_str()),
+        (
+            "dependence_cluster_id",
+            snapshot.dependence_cluster_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() || value.chars().any(char::is_control) {
             return Err(EventPlanError::EmptyIdentity { field });
@@ -555,7 +582,10 @@ fn validate_snapshot(snapshot: &EventRegionSnapshot) -> Result<(), EventPlanErro
             "event_rate_relative_standard_uncertainty",
             snapshot.event_rate_relative_standard_uncertainty,
         ),
-        ("particle_density_per_pixel", snapshot.particle_density_per_pixel),
+        (
+            "particle_density_per_pixel",
+            snapshot.particle_density_per_pixel,
+        ),
         (
             "particle_density_relative_standard_uncertainty",
             snapshot.particle_density_relative_standard_uncertainty,
@@ -572,7 +602,10 @@ fn validate_snapshot(snapshot: &EventRegionSnapshot) -> Result<(), EventPlanErro
             "clock_standard_uncertainty_seconds",
             snapshot.clock_standard_uncertainty_seconds,
         ),
-        ("maximum_displacement_pixels", snapshot.maximum_displacement_pixels),
+        (
+            "maximum_displacement_pixels",
+            snapshot.maximum_displacement_pixels,
+        ),
     ] {
         if !value.is_finite() || value < 0.0 {
             return Err(EventPlanError::InvalidMetric { field });
@@ -612,7 +645,11 @@ fn validate_snapshot(snapshot: &EventRegionSnapshot) -> Result<(), EventPlanErro
     }
     match snapshot.packet_loss_fraction {
         Some(value) if value.is_finite() && (0.0..=1.0).contains(&value) => {}
-        Some(_) => return Err(EventPlanError::InvalidMetric { field: "packet_loss_fraction" }),
+        Some(_) => {
+            return Err(EventPlanError::InvalidMetric {
+                field: "packet_loss_fraction",
+            });
+        }
         None => {}
     }
     Ok(())
@@ -623,12 +660,18 @@ fn validate_config(config: &EventWindowConfig) -> Result<(), EventPlanError> {
         ("confidence_multiplier", config.confidence_multiplier),
         ("minimum_window_seconds", config.minimum_window_seconds),
         ("maximum_window_seconds", config.maximum_window_seconds),
-        ("maximum_buffer_utilization", config.maximum_buffer_utilization),
+        (
+            "maximum_buffer_utilization",
+            config.maximum_buffer_utilization,
+        ),
         (
             "maximum_clock_uncertainty_fraction",
             config.maximum_clock_uncertainty_fraction,
         ),
-        ("maximum_packet_loss_fraction", config.maximum_packet_loss_fraction),
+        (
+            "maximum_packet_loss_fraction",
+            config.maximum_packet_loss_fraction,
+        ),
         (
             "required_spatial_coverage_fraction",
             config.required_spatial_coverage_fraction,
@@ -660,22 +703,29 @@ fn validate_options(options: &[IlluminationOption]) -> Result<(), EventPlanError
     }
     let mut ids = BTreeSet::new();
     for (index, option) in options.iter().enumerate() {
-        if option.option_id.trim().is_empty()
-            || option.option_id.chars().any(char::is_control)
-        {
+        if option.option_id.trim().is_empty() || option.option_id.chars().any(char::is_control) {
             return Err(EventPlanError::EmptyOptionId { index });
         }
         if !ids.insert(option.option_id.as_str()) {
             return Err(EventPlanError::DuplicateOptionId(option.option_id.clone()));
         }
         for (field, value) in [
-            ("maximum_event_rate_per_second", option.maximum_event_rate_per_second),
+            (
+                "maximum_event_rate_per_second",
+                option.maximum_event_rate_per_second,
+            ),
             (
                 "maximum_particle_density_per_pixel",
                 option.maximum_particle_density_per_pixel,
             ),
-            ("spatial_coverage_fraction", option.spatial_coverage_fraction),
-            ("energy_rate_mj_per_second", option.energy_rate_mj_per_second),
+            (
+                "spatial_coverage_fraction",
+                option.spatial_coverage_fraction,
+            ),
+            (
+                "energy_rate_mj_per_second",
+                option.energy_rate_mj_per_second,
+            ),
             ("maximum_window_seconds", option.maximum_window_seconds),
         ] {
             if !value.is_finite() || value < 0.0 {
@@ -804,7 +854,10 @@ mod tests {
     #[test]
     fn benign_region_selects_low_energy_calibrated_mode() {
         let report = plan_event_acquisition(&snapshot(), &config(), &catalog()).unwrap();
-        assert_eq!(report.disposition, EventPlanDisposition::AcquisitionPlanAvailable);
+        assert_eq!(
+            report.disposition,
+            EventPlanDisposition::AcquisitionPlanAvailable
+        );
         let plan = report.plan.unwrap();
         assert_eq!(plan.illumination_option_id, "full-field");
         assert!(plan.accumulation_window_seconds >= plan.minimum_feasible_window_seconds);
@@ -892,7 +945,10 @@ mod tests {
         let mut sample = snapshot();
         sample.packet_loss_fraction = None;
         let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
-        assert_eq!(report.abstention_reason, Some(EventPlanAbstention::PacketLossUnknown));
+        assert_eq!(
+            report.abstention_reason,
+            Some(EventPlanAbstention::PacketLossUnknown)
+        );
     }
 
     #[test]
@@ -900,7 +956,10 @@ mod tests {
         let mut sample = snapshot();
         sample.packet_loss_fraction = Some(0.02);
         let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
-        assert_eq!(report.abstention_reason, Some(EventPlanAbstention::PacketLossExceeded));
+        assert_eq!(
+            report.abstention_reason,
+            Some(EventPlanAbstention::PacketLossExceeded)
+        );
     }
 
     #[test]
@@ -939,9 +998,18 @@ mod tests {
             .unwrap()
             .plan
             .unwrap();
-        assert_eq!(baseline.illumination_option_id, permuted.illumination_option_id);
-        assert_eq!(baseline.accumulation_window_seconds, permuted.accumulation_window_seconds);
-        assert_eq!(baseline.expected_illumination_energy_mj, permuted.expected_illumination_energy_mj);
+        assert_eq!(
+            baseline.illumination_option_id,
+            permuted.illumination_option_id
+        );
+        assert_eq!(
+            baseline.accumulation_window_seconds,
+            permuted.accumulation_window_seconds
+        );
+        assert_eq!(
+            baseline.expected_illumination_energy_mj,
+            permuted.expected_illumination_energy_mj
+        );
     }
 
     #[test]
@@ -998,10 +1066,7 @@ mod tests {
         sample.packet_loss_fraction = Some(0.10);
         let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
         let plan = report.plan.unwrap();
-        assert!(
-            plan.expected_retained_event_count_lower
-                >= sample.minimum_events_required as f64
-        );
+        assert!(plan.expected_retained_event_count_lower >= sample.minimum_events_required as f64);
     }
 
     #[test]
@@ -1046,11 +1111,16 @@ mod tests {
     fn event_window_is_feasible_under_confidence_bounds() {
         let report = plan_event_acquisition(&snapshot(), &config(), &catalog()).unwrap();
         let plan = report.plan.unwrap();
-        assert!(plan.expected_retained_event_count_lower >= snapshot().minimum_events_required as f64
-            * (1.0 - config().maximum_packet_loss_fraction));
+        assert!(
+            plan.expected_retained_event_count_lower
+                >= snapshot().minimum_events_required as f64
+                    * (1.0 - config().maximum_packet_loss_fraction)
+        );
         assert!(plan.expected_buffer_utilization_upper <= config().maximum_buffer_utilization);
         assert!(plan.expected_displacement_upper_pixels <= snapshot().maximum_displacement_pixels);
-        assert!(plan.clock_uncertainty_fraction_upper <= config().maximum_clock_uncertainty_fraction);
+        assert!(
+            plan.clock_uncertainty_fraction_upper <= config().maximum_clock_uncertainty_fraction
+        );
     }
 
     #[test]
