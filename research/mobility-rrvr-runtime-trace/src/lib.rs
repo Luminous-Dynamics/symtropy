@@ -9,6 +9,8 @@
 //! JSONL trace plus a separate provenance sidecar. Missing fields are rejected;
 //! no owner fact is filled with an optimistic default.
 
+pub mod attempt_lineage;
+
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
