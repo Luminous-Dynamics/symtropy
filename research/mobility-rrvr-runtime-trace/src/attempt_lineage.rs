@@ -11,9 +11,8 @@
 //! asserted value and raw-artifact commitment.
 
 use crate::{
-    EvidenceScope, ObserverQuorumProof, OwnerEvidenceDomain, OwnerEvidenceRef,
-    OwnerEvidenceStatus, claim_scope_digest, observer_proofs_are_independent,
-    observer_quorum_is_qualified,
+    EvidenceScope, ObserverQuorumProof, OwnerEvidenceDomain, OwnerEvidenceRef, OwnerEvidenceStatus,
+    claim_scope_digest, observer_proofs_are_independent, observer_quorum_is_qualified,
 };
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -637,12 +636,11 @@ impl AttemptLineageRecording {
             head_attempt_id: head.attempt_id.clone(),
             head_outcome: head.physical_outcome.outcome,
             head_outcome_status: head.physical_outcome.receipt.status,
-            head_physical_observer_qualified: head
-                .observer_assurance
-                .as_ref()
-                .is_some_and(|assurance| {
+            head_physical_observer_qualified: head.observer_assurance.as_ref().is_some_and(
+                |assurance| {
                     assurance.physical_outcome.status == OwnerEvidenceStatus::QuorumQualified
-                }),
+                },
+            ),
         })
     }
 }
@@ -694,8 +692,7 @@ mod tests {
     #[test]
     fn rejects_owner_assertion_from_another_evidence_domain() {
         let mut recording = valid_recording();
-        recording.attempts[0].physical_outcome.receipt.domain =
-            OwnerEvidenceDomain::Persistence;
+        recording.attempts[0].physical_outcome.receipt.domain = OwnerEvidenceDomain::Persistence;
         assert_eq!(
             recording.validate(),
             Err(LineageError::InvalidEvidenceReceipt)
@@ -883,8 +880,7 @@ mod tests {
     fn refuses_retry_after_indeterminate_persistence() {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::IndeterminateCommit;
-        recording.attempts[0].persistence.receipt.asserted_value =
-            "indeterminate_commit".into();
+        recording.attempts[0].persistence.receipt.asserted_value = "indeterminate_commit".into();
         assert_eq!(
             recording.validate(),
             Err(LineageError::PersistenceUnresolved)
@@ -921,8 +917,10 @@ mod tests {
         ] {
             let mut recording = valid_recording();
             recording.attempts[0].physical_outcome.outcome = outcome;
-            recording.attempts[0].physical_outcome.receipt.asserted_value =
-                physical_value(outcome).into();
+            recording.attempts[0]
+                .physical_outcome
+                .receipt
+                .asserted_value = physical_value(outcome).into();
             assert!(
                 recording.validate().is_err(),
                 "outcome {outcome:?} must not have a descendant"
@@ -956,8 +954,10 @@ mod tests {
             controller_epoch: 9,
         };
         wrong_fence.attempts[0].downstream_quiescence.target_epoch = Some(wrong_target);
-        wrong_fence.attempts[0].downstream_quiescence.receipt.asserted_value =
-            fence_value(FenceOutcome::Quiescent, Some(wrong_target));
+        wrong_fence.attempts[0]
+            .downstream_quiescence
+            .receipt
+            .asserted_value = fence_value(FenceOutcome::Quiescent, Some(wrong_target));
         assert_eq!(
             wrong_fence.validate(),
             Err(LineageError::FenceEpochMismatch)
@@ -972,10 +972,7 @@ mod tests {
             .receipt
             .evidence_id
             .clone();
-        duplicate.attempts[1]
-            .mission_resolution
-            .receipt
-            .evidence_id = prior_evidence_id;
+        duplicate.attempts[1].mission_resolution.receipt.evidence_id = prior_evidence_id;
         assert_eq!(
             duplicate.validate(),
             Err(LineageError::DuplicateEvidenceIdentity)
@@ -1006,8 +1003,10 @@ mod tests {
         let mut downstream = valid_recording();
         downstream.attempts[1].downstream_quiescence.outcome = FenceOutcome::Active;
         downstream.attempts[1].downstream_quiescence.target_epoch = None;
-        downstream.attempts[1].downstream_quiescence.receipt.asserted_value =
-            fence_value(FenceOutcome::Active, None);
+        downstream.attempts[1]
+            .downstream_quiescence
+            .receipt
+            .asserted_value = fence_value(FenceOutcome::Active, None);
         assert_eq!(
             downstream.validate(),
             Err(LineageError::DownstreamFenceUnqualified)
