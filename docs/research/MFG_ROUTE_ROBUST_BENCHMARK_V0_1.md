@@ -230,3 +230,45 @@ These references guide protocol design; citing them does not establish conformit
 A passing synthetic harness validates only the stated software/evaluator behavior on the frozen synthetic corpus. It does not qualify any supplier, provider, offer, site, machine, operator, material, process, part, product, delivery promise or physical production route. It does not establish cost savings, improved service levels, disruption resilience, local self-sufficiency, standards conformity or superiority to commercial systems.
 
 The first physical success criterion is not a benchmark score. It is one released low-risk part, made through a controlled route, independently measured and accepted, with all failed attempts and resource costs retained in the record.
+
+
+## 12. Literature refinement: limitations of the 2026 shared-AM baseline
+
+Kim and Jung's 2026 shared-AM configuration/planning model is a valuable matched baseline, but its stated assumptions are narrower than a real service network:
+
+- provider operating hours, schedules and machine specifications are deterministic;
+- machine capacities are fixed and breakdowns do not occur during the planning horizon;
+- transportation time and cost are deterministic and known;
+- quality differences across providers/machines are not explicitly modeled as a cross-provider consistency constraint;
+- the paper identifies historical execution data (delays, machine reliability) as a future direction rather than an input to its present formulation.
+
+These are not criticisms of the paper's contribution; they define a fair extension boundary for this programme. We should reproduce the published problem on its own assumptions, then introduce one extension at a time: time-varying availability, machine/inspection outages, common-cause supply disruption, material/quality compatibility and execution-history calibration. Report the ablation for each added factor.
+
+The route-policy synthetic corpus is deliberately a stress-test abstraction. Its probability inputs are declared synthetic parameters, not fitted supplier or machine failure probabilities. Its hidden realized outages are evaluator-only challenge outcomes, not observable policy features. In v0.1, policy selection is a single primary-route recommendation; it does not model reservations, fallback recourse execution, or multi-part job grouping. Those are later extensions requiring explicit time-expanded resource and non-anticipativity semantics.
+
+## 13. Executable synthetic tranche
+
+Draft implementation in this PR adds:
+
+- `tools/mfg-route-policy-benchmark/`: standalone offline Rust evaluator using strict Serde deserialization.
+- `schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json`: strict Draft 2020-12 case schema.
+- `fixtures/manufacturing/mfg_route_policy_cases_v0_1.json`: six synthetic scenario families, 20 paired seeds per family (120 cases total).
+- `fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json`: separately generated cross-language known-answer fixture for each baseline/policy choice.
+- `fixtures/manufacturing/mfg_route_policy_manifest_v0_1.json`: corpus identity and claim ceiling.
+- `.github/workflows/mfg-route-policy-benchmark.yml`: formatting, exact known-answer tests, output checks, negative controls, Clippy and artifact hashing.
+
+The five policies are cheapest admissible, fastest admissible, reliability-first, expected-cost and fixed priority. The exact small-instance oracle minimizes the declared expected-cost objective using only policy-visible inputs. The clairvoyant lower bound is separately reported from evaluator-only outcomes and is **not** used for policy regret or pass/fail.
+
+The evaluator rejects future evidence exposed at the decision cut-off, invalid probability bounds, contradictory probability declarations for one common-cause group, inconsistent family/seed manifests, malformed owner dispositions and unresolved hidden-outcome references. It makes an explicit abstention when no route passes the declared order constraints. Unknown/infeasible/unsupported owner dispositions are never selected.
+
+### Current verification boundary
+
+The Rust code and fixtures have been committed to the branch and are wired into an exact-branch/pull-request workflow. This environment does not have `cargo` or `rustc`, so no local Rust compile, test or Clippy pass is claimed. The fixture/known-answer generation is deterministic and was authored separately from the Rust evaluator, but the expected outputs have not yet received independent engineering review. A hosted exact-head pass, source/artifact digest review, and independent review of the objective and failure-model assumptions remain required.
+
+### Important model limitations
+
+- Failure probabilities and cost units are synthetic and not empirical or calibrated.
+- The simple combined probability formula assumes independent route-specific residual failure and common-cause-domain failure; it does not model correlations between distinct domains.
+- The common-cause group identity is supplied by the fixture; no real supplier identity resolution or cut-set proof occurs here.
+- The single-route decision omits fallback reservations, multi-part job grouping, transport routing, dynamic capacity contention and time-expanded recourse.
+- A synthetic completion is not a conforming part, physical delivery, accepted product or qualified manufacturing service.
