@@ -7,8 +7,8 @@ import sys
 from fractions import Fraction
 from pathlib import Path
 
-CORPUS_SCHEMA = "luminous.orbital-truss.multicover-scale-corpus.v0.1"
-BENCHMARK_ID = "ORBITAL-MULTICOVER-SCALE-001"
+CORPUS_SCHEMA = "luminous.orbital-truss.multicover-scale-corpus.v0.2"
+BENCHMARK_ID = "ORBITAL-MULTICOVER-SCALE-002"
 RECEIPT_SCHEMA = "luminous.orbital-truss.multicover-scale-receipt.v0.1"
 CLAIM_CEILING = "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
 FIXED_SCALE = 1_000_000_000_000_000_000
@@ -88,6 +88,7 @@ def index_problem(problem):
     return {
         "feature_ids": [feature["feature_id"] for feature in features],
         "view_ids": [view["view_id"] for view in views],
+        "vertical_order_ranks": [view["vertical_order_rank"] for view in views],
         "requested_k": [feature["requested_k"] for feature in features],
         "domains": [view["failure_domain_id"] for view in views],
         "nominal_by_view": nominal_by_view,
@@ -266,6 +267,72 @@ def build_feature_coverage(indexed, selected):
     return reports
 
 
+def overlap_pruning(indexed, threshold_percent, ordering):
+    if ordering == "VERTICAL_BOTTOM_TO_TOP":
+        order = sorted(
+            range(len(indexed["view_ids"])),
+            key=lambda index: (
+                indexed["vertical_order_ranks"][index],
+                indexed["view_ids"][index],
+            ),
+        )
+    elif ordering == "VISIBILITY_DESCENDING":
+        order = sorted(
+            range(len(indexed["view_ids"])),
+            key=lambda index: (
+                -len(indexed["nominal_by_view"][index]),
+                indexed["view_ids"][index],
+            ),
+        )
+    else:
+        raise ValueError("OVERLAP_ORDERING_UNSUPPORTED")
+
+    covered = [False] * len(indexed["feature_ids"])
+    selected = [False] * len(indexed["view_ids"])
+    selection_order = []
+    zero_visibility_skipped = 0
+    for view_index in order:
+        visible = indexed["nominal_by_view"][view_index]
+        if not visible:
+            zero_visibility_skipped += 1
+            continue
+        overlap_count = sum(covered[feature_index] for feature_index in visible)
+        if overlap_count * 100 < threshold_percent * len(visible):
+            selected[view_index] = True
+            selection_order.append(view_index)
+            for feature_index in visible:
+                covered[feature_index] = True
+
+    coverage = build_feature_coverage(indexed, selected)
+    overlap_baselines = [
+        overlap_pruning(indexed, threshold, ordering)
+        for threshold in (50, 70)
+        for ordering in ("VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING")
+    ]
+    selected_ids = sorted(
+        view_id for view_id, include in zip(indexed["view_ids"], selected) if include
+    )
+    selection_order_ids = [
+        indexed["view_ids"][index] for index in selection_order
+    ]
+    return {
+        "ordering": ordering,
+        "threshold_percent": threshold_percent,
+        "selected_view_ids": selected_ids,
+        "selection_order_view_ids": selection_order_ids,
+        "selected_view_count": len(selected_ids),
+        "zero_visibility_candidates_skipped": zero_visibility_skipped,
+        "full_nominal_union_covered": all(
+            item["selected_nominal_views"] > 0 for item in coverage
+        ),
+        "requested_k_fully_covered": all(item["requested_k_met"] for item in coverage),
+        "attainable_capped_targets_fully_covered": all(
+            item["attainable_target_met"] for item in coverage
+        ),
+        "feature_coverage": coverage,
+    }
+
+
 def solve(problem):
     validate(problem)
     indexed = index_problem(problem)
@@ -312,6 +379,7 @@ def solve(problem):
         "selected_attainable_targets_fully_covered": capped,
         "selected_robust_requested_k_fully_covered": robust,
         "feature_coverage": coverage,
+        "overlap_pruning_baselines": overlap_baselines,
         "dual_bound": dual,
         "selected_minus_dual_lower_bound": excess,
         "relative_excess_over_dual_lower_bound_basis_points": relative,
