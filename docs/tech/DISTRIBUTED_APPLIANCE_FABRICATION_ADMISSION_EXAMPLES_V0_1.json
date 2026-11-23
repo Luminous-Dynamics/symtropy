@@ -1,0 +1,129 @@
+{
+  "profile_id": "DISTRIBUTED-APPLIANCE-FAB-PROFILE-0.1",
+  "status": "research_profile_not_qualified",
+  "primary_issue": "Luminous-Dynamics/symtropy#6735",
+  "part_risk_classes": {
+    "P0": "nonfunctional_cosmetic_organizational",
+    "P1": "low_consequence_functional",
+    "P2": "engineered_or_service_critical",
+    "P3": "safety_critical_regulated_or_high_consequence"
+  },
+  "production_tiers": {
+    "H0": {
+      "name": "household",
+      "initial_scope": [
+        "P0"
+      ],
+      "notes": [
+        "user participates optionally",
+        "documented printer/material/process/emission-control envelope required"
+      ]
+    },
+    "N1": {
+      "name": "neighbourhood_hub",
+      "initial_scope": [
+        "P0"
+      ],
+      "conditional_scope": [
+        "P1"
+      ],
+      "requirements": [
+        "trained_operator",
+        "enclosed_material_extrusion",
+        "source_controlled_ventilation",
+        "material_lot_management",
+        "dimensional_inspection"
+      ]
+    },
+    "R2": {
+      "name": "regional_partner",
+      "conditional_scope": [
+        "P0",
+        "P1",
+        "P2"
+      ],
+      "requirements": [
+        "qualified_process_and_material_envelope",
+        "competent_operator",
+        "inspection_and_part_specific_tests",
+        "post_repair_verification"
+      ]
+    },
+    "Q3": {
+      "name": "qualified_industrial_or_OEM",
+      "scope": [
+        "P3"
+      ],
+      "requirements": [
+        "product_specific_hazard_and_conformity_route",
+        "qualified_supplier_or_process",
+        "controlled_inspection_and_release"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "part_id": "FAN-MFG-ALIGNMENT-JIG-001",
+      "artifact_role": "manufacturing_fixture",
+      "risk_class": "P1",
+      "status": "proposed_not_admitted",
+      "allowed_tiers": [],
+      "candidate_tiers": [
+        "N1",
+        "R2"
+      ],
+      "required_gates": [
+        "exact_fixture_drawing_and_revision",
+        "reference_geometry_verified",
+        "critical_surfaces_inspected",
+        "fixture_repeatability_study",
+        "no_unqualified_use_as_measurement_standard"
+      ]
+    },
+    {
+      "part_id": "FAN-PACKAGING-SPACER-001",
+      "artifact_role": "packaging_dunnage",
+      "risk_class": "P0",
+      "status": "candidate_for_H0_documentation_pilot",
+      "allowed_tiers": [],
+      "candidate_tiers": [
+        "H0",
+        "N1"
+      ],
+      "required_gates": [
+        "design_rights_confirmed",
+        "nonfunctional_use_confirmed",
+        "material_and_emissions_envelope_reviewed",
+        "fit_and_transport_test",
+        "material_waste_recorded"
+      ]
+    },
+    {
+      "part_id": "FAN-GUARD-001",
+      "artifact_role": "protective_guard",
+      "risk_class": "P3",
+      "status": "prohibited_from_H0_N1",
+      "allowed_tiers": [
+        "Q3"
+      ],
+      "candidate_tiers": [],
+      "required_gates": [
+        "product_specific_safety_design",
+        "qualified_manufacturing_route",
+        "appropriate_guard_integrity_tests",
+        "product_conformity_review"
+      ]
+    }
+  ],
+  "fail_closed_rules": [
+    "unknown_part_compatibility_blocks_admission",
+    "unknown_manufacturing_rights_blocks_distribution",
+    "unknown_material_or_printer_profile_blocks_production",
+    "missing_emissions_controls_blocks_H0_operation",
+    "critical_dimensional_or_mechanical_failure_rejects_part",
+    "P3_never_admitted_to_H0_or_unqualified_N1",
+    "hash_or_qr_identity_is_not_proof_of_part_conformity",
+    "installation_requires_part_specific_post_repair_checks"
+  ],
+  "claim_ceiling": "Illustrative profile only. No part, printer, material, node, operator, process, partner, safety envelope or product repair has been qualified."
+}
