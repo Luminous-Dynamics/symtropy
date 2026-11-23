@@ -831,9 +831,21 @@ mod tests {
             dimension,
         }]);
         let mut left_dimensions = BTreeMap::new();
-        left_dimensions.insert(StageDimension { stage: MaritimeStage::Detection, dimension }, left);
+        left_dimensions.insert(
+            StageDimension {
+                stage: MaritimeStage::Detection,
+                dimension,
+            },
+            left,
+        );
         let mut right_dimensions = BTreeMap::new();
-        right_dimensions.insert(StageDimension { stage: MaritimeStage::Detection, dimension }, right);
+        right_dimensions.insert(
+            StageDimension {
+                stage: MaritimeStage::Detection,
+                dimension,
+            },
+            right,
+        );
         let projection = ClosureProjection {
             schema: CLOSURE_SCHEMA.to_owned(),
             graph_schema_version: "lex-net-030-v1".to_owned(),
@@ -1401,7 +1413,10 @@ mod tests {
         });
         for role in projection.roles.values_mut() {
             role.dimensions.insert(
-                StageDimension { stage: MaritimeStage::Transport, dimension: runtime },
+                StageDimension {
+                    stage: MaritimeStage::Transport,
+                    dimension: runtime,
+                },
                 DimensionInventory::Complete(vec![witness(
                     if role.role_id == "source" { 5 } else { 6 },
                     MaritimeDependencyClass::GatewayRuntime,
@@ -1460,26 +1475,36 @@ mod tests {
             dimension,
         };
         profile.obligations.insert(persistence);
-        projection.roles.get_mut("source").unwrap().dimensions.insert(
-            persistence,
-            DimensionInventory::Complete(vec![witness(
-                2,
-                MaritimeDependencyClass::PersistenceRetrieval,
-                "source-binding",
-                "source-object-store",
-                "edge-persistence-source",
-            )]),
-        );
-        projection.roles.get_mut("witness").unwrap().dimensions.insert(
-            persistence,
-            DimensionInventory::Complete(vec![witness(
-                3,
-                MaritimeDependencyClass::PersistenceRetrieval,
-                "witness-binding",
-                "witness-archive",
-                "edge-persistence-witness",
-            )]),
-        );
+        projection
+            .roles
+            .get_mut("source")
+            .unwrap()
+            .dimensions
+            .insert(
+                persistence,
+                DimensionInventory::Complete(vec![witness(
+                    2,
+                    MaritimeDependencyClass::PersistenceRetrieval,
+                    "source-binding",
+                    "source-object-store",
+                    "edge-persistence-source",
+                )]),
+            );
+        projection
+            .roles
+            .get_mut("witness")
+            .unwrap()
+            .dimensions
+            .insert(
+                persistence,
+                DimensionInventory::Complete(vec![witness(
+                    3,
+                    MaritimeDependencyClass::PersistenceRetrieval,
+                    "witness-binding",
+                    "witness-archive",
+                    "edge-persistence-witness",
+                )]),
+            );
         let result = assess(&profile, &projection);
         assert_eq!(result.findings.len(), 2);
         assert_eq!(result.findings[0].disposition, SeparationDisposition::Shared);
