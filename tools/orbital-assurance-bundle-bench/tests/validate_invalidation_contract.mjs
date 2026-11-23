@@ -35,6 +35,16 @@ for (const item of corpus.cases) {
       || !Array.isArray(node.dependencies)) {
       throw new Error("invalid node version binding in " + item.case_id);
     }
+    const dependencyIds = new Set();
+    for (const dependency of node.dependencies) {
+      if (typeof dependency.node_id !== "string" || !dependency.node_id
+        || dependencyIds.has(dependency.node_id)
+        || !/^[0-9a-f]{64}$/.test(dependency.expected_content_sha256)
+        || !/^[0-9a-f]{64}$/.test(dependency.expected_scope_sha256)) {
+        throw new Error("invalid dependency version pin in " + item.case_id + "/" + node.node_id);
+      }
+      dependencyIds.add(dependency.node_id);
+    }
   }
 }
 process.stdout.write("dependency-invalidation-corpus-contract-valid: " + corpus.cases.length + " cases\n");
