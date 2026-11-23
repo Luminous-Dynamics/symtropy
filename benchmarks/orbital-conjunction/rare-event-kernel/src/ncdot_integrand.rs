@@ -304,11 +304,6 @@ fn evaluate_prepared_direction(
         }
 
         let log_sigma = sigma.ln();
-        let log_abs_eta = if conditional_mean == 0.0 {
-            f64::NEG_INFINITY
-        } else {
-            conditional_mean.abs().ln() - log_sigma - 0.5 * core::f64::consts::LN_2
-        };
         let eta = (conditional_mean / sigma) / SQRT_2;
         if !eta.is_finite() {
             return Err(KernelError::NumericalOverflow);
@@ -490,9 +485,11 @@ fn validate_symmetric(matrix: &[[f64; 3]; 3]) -> Result<(), KernelError> {
             scale = scale.max(value.abs());
         }
     }
-    for row in 0..3 {
-        for col in (row + 1)..3 {
-            if (matrix[row][col] - matrix[col][row]).abs() > SYMMETRY_REL_TOLERANCE * scale {
+    for (row_index, row) in matrix.iter().enumerate() {
+        for (column_index, other_row) in matrix.iter().enumerate().skip(row_index + 1) {
+            if (row[column_index] - other_row[row_index]).abs()
+                > SYMMETRY_REL_TOLERANCE * scale
+            {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -501,13 +498,15 @@ fn validate_symmetric(matrix: &[[f64; 3]; 3]) -> Result<(), KernelError> {
 }
 
 fn symmetrize(matrix: &mut [[f64; 3]; 3]) {
-    for row in 0..3 {
-        for col in (row + 1)..3 {
-            let average = 0.5 * (matrix[row][col] + matrix[col][row]);
-            matrix[row][col] = average;
-            matrix[col][row] = average;
-        }
-    }
+    let a01 = 0.5 * matrix[0][1] + 0.5 * matrix[1][0];
+    let a02 = 0.5 * matrix[0][2] + 0.5 * matrix[2][0];
+    let a12 = 0.5 * matrix[1][2] + 0.5 * matrix[2][1];
+    matrix[0][1] = a01;
+    matrix[1][0] = a01;
+    matrix[0][2] = a02;
+    matrix[2][0] = a02;
+    matrix[1][2] = a12;
+    matrix[2][1] = a12;
 }
 
 fn validate_positive_semidefinite(matrix: &[[f64; 3]; 3]) -> Result<(), KernelError> {
@@ -545,8 +544,8 @@ fn cholesky_log_determinant(matrix: &[[f64; 3]; 3]) -> Result<f64, KernelError> 
     for row in 0..3 {
         for col in 0..=row {
             let mut value = matrix[row][col];
-            for k in 0..col {
-                value -= lower[row][k] * lower[col][k];
+            for (row_factor, previous_row) in lower[row].iter().zip(lower.iter()).take(col) {
+                value -= row_factor * previous_row[col];
             }
             if row == col {
                 if !value.is_finite() || value <= 0.0 {
@@ -650,7 +649,7 @@ mod tests {
         let cases = [
             (-12.0, 42.538_892_421_732_385, 2.0e-14),
             (-4.0, 14.179_630_810_473_79, 2.0e-14),
-            (-1.0, 3.633_981_557_701_812_4, 2.0e-14),
+            (-1.0, 3.633_981_557_701_812, 2.0e-14),
             (0.0, 1.0, 2.0e-15),
             (1.0, 0.089_073_855_890_780_35, 2.0e-14),
             (4.0, 3.229_662_176_239_876e-9, 5.0e-13),
