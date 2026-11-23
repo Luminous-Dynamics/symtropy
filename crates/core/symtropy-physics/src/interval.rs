@@ -411,8 +411,8 @@ mod tests {
 
             let result =
                 transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max);
-            let (world_min, world_max) = result
-                .unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
+            let (world_min, world_max) =
+                result.unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
 
             for corner in 0..16 {
                 let point = SVector::<f64, 4>::from_fn(|axis, _| {
