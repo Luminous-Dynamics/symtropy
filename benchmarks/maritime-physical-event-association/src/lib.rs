@@ -12,6 +12,10 @@ pub struct TimeEnclosure {
 pub struct PhysicalObservation {
     /// Unique only within its source namespace. Never used as a cross-source join key.
     pub record_key: String,
+    /// Revision token supplied by the source's revision owner.
+    pub revision_id: String,
+    /// SHA-256 digest supplied by the upstream byte verifier; this crate only preserves it.
+    pub payload_sha256: String,
     /// Canonical physical identity supplied by the lineage owner.
     pub canonical_box_id: String,
     /// Versioned, normalized physical event kind supplied by the source-semantic owner.
@@ -27,6 +31,8 @@ pub struct PhysicalObservation {
 pub struct CorrelationProfile {
     pub profile_id: String,
     pub version: String,
+    /// SHA-256-shaped digest of the frozen correlation profile; this crate does not hash it.
+    pub profile_sha256: String,
     pub source_channel_id: String,
     pub witness_channel_id: String,
     pub time_basis_id: String,
@@ -63,11 +69,16 @@ impl Disposition {
 pub struct AssociationReceipt {
     pub profile_id: String,
     pub profile_version: String,
+    pub profile_sha256: String,
     pub as_of: i64,
     pub source_channel_id: String,
     pub source_record_key: String,
+    pub source_revision_id: String,
+    pub source_payload_sha256: String,
     pub witness_channel_id: String,
     pub witness_record_key: String,
+    pub witness_revision_id: String,
+    pub witness_payload_sha256: String,
     pub canonical_box_id: String,
     pub event_kind: String,
     pub facility_id: String,
@@ -116,9 +127,14 @@ pub struct AssociationCase {
     pub witness_events: Vec<PhysicalObservation>,
 }
 
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 fn valid_profile(profile: &CorrelationProfile) -> bool {
     !profile.profile_id.trim().is_empty()
         && !profile.version.trim().is_empty()
+        && is_sha256_hex(&profile.profile_sha256)
         && !profile.source_channel_id.trim().is_empty()
         && !profile.witness_channel_id.trim().is_empty()
         && profile.source_channel_id != profile.witness_channel_id
@@ -394,11 +410,16 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                 report.receipts.push(AssociationReceipt {
                     profile_id: profile.profile_id.clone(),
                     profile_version: profile.version.clone(),
+                    profile_sha256: profile.profile_sha256.clone(),
                     as_of: profile.as_of,
                     source_channel_id: profile.source_channel_id.clone(),
                     source_record_key: source_event.record_key.clone(),
+                    source_revision_id: source_event.revision_id.clone(),
+                    source_payload_sha256: source_event.payload_sha256.clone(),
                     witness_channel_id: profile.witness_channel_id.clone(),
                     witness_record_key: witness_event.record_key.clone(),
+                    witness_revision_id: witness_event.revision_id.clone(),
+                    witness_payload_sha256: witness_event.payload_sha256.clone(),
                     canonical_box_id: source_event.canonical_box_id.clone(),
                     event_kind: source_event.event_kind.clone(),
                     facility_id: source_event.facility_id.clone(),
@@ -426,6 +447,7 @@ mod tests {
         CorrelationProfile {
             profile_id: "gate-out-correlation-v0.1".to_owned(),
             version: "0.1".to_owned(),
+            profile_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
             source_channel_id: "terminal-epcis".to_owned(),
             witness_channel_id: "independent-gate-sensor".to_owned(),
             time_basis_id: "UTC-REF-A".to_owned(),
@@ -449,6 +471,8 @@ mod tests {
         ) => {
             PhysicalObservation {
                 record_key: $key.to_owned(),
+                revision_id: "rev-1".to_owned(),
+                payload_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
                 canonical_box_id: $box_id.to_owned(),
                 event_kind: $kind.to_owned(),
                 facility_id: $facility.to_owned(),
@@ -837,6 +861,26 @@ mod tests {
                 test.profile.as_mut().unwrap().witness_channel_qualified = false;
                 test
             }
+            "invalid_profile_digest" => {
+                let mut test = case(source, witness);
+                test.profile.as_mut().unwrap().profile_sha256 = "not-a-digest".to_owned();
+                test
+            }
+            "invalid_source_digest" => {
+                let mut test = case(source, witness);
+                test.source_events[0].payload_sha256 = "not-a-digest".to_owned();
+                test
+            }
+            "invalid_witness_digest" => {
+                let mut test = case(source, witness);
+                test.witness_events[0].payload_sha256 = "not-a-digest".to_owned();
+                test
+            }
+            "missing_revision" => {
+                let mut test = case(source, witness);
+                test.source_events[0].revision_id.clear();
+                test
+            }
             _ => panic!("unknown fixture case: {case_id}"),
         }
     }
@@ -895,7 +939,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 22);
+        assert_eq!(count, 26);
     }
 
     #[test]
@@ -1039,6 +1083,24 @@ mod tests {
             evaluate(&known_case("duplicate_witness_key")).disposition,
             Disposition::NotEvaluable
         );
+    }
+
+    #[test]
+    fn receipts_preserve_profile_revision_and_input_artifact_digests() {
+        let report = evaluate(&known_case("single_exact"));
+        let receipt = &report.receipts[0];
+        assert_eq!(receipt.profile_sha256, "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        assert_eq!(receipt.source_revision_id, "rev-1");
+        assert_eq!(receipt.witness_revision_id, "rev-1");
+        assert_eq!(receipt.source_payload_sha256, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        assert_eq!(receipt.witness_payload_sha256, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }
+
+    #[test]
+    fn malformed_profile_or_input_digests_and_missing_revisions_fail_closed() {
+        for case_id in ["invalid_profile_digest", "invalid_source_digest", "invalid_witness_digest", "missing_revision"] {
+            assert_eq!(evaluate(&known_case(case_id)).disposition, Disposition::NotEvaluable, "{case_id}");
+        }
     }
 
     #[test]
