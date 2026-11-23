@@ -23,8 +23,10 @@ jobs:
   qualify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out exact source revision
+      - name: Check out exact PR head or pushed commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
