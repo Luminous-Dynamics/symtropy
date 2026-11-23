@@ -306,6 +306,7 @@ pub struct FaultCampaignManifest {
 pub enum CampaignError {
     InvalidHeader,
     InvalidPlatformProfile,
+    ObserverNotIndependent,
     InvalidResetProfile,
     EmptyRequiredCoverage,
     DuplicateRequiredCoverage,
@@ -390,6 +391,11 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     require_sha256(&platform.scene_broadcaster_sha256)?;
     require_sha256(&platform.observer_binary_sha256)?;
     require_sha256(&platform.fault_injector_sha256)?;
+    if platform.observer_id == platform.fault_injector_id
+        || platform.observer_fault_domain_id == platform.fault_injector_fault_domain_id
+    {
+        return Err(CampaignError::ObserverNotIndependent);
+    }
     Ok(())
 }
 
@@ -723,6 +729,24 @@ mod tests {
         let mut platform = valid_manifest();
         platform.platform.environment_artifact_sha256 = "latest".into();
         assert_eq!(platform.validate(), Err(CampaignError::InvalidDigest));
+    }
+
+    #[test]
+    fn rejects_observer_that_shares_injector_identity_or_fault_domain() {
+        let mut shared_id = valid_manifest();
+        shared_id.platform.observer_id = shared_id.platform.fault_injector_id.clone();
+        assert_eq!(
+            shared_id.validate(),
+            Err(CampaignError::ObserverNotIndependent)
+        );
+
+        let mut shared_domain = valid_manifest();
+        shared_domain.platform.observer_fault_domain_id =
+            shared_domain.platform.fault_injector_fault_domain_id.clone();
+        assert_eq!(
+            shared_domain.validate(),
+            Err(CampaignError::ObserverNotIndependent)
+        );
     }
 
     #[test]
