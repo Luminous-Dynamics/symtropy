@@ -621,10 +621,14 @@ mod tests {
     }
 
     #[test]
-    fn opposite_world_optima_use_one_common_non_anticipative_comparator() {
+    fn opposite_world_optima_do_not_enable_hidden_world_switching() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "opposite_optima_within_margin");
+        // A hindsight comparator would claim a 4-unit improvement in each world
+        // and trigger against margin 3. No single common action improves worst-case
+        // loss, so the incumbent remains adequate without observing the hidden world.
         assert_eq!(result.disposition, "RETAIN_INCUMBENT");
+        assert_eq!(result.materiality_margin, 3);
         assert_eq!(result.worst_case_improvement, Some(0));
         assert_eq!(result.reference_common_action_id.as_deref(), Some("A"));
         assert_eq!(result.current_worst_case_loss, Some(104));
