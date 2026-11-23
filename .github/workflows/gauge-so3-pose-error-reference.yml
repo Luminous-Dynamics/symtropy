@@ -1,0 +1,36 @@
+name: GAUGE SO3 Pose Error Reference
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/gauge-so3-pose-error-reference/v0.1/**'
+      - '.github/workflows/gauge-so3-pose-error-reference.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benchmarks/gauge-so3-pose-error-reference/v0.1/**'
+      - '.github/workflows/gauge-so3-pose-error-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gauge-so3-pose-error-reference-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/gauge-so3-pose-error-reference/v0.1/Cargo.toml -- --check
+      - name: Run analytical pose tests
+        run: cargo test --manifest-path benchmarks/gauge-so3-pose-error-reference/v0.1/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/gauge-so3-pose-error-reference/v0.1/Cargo.toml --all-targets --locked -- -D warnings
