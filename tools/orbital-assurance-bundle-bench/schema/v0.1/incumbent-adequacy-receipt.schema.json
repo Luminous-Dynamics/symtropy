@@ -288,7 +288,8 @@
                 "minimum": 0
               },
               "world_set_receipt_id": {
-                "$ref": "#/$defs/sha"
+                "type": "string",
+                "minLength": 1
               },
               "world_set_receipt_sha256": {
                 "$ref": "#/$defs/sha"
