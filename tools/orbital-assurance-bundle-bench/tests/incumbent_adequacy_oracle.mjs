@@ -35,7 +35,12 @@ function projectedScenariosDigest(scenarios) {
     loss_unit: scenario.loss_unit,
     scope_sha256: scenario.scope_sha256,
     feasible_action_ids: [...scenario.feasible_action_ids].sort(cmp),
-    losses: [...scenario.losses].sort((a, b) => cmp(a.action_id, b.action_id))
+    losses: [...scenario.losses].sort((a, b) => cmp(a.action_id, b.action_id)).map(loss => ({
+      action_id: loss.action_id,
+      source_numerator: loss.source_numerator,
+      source_denominator: loss.source_denominator,
+      loss: loss.loss
+    }))
   })).sort((a, b) => cmp(a.scenario_id, b.scenario_id));
   return sha256(JSON.stringify(rows));
 }
@@ -61,6 +66,10 @@ function result(item, disposition, triggerReason, threshold, metrics = {}, world
     loss_model_state: item.loss_model_set.state,
     loss_model_source_case_id: item.loss_model_set.source_case_id,
     loss_model_source_commit: item.loss_model_set.source_commit,
+    loss_model_source_unit: item.loss_model_set.source_loss_unit,
+    loss_projection_id: item.loss_model_set.projection_id,
+    loss_projection_scale_numerator: item.loss_model_set.projection_scale_numerator,
+    loss_projection_scale_denominator: item.loss_model_set.projection_scale_denominator,
     loss_model_source_receipt_sha256: item.loss_model_set.source_receipt_sha256,
     loss_model_manifest_id: item.loss_model_set.source_manifest_id,
     source_loss_scenarios_sha256: item.loss_model_set.source_scenarios_sha256,
@@ -126,6 +135,10 @@ function evaluateCase(item) {
     || !validSha(modelSet.source_scenarios_sha256)
     || !validSha(modelSet.expected_scenario_ids_sha256)
     || !validSha(modelSet.projected_scenarios_sha256)
+    || !validId(modelSet.source_loss_unit) || !validId(modelSet.projection_id)
+    || !Number.isSafeInteger(modelSet.projection_scale_numerator)
+    || !Number.isSafeInteger(modelSet.projection_scale_denominator)
+    || modelSet.projection_scale_numerator <= 0 || modelSet.projection_scale_denominator <= 0
     || modelSet.source_receipt_schema !== JOINT_LOSS_RECEIPT_SCHEMA
     || modelSet.source_claim_ceiling !== JOINT_LOSS_CLAIM_CEILING) {
     return invalidInput(item, "upstream world or loss-model receipt pins are malformed");
@@ -225,8 +238,24 @@ function evaluateCase(item) {
     const losses = new Map();
     for (const row of scenario.losses) {
       if (!validId(row.action_id) || !Number.isSafeInteger(row.loss) || row.loss < 0
+        || !Number.isSafeInteger(row.source_numerator) || row.source_numerator < 0
+        || !Number.isSafeInteger(row.source_denominator) || row.source_denominator <= 0
         || !feasible.has(row.action_id) || losses.has(row.action_id)) {
         return invalidInput(item, "loss row is malformed, duplicated or not feasible in its joint scenario");
+      }
+      const scaledNumerator = BigInt(row.source_numerator)
+        * BigInt(modelSet.projection_scale_numerator);
+      const scaledDenominator = BigInt(row.source_denominator)
+        * BigInt(modelSet.projection_scale_denominator);
+      if (scaledNumerator % scaledDenominator !== 0n) {
+        return invalidInput(item, "source rational loss cannot be projected exactly into the declared loss unit");
+      }
+      const exactProjection = scaledNumerator / scaledDenominator;
+      if (exactProjection > 9223372036854775807n) {
+        return invalidInput(item, "source rational loss cannot be projected exactly into the declared loss unit");
+      }
+      if (BigInt(row.loss) !== exactProjection) {
+        return invalidInput(item, "integer loss does not match exact source rational projection");
       }
       losses.set(row.action_id, row.loss);
     }
