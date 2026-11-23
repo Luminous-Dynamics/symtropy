@@ -49,13 +49,13 @@ pub use lebedev::{
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
 };
-pub use ncdot_sphere::{
-    NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
-    integrate_ncdot_sphere,
-};
 pub use ncdot_refinement::{
     NcdotRefinementDecision, NcdotRefinementDisposition, NcdotRefinementPolicy,
     NcdotRefinementReason, NcdotRefinementSnapshot, decide_ncdot_refinement,
+};
+pub use ncdot_sphere::{
+    NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
+    integrate_ncdot_sphere,
 };
 pub use ncdot_temporal::{
     NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon, NcdotTemporalIdentity,
