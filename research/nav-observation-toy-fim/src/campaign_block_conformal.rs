@@ -548,12 +548,13 @@ mod tests {
         truth: Vec<[f64; DIM]>,
         shape: [[f64; DIM]; DIM],
     ) -> AnisotropicCalibrationEpisode2d {
+        let position_count = truth.len();
         AnisotropicCalibrationEpisode2d {
             episode_id: id,
             independence_group_id: group,
             predicted_positions_m: predicted,
             truth_positions_m: truth,
-            shape_matrices: vec![shape;  truth.len()],
+            shape_matrices: vec![shape; position_count],
             source_manifest_sha256: [((id % 255) + 1) as u8; SHA256_BYTES],
         }
     }
