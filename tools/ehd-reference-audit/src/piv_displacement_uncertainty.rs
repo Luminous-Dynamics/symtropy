@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Local PIV displacement and velocity uncertainty from a fitted correlation peak.
 //!
 //! The kernel inverts a supplied 2x2 negative-log-likelihood Hessian at a
@@ -91,11 +93,25 @@ impl fmt::Display for PivDisplacementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteInput { field } => write!(f, "PIV displacement {field} must be finite"),
-            Self::InvalidPositiveInput { field } => write!(f, "PIV displacement {field} must be positive"),
-            Self::InvalidUncertainty { field } => write!(f, "PIV displacement {field} uncertainty must be finite and non-negative"),
-            Self::NonPositiveDefinitePeakHessian => write!(f, "correlation peak negative-log-likelihood Hessian must be positive definite"),
-            Self::NonFiniteDerivedValue => write!(f, "PIV displacement uncertainty produced a non-finite derived value"),
-            Self::CalibrationReceiptRequired => write!(f, "calibration gate cannot pass without a non-empty external calibration receipt"),
+            Self::InvalidPositiveInput { field } => {
+                write!(f, "PIV displacement {field} must be positive")
+            }
+            Self::InvalidUncertainty { field } => write!(
+                f,
+                "PIV displacement {field} uncertainty must be finite and non-negative"
+            ),
+            Self::NonPositiveDefinitePeakHessian => write!(
+                f,
+                "correlation peak negative-log-likelihood Hessian must be positive definite"
+            ),
+            Self::NonFiniteDerivedValue => write!(
+                f,
+                "PIV displacement uncertainty produced a non-finite derived value"
+            ),
+            Self::CalibrationReceiptRequired => write!(
+                f,
+                "calibration gate cannot pass without a non-empty external calibration receipt"
+            ),
         }
     }
 }
@@ -106,13 +122,31 @@ fn validate_input(input: &PivDisplacementInput) -> Result<(), PivDisplacementErr
     for (field, value) in [
         ("displacement_x", input.displacement_px[0]),
         ("displacement_y", input.displacement_px[1]),
-        ("hessian_xx", input.negative_log_likelihood_hessian_px_inverse_squared.xx),
-        ("hessian_xy", input.negative_log_likelihood_hessian_px_inverse_squared.xy),
-        ("hessian_yy", input.negative_log_likelihood_hessian_px_inverse_squared.yy),
-        ("peak_to_sidelobe_ratio", input.peak_diagnostics.peak_to_sidelobe_ratio),
-        ("minimum_peak_to_sidelobe_ratio", input.peak_diagnostics.minimum_peak_to_sidelobe_ratio),
+        (
+            "hessian_xx",
+            input.negative_log_likelihood_hessian_px_inverse_squared.xx,
+        ),
+        (
+            "hessian_xy",
+            input.negative_log_likelihood_hessian_px_inverse_squared.xy,
+        ),
+        (
+            "hessian_yy",
+            input.negative_log_likelihood_hessian_px_inverse_squared.yy,
+        ),
+        (
+            "peak_to_sidelobe_ratio",
+            input.peak_diagnostics.peak_to_sidelobe_ratio,
+        ),
+        (
+            "minimum_peak_to_sidelobe_ratio",
+            input.peak_diagnostics.minimum_peak_to_sidelobe_ratio,
+        ),
         ("fit_residual_rms", input.peak_diagnostics.fit_residual_rms),
-        ("maximum_fit_residual_rms", input.peak_diagnostics.maximum_fit_residual_rms),
+        (
+            "maximum_fit_residual_rms",
+            input.peak_diagnostics.maximum_fit_residual_rms,
+        ),
         ("metres_per_pixel", input.metres_per_pixel),
         ("pulse_separation_seconds", input.pulse_separation_seconds),
     ] {
@@ -123,32 +157,45 @@ fn validate_input(input: &PivDisplacementInput) -> Result<(), PivDisplacementErr
     for (field, value) in [
         ("metres_per_pixel", input.metres_per_pixel),
         ("pulse_separation_seconds", input.pulse_separation_seconds),
-        ("minimum_peak_to_sidelobe_ratio", input.peak_diagnostics.minimum_peak_to_sidelobe_ratio),
+        (
+            "minimum_peak_to_sidelobe_ratio",
+            input.peak_diagnostics.minimum_peak_to_sidelobe_ratio,
+        ),
     ] {
         if value <= 0.0 {
             return Err(PivDisplacementError::InvalidPositiveInput { field });
         }
     }
     for (field, value) in [
-        ("metres_per_pixel_standard_uncertainty", input.metres_per_pixel_standard_uncertainty),
-        ("pulse_separation_standard_uncertainty_seconds", input.pulse_separation_standard_uncertainty_seconds),
-        ("maximum_fit_residual_rms", input.peak_diagnostics.maximum_fit_residual_rms),
+        (
+            "metres_per_pixel_standard_uncertainty",
+            input.metres_per_pixel_standard_uncertainty,
+        ),
+        (
+            "pulse_separation_standard_uncertainty_seconds",
+            input.pulse_separation_standard_uncertainty_seconds,
+        ),
+        (
+            "maximum_fit_residual_rms",
+            input.peak_diagnostics.maximum_fit_residual_rms,
+        ),
     ] {
         if !value.is_finite() || value < 0.0 {
             return Err(PivDisplacementError::InvalidUncertainty { field });
         }
     }
     if input.calibration_coverage_gate_passed
-        && input.calibration_receipt_id.as_deref().is_none_or(|id| id.trim().is_empty())
+        && input
+            .calibration_receipt_id
+            .as_deref()
+            .is_none_or(|id| id.trim().is_empty())
     {
         return Err(PivDisplacementError::CalibrationReceiptRequired);
     }
     Ok(())
 }
 
-fn assess_peak(
-    diagnostics: CorrelationPeakDiagnostics,
-) -> PivPeakDisposition {
+fn assess_peak(diagnostics: CorrelationPeakDiagnostics) -> PivPeakDisposition {
     if !diagnostics.unique_peak {
         PivPeakDisposition::RejectedNonUniquePeak
     } else if diagnostics.peak_to_sidelobe_ratio < diagnostics.minimum_peak_to_sidelobe_ratio {
@@ -254,7 +301,10 @@ pub fn estimate_piv_displacement_uncertainty(
     }
 
     let uncertainty_status = if input.calibration_coverage_gate_passed
-        && input.calibration_receipt_id.as_deref().is_some_and(|id| !id.trim().is_empty())
+        && input
+            .calibration_receipt_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
     {
         PivUncertaintyStatus::CalibrationReceiptAccepted
     } else {
@@ -357,7 +407,10 @@ mod tests {
         let mut input = manufactured_input();
         input.peak_diagnostics.unique_peak = false;
         let report = estimate_piv_displacement_uncertainty(&input).unwrap();
-        assert_eq!(report.peak_disposition, PivPeakDisposition::RejectedNonUniquePeak);
+        assert_eq!(
+            report.peak_disposition,
+            PivPeakDisposition::RejectedNonUniquePeak
+        );
         assert!(report.velocity_covariance_m2_s2.is_none());
     }
 
@@ -366,7 +419,10 @@ mod tests {
         let mut input = manufactured_input();
         input.peak_diagnostics.peak_to_sidelobe_ratio = 1.1;
         let report = estimate_piv_displacement_uncertainty(&input).unwrap();
-        assert_eq!(report.peak_disposition, PivPeakDisposition::RejectedPeakToSidelobeRatio);
+        assert_eq!(
+            report.peak_disposition,
+            PivPeakDisposition::RejectedPeakToSidelobeRatio
+        );
     }
 
     #[test]
@@ -374,14 +430,19 @@ mod tests {
         let mut input = manufactured_input();
         input.peak_diagnostics.fit_residual_rms = 0.5;
         let report = estimate_piv_displacement_uncertainty(&input).unwrap();
-        assert_eq!(report.peak_disposition, PivPeakDisposition::RejectedPeakFitResidual);
+        assert_eq!(
+            report.peak_disposition,
+            PivPeakDisposition::RejectedPeakFitResidual
+        );
     }
 
     #[test]
     fn non_positive_definite_hessian_is_rejected() {
         let mut input = manufactured_input();
         input.negative_log_likelihood_hessian_px_inverse_squared = SymmetricMatrix2 {
-            xx: 1.0, xy: 2.0, yy: 1.0,
+            xx: 1.0,
+            xy: 2.0,
+            yy: 1.0,
         };
         assert_eq!(
             estimate_piv_displacement_uncertainty(&input).unwrap_err(),
@@ -395,13 +456,19 @@ mod tests {
         input.calibration_receipt_id = Some("coverage-receipt-v1".to_owned());
         input.calibration_coverage_gate_passed = true;
         let report = estimate_piv_displacement_uncertainty(&input).unwrap();
-        assert_eq!(report.uncertainty_status, PivUncertaintyStatus::CalibrationReceiptAccepted);
+        assert_eq!(
+            report.uncertainty_status,
+            PivUncertaintyStatus::CalibrationReceiptAccepted
+        );
     }
 
     #[test]
     fn local_covariance_without_coverage_receipt_is_not_called_calibrated() {
         let report = estimate_piv_displacement_uncertainty(&manufactured_input()).unwrap();
-        assert_eq!(report.uncertainty_status, PivUncertaintyStatus::LocalApproximationOnly);
+        assert_eq!(
+            report.uncertainty_status,
+            PivUncertaintyStatus::LocalApproximationOnly
+        );
     }
 
     #[test]
