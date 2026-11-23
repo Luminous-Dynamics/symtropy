@@ -745,6 +745,22 @@ mod tests {
             sensor.gate = Some(gate);
             assert!(evidence_blocker(&sensor).is_some());
         }
+
+        let mut shared_as_independent = SENSORS[0];
+        shared_as_independent.mode = SensingMode::IndependentWitness;
+        assert_eq!(
+            evidence_blocker(&shared_as_independent),
+            Some("BLOCKED_SHARED_DEPENDENCY")
+        );
+
+        let mut unmatched = SENSORS[1];
+        let mut unmatched_gate = unmatched.gate.expect("fixture gate");
+        unmatched_gate.event_association = EventAssociation::Unmatched;
+        unmatched.gate = Some(unmatched_gate);
+        assert_eq!(
+            evidence_blocker(&unmatched),
+            Some("BLOCKED_UNMATCHED_ASSOCIATION")
+        );
     }
 
     #[test]
