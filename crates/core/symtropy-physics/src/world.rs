@@ -2708,8 +2708,10 @@ mod deterministic_bulk_insertion_tests {
 
     #[test]
     fn allocator_exhaustion_rejects_batch_before_mutation() {
-        let mut world = PhysicsWorld::<3>::default();
-        world.next_handle = usize::MAX;
+        let mut world = PhysicsWorld::<3> {
+            next_handle: usize::MAX,
+            ..Default::default()
+        };
 
         let result = world.add_bodies_deterministic(vec![(NetId(44), dynamic_body(0.0))]);
 
@@ -2737,7 +2739,6 @@ mod deterministic_bulk_insertion_tests {
     #[test]
     fn static_batch_insertion_invalidates_cached_static_broadphase() {
         let mut world = PhysicsWorld::<3>::default();
-        world.static_tree_dirty = false;
         let static_body = RigidBody::<3>::static_body(
             BodyHandle(999),
             Point::origin(),
