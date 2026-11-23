@@ -31,6 +31,7 @@ An explicitly reported omission can be protocol-complete while the physical comp
   - reserved <= configured capacity and admitted <= reserved.
 - Contact geometry has a separate lineage: every generated geometric point is Retained, ReducedByPolicy, CapacityDropped, Invalid or Unsupported; every solver contact/cluster maps to retained source-point IDs when stable IDs exist. Geometry-point counts are never substituted for solver-row counts.
 - Backends without stable point IDs use an explicit AggregateOnly mode with exact generated/retained/reduced/dropped and solver-disposition point counts. AggregateOnly cannot claim complete point-level mapping and never fabricates identifiers.
+- Temporary candidate-buffer capacity and final manifold-storage capacity have separate fields and dispositions. A candidate-buffer drop is not a policy reduction; a final-manifold drop is not an intermediate candidate loss.
 - Solver contact clustering is represented explicitly: a single solver contact may map multiple geometric points, while each retained point maps to at most one solver contact group.
 - Contact reduction requires a stable policy identity. Aggregate-only or incomplete solver lineage remains explicitly incomplete.
 - Capacity diagnostics bind backend profile, scope, row family, step, flag lifetime, reset epoch and source semantics. Sticky flags already set before the step are Unattributable without an exact per-step overflow-count delta.
@@ -42,7 +43,7 @@ The crate exposes deterministic, order-independent canonical preimage bytes for 
 
 ## Tests
 
-The unit suite contains 28 test functions across the solver and capacity contracts, including:
+The unit suite contains 29 test functions across the solver and capacity contracts, including:
 - computed exact zero;
 - capacity-dropped result;
 - sleeping-island skip;
@@ -60,6 +61,7 @@ The unit suite contains 28 test functions across the solver and capacity contrac
 - aggregate-only point and solver counts without fabricated IDs;
 - aggregate-only stage partition mismatch rejection;
 - missing reduction policy and contact-capacity overrun;
+- separate candidate-buffer vs final-manifold capacity drops in stable-ID and aggregate-only modes;
 - sticky flag transition, sticky flag already set, per-step overflow deltas and missing reset epochs;
 - reset epoch monotonicity;
 - capacity lineage included in the canonical whole-run receipt.
