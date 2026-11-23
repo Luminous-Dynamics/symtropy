@@ -30,6 +30,7 @@ This is deliberately not a single scalar "confidence" score. Decision discrimina
 The active_evidence_transaction module composes the existing typed modules and preserves their ownership:
 - a decision-aware plan must have an action ID, hypothesis inventory commitment, decision-partition commitment and frozen assignments;
 - the requested attempt must refer to the exact action selected by that plan;
+- a qualified outcome is bound to the same action ID, attempt ID, result ID, payload digest, qualification-receipt digest and source-manifest digest used by the time-validity input;
 - the consume-once ledger records the physical attempt outcome and preserves the pre-attempt navigation-state commitment;
 - failure and invalid outcomes do not proceed to time evaluation;
 - an unknown result produces ReconciliationRequired, while the underlying ledger blocks all other actions until an explicit reconciliation;
