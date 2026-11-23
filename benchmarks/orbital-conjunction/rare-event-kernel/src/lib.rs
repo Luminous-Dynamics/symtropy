@@ -30,6 +30,7 @@ use core::fmt;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
 pub mod normal_positive_part;
@@ -47,6 +48,10 @@ pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use ncdot_refinement::{
+    NcdotRefinementDecision, NcdotRefinementDisposition, NcdotRefinementPolicy,
+    NcdotRefinementReason, NcdotRefinementSnapshot, decide_ncdot_refinement,
 };
 pub use ncdot_sphere::{
     NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
@@ -169,6 +174,12 @@ pub enum KernelError {
     TemporalHorizonEndpointMismatch,
     /// Temporal epochs are duplicate or not strictly increasing.
     NonIncreasingTemporalEpochs,
+    /// NASA-style Ncdot refinement thresholds or iteration policy are invalid.
+    InvalidNcdotRefinementPolicy,
+    /// A sampled Ncdot refinement snapshot is incomplete or internally inconsistent.
+    InvalidNcdotRefinementSnapshot,
+    /// A required temporal midpoint is not representable as a distinct f64 epoch.
+    NcdotRefinementResolutionLimit,
 }
 
 impl fmt::Display for KernelError {
@@ -241,6 +252,15 @@ impl fmt::Display for KernelError {
             }
             Self::NonIncreasingTemporalEpochs => {
                 "temporal sample epochs must be strictly increasing"
+            }
+            Self::InvalidNcdotRefinementPolicy => {
+                "NASA-style Ncdot refinement policy contains invalid thresholds"
+            }
+            Self::InvalidNcdotRefinementSnapshot => {
+                "Ncdot refinement snapshot is incomplete or internally inconsistent"
+            }
+            Self::NcdotRefinementResolutionLimit => {
+                "Ncdot refinement midpoint is not representable as a distinct epoch"
             }
         };
         f.write_str(message)
