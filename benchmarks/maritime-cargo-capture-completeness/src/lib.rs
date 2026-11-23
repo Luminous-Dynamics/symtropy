@@ -335,7 +335,12 @@ mod tests {
             "profile_configuration_mismatch" => {
                 let mut p = profile();
                 p.configuration_digest = "config-v2".to_owned();
-                CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 }
+                CaptureCase {
+                    profile: Some(p),
+                    reference: Some(reference(&["e1"])),
+                    captured_events: vec![captured("e1")],
+                    as_of: 20,
+                }
             }
             "unsupported_sequence_contract" => {
                 let mut p = profile();
@@ -387,12 +392,14 @@ mod tests {
     fn adding_a_shared_failure_domain_cannot_create_independence() {
         let mut p = profile();
         p.failure_domains.insert("reference-clock".to_owned());
-        let test = CaptureCase { profile: Some(p), reference: Some(reference(&["e1"])), captured_events: vec![captured("e1")], as_of: 20 };
+        let test = CaptureCase {
+            profile: Some(p),
+            reference: Some(reference(&["e1"])),
+            captured_events: vec![captured("e1")],
+            as_of: 20,
+        };
         let report = evaluate(&test);
-        assert_eq!(
-            report.disposition,
-            Disposition::NotIdentifiable
-        );
+        assert_eq!(report.disposition, Disposition::NotIdentifiable);
         assert_eq!(
             report.shared_failure_domains,
             vec!["reference-clock".to_owned()]
@@ -433,7 +440,10 @@ mod tests {
     #[test]
     fn independently_observed_no_event_window_can_be_qualified() {
         let report = evaluate(&known_case("known_no_event"));
-        assert_eq!(report.disposition, Disposition::QualifiedWithinDeclaredEnvelope);
+        assert_eq!(
+            report.disposition,
+            Disposition::QualifiedWithinDeclaredEnvelope
+        );
         assert_eq!(report.expected_event_count, 0);
     }
 
