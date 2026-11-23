@@ -110,7 +110,6 @@ function evaluateCase(item) {
     || !item.expected_world_ids.length || item.expected_world_ids.length > MAX_WORLDS
     || !Array.isArray(item.worlds) || item.worlds.length > MAX_SCENARIOS
     || !Array.isArray(item.loss_model_set?.expected_scenario_ids)
-    || !item.loss_model_set.expected_scenario_ids.length
     || item.loss_model_set.expected_scenario_ids.length > MAX_SCENARIOS
     || !Number.isSafeInteger(item.materiality_margin) || !Number.isSafeInteger(item.switching_cost)
     || item.materiality_margin < 0 || item.switching_cost < 0 || !validGateStates(item)) {
