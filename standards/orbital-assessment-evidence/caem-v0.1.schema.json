@@ -876,7 +876,6 @@
     },
     "assuranceDimension": {
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "status"
       ],
