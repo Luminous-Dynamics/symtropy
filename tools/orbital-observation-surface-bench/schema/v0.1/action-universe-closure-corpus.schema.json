@@ -206,7 +206,9 @@
         "scope_snapshot_sha256",
         "execution_receipt_id",
         "dependency_ids",
-        "action_ids"
+        "action_ids",
+        "dependency_inventory_receipt_id",
+        "dependency_ids_sha256"
       ],
       "properties": {
         "enumerator_id": {
@@ -235,6 +237,13 @@
         },
         "action_ids": {
           "$ref": "#/$defs/ids"
+        },
+        "dependency_inventory_receipt_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "dependency_ids_sha256": {
+          "$ref": "#/$defs/sha"
         }
       }
     },
