@@ -189,7 +189,7 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 
 - A descendant follows Applied, Partial, Unknown, Disputed, or NotObserved.
 - A NoEffect claim is only InsufficientEvidence or is Refuted.
-- Persistence is Committed, InFlight, or IndeterminateCommit.
+- Persistence is InFlight or IndeterminateCommit (a resolved Committed result is admissible only alongside independently confirmed physical and mission NoEffect).
 - The child names the wrong parent, skips an ordinal, or reuses an attempt ID.
 - Evidence is replayed across attempts or carries the wrong logical-effect/attempt/epoch scope.
 - Boot/controller epochs regress or do not advance together.
