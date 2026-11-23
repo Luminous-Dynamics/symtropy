@@ -90,17 +90,14 @@ jobs:
         run: node tools/orbital-assurance-bundle-bench/tests/reference_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json
 
       - name: Validate dependency-invalidation corpus contract
-        run: |
-          node tools/orbital-assurance-bundle-bench/tests/validate_invalidation_contract.mjs \\
-            tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-corpus.schema.json \\
-            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json
-          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-receipt.schema.json", "utf8"))'
+        run: node tools/orbital-assurance-bundle-bench/tests/validate_invalidation_contract.mjs tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-corpus.schema.json tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json
+
+      - name: Validate dependency-invalidation receipt schema JSON
+        run: node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-receipt.schema.json", "utf8"))'
 
       - name: Generate dependency-invalidation receipt
         run: |
-          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin dependency-invalidation -- \\
-            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json \\
-            --source-commit "$BENCHMARK_COMMIT" > dependency-invalidation-receipt.json
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin dependency-invalidation -- tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json --source-commit "$BENCHMARK_COMMIT" > dependency-invalidation-receipt.json
           jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
             .receipt_schema == "luminous.orbital-assurance-invalidation.receipt.v0.1"
             and .source_commit == $expected_commit
@@ -114,15 +111,10 @@ jobs:
           ' dependency-invalidation-receipt.json
 
       - name: Run independent JavaScript invalidation oracle
-        run: |
-          node tools/orbital-assurance-bundle-bench/tests/dependency_invalidation_oracle.mjs \\
-            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json \\
-            > dependency-invalidation-oracle.json
+        run: node tools/orbital-assurance-bundle-bench/tests/dependency_invalidation_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json > dependency-invalidation-oracle.json
 
       - name: Compare Rust invalidation receipt to independent oracle
-        run: |
-          node tools/orbital-assurance-bundle-bench/tests/compare_dependency_invalidation.mjs \\
-            dependency-invalidation-receipt.json dependency-invalidation-oracle.json
+        run: node tools/orbital-assurance-bundle-bench/tests/compare_dependency_invalidation.mjs dependency-invalidation-receipt.json dependency-invalidation-oracle.json
 
       - name: Upload reproducible assurance receipt
         if: always()
