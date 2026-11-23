@@ -217,6 +217,7 @@ pub struct PlatformProfile {
     pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
+    pub gazebo_release: String,
     pub world_stats_topic: String,
     pub scene_broadcaster_id: String,
     pub scene_broadcaster_revision: String,
@@ -388,6 +389,13 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     }
     require_sha256(&platform.profile_sha256)?;
     require_sha256(&platform.environment_artifact_sha256)?;
+    match (
+        platform.ros_distribution.as_str(),
+        platform.gazebo_release.as_str(),
+    ) {
+        ("jazzy", "harmonic") | ("lyrical", "jetty") => {}
+        _ => return Err(CampaignError::InvalidPlatformProfile),
+    }
     require_sha256(&platform.scene_broadcaster_sha256)?;
     require_sha256(&platform.observer_binary_sha256)?;
     require_sha256(&platform.fault_injector_sha256)?;
