@@ -459,9 +459,7 @@ mod tests {
     #[test]
     fn bonferroni_alpha_becomes_finite_at_249_calibration_schedules() {
         let scores_248 = (0..248_u32).collect::<Vec<_>>();
-        assert!(
-            split_conformal_quantile(&scores_248, BONFERRONI_ALPHA_PER_CALL_MILLI).is_none()
-        );
+        assert!(split_conformal_quantile(&scores_248, BONFERRONI_ALPHA_PER_CALL_MILLI).is_none());
 
         let scores_249 = (0..249_u32).collect::<Vec<_>>();
         assert_eq!(
