@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital loss-model universe adequacy receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "evaluation"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-loss-model-universe-adequacy.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "$ref": "#/$defs/sha"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "summary",
+        "cases"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-loss-model-universe-adequacy-only"
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_count",
+            "closed_cases",
+            "common_mode_model_omission_cases",
+            "missing_model_cases",
+            "missing_pair_cases",
+            "unwitnessed_exclusion_cases",
+            "model_family_inadequate_cases",
+            "stale_model_cases",
+            "out_of_profile_model_cases",
+            "unexpected_model_cases",
+            "unexpected_pair_cases",
+            "invalid_cases",
+            "expected_result_mismatches"
+          ],
+          "properties": {
+            "case_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "closed_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "common_mode_model_omission_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_model_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_pair_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unwitnessed_exclusion_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "model_family_inadequate_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stale_model_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "out_of_profile_model_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unexpected_model_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unexpected_pair_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_result_mismatches": {
+              "const": 0
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "disposition",
+              "expected_disposition",
+              "missing_model_ids",
+              "missing_pair_ids",
+              "unexpected_model_ids",
+              "unexpected_pair_ids",
+              "unwitnessed_exclusion_count",
+              "findings",
+              "producer_model_count",
+              "declared_model_count",
+              "expected_model_count",
+              "expected_pair_count",
+              "actual_pair_count",
+              "expected_result_matched"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "disposition": {
+                "type": "string"
+              },
+              "expected_disposition": {
+                "type": "string"
+              },
+              "missing_model_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "missing_pair_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unexpected_model_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unexpected_pair_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unwitnessed_exclusion_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "findings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "model_id",
+                    "pair_id",
+                    "detail"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "model_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "pair_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "producer_model_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "declared_model_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_model_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_pair_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "actual_pair_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_result_matched": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
