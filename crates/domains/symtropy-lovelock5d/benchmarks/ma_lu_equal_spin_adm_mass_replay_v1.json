@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_adm_mass_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_adm_mass.py",
+  "source": {
+    "git_blob_sha1": "32d91014925518358ad92395ca6aec020d383d6d",
+    "sha256": "1217a123bacc48643fe3e91b7420e6ec5699dd92c1ec9e936d4963748712f245",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "command": "python3 verify_ma_lu_equal_spin_adm_mass.py --output ma_lu_equal_spin_adm_mass_v1.json",
+    "checks": {
+      "metric_mass_equals_Eq3_4_through_chi2": true,
+      "radial_map_preserves_leading_1_over_r2_coefficient": true,
+      "negative_control_omit_chi2_H1_rejected": true
+    },
+    "result": "ALL_ADM_MASS_CHECKS_PASS",
+    "metric_deltaM": "2*pi-47*pi*chi^2/10+O(chi^4)",
+    "paper_deltaM": "2*pi-47*pi*chi^2/10+O(chi^4)"
+  },
+  "claim_ceiling": "Exact equal-spin first-coupling Komar/ADM mass correction match through O(chi^2), not a finite-coupling mass result."
+}
