@@ -1382,12 +1382,12 @@ fn exact_assignment_oracle(
             status: ExactOracleStatus::NotRunBoundsExceeded,
             request_bound: MAX_EXACT_ORACLE_REQUESTS,
             opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
-            search_node_limit: MAX_EXACT_ORACLE_NODES,
-            search_nodes: 0,
+            dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
+            dp_transitions: 0,
             best_score: None,
             best_assignments: Vec::new(),
             policy_gaps: Vec::new(),
-            objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
+            objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
         });
     }
 
@@ -1484,35 +1484,135 @@ fn exact_assignment_oracle(
         candidates_by_opportunity.push(candidates);
     }
 
-    let mut search = ExactOracleSearch {
-        input,
-        opportunities: &opportunities,
-        candidates_by_opportunity: &candidates_by_opportunity,
-        nodes: 0,
-        limit_reached: false,
-        current: Vec::with_capacity(opportunities.len()),
-        used_requests: BTreeSet::new(),
-        best: None,
-    };
-    search.visit(0);
+    let state_count = 1_usize
+        .checked_shl(u32::try_from(input.requests.len()).unwrap_or(u32::MAX))
+        .ok_or_else(|| vec!["exact_oracle_request_mask_overflow".to_owned()])?;
+    let mut states: Vec<Option<ExactOracleBest>> = vec![None; state_count];
+    states[0] = Some(ExactOracleBest {
+        score: ExactOracleScore {
+            completed_on_time: 0,
+            completed_late: 0,
+            completed_by_horizon: 0,
+            in_progress_at_horizon: 0,
+            total_lateness_seconds: 0,
+            total_latency_seconds: 0,
+        },
+        assignments: Vec::with_capacity(opportunities.len()),
+        canonical_key: Vec::with_capacity(opportunities.len()),
+    });
 
-    if search.limit_reached {
+    let mut dp_transitions = 0_usize;
+    let mut transition_limit_reached = false;
+    for (opportunity_index, opportunity) in opportunities.iter().enumerate() {
+        let mut next_states: Vec<Option<ExactOracleBest>> = vec![None; state_count];
+        for (request_mask, state) in states.iter().enumerate() {
+            let Some(state) = state else {
+                continue;
+            };
+
+            // Skip this opportunity.
+            dp_transitions = dp_transitions.saturating_add(1);
+            if dp_transitions > MAX_EXACT_ORACLE_TRANSITIONS {
+                transition_limit_reached = true;
+                break;
+            }
+            let mut skipped = state.clone();
+            skipped.assignments.push(None);
+            skipped.canonical_key.push("~".to_owned());
+            insert_exact_dp_state(&mut next_states[request_mask], skipped);
+
+            for candidate in &candidates_by_opportunity[opportunity_index] {
+                let request_bit = 1_usize
+                    .checked_shl(u32::try_from(candidate.request_index).unwrap_or(u32::MAX))
+                    .ok_or_else(|| vec!["exact_oracle_request_bit_overflow".to_owned()])?;
+                if request_mask & request_bit != 0 {
+                    continue;
+                }
+
+                dp_transitions = dp_transitions.saturating_add(1);
+                if dp_transitions > MAX_EXACT_ORACLE_TRANSITIONS {
+                    transition_limit_reached = true;
+                    break;
+                }
+
+                let request = &input.requests[candidate.request_index];
+                let mut assigned = state.clone();
+                let disposition = if candidate.completion_seconds > input.horizon_seconds {
+                    RequestDisposition::InProgressAtHorizon
+                } else if candidate.completion_seconds <= request.deadline_seconds {
+                    RequestDisposition::CompletedOnTime
+                } else {
+                    RequestDisposition::CompletedLate
+                };
+                assigned.score = extend_exact_score(
+                    &state.score,
+                    request,
+                    candidate.completion_seconds,
+                    input.horizon_seconds,
+                );
+                assigned.canonical_key.push(format!(
+                    "{}=>{}",
+                    opportunity.opportunity_id, request.request_id
+                ));
+                assigned.assignments.push(Some(ExactOracleAssignment {
+                    request_id: request.request_id.clone(),
+                    opportunity_id: opportunity.opportunity_id.clone(),
+                    fulfilment_mode: candidate.mode,
+                    service_start_seconds: opportunity.start_seconds,
+                    projected_completion_seconds: candidate.completion_seconds,
+                    disposition,
+                }));
+                insert_exact_dp_state(
+                    &mut next_states[request_mask | request_bit],
+                    assigned,
+                );
+            }
+
+            if transition_limit_reached {
+                break;
+            }
+        }
+        if transition_limit_reached {
+            break;
+        }
+        states = next_states;
+    }
+
+    if transition_limit_reached {
         return Ok(ExactOracleReport {
-            status: ExactOracleStatus::NodeLimitReached,
+            status: ExactOracleStatus::TransitionLimitReached,
             request_bound: MAX_EXACT_ORACLE_REQUESTS,
             opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
-            search_node_limit: MAX_EXACT_ORACLE_NODES,
-            search_nodes: search.nodes,
+            dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
+            dp_transitions,
             best_score: None,
             best_assignments: Vec::new(),
             policy_gaps: Vec::new(),
-            objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
+            objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
         });
     }
 
-    let best = search
-        .best
+    let best = states
+        .into_iter()
+        .flatten()
+        .reduce(|current, candidate| {
+            if exact_score_is_better(
+                &candidate.score,
+                &candidate.canonical_key,
+                &current.score,
+                &current.canonical_key,
+            ) {
+                candidate
+            } else {
+                current
+            }
+        })
         .ok_or_else(|| vec!["exact_oracle_failed_to_emit_empty_assignment".to_owned()])?;
+
+    if exact_score(&best.assignments, input) != best.score {
+        return Err(vec!["exact_oracle_dp_score_replay_mismatch".to_owned()]);
+    }
+
     let policy_gaps = policy_results
         .iter()
         .map(|policy| exact_policy_gap(policy, &best.score, input))
@@ -1522,12 +1622,12 @@ fn exact_assignment_oracle(
         status: ExactOracleStatus::Evaluated,
         request_bound: MAX_EXACT_ORACLE_REQUESTS,
         opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
-        search_node_limit: MAX_EXACT_ORACLE_NODES,
-        search_nodes: search.nodes,
+        dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
+        dp_transitions,
         best_score: Some(best.score),
         best_assignments: best.assignments.into_iter().flatten().collect(),
         policy_gaps,
-        objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
+        objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
     })
 }
 
