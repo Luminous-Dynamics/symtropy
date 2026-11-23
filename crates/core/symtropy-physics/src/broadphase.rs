@@ -674,6 +674,156 @@ mod tests {
         );
     }
 
+    #[derive(Clone, Copy)]
+    struct SeededGeometryRng {
+        state: u64,
+    }
+
+    impl SeededGeometryRng {
+        fn new(seed: u64) -> Self {
+            Self { state: seed }
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            self.state = self
+                .state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            self.state
+        }
+
+        fn unit_f64(&mut self) -> f64 {
+            let mantissa = self.next_u64() >> 11;
+            mantissa as f64 * (1.0 / ((1u64 << 53) as f64))
+        }
+
+        fn range(&mut self, min: f64, max: f64) -> f64 {
+            min + (max - min) * self.unit_f64()
+        }
+
+        fn index(&mut self, upper_exclusive: usize) -> usize {
+            (self.next_u64() as usize) % upper_exclusive
+        }
+    }
+
+    fn seeded_sphere_capsule_scene(
+        seed: u64,
+        static_count: usize,
+        dynamic_count: usize,
+    ) -> Vec<RigidBody<3>> {
+        let mut rng = SeededGeometryRng::new(seed);
+        let mut bodies = Vec::with_capacity(static_count + dynamic_count);
+
+        for index in 0..(static_count + dynamic_count) {
+            let body_type = if index < static_count {
+                BodyType::Static
+            } else {
+                BodyType::Dynamic
+            };
+            let position = Point::new([
+                rng.range(-8.0, 8.0),
+                rng.range(-8.0, 8.0),
+                rng.range(-8.0, 8.0),
+            ]);
+            let rotation = Rotor::from_plane_angle(
+                &Bivector::unit_plane(0, 1),
+                rng.range(-std::f64::consts::PI, std::f64::consts::PI),
+            );
+            let transform = Transform {
+                translation: position,
+                rotation,
+            };
+
+            let collider: Box<dyn symtropy_math::Shape<3>> = if rng.index(2) == 0 {
+                let local_center = Point::new([
+                    rng.range(-0.3, 0.3),
+                    rng.range(-0.3, 0.3),
+                    rng.range(-0.3, 0.3),
+                ]);
+                Box::new(Sphere::new(local_center, rng.range(0.1, 1.0)))
+            } else {
+                Box::new(Capsule::<3>::new(
+                    rng.range(0.1, 0.7),
+                    rng.range(0.05, 1.5),
+                    rng.index(3),
+                ))
+            };
+
+            let handle = BodyHandle(index);
+            let mut body = RigidBody::new(
+                handle,
+                body_type,
+                transform,
+                collider,
+                if body_type == BodyType::Dynamic { 1.0 } else { 0.0 },
+                if body_type == BodyType::Dynamic {
+                    SVector::from_element(1.0)
+                } else {
+                    SVector::zeros()
+                },
+            );
+
+            let group = 1u32 << rng.index(3);
+            let mask = rng.index(8) as u32;
+            body.collision_group = group;
+            body.collision_mask = mask;
+            bodies.push(body);
+        }
+
+        bodies
+    }
+
+    #[test]
+    fn seeded_sphere_capsule_oracle_qualifies_broadphase_across_geometry_matrix() {
+        // All seeds and fixture sizes are frozen so failures are reproducible.
+        // Each scene has >50 total bodies but <50 dynamics, exercising the
+        // full LBVH and incremental flat-static paths together.
+        for seed in [
+            1u64,
+            0x5eed_cafe,
+            0x9e37_79b9,
+            0xd1b5_4a32,
+            0xfeed_1234_abcd,
+        ] {
+            let bodies = seeded_sphere_capsule_scene(seed, 48, 20);
+            let expected = independent_sphere_capsule_pair_oracle(&bodies);
+
+            assert_eq!(
+                find_pairs(&bodies),
+                expected,
+                "full LBVH disagreed with sphere/capsule oracle for seed {seed:#x}"
+            );
+
+            let mut static_cache = StaticBroadphase::new();
+            static_cache.rebuild(&bodies);
+            assert_eq!(
+                find_pairs_incremental(&bodies, &static_cache),
+                expected,
+                "incremental broadphase disagreed with sphere/capsule oracle for seed {seed:#x}"
+            );
+
+            let reversed: Vec<_> = bodies.into_iter().rev().collect();
+            let reversed_expected = independent_sphere_capsule_pair_oracle(&reversed);
+            assert_eq!(
+                reversed_expected, expected,
+                "oracle pair identities changed under reversal for seed {seed:#x}"
+            );
+            assert_eq!(
+                find_pairs(&reversed),
+                reversed_expected,
+                "reversed LBVH disagreed with oracle for seed {seed:#x}"
+            );
+
+            let mut reversed_cache = StaticBroadphase::new();
+            reversed_cache.rebuild(&reversed);
+            assert_eq!(
+                find_pairs_incremental(&reversed, &reversed_cache),
+                reversed_expected,
+                "reversed incremental path disagreed with oracle for seed {seed:#x}"
+            );
+        }
+    }
+
     #[test]
     fn overlapping_pair_detected() {
         let bodies = vec![
