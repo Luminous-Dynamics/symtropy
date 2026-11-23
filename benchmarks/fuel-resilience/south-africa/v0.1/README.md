@@ -2,31 +2,43 @@
 
 **Status:** research kernel; not operationally qualified  
 **Research cut:** 2026-11-23  
-**Implementation:** dependency-free Rust 2024  
-**Archive:** `safrb-v0.1.tar.gz` (contains source, schema, source register, scenario manifest and benchmark protocol)
+**Implementation:** dependency-free Rust 2024
 
 ## Purpose
 
 A reproducible first test of whether fuel-security claims preserve physical accounting and evidence quality under disruption. v0.1 is a national-aggregate diesel balance kernel, not a provincial digital twin, current stock estimate, supply forecast or operational recommendation.
 
-The kernel enforces an important rule: only measured, quality-released and physically accessible volumes qualify as immediately usable inventory. Reported stock, contracts, pipeline line-fill, cargo nominations and vessel milestones remain distinct. Import receipts enter only at discharge.
+The model distinguishes reported, measured, verified-usable, committed, pipeline line-fill and cargo milestone states. Only measured, quality-released and physically accessible volumes qualify as immediately usable inventory. Import receipts enter the physical balance only at discharge.
 
-It simulates deterministic 7/14/30/60/90-day import shocks with a 30-day recovery tail, and explicitly records unserved demand, storage overflow and daily mass-balance residuals. Its demonstration demand anchor is a rounded 2024 historical working baseline; all other rates and stocks are synthetic fixtures.
+## Source bundle
 
-## Contents
+`safrb-v0.1-source.tar.gz` contains the standalone Rust crate, evidence schema, frozen case manifest and executable/test source:
 
-- `Cargo.toml`, `Cargo.lock`: isolated, dependency-free crate.
-- `src/`: library, executable and tests.
-- `schema/inventory-observation.schema.json`: inventory evidence schema.
-- `case.toml`: frozen benchmark case definition and fixture provenance.
-- `research/SOURCES.md`: source register and known caveats.
-- `research/evidence-conflicts.csv`: unresolved 2024 diesel-export figure conflict.
-- `research/BASELINE_TOURNAMENT.md`: matched baselines and scoring protocol.
-- `research/PARADIGM_SHIFTS_AND_SCORECARD.md`: research thesis, competitive position, metrics, pilot wedge and safety boundaries.
+- `Cargo.toml` and `Cargo.lock`
+- `src/lib.rs` and `src/main.rs`
+- `schema/inventory-observation.schema.json`
+- `case.toml`
+- package `README.md`
 
-## Run locally
+SHA-256 is recorded in `SHA256SUMS`.
 
-Extract the archive and enter `safrb/`:
+## Demonstration boundaries
+
+The demonstration uses a rounded 2024 historical South African diesel-demand anchor. All stock, domestic production and import-rate fixtures are synthetic. It exercises 7/14/30/60/90-day disruption cases and a 30-day recovery tail. These are stress tests, not forecasts.
+
+This is an aggregate accounting/reference kernel, not a live South African fuel model, provincial network, pipeline hydraulic solver, refinery process simulator or operational decision system.
+
+## Evidence rules
+
+- Reported stock does not become verified-usable stock without qualifying measurement, product-quality evidence and physical accessibility.
+- Cargo nomination, loading, sailing, arrival, discharge and quality release are different milestones.
+- Daily mass balance, unserved demand and storage overflow are separately reported.
+- Conflicting public source values are retained as unresolved evidence conflicts, not silently averaged or selected.
+- Missing or stale inputs reduce the strength of the conclusion; they are not imputed as confirmed supply.
+
+## Qualification status
+
+The authoring environment did not include `cargo`, `rustc` or `rustfmt`. Rust formatting, compilation, tests and Clippy have **not** been claimed as passed. Run the checks below on the exact PR head with the repository's pinned Rust 1.96.0 toolchain.
 
 ```sh
 cargo fmt --check
@@ -35,17 +47,10 @@ cargo clippy --all-targets --locked -- -D warnings
 cargo run --release
 ```
 
-## Qualification status
+The JSON schema and TOML manifests were syntax-checked in the authoring environment. This does not substitute for Rust build qualification.
 
-The authoring execution environment did not include `cargo`, `rustc` or `rustfmt`. Therefore formatting, Rust tests and Clippy are **not claimed as passed** in this submission. The JSON schema and TOML manifests were syntax-parsed in the authoring environment. The Rust checks must be run on the exact PR head before the kernel can be called build-verified.
+## Safety and claim ceiling
 
-## Hard boundaries
+The initial model is read-only. It has no path to PLC, DCS, SIS, terminal-control or allocation execution. No live or confidential operator data is included. Better-than-industry claims require matched datasets, identical budgets, strong baselines and independent reproduction.
 
-- Stress durations are scenarios, not forecasts.
-- Aggregate mass-balance correctness is not pipeline-hydraulic validation.
-- Public method datasets (for example, Tennessee Eastman and AI4I) are not petroleum ground truth.
-- No live or confidential operator data is included.
-- Initial industrial integration is read-only. No PLC/DCS/SIS writes or automatic fuel allocation.
-- No claim of outperforming AVEVA, SLB, Honeywell or another incumbent is made. The first competitive wedge is cross-organisation evidence reconciliation and resilience decision assurance.
-
-See `research/PARADIGM_SHIFTS_AND_SCORECARD.md` for the full evaluation plan.
+The intended initial research wedge is cross-organisation inventory and movement reconciliation, with resilience planning as a read-only analytical aid.
