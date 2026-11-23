@@ -34,4 +34,8 @@ path = "src/bin/rrvr_campaign_compile.rs"
 name = "rrvr_campaign_verify"
 path = "src/bin/rrvr_campaign_verify.rs"
 
+[[bin]]
+name = "rrvr_execution_validate"
+path = "src/bin/rrvr_execution_validate.rs"
+
 [workspace]
