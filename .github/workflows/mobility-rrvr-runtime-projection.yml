@@ -259,6 +259,100 @@ jobs:
             and .tla_refinement_checked == false
           ' "$REPORT"
 
+      - name: Run multi-attempt lineage CLI positive control
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
+          REPORT="$RUNNER_TEMP/rrvr-attempt-lineage-summary.json"
+          cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_attempt_lineage -- "$FIXTURE" "$REPORT"
+          jq -e '
+            .validation == "passed"
+            and .attempt_count == 3
+            and .recovery_edge_count == 2
+            and .applied_attempt_count == 1
+            and .head_attempt_id == "attempt-3"
+            and .head_physical_outcome == "applied"
+            and .head_outcome_verdict == "confirmed"
+            and .head_physical_observer_quorum_qualified == true
+            and .owner_authentication == "not_performed"
+            and .evidence_completeness == "not_established"
+            and .tla_refinement == "not_checked"
+            and .physical_safety == "not_established"
+            and .native_action_authority == "not_created"
+          ' "$REPORT"
+
+      - name: Compile, deterministically replay and verify the RRVR campaign plan
+        id: compiled_plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          SOURCE="$ROOT/fixtures/fault_campaign_paired_v0_1.json"
+          SCHEMA="$ROOT/schemas/compiled_campaign_plan_v0_1.schema.json"
+          PLAN_A="$RUNNER_TEMP/rrvr-campaign-plan-a.json"
+          PLAN_B="$RUNNER_TEMP/rrvr-campaign-plan-b.json"
+          REPORT="$RUNNER_TEMP/rrvr-campaign-plan-report.json"
+          VERIFY_REPORT="$RUNNER_TEMP/rrvr-campaign-plan-verify.json"
+          TAMPERED="$RUNNER_TEMP/rrvr-campaign-plan-tampered.json"
+
+          jq empty "$SCHEMA"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_A" "$REPORT" > "$RUNNER_TEMP/rrvr-campaign-compile.stdout"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_B" > /dev/null
+          cmp "$PLAN_A" "$PLAN_B"
+
+          jq -e '
+            .version == "0.1"
+            and .canonicalization == "serde-json-value-sorted-keys-v0.1"
+            and (.source_manifest_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.plan_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.fault_model_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.native_adapter_revision | length > 0)
+            and (.platform.runtime_monitor_revision | length > 0)
+            and (.scenarios | length == 4)
+            and (.pairs | length == 2)
+            and ([.scenarios[].schedule_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.pairs[].pair_commitment_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.scenarios | group_by(.pair_id)[] | ([.[].pair_commitment_sha256] | unique | length == 1)] | all)
+            and ([.scenarios[].fault_events | to_entries[] | .value.sequence == (.key + 1)] | all)
+          ' "$PLAN_A"
+
+          EXPECTED_PLAN_SHA=$(jq -r '.plan_sha256' "$REPORT")
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$PLAN_A" "$SOURCE" "$EXPECTED_PLAN_SHA" "$VERIFY_REPORT" > /dev/null
+          EXPECTED_SOURCE_SHA=$(sha256sum "$SOURCE" | cut -d ' ' -f 1)
+          PLAN_ARTIFACT_SHA=$(sha256sum "$PLAN_A" | cut -d ' ' -f 1)
+          jq -e --arg source_sha "$EXPECTED_SOURCE_SHA" --arg artifact_sha "$PLAN_ARTIFACT_SHA" '
+            .validation == "passed"
+            and .source_manifest_binding == true
+            and .canonical_encoding == true
+            and .nested_pair_and_schedule_commitments == true
+            and .external_expected_digest_match == true
+            and .source_manifest_sha256 == $source_sha
+            and .compiled_plan_artifact_sha256 == $artifact_sha
+            and .fault_injection_executed == false
+            and .native_authority_created == false
+            and .platform_inventory_authenticated == false
+            and .physical_safety_established == false
+          ' "$VERIFY_REPORT"
+
+          jq '.scenarios[0].fault_events[0].kind = "power_loss"' "$PLAN_A" > "$TAMPERED"
+          set +e
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$TAMPERED" "$SOURCE" "$EXPECTED_PLAN_SHA" > "$RUNNER_TEMP/rrvr-campaign-tamper.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Campaign plan verifier accepted a mutated fault event."
+            exit 1
+          fi
+          echo "Expected negative control rejected: tampered compiled plan."
+
+          echo "plan_sha=$EXPECTED_PLAN_SHA" >> "$GITHUB_OUTPUT"
+          echo "plan_path=$PLAN_A" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$EXPECTED_SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Validate plan-bound fault execution evidence and uncertainty controls
         shell: bash
         env:
@@ -360,100 +454,6 @@ jobs:
             exit 1
           fi
           echo "Expected negative control rejected: delivery signature mismatch."
-
-      - name: Run multi-attempt lineage CLI positive control
-        shell: bash
-        run: |
-          set -euo pipefail
-          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
-          REPORT="$RUNNER_TEMP/rrvr-attempt-lineage-summary.json"
-          cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_attempt_lineage -- "$FIXTURE" "$REPORT"
-          jq -e '
-            .validation == "passed"
-            and .attempt_count == 3
-            and .recovery_edge_count == 2
-            and .applied_attempt_count == 1
-            and .head_attempt_id == "attempt-3"
-            and .head_physical_outcome == "applied"
-            and .head_outcome_verdict == "confirmed"
-            and .head_physical_observer_quorum_qualified == true
-            and .owner_authentication == "not_performed"
-            and .evidence_completeness == "not_established"
-            and .tla_refinement == "not_checked"
-            and .physical_safety == "not_established"
-            and .native_action_authority == "not_created"
-          ' "$REPORT"
-
-      - name: Compile, deterministically replay and verify the RRVR campaign plan
-        id: compiled_plan
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="research/mobility-rrvr-runtime-trace"
-          SOURCE="$ROOT/fixtures/fault_campaign_paired_v0_1.json"
-          SCHEMA="$ROOT/schemas/compiled_campaign_plan_v0_1.schema.json"
-          PLAN_A="$RUNNER_TEMP/rrvr-campaign-plan-a.json"
-          PLAN_B="$RUNNER_TEMP/rrvr-campaign-plan-b.json"
-          REPORT="$RUNNER_TEMP/rrvr-campaign-plan-report.json"
-          VERIFY_REPORT="$RUNNER_TEMP/rrvr-campaign-plan-verify.json"
-          TAMPERED="$RUNNER_TEMP/rrvr-campaign-plan-tampered.json"
-
-          jq empty "$SCHEMA"
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_A" "$REPORT" > "$RUNNER_TEMP/rrvr-campaign-compile.stdout"
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_B" > /dev/null
-          cmp "$PLAN_A" "$PLAN_B"
-
-          jq -e '
-            .version == "0.1"
-            and .canonicalization == "serde-json-value-sorted-keys-v0.1"
-            and (.source_manifest_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.plan_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.fault_model_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.platform.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and (.platform.native_adapter_revision | length > 0)
-            and (.platform.runtime_monitor_revision | length > 0)
-            and (.scenarios | length == 4)
-            and (.pairs | length == 2)
-            and ([.scenarios[].schedule_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
-            and ([.pairs[].pair_commitment_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
-            and ([.scenarios | group_by(.pair_id)[] | ([.[].pair_commitment_sha256] | unique | length == 1)] | all)
-            and ([.scenarios[].fault_events | to_entries[] | .value.sequence == (.key + 1)] | all)
-          ' "$PLAN_A"
-
-          EXPECTED_PLAN_SHA=$(jq -r '.plan_sha256' "$REPORT")
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$PLAN_A" "$SOURCE" "$EXPECTED_PLAN_SHA" "$VERIFY_REPORT" > /dev/null
-          EXPECTED_SOURCE_SHA=$(sha256sum "$SOURCE" | cut -d ' ' -f 1)
-          PLAN_ARTIFACT_SHA=$(sha256sum "$PLAN_A" | cut -d ' ' -f 1)
-          jq -e --arg source_sha "$EXPECTED_SOURCE_SHA" --arg artifact_sha "$PLAN_ARTIFACT_SHA" '
-            .validation == "passed"
-            and .source_manifest_binding == true
-            and .canonical_encoding == true
-            and .nested_pair_and_schedule_commitments == true
-            and .external_expected_digest_match == true
-            and .source_manifest_sha256 == $source_sha
-            and .compiled_plan_artifact_sha256 == $artifact_sha
-            and .fault_injection_executed == false
-            and .native_authority_created == false
-            and .platform_inventory_authenticated == false
-            and .physical_safety_established == false
-          ' "$VERIFY_REPORT"
-
-          jq '.scenarios[0].fault_events[0].kind = "power_loss"' "$PLAN_A" > "$TAMPERED"
-          set +e
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$TAMPERED" "$SOURCE" "$EXPECTED_PLAN_SHA" > "$RUNNER_TEMP/rrvr-campaign-tamper.log" 2>&1
-          status=$?
-          set -e
-          if [ "$status" -eq 0 ]; then
-            echo "Campaign plan verifier accepted a mutated fault event."
-            exit 1
-          fi
-          echo "Expected negative control rejected: tampered compiled plan."
-
-          echo "plan_sha=$EXPECTED_PLAN_SHA" >> "$GITHUB_OUTPUT"
-          echo "plan_path=$PLAN_A" >> "$GITHUB_OUTPUT"
-          echo "source_sha=$EXPECTED_SOURCE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
