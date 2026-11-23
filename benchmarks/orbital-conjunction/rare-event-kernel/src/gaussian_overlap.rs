@@ -1015,11 +1015,12 @@ mod tests {
             [1.0 / 3.0, 0.7471264367816092, 0.0],
             [0.0, 0.0, 10.0 / 7.0],
         ];
-        for axis in 0..3 {
-            assert!((result.overlap_position[axis] - expected_mean[axis]).abs() < 2.0e-12);
-            for (column, expected_value) in expected_covariance[axis].iter().enumerate() {
+        for (axis, expected_value) in expected_mean.iter().enumerate() {
+            assert!((result.overlap_position[axis] - expected_value).abs() < 2.0e-12);
+            for (column, expected_covariance_value) in expected_covariance[axis].iter().enumerate() {
                 assert!(
-                    (result.overlap_covariance[axis][column] - expected_value).abs() < 2.0e-12
+                    (result.overlap_covariance[axis][column] - expected_covariance_value).abs()
+                        < 2.0e-12
                 );
             }
         }
