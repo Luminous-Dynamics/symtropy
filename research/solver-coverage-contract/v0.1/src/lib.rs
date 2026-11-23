@@ -1085,6 +1085,7 @@ mod tests {
             .manifold_lineages
             .push(capacity::ContactManifoldLineage {
                 pair_id: "body-a/body-b".into(),
+                identity_mode: capacity::PointIdentityMode::StablePointIds,
                 reduction_policy_id: None,
                 point_capacity: Some(8),
                 generated_points: vec![capacity::GeometricPointRecord {
@@ -1098,6 +1099,7 @@ mod tests {
                     disposition: capacity::SolverContactDisposition::Solved,
                     reason: None,
                 }],
+                aggregate_counts: None,
                 solver_mapping_complete: true,
             });
         assert_ne!(
