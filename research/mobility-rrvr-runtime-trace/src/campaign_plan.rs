@@ -225,7 +225,11 @@ impl CompiledCampaignPlan {
                 .push(scenario);
         }
 
-        let pair_ids: BTreeSet<&str> = self.pairs.iter().map(|pair| pair.pair_id.as_str()).collect();
+        let pair_ids: BTreeSet<&str> = self
+            .pairs
+            .iter()
+            .map(|pair| pair.pair_id.as_str())
+            .collect();
         if pair_ids.len() != self.pairs.len() || pair_ids.len() != grouped.len() {
             return Err(PlanCompileError::CommitmentMismatch);
         }
@@ -647,7 +651,10 @@ mod tests {
         assert_eq!(plan.platform.driver_revision, manifest.platform.driver_revision);
         assert_eq!(plan.platform.firmware_revision, manifest.platform.firmware_revision);
         assert_eq!(plan.platform.calibration_revision, manifest.platform.calibration_revision);
-        assert_eq!(plan.platform.observer_stack_revision, manifest.platform.observer_stack_revision);
+        assert_eq!(
+            plan.platform.observer_stack_revision,
+            manifest.platform.observer_stack_revision
+        );
         assert_eq!(plan.platform.fault_injector_sha256, manifest.platform.fault_injector_sha256);
     }
 
