@@ -15,6 +15,7 @@ const MAX_ACTIONS: usize = 4096;
 const MAX_WORLDS: usize = 4096;
 const MAX_SCENARIOS: usize = 16384;
 const MAX_ROWS: usize = 65536;
+const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const JOINT_LOSS_RECEIPT_SCHEMA: &str = "luminous.orbital-joint-loss-scenario.receipt.v0.1";
 const JOINT_LOSS_CLAIM_CEILING: &str = "finite-joint-loss-scenario-regret-algebra-only";
 
@@ -137,6 +138,10 @@ pub struct CaseResult {
     pub loss_model_state: String,
     pub loss_model_source_case_id: String,
     pub loss_model_source_commit: String,
+    pub loss_model_source_unit: String,
+    pub loss_projection_id: String,
+    pub loss_projection_scale_numerator: u64,
+    pub loss_projection_scale_denominator: u64,
     pub loss_model_source_receipt_sha256: String,
     pub loss_model_manifest_id: String,
     pub source_loss_scenarios_sha256: String,
@@ -318,6 +323,10 @@ fn result(
         loss_model_state: case.loss_model_set.state.clone(),
         loss_model_source_case_id: case.loss_model_set.source_case_id.clone(),
         loss_model_source_commit: case.loss_model_set.source_commit.clone(),
+        loss_model_source_unit: case.loss_model_set.source_loss_unit.clone(),
+        loss_projection_id: case.loss_model_set.projection_id.clone(),
+        loss_projection_scale_numerator: case.loss_model_set.projection_scale_numerator,
+        loss_projection_scale_denominator: case.loss_model_set.projection_scale_denominator,
         loss_model_source_receipt_sha256: case.loss_model_set.source_receipt_sha256.clone(),
         loss_model_manifest_id: case.loss_model_set.source_manifest_id.clone(),
         source_loss_scenarios_sha256: case.loss_model_set.source_scenarios_sha256.clone(),
@@ -417,6 +426,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || !valid_id(&case.loss_model_set.projection_id)
         || case.loss_model_set.projection_scale_numerator == 0
         || case.loss_model_set.projection_scale_denominator == 0
+        || case.loss_model_set.projection_scale_numerator > MAX_SAFE_INTEGER
+        || case.loss_model_set.projection_scale_denominator > MAX_SAFE_INTEGER
         || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
         || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
     {
@@ -635,6 +646,12 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
         let mut losses = BTreeMap::new();
         for loss in &world.losses {
+            if loss.source_numerator > MAX_SAFE_INTEGER
+                || loss.source_denominator == 0
+                || loss.source_denominator > MAX_SAFE_INTEGER
+            {
+                return invalid_input(case, "source rational loss exceeds exact JSON integer bounds");
+            }
             let Some(projected_loss) = exact_projected_loss(
                 loss.source_numerator,
                 loss.source_denominator,
@@ -648,15 +665,21 @@ fn evaluate_case(case: &Case) -> CaseResult {
             };
             if !valid_id(&loss.action_id)
                 || loss.loss < 0
-                || loss.loss != projected_loss
                 || !feasible.contains(&loss.action_id)
-                || losses.insert(loss.action_id.clone(), loss.loss).is_some()
+                || losses.contains_key(&loss.action_id)
             {
                 return invalid_input(
                     case,
                     "loss row is malformed, duplicated or not feasible in its joint scenario",
                 );
             }
+            if loss.loss != projected_loss {
+                return invalid_input(
+                    case,
+                    "integer loss does not match exact source rational projection",
+                );
+            }
+            losses.insert(loss.action_id.clone(), loss.loss);
         }
 
         if feasible
@@ -902,6 +925,9 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
         && summary.retain_incumbent_cases >= 1
         && summary.reoptimization_warranted_cases >= 1
         && summary.abstain_cases >= 1
+        && summary.loss_model_set_blocked_cases >= 1
+        && summary.loss_scenario_evidence_blocked_cases >= 1
+        && summary.joint_scenario_inventory_blocked_cases >= 1
         && summary.authority_grants == 0;
 
     Ok(Evaluation {
@@ -931,6 +957,39 @@ mod tests {
             .iter()
             .find(|item| item.case_id == id)
             .expect("case exists")
+    }
+
+    #[test]
+    fn rational_loss_projection_is_exact_and_never_rounds() {
+        assert_eq!(exact_projected_loss(1, 10, 1_000, 1), Some(100));
+        assert_eq!(exact_projected_loss(95, 1_000, 1_000, 1), Some(95));
+        assert_eq!(exact_projected_loss(1, 3, 1, 1), None);
+        assert_eq!(exact_projected_loss(1, 0, 1, 1), None);
+        assert_eq!(exact_projected_loss(1, 1, 1, 0), None);
+    }
+
+    #[test]
+    fn projected_integer_loss_must_match_source_rational_exactly() {
+        let mut corpus = fixture();
+        let item = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "fractional_loss_projection")
+            .expect("fractional projection case exists");
+        item.worlds[0].losses[0].loss += 1;
+        item.loss_model_set.projected_scenarios_sha256 =
+            projected_scenarios_digest(&item.worlds).expect("projection digest recomputes");
+        item.expected = Expected {
+            disposition: "INVALID_INPUT".to_owned(),
+            trigger_reason: "integer loss does not match exact source rational projection".to_owned(),
+            worst_case_improvement: None,
+        };
+        let report = evaluate(&corpus).expect("mismatch corpus evaluates");
+        assert_eq!(
+            case(&report, "fractional_loss_projection").disposition,
+            "INVALID_INPUT"
+        );
+        assert_eq!(report.summary.expected_result_mismatches, 0);
     }
 
     #[test]
