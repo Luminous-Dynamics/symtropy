@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-route-tree-case-v0.1",
+  "title": "MFG-ROUTE-TREE-OPT-001 synthetic scenario tree cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "family_manifest",
+    "case_count",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-route-tree-case-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ROUTE-TREE-OPT-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "family_manifest": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_family_id",
+          "case_count",
+          "replication_seeds"
+        ],
+        "properties": {
+          "scenario_family_id": {
+            "type": "string"
+          },
+          "case_count": {
+            "const": 20
+          },
+          "replication_seeds": {
+            "type": "array",
+            "minItems": 20,
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        }
+      }
+    },
+    "case_count": {
+      "const": 120
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 120,
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "scenario_family_id",
+          "seed",
+          "job",
+          "routes",
+          "switch_penalty_per_unit",
+          "unserved_penalty_per_unit",
+          "quality_rejection_penalty_per_unit",
+          "scenarios"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_family_id": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "job": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "job_id",
+              "quantity_units",
+              "max_lead_time_hours",
+              "max_total_cost_units"
+            ],
+            "properties": {
+              "job_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quantity_units": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "max_lead_time_hours": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "max_total_cost_units": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "routes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route_id",
+                "capacity_units",
+                "cost_units",
+                "lead_time_hours",
+                "common_cause_domains"
+              ],
+              "properties": {
+                "route_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "capacity_units": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "cost_units": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "lead_time_hours": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "common_cause_domains": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          },
+          "switch_penalty_per_unit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "unserved_penalty_per_unit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "quality_rejection_penalty_per_unit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "scenarios": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_id",
+                "probability_ppm",
+                "information_set_id",
+                "observations",
+                "hidden_quality_rejected_route_ids"
+              ],
+              "properties": {
+                "scenario_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "probability_ppm": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                },
+                "information_set_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "observations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "failed_route_ids",
+                    "failed_domains",
+                    "unknown_route_ids",
+                    "capacity_reductions"
+                  ],
+                  "properties": {
+                    "failed_route_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "failed_domains": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "unknown_route_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "capacity_reductions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "hidden_quality_rejected_route_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
