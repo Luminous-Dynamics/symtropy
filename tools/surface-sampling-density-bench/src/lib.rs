@@ -473,3 +473,5 @@ mod tests {
 }
 
 pub mod ray_geometry;
+
+pub mod spatial_resolution;
