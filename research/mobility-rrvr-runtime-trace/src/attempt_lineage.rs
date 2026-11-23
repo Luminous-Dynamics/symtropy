@@ -465,6 +465,57 @@ mod tests {
     }
 
     #[test]
+    fn refuses_retry_without_claim_specific_independent_observer_proofs() {
+        let mut recording = valid_recording();
+        recording.attempts[0].observer_assurance = None;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::MissingObserverAssurance)
+        );
+    }
+
+    #[test]
+    fn refuses_shared_common_cause_across_physical_and_downstream_claims() {
+        let mut recording = valid_recording();
+        let assurance = recording.attempts[0].observer_assurance.as_mut().unwrap();
+        assurance.downstream_quiescence_quorum.members[0].common_cause_domains[0] =
+            assurance.physical_outcome_quorum.members[0].common_cause_domains[0].clone();
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverQuorumUnqualified)
+        );
+    }
+
+    #[test]
+    fn refuses_tampered_observer_claim_scope_commitment() {
+        let mut recording = valid_recording();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome_claim_scope_sha256 = "f".repeat(64);
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
+    fn refuses_observer_proofs_under_another_fault_profile_revision() {
+        let mut recording = valid_recording();
+        recording.attempts[0]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome_quorum
+            .fault_model_revision = "other-fault-model".into();
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
     fn refuses_retry_after_indeterminate_persistence() {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::IndeterminateCommit;
