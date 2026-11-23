@@ -83,8 +83,7 @@ pub fn rank_two_source_dependence_robust_designs(
     let prior_variance = first.problem.prior_parameter_variance;
 
     let mut seen_ids = std::collections::BTreeSet::new();
-    let midpoint = correlation_bounds[0]
-        + (correlation_bounds[1] - correlation_bounds[0]) * 0.5;
+    let midpoint = correlation_bounds[0] + (correlation_bounds[1] - correlation_bounds[0]) * 0.5;
     let mut scores = Vec::with_capacity(candidates.len());
 
     for candidate in candidates {
@@ -173,7 +172,10 @@ fn validate_scope_identifiers(
     candidate: &DependenceRobustDesignCandidate,
 ) -> Result<(), ModelError> {
     if candidate.candidate_id.trim().is_empty()
-        || candidate.source_pair_ids.iter().any(|source_id| source_id.trim().is_empty())
+        || candidate
+            .source_pair_ids
+            .iter()
+            .any(|source_id| source_id.trim().is_empty())
         || candidate.source_pair_ids[0] == candidate.source_pair_ids[1]
         || candidate.joint_model_receipt_id.trim().is_empty()
     {
@@ -225,11 +227,8 @@ mod tests {
 
     #[test]
     fn maximin_ranking_reverses_a_midpoint_only_design_choice() {
-        let ranking = rank_two_source_dependence_robust_designs(&[
-            candidate_a(),
-            candidate_b(),
-        ])
-        .expect("robust design ranking");
+        let ranking = rank_two_source_dependence_robust_designs(&[candidate_a(), candidate_b()])
+            .expect("robust design ranking");
 
         assert_eq!(ranking.scores[0].candidate_id, "dependence-stable");
         let nominal_favourite = ranking
@@ -243,18 +242,12 @@ mod tests {
         assert_eq!(dependence_stable.nominal_rank, 2);
         assert_eq!(dependence_stable.robust_rank, 1);
         assert_eq!(nominal_favourite.robust_rank, 2);
-        assert!(
-            (nominal_favourite.nominal_midpoint_eig_nats - 1.3671837547097918).abs() < 1.0e-12
-        );
+        assert!((nominal_favourite.nominal_midpoint_eig_nats - 1.3671837547097918).abs() < 1.0e-12);
         assert!((nominal_favourite.worst_case_eig_nats - 0.5 * 10.0_f64.ln()).abs() < 1.0e-12);
         assert!(
-            (dependence_stable.worst_case_eig_nats - 0.5 * (113.0_f64 / 9.0).ln()).abs()
-                < 1.0e-12
+            (dependence_stable.worst_case_eig_nats - 0.5 * (113.0_f64 / 9.0).ln()).abs() < 1.0e-12
         );
-        assert!(
-            dependence_stable.worst_case_eig_nats
-                > nominal_favourite.worst_case_eig_nats
-        );
+        assert!(dependence_stable.worst_case_eig_nats > nominal_favourite.worst_case_eig_nats);
         assert!(!ranking.machine_certified_enclosure);
     }
 
