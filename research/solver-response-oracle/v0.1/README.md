@@ -39,12 +39,12 @@ Rotational velocity is converted to a linear scale using L times the angular-vel
 
 ## Run
 
-\`\`\`sh
+```sh
 cargo fmt --manifest-path research/solver-response-oracle/v0.1/Cargo.toml -- --check
 cargo test --manifest-path research/solver-response-oracle/v0.1/Cargo.toml --locked
 cargo run --manifest-path research/solver-response-oracle/v0.1/Cargo.toml --example response_tournament --locked
 cargo clippy --manifest-path research/solver-response-oracle/v0.1/Cargo.toml --locked --all-targets -- -D warnings
-\`\`\`
+```
 
 ## Output
 
