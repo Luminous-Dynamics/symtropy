@@ -77,8 +77,8 @@ pub use pop_col_energy::{
 };
 pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
-    PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason,
-    PeakOverlapConvergenceStatus, decide_peak_overlap_convergence,
+    PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
+    decide_peak_overlap_convergence,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
