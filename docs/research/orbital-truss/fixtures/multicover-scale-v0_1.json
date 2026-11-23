@@ -1,0 +1,1968 @@
+{
+  "schema": "luminous.orbital-truss.multicover-scale-corpus.v0.1",
+  "benchmark_id": "ORBITAL-MULTICOVER-SCALE-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only",
+  "problem": {
+    "case_id": "MC-001-96-VIEW-SPARSE-PARETO",
+    "coordinate_frame_id": "ABSTRACT-SPARSE-VISIBILITY-MATRIX",
+    "features": [
+      {
+        "feature_id": "F-00",
+        "requested_k": 1
+      },
+      {
+        "feature_id": "F-01",
+        "requested_k": 2
+      },
+      {
+        "feature_id": "F-02",
+        "requested_k": 3
+      },
+      {
+        "feature_id": "F-03",
+        "requested_k": 4
+      },
+      {
+        "feature_id": "F-04",
+        "requested_k": 5
+      },
+      {
+        "feature_id": "F-05",
+        "requested_k": 1
+      },
+      {
+        "feature_id": "F-06",
+        "requested_k": 2
+      },
+      {
+        "feature_id": "F-07",
+        "requested_k": 3
+      },
+      {
+        "feature_id": "F-08",
+        "requested_k": 4
+      },
+      {
+        "feature_id": "F-09",
+        "requested_k": 5
+      },
+      {
+        "feature_id": "F-10",
+        "requested_k": 1
+      },
+      {
+        "feature_id": "F-11",
+        "requested_k": 2
+      },
+      {
+        "feature_id": "F-12",
+        "requested_k": 3
+      },
+      {
+        "feature_id": "F-13",
+        "requested_k": 4
+      },
+      {
+        "feature_id": "F-14",
+        "requested_k": 5
+      },
+      {
+        "feature_id": "F-15",
+        "requested_k": 1
+      },
+      {
+        "feature_id": "F-16",
+        "requested_k": 2
+      },
+      {
+        "feature_id": "F-17",
+        "requested_k": 3
+      },
+      {
+        "feature_id": "F-18",
+        "requested_k": 4
+      },
+      {
+        "feature_id": "F-19",
+        "requested_k": 5
+      },
+      {
+        "feature_id": "F-20",
+        "requested_k": 1
+      },
+      {
+        "feature_id": "F-21",
+        "requested_k": 2
+      },
+      {
+        "feature_id": "F-22",
+        "requested_k": 3
+      },
+      {
+        "feature_id": "F-23",
+        "requested_k": 4
+      }
+    ],
+    "views": [
+      {
+        "view_id": "VIEW-000",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-15",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-15",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-001",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14"
+        ]
+      },
+      {
+        "view_id": "VIEW-002",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-15",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-15",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-003",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-14",
+          "F-16",
+          "F-18",
+          "F-20",
+          "F-23"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-14",
+          "F-16",
+          "F-18",
+          "F-20",
+          "F-23"
+        ]
+      },
+      {
+        "view_id": "VIEW-004",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-005",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-11",
+          "F-19",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-19",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-006",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-05",
+          "F-08",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-05",
+          "F-08",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-007",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-008",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-09",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-09",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-009",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-10",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-010",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14",
+          "F-15",
+          "F-16",
+          "F-17",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-14",
+          "F-15",
+          "F-16",
+          "F-17",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-011",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-20",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-012",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-07",
+          "F-08",
+          "F-14",
+          "F-15",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-07",
+          "F-08",
+          "F-14",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-013",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-014",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-11",
+          "F-15",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-15",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-015",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-16",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-16",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-016",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-10",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-017",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-02",
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-02",
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12"
+        ]
+      },
+      {
+        "view_id": "VIEW-018",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-13",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-019",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-020",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-12",
+          "F-16",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-12",
+          "F-16",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-021",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-022",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-08",
+          "F-09",
+          "F-16",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-08",
+          "F-09",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-023",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11"
+        ],
+        "robust_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10"
+        ]
+      },
+      {
+        "view_id": "VIEW-024",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10"
+        ]
+      },
+      {
+        "view_id": "VIEW-025",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-17",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-17",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-026",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-08",
+          "F-13",
+          "F-14",
+          "F-19",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-08",
+          "F-13",
+          "F-19",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-027",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-028",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-029",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-03",
+          "F-13",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-030",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-10"
+        ]
+      },
+      {
+        "view_id": "VIEW-031",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-19",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-19",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-032",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-16",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-16",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-033",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-034",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-035",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-08",
+          "F-14",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-08",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-036",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-18",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-037",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-14"
+        ]
+      },
+      {
+        "view_id": "VIEW-038",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-09"
+        ]
+      },
+      {
+        "view_id": "VIEW-039",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-07",
+          "F-08",
+          "F-15",
+          "F-16"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-07",
+          "F-08",
+          "F-15",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-040",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-041",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-15",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-15",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-042",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14"
+        ]
+      },
+      {
+        "view_id": "VIEW-043",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-15",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-15",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-044",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-14",
+          "F-16",
+          "F-18",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-16",
+          "F-18",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-045",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-046",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-11",
+          "F-19",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-11",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-047",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-05",
+          "F-08",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-05",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-048",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-049",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-09",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-09",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-050",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-051",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14",
+          "F-15",
+          "F-16",
+          "F-17",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14",
+          "F-16",
+          "F-17",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-052",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-20",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-053",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-07",
+          "F-08",
+          "F-14",
+          "F-15",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-07",
+          "F-08",
+          "F-15",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-054",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-055",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-11",
+          "F-15",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-11",
+          "F-15",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-056",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-16",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-16",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-057",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-10",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-10",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-058",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-02",
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-02",
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12"
+        ]
+      },
+      {
+        "view_id": "VIEW-059",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-13",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-060",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-061",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-12",
+          "F-16",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-12",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-062",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-063",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-08",
+          "F-09",
+          "F-16",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-16",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-064",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11"
+        ],
+        "robust_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11"
+        ]
+      },
+      {
+        "view_id": "VIEW-065",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-09",
+          "F-10"
+        ]
+      },
+      {
+        "view_id": "VIEW-066",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-17",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-17",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-067",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-08",
+          "F-13",
+          "F-14",
+          "F-19",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-08",
+          "F-13",
+          "F-14",
+          "F-19",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-068",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-069",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14",
+          "F-17"
+        ]
+      },
+      {
+        "view_id": "VIEW-070",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18"
+        ]
+      },
+      {
+        "view_id": "VIEW-071",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-072",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-19",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-19",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-073",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-16",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-16",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-074",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-11",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-075",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-12",
+          "F-16"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-076",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-08",
+          "F-14",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-03",
+          "F-08",
+          "F-14",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-077",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-18",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-18",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-078",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14"
+        ],
+        "robust_feature_ids": [
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14"
+        ]
+      },
+      {
+        "view_id": "VIEW-079",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09"
+        ]
+      },
+      {
+        "view_id": "VIEW-080",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-07",
+          "F-08",
+          "F-15",
+          "F-16"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-07",
+          "F-08",
+          "F-15",
+          "F-16"
+        ]
+      },
+      {
+        "view_id": "VIEW-081",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-18",
+          "F-23"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-13",
+          "F-23"
+        ]
+      },
+      {
+        "view_id": "VIEW-082",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-04",
+          "F-08",
+          "F-15",
+          "F-19"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-15",
+          "F-19"
+        ]
+      },
+      {
+        "view_id": "VIEW-083",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-08",
+          "F-11",
+          "F-14"
+        ],
+        "robust_feature_ids": [
+          "F-02",
+          "F-05",
+          "F-11",
+          "F-14"
+        ]
+      },
+      {
+        "view_id": "VIEW-084",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-15",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-15",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-085",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-14",
+          "F-16",
+          "F-18",
+          "F-20"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-06",
+          "F-08",
+          "F-10",
+          "F-12",
+          "F-14",
+          "F-18",
+          "F-20"
+        ]
+      },
+      {
+        "view_id": "VIEW-086",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-08",
+          "F-15",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-087",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-11",
+          "F-19",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-08",
+          "F-11",
+          "F-19",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-088",
+        "failure_domain_id": "DOMAIN-00",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-05",
+          "F-08",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-05",
+          "F-08",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-089",
+        "failure_domain_id": "DOMAIN-01",
+        "nominal_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-04",
+          "F-08",
+          "F-13",
+          "F-17",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-090",
+        "failure_domain_id": "DOMAIN-02",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-09",
+          "F-15",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-02",
+          "F-08",
+          "F-15",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-091",
+        "failure_domain_id": "DOMAIN-03",
+        "nominal_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-21"
+        ]
+      },
+      {
+        "view_id": "VIEW-092",
+        "failure_domain_id": "DOMAIN-04",
+        "nominal_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14",
+          "F-15",
+          "F-16",
+          "F-17",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-00",
+          "F-01",
+          "F-02",
+          "F-03",
+          "F-04",
+          "F-05",
+          "F-06",
+          "F-07",
+          "F-09",
+          "F-10",
+          "F-11",
+          "F-12",
+          "F-13",
+          "F-14",
+          "F-15",
+          "F-16",
+          "F-18",
+          "F-19",
+          "F-20",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-093",
+        "failure_domain_id": "DOMAIN-05",
+        "nominal_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-20",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-06",
+          "F-07",
+          "F-08",
+          "F-20",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-094",
+        "failure_domain_id": "DOMAIN-06",
+        "nominal_feature_ids": [
+          "F-01",
+          "F-07",
+          "F-08",
+          "F-14",
+          "F-15",
+          "F-21",
+          "F-22"
+        ],
+        "robust_feature_ids": [
+          "F-01",
+          "F-08",
+          "F-14",
+          "F-15",
+          "F-21",
+          "F-22"
+        ]
+      },
+      {
+        "view_id": "VIEW-095",
+        "failure_domain_id": "DOMAIN-07",
+        "nominal_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ],
+        "robust_feature_ids": [
+          "F-03",
+          "F-08",
+          "F-12",
+          "F-17",
+          "F-21"
+        ]
+      }
+    ]
+  }
+}
