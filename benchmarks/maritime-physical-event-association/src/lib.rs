@@ -373,34 +373,28 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
         return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
     }
 
-    let source = match visible_observations(
-        &case.source_events,
-        profile,
-        profile.source_time_role,
-    ) {
+    let source = match visible_observations(&case.source_events, profile, profile.source_time_role)
+    {
         Ok(events) => events,
         Err(()) => {
             return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
         }
     };
-    let witness = match visible_observations(
-        &case.witness_events,
-        profile,
-        profile.witness_time_role,
-    ) {
-        Ok(events) => events,
-        Err(()) => {
-            return AssociationReport::new(
-                Disposition::NotEvaluable,
-                source
-                    .iter()
-                    .map(|event| event.record_key.clone())
-                    .collect(),
-                Vec::new(),
-                0,
-            );
-        }
-    };
+    let witness =
+        match visible_observations(&case.witness_events, profile, profile.witness_time_role) {
+            Ok(events) => events,
+            Err(()) => {
+                return AssociationReport::new(
+                    Disposition::NotEvaluable,
+                    source
+                        .iter()
+                        .map(|event| event.record_key.clone())
+                        .collect(),
+                    Vec::new(),
+                    0,
+                );
+            }
+        };
 
     let (source_keys, witness_keys) = unresolved_keys(&source, &witness);
     let graph = candidate_graph(&source, &witness, profile);
