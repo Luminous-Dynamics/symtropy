@@ -337,6 +337,7 @@ mod tests {
         counts.perturbations_valid = 13;
         counts.support_queries_completed = 13;
         counts.candidate_pool_count_before_reduction = 8;
+        counts.best_n_reduced_count = 4;
         let report = counts.validate().expect("8 total admission, 16 backing");
         assert_eq!(report.support_candidates_admitted, 5);
         assert!(!report.evidence_complete);
