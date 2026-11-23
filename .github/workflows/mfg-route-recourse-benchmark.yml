@@ -1,0 +1,112 @@
+name: MFG Route Recourse Benchmark
+on:
+  pull_request:
+    paths:
+      - "tools/mfg-route-recourse-benchmark/**"
+      - "schemas/manufacturing/mfg_route_recourse_case_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_route_recourse_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-recourse-benchmark.yml"
+  push:
+    branches:
+      - research/mfg-route-recourse-v0-1
+    paths:
+      - "tools/mfg-route-recourse-benchmark/**"
+      - "schemas/manufacturing/mfg_route_recourse_case_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_route_recourse_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-recourse-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recourse-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Validate frozen corpus identity
+        run: |
+          jq empty schemas/manufacturing/mfg_route_recourse_case_v0_1.schema.json
+          jq empty schemas/manufacturing/mfg_route_recourse_known_answers_v0_1.schema.json
+          jq empty fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json
+          jq empty fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-RECOURSE-001"
+            and .evidence_class == "synthetic"
+            and .case_count == 120
+            and (.family_manifest | length) == 6
+            and (.cases | length) == 120
+            and all(.family_manifest[]; .case_count == 20 and (.replication_seeds | length) == 20)
+            and all(.cases[]; (.decision_points | length) == 5)
+          ' fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-RECOURSE-001"
+            and .evidence_class == "synthetic"
+            and .answer_count == 600
+            and (.answers | length) == 600
+          ' fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json
+      - name: Apply rustfmt and check formatting
+        run: |
+          cargo fmt --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml
+          cargo fmt --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml -- --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-recourse-rustfmt-source
+          path: tools/mfg-route-recourse-benchmark/src/main.rs
+          if-no-files-found: error
+      - name: Run schema, known-answer and adversarial tests
+        run: cargo test --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml
+      - name: Run recourse evaluator
+        run: |
+          cargo run --quiet --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml -- fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json > mfg-route-recourse-report.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-RECOURSE-001"
+            and .evidence_class == "synthetic"
+            and .scenario_family_count == 6
+            and .scenario_case_count == 120
+            and .decision_point_count == 600
+            and .freeze_decision_count == 120
+            and .plan_decision_count == 480
+            and .capacity_overcommitment_count == 0
+            and .recommendations_are_non_binding
+            and (.execution_authority_used == false)
+            and (.physical_acceptance_claimed == false)
+            and (.production_release_authorized == false)
+            and all(.decision_results[]; .capacity_plan_valid)
+          ' mfg-route-recourse-report.json
+      - name: Negative controls - invalid capacity increase and unresolved reconciliation
+        run: |
+          jq '.cases[0].decision_points[2].observations = [{"observed_hour":5,"sequence":1,"event_type":"capacity_reduced","target_id":"HUB-FDM-A","value_units":99}]' fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json > invalid-capacity-increase.json
+          jq '.cases[0].decision_points[4].observations = [{"observed_hour":7,"sequence":1,"event_type":"execution_reconciled_failure","target_id":"exec-1-1-A","related_id":"HUB-FDM-A"}]' fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json > invalid-reconciliation-order.json
+          for invalid in invalid-capacity-increase.json invalid-reconciliation-order.json; do
+            if cargo run --quiet --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid recourse corpus unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash source, schemas, fixtures and report
+        run: |
+          sha256sum \
+            tools/mfg-route-recourse-benchmark/Cargo.toml \
+            tools/mfg-route-recourse-benchmark/src/main.rs \
+            schemas/manufacturing/mfg_route_recourse_case_v0_1.schema.json \
+            schemas/manufacturing/mfg_route_recourse_known_answers_v0_1.schema.json \
+            fixtures/manufacturing/mfg_route_recourse_cases_v0_1.json \
+            fixtures/manufacturing/mfg_route_recourse_known_answers_v0_1.json \
+            mfg-route-recourse-report.json > mfg-route-recourse.sha256
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-route-recourse-benchmark/Cargo.toml --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-recourse-report
+          path: |
+            mfg-route-recourse-report.json
+            mfg-route-recourse.sha256
+          if-no-files-found: error
