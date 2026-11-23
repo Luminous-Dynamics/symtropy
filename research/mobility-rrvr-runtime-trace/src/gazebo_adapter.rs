@@ -541,7 +541,8 @@ pub fn reconcile_fault_dispatch<T: GazeboFaultInjectorTransport>(
 pub struct ObservedFaultSignature {
     pub observer_id: String,
     pub observer_revision: String,
-    pub observer_fault_domain_id: String,
+    pub observer_binary_sha256: String,
+    pub common_cause_domains: Vec<String>,
     pub signature_sha256: String,
     pub world_epoch: String,
     pub simulation_step: u64,
@@ -586,6 +587,72 @@ pub fn reconcile_dispatch_lookup(lookup: DispatchLedgerResult) -> Reconciliation
         DispatchLedgerResult::NoDispatchProven => ReconciliationDecision::NoDispatchProven,
         DispatchLedgerResult::Unknown => ReconciliationDecision::Unresolved,
     }
+}
+
+/// Qualify a fault-delivery observer quorum against the exact plan profile.
+///
+/// Every member is pinned by ID/revision/binary digest and its complete declared
+/// common-cause domain set. Any overlap invalidates this supplied quorum.
+pub fn validate_delivery_observer_quorum(
+    observations: &[ObservedFaultSignature],
+    plan: &CompiledCampaignPlan,
+    fault: &FaultInjection,
+    expected_world_epoch: &str,
+) -> Result<(), GazeboAdapterError> {
+    let required = plan.platform.required_delivery_observer_quorum;
+    if observations.len() < required || observations.len() > 32 {
+        return Err(GazeboAdapterError::ObserverQuorumUnqualified);
+    }
+    if !nonempty(expected_world_epoch) {
+        return Err(GazeboAdapterError::ObserverEpochMismatch);
+    }
+
+    let mut observer_ids = BTreeSet::new();
+    let mut common_cause_domains = BTreeSet::new();
+    let mut previous_observer: Option<&str> = None;
+    for observation in observations {
+        if !observer_ids.insert(observation.observer_id.as_str())
+            || previous_observer.is_some_and(|previous| previous >= observation.observer_id.as_str())
+        {
+            return Err(GazeboAdapterError::ObserverIdentityMismatch);
+        }
+        previous_observer = Some(&observation.observer_id);
+
+        let profile = plan
+            .platform
+            .observer_profiles
+            .iter()
+            .find(|profile| profile.observer_id == observation.observer_id)
+            .ok_or(GazeboAdapterError::ObserverIdentityMismatch)?;
+        if observation.observer_revision != profile.revision
+            || observation.observer_binary_sha256 != profile.binary_sha256
+            || observation.common_cause_domains != profile.common_cause_domains
+            || observation.observer_id == plan.platform.fault_injector_id
+        {
+            return Err(GazeboAdapterError::ObserverIdentityMismatch);
+        }
+        if !valid_sha256(&observation.signature_sha256)
+            || observation.signature_sha256 != fault.expected_delivery_signature_sha256
+        {
+            return Err(GazeboAdapterError::ObserverSignatureMismatch);
+        }
+        if observation.world_epoch != expected_world_epoch {
+            return Err(GazeboAdapterError::ObserverEpochMismatch);
+        }
+        if observation.simulation_step < fault.scheduled_simulation_step {
+            return Err(GazeboAdapterError::ObserverStepMismatch);
+        }
+        if observation.common_cause_domains.is_empty()
+            || observation.common_cause_domains.iter().any(|domain| {
+                !nonempty(domain)
+                    || domain == &plan.platform.fault_injector_fault_domain_id
+                    || !common_cause_domains.insert(domain.as_str())
+            })
+        {
+            return Err(GazeboAdapterError::ObserverCommonCauseOverlap);
+        }
+    }
+    Ok(())
 }
 
 /// A stable idempotency key binds one dispatch to one plan/run/event.
