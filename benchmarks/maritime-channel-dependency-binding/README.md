@@ -99,7 +99,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 27 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 27 unit-test declarations plus 2 release-library integration tests (29 total). The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
@@ -117,6 +117,7 @@ That is 900 deterministic identity-set cases. Additional tests cover:
 - separate inventory comparisons for the same generic dimension at different evidence stages;
 - rejection when a dependency class is placed in a stage outside its declared applicability set; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
 - profile/as-of mismatch, missing required dimension, owner-backed non-applicability, and attempted removal of a mandatory frozen v0.1 obligation;
+- release-library integration checks that reject unreviewed profile IDs/versions and pin the public constructor to all 18 frozen obligations;
 - fine-grained maritime component mapping and dimension-qualified identity equality.
 
 Expected scenario labels are in `fixtures/channel-dependency-v0.1.tsv`.
