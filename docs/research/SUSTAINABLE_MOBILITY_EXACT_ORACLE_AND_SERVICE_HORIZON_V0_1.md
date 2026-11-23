@@ -3,7 +3,7 @@
 **Parent:** [SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 #6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921)  
 **Capacity source:** [SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 #6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909)  
 **Branch:** research/mobility-service-quality-exact-oracle-v0-1  
-**Status:** bounded exact assignment oracle and horizon accounting implemented; exact-head Actions verified.
+**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and exact policy-gap reporting implemented; CI verification pending for the expanded 12×16 bound.
 
 ## 1. Why this increment matters
 
@@ -23,14 +23,14 @@ It does not introduce a new routing algorithm, battery model, flight controller,
 The oracle consumes the same validated ServiceQualityInput produced by the linked receipt path. It considers each aerial/fallback opportunity at most once and each request at most once. For aerial opportunities it calls the same complete service-window, weather, permission and blocked-interval gate used by the policy evaluator. No unsafe or ineligible opportunity enters the exact comparison.
 
 The admitted exact family is bounded to:
-- at most 8 requests;
-- at most 8 combined aerial and fallback opportunities;
-- at most 1,000,000 search nodes.
+- at most 12 requests;
+- at most 16 combined aerial and fallback opportunities;
+- at most 1,000,000 dynamic-programming transitions.
 
-The search explores every feasible request-or-skip decision for each opportunity, subject to those bounds. It has three explicit outcomes:
+The solver uses bitmask dynamic programming over the set of already assigned requests. For each ordered opportunity it considers skipping the opportunity or assigning one eligible, not-yet-assigned request. At each layer it retains the lexicographically best prefix for each request mask; because future feasibility depends only on the remaining request set and remaining opportunities, dominated prefixes for the same mask can be discarded. This expands the exactly solved family without enumerating every complete assignment permutation. It has three explicit outcomes:
 - evaluated: the bounded search completed and returns an exact result for the supplied finite instance;
 - not_run_bounds_exceeded: the request/opportunity count exceeds the declared family;
-- node_limit_reached: the explicit search cap was reached before full enumeration.
+- transition_limit_reached: the explicit DP transition cap was reached before the exact layers were completed.
 
 Only evaluated carries an optimum and policy-gap values. The other two states do not carry a best score and must never be presented as an optimality result.
 
@@ -68,7 +68,7 @@ It contains two requests and two aerial opportunities derived from the fixed Doc
 
 The total completed-request latency for the exact/EDF outcome is 825 seconds. FCFS has the same total latency on this small instance, but misses one additional on-time deadline and accumulates 185 seconds of lateness. This illustrates why service latency, deadline success and service completion must remain separate.
 
-The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). It therefore returns not_run_bounds_exceeded for the exact oracle. FCFS/EDF results are still reported, but no exact optimality gap is claimed for that larger fixture.
+The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). It is now within the DP bound and receives an exact assignment optimum plus component-wise FCFS/EDF regret on the same event-derived opportunity set. Instances beyond 12 requests or 16 opportunities return not_run_bounds_exceeded; instances crossing the transition ceiling return transition_limit_reached and carry no optimum/regret.
 
 ## 4. Horizon semantics
 
@@ -135,4 +135,4 @@ The full matched tournament should add nonanticipative rolling-horizon MPC, scen
 
 ## 7. Claim boundary
 
-A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45208705994](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45208705994) at `177ff299e86aedf27fc37146ce644dc582270b74` passed strict schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/exact-oracle assertions and artifact upload. Test binaries reported 222 passed, 0 failed; the service-quality module contains 29 focused Rust test definitions. Clippy is not included, and physical/field evidence remains a separate qualification.
+A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45208705994](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45208705994) at `177ff299e86aedf27fc37146ce644dc582270b74` passed strict schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/exact-oracle assertions and artifact upload for the earlier 8×8 recursive version. The current 12×16 bitmask DP revision is a subsequent change and requires its own exact-head run; 30 focused Rust test definitions are now present. Clippy is not included, and physical/field evidence remains a separate qualification.
