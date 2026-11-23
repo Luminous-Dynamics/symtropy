@@ -286,6 +286,10 @@ fn validate_probability_manifest(
                     .forecast_issue_time_seconds
                     .zip(manifest.evaluation_window_start_seconds)
                     .is_none_or(|(issue, start)| issue > start)
+                || manifest
+                    .evaluation_window_start_seconds
+                    .zip(manifest.evaluation_window_end_seconds)
+                    .is_none_or(|(start, end)| start >= end)
                 || manifest.sample_count.unwrap_or(0) == 0
                 || manifest.effective_sample_size_milli.unwrap_or(0) == 0
             {
@@ -838,6 +842,47 @@ mod tests {
         )
         .expect_err("holdout overlaps training data");
         assert!(errors.iter().any(|error| error.contains("historical_probability_provenance")));
+    }
+
+    #[test]
+    fn forecast_manifest_requires_complete_held_out_evaluation_window() {
+        let mut risk = risk_fixture();
+        let manifest = &mut risk.probability_manifest;
+        manifest.probability_basis = ProbabilityBasis::ForecastModel;
+        manifest.source_dataset_digest =
+            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
+        manifest.calibration_report_digest =
+            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.training_cutoff_seconds = Some(100);
+        manifest.forecast_issue_time_seconds = Some(200);
+        manifest.evaluation_window_start_seconds = Some(200);
+        manifest.evaluation_window_end_seconds = None;
+        manifest.sample_count = Some(50);
+        manifest.effective_sample_size_milli = Some(40_000);
+        let errors = evaluate_mobility_service_risk_envelope(
+            &tree_fixture(),
+            &service_fixture(),
+            &capacity_fixture(),
+            &risk,
+        )
+        .expect_err("forecast manifest without held-out window end is incomplete");
+        assert!(errors.iter().any(|error| error.contains("forecast_probability_provenance")));
+    }
+
+    #[test]
+    fn expert_elicitation_requires_panel_and_protocol() {
+        let mut risk = risk_fixture();
+        risk.probability_manifest.probability_basis = ProbabilityBasis::ExpertElicitation;
+        risk.probability_manifest.expert_panel_count = Some(0);
+        risk.probability_manifest.elicitation_protocol_reference = None;
+        let errors = evaluate_mobility_service_risk_envelope(
+            &tree_fixture(),
+            &service_fixture(),
+            &capacity_fixture(),
+            &risk,
+        )
+        .expect_err("expert probabilities require panel and protocol provenance");
+        assert!(errors.iter().any(|error| error.contains("expert_probability_elicitation_provenance")));
     }
 
     #[test]
