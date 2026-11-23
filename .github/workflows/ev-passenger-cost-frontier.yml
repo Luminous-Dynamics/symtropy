@@ -581,6 +581,8 @@ jobs:
             and .capacity_opportunities_qualified == 7
             and .exact_oracle.status == "evaluated"
             and (.exact_oracle.best_score != null)
+            and .exact_oracle.information_model == "clairvoyant_full_horizon_offline_upper_bound"
+            and .exact_oracle.deployable_online_policy == false
             and .exact_oracle.dp_transitions > 0
             and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
             and .exact_oracle.best_score.completed_on_time == 7
@@ -618,6 +620,8 @@ jobs:
             > sustainable-mobility-service-quality-exact-oracle-report.json
           jq -e '
             .exact_oracle.status == "evaluated"
+            and .exact_oracle.information_model == "clairvoyant_full_horizon_offline_upper_bound"
+            and .exact_oracle.deployable_online_policy == false
             and .exact_oracle.dp_transitions > 0 and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
             and .exact_oracle.best_score.completed_on_time == 2
             and .exact_oracle.best_score.completed_late == 0
