@@ -163,12 +163,12 @@ pub fn adjust_pop_col_energy_limited_center(
         });
     }
 
-    let relative_energy_change = relative_energy_change(
+    let proposed_relative_energy_change = relative_energy_change(
         original_energy.specific_orbital_energy_km2_per_s2,
         proposed_energy.specific_orbital_energy_km2_per_s2,
     )?;
 
-    if relative_energy_change <= config.maximum_relative_energy_change {
+    if proposed_relative_energy_change <= config.maximum_relative_energy_change {
         let search = empty_search();
         return Ok(PopColAdjustmentReport {
             status: PopColAdjustmentStatus::CandidateWithinEnergyLimit,
@@ -177,8 +177,8 @@ pub fn adjust_pop_col_energy_limited_center(
             adjusted_energy: proposed_energy,
             adjustment_fraction: 1.0,
             adjusted_col_position_km: input.proposed_overlap_position_km,
-            proposed_relative_energy_change: Some(relative_energy_change),
-            adjusted_relative_energy_change: Some(relative_energy_change),
+            proposed_relative_energy_change: Some(proposed_relative_energy_change),
+            adjusted_relative_energy_change: Some(proposed_relative_energy_change),
             search,
         });
     }
@@ -251,7 +251,7 @@ pub fn adjust_pop_col_energy_limited_center(
         adjusted_energy,
         adjustment_fraction: selected_fraction,
         adjusted_col_position_km,
-        proposed_relative_energy_change: Some(relative_energy_change),
+        proposed_relative_energy_change: Some(proposed_relative_energy_change),
         adjusted_relative_energy_change: Some(relative_energy_change(
             original_energy.specific_orbital_energy_km2_per_s2,
             adjusted_energy.specific_orbital_energy_km2_per_s2,
@@ -288,14 +288,12 @@ fn refine_fraction_minima(
     objective: &mut Vec<f64>,
     include_endpoints: bool,
 ) -> Result<RefinedMinima, KernelError> {
-    let mut converged = false;
     let mut bisection_rounds = 0_usize;
 
-    loop {
+    let converged = loop {
         let (_, minimum_indices) = extrema_indices(objective, include_endpoints)?;
         if minimum_indices.is_empty() {
-            converged = true;
-            break;
+            break true;
         }
 
         let count = fractions.len();
@@ -326,12 +324,10 @@ fn refine_fraction_minima(
         }
 
         if new_fractions.is_empty() {
-            converged = true;
-            break;
+            break true;
         }
         if delta_x_at_epsilon {
-            converged = false;
-            break;
+            break false;
         }
 
         new_fractions.sort_by(f64::total_cmp);
@@ -356,10 +352,9 @@ fn refine_fraction_minima(
         bisection_rounds += 1;
         // The CARA helper stops when nbisect > Nbisectmax.
         if bisection_rounds > SOURCE_MAX_BISECTION_ROUNDS {
-            converged = false;
-            break;
+            break false;
         }
-    }
+    };
 
     let (_, minimum_indices) = extrema_indices(objective, include_endpoints)?;
     Ok(RefinedMinima {
