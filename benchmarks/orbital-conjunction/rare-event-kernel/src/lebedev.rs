@@ -1524,6 +1524,143 @@ where
     ))
 }
 
+/// Configuration for comparison with NASA CARA's 5,810-point production rule.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ProductionSphereQuadratureConfig {
+    /// Absolute difference tolerance between the 26-point and 5,810-point estimates.
+    pub absolute_tolerance: f64,
+    /// Relative difference tolerance, scaled by the 5,810-point estimate.
+    pub relative_tolerance: f64,
+    /// Contribution-support criterion applied to the production rule.
+    pub diagnostics: SphereQuadratureDiagnosticsConfig,
+}
+
+/// Empirical comparison of the 26-point rule with the 5,810-point production rule.
+///
+/// The production result is computed from 5,810 nodes. The 26-point result is
+/// retained as a lower-cost comparison and may be exactly zero even when the
+/// production rule samples nonzero support. This comparison and its qualification
+/// flag are diagnostics, not a rigorous quadrature error bound.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProductionSphereQuadratureReport {
+    /// Optional detailed 26-point report. None when every coarse sample is zero.
+    pub low_order_report: Option<SphereQuadratureReport>,
+    /// Raw 26-point integral estimate, including the valid all-zero case.
+    pub low_order_integral: f64,
+    /// Detailed 5,810-point production-rule report.
+    pub production_report: SphereQuadratureReport,
+    /// Absolute difference between low-order and production estimates.
+    pub absolute_difference: f64,
+    /// Relative difference scaled by the production estimate.
+    pub relative_difference: f64,
+    /// Whether the 26-point result agrees with the production rule at tolerance.
+    pub numerical_convergence_achieved: bool,
+    /// Whether enough production-rule nodes materially contribute.
+    pub adequacy_satisfied: bool,
+    /// True only when both empirical agreement and contribution adequacy pass.
+    pub qualified: bool,
+}
+
+/// Compare a lower-cost 26-point estimate with the full 5,810-point NASA rule.
+///
+/// The same deterministic integrand is evaluated at both rules. The coarse
+/// integral is retained even if all 26 samples are zero; this allows the report
+/// to expose the important failure mode in which the production rule sees
+/// nonzero support that the coarse rule entirely misses.
+///
+/// This is still an empirical convergence diagnostic. Even agreement between
+/// two finite rules cannot prove that both have not missed an unsampled narrow
+/// feature. Production risk assessment must retain additional model and
+/// integrand-adequacy evidence.
+pub fn integrate_sphere_production_check<F>(
+    integrand: F,
+    config: ProductionSphereQuadratureConfig,
+) -> Result<ProductionSphereQuadratureReport, KernelError>
+where
+    F: Fn(f64, f64, f64) -> f64,
+{
+    if !config.absolute_tolerance.is_finite()
+        || !config.relative_tolerance.is_finite()
+        || config.absolute_tolerance < 0.0
+        || config.relative_tolerance < 0.0
+        || (config.absolute_tolerance == 0.0 && config.relative_tolerance == 0.0)
+    {
+        return Err(KernelError::InvalidSphereQuadratureTolerance);
+    }
+
+    let low_rule = lebedev_sphere_rule(LebedevRule::Points26)?;
+    let low_values = low_rule
+        .nodes()
+        .iter()
+        .map(|node| integrand(node.x, node.y, node.z))
+        .collect::<Vec<_>>();
+    if low_values.iter().any(|value| !value.is_finite()) {
+        return Err(KernelError::NonFiniteValue);
+    }
+    if low_values.iter().any(|value| *value < 0.0) {
+        return Err(KernelError::InvalidSphereIntegrand);
+    }
+    let low_weighted = low_rule
+        .nodes()
+        .iter()
+        .zip(&low_values)
+        .map(|(node, value)| node.weight * value)
+        .collect::<Vec<_>>();
+    if low_weighted.iter().any(|value| !value.is_finite()) {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let low_order_integral = compensated_sum(low_weighted.iter().copied());
+    if !low_order_integral.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let low_order_report = if low_values.iter().any(|value| *value > 0.0) {
+        Some(integrate_sphere_samples(
+            &low_rule,
+            &low_values,
+            config.diagnostics,
+        )?)
+    } else {
+        None
+    };
+
+    let production_rule = lebedev_sphere_rule(LebedevRule::Points5810)?;
+    let production_values = production_rule
+        .nodes()
+        .iter()
+        .map(|node| integrand(node.x, node.y, node.z))
+        .collect::<Vec<_>>();
+    let production_report = integrate_sphere_samples(
+        &production_rule,
+        &production_values,
+        config.diagnostics,
+    )?;
+
+    let absolute_difference = (production_report.integral - low_order_integral).abs();
+    if !absolute_difference.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let relative_difference =
+        absolute_difference / production_report.integral.abs().max(f64::MIN_POSITIVE);
+    if !relative_difference.is_finite() {
+        return Err(KernelError::NumericalOverflow);
+    }
+    let numerical_convergence_achieved = absolute_difference
+        <= config.absolute_tolerance
+            + config.relative_tolerance * production_report.integral.abs();
+    let adequacy_satisfied = production_report.adequacy_satisfied;
+
+    Ok(ProductionSphereQuadratureReport {
+        low_order_report,
+        low_order_integral,
+        production_report,
+        absolute_difference,
+        relative_difference,
+        numerical_convergence_achieved,
+        adequacy_satisfied,
+        qualified: numerical_convergence_achieved && adequacy_satisfied,
+    })
+}
+
 fn evaluate_sphere_rule<F>(
     selected: LebedevRule,
     integrand: &F,
@@ -1896,6 +2033,97 @@ mod tests {
             integrate_sphere_adaptive(
                 |_, _, _| 1.0,
                 AdaptiveSphereQuadratureConfig {
+                    absolute_tolerance: 0.0,
+                    relative_tolerance: 0.0,
+                    diagnostics: SphereQuadratureDiagnosticsConfig::default(),
+                },
+            ),
+            Err(KernelError::InvalidSphereQuadratureTolerance)
+        );
+    }
+
+    #[test]
+    fn production_rule_matches_constant_sphere_integral() {
+        let result = integrate_sphere_production_check(
+            |_, _, _| 1.0,
+            ProductionSphereQuadratureConfig {
+                absolute_tolerance: 1.0e-12,
+                relative_tolerance: 1.0e-12,
+                diagnostics: SphereQuadratureDiagnosticsConfig {
+                    relative_contribution_threshold: 1.0e-3,
+                    minimum_significant_nodes: 100,
+                },
+            },
+        )
+        .expect("constant production integral");
+        assert_eq!(result.production_report.rule, LebedevRule::Points5810);
+        assert!((result.production_report.integral - 4.0 * PI).abs() < 1.0e-12);
+        assert_eq!(result.production_report.significant_node_count, 5810);
+        assert!(result.numerical_convergence_achieved);
+        assert!(result.adequacy_satisfied);
+        assert!(result.qualified);
+    }
+
+    #[test]
+    fn production_rule_detects_support_missed_by_all_twenty_six_coarse_nodes() {
+        let low = lebedev_sphere_rule(LebedevRule::Points26).expect("low rule");
+        let production = lebedev_sphere_rule(LebedevRule::Points5810).expect("production rule");
+        let target = *production
+            .nodes()
+            .iter()
+            .find(|candidate| {
+                !low.nodes().iter().any(|node| {
+                    node.x == candidate.x && node.y == candidate.y && node.z == candidate.z
+                })
+            })
+            .expect("production rule has nodes outside the low-order rule");
+        let result = integrate_sphere_production_check(
+            |x, y, z| {
+                if x == target.x && y == target.y && z == target.z {
+                    1.0
+                } else {
+                    0.0
+                }
+            },
+            ProductionSphereQuadratureConfig {
+                absolute_tolerance: 1.0e-16,
+                relative_tolerance: 1.0e-12,
+                diagnostics: SphereQuadratureDiagnosticsConfig::default(),
+            },
+        )
+        .expect("production rule samples the isolated support");
+        assert_eq!(result.low_order_integral, 0.0);
+        assert!(result.low_order_report.is_none());
+        assert!(result.production_report.integral > 0.0);
+        assert!(!result.numerical_convergence_achieved);
+        assert!(!result.qualified);
+    }
+
+    #[test]
+    fn production_rule_adequacy_is_separate_from_estimate_agreement() {
+        let result = integrate_sphere_production_check(
+            |_, _, _| 1.0,
+            ProductionSphereQuadratureConfig {
+                absolute_tolerance: 1.0e-12,
+                relative_tolerance: 1.0e-12,
+                diagnostics: SphereQuadratureDiagnosticsConfig {
+                    relative_contribution_threshold: 1.0e-3,
+                    minimum_significant_nodes: 5811,
+                },
+            },
+        )
+        .expect("constant production integral");
+        assert!(result.numerical_convergence_achieved);
+        assert!(!result.adequacy_satisfied);
+        assert!(!result.qualified);
+    }
+
+    #[test]
+    fn production_comparison_rejects_invalid_tolerances() {
+        assert_eq!(
+            integrate_sphere_production_check(
+                |_, _, _| 1.0,
+                ProductionSphereQuadratureConfig {
                     absolute_tolerance: 0.0,
                     relative_tolerance: 0.0,
                     diagnostics: SphereQuadratureDiagnosticsConfig::default(),
