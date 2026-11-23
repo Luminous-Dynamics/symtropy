@@ -1,0 +1,53 @@
+{
+  "fixture_type": "synthetic_cmni_raw_scale_pfns_bias_likelihood_v1",
+  "provenance": "fully synthetic observations, baseline prediction, log bias and relative covariance; not AIACHNE PFNS data",
+  "observed": [
+    12,
+    18
+  ],
+  "baseline_mean_including_experiment_scale": [
+    10,
+    20
+  ],
+  "bias_log_field": [
+    0.2,
+    -0.2
+  ],
+  "relative_covariance": [
+    [
+      0.04,
+      0.01
+    ],
+    [
+      0.01,
+      0.09
+    ]
+  ],
+  "implied_raw_scale_covariance": [
+    [
+      4,
+      2
+    ],
+    [
+      2,
+      36
+    ]
+  ],
+  "biased_prediction": [
+    12.2140275816017,
+    16.374615061559638
+  ],
+  "residual": [
+    -0.2140275816016988,
+    1.625384938440362
+  ],
+  "log_determinant_covariance": 4.941642422609304,
+  "quadratic_form": 0.09720067590946971,
+  "log_likelihood": -4.357298615668732,
+  "limits": [
+    "Raw-scale Gaussian observation likelihood only.",
+    "Relative covariance is anchored to un-biased baseline mean.",
+    "No horseshoe prior, Bayesian Monte Carlo sampler or fitted bias parameters.",
+    "Synthetic fixture, not a published-data reconstruction."
+  ]
+}

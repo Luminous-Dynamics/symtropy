@@ -1,0 +1,128 @@
+{
+  "schema_version": "cmni.finite_evidence_campaign.v1",
+  "benchmark_id": "conditional-third-test-lookahead-v1",
+  "status": "synthetic_exact_scenario_tree_oracle",
+  "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1",
+  "states": [
+    {
+      "state_id": "hypothesis-a",
+      "probability": 0.5
+    },
+    {
+      "state_id": "hypothesis-b",
+      "probability": 0.5
+    }
+  ],
+  "decision_actions": [
+    {
+      "action_id": "choose-a",
+      "utility_by_state": [
+        1,
+        -1
+      ]
+    },
+    {
+      "action_id": "choose-b",
+      "utility_by_state": [
+        -1,
+        1
+      ]
+    }
+  ],
+  "abstention_utility": 0,
+  "resource_budget": 0.15,
+  "cost_to_utility_rate": 1,
+  "minimum_net_improvement": 0,
+  "acquisition_options": [
+    {
+      "option_id": "test-1",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.05,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.2,
+          0.8
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    },
+    {
+      "option_id": "test-2",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.05,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.2,
+          0.8
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    },
+    {
+      "option_id": "test-3",
+      "kind": "LowFidelitySimulation",
+      "cost": 0.05,
+      "outcome_ids": [
+        "supports-a",
+        "supports-b"
+      ],
+      "likelihoods_state_major": [
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.2,
+          0.8
+        ]
+      ],
+      "campaign_model_receipt_id": "receipt:joint-campaign-likelihood-v1"
+    }
+  ],
+  "expected": {
+    "one_step_myopic": {
+      "maximum_steps": 1,
+      "raw_expected_decision_utility": 0.6,
+      "acquisition_cost": 0.05,
+      "expected_net_utility": 0.55
+    },
+    "three_step_lookahead": {
+      "maximum_steps": 3,
+      "raw_expected_decision_utility": 0.792,
+      "expected_acquisition_cost": 0.116,
+      "expected_net_utility": 0.676,
+      "longest_path_cost": 0.15,
+      "conditional_followup": "Acquire test-3 only when test-1 and test-2 disagree; if they agree, stop and choose the supported hypothesis",
+      "probability_test_3_is_acquired": 0.32
+    },
+    "lookahead_net_gain_over_one_step": 0.126
+  },
+  "assumptions": [
+    "Three observations are conditionally independent given the expanded two-state hypothesis variable",
+    "The campaign-scoped receipt qualifies that complete conditional likelihood factorization",
+    "Each option is one-shot and has fixed cost",
+    "The resource budget applies to every root-to-leaf path"
+  ],
+  "non_claims": [
+    "Not a physical experiment or calibrated detector model",
+    "Receipt is a placeholder, not authentication of a real independence claim",
+    "Finite state, finite action, finite outcome exact oracle only",
+    "Not a scalable POMDP, MCTS policy, continuous-constraint solver or learned amortized policy"
+  ]
+}

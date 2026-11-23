@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "poisson-em-detector-unfolding-synthetic-v0",
+  "provenance_kind": "synthetic",
+  "response_matrix_convention": "rows=measured pulse-height bins; columns=true-energy bins",
+  "response_matrix": [
+    [
+      0.8,
+      0.2
+    ],
+    [
+      0.2,
+      0.8
+    ]
+  ],
+  "column_efficiencies": [
+    1,
+    1
+  ],
+  "true_incident_counts": [
+    100,
+    50
+  ],
+  "expected_measured_counts": [
+    90,
+    60
+  ],
+  "known_background_counts": [
+    0,
+    0
+  ],
+  "initial_true_counts": [
+    75,
+    75
+  ],
+  "em_iterations": 50,
+  "expected_recovered_true_counts": [
+    99.99999997,
+    50.00000003
+  ],
+  "limitations": [
+    "No Poisson noise is sampled; these are deterministic expected counts.",
+    "The response matrix is synthetic and well-conditioned enough to recover this two-bin example.",
+    "The algorithm is unregularized Poisson EM; iteration count is an early-stopping regularization choice.",
+    "This is not a GRAVEL implementation, measured EJ-309 response matrix, or source-spectrum reconstruction."
+  ]
+}
