@@ -480,16 +480,16 @@ fn validate_profile_and_projection(
     {
         errors.insert(ValidationError::MissingRole);
     }
-    if projection.roles.keys().any(|role| {
-        role != &profile.source_role && role != &profile.witness_role
-    }) {
+    if projection
+        .roles
+        .keys()
+        .any(|role| role != &profile.source_role && role != &profile.witness_role)
+    {
         errors.insert(ValidationError::UnexpectedRole);
     }
     for role_id in [&profile.source_role, &profile.witness_role] {
         if let Some(role) = projection.roles.get(role_id) {
-            if role.role_id != *role_id
-                || role.role_binding_node_id.trim().is_empty()
-            {
+            if role.role_id != *role_id || role.role_binding_node_id.trim().is_empty() {
                 errors.insert(ValidationError::InvalidRoleBinding);
             }
             for (dimension, inventory) in &role.dimensions {
@@ -509,10 +509,12 @@ fn validate_profile_and_projection(
                     _ => {}
                 }
                 let witnesses = match inventory {
-                    DimensionInventory::Complete(items)
-                    | DimensionInventory::Partial(items) => items,
-                    DimensionInventory::Unknown
-                    | DimensionInventory::NotApplicable { .. } => continue,
+                    DimensionInventory::Complete(items) | DimensionInventory::Partial(items) => {
+                        items
+                    }
+                    DimensionInventory::Unknown | DimensionInventory::NotApplicable { .. } => {
+                        continue;
+                    }
                 };
                 for witness in witnesses {
                     if witness.class.canonical_dimension() != *dimension {
@@ -526,7 +528,8 @@ fn validate_profile_and_projection(
         }
     }
     match projection.currentness {
-        ProjectionCurrentness::Current | ProjectionCurrentness::Stale
+        ProjectionCurrentness::Current
+        | ProjectionCurrentness::Stale
         | ProjectionCurrentness::Superseded => {}
         ProjectionCurrentness::Revoked => {
             errors.insert(ValidationError::NonCurrentProjectionRevoked);
@@ -567,7 +570,9 @@ fn assess_obligation(
     };
     let (Some(left), Some(right)) = (left, right) else {
         finding.disposition = SeparationDisposition::Invalid;
-        finding.notes.push("required role binding is absent".to_owned());
+        finding
+            .notes
+            .push("required role binding is absent".to_owned());
         return finding;
     };
     let (Some(left_inventory), Some(right_inventory)) = (
@@ -575,18 +580,24 @@ fn assess_obligation(
         witnesses_for(right, obligation.dimension),
     ) else {
         finding.disposition = SeparationDisposition::Incomplete;
-        finding.notes.push("required dimension is absent from closure projection".to_owned());
+        finding
+            .notes
+            .push("required dimension is absent from closure projection".to_owned());
         return finding;
     };
 
     if let DimensionInventory::NotApplicable { rationale, owner } = left_inventory {
         finding.disposition = SeparationDisposition::NotApplicable;
-        finding.notes.push(format!("source role excludes dimension: {rationale}; owner: {owner}"));
+        finding.notes.push(format!(
+            "source role excludes dimension: {rationale}; owner: {owner}"
+        ));
         return finding;
     }
     if let DimensionInventory::NotApplicable { rationale, owner } = right_inventory {
         finding.disposition = SeparationDisposition::NotApplicable;
-        finding.notes.push(format!("witness role excludes dimension: {rationale}; owner: {owner}"));
+        finding.notes.push(format!(
+            "witness role excludes dimension: {rationale}; owner: {owner}"
+        ));
         return finding;
     }
 
@@ -599,7 +610,10 @@ fn assess_obligation(
 
     let mut right_by_identity = BTreeMap::<Digest, Vec<&DependencyWitness>>::new();
     for witness in &right_items {
-        right_by_identity.entry(witness.identity).or_default().push(witness);
+        right_by_identity
+            .entry(witness.identity)
+            .or_default()
+            .push(witness);
     }
     for left_witness in &left_items {
         if let Some(right_witnesses) = right_by_identity.get(&left_witness.identity) {
@@ -636,7 +650,9 @@ fn assess_obligation(
 
     if common_current && projection_current {
         finding.disposition = SeparationDisposition::Shared;
-        finding.notes.push("a required canonical dependency is shared".to_owned());
+        finding
+            .notes
+            .push("a required canonical dependency is shared".to_owned());
     } else if path_has_unknown_relation {
         finding.disposition = SeparationDisposition::Indeterminate;
         finding.notes.push(
@@ -644,16 +660,24 @@ fn assess_obligation(
         );
     } else if left_unknown || right_unknown || any_non_current || !projection_current {
         finding.disposition = SeparationDisposition::Indeterminate;
-        finding.notes.push("dependency closure or currentness is unresolved".to_owned());
+        finding
+            .notes
+            .push("dependency closure or currentness is unresolved".to_owned());
     } else if left_partial || right_partial {
         finding.disposition = SeparationDisposition::Incomplete;
-        finding.notes.push("known dependencies have an unknown remainder".to_owned());
+        finding
+            .notes
+            .push("known dependencies have an unknown remainder".to_owned());
     } else if !finding.shared_identities.is_empty() {
         finding.disposition = SeparationDisposition::Indeterminate;
-        finding.notes.push("overlap is present but its witnesses are not current".to_owned());
+        finding
+            .notes
+            .push("overlap is present but its witnesses are not current".to_owned());
     } else {
         finding.disposition = SeparationDisposition::SeparatedForProfile;
-        finding.notes.push("complete current dependency sets are disjoint for this dimension".to_owned());
+        finding
+            .notes
+            .push("complete current dependency sets are disjoint for this dimension".to_owned());
     }
     finding
 }
@@ -695,11 +719,7 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
             post_validation_errors.insert(ValidationError::InvalidSharedAcceptance);
             continue;
         }
-        if !seen_acceptances.insert((
-            acceptance.stage,
-            acceptance.dimension,
-            acceptance.identity,
-        )) {
+        if !seen_acceptances.insert((acceptance.stage, acceptance.dimension, acceptance.identity)) {
             post_validation_errors.insert(ValidationError::DuplicateSharedAcceptance);
             continue;
         }
@@ -715,7 +735,9 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
             post_validation_errors.insert(ValidationError::UnobservedSharedAcceptance);
             continue;
         }
-        finding.accepted_shared_dependencies.push(acceptance.clone());
+        finding
+            .accepted_shared_dependencies
+            .push(acceptance.clone());
     }
     let validation_errors = post_validation_errors.into_iter().collect::<Vec<_>>();
     let disposition = if !validation_errors.is_empty() {
@@ -794,7 +816,8 @@ mod tests {
     ) -> (MaritimeProfile, ClosureProjection) {
         let subject = Digest::from_byte(1);
         let profile_digest = Digest::from_byte(2);
-        let mut profile = MaritimeProfile::v0_1("claim-gate-crossing-42", subject, profile_digest, 500);
+        let mut profile =
+            MaritimeProfile::v0_1("claim-gate-crossing-42", subject, profile_digest, 500);
         profile.obligations = BTreeSet::from([StageDimension {
             stage: MaritimeStage::Detection,
             dimension,
@@ -890,8 +913,7 @@ mod tests {
                             projection(left_inventory, right_inventory, dimension);
                         let actual = assess(&profile, &projection);
                         assert_eq!(
-                            actual.findings[0].disposition,
-                            expected,
+                            actual.findings[0].disposition, expected,
                             "left={left_mask:04b} right={right_mask:04b} left_partial={left_partial} right_partial={right_partial}"
                         );
                         checked_cases += 1;
@@ -931,7 +953,10 @@ mod tests {
             dimension,
         );
         let result = assess(&profile, &projection);
-        assert_eq!(result.disposition, ProfileDisposition::ProfileObligationsMet);
+        assert_eq!(
+            result.disposition,
+            ProfileDisposition::ProfileObligationsMet
+        );
         assert_eq!(
             result.findings[0].disposition,
             SeparationDisposition::SeparatedForProfile
@@ -1023,7 +1048,10 @@ mod tests {
             SeparationDisposition::Shared
         );
         assert_eq!(result.findings[0].shared_paths.len(), 1);
-        assert_eq!(result.findings[0].shared_identities, BTreeSet::from([Digest::from_byte(9)]));
+        assert_eq!(
+            result.findings[0].shared_identities,
+            BTreeSet::from([Digest::from_byte(9)])
+        );
     }
 
     #[test]
@@ -1054,12 +1082,27 @@ mod tests {
             impact: "A common reader fault can suppress both event channels".to_owned(),
             owner: "terminal-assurance-owner".to_owned(),
         };
-        profile.accepted_shared_dependencies.push(acceptance.clone());
+        profile
+            .accepted_shared_dependencies
+            .push(acceptance.clone());
         let result = assess(&profile, &projection);
-        assert_eq!(result.disposition, ProfileDisposition::ProfileObligationsNotMet);
-        assert_eq!(result.findings[0].disposition, SeparationDisposition::Shared);
-        assert!(result.findings[0].shared_identities.contains(&Digest::from_byte(7)));
-        assert_eq!(result.findings[0].accepted_shared_dependencies, vec![acceptance]);
+        assert_eq!(
+            result.disposition,
+            ProfileDisposition::ProfileObligationsNotMet
+        );
+        assert_eq!(
+            result.findings[0].disposition,
+            SeparationDisposition::Shared
+        );
+        assert!(
+            result.findings[0]
+                .shared_identities
+                .contains(&Digest::from_byte(7))
+        );
+        assert_eq!(
+            result.findings[0].accepted_shared_dependencies,
+            vec![acceptance]
+        );
     }
 
     #[test]
@@ -1082,17 +1125,23 @@ mod tests {
             )]),
             dimension,
         );
-        profile.accepted_shared_dependencies.push(AcceptedSharedDependency {
-            stage: MaritimeStage::Detection,
-            dimension,
-            identity: Digest::from_byte(7),
-            rationale: "Not actually observed".to_owned(),
-            impact: "No known impact".to_owned(),
-            owner: "assurance-owner".to_owned(),
-        });
+        profile
+            .accepted_shared_dependencies
+            .push(AcceptedSharedDependency {
+                stage: MaritimeStage::Detection,
+                dimension,
+                identity: Digest::from_byte(7),
+                rationale: "Not actually observed".to_owned(),
+                impact: "No known impact".to_owned(),
+                owner: "assurance-owner".to_owned(),
+            });
         let result = assess(&profile, &projection);
         assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
-        assert!(result.validation_errors.contains(&ValidationError::UnobservedSharedAcceptance));
+        assert!(
+            result
+                .validation_errors
+                .contains(&ValidationError::UnobservedSharedAcceptance)
+        );
     }
 
     #[test]
@@ -1126,7 +1175,11 @@ mod tests {
         profile.accepted_shared_dependencies = vec![acceptance.clone(), acceptance];
         let result = assess(&profile, &projection);
         assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
-        assert!(result.validation_errors.contains(&ValidationError::DuplicateSharedAcceptance));
+        assert!(
+            result
+                .validation_errors
+                .contains(&ValidationError::DuplicateSharedAcceptance)
+        );
     }
 
     #[test]
@@ -1255,7 +1308,10 @@ mod tests {
             dimension,
         );
         projection.currentness = ProjectionCurrentness::Revoked;
-        assert_eq!(assess(&profile, &projection).disposition, ProfileDisposition::ProfileInvalid);
+        assert_eq!(
+            assess(&profile, &projection).disposition,
+            ProfileDisposition::ProfileInvalid
+        );
     }
 
     #[test]
@@ -1341,16 +1397,34 @@ mod tests {
                 DimensionInventory::Complete(vec![witness(
                     if role.role_id == "source" { 5 } else { 6 },
                     MaritimeDependencyClass::GatewayRuntime,
-                    if role.role_id == "source" { "source-binding" } else { "witness-binding" },
-                    if role.role_id == "source" { "source-gateway" } else { "witness-gateway" },
-                    if role.role_id == "source" { "edge-r1" } else { "edge-r2" },
+                    if role.role_id == "source" {
+                        "source-binding"
+                    } else {
+                        "witness-binding"
+                    },
+                    if role.role_id == "source" {
+                        "source-gateway"
+                    } else {
+                        "witness-gateway"
+                    },
+                    if role.role_id == "source" {
+                        "edge-r1"
+                    } else {
+                        "edge-r2"
+                    },
                 )]),
             );
         }
         let result = assess(&profile, &projection);
         assert_eq!(result.findings.len(), 2);
-        assert_eq!(result.findings[0].disposition, SeparationDisposition::SeparatedForProfile);
-        assert_eq!(result.findings[1].disposition, SeparationDisposition::SeparatedForProfile);
+        assert_eq!(
+            result.findings[0].disposition,
+            SeparationDisposition::SeparatedForProfile
+        );
+        assert_eq!(
+            result.findings[1].disposition,
+            SeparationDisposition::SeparatedForProfile
+        );
     }
 
     #[test]
@@ -1405,7 +1479,11 @@ mod tests {
         );
         let result = assess(&profile, &projection);
         assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
-        assert!(result.validation_errors.contains(&ValidationError::EmptyPartialInventory));
+        assert!(
+            result
+                .validation_errors
+                .contains(&ValidationError::EmptyPartialInventory)
+        );
     }
 
     #[test]
@@ -1479,7 +1557,12 @@ mod tests {
             )]),
             dimension,
         );
-        projection.roles.get_mut("source").unwrap().dimensions.clear();
+        projection
+            .roles
+            .get_mut("source")
+            .unwrap()
+            .dimensions
+            .clear();
         assert_eq!(
             assess(&profile, &projection).findings[0].disposition,
             SeparationDisposition::Incomplete
@@ -1514,17 +1597,50 @@ mod tests {
     #[test]
     fn fine_grained_maritime_fault_domains_map_into_owner_dimensions() {
         let expected = [
-            (MaritimeDependencyClass::PhysicalSensorOrReader, FaultDomainDimension::InputAcquisition),
-            (MaritimeDependencyClass::InstallationOrReadPoint, FaultDomainDimension::InputAcquisition),
-            (MaritimeDependencyClass::PowerSupplyOrUps, FaultDomainDimension::InputAcquisition),
-            (MaritimeDependencyClass::ClockOrTimeRoot, FaultDomainDimension::SourceEvidenceLineage),
-            (MaritimeDependencyClass::CalibrationOrMetrologyAuthority, FaultDomainDimension::SourceEvidenceLineage),
-            (MaritimeDependencyClass::FirmwareOrConfiguration, FaultDomainDimension::Runtime),
-            (MaritimeDependencyClass::NetworkOrBackhaul, FaultDomainDimension::ExecutionProvider),
-            (MaritimeDependencyClass::BrokerOrIntermediary, FaultDomainDimension::ExecutionProvider),
-            (MaritimeDependencyClass::DatabaseOrEventStore, FaultDomainDimension::SourceEvidenceLineage),
-            (MaritimeDependencyClass::ObjectStoreArchiveIndex, FaultDomainDimension::SourceEvidenceLineage),
-            (MaritimeDependencyClass::RetrievalOrExportPath, FaultDomainDimension::SourceEvidenceLineage),
+            (
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                FaultDomainDimension::InputAcquisition,
+            ),
+            (
+                MaritimeDependencyClass::InstallationOrReadPoint,
+                FaultDomainDimension::InputAcquisition,
+            ),
+            (
+                MaritimeDependencyClass::PowerSupplyOrUps,
+                FaultDomainDimension::InputAcquisition,
+            ),
+            (
+                MaritimeDependencyClass::ClockOrTimeRoot,
+                FaultDomainDimension::SourceEvidenceLineage,
+            ),
+            (
+                MaritimeDependencyClass::CalibrationOrMetrologyAuthority,
+                FaultDomainDimension::SourceEvidenceLineage,
+            ),
+            (
+                MaritimeDependencyClass::FirmwareOrConfiguration,
+                FaultDomainDimension::Runtime,
+            ),
+            (
+                MaritimeDependencyClass::NetworkOrBackhaul,
+                FaultDomainDimension::ExecutionProvider,
+            ),
+            (
+                MaritimeDependencyClass::BrokerOrIntermediary,
+                FaultDomainDimension::ExecutionProvider,
+            ),
+            (
+                MaritimeDependencyClass::DatabaseOrEventStore,
+                FaultDomainDimension::SourceEvidenceLineage,
+            ),
+            (
+                MaritimeDependencyClass::ObjectStoreArchiveIndex,
+                FaultDomainDimension::SourceEvidenceLineage,
+            ),
+            (
+                MaritimeDependencyClass::RetrievalOrExportPath,
+                FaultDomainDimension::SourceEvidenceLineage,
+            ),
         ];
         for (class, dimension) in expected {
             assert_eq!(class.canonical_dimension(), dimension, "{class:?}");
