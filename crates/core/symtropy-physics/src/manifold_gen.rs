@@ -33,7 +33,7 @@ use symtropy_math::{Point, Shape, Transform};
 use crate::support_map::{TransformedShape, WorldSupportMap};
 
 use crate::body::BodyHandle;
-use crate::contact::{ContactManifold, ContactPoint, MAX_CONTACTS};
+use crate::contact::{ContactManifold, ContactPoint, ContactPointBuffer, MAX_CANDIDATE_CONTACTS};
 
 /// Metadata for shapes that are not convex (like TriangleMeshes).
 /// Since `symtropy-physics` doesn't depend on `symtropy-mesh` directly,
@@ -146,13 +146,13 @@ pub fn generate_contact_manifold_support_maps<const D: usize>(
                 continue;
             }
 
-            if candidates.len() < MAX_CONTACTS {
+            if candidates.len() < MAX_CANDIDATE_CONTACTS {
                 candidates.push((candidate, sep));
             }
         }
     }
 
-    let max_pts = MAX_CONTACTS.min(4);
+    let max_pts = MAX_CANDIDATE_CONTACTS.min(4);
     let points = best_n(&candidates, max_pts);
     ContactManifold {
         body_a,
@@ -253,8 +253,8 @@ fn build_perturbations<const D: usize>(
 fn best_n<const D: usize>(
     candidates: &[(SVector<f64, D>, f64)],
     max_count: usize,
-) -> ArrayVec<ContactPoint<D>, MAX_CONTACTS> {
-    let mut out: ArrayVec<ContactPoint<D>, MAX_CONTACTS> = ArrayVec::new();
+) -> ContactPointBuffer<D> {
+    let mut out = ContactPointBuffer::new();
     if candidates.is_empty() || max_count == 0 {
         return out;
     }
@@ -267,7 +267,7 @@ fn best_n<const D: usize>(
     // Helper to push a candidate
     macro_rules! push_cand {
         ($i:expr) => {
-            if out.len() < MAX_CONTACTS {
+            if out.len() < MAX_CANDIDATE_CONTACTS {
                 out.push(ContactPoint {
                     position: candidates[$i].0,
                     depth: candidates[$i].1,

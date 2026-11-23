@@ -6,12 +6,11 @@
 use crate::Triangle;
 use crate::TriangleMesh;
 use crate::meshlet_physics::MultiPhysicsMeshletMesh;
-use arrayvec::ArrayVec;
 use nalgebra::SVector;
 use symtropy_math::{Point, Shape, Transform};
 use symtropy_physics::body::BodyHandle;
 use symtropy_physics::broadphase::Aabb;
-use symtropy_physics::contact::{ContactManifold, ContactPoint};
+use symtropy_physics::contact::{ContactManifold, ContactPoint, ContactPointBuffer};
 use symtropy_physics::support_map::{TransformedShape, WorldSupportMap, support_aabb};
 use symtropy_physics::{epa, gjk};
 
@@ -79,7 +78,7 @@ pub fn generate_mesh_contacts_transformed(
                 &gjk_res.simplex,
             ) {
                 // Generate multi-point manifold (simplified: single point for now)
-                let mut points = ArrayVec::new();
+                let mut points: ContactPointBuffer<3> = ContactPointBuffer::new();
 
                 let tri_map = TransformedShape::new(tri, mesh_transform);
                 let other_map = TransformedShape::new(other_shape, other_transform);
@@ -243,7 +242,7 @@ pub fn generate_meshlet_contacts_transformed(
                     &gjk_res.simplex,
                 )
             {
-                let mut points = ArrayVec::new();
+                let mut points: ContactPointBuffer<3> = ContactPointBuffer::new();
                 let tri_map = TransformedShape::new(&tri, mesh_transform);
                 let contact_pos = (tri_map.support_world(&epa_res.normal)
                     + other_map.support_world(&(-epa_res.normal)))
