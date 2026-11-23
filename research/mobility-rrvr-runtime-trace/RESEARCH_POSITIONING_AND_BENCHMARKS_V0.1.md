@@ -181,7 +181,7 @@ The v0.1 runtime projection has a disclosed one-recovery-admission ceiling. A ro
 | L0 | Last-attempt-only record | Prior effects and stale attempts are discarded |
 | L1 | Flat attempt list without parent links | Evidence can be attached to the wrong predecessor |
 | L2 | Parent-linked attempts with logical-effect ID | Does not necessarily qualify persistence and graph fences |
-| L3 | RRVR attempt lineage with per-attempt scoped receipts | Higher validation and evidence-retention cost; still depends on owner completeness and authenticity |
+| L3 | RRVR attempt lineage with per-attempt scoped receipts plus two fault-model-qualified observer quorums for each retryable parent | Higher validation and evidence-retention cost; still depends on owner completeness and authenticity |
 
 All arms receive the same frozen chain, epoch changes, physical outcomes, persistence states, and injected faults. A policy-recovery score must remain separate from this evidence/authorization dimension.
 
@@ -192,6 +192,7 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 - Persistence is InFlight or IndeterminateCommit (a resolved Committed result is admissible only alongside independently confirmed physical and mission NoEffect).
 - The child names the wrong parent, skips an ordinal, or reuses an attempt ID.
 - Evidence is replayed across attempts or carries the wrong logical-effect/attempt/epoch scope.
+- Physical NoEffect or downstream-quiescence observer evidence is absent, scope-tampered, evaluated under a different fault profile, or shares declared common-cause dependencies.
 - Boot/controller epochs regress or do not advance together.
 - Controller or downstream fence is missing, non-quiescent, unconfirmed, or targeted at a different child epoch.
 - The same logical effect is split across separate identifiers.
@@ -201,10 +202,11 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 - Zero accepted descendant attempts after any non-NoEffect or unqualified NoEffect outcome.
 - Zero accepted retry edges with InFlight or IndeterminateCommit persistence.
 - Zero accepted evidence receipts with cross-attempt or cross-epoch scope leakage.
+- Zero retry edges admitted without both claim-specific observer quorums qualified under the same fault-model revision and independent across declared common-cause dependencies.
 - 100% rejection of the frozen unsafe-lineage controls and 100% acceptance of the frozen valid reference chains.
 - Validation cost grows linearly with attempt count; report p50/p95/p99 runtime and bytes per attempt rather than hiding cost in a composite score.
 - Report false holds separately from false-safe acceptance. No aggregate score may trade a false-safe admission for a better recovery-success rate.
 
 ### Qualification boundary
 
-The current Rust contract is a bounded reference validator and its three-attempt fixture is synthetic. It does not yet refine the TLA+ state machine for nested restart/recovery, and it does not authenticate raw receipts. The next formal step is a bounded multi-attempt TLA+ model with a second recovery crash cut, followed by differential testing of Rust decisions against all reachable model traces. Only after that should the benchmark be adapted to a declared simulator and then an instrumented ROS/controller/driver stack.
+The current Rust contract is a bounded reference validator and its three-attempt fixture is synthetic. It reuses the existing observer-quorum evaluator for NoEffect and downstream quiescence and verifies exact claim-scope commitments, but it does not yet refine the TLA+ state machine for nested restart/recovery or authenticate raw receipts. The next formal step is a bounded multi-attempt TLA+ model with a second recovery crash cut, followed by differential testing of Rust decisions against all reachable model traces. Only after that should the benchmark be adapted to a declared simulator and then an instrumented ROS/controller/driver stack.
