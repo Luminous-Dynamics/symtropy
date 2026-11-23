@@ -1,0 +1,566 @@
+{
+  "schema": "luminous.orbital-sampling-density.corpus.v0.1",
+  "benchmark_id": "ORBITAL-SAMPLING-DENSITY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_ray_intersection_density_accounting_on_declared_surface_elements_only",
+  "cases": [
+    {
+      "case_id": "SD-001-EQUAL-AREA-EQUAL-HITS",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "FEASIBLE"
+    },
+    {
+      "case_id": "SD-002-TENFOLD-AREA-LOWER-DENSITY",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 10000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INFEASIBLE"
+    },
+    {
+      "case_id": "SD-003-ADDITIVE-MULTI-VIEW-DENSITY",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 2,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "FEASIBLE"
+    },
+    {
+      "case_id": "SD-004-UNSELECTED-VIEW-EXCLUDED",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "BUDGET_INFEASIBLE"
+    },
+    {
+      "case_id": "SD-005-CANDIDATE-POOL-INSUFFICIENT",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 10000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INFEASIBLE"
+    },
+    {
+      "case_id": "SD-006-SELECTED-PLAN-UNDERDENSE",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 2,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "BUDGET_INFEASIBLE"
+    },
+    {
+      "case_id": "SD-007-UNVERIFIED-RAY-PROVENANCE",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 2,
+              "provenance": "CALLER_SUPPLIED_UNVERIFIED"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 2,
+              "provenance": "CALLER_SUPPLIED_UNVERIFIED"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "CALLER_SUPPLIED_UNVERIFIED"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "SD-008-ZERO-AREA-INVALID",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 0,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INVALID_INPUT"
+    },
+    {
+      "case_id": "SD-009-CRITICAL-ELEMENT-NOT-AVERAGED",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "CRITICAL-SMALL",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 4,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 4,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        },
+        {
+          "element_id": "CRITICAL-LARGE",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 10000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INFEASIBLE"
+    },
+    {
+      "case_id": "SD-010-K-VIEWS-AND-DENSITY-ARE-SEPARATE",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 1,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 2,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 5,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "BUDGET_INFEASIBLE"
+    },
+    {
+      "case_id": "SD-011-MULTI-ELEMENT-SCALING",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "LARGE",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 4000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 1,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 2,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 2,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        },
+        {
+          "element_id": "SMALL",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 2,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "FEASIBLE"
+    },
+    {
+      "case_id": "SD-012-VIEW-ROW-ORDER-INVARIANT",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1",
+        "V2"
+      ],
+      "max_selected_views": 2,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 2,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "FEASIBLE"
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital Sampling Density Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-sampling-density.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-SAMPLING-DENSITY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_ray_intersection_density_accounting_on_declared_surface_elements_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Provenance": {
+      "type": "string",
+      "enum": [
+        "EXACT_SYNTHETIC_ORACLE",
+        "CALLER_SUPPLIED_UNVERIFIED"
+      ]
+    },
+    "Status": {
+      "type": "string",
+      "enum": [
+        "FEASIBLE",
+        "INFEASIBLE",
+        "BUDGET_INFEASIBLE",
+        "INDETERMINATE",
+        "INVALID_INPUT"
+      ]
+    },
+    "RayCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "view_id",
+        "intersection_count",
+        "provenance"
+      ],
+      "properties": {
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intersection_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709552000
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      }
+    },
+    "Element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "element_id",
+        "mesh_revision_id",
+        "area_um2",
+        "minimum_density_micro_rays_per_mm2",
+        "minimum_contributing_views",
+        "ray_counts"
+      ],
+      "properties": {
+        "element_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mesh_revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "area_um2": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709552000
+        },
+        "minimum_density_micro_rays_per_mm2": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709552000
+        },
+        "minimum_contributing_views": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ray_counts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/RayCount"
+          }
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "coordinate_frame_id",
+        "area_unit",
+        "density_unit",
+        "candidate_views",
+        "selected_view_ids",
+        "max_selected_views",
+        "elements",
+        "expected_status"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "area_unit": {
+          "const": "SQUARE_MICROMETRE"
+        },
+        "density_unit": {
+          "const": "RAYS_PER_SQUARE_MILLIMETRE"
+        },
+        "candidate_views": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "selected_view_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "max_selected_views": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Element"
+          }
+        },
+        "expected_status": {
+          "$ref": "#/$defs/Status"
+        }
+      }
+    }
+  }
+}

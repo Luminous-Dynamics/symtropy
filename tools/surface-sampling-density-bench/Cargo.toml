@@ -1,0 +1,14 @@
+[package]
+name = "surface-sampling-density-bench"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic ray-per-area sampling-density contract for non-uniform inspection surface elements"
+
+[workspace]
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
