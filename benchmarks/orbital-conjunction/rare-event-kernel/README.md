@@ -27,6 +27,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
+- A stable scalar Gaussian negative-part expectation E[max(-X, 0)] using pure-Rust erfc in the moderate regime and a log-domain Mills-ratio tail expansion for large positive means; it preserves log expectation when f64 underflows.
 - Deterministic positive-weight Lebedev sphere rules with 6, 14, 26 and 5,810 nodes (algebraic precision 3, 5, 7 and 131), plus a validated nonnegative-sample integrator. The 5,810-point rule is generated from 144 symmetry-orbit records transcribed from NASA CARA Analysis Tools at immutable source commit `43f0160f94d76a91805d86521c3e8fa0d09ecd68` (November 2026 update).
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
@@ -44,7 +45,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 114 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`. This exact 114-test head passed exact-head workflow [#217](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45065462384) on `5113a353a4555e74aab6cacadadd2f530d62a984`; formatting, all 114 tests, strict Clippy, checkout verification and artifact upload passed.
+The current authored test corpus contains 122 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`, and 8 in `normal_positive_part.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; this eight-test normal expectation addition requires its own exact-head workflow.
 
 ## Important limitations
 
