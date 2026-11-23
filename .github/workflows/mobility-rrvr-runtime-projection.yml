@@ -265,7 +265,7 @@ jobs:
           JAR="$RUNNER_TEMP/tla/tla2tools.jar"
           WORK="$ROOT/tla-negative-wrong-action"
           mkdir -p "$WORK"
-          jq -s '
+          jq -c -s '
             map(if .event? == "ReserveAttempt"
                 then .event = "MarkDispatchStarted"
                 else .
