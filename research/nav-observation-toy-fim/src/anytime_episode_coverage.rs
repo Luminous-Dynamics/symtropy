@@ -585,6 +585,42 @@ mod tests {
     }
 
     #[test]
+    fn episode_identity_and_outcome_receipt_sequences_cannot_replay_or_roll_back() {
+        let mut audit = audit();
+        audit
+            .observe_completed_episode(event(10, 1, true, Some(false)))
+            .unwrap();
+
+        let repeated_episode_id = event(10, 2, true, Some(false));
+        assert_eq!(
+            audit.observe_completed_episode(repeated_episode_id),
+            Err(AnytimeEpisodeCoverageError::EpisodeIdentityReplayOrReordering)
+        );
+
+        let mut reordered_outcome = event(11, 2, true, Some(false));
+        reordered_outcome.outcome_receipt_sequence_id = Some(1);
+        assert_eq!(
+            audit.observe_completed_episode(reordered_outcome),
+            Err(AnytimeEpisodeCoverageError::OutcomeReceiptSequenceReplayOrReordering)
+        );
+
+        let mut missing_outcome_sequence = event(11, 2, true, Some(false));
+        missing_outcome_sequence.outcome_receipt_sequence_id = None;
+        assert_eq!(
+            audit.observe_completed_episode(missing_outcome_sequence),
+            Err(AnytimeEpisodeCoverageError::MissingOutcomeReceipt)
+        );
+
+        // A malformed later event must not consume any sequence or count.
+        assert_eq!(audit.report().unwrap().monitoring_horizon, 1);
+        let accepted = audit
+            .observe_completed_episode(event(11, 2, true, Some(false)))
+            .unwrap();
+        assert_eq!(accepted.monitoring_horizon, 2);
+        assert_eq!(accepted.bounded_episode_count, 2);
+    }
+
+    #[test]
     fn confidence_sequence_margin_matches_stitched_empirical_bernstein_formula() {
         let mut audit = audit();
         let first = audit
