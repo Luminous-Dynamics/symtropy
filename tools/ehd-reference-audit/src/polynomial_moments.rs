@@ -139,8 +139,8 @@ pub fn integrate_monomial<const N: usize>(
     validate_box(cell)?;
     let mut integral = 1.0_f64;
 
-    for axis in 0..N {
-        let exponent = powers[axis] as i32 + 1;
+    for (axis, power) in powers.iter().copied().enumerate() {
+        let exponent = power as i32 + 1;
         let lower = cell.lower[axis];
         let upper = cell.upper[axis];
         let moment = (upper.powi(exponent) - lower.powi(exponent)) / exponent as f64;
