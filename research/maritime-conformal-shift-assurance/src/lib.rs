@@ -246,6 +246,17 @@ impl WindowMetrics {
         percentage(self.latent_joint_covered, self.total)
     }
 
+    // Distribution-free identification bounds when missing labels are unknown:
+    // lower bound assumes every missing outcome was uncovered; upper assumes
+    // every missing outcome was covered. No MCAR/MAR/MNAR assumption is needed.
+    fn identified_joint_coverage_lower_pct(self) -> f64 {
+        percentage(self.observed_joint_covered, self.total)
+    }
+
+    fn identified_joint_coverage_upper_pct(self) -> f64 {
+        percentage(self.observed_joint_covered + self.missing, self.total)
+    }
+
     fn observed_arrival_coverage_pct(self) -> f64 {
         percentage(self.observed_arrival_covered, self.observed)
     }
@@ -263,6 +274,10 @@ impl WindowMetrics {
     }
 
     fn non_cancelling_coverage_debt_pp(self) -> f64 {
+        (90.0 - self.identified_joint_coverage_lower_pct()).max(0.0)
+    }
+
+    fn latent_coverage_debt_pp(self) -> f64 {
         (90.0 - self.latent_joint_coverage_pct()).max(0.0)
     }
 
@@ -453,7 +468,7 @@ fn evaluate_suite() -> Vec<PolicyReport> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "policy,window,total_samples,observed_samples,missing_samples,observed_joint_coverage_pct,latent_joint_coverage_pct,non_cancelling_coverage_debt_pp,observed_coverage_optimism_pp,observed_arrival_coverage_pct,observed_handling_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,final_alpha_milli,claim_status\n",
+        "policy,window,total_samples,observed_samples,missing_samples,observed_joint_coverage_pct,latent_joint_coverage_pct,identified_joint_coverage_lower_pct,identified_joint_coverage_upper_pct,non_cancelling_coverage_debt_pp,latent_coverage_debt_pp,observed_coverage_optimism_pp,observed_arrival_coverage_pct,observed_handling_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,final_alpha_milli,claim_status\n",
     );
 
     for report in evaluate_suite() {
@@ -464,7 +479,7 @@ pub fn render_csv() -> String {
         {
             let metrics = report.windows[index];
             output.push_str(&format!(
-                "{},{},{},{},{},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{},{}\n",
+                "{},{},{},{},{},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{:.1},{},{}\n",
                 report.method.id(),
                 window.id(),
                 metrics.total,
@@ -472,7 +487,10 @@ pub fn render_csv() -> String {
                 metrics.missing,
                 metrics.observed_joint_coverage_pct(),
                 metrics.latent_joint_coverage_pct(),
+                metrics.identified_joint_coverage_lower_pct(),
+                metrics.identified_joint_coverage_upper_pct(),
                 metrics.non_cancelling_coverage_debt_pp(),
+                metrics.latent_coverage_debt_pp(),
                 metrics.observed_coverage_optimism_pp(),
                 metrics.observed_arrival_coverage_pct(),
                 metrics.observed_handling_coverage_pct(),
@@ -545,6 +563,19 @@ mod tests {
         };
         assert_eq!(metrics.observed_joint_coverage_pct(), 100.0);
         assert_eq!(metrics.latent_joint_coverage_pct(), 80.0);
+        assert_eq!(metrics.identified_joint_coverage_lower_pct(), 80.0);
+        assert_eq!(metrics.identified_joint_coverage_upper_pct(), 100.0);
+        assert!(
+            metrics.identified_joint_coverage_lower_pct()
+                <= metrics.latent_joint_coverage_pct()
+        );
+        assert!(
+            metrics.latent_joint_coverage_pct()
+                <= metrics.identified_joint_coverage_upper_pct()
+        );
+        assert_eq!(metrics.non_cancelling_coverage_debt_pp(), 10.0);
+        assert_eq!(metrics.latent_coverage_debt_pp(), 10.0);
+        assert_eq!(metrics.observed_coverage_optimism_pp(), 20.0);
         assert_eq!(metrics.claim_status(), "NOT_CERTIFIED_MISSINGNESS");
 
         metrics.missing = 0;
@@ -646,7 +677,7 @@ mod tests {
         let mut lines = output.lines();
         let header = lines.next().expect("CSV header");
         let width = header.split(',').count();
-        assert_eq!(width, 15);
+        assert_eq!(width, 18);
 
         let rows = lines.collect::<Vec<_>>();
         assert_eq!(rows.len(), 12);
