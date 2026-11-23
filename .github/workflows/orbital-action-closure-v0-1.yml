@@ -6,7 +6,7 @@ on:
       - research/orbital-action-universe-closure-v0-1
   pull_request:
     branches:
-      - research/orbital-action-universe-closure-v0-1
+      - research/orbital-feasibility-regret-v0-1
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/ACTION_UNIVERSE_CLOSURE_BENCHMARK_V0_1.md"
