@@ -426,7 +426,9 @@
                   "minimum": 1
                 },
                 "zero_point": {
-                  "type": "integer"
+                  "type": "integer",
+                  "minimum": -128,
+                  "maximum": 255
                 }
               }
             },
@@ -693,6 +695,154 @@
                 "enum": [
                   "f32_le",
                   "f16_le"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "i8"
+              },
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "symmetric_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "required": [
+                  "bit_width",
+                  "scale_nano"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "packed_bits"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "layout": {
+                "const": "packed_bitstream"
+              },
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "layout": {
+                "const": "packed_bitstream"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "packed_bits"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "symmetric_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "i8"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "affine_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "enum": [
+                  "i8",
+                  "u8"
                 ]
               }
             }
