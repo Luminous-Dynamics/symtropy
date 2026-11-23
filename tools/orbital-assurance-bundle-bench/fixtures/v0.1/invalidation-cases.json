@@ -1,0 +1,1214 @@
+{
+  "schema": "luminous.orbital-assurance-invalidation.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-dependency-invalidation-only",
+  "cases": [
+    {
+      "case_id": "baseline_current",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "CURRENT",
+      "expected_invalidated_node_ids": []
+    },
+    {
+      "case_id": "domain_snapshot_changed",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "REQUALIFICATION_REQUIRED",
+      "expected_invalidated_node_ids": [
+        "calibration",
+        "closure",
+        "decision_frontier",
+        "domain",
+        "domain_oracle",
+        "feasibility",
+        "loss_model",
+        "query_policy",
+        "regret"
+      ]
+    },
+    {
+      "case_id": "loss_model_changed",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "current_content_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "REQUALIFICATION_REQUIRED",
+      "expected_invalidated_node_ids": [
+        "calibration",
+        "decision_frontier",
+        "loss_model",
+        "regret"
+      ]
+    },
+    {
+      "case_id": "unrelated_evidence_changed",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "current_content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "CURRENT",
+      "expected_invalidated_node_ids": [
+        "unrelated_campaign"
+      ]
+    },
+    {
+      "case_id": "domain_scope_changed",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "REQUALIFICATION_REQUIRED",
+      "expected_invalidated_node_ids": [
+        "calibration",
+        "closure",
+        "decision_frontier",
+        "domain",
+        "domain_oracle",
+        "feasibility",
+        "loss_model",
+        "query_policy",
+        "regret"
+      ]
+    },
+    {
+      "case_id": "missing_dependency",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "missing_claim",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "INVALID_GRAPH",
+      "expected_invalidated_node_ids": [
+        "calibration",
+        "closure",
+        "decision_frontier",
+        "domain",
+        "domain_oracle",
+        "feasibility",
+        "loss_model",
+        "query_policy",
+        "regret",
+        "unrelated_campaign"
+      ]
+    },
+    {
+      "case_id": "dependency_cycle",
+      "required_root_node_ids": [
+        "decision_frontier"
+      ],
+      "nodes": [
+        {
+          "node_id": "domain",
+          "node_type": "domain_snapshot",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "current_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        },
+        {
+          "node_id": "closure",
+          "node_type": "closure",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "current_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "domain_oracle",
+          "node_type": "domain_oracle",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "domain",
+              "expected_content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "feasibility",
+          "node_type": "feasibility",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "current_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "query_policy",
+          "node_type": "query_policy",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "domain_oracle",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "loss_model",
+          "node_type": "loss_model",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "closure",
+              "expected_content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "regret",
+          "node_type": "regret",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "current_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "feasibility",
+              "expected_content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "calibration",
+          "node_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "current_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "loss_model",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "decision_frontier",
+          "node_type": "decision_frontier",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": [
+            {
+              "node_id": "query_policy",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "regret",
+              "expected_content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "node_id": "calibration",
+              "expected_content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+              "expected_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "node_type": "unrelated_campaign",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "current_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dependencies": []
+        }
+      ],
+      "expected_disposition": "INVALID_GRAPH",
+      "expected_invalidated_node_ids": [
+        "calibration",
+        "closure",
+        "decision_frontier",
+        "domain",
+        "domain_oracle",
+        "feasibility",
+        "loss_model",
+        "query_policy",
+        "regret",
+        "unrelated_campaign"
+      ]
+    }
+  ]
+}
