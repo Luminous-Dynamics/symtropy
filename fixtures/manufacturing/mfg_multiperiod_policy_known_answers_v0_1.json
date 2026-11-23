@@ -1,0 +1,81 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-known-answers-v0.1",
+  "benchmark_id": "MFG-MULTIPERIOD-POLICY-001",
+  "evidence_class": "synthetic",
+  "answer_count": 12,
+  "answers": [
+    {
+      "case_id": "MP-NOMINAL-RESOURCE-WINDOW-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 9750000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-NOMINAL-RESOURCE-WINDOW-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 9750000,
+      "exact_quality_rejection_numerator": 150000
+    },
+    {
+      "case_id": "MP-LOCAL-RESOURCE-OUTAGE-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 9950000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-LOCAL-RESOURCE-OUTAGE-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 9950000,
+      "exact_quality_rejection_numerator": 150000
+    },
+    {
+      "case_id": "MP-CORRELATED-COMMON-CAUSE-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 16400000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-CORRELATED-COMMON-CAUSE-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 17650000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-QUALIFICATION-UNKNOWN-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 10150000,
+      "exact_quality_rejection_numerator": 50000
+    },
+    {
+      "case_id": "MP-QUALIFICATION-UNKNOWN-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 10150000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-DEADLINE-CAPACITY-PRESSURE-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 11200000,
+      "exact_quality_rejection_numerator": 100000
+    },
+    {
+      "case_id": "MP-DEADLINE-CAPACITY-PRESSURE-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 12800000,
+      "exact_quality_rejection_numerator": 150000
+    },
+    {
+      "case_id": "MP-QUALITY-OUTCOME-UNCERTAINTY-01",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 9650000,
+      "exact_quality_rejection_numerator": 350000
+    },
+    {
+      "case_id": "MP-QUALITY-OUTCOME-UNCERTAINTY-02",
+      "greedy_expected_cost_numerator": 51000000,
+      "exact_expected_cost_numerator": 8200000,
+      "exact_quality_rejection_numerator": 450000
+    }
+  ],
+  "claim_ceiling": "independent-formula-known-answers-for-the-frozen-12-case-small-reference-corpus-only"
+}
