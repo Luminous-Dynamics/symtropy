@@ -57,7 +57,11 @@ The file at fixtures/association-v0.1.tsv contains 31 independently declared exp
 - historical as-of publication cutoff;
 - input permutation invariance;
 - interval widening that exposes a second perfect matching;
-- exhaustive oracle comparison over all 512 3×3 graphs.
+- exhaustive oracle comparison over all 512 3×3 graphs;
+- a **test-only Hopcroft–Karp challenger** differentially checked against the production DFS matcher and exhaustive oracle on all 512 3×3 graphs;
+- a deterministic, seeded 4,096-case 6×6 graph panel comparing Hopcroft–Karp and DFS classifications.
+
+The production matcher remains augmenting-path DFS. The Hopcroft–Karp implementation is compiled only for tests (`cfg(test)`) and is not selected for production. No performance gain is claimed. A production replacement requires successful exact-head qualification plus matched benchmarks reporting graph density, candidate generation, p50/p95/p99 runtime, peak memory and output equivalence. The alternating-cycle uniqueness check remains unchanged in both implementations.
 
 ## Run
 
@@ -70,8 +74,9 @@ The file at fixtures/association-v0.1.tsv contains 31 independently declared exp
 The P0 implementation currently:
 - blocks witness records by exact, upstream-normalized canonical box, event kind, facility and operation context;
 - evaluates interval compatibility only inside each exact-context block, with measured `candidate_pair_evaluations` exposed in the report;
-- finds a maximum matching with augmenting-path DFS, O(V × E) worst-case for the balanced graph;
-- checks uniqueness with an alternating directed graph cycle traversal, O(V + E).
+- production maximum matching currently uses augmenting-path DFS, O(V × E) worst-case for the balanced graph;
+- a test-only Hopcroft–Karp implementation is a differential challenger, O(E√V) asymptotically, and is not yet used by production;
+- checks uniqueness with an alternating directed graph cycle traversal, O(V + E), independently of which maximum-matching implementation is used.
 
 Let V = V_s + V_w, E be admissible graph edges, and K be the number of source/witness pairs sharing an exact context block. Candidate generation costs O(V log G + K) using the current BTreeMap index over G distinct contexts, rather than testing all V_s × V_w pairs. K can still be quadratic in a single dense context block; the counter makes that residual work visible. Matching is O(V × E) worst-case for the current augmenting-path DFS; uniqueness checking is O(V + E). The graph and matching state use O(V + E + G) memory after context indexing. These are algorithmic bounds for the current implementation, not measured production throughput. The P0 graph sizes are tiny and the exhaustive 3×3 oracle is the correctness reference.
 
@@ -79,7 +84,7 @@ The deterministic sparse-context scale control uses 128 source records and 128 w
 
 For larger shadow datasets, the next optimization should preserve the exact edge predicate while reducing unnecessary comparisons inside dense context blocks:
 1. Add interval indexes / sweep windows that cannot drop a valid bounded-gap edge under the declared interval-role semantics.
-2. Evaluate Hopcroft–Karp maximum matching (O(E√V)) against the current DFS matcher, retaining the same alternating-cycle uniqueness test and exhaustive oracle on small graphs.
+2. The test-only Hopcroft–Karp challenger is now differentially specified against DFS on 512 exhaustive 3×3 and 4,096 seeded 6×6 graphs. Next, obtain exact-head test/Clippy receipts, then benchmark both implementations on matched graph distributions before considering any production replacement. The alternating-cycle uniqueness proof remains the common correctness gate.
 3. Publish candidate-pair evaluations, edge density, matched hardware/input profiles, p50/p95/p99 latency, throughput and peak memory at 10², 10³, 10⁴ and larger events. Do not publish speedup claims until measured.
 
 The 2026 survey/experimental benchmark on heterogeneous entity matching describes representation and semantic heterogeneity as important test dimensions. It is a useful algorithmic baseline, not a freight-specific physical-truth benchmark: https://doi.org/10.1016/j.datak.2026.102575. Symtropy's intended differentiator is not a new general entity-matching algorithm; it is the stricter correspondence contract over canonical cargo identity, typed physical-event semantics, qualified temporal roles, source/witness provenance and explicit refusal when correspondence is non-unique.
