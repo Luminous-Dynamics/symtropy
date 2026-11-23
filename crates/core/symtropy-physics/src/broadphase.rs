@@ -600,17 +600,10 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
                 continue;
             }
             if aabbs[i].overlaps(&aabbs[j]) {
-                let (ha, hb) = (bodies[i].handle, bodies[j].handle);
-                if ha < hb {
-                    pairs.push(BroadphasePair(ha, hb));
-                } else {
-                    pairs.push(BroadphasePair(hb, ha));
-                }
+                pairs.push(BroadphasePair(bodies[i].handle, bodies[j].handle));
             }
         }
     }
-    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
-    pairs.dedup();
     pairs
 }
 
@@ -695,17 +688,64 @@ mod tests {
     }
 
     #[test]
-    fn reversed_body_bounds_are_not_valid_for_pruning() {
-        let aabb = Aabb {
+    fn malformed_bounds_are_not_valid_for_pruning() {
+        let reversed = Aabb {
             min: SVector::from([2.0, 0.0, 0.0]),
             max: SVector::from([1.0, 1.0, 1.0]),
+        };
+        let nan = Aabb {
+            min: SVector::from([f64::NAN, 0.0, 0.0]),
+            max: SVector::from([f64::NAN, 1.0, 1.0]),
+        };
+        let infinite = Aabb {
+            min: SVector::from([f64::NEG_INFINITY, 0.0, 0.0]),
+            max: SVector::from([f64::INFINITY, 1.0, 1.0]),
         };
         let finite = Aabb {
             min: SVector::zeros(),
             max: SVector::from_element(1.0),
         };
-        assert!(!aabb.is_valid_finite());
-        assert!(aabb.overlaps(&finite));
+
+        assert!(!reversed.is_valid_finite());
+        assert!(!nan.is_valid_finite());
+        assert!(!infinite.is_valid_finite());
+        assert!(reversed.overlaps(&finite));
+        assert!(nan.overlaps(&finite));
+        assert!(infinite.overlaps(&finite));
+    }
+
+    #[test]
+    fn unpruned_fallback_still_respects_filters_and_static_static_exclusion() {
+        let mut invalid_dynamic =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        invalid_dynamic.transform.translation = Point::new([f64::NAN, 100.0, 0.0]);
+        invalid_dynamic.collision_mask = 0;
+
+        let mut filtered_dynamic =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        filtered_dynamic.collision_mask = 0;
+
+        let mut invalid_static = RigidBody::<3>::static_body(
+            BodyHandle(2),
+            Point::origin(),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        invalid_static.transform.translation = Point::new([f64::INFINITY, 100.0, 0.0]);
+        let static_peer = RigidBody::<3>::static_body(
+            BodyHandle(3),
+            Point::new([100.0, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+
+        let bodies = vec![
+            invalid_dynamic,
+            filtered_dynamic,
+            invalid_static,
+            static_peer,
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+        assert!(find_pairs_incremental(&bodies, &cache).is_empty());
     }
 
     #[test]
