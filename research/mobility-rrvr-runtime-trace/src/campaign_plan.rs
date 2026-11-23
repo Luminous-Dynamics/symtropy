@@ -338,7 +338,10 @@ impl CompiledCampaignPlan {
             fault_injector_id: manifest.platform.fault_injector_id.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
             fault_injector_sha256: manifest.platform.fault_injector_sha256.clone(),
-            fault_injector_fault_domain_id: manifest.platform.fault_injector_fault_domain_id.clone(),
+            fault_injector_fault_domain_id: manifest
+                .platform
+                .fault_injector_fault_domain_id
+                .clone(),
             native_adapter_id: manifest.platform.native_adapter_id.clone(),
             native_adapter_revision: manifest.platform.native_adapter_revision.clone(),
             runtime_monitor_revision: manifest.platform.runtime_monitor_revision.clone(),
