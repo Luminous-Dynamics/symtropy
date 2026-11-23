@@ -391,6 +391,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
         });
     }
 
+    // Canonical world ordering makes receipts invariant to input row permutation.
+    validated_worlds.sort_by(|left, right| left.world_id.cmp(&right.world_id));
+
     // An infeasible incumbent is an unconditional review trigger. Do not surface
     // a replacement candidate: this evaluator never selects or authorizes actions.
     if incumbent_infeasible {
