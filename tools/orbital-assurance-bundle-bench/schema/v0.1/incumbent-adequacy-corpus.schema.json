@@ -133,6 +133,7 @@
         "worlds",
         "world_set_state",
         "domain_closure_state",
+        "dependency_graph_state",
         "model_family_state",
         "evidence_state",
         "materiality_margin",
@@ -207,6 +208,14 @@
         },
         "expected": {
           "$ref": "#/$defs/expected"
+        },
+        "dependency_graph_state": {
+          "enum": [
+            "COMPLETE_WITHIN_DECLARED_GRAMMAR",
+            "INADEQUATE",
+            "STALE",
+            "INDETERMINATE"
+          ]
         }
       }
     }
