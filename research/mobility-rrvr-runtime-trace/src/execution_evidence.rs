@@ -920,10 +920,14 @@ mod tests {
     }
 
     fn bundle() -> ExecutionEvidenceBundle {
-        serde_json::from_str(include_str!(
+        let mut bundle: ExecutionEvidenceBundle = serde_json::from_str(include_str!(
             "../fixtures/execution_evidence_positive_v0_1.json"
         ))
-        .expect("execution evidence fixture deserializes")
+        .expect("execution evidence fixture deserializes");
+        let plan = plan();
+        bundle.plan_sha256 = plan.plan_sha256;
+        bundle.source_manifest_sha256 = plan.source_manifest_sha256;
+        bundle
     }
 
     #[test]
