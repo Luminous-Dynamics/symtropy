@@ -1,0 +1,1414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/fan-article-release-packet-v0.1.schema.json",
+  "title": "Fan Article Release Packet v0.1",
+  "description": "Fail-closed product-owner intake and staged release record for the first low-voltage fan assembly workholding fixture. Null means unknown, not zero or permission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "packet_id",
+    "status",
+    "product",
+    "operation",
+    "geometry",
+    "process_material",
+    "rights",
+    "demand_and_baseline",
+    "acceptance",
+    "gates",
+    "owner_disposition",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "FAN-ARTICLE-RELEASE-PACKET-0.1"
+    },
+    "packet_id": {
+      "$ref": "#/$defs/nonempty_string"
+    },
+    "status": {
+      "enum": [
+        "INCOMPLETE",
+        "OWNER_REVIEWED",
+        "RELEASED_FOR_FABRICATION",
+        "ACCEPTED_FOR_USE"
+      ]
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_id",
+        "product_revision",
+        "intended_use",
+        "operating_environment",
+        "cartridge",
+        "external_power_supply",
+        "controller_interface",
+        "wiring_drawing_ref"
+      ],
+      "properties": {
+        "product_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "product_revision": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "intended_use": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "operating_environment": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "cartridge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manufacturer",
+            "part_number",
+            "revision",
+            "datasheet_ref",
+            "rated_voltage_v",
+            "continuous_current_a",
+            "startup_or_stall_current_a",
+            "polarity",
+            "connector",
+            "pinout_ref",
+            "dimensional_drawing_ref"
+          ],
+          "properties": {
+            "manufacturer": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "part_number": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "revision": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "datasheet_ref": {
+              "$ref": "#/$defs/nullable_evidence_ref"
+            },
+            "rated_voltage_v": {
+              "$ref": "#/$defs/nullable_number"
+            },
+            "continuous_current_a": {
+              "$ref": "#/$defs/nullable_number"
+            },
+            "startup_or_stall_current_a": {
+              "$ref": "#/$defs/nullable_number"
+            },
+            "polarity": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "connector": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "pinout_ref": {
+              "$ref": "#/$defs/nullable_evidence_ref"
+            },
+            "dimensional_drawing_ref": {
+              "$ref": "#/$defs/nullable_evidence_ref"
+            }
+          }
+        },
+        "external_power_supply": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manufacturer",
+            "part_number",
+            "revision",
+            "datasheet_ref",
+            "output_voltage_v",
+            "output_current_a",
+            "protection_features",
+            "safety_documentation_ref"
+          ],
+          "properties": {
+            "manufacturer": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "part_number": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "revision": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "datasheet_ref": {
+              "$ref": "#/$defs/nullable_evidence_ref"
+            },
+            "output_voltage_v": {
+              "$ref": "#/$defs/nullable_number"
+            },
+            "output_current_a": {
+              "$ref": "#/$defs/nullable_number"
+            },
+            "protection_features": {
+              "$ref": "#/$defs/nullable_string"
+            },
+            "safety_documentation_ref": {
+              "$ref": "#/$defs/nullable_evidence_ref"
+            }
+          }
+        },
+        "controller_interface": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "wiring_drawing_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_revision",
+        "description",
+        "sequence",
+        "component_revisions",
+        "contact_surfaces",
+        "datums",
+        "loads_and_forces",
+        "keep_out_zones",
+        "downstream_operation",
+        "prohibited_uses",
+        "fixture_operation_risk_review_ref"
+      ],
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "operation_revision": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "description": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "sequence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullable_string"
+          }
+        },
+        "component_revisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "revision"
+            ],
+            "properties": {
+              "component_id": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "revision": {
+                "$ref": "#/$defs/nullable_string"
+              }
+            }
+          }
+        },
+        "contact_surfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullable_string"
+          }
+        },
+        "datums": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullable_string"
+          }
+        },
+        "loads_and_forces": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "keep_out_zones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullable_string"
+          }
+        },
+        "downstream_operation": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "prohibited_uses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fixture_operation_risk_review_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controlled_drawing_ref",
+        "native_cad_ref",
+        "cad_revision",
+        "cad_sha256",
+        "datum_scheme",
+        "critical_features",
+        "clearance_envelope_ref",
+        "measurement_method",
+        "instrument_ref",
+        "calibration_ref",
+        "measurement_uncertainty"
+      ],
+      "properties": {
+        "controlled_drawing_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "native_cad_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "cad_revision": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "cad_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "datum_scheme": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "critical_features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "feature_id",
+              "nominal_value",
+              "lower_tolerance",
+              "upper_tolerance",
+              "unit",
+              "functional_basis",
+              "measurement_method_ref"
+            ],
+            "properties": {
+              "feature_id": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "nominal_value": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "lower_tolerance": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "upper_tolerance": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "unit": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "functional_basis": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "measurement_method_ref": {
+                "$ref": "#/$defs/nullable_evidence_ref"
+              }
+            }
+          }
+        },
+        "clearance_envelope_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "measurement_method": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "calibration_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "measurement_uncertainty": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "process_material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_specification",
+        "material_supplier",
+        "material_lot",
+        "conditioning",
+        "environmental_exposure",
+        "process_family",
+        "machine_profile_ref",
+        "orientation",
+        "supports_and_brim",
+        "post_processing",
+        "process_recipe_ref",
+        "load_deflection_and_creep_basis"
+      ],
+      "properties": {
+        "material_specification": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "material_supplier": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "material_lot": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "conditioning": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "environmental_exposure": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "process_family": {
+          "anyOf": [
+            {
+              "enum": [
+                "MATERIAL_EXTRUSION",
+                "CNC",
+                "SHEET_METAL",
+                "OTHER"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "machine_profile_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "orientation": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "supports_and_brim": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "post_processing": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "process_recipe_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "load_deflection_and_creep_basis": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "licence_or_permission_ref",
+        "third_party_drawing_permissions",
+        "restrictions"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "UNKNOWN",
+            "CLEARED",
+            "RESTRICTED",
+            "DENIED"
+          ]
+        },
+        "licence_or_permission_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "third_party_drawing_permissions": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "restrictions": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "demand_and_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "demand_classification",
+        "quantity",
+        "unit",
+        "observation_period_start",
+        "observation_period_end",
+        "population_denominator",
+        "demand_source_ref",
+        "batch_size",
+        "baseline_quotes"
+      ],
+      "properties": {
+        "demand_classification": {
+          "enum": [
+            "UNKNOWN",
+            "MEASURED",
+            "FORECAST"
+          ]
+        },
+        "quantity": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "unit": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "observation_period_start": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "observation_period_end": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "population_denominator": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "demand_source_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "batch_size": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "baseline_quotes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "supplier_or_route",
+              "quote_ref",
+              "quote_date",
+              "cost",
+              "currency",
+              "lead_time_hours"
+            ],
+            "properties": {
+              "supplier_or_route": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "quote_ref": {
+                "$ref": "#/$defs/nullable_evidence_ref"
+              },
+              "quote_date": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "cost": {
+                "$ref": "#/$defs/nullable_number"
+              },
+              "currency": {
+                "$ref": "#/$defs/nullable_string"
+              },
+              "lead_time_hours": {
+                "$ref": "#/$defs/nullable_number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_dimension_protocol_ref",
+        "repeatability_protocol_ref",
+        "load_or_deflection_test_ref",
+        "assembly_trial_protocol_ref",
+        "product_damage_limits",
+        "cycle_time_method_ref",
+        "post_use_verification_ref",
+        "first_article_results_ref"
+      ],
+      "properties": {
+        "fixture_dimension_protocol_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "repeatability_protocol_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "load_or_deflection_test_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "assembly_trial_protocol_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "product_damage_limits": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "cycle_time_method_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "post_use_verification_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "first_article_results_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "G0",
+        "G1",
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "properties": {
+        "G0": {
+          "$ref": "#/$defs/gate"
+        },
+        "G1": {
+          "$ref": "#/$defs/gate"
+        },
+        "G2": {
+          "$ref": "#/$defs/gate"
+        },
+        "G3": {
+          "$ref": "#/$defs/gate"
+        },
+        "G4": {
+          "$ref": "#/$defs/gate"
+        }
+      }
+    },
+    "owner_disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_id",
+        "reviewer_id",
+        "disposition",
+        "decision_ref",
+        "recorded_at"
+      ],
+      "properties": {
+        "owner_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "reviewer_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "disposition": {
+          "enum": [
+            "NOT_REVIEWED",
+            "OWNER_REVIEWED",
+            "RELEASED_FOR_FABRICATION",
+            "ACCEPTED_FOR_USE"
+          ]
+        },
+        "decision_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "$ref": "#/$defs/nonempty_string"
+    }
+  },
+  "$defs": {
+    "nonempty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nullable_string": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullable_number": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "sha256",
+        "revision",
+        "source_owner"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_owner": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "nullable_evidence_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/evidence_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evidence_refs",
+        "reviewer_id",
+        "decision_ref",
+        "recorded_at",
+        "disposition_reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_ASSESSED",
+            "BLOCKED",
+            "PASS",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_ref"
+          }
+        },
+        "reviewer_id": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "decision_ref": {
+          "$ref": "#/$defs/nullable_evidence_ref"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/nullable_string"
+        },
+        "disposition_reason": {
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "BLOCKED",
+                  "NOT_APPLICABLE"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disposition_reason": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "reviewer_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "decision_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "recorded_at": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "INCOMPLETE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "disposition": {
+                "const": "NOT_REVIEWED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "OWNER_REVIEWED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "owner_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "reviewer_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "disposition": {
+                "const": "OWNER_REVIEWED"
+              },
+              "decision_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "recorded_at": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "RELEASED_FOR_FABRICATION",
+              "ACCEPTED_FOR_USE"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "product": {
+            "properties": {
+              "product_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "product_revision": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "intended_use": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "operating_environment": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "controller_interface": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "cartridge": {
+                "properties": {
+                  "manufacturer": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "part_number": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "revision": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "datasheet_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "rated_voltage_v": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "continuous_current_a": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "startup_or_stall_current_a": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "polarity": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "connector": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "pinout_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "dimensional_drawing_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  }
+                }
+              },
+              "external_power_supply": {
+                "properties": {
+                  "manufacturer": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "part_number": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "revision": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "datasheet_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "output_voltage_v": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "output_current_a": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "safety_documentation_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  }
+                }
+              },
+              "wiring_drawing_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              }
+            }
+          },
+          "operation": {
+            "properties": {
+              "operation_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "operation_revision": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "description": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "sequence": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty_string"
+                }
+              },
+              "component_revisions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "properties": {
+                    "component_id": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "revision": {
+                      "$ref": "#/$defs/nonempty_string"
+                    }
+                  }
+                }
+              },
+              "contact_surfaces": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty_string"
+                }
+              },
+              "datums": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty_string"
+                }
+              },
+              "loads_and_forces": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "keep_out_zones": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonempty_string"
+                }
+              },
+              "downstream_operation": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "fixture_operation_risk_review_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              }
+            }
+          },
+          "geometry": {
+            "properties": {
+              "controlled_drawing_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "native_cad_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "cad_revision": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "cad_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "datum_scheme": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "critical_features": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "properties": {
+                    "feature_id": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "nominal_value": {
+                      "type": "number"
+                    },
+                    "lower_tolerance": {
+                      "type": "number"
+                    },
+                    "upper_tolerance": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "functional_basis": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "measurement_method_ref": {
+                      "$ref": "#/$defs/evidence_ref"
+                    }
+                  }
+                }
+              },
+              "clearance_envelope_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "measurement_method": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "instrument_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "calibration_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "measurement_uncertainty": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          },
+          "process_material": {
+            "properties": {
+              "material_specification": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "material_supplier": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "material_lot": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "conditioning": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "environmental_exposure": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "process_family": {
+                "enum": [
+                  "MATERIAL_EXTRUSION",
+                  "CNC",
+                  "SHEET_METAL",
+                  "OTHER"
+                ]
+              },
+              "machine_profile_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "process_recipe_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "orientation": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "load_deflection_and_creep_basis": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          },
+          "rights": {
+            "properties": {
+              "status": {
+                "const": "CLEARED"
+              },
+              "licence_or_permission_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              }
+            }
+          },
+          "demand_and_baseline": {
+            "properties": {
+              "demand_classification": {
+                "enum": [
+                  "MEASURED",
+                  "FORECAST"
+                ]
+              },
+              "quantity": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "unit": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "demand_source_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "baseline_quotes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "properties": {
+                    "supplier_or_route": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "quote_ref": {
+                      "$ref": "#/$defs/evidence_ref"
+                    },
+                    "quote_date": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "cost": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "currency": {
+                      "$ref": "#/$defs/nonempty_string"
+                    },
+                    "lead_time_hours": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "acceptance": {
+            "properties": {
+              "fixture_dimension_protocol_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "repeatability_protocol_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "load_or_deflection_test_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "assembly_trial_protocol_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "product_damage_limits": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "cycle_time_method_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "post_use_verification_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              }
+            }
+          },
+          "gates": {
+            "properties": {
+              "G0": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  },
+                  "reviewer_id": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "decision_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "recorded_at": {
+                    "$ref": "#/$defs/nonempty_string"
+                  }
+                }
+              },
+              "G1": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  },
+                  "reviewer_id": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "decision_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "recorded_at": {
+                    "$ref": "#/$defs/nonempty_string"
+                  }
+                }
+              },
+              "G2": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  },
+                  "reviewer_id": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "decision_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "recorded_at": {
+                    "$ref": "#/$defs/nonempty_string"
+                  }
+                }
+              },
+              "G3": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  },
+                  "reviewer_id": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "decision_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "recorded_at": {
+                    "$ref": "#/$defs/nonempty_string"
+                  }
+                }
+              }
+            }
+          },
+          "owner_disposition": {
+            "properties": {
+              "owner_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "reviewer_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "disposition": {
+                "enum": [
+                  "RELEASED_FOR_FABRICATION",
+                  "ACCEPTED_FOR_USE"
+                ]
+              },
+              "decision_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "recorded_at": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ACCEPTED_FOR_USE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "gates": {
+            "properties": {
+              "G0": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "G1": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "G2": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "G3": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  }
+                }
+              },
+              "G4": {
+                "properties": {
+                  "status": {
+                    "const": "PASS"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1
+                  },
+                  "reviewer_id": {
+                    "$ref": "#/$defs/nonempty_string"
+                  },
+                  "decision_ref": {
+                    "$ref": "#/$defs/evidence_ref"
+                  },
+                  "recorded_at": {
+                    "$ref": "#/$defs/nonempty_string"
+                  }
+                }
+              }
+            }
+          },
+          "acceptance": {
+            "properties": {
+              "first_article_results_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              }
+            }
+          },
+          "owner_disposition": {
+            "properties": {
+              "owner_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "reviewer_id": {
+                "$ref": "#/$defs/nonempty_string"
+              },
+              "disposition": {
+                "const": "ACCEPTED_FOR_USE"
+              },
+              "decision_ref": {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              "recorded_at": {
+                "$ref": "#/$defs/nonempty_string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "RELEASED_FOR_FABRICATION"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "disposition": {
+                "const": "RELEASED_FOR_FABRICATION"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ACCEPTED_FOR_USE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "disposition": {
+                "const": "ACCEPTED_FOR_USE"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

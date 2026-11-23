@@ -1,0 +1,159 @@
+{
+  "schema_id": "FAN-ARTICLE-RELEASE-PACKET-0.1",
+  "packet_id": "FAN-PRODUCTION-WORKHOLDING-JIG-001-RELEASE-001",
+  "status": "INCOMPLETE",
+  "product": {
+    "product_id": "FAN-PILOT",
+    "product_revision": null,
+    "intended_use": "Tabletop fan reference article; exact product-owner release pending",
+    "operating_environment": null,
+    "cartridge": {
+      "manufacturer": null,
+      "part_number": null,
+      "revision": null,
+      "datasheet_ref": null,
+      "rated_voltage_v": null,
+      "continuous_current_a": null,
+      "startup_or_stall_current_a": null,
+      "polarity": null,
+      "connector": null,
+      "pinout_ref": null,
+      "dimensional_drawing_ref": null
+    },
+    "external_power_supply": {
+      "manufacturer": null,
+      "part_number": null,
+      "revision": null,
+      "datasheet_ref": null,
+      "output_voltage_v": null,
+      "output_current_a": null,
+      "protection_features": null,
+      "safety_documentation_ref": null
+    },
+    "controller_interface": null,
+    "wiring_drawing_ref": null
+  },
+  "operation": {
+    "operation_id": null,
+    "operation_revision": null,
+    "description": null,
+    "sequence": [],
+    "component_revisions": [],
+    "contact_surfaces": [],
+    "datums": [],
+    "loads_and_forces": null,
+    "keep_out_zones": [],
+    "downstream_operation": null,
+    "prohibited_uses": [
+      "safety_guard",
+      "powered_rotating_impeller_support",
+      "uncalibrated_measurement_standard",
+      "final_product_component"
+    ],
+    "fixture_operation_risk_review_ref": null
+  },
+  "geometry": {
+    "controlled_drawing_ref": null,
+    "native_cad_ref": null,
+    "cad_revision": null,
+    "cad_sha256": null,
+    "datum_scheme": null,
+    "critical_features": [],
+    "clearance_envelope_ref": null,
+    "measurement_method": null,
+    "instrument_ref": null,
+    "calibration_ref": null,
+    "measurement_uncertainty": null
+  },
+  "process_material": {
+    "material_specification": null,
+    "material_supplier": null,
+    "material_lot": null,
+    "conditioning": null,
+    "environmental_exposure": null,
+    "process_family": "MATERIAL_EXTRUSION",
+    "machine_profile_ref": null,
+    "orientation": null,
+    "supports_and_brim": null,
+    "post_processing": null,
+    "process_recipe_ref": null,
+    "load_deflection_and_creep_basis": null
+  },
+  "rights": {
+    "status": "UNKNOWN",
+    "licence_or_permission_ref": null,
+    "third_party_drawing_permissions": null,
+    "restrictions": null
+  },
+  "demand_and_baseline": {
+    "demand_classification": "UNKNOWN",
+    "quantity": null,
+    "unit": "fixtures",
+    "observation_period_start": null,
+    "observation_period_end": null,
+    "population_denominator": null,
+    "demand_source_ref": null,
+    "batch_size": null,
+    "baseline_quotes": []
+  },
+  "acceptance": {
+    "fixture_dimension_protocol_ref": null,
+    "repeatability_protocol_ref": null,
+    "load_or_deflection_test_ref": null,
+    "assembly_trial_protocol_ref": null,
+    "product_damage_limits": null,
+    "cycle_time_method_ref": null,
+    "post_use_verification_ref": null,
+    "first_article_results_ref": null
+  },
+  "gates": {
+    "G0": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G1": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G2": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G3": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G4": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    }
+  },
+  "owner_disposition": {
+    "owner_id": null,
+    "reviewer_id": null,
+    "disposition": "NOT_REVIEWED",
+    "decision_ref": null,
+    "recorded_at": null
+  },
+  "claim_ceiling": "Intake template only. No fixture geometry, material, rights, demand, electrical compatibility, process qualification, fabrication release or acceptance is established. Null means unknown, not zero, permission or a design assumption."
+}
