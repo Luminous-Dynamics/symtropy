@@ -644,6 +644,15 @@ impl AnytimeRollingCoveragePolicy {
             scaled_margin: next_scaled_margin,
         };
 
+        let next_level = self.config.target_miscoverage
+            + self.config.learning_rate_gamma
+                * (self.config.target_miscoverage * decision.window_length as f64
+                    - current_certified_sum
+                    - self.config.buffer);
+        if !next_level.is_finite() {
+            return Err(RollingWindowError::ArithmeticOverflow);
+        }
+
         // Commit only after all event, receipt and numerical checks have passed.
         self.monitoring_horizon = next_horizon;
         self.bounded_episode_count = next_bounded_count;
@@ -662,15 +671,6 @@ impl AnytimeRollingCoveragePolicy {
             self.last_outcome_receipt_sha256 = Some(digest);
         }
         self.pending_decision = None;
-
-        let next_level = self.config.target_miscoverage
-            + self.config.learning_rate_gamma
-                * (self.config.target_miscoverage * self.last_window_length as f64
-                    - self.last_certified_rolling_sum
-                    - self.config.buffer);
-        if !next_level.is_finite() {
-            return Err(RollingWindowError::ArithmeticOverflow);
-        }
 
         Ok(RollingWindowReport {
             monitoring_horizon: self.monitoring_horizon,
@@ -877,6 +877,33 @@ mod tests {
     }
 
     #[test]
+    fn first_occurrence_lookup_includes_future_starts() {
+        assert_eq!(
+            first_time_with_window_start(RollingWindowRule::Fixed { length: 2 }, 1).unwrap(),
+            Some(3)
+        );
+        assert_eq!(
+            first_time_with_window_start(
+                RollingWindowRule::Proportional {
+                    numerator: 1,
+                    denominator: 2
+                },
+                2
+            )
+            .unwrap(),
+            Some(4)
+        );
+        assert_eq!(
+            first_time_with_window_start(
+                RollingWindowRule::Polynomial { beta: 0.75 },
+                8
+            )
+            .unwrap(),
+            Some(16)
+        );
+    }
+
+    #[test]
     fn one_episode_window_abstains_if_either_possible_outcome_breaks_feasibility() {
         let mut policy = AnytimeRollingCoveragePolicy::new(config(RollingWindowRule::Fixed {
             length: 2,
@@ -898,8 +925,11 @@ mod tests {
         assert!(second.is_bounded_set_requested());
         assert_eq!(second.window_start, 0);
         assert_eq!(second.window_length, 2);
-        assert_eq!(second.feasibility_witnesses.len(), 2);
+        assert_eq!(second.feasibility_witnesses.len(), 4);
         assert!(second.feasibility_witnesses.iter().all(|w| w.passed));
+        assert!(second.feasibility_witnesses.iter().any(|w| {
+            w.window_start == 1 && w.first_occurrence_at == 3
+        }));
     }
 
     #[test]
@@ -929,10 +959,9 @@ mod tests {
 
     #[test]
     fn abstention_does_not_change_prefix_counts_or_scaled_margin() {
-        let mut policy = AnytimeRollingCoveragePolicy::new(config(RollingWindowRule::Fixed {
-            length: 3,
-        }))
-        .unwrap();
+        let mut forced_abstention = config(RollingWindowRule::Fixed { length: 3 });
+        forced_abstention.buffer = 1_000.0;
+        let mut policy = AnytimeRollingCoveragePolicy::new(forced_abstention).unwrap();
         for t in 1..=4 {
             let decision = policy.decide_next_episode().unwrap();
             complete(&mut policy, &decision, None);
@@ -1010,15 +1039,17 @@ mod tests {
     fn feasibility_budget_exhaustion_abstains_instead_of_skipping_windows() {
         let mut cfg = config(RollingWindowRule::Proportional {
             numerator: 1,
-            denominator: 1,
+            denominator: 2,
         });
         cfg.maximum_feasibility_starts = 1;
         let mut policy = AnytimeRollingCoveragePolicy::new(cfg).unwrap();
-        let first = policy.decide_next_episode().unwrap();
-        complete(&mut policy, &first, None);
-        let second = policy.decide_next_episode().unwrap();
+        for _ in 0..2 {
+            let decision = policy.decide_next_episode().unwrap();
+            complete(&mut policy, &decision, None);
+        }
+        let third = policy.decide_next_episode().unwrap();
         assert_eq!(
-            second.disposition,
+            third.disposition,
             RollingWindowDisposition::Abstain(
                 RollingAbstentionReason::FeasibilityBudgetExceeded
             )
