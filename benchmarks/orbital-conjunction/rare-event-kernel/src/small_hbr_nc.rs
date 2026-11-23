@@ -116,8 +116,7 @@ pub fn small_hbr_nc_approximation(
     if positive_inputs.iter().any(|value| *value <= 0.0) {
         return Err(KernelError::InvalidSmallHbrInput);
     }
-    if !inputs.modified_mahalanobis_distance_at_zero_hbr.is_finite()
-    {
+    if !inputs.modified_mahalanobis_distance_at_zero_hbr.is_finite() {
         return Err(KernelError::NonFiniteValue);
     }
 
