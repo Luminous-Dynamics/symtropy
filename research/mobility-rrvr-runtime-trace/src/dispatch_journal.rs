@@ -146,9 +146,15 @@ impl FileDispatchJournalStore {
                     DispatchJournalError::Io(error.to_string())
                 }
             })?;
-        lock.sync_all()
-            .map_err(|error| DispatchJournalError::Io(error.to_string()))?;
-        sync_parent_directory(&lock_path)?;
+        if let Err(error) = lock
+            .sync_all()
+            .map_err(|error| DispatchJournalError::Io(error.to_string()))
+            .and_then(|()| sync_parent_directory(&lock_path))
+        {
+            drop(lock);
+            let _ = fs::remove_file(&lock_path);
+            return Err(error);
+        }
 
         let journal_existed = path.exists();
         if let Err(error) = OpenOptions::new()
@@ -160,7 +166,12 @@ impl FileDispatchJournalStore {
             return Err(DispatchJournalError::Io(error.to_string()));
         }
         if !journal_existed {
-            sync_parent_directory(&path)?;
+            if let Err(error) = sync_parent_directory(&path) {
+                drop(lock);
+                let _ = fs::remove_file(&lock_path);
+                let _ = fs::remove_file(&path);
+                return Err(error);
+            }
         }
 
         Ok(Self {
@@ -200,8 +211,8 @@ impl FileDispatchJournalStore {
 
 impl Drop for FileDispatchJournalStore {
     fn drop(&mut self) {
-        // The OS closes the lease file first as the struct is dropped. Removing
-        // the lock path here is safe for orderly shutdown; a crash leaves it.
+        // Drop is orderly shutdown: no further store operations can be issued
+        // through this handle. A process crash skips Drop and leaves the lease.
         let _ = fs::remove_file(&self.lock_path);
     }
 }
@@ -715,7 +726,10 @@ where
 }
 
 fn sync_parent_directory(path: &Path) -> Result<(), DispatchJournalError> {
-    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     let directory =
         File::open(parent).map_err(|error| DispatchJournalError::Io(error.to_string()))?;
     directory
@@ -897,6 +911,38 @@ mod tests {
         );
         assert_eq!(injector.dispatch_calls, 0);
         assert_eq!(reopened.load_validated().unwrap().records().len(), 2);
+        drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn same_idempotency_key_with_changed_request_is_rejected_after_restart() {
+        let path = path();
+        let mut store = FileDispatchJournalStore::open(&path).unwrap();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Accepted,
+            dispatch_result: GazeboDispatchOutcome::Accepted {
+                dispatch_id: "dispatch-1".into(),
+            },
+        };
+        let original = request();
+        assert!(matches!(
+            dispatch_once_with_journal(&mut store, &mut injector, &original),
+            JournaledDispatchOutcome::AttemptRecorded(_)
+        ));
+        drop(store);
+
+        let mut reopened = FileDispatchJournalStore::open(&path).unwrap();
+        let mut changed = original;
+        changed.parameters_sha256 = "c".repeat(64);
+        assert_eq!(
+            dispatch_once_with_journal(&mut reopened, &mut injector, &changed),
+            JournaledDispatchOutcome::JournalRejected(
+                DispatchJournalError::RequestDigestMismatch
+            )
+        );
+        assert_eq!(injector.dispatch_calls, 1);
         drop(reopened);
         let _ = fs::remove_file(path);
     }
