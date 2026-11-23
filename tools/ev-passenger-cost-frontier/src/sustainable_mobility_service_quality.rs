@@ -228,6 +228,11 @@ pub struct ServicePolicyResult {
     pub aerial_opportunities_blocked: usize,
     pub aerial_opportunities_unused: usize,
     pub fallback_opportunities_unused: usize,
+    pub max_waiting_requests_peak: usize,
+    pub completed_requests_per_hour: f64,
+    pub aerial_opportunity_utilization_percent: f64,
+    pub fallback_opportunity_utilization_percent: f64,
+    pub fallback_share_of_completed_percent: f64,
     pub on_time_rate_of_offered_percent: f64,
     pub on_time_rate_of_accepted_percent: f64,
     pub late_rate_of_accepted_percent: f64,
@@ -679,10 +684,23 @@ fn evaluate_policy(
     let mut assignments: BTreeMap<String, Assignment> = BTreeMap::new();
     let mut blocked_aerial_ids = BTreeSet::new();
     let mut aerial_opportunities_available = 0_usize;
+    let mut max_waiting_requests_peak = 0_usize;
     let mut aerial_opportunities_unused = 0_usize;
     let mut fallback_opportunities_unused = 0_usize;
 
     for opportunity in &opportunities {
+        let waiting_now = input
+            .requests
+            .iter()
+            .filter(|request| {
+                request.arrival_seconds <= request.accept_by_seconds
+                    && request.arrival_seconds <= opportunity.start_seconds
+                    && opportunity.start_seconds <= request.deadline_seconds
+                    && !assignments.contains_key(&request.request_id)
+            })
+            .count();
+        max_waiting_requests_peak = max_waiting_requests_peak.max(waiting_now);
+
         let mut candidates: Vec<usize> = eligible_request_indices
             .iter()
             .copied()
@@ -935,6 +953,8 @@ fn evaluate_policy(
             numerator as f64 * 100.0 / denominator as f64
         }
     };
+    let total_completed = completed_on_time + completed_late;
+    let horizon_hours = input.horizon_seconds as f64 / 3_600.0;
 
     Ok(ServicePolicyResult {
         policy,
@@ -950,6 +970,11 @@ fn evaluate_policy(
         aerial_opportunities_blocked: blocked_aerial_ids.len(),
         aerial_opportunities_unused,
         fallback_opportunities_unused,
+        max_waiting_requests_peak,
+        completed_requests_per_hour: total_completed as f64 / horizon_hours,
+        aerial_opportunity_utilization_percent: percent(served_by_aerial, input.aerial_opportunities.len()),
+        fallback_opportunity_utilization_percent: percent(served_by_fallback, input.fallback_opportunities.len()),
+        fallback_share_of_completed_percent: percent(served_by_fallback, total_completed),
         on_time_rate_of_offered_percent: percent(completed_on_time, offered_requests),
         on_time_rate_of_accepted_percent: percent(completed_on_time, accepted_requests),
         late_rate_of_accepted_percent: percent(completed_late, accepted_requests),
