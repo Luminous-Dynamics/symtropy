@@ -45,7 +45,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 122 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`, and 8 in `normal_positive_part.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; this eight-test normal expectation addition requires its own exact-head workflow.
+The current authored test corpus contains 123 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`, and 9 in `normal_positive_part.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; this eight-test normal expectation addition requires its own exact-head workflow.
 
 ## Important limitations
 
