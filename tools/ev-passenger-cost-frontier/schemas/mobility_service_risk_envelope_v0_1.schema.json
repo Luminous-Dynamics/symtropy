@@ -70,6 +70,7 @@
         "probability_basis",
         "probability_source_reference",
         "scenario_tree_revision",
+        "scenario_tree_digest",
         "scenario_tree_reference",
         "scenario_tree_benchmark_id",
         "expected_leaf_node_ids",
@@ -218,6 +219,10 @@
         },
         "elicitation_protocol_reference": {
           "$ref": "#/$defs/nullableString"
+        },
+        "scenario_tree_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
         }
       }
     }
