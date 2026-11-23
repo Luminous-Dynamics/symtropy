@@ -68,6 +68,34 @@ pub struct PlanSolution {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct KCoverageFeatureReport {
+    pub feature_id: String,
+    pub requested_k: usize,
+    pub available_candidate_views: usize,
+    pub attainable_capped_target: usize,
+    pub selected_robust_views: usize,
+    pub requested_k_met: bool,
+    pub attainable_target_met: bool,
+    pub required_failure_domains: usize,
+    pub selected_failure_domains: usize,
+    pub failure_domain_requirement_met: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PublishedKCoverageGreedy {
+    pub algorithm: String,
+    pub arithmetic: String,
+    pub selected_view_ids: Vec<String>,
+    pub selected_view_count: usize,
+    pub total_cost_units: u64,
+    pub within_declared_budgets: bool,
+    pub requested_k_covered: bool,
+    pub attainable_capped_target_covered: bool,
+    pub failure_domain_requirements_met: bool,
+    pub feature_coverage: Vec<KCoverageFeatureReport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PlanningReceipt {
     pub schema: String,
     pub case_id: String,
@@ -89,6 +117,7 @@ pub struct PlanningReceipt {
     pub pareto_frontier: Vec<PlanSolution>,
     pub greedy_next_best_view: PlanSolution,
     pub cheapest_first: PlanSolution,
+    pub published_k_coverage_greedy: PublishedKCoverageGreedy,
     pub greedy_cost_gap_units: Option<u64>,
     pub cheapest_first_cost_gap_units: Option<u64>,
     pub authority_granted: bool,
@@ -511,6 +540,262 @@ fn total_robust_deficit(coverage: &[FeatureCoverage]) -> usize {
                     .saturating_sub(feature.robust_failure_domain_count)
         })
         .sum()
+}
+
+const EXP_NEGATIVE_FIXED_1E15: [u64; 21] = [
+    1_000_000_000_000_000,
+    367_879_441_171_442,
+    135_335_283_236_613,
+    49_787_068_367_864,
+    18_315_638_888_734,
+    6_737_946_999_085,
+    2_478_752_176_666,
+    911_881_965_555,
+    335_462_627_903,
+    123_409_804_087,
+    45_399_929_762,
+    16_701_700_790,
+    6_144_212_353,
+    2_260_329_407,
+    831_528_719,
+    305_902_321,
+    112_535_175,
+    41_399_377,
+    15_229_980,
+    5_602_796,
+    2_061_154,
+];
+
+fn published_style_k_coverage_greedy(
+    problem: &PlanningProblem,
+) -> Result<PublishedKCoverageGreedy, String> {
+    let candidate_counts = coverage_records(problem, &vec![true; problem.views.len()]);
+    let attainable_targets = candidate_counts
+        .iter()
+        .map(|feature| feature.required_view_count.min(feature.robust_view_count))
+        .collect::<Vec<_>>();
+    let requested_k = problem
+        .features
+        .iter()
+        .map(|feature| feature.required_view_count)
+        .collect::<Vec<_>>();
+    let mut remaining_counts = candidate_counts
+        .iter()
+        .map(|feature| feature.robust_view_count)
+        .collect::<Vec<_>>();
+    let mut covered_counts = vec![0_usize; problem.features.len()];
+    let mut selected = vec![false; problem.views.len()];
+
+    while covered_counts
+        .iter()
+        .zip(&attainable_targets)
+        .any(|(covered, target)| covered < target)
+    {
+        let deficits = covered_counts
+            .iter()
+            .zip(&attainable_targets)
+            .map(|(covered, target)| target.saturating_sub(*covered))
+            .collect::<Vec<_>>();
+        let mut weights = Vec::with_capacity(problem.features.len());
+        for (index, deficit) in deficits.iter().enumerate() {
+            if *deficit == 0 {
+                weights.push(0_u64);
+                continue;
+            }
+            let slack = remaining_counts[index].saturating_sub(*deficit);
+            let exp_weight = *EXP_NEGATIVE_FIXED_1E15
+                .get(slack)
+                .ok_or_else(|| "PUBLISHED_GREEDY_SLACK_OUT_OF_RANGE".to_owned())?;
+            let denominator = requested_k[index]
+                .checked_mul(requested_k[index])
+                .ok_or_else(|| "PUBLISHED_GREEDY_K_SQUARE_OVERFLOW".to_owned())?;
+            let numerator = u128::from(exp_weight)
+                .checked_mul((*deficit as u128) * (*deficit as u128))
+                .ok_or_else(|| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?;
+            let weight = numerator / (denominator as u128);
+            weights.push(
+                u64::try_from(weight)
+                    .map_err(|_| "PUBLISHED_GREEDY_WEIGHT_OVERFLOW".to_owned())?,
+            );
+        }
+
+        let mut best: Option<(usize, u128)> = None;
+        for (index, view) in problem.views.iter().enumerate() {
+            if selected[index] {
+                continue;
+            }
+            let mut score = 0_u128;
+            for feature_id in &view.robust_feature_ids {
+                let feature_index = problem
+                    .features
+                    .iter()
+                    .position(|feature| feature.feature_id == *feature_id)
+                    .expect("validated feature id");
+                score = score
+                    .checked_add(u128::from(weights[feature_index]))
+                    .ok_or_else(|| "PUBLISHED_GREEDY_SCORE_OVERFLOW".to_owned())?;
+            }
+            let replace = match best {
+                None => score > 0,
+                Some((best_index, best_score)) => {
+                    score > best_score
+                        || (score == best_score
+                            && score > 0
+                            && view.view_id < problem.views[best_index].view_id)
+                }
+            };
+            if replace {
+                best = Some((index, score));
+            }
+        }
+
+        let Some((best_index, score)) = best else {
+            break;
+        };
+        if score == 0 {
+            break;
+        }
+        selected[best_index] = true;
+        for feature_id in &problem.views[best_index].robust_feature_ids {
+            let feature_index = problem
+                .features
+                .iter()
+                .position(|feature| feature.feature_id == *feature_id)
+                .expect("validated feature id");
+            covered_counts[feature_index] += 1;
+        }
+        for feature_id in &problem.views[best_index].robust_feature_ids {
+            let feature_index = problem
+                .features
+                .iter()
+                .position(|feature| feature.feature_id == *feature_id)
+                .expect("validated feature id");
+            remaining_counts[feature_index] -= 1;
+        }
+    }
+
+    // Deterministic cleanup: remove selected candidates in lexicographic ID order
+    // whenever every capped attainable k target remains covered.
+    let mut removal_order = (0..problem.views.len())
+        .filter(|index| selected[*index])
+        .collect::<Vec<_>>();
+    removal_order.sort_by(|left, right| {
+        problem.views[*left]
+            .view_id
+            .cmp(&problem.views[*right].view_id)
+    });
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for index in &removal_order {
+            if !selected[*index] {
+                continue;
+            }
+            let mut preserves_targets = true;
+            for feature_index in 0..problem.features.len() {
+                let loses_coverage = problem.views[*index]
+                    .robust_feature_ids
+                    .iter()
+                    .any(|feature_id| {
+                        problem.features[feature_index].feature_id == *feature_id
+                    });
+                if loses_coverage
+                    && covered_counts[feature_index].saturating_sub(1)
+                        < attainable_targets[feature_index]
+                {
+                    preserves_targets = false;
+                    break;
+                }
+            }
+            if preserves_targets {
+                selected[*index] = false;
+                for feature_id in &problem.views[*index].robust_feature_ids {
+                    let feature_index = problem
+                        .features
+                        .iter()
+                        .position(|feature| feature.feature_id == *feature_id)
+                        .expect("validated feature id");
+                    covered_counts[feature_index] -= 1;
+                }
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    let mut selected_view_ids = problem
+        .views
+        .iter()
+        .zip(&selected)
+        .filter(|(_, include)| **include)
+        .map(|(view, _)| view.view_id.clone())
+        .collect::<Vec<_>>();
+    selected_view_ids.sort();
+    let total_cost_units = problem
+        .views
+        .iter()
+        .zip(&selected)
+        .filter(|(_, include)| **include)
+        .try_fold(0_u64, |total, (view, _)| total.checked_add(view.cost_units))
+        .ok_or_else(|| "PUBLISHED_GREEDY_TOTAL_COST_OVERFLOW".to_owned())?;
+    let selected_coverage = coverage_records(problem, &selected);
+
+    let feature_coverage = selected_coverage
+        .iter()
+        .zip(&candidate_counts)
+        .map(|(selected_feature, candidate_feature)| {
+            let attainable_capped_target = selected_feature
+                .required_view_count
+                .min(candidate_feature.robust_view_count);
+            KCoverageFeatureReport {
+                feature_id: selected_feature.feature_id.clone(),
+                requested_k: selected_feature.required_view_count,
+                available_candidate_views: candidate_feature.robust_view_count,
+                attainable_capped_target,
+                selected_robust_views: selected_feature.robust_view_count,
+                requested_k_met: selected_feature.robust_view_count
+                    >= selected_feature.required_view_count,
+                attainable_target_met: selected_feature.robust_view_count
+                    >= attainable_capped_target,
+                required_failure_domains: selected_feature.required_failure_domains,
+                selected_failure_domains: selected_feature.robust_failure_domain_count,
+                failure_domain_requirement_met: selected_feature.robust_failure_domain_count
+                    >= selected_feature.required_failure_domains,
+            }
+        })
+        .collect::<Vec<_>>();
+    let requested_k_covered = feature_coverage.iter().all(|feature| feature.requested_k_met);
+    let attainable_capped_target_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.attainable_target_met);
+    let failure_domain_requirements_met = feature_coverage
+        .iter()
+        .all(|feature| feature.failure_domain_requirement_met);
+    Ok(PublishedKCoverageGreedy {
+        algorithm: "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_1".to_owned(),
+        arithmetic: "fixed_point_exp_negative_1e15;integer_scores;lexicographic_ties".to_owned(),
+        selected_view_count: selected_view_ids.len(),
+        selected_view_ids,
+        total_cost_units,
+        within_declared_budgets: selected_count_within_budgets(
+            problem,
+            &selected,
+            total_cost_units,
+        ),
+        requested_k_covered,
+        attainable_capped_target_covered,
+        failure_domain_requirements_met,
+        feature_coverage,
+    })
+}
+
+fn selected_count_within_budgets(
+    problem: &PlanningProblem,
+    selected: &[bool],
+    total_cost_units: u64,
+) -> bool {
+    selected.iter().filter(|include| **include).count() <= problem.max_selected_views
+        && total_cost_units <= problem.max_total_cost_units
 }
 
 fn solution_from_selection(problem: &PlanningProblem, selected: &[bool]) -> PlanSolution {
