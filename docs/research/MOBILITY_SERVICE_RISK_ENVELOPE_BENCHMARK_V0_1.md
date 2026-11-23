@@ -6,7 +6,7 @@
 **Implementation issue:** [#7196](https://github.com/Luminous-Dynamics/symtropy/issues/7196)  
 **Branch:** research/mobility-service-risk-envelope-v0-1  
 **Research cut-off:** 24 November 2026  
-**Status:** source-level evaluator, strict probability manifest, synthetic fixture, CLI, 11 Rust test definitions and workflow integration; exact-head Rust verification pending.
+**Status:** source-level evaluator, strict probability manifest, synthetic fixture, CLI, 14 Rust test definitions and workflow integration; exact-head Rust verification pending.
 
 ## 1. The gap: exact policy does not imply calibrated risk
 
@@ -76,7 +76,7 @@ The current v0.1 provenance rules require:
 - expert elicitation: an identified panel count and elicitation protocol reference;
 - synthetic: permitted for mathematical fixtures only, with no calibration or empirical-risk claim.
 
-The manifest contains geography, service population, service class, joint-event definition, data version, observation/evaluation windows, training cutoff, forecast issue time, sample count and effective sample size where applicable.
+The manifest contains geography, service population, service class, joint-event definition, data version, observation/evaluation windows, training cutoff, forecast issue time, sample count and effective sample size where applicable. It also carries the canonical SHA-256 digest of the exact scenario-tree contents; a digest mismatch is a hard rejection, even when the Git revision field is unchanged.
 
 **#6460 remains the owner of probability calibration.** This module checks the provenance contract and chronology, but does not recompute Brier score, log loss, CRPS, calibration error, confidence intervals or empirical representativeness. A populated calibration-report digest is not itself proof that the calibration report passed.
 
@@ -84,7 +84,7 @@ The report includes a canonical digest of the actual supplied scenario-tree cont
 
 ## 5. Independent arithmetic and negative controls
 
-The 11 focused Rust test definitions cover:
+The 14 focused Rust test definitions cover:
 - a fractional lower-tail CVaR boundary;
 - a fractional upper-tail CVaR boundary;
 - a rare severe outcome that barely moves the nominal mean but strongly affects tail risk;
