@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-case-v0.1.schema.json",
+  "title": "Manufacturing Multi-job Multi-period Policy Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "horizon",
+    "family_manifest",
+    "case_count",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-case-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-MULTIPERIOD-POLICY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "horizon": {
+      "const": 3
+    },
+    "family_manifest": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_family_id",
+          "case_count",
+          "replication_seeds"
+        ],
+        "properties": {
+          "scenario_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_count": {
+            "const": 2
+          },
+          "replication_seeds": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "case_count": {
+      "const": 12
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "scenario_family_id",
+          "seed",
+          "horizon",
+          "jobs",
+          "resources",
+          "scenarios"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario_family_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "horizon": {
+            "const": 3
+          },
+          "jobs": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "job_id",
+                "due_period",
+                "tardiness_penalty_per_period",
+                "unserved_penalty_units",
+                "routes"
+              ],
+              "properties": {
+                "job_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "due_period": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3
+                },
+                "tardiness_penalty_per_period": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unserved_penalty_units": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "routes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "resource_id",
+                      "production_cost_units",
+                      "expected_quality_loss_units"
+                    ],
+                    "properties": {
+                      "resource_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "production_cost_units": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "expected_quality_loss_units": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "resources": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resource_id",
+                "capacity_units_by_period"
+              ],
+              "properties": {
+                "resource_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "capacity_units_by_period": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "scenarios": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_id",
+                "probability_ppm",
+                "observations_by_period",
+                "hidden_quality_rejections"
+              ],
+              "properties": {
+                "scenario_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "probability_ppm": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                },
+                "observations_by_period": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "failed_resource_ids",
+                      "unknown_resource_ids"
+                    ],
+                    "properties": {
+                      "failed_resource_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "uniqueItems": true
+                      },
+                      "unknown_resource_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "uniqueItems": true
+                      }
+                    }
+                  }
+                },
+                "hidden_quality_rejections": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "job_id",
+                      "resource_id"
+                    ],
+                    "properties": {
+                      "job_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "resource_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
