@@ -559,7 +559,7 @@ jobs:
             and ([(.policy_results[] | select(.policy == "earliest_deadline_first") | .completed_requests_per_hour - 0.875) | fabs] | all(.[]; . < 0.000001))
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .served_by_aerial, .served_by_fallback] == [2,4])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .served_by_aerial, .served_by_fallback] == [3,4])
-            and all(.policy_results[]; .served_by_aerial + .served_by_fallback == .completed_on_time + .completed_late)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and all(.policy_results[]; .aerial_opportunity_utilization_percent >= 0 and .aerial_opportunity_utilization_percent <= 100)
             and all(.policy_results[]; .fallback_opportunity_utilization_percent >= 0 and .fallback_opportunity_utilization_percent <= 100)
             and all(.policy_results[]; .on_time_rate_of_offered_percent >= 0 and .on_time_rate_of_offered_percent <= 100)
@@ -591,7 +591,7 @@ jobs:
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .offered_requests, .accepted_requests, .rejected_requests, .completed_on_time, .completed_late, .unserved_requests] == [12,11,1,7,1,3])
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .served_by_aerial, .served_by_fallback] == [4,4])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .served_by_aerial, .served_by_fallback] == [4,4])
-            and all(.policy_results[]; .served_by_aerial + .served_by_fallback == .completed_on_time + .completed_late)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and all(.policy_results[].outcomes[] | select(.fulfilment_mode == "aerial");
               . as $outcome
               | any($capacity[0].architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .service_opportunities[];
