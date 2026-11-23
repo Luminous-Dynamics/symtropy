@@ -164,9 +164,23 @@
           "cut_point": "after_native_acceptance_before_effect",
           "target_id": "gazebo-entity-1-native-application",
           "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 101,
-          "simulation_time_ns": 1010000000
+          "simulation_step": 100,
+          "simulation_time_ns": 1000000000
         }
+      },
+      "world_statistics": {
+        "topic": "/world/rrvr-reference-world/stats",
+        "message_type": "gz.msgs.WorldStatistics",
+        "producer_id": "declared-sim-ros2-manipulator-v0.1",
+        "producer_revision": "simulator-build-2026.11.23+sha256:profile",
+        "raw_artifact_id": "world-stats-artifact-1",
+        "raw_artifact_sha256": "7070707070707070707070707070707070707070707070707070707070707070",
+        "run_id": "run-simulator-known-answer-001",
+        "run_epoch": "sim-process-epoch-01",
+        "world_epoch": "gazebo-world-epoch-001",
+        "clock_id": "gazebo-iteration-clock",
+        "iterations": 100,
+        "simulation_time_ns": 1000000000
       }
     },
     {
@@ -275,9 +289,23 @@
           "cut_point": "after_possible_effect_before_persistence_ack",
           "target_id": "gazebo-entity-2-physical-observer-pair",
           "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 201,
-          "simulation_time_ns": 2010000000
+          "simulation_step": 200,
+          "simulation_time_ns": 2000000000
         }
+      },
+      "world_statistics": {
+        "topic": "/world/rrvr-reference-world/stats",
+        "message_type": "gz.msgs.WorldStatistics",
+        "producer_id": "declared-sim-ros2-manipulator-v0.1",
+        "producer_revision": "simulator-build-2026.11.23+sha256:profile",
+        "raw_artifact_id": "world-stats-artifact-2",
+        "raw_artifact_sha256": "7171717171717171717171717171717171717171717171717171717171717171",
+        "run_id": "run-simulator-known-answer-001",
+        "run_epoch": "sim-process-epoch-01",
+        "world_epoch": "gazebo-world-epoch-001",
+        "clock_id": "gazebo-iteration-clock",
+        "iterations": 200,
+        "simulation_time_ns": 2000000000
       }
     },
     {
@@ -386,9 +414,23 @@
           "cut_point": "after_controller_fence_before_downstream_fence",
           "target_id": "gazebo-entity-3-controller-command-queue",
           "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 301,
-          "simulation_time_ns": 3010000000
+          "simulation_step": 300,
+          "simulation_time_ns": 3000000000
         }
+      },
+      "world_statistics": {
+        "topic": "/world/rrvr-reference-world/stats",
+        "message_type": "gz.msgs.WorldStatistics",
+        "producer_id": "declared-sim-ros2-manipulator-v0.1",
+        "producer_revision": "simulator-build-2026.11.23+sha256:profile",
+        "raw_artifact_id": "world-stats-artifact-3",
+        "raw_artifact_sha256": "7272727272727272727272727272727272727272727272727272727272727272",
+        "run_id": "run-simulator-known-answer-001",
+        "run_epoch": "sim-process-epoch-01",
+        "world_epoch": "gazebo-world-epoch-001",
+        "clock_id": "gazebo-iteration-clock",
+        "iterations": 300,
+        "simulation_time_ns": 3000000000
       }
     },
     {
@@ -497,9 +539,23 @@
           "cut_point": "after_permit_consumption_before_ack",
           "target_id": "gazebo-entity-4-actuator-drive",
           "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 401,
-          "simulation_time_ns": 4010000000
+          "simulation_step": 400,
+          "simulation_time_ns": 4000000000
         }
+      },
+      "world_statistics": {
+        "topic": "/world/rrvr-reference-world/stats",
+        "message_type": "gz.msgs.WorldStatistics",
+        "producer_id": "declared-sim-ros2-manipulator-v0.1",
+        "producer_revision": "simulator-build-2026.11.23+sha256:profile",
+        "raw_artifact_id": "world-stats-artifact-4",
+        "raw_artifact_sha256": "7373737373737373737373737373737373737373737373737373737373737373",
+        "run_id": "run-simulator-known-answer-001",
+        "run_epoch": "sim-process-epoch-01",
+        "world_epoch": "gazebo-world-epoch-001",
+        "clock_id": "gazebo-iteration-clock",
+        "iterations": 400,
+        "simulation_time_ns": 4000000000
       }
     }
   ]
