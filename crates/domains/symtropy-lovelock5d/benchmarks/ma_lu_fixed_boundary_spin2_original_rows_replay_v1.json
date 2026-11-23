@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_fixed_boundary_spin2_original_row_verification_replay",
+  "status": "exact_public_source_and_fixture_replayed_locally",
+  "verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_boundary_spin2_original_rows.py",
+    "git_blob_sha1": "d2210a8490e4442ffaf44c38bcb7a66a7e61d765",
+    "sha256": "91a1a21e843fe208d37f6fb17c461b83ac0debbb4ecf7b25e3307a7c298bad7b",
+    "exact_bytes_match": true
+  },
+  "input_fixture": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_boundary_map_lambda1_action_rows_v1.json",
+    "git_blob_sha1": "0c3388caf7d78460124c0d930eafa6a2313a0c60",
+    "sha256": "9fbb6be1c2705469215ceb47ee263ad1891be8fcf9c709f0b751d6608f292d61",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "command": "python3 verify_ma_lu_fixed_boundary_spin2_original_rows.py --rows spin2_boundary_map_lambda1_action_rows_v1.json --output ma_lu_fixed_boundary_spin2_original_rows_v1.json",
+    "source_files_modified": false,
+    "checks": {
+      "Eb_exact_zero": true,
+      "Ef_exact_zero": true,
+      "Eg_exact_zero": true,
+      "Eh_exact_zero": true,
+      "Ef_algebraic_reconstruction_zero": true,
+      "B21_prime_horizon_106_over_9": true,
+      "H1_horizon_minus_14_over_3": true,
+      "negative_control_tangent_as_mode_offset_rejected": true,
+      "negative_control_mutated_H1_rejected": true
+    },
+    "result": "ALL_FOUR_ORIGINAL_ROWS_AND_NEGATIVE_CONTROLS_PASS"
+  },
+  "output": {
+    "sha256": "eb0bfa2d961127a93fd3d18484f9eb923efb8abc93a4a57f94d0845ff24a1694",
+    "git_blob_sha1": "e20c5f81f5e0124232a94fbba6bdb49629ba5536"
+  },
+  "claim_ceiling": "Exact rational local replay from exact public verifier and fixture bytes. No finite-coupling existence, interval uniqueness, global uniqueness, or PDE hyperbolicity is implied."
+}
