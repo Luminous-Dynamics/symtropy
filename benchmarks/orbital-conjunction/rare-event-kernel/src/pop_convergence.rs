@@ -166,13 +166,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::CoppolaOneStep,
             PeakOverlapConvergenceReason::OneStepCoppolaShortcut,
             1.0,
-            None,
-            None,
-            None,
-            None,
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: None,
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: None,
+                current_vs_two_back_md2: None,
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -181,13 +183,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::NotConverged,
             PeakOverlapConvergenceReason::InitialIteration,
             0.0,
-            None,
-            None,
-            None,
-            None,
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: None,
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: None,
+                current_vs_two_back_md2: None,
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -203,13 +207,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::Strict,
             PeakOverlapConvergenceReason::StrictMd2Satisfied,
             1.0,
-            Some(config.strict_md2_tolerance),
-            None,
-            Some(current_vs_previous_md2),
-            None,
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: Some(config.strict_md2_tolerance),
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: Some(current_vs_previous_md2),
+                current_vs_two_back_md2: None,
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -218,13 +224,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::IterationLimitReached,
             PeakOverlapConvergenceReason::MaximumIterationsReached,
             0.0,
-            None,
-            None,
-            Some(current_vs_previous_md2),
-            None,
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: None,
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: Some(current_vs_previous_md2),
+                current_vs_two_back_md2: None,
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -245,13 +253,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::NotConverged,
             reason,
             0.0,
-            None,
-            None,
-            Some(current_vs_previous_md2),
-            None,
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: None,
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: Some(current_vs_previous_md2),
+                current_vs_two_back_md2: None,
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -265,13 +275,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::OscillationResolved,
             PeakOverlapConvergenceReason::TwoCycleResolved,
             0.5,
-            Some(config.strict_md2_tolerance),
-            None,
-            Some(current_vs_previous_md2),
-            Some(current_vs_two_back_md2),
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: Some(config.strict_md2_tolerance),
+                relaxed_schedule_fraction: None,
+                current_vs_previous_md2: Some(current_vs_previous_md2),
+                current_vs_two_back_md2: Some(current_vs_two_back_md2),
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -302,13 +314,15 @@ pub fn decide_peak_overlap_convergence(
             PeakOverlapConvergenceStatus::Relaxed,
             PeakOverlapConvergenceReason::RelaxedMd2Satisfied,
             convergence_code,
-            Some(active_md2_cutoff),
-            schedule_fraction,
-            Some(current_vs_previous_md2),
-            Some(current_vs_two_back_md2),
-            acceleration_iteration,
-            averaging_iteration,
-            oscillation_iteration,
+            DecisionDiagnostics {
+                active_md2_cutoff: Some(active_md2_cutoff),
+                relaxed_schedule_fraction: schedule_fraction,
+                current_vs_previous_md2: Some(current_vs_previous_md2),
+                current_vs_two_back_md2: Some(current_vs_two_back_md2),
+                acceleration_iteration,
+                averaging_iteration,
+                oscillation_iteration,
+            },
         ));
     }
 
@@ -326,10 +340,8 @@ pub fn decide_peak_overlap_convergence(
     ))
 }
 
-fn decision(
-    status: PeakOverlapConvergenceStatus,
-    reason: PeakOverlapConvergenceReason,
-    source_convergence_code: f64,
+#[derive(Debug, Clone, Copy)]
+struct DecisionDiagnostics {
     active_md2_cutoff: Option<f64>,
     relaxed_schedule_fraction: Option<f64>,
     current_vs_previous_md2: Option<f64>,
@@ -337,18 +349,25 @@ fn decision(
     acceleration_iteration: usize,
     averaging_iteration: usize,
     oscillation_iteration: usize,
+}
+
+fn decision(
+    status: PeakOverlapConvergenceStatus,
+    reason: PeakOverlapConvergenceReason,
+    source_convergence_code: f64,
+    diagnostics: DecisionDiagnostics,
 ) -> PeakOverlapConvergenceDecision {
     PeakOverlapConvergenceDecision {
         status,
         reason,
         source_convergence_code,
-        active_md2_cutoff,
-        relaxed_schedule_fraction,
-        current_vs_previous_md2,
-        current_vs_two_back_md2,
-        acceleration_iteration,
-        averaging_iteration,
-        oscillation_iteration,
+        active_md2_cutoff: diagnostics.active_md2_cutoff,
+        relaxed_schedule_fraction: diagnostics.relaxed_schedule_fraction,
+        current_vs_previous_md2: diagnostics.current_vs_previous_md2,
+        current_vs_two_back_md2: diagnostics.current_vs_two_back_md2,
+        acceleration_iteration: diagnostics.acceleration_iteration,
+        averaging_iteration: diagnostics.averaging_iteration,
+        oscillation_iteration: diagnostics.oscillation_iteration,
     }
 }
 
