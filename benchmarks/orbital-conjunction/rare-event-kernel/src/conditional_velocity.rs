@@ -323,8 +323,7 @@ impl ConditionalVelocityDistribution {
         if log_integrand.is_nan() || log_integrand == f64::INFINITY {
             return Err(KernelError::NumericalOverflow);
         }
-        let integrand_overflowed = log_integrand.is_finite()
-            && log_integrand > f64::MAX.ln();
+        let integrand_overflowed = log_integrand.is_finite() && log_integrand > f64::MAX.ln();
         let integrand = if integrand_overflowed {
             f64::INFINITY
         } else {
