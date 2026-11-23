@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 pub mod dependency_graph_adequacy;
 pub mod incumbent_adequacy;
+pub mod loss_model_universe_adequacy;
 
 pub mod invalidation;
 
