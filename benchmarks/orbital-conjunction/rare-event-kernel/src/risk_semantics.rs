@@ -25,10 +25,12 @@ pub struct MissionRiskScope {
     pub mission_digest: [u8; 32],
     /// Stable digest of the common model and conditioning regime.
     pub model_digest: [u8; 32],
-    /// Stable identity of the common target probability measure. Event-specific
-    /// posterior/conditioning digests may differ, but all marginals aggregated
-    /// here must refer to this same probability measure.
+    /// Stable identity of the common target probability measure.
     pub probability_measure_digest: [u8; 32],
+    /// Digest of the complete common information set on which every event Pc
+    /// was conditioned. Per-event posteriors from different conditioning sets
+    /// cannot be combined as if they were marginals under one common posterior.
+    pub conditioning_set_digest: [u8; 32],
     /// Inclusive start of the assessment horizon in integer seconds.
     pub horizon_start_seconds: u64,
     /// Exclusive end of the assessment horizon in integer seconds.
@@ -41,6 +43,7 @@ impl MissionRiskScope {
         mission_digest: [u8; 32],
         model_digest: [u8; 32],
         probability_measure_digest: [u8; 32],
+        conditioning_set_digest: [u8; 32],
         horizon_start_seconds: u64,
         horizon_end_seconds: u64,
     ) -> Result<Self, RiskSemanticsError> {
@@ -51,6 +54,7 @@ impl MissionRiskScope {
             mission_digest,
             model_digest,
             probability_measure_digest,
+            conditioning_set_digest,
             horizon_start_seconds,
             horizon_end_seconds,
         })
@@ -356,8 +360,10 @@ pub enum RiskSemanticsError {
     InvalidTestThreshold,
     /// Event does not belong to the mission scope being aggregated.
     EventScopeMismatch,
-    /// Event Pc values refer to different target probability measures.
+    /// Event Pc values refer to a different target probability measure.
     ProbabilityMeasureMismatch,
+    /// Event Pc values were conditioned on different mission information sets.
+    ConditioningSetMismatch,
     /// Multiple CDM revisions were supplied as separate events for one
     /// physical conjunction, which would double-count the same encounter.
     DuplicateConjunctionIdentity,
@@ -374,6 +380,9 @@ impl core::fmt::Display for RiskSemanticsError {
             Self::EventScopeMismatch => "mission event scope differs from aggregation scope",
             Self::ProbabilityMeasureMismatch => {
                 "conditional Pc probability measure differs from mission target measure"
+            }
+            Self::ConditioningSetMismatch => {
+                "conditional Pc information set differs from mission conditioning set"
             }
             Self::DuplicateConjunctionIdentity => {
                 "physical conjunction is duplicated, possibly by multiple CDM revisions"
@@ -426,6 +435,9 @@ pub fn aggregate_mission_collision_risk(
             != scope.probability_measure_digest
         {
             return Err(RiskSemanticsError::ProbabilityMeasureMismatch);
+        }
+        if event.conditional_pc.conditioning_digest() != scope.conditioning_set_digest {
+            return Err(RiskSemanticsError::ConditioningSetMismatch);
         }
         let pc = event.conditional_pc.value();
         if pc > Rational::from_integer(1) {
@@ -486,7 +498,7 @@ mod tests {
     use super::*;
 
     fn scope() -> MissionRiskScope {
-        MissionRiskScope::new([1; 32], [2; 32], [3; 32], 0, 86_400).unwrap()
+        MissionRiskScope::new([1; 32], [2; 32], [3; 32], [4; 32], 0, 86_400).unwrap()
     }
 
     fn rational(numerator: u128, denominator: u128) -> Rational {
@@ -622,13 +634,33 @@ mod tests {
     }
 
     #[test]
+    fn event_pc_from_a_different_conditioning_set_cannot_be_aggregated() {
+        let mut input = event(1, 1, 10);
+        input.conditional_pc = ConditionalCollisionProbability::new(
+            rational(1, 10),
+            [3; 32],
+            [99; 32],
+        )
+        .unwrap();
+
+        assert_eq!(
+            aggregate_mission_collision_risk(
+                scope(),
+                &[input],
+                EventDependenceMode::Unknown,
+            ),
+            Err(RiskSemanticsError::ConditioningSetMismatch)
+        );
+    }
+
+    #[test]
     fn invalid_mission_horizon_is_rejected() {
         assert_eq!(
-            MissionRiskScope::new([1; 32], [2; 32], [3; 32], 5, 5),
+            MissionRiskScope::new([1; 32], [2; 32], [3; 32], [4; 32], 5, 5),
             Err(RiskSemanticsError::InvalidMissionHorizon)
         );
         assert_eq!(
-            MissionRiskScope::new([1; 32], [2; 32], [3; 32], 6, 5),
+            MissionRiskScope::new([1; 32], [2; 32], [3; 32], [4; 32], 6, 5),
             Err(RiskSemanticsError::InvalidMissionHorizon)
         );
     }
