@@ -3,7 +3,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA: &str = "luminous.orbital-sampling-density.spatial-resolution-corpus.v0.1";
-pub const RECEIPT_SCHEMA: &str = "luminous.orbital-sampling-density.spatial-resolution-receipt.v0.1";
+pub const RECEIPT_SCHEMA: &str =
+    "luminous.orbital-sampling-density.spatial-resolution-receipt.v0.1";
 pub const BENCHMARK_ID: &str = "ORBITAL-SPATIAL-RESOLUTION-001";
 pub const CLAIM_CEILING: &str =
     "synthetic_spatial_resolution_density_matrix_with_visibility_fallback_only";
@@ -230,14 +231,17 @@ fn validate_case(case: &SpatialResolutionCase) -> Result<(), String> {
     let candidate_ids: BTreeSet<&str> =
         case.candidate_view_ids.iter().map(String::as_str).collect();
     if candidate_ids.len() != case.candidate_view_ids.len()
-        || candidate_ids.iter().any(|view_id| view_id.trim().is_empty())
+        || candidate_ids
+            .iter()
+            .any(|view_id| view_id.trim().is_empty())
     {
         return Err("CANDIDATE_VIEW_IDS_DUPLICATE_OR_BLANK".to_owned());
     }
-    let selected_ids: BTreeSet<&str> =
-        case.selected_view_ids.iter().map(String::as_str).collect();
+    let selected_ids: BTreeSet<&str> = case.selected_view_ids.iter().map(String::as_str).collect();
     if selected_ids.len() != case.selected_view_ids.len()
-        || selected_ids.iter().any(|view_id| !candidate_ids.contains(view_id))
+        || selected_ids
+            .iter()
+            .any(|view_id| !candidate_ids.contains(view_id))
     {
         return Err("SELECTED_VIEW_IDS_DUPLICATE_OR_UNKNOWN".to_owned());
     }
@@ -252,8 +256,11 @@ fn validate_case(case: &SpatialResolutionCase) -> Result<(), String> {
         {
             return Err("SPATIAL_ELEMENT_ID_AREA_OR_TARGET_INVALID".to_owned());
         }
-        let ray_views: BTreeSet<&str> =
-            element.ray_counts.iter().map(|row| row.view_id.as_str()).collect();
+        let ray_views: BTreeSet<&str> = element
+            .ray_counts
+            .iter()
+            .map(|row| row.view_id.as_str())
+            .collect();
         if ray_views.len() != element.ray_counts.len() || ray_views != candidate_ids {
             return Err("SPATIAL_RAY_COUNT_MATRIX_MUST_MATCH_CANDIDATE_VIEWS".to_owned());
         }
@@ -263,8 +270,7 @@ fn validate_case(case: &SpatialResolutionCase) -> Result<(), String> {
 
 fn evaluate_case(case: &SpatialResolutionCase) -> Result<CaseReceipt, String> {
     validate_case(case)?;
-    let selected_ids: BTreeSet<&str> =
-        case.selected_view_ids.iter().map(String::as_str).collect();
+    let selected_ids: BTreeSet<&str> = case.selected_view_ids.iter().map(String::as_str).collect();
     let mut element_receipts = Vec::with_capacity(case.elements.len());
     let mut fallback_count = 0_usize;
     let mut density_mode_count = 0_usize;
@@ -431,10 +437,13 @@ fn evaluate_case(case: &SpatialResolutionCase) -> Result<CaseReceipt, String> {
 
     let mut reason_codes = Vec::new();
     if fallback_count > 0 {
-        reason_codes.push("CANDIDATE_POOL_BELOW_SPATIAL_DENSITY_TARGET_BINARY_VISIBILITY_FALLBACK".to_owned());
+        reason_codes.push(
+            "CANDIDATE_POOL_BELOW_SPATIAL_DENSITY_TARGET_BINARY_VISIBILITY_FALLBACK".to_owned(),
+        );
     }
     if any_budget_infeasible {
-        reason_codes.push("SELECTED_VIEW_SET_DOES_NOT_MEET_DENSITY_OR_VISIBILITY_MATRIX".to_owned());
+        reason_codes
+            .push("SELECTED_VIEW_SET_DOES_NOT_MEET_DENSITY_OR_VISIBILITY_MATRIX".to_owned());
     }
     if any_indeterminate {
         reason_codes.push("FIXED_POINT_INTERVAL_STRADDLES_DENSITY_TARGET".to_owned());
@@ -601,7 +610,10 @@ mod tests {
             CaseStatus::FeasibleVisibilityFallback,
         );
         let receipt = evaluate_case(&case).unwrap();
-        assert_eq!(receipt.elements[0].mode, ElementMode::BinaryVisibilityFallback);
+        assert_eq!(
+            receipt.elements[0].mode,
+            ElementMode::BinaryVisibilityFallback
+        );
         assert!(!receipt.elements[0].candidate_density_guaranteed);
         assert!(receipt.elements[0].selected_requirement_met);
         assert_eq!(receipt.status, CaseStatus::FeasibleVisibilityFallback);
@@ -618,7 +630,10 @@ mod tests {
             CaseStatus::Feasible,
         );
         let receipt = evaluate_case(&case).unwrap();
-        assert_eq!(receipt.elements[0].mode, ElementMode::SpatialResolutionDensity);
+        assert_eq!(
+            receipt.elements[0].mode,
+            ElementMode::SpatialResolutionDensity
+        );
         assert!(receipt.elements[0].selected_density_guaranteed);
         assert_eq!(receipt.elements[0].candidate_density_lower_micro, "3162");
     }
@@ -665,7 +680,10 @@ mod tests {
             CaseStatus::Infeasible,
         );
         let receipt = evaluate_case(&case).unwrap();
-        assert_eq!(receipt.elements[0].mode, ElementMode::InfeasibleNoCandidateVisibility);
+        assert_eq!(
+            receipt.elements[0].mode,
+            ElementMode::InfeasibleNoCandidateVisibility
+        );
         assert_eq!(receipt.status, CaseStatus::Infeasible);
     }
 }
