@@ -1656,7 +1656,7 @@ mod tests {
         let mut source = Vec::new();
         let mut witness = Vec::new();
         for index in 0..128 {
-            let time = 10_000_i64 + i64::try_from(index).unwrap() * 100;
+            let time = 10_000_i64 + i64::from(index) * 100;
             source.push(observation!(
                 &format!("s-{index}"),
                 "BOX-ONE",
