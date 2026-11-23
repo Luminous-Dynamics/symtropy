@@ -668,12 +668,15 @@ NoRetryAfterAmbiguousPersistence ==
         (s.attempts[i].status # "unreserved" =>
             s.attempts[i - 1].persistence \in ResolvedPersistence)
 
+RetryObserverProofsQualified(i) ==
+    /\ s.attempts[i - 1].physicalObserverQualified
+    /\ s.attempts[i - 1].downstreamObserverQualified
+    /\ s.attempts[i - 1].observerProofsIndependent
+
 NoRetryAfterUnqualifiedObserver ==
     \A i \in 2..MaxAttempts:
         (s.attempts[i].status # "unreserved" =>
-            /\ s.attempts[i - 1].physicalObserverQualified
-            /\ s.attempts[i - 1].downstreamObserverQualified
-            /\ s.attempts[i - 1].observerProofsIndependent)
+            RetryObserverProofsQualified(i))
 
 NoRecoveryFromAppliedOrPartial ==
     \A i \in 2..MaxAttempts:
