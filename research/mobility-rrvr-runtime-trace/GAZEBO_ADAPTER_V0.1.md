@@ -100,3 +100,8 @@ Do not collapse these into one score. Safety/evidence correctness, recovery util
 Passing the mock tests and capability-profile preflight validates only the transport-neutral orchestration logic against a synthetic profile. It does not prove a live Gazebo build implements the declared feature set, execute a reset/step, inject a fault, authenticate injector or observer artifacts, qualify a physical fault domain, establish HIL evidence, or prove robot safety.
 
 The next integration is a version-pinned ROS 2 service/action client implementing GazeboSimulationTransport, followed by real simulator receipts and the execution-evidence validator. Hardware-in-the-loop and physical qualification remain separate stages.
+
+
+## Cross-event trace ordering
+
+The execution-evidence contract checks one continuous simulation clock from reset through every fault event. It requires both phase-local order and cross-event nondecreasing step/time coordinates. This catches a replay where each fault's local receipts appear valid but the sequence of fault events is globally reordered.
