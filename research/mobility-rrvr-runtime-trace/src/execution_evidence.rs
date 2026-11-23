@@ -857,10 +857,9 @@ impl ExecutionEvidenceBundle {
                         }
                         if let Some(signature) =
                             observation.observed_fault_signature_sha256.as_deref()
+                            && !valid_sha256(signature)
                         {
-                            if !valid_sha256(signature) {
-                                return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
-                            }
+                            return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
                         }
                         validate_receipt(
                             receipt,
