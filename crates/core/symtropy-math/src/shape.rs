@@ -264,30 +264,63 @@ mod tests {
     }
 
     #[test]
-    fn built_in_shape_local_bound_providers_are_explicit() {
+    fn built_in_shape_local_bound_providers_enclose_support_points() {
         let sphere = Sphere::new(Point::new([1.0, 2.0, 3.0]), 0.5);
-        assert!(sphere.local_aabb().is_some());
+        let sphere_bounds = sphere.local_aabb().unwrap();
 
         let capsule = Capsule::<3>::y_aligned(2.0, 0.5);
-        assert!(capsule.local_aabb().is_some());
+        let capsule_bounds = capsule.local_aabb().unwrap();
 
         let hyperbox = HyperBox::<3>::new([1.0, 2.0, 3.0]);
+        let hyperbox_bounds = hyperbox.local_aabb().unwrap();
         assert_eq!(
-            hyperbox.local_aabb().unwrap(),
+            hyperbox_bounds,
             LocalAabb::from_half_extents([1.0, 2.0, 3.0]).unwrap()
         );
+
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([-1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, -1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([0.0, 0.0, -1.0]),
+        ];
+        for direction in directions {
+            assert!(sphere_bounds.contains(&sphere.support(&direction)));
+            assert!(capsule_bounds.contains(&capsule.support(&direction)));
+            assert!(hyperbox_bounds.contains(&hyperbox.support(&direction)));
+        }
 
         let hull = ConvexHull::<2>::new(vec![
             SVector::from([-1.0, 2.0]),
             SVector::from([3.0, -4.0]),
             SVector::from([0.0, 1.0]),
         ]);
-        assert_eq!(
-            hull.local_aabb().unwrap(),
-            LocalAabb::from_points(&hull.vertices).unwrap()
-        );
+        let hull_bounds = hull.local_aabb().unwrap();
+        assert_eq!(hull_bounds, LocalAabb::from_points(&hull.vertices).unwrap());
+        assert!(hull.vertices.iter().all(|vertex| hull_bounds.contains(vertex)));
 
         let plane = HalfSpace::<3>::ground(1, 0.0);
         assert!(plane.local_aabb().is_none());
+    }
+
+    #[test]
+    fn invalid_mutable_builtin_shape_data_has_no_local_bound() {
+        let mut sphere = Sphere::unit();
+        sphere.radius = -1.0;
+        assert!(sphere.local_aabb().is_none());
+
+        let capsule = Capsule::<3>::new(1.0, 0.5, 3);
+        assert!(capsule.local_aabb().is_none());
+
+        let hyperbox = HyperBox::<3>::new([1.0, f64::NAN, 2.0]);
+        assert!(hyperbox.local_aabb().is_none());
+
+        let hull = ConvexHull::<2>::new(vec![
+            SVector::from([0.0, 0.0]),
+            SVector::from([f64::INFINITY, 1.0]),
+        ]);
+        assert!(hull.local_aabb().is_none());
     }
 }
