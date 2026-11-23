@@ -1,33 +1,75 @@
 {
   "schema_version": 1,
-  "artifact_kind": "ma_lu_equal_spin_symtropy_radial_time_sector_replay",
-  "status": "public_symbolic_script_committed; local_profile_and_row_checks_executed; exact_public_script_blob_replay_pending",
-  "public_script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_symtropy_gauge.py",
-  "public_script_git_blob_sha1": "b6c4d8de106230eb0b1ae80df420736823d6dff2",
-  "row_fixture_path": "crates/domains/symtropy-lovelock5d/benchmarks/spin2_boundary_map_lambda1_action_rows_v1.json",
-  "row_fixture_git_blob_sha1": "0c3388caf7d78460124c0d930eafa6a2313a0c60",
-  "verifier_path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_boundary_spin2_original_rows.py",
-  "verifier_git_blob_sha1": "d2210a8490e4442ffaf44c38bcb7a66a7e61d765",
-  "local_execution": {
+  "artifact_kind": "ma_lu_equal_spin_symtropy_full_metric_comparison_replay",
+  "status": "independent_local_exact_sympy_reconstruction_passed; individual_public_verifier_byte_replays_tracked_separately",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "version": "JHEP version of record, 2026-05-08",
+    "equations": [
+      "(2.8)",
+      "(2.9)",
+      "(2.12)",
+      "(3.3)",
+      "(3.4)"
+    ]
+  },
+  "local_reconstruction": {
+    "path": "/mnt/data/ma_lu_version_record_replay.py",
+    "sha256": "0a1928c166aa4e03ac6444fef510832a8301aafa22171e91c755e20c52116476",
     "python": "3.13.5",
     "sympy": "1.14.0",
-    "source_rows": "Original-row expressions transcribed from the public action-row fixture into a local exact-rational replay input; latest committed fixture-driven verifier was not replayed byte-for-byte.",
-    "four_original_rows": {
-      "b": "0",
-      "f": "0",
-      "g": "0",
-      "h": "0"
+    "checks": {
+      "H2_equals_H3": true,
+      "H5_direct_Eq2_12": true,
+      "H6_direct_Eq2_12": true,
+      "dpsi2_component": true,
+      "dphi2_component": true,
+      "dphi_dpsi_component": true,
+      "axis_regular": true,
+      "negative_controls": true,
+      "fixed_boundary_all_coefficients": true
     },
-    "algebraic_Ef_reconstruction": "0",
-    "B21_prime_at_horizon": "106/9",
-    "H21_at_horizon": "-14/3",
+    "result": "PASS"
+  },
+  "adm_mass": {
+    "script": "verify_ma_lu_equal_spin_adm_mass.py",
+    "git_blob_sha1": "32d91014925518358ad92395ca6aec020d383d6d",
+    "sha256": "1217a123bacc48643fe3e91b7420e6ec5699dd92c1ec9e936d4963748712f245",
+    "exact_public_blob_replayed_locally": true,
+    "check": "(3*pi/8)*(16/3-188*chi^2/15) == 2*pi-47*pi*chi^2/10"
+  },
+  "parameter_map": {
+    "script": "derive_ma_lu_equal_spin_parameter_map.py",
+    "git_blob_sha1": "30616c178a051f0a2fd120aba8a9d03dfc8c865e",
+    "sha256": "a015c8572071d109d14995f0743453412bfd90100b49dcf53c8e6e9bd0907efd",
+    "exact_public_blob_replayed_locally": true
+  },
+  "fixed_boundary_map": {
+    "script": "verify_ma_lu_fixed_symtropy_boundary_map.py",
+    "git_blob_sha1": "f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9",
+    "sha256": "b4ee4ad64b9dbc87893260b4a804216462871a638e4bc592d2498250a41ece67",
+    "exact_public_blob_replayed_locally": true
+  },
+  "original_symtropy_rows": {
+    "source": "Public action-row fixture spin2_boundary_map_lambda1_action_rows_v1.json",
+    "local_exact_rational_result": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0"
+    },
+    "EF_reconstruction": "0",
     "cB": "0",
     "cH": "0",
-    "negative_controls": {
-      "tangent_used_as_mode_offsets_rejected": true,
-      "mutated_H1_rejected": true
-    },
-    "frame_dragging": "Ma-Lu transformed w/a_S and Symtropy W1 agree at O(nu_S^0); difference begins O(nu_S^2) in W1/a_S, hence O(a^3) in w and beyond the O(a^2) equations."
+    "B21_prime_at_horizon": "106/9",
+    "H21_at_horizon": "-14/3",
+    "fixture_driven_public_verifier_exact_blob_replay": "pending"
   },
-  "claim_ceiling": "Local exact-rational evaluation of the four original action-row expressions gives zero for each row. The current fixture-driven verifier and radial/time-sector script are committed, but byte-for-byte local replay of those latest public blobs remains pending. H5/H6 angular-diagonal components, ADM mass, finite-coupling branch, interval existence and hyperbolicity remain open."
+  "full_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
+    "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
+    "exact_blob_replay": "pending; independent equivalent local reconstruction is recorded above"
+  },
+  "claim_ceiling": "Exact first-coupling O(chi^2) source overlap for angular components, fixed boundary, ADM mass and all four original Symtropy even rows. No finite-coupling branch, interval existence or hyperbolicity result."
 }
