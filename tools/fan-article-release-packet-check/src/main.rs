@@ -205,7 +205,8 @@ fn released_packet() -> Value {
         "reviewer_id":"reviewer-1",
         "disposition":"RELEASED_FOR_FABRICATION",
         "decision_ref":evidence("product-owner","fabrication-release-decision"),
-        "recorded_at":"2026-11-23T00:00:00Z"
+        "recorded_at":"2026-11-23T00:00:00Z",
+        "disposition_reason":null
     });
 
     packet
@@ -229,6 +230,38 @@ mod tests {
             packet["product"]["cartridge"]["rated_voltage_v"],
             Value::Null
         );
+    }
+
+    #[test]
+    fn not_applicable_gate_requires_reason_reviewer_and_decision_receipt() {
+        let validator = validator();
+        let mut packet: Value = serde_json::from_str(PACKET_JSON).unwrap();
+        packet["gates"]["G0"]["status"] = json!("NOT_APPLICABLE");
+        assert!(!validator.is_valid(&packet));
+
+        packet["gates"]["G0"]["disposition_reason"] =
+            json!("Approved not applicable for the declared operation scope.");
+        packet["gates"]["G0"]["reviewer_id"] = json!("reviewer-1");
+        packet["gates"]["G0"]["decision_ref"] = evidence("product-owner", "na-decision");
+        packet["gates"]["G0"]["recorded_at"] = json!("2026-11-23T00:00:00Z");
+        assert!(validator.is_valid(&packet));
+    }
+
+    #[test]
+    fn packet_status_and_owner_disposition_must_match() {
+        let validator = validator();
+        let mut packet: Value = serde_json::from_str(PACKET_JSON).unwrap();
+        packet["status"] = json!("OWNER_REVIEWED");
+        assert!(!validator.is_valid(&packet));
+
+        packet["owner_disposition"] = json!({
+            "owner_id":"owner-1",
+            "reviewer_id":"reviewer-1",
+            "disposition":"OWNER_REVIEWED",
+            "decision_ref":evidence("product-owner","owner-review-decision"),
+            "recorded_at":"2026-11-23T00:00:00Z"
+        });
+        assert!(validator.is_valid(&packet));
     }
 
     #[test]
