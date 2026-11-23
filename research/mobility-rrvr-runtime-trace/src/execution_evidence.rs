@@ -930,10 +930,8 @@ impl ExecutionEvidenceBundle {
                     return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                 }
             }
-            if let (Some(previous), Some(first)) =
-                (previous_event_end, phase_receipts.first())
-                && (first.simulation_step < previous.0
-                    || first.simulation_time_ns < previous.1)
+            if let (Some(previous), Some(first)) = (previous_event_end, phase_receipts.first())
+                && (first.simulation_step < previous.0 || first.simulation_time_ns < previous.1)
             {
                 return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
             }
