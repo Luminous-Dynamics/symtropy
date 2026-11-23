@@ -414,7 +414,7 @@ fn cholesky_3x3(matrix: Matrix3) -> Result<Matrix3, KernelError> {
 
 fn inverse_from_cholesky(lower: Matrix3) -> Result<Matrix3, KernelError> {
     let mut inverse = [[0.0; 3]; 3];
-    for (column, _) in inverse[0].iter().enumerate() {
+    for (column, destination_column) in inverse.iter_mut().enumerate() {
         let mut forward = [0.0; 3];
         for row in 0..3 {
             let mut value = if row == column { 1.0 } else { 0.0 };
@@ -432,8 +432,8 @@ fn inverse_from_cholesky(lower: Matrix3) -> Result<Matrix3, KernelError> {
             }
             solution[row] = value / lower[row][row];
         }
-        for row in 0..3 {
-            inverse[row][column] = solution[row];
+        for (row, value) in destination_column.iter_mut().enumerate() {
+            *value = solution[row];
         }
     }
     if inverse.iter().flatten().any(|value| !value.is_finite()) {
