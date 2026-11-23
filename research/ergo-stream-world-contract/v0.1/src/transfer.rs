@@ -721,7 +721,7 @@ mod tests {
 
     #[test]
     fn rejects_inconsistent_transform_for_same_action_kind() {
-        let mut action_map = vec![
+        let action_map = vec![
             ActionCorrespondenceV0 {
                 source_action_id: 1,
                 target_action_id: 11,
@@ -752,7 +752,6 @@ mod tests {
             },
         ];
 
-        action_map[1].effect_transform = EffectTransformV0::Negate;
         assert_eq!(
             validate_intervention_correspondence(&action_map, &observations),
             Err(TransferErrorV0::InconsistentActionKindTransform)
