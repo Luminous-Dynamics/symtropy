@@ -2,7 +2,7 @@
 //! Deterministic synthetic smoke tournament for the response comparator.
 
 use solver_response_oracle::{
-    BodyResponse, ContactProbe, ResponseScales, SolverResponseSnapshot, SolverTermination,
+    BodyResponse, ContactProbe, ContactProbeSet, ResponseScales, SolverResponseSnapshot, SolverTermination,
     compare_responses,
 };
 
@@ -63,7 +63,9 @@ fn snapshot(candidate: &str, reduced: bool) -> SolverResponseSnapshot {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let full = snapshot("full-candidate-set-001", false);
     let reduced = snapshot("reduced-candidate-set-001", true);
-    let probes = vec![
+    let probes = ContactProbeSet {
+        digest: "full-patch-contact-probes-smoke-001".to_owned(),
+        probes: vec![
         ContactProbe {
             contact_id: "corner-left".to_owned(),
             body_a_id: "box".to_owned(),
@@ -80,7 +82,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             lever_arm_b: [0.0; 3],
             normal: [0.0, 1.0, 0.0],
         },
-    ];
+        ],
+    };
     let report = compare_responses(
         &full,
         &reduced,
@@ -93,13 +96,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!(
-        "schema,scenario,budget,full_work,reduced_work,full_iterations,reduced_iterations,full_rows,reduced_rows,both_converged,probe_count,max_generalized_velocity_error,max_generalized_impulse_error,max_contact_normal_velocity_error,max_contact_tangent_velocity_error,rms_contact_velocity_error,velocity_witness_body,normal_witness_contact"
+        "schema,scenario,model,solver,work_unit_schema,budget,probe_set_digest,probe_count,characteristic_length,velocity_scale,impulse_scale,full_work,reduced_work,full_iterations,reduced_iterations,full_rows,reduced_rows,both_converged,max_generalized_velocity_error,max_generalized_impulse_error,max_contact_normal_velocity_error,max_contact_tangent_velocity_error,rms_contact_velocity_error,velocity_witness_body,normal_witness_contact"
     );
     println!(
-        "{},{},{},{},{},{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{}",
+        "{},{},{},{},{},{},{},{},{:.6},{:.6},{:.6},{},{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{}",
         solver_response_oracle::SCHEMA_VERSION,
         report.scenario_digest,
+        report.physics_model_digest,
+        report.solver_config_digest,
+        report.work_unit_schema_digest,
         report.work_budget_units,
+        report.probe_set_digest,
+        report.contact_probe_count,
+        report.characteristic_length,
+        report.velocity_scale,
+        report.impulse_scale,
         report.full_work_consumed_units,
         report.reduced_work_consumed_units,
         report.full_solver_iterations,
@@ -107,7 +118,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.full_solver_rows_submitted,
         report.reduced_solver_rows_submitted,
         report.both_solvers_converged,
-        report.contact_probe_count,
         report.maximum_generalized_velocity_error,
         report.maximum_generalized_impulse_error,
         report.maximum_contact_normal_velocity_error,
