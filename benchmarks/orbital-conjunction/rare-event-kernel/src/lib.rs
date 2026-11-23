@@ -18,7 +18,8 @@
 //! - a structural check for a strict covariance floor
 //!   Sigma_component > alpha * Sigma_nominal;
 //! - a budgeted affine-cell traversal that accounts for possible event mass
-//!   outside caller-declared geometric chart boxes.
+//!   outside caller-declared geometric chart boxes;
+//! - pointwise NASA-style 3D-Nc rate evaluation and log-domain Lebedev sphere integration.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
@@ -29,6 +30,8 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_pointwise;
+pub mod ncdot_sphere;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -38,6 +41,10 @@ pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
+pub use ncdot_sphere::{
+    NcdotSphereIntegrationConfig, NcdotSphereIntegrationReport, integrate_ncdot_sphere,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
@@ -97,6 +104,14 @@ pub enum KernelError {
     InvalidTrajectoryBudget,
     /// A streaming sample or event-contribution counter would overflow.
     CounterOverflow,
+    /// A 3D-Nc sphere direction is not a finite unit vector.
+    InvalidSphereDirection,
+    /// The supplied inverse position covariance is invalid.
+    InvalidPositionCovarianceInverse,
+    /// The conditional relative velocity covariance is not positive semidefinite.
+    InvalidConditionalVelocityCovariance,
+    /// The conditional velocity variance in a sphere direction is materially negative.
+    InvalidSphereDirectionVariance,
     /// A probability is non-finite or outside the closed interval [0, 1].
     InvalidProbability,
     /// A sequential error probability is not strictly between zero and one.
@@ -152,6 +167,16 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidTrajectoryBudget => "trajectory time-interval budget must be nonzero",
             Self::CounterOverflow => "streaming observation counter overflowed",
+            Self::InvalidSphereDirection => "3D-Nc sphere direction must be a finite unit vector",
+            Self::InvalidPositionCovarianceInverse => {
+                "inverse position covariance produced an invalid Mahalanobis distance"
+            }
+            Self::InvalidConditionalVelocityCovariance => {
+                "conditional velocity covariance must be positive semidefinite"
+            }
+            Self::InvalidSphereDirectionVariance => {
+                "projected conditional velocity variance is materially negative"
+            }
             Self::InvalidProbability => "probability must be finite and lie in [0, 1]",
             Self::InvalidAlpha => "alpha must be finite and lie strictly between 0 and 1",
             Self::ZeroProjectedVariance => "half-space projection has zero variance",

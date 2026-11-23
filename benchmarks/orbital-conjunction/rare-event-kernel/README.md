@@ -27,6 +27,8 @@ This crate is a research kernel, not an operational collision-probability produc
 - Full normalized Gaussian-mixture log density using log-sum-exp.
 - Log importance weights and one-draw weighted event indicators.
 - Strict Loewner covariance-floor validation, including the strictness test needed for a half-nominal covariance lower bound.
+- A pointwise NASA-style 3D-Nc sphere integrand implementing the conditional expected inward normal speed multiplied by the relative-position Gaussian density, including the deterministic zero-dispersion limit and log-domain tail handling.
+- Log-domain composition of the pointwise 3D-Nc integrand with Lebedev sphere weights, including the outer hard-body-radius-squared factor, pointwise underflow counts, zero-dispersion counts and NASA significant-node diagnostics.
 - Deterministic positive-weight Lebedev sphere rules with 6, 14, 26 and 5,810 nodes (algebraic precision 3, 5, 7 and 131), plus a validated nonnegative-sample integrator. The 5,810-point rule is generated from 144 symmetry-orbit records transcribed from the public NASA CARA generator.
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
@@ -44,7 +46,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 114 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`. This exact 114-test head passed exact-head workflow #215; only that SHA is validated.
+The current authored test corpus contains 130 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 11 in `ncdot_pointwise.rs`, and 5 in `ncdot_sphere.rs`. This stacked 130-test head requires its own exact-head workflow; the parent Lebedev and pointwise heads passed their own workflows.
 
 ## Important limitations
 
