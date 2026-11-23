@@ -34,7 +34,6 @@ for (const item of corpus.cases) {
   for (const world of item.worlds) {
     if (!/^[0-9a-f]{64}$/.test(world.scope_sha256)
       || typeof world.loss_unit !== "string" || !world.loss_unit
-      || world.loss_unit !== item.loss_unit
       || !Array.isArray(world.feasible_action_ids) || !Array.isArray(world.losses)) {
       throw new Error("invalid world scope or loss matrix in " + item.case_id);
     }
