@@ -235,7 +235,7 @@ fn intersect(o: V3, d: V3, t: &Tri<'_>) -> Option<f64> {
     let inv = 1.0 / det;
     let tv = o.sub(t.a);
     let u = tv.dot(p) * inv;
-    if !u.is_finite() || u < -BARYCENTRIC_TOLERANCE || u > 1.0 + BARYCENTRIC_TOLERANCE {
+    if !u.is_finite() || !(-BARYCENTRIC_TOLERANCE..=1.0 + BARYCENTRIC_TOLERANCE).contains(&u) {
         return None;
     }
     let q = tv.cross(e1);
