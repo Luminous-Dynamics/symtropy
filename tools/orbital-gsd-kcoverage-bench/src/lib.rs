@@ -184,6 +184,10 @@ pub struct GsdReceipt {
     pub perpendicular_distance_um: i64,
     pub requested_k: usize,
     pub initial_candidate_view_count: usize,
+    pub augmentation_candidate_attempt_count: usize,
+    pub augmentation_rejected_max_oblique_count: usize,
+    pub augmentation_rejected_source_occlusion_count: usize,
+    pub augmentation_rejected_source_visibility_count: usize,
     pub augmented_candidate_view_count: usize,
     pub undercovered_feature_ids_before_augmentation: Vec<String>,
     pub requested_k_covered_after_augmentation: bool,
@@ -682,6 +686,11 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         return Err("CANDIDATE_VIEW_LIMIT_EXCEEDED".to_owned());
     }
 
+    let mut augmentation_candidate_attempt_count = 0_usize;
+    let mut augmentation_rejected_max_oblique_count = 0_usize;
+    let mut augmentation_rejected_source_occlusion_count = 0_usize;
+    let mut augmentation_rejected_source_visibility_count = 0_usize;
+
     for (surface_index, surface) in surfaces.iter().enumerate() {
         if initial_coverage[surface_index] >= case.augmentation.requested_k {
             continue;
@@ -723,6 +732,7 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         for tilt_degrees in &case.augmentation.tilt_angles_deg {
             let beta = tilt_degrees.to_radians();
             for azimuth_degrees in &case.augmentation.azimuth_angles_deg {
+                augmentation_candidate_attempt_count += 1;
                 let phi = azimuth_degrees.to_radians();
                 let tangent = tangent_one
                     .scale(phi.cos())
@@ -732,9 +742,17 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
                     .add(tangent.scale(beta.sin()))
                     .normalized()
                     .ok_or_else(|| "AUGMENTED_DIRECTION_INVALID".to_owned())?;
+                let source_deviation = direction
+                    .angle(normal)
+                    .ok_or_else(|| "AUGMENTED_SOURCE_ANGLE_INVALID".to_owned())?;
+                if source_deviation > camera.max_oblique_angle_rad + 1.0e-10 {
+                    augmentation_rejected_max_oblique_count += 1;
+                    continue;
+                }
                 let centre = grid.centre(surface.cell);
                 let position = centre.add(direction.scale(perpendicular));
                 if grid.ray_occluded(position, centre, surface.cell) {
+                    augmentation_rejected_source_occlusion_count += 1;
                     continue;
                 }
                 let optical = direction.scale(-1.0);
@@ -774,6 +792,10 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
                     visible_features.push(target.feature_id.clone());
                 }
                 visible_features.sort();
+                if !visible_features.contains(&surface.feature_id) {
+                    augmentation_rejected_source_visibility_count += 1;
+                    continue;
+                }
                 candidates.push(CandidateView {
                     view_id: format!("VIEW-{}", candidates.len()),
                     source_feature_id: surface.feature_id.clone(),
@@ -803,6 +825,13 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
     }
 
     let augmented_candidate_view_count = candidates.len() - initial_candidate_view_count;
+    let accounted_augmentation_candidates = augmented_candidate_view_count
+        + augmentation_rejected_max_oblique_count
+        + augmentation_rejected_source_occlusion_count
+        + augmentation_rejected_source_visibility_count;
+    if accounted_augmentation_candidates != augmentation_candidate_attempt_count {
+        return Err("AUGMENTATION_CANDIDATE_ACCOUNTING_MISMATCH".to_owned());
+    }
     let visible_relation_count = candidates
         .iter()
         .map(|candidate| candidate.visible_feature_ids.len())
@@ -860,6 +889,10 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         perpendicular_distance_um: quantize(perpendicular, 1.0e6)?,
         requested_k: case.augmentation.requested_k,
         initial_candidate_view_count,
+        augmentation_candidate_attempt_count,
+        augmentation_rejected_max_oblique_count,
+        augmentation_rejected_source_occlusion_count,
+        augmentation_rejected_source_visibility_count,
         augmented_candidate_view_count,
         undercovered_feature_ids_before_augmentation,
         requested_k_covered_after_augmentation: feature_coverage
