@@ -251,7 +251,9 @@ fn projected_scenarios_digest(scenarios: &[World]) -> Result<String, String> {
     let mut sorted = scenarios.to_vec();
     for scenario in &mut sorted {
         scenario.feasible_action_ids.sort();
-        scenario.losses.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+        scenario
+            .losses
+            .sort_by(|left, right| left.action_id.cmp(&right.action_id));
     }
     sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     let bytes = serde_json::to_vec(&sorted)
@@ -346,8 +348,13 @@ fn result(
         source_loss_scenarios_sha256: case.loss_model_set.source_scenarios_sha256.clone(),
         projected_scenarios_sha256: case.loss_model_set.projected_scenarios_sha256.clone(),
         joint_scenario_count: case.worlds.len(),
-        loss_model_ids: case.worlds.iter().map(|world| world.loss_model_id.clone())
-            .collect::<BTreeSet<_>>().into_iter().collect(),
+        loss_model_ids: case
+            .worlds
+            .iter()
+            .map(|world| world.loss_model_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
         reference_common_action_id: metrics.reference_common_action_id,
         current_worst_case_loss: metrics.current_worst_case_loss,
         reference_common_worst_case_loss: metrics.reference_common_worst_case_loss,
@@ -447,16 +454,26 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
         || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
     {
-        return invalid_input(case, "upstream world or loss-model receipt pins are malformed");
+        return invalid_input(
+            case,
+            "upstream world or loss-model receipt pins are malformed",
+        );
     }
 
-    let expected_world_ids = case.expected_world_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_world_ids = case
+        .expected_world_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     if expected_world_ids.len() != case.expected_world_ids.len()
         || expected_world_ids.iter().any(|id| !valid_id(id))
         || digest_ids(&case.expected_world_ids).as_deref()
             != Ok(case.expected_world_ids_sha256.as_str())
     {
-        return invalid_input(case, "planned physical-world inventory or digest is invalid");
+        return invalid_input(
+            case,
+            "planned physical-world inventory or digest is invalid",
+        );
     }
 
     let expected_scenario_ids = case
@@ -470,7 +487,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || digest_ids(&case.loss_model_set.expected_scenario_ids).as_deref()
             != Ok(case.loss_model_set.expected_scenario_ids_sha256.as_str())
     {
-        return invalid_input(case, "planned joint loss-scenario inventory or digest is invalid");
+        return invalid_input(
+            case,
+            "planned joint loss-scenario inventory or digest is invalid",
+        );
     }
     if case.worlds.is_empty() {
         return abstain(case, "NO_SURVIVING_WORLDS", Some(retention_threshold));
@@ -539,11 +559,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         );
     }
     if case.loss_model_set.state == "INADEQUATE" {
-        return abstain(
-            case,
-            "LOSS_MODEL_SET_INADEQUATE",
-            Some(retention_threshold),
-        );
+        return abstain(case, "LOSS_MODEL_SET_INADEQUATE", Some(retention_threshold));
     }
     if case.domain_closure_state == "OPEN" {
         return abstain(case, "DOMAIN_NOT_CLOSED", Some(retention_threshold));
@@ -666,7 +682,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 || loss.source_denominator == 0
                 || loss.source_denominator > MAX_SAFE_INTEGER
             {
-                return invalid_input(case, "source rational loss exceeds exact JSON integer bounds");
+                return invalid_input(
+                    case,
+                    "source rational loss exceeds exact JSON integer bounds",
+                );
             }
             let Some(projected_loss) = exact_projected_loss(
                 loss.source_numerator,
@@ -997,7 +1016,8 @@ mod tests {
             projected_scenarios_digest(&item.worlds).expect("projection digest recomputes");
         item.expected = Expected {
             disposition: "INVALID_INPUT".to_owned(),
-            trigger_reason: "integer loss does not match exact source rational projection".to_owned(),
+            trigger_reason: "integer loss does not match exact source rational projection"
+                .to_owned(),
             worst_case_improvement: None,
         };
         let report = evaluate(&corpus).expect("mismatch corpus evaluates");
@@ -1016,9 +1036,12 @@ mod tests {
         assert_eq!(result.joint_scenario_count, 2);
         assert_eq!(result.loss_model_ids, vec!["loss-model-A", "loss-model-B"]);
         assert_eq!(result.world_assessments.len(), 2);
-        assert!(result.world_assessments.iter().all(|assessment| {
-            assessment.world_id == "physical-world-shared"
-        }));
+        assert!(
+            result
+                .world_assessments
+                .iter()
+                .all(|assessment| { assessment.world_id == "physical-world-shared" })
+        );
     }
 
     #[test]
