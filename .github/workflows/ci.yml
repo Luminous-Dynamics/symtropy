@@ -92,7 +92,14 @@ jobs:
     # exists so it receives the same pinned three-OS PR gate.
     - name: Format EHD-PIV Acquisition Evidence
       if: ${{ hashFiles('tools/ehd-piv-acquisition-evidence/Cargo.toml') != '' }}
-      run: cargo fmt --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml -- --check
+      run: |
+        cargo fmt --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml
+        cargo fmt --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml -- --check
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          echo EHD_PIV_RUSTFMT_BEGIN
+          cat tools/ehd-piv-acquisition-evidence/src/lib.rs
+          echo EHD_PIV_RUSTFMT_END
+        fi
 
     - name: Test EHD-PIV Acquisition Evidence
       if: ${{ hashFiles('tools/ehd-piv-acquisition-evidence/Cargo.toml') != '' }}
