@@ -3419,7 +3419,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24045,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280035,
+          "common_cause_failure_probability_ppm": 280032,
           "declared_priority": 2
         },
         {
@@ -3498,7 +3498,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24058,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280052,
+          "common_cause_failure_probability_ppm": 280049,
           "declared_priority": 2
         },
         {
@@ -3577,7 +3577,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24071,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280069,
+          "common_cause_failure_probability_ppm": 280066,
           "declared_priority": 2
         },
         {
@@ -3656,7 +3656,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24084,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280086,
+          "common_cause_failure_probability_ppm": 280083,
           "declared_priority": 2
         },
         {
@@ -3735,7 +3735,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24097,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280103,
+          "common_cause_failure_probability_ppm": 280100,
           "declared_priority": 2
         },
         {
@@ -3816,7 +3816,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24110,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280120,
+          "common_cause_failure_probability_ppm": 280117,
           "declared_priority": 2
         },
         {
@@ -3895,7 +3895,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24123,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280137,
+          "common_cause_failure_probability_ppm": 280134,
           "declared_priority": 2
         },
         {
@@ -3974,7 +3974,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24136,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280154,
+          "common_cause_failure_probability_ppm": 280151,
           "declared_priority": 2
         },
         {
@@ -4053,7 +4053,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24149,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280171,
+          "common_cause_failure_probability_ppm": 280168,
           "declared_priority": 2
         },
         {
@@ -4134,7 +4134,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24162,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280188,
+          "common_cause_failure_probability_ppm": 280185,
           "declared_priority": 2
         },
         {
@@ -4215,7 +4215,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24175,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280205,
+          "common_cause_failure_probability_ppm": 280202,
           "declared_priority": 2
         },
         {
@@ -4294,7 +4294,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24188,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280222,
+          "common_cause_failure_probability_ppm": 280219,
           "declared_priority": 2
         },
         {
@@ -4373,7 +4373,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24201,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280239,
+          "common_cause_failure_probability_ppm": 280236,
           "declared_priority": 2
         },
         {
@@ -4454,7 +4454,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24214,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280256,
+          "common_cause_failure_probability_ppm": 280253,
           "declared_priority": 2
         },
         {
@@ -4533,7 +4533,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24227,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280273,
+          "common_cause_failure_probability_ppm": 280270,
           "declared_priority": 2
         },
         {
@@ -4614,7 +4614,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24240,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280290,
+          "common_cause_failure_probability_ppm": 280287,
           "declared_priority": 2
         },
         {
@@ -4693,7 +4693,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24253,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280307,
+          "common_cause_failure_probability_ppm": 280304,
           "declared_priority": 2
         },
         {
@@ -4772,7 +4772,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24266,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280324,
+          "common_cause_failure_probability_ppm": 280321,
           "declared_priority": 2
         },
         {
@@ -4853,7 +4853,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24279,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280341,
+          "common_cause_failure_probability_ppm": 280338,
           "declared_priority": 2
         },
         {
@@ -4932,7 +4932,7 @@
           "declared_capacity_units": 16,
           "route_failure_probability_ppm": 24292,
           "common_cause_group_id": "SHARED-IMPORT-CONTROL",
-          "common_cause_failure_probability_ppm": 280358,
+          "common_cause_failure_probability_ppm": 280355,
           "declared_priority": 2
         },
         {
