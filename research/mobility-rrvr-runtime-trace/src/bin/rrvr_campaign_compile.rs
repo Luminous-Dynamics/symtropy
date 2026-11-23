@@ -89,6 +89,7 @@ fn run() -> Result<(), String> {
         "environment_artifact_sha256": plan.platform.environment_artifact_sha256,
         "fault_injector_revision": plan.platform.fault_injector_revision,
         "fault_injector_sha256": plan.platform.fault_injector_sha256,
+        "fault_injector_fault_domain_id": plan.platform.fault_injector_fault_domain_id,
         "native_adapter_revision": plan.platform.native_adapter_revision,
         "runtime_monitor_revision": plan.platform.runtime_monitor_revision,
         "scenario_count": plan.scenarios.len(),
