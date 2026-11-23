@@ -293,7 +293,7 @@ fn classify_graph(graph: &[Vec<usize>], right_count: usize) -> MatchingResult {
         left_to_right[*left] = right;
     }
 
-    if left_to_right.iter().any(|right| *right == usize::MAX) {
+    if left_to_right.contains(&usize::MAX) {
         return MatchingResult::Unmatched;
     }
 
@@ -436,35 +436,37 @@ mod tests {
         }
     }
 
-    fn observation(
-        key: &str,
-        box_id: &str,
-        kind: &str,
-        facility: &str,
-        operation: &str,
-        lower: i64,
-        upper: i64,
-        published_at: i64,
-    ) -> PhysicalObservation {
-        PhysicalObservation {
-            record_key: key.to_owned(),
-            canonical_box_id: box_id.to_owned(),
-            event_kind: kind.to_owned(),
-            facility_id: facility.to_owned(),
-            operation_ref: operation.to_owned(),
-            event_time: TimeEnclosure {
-                lower,
-                upper,
-                basis_id: "UTC-REF-A".to_owned(),
-                qualified: true,
-            },
-            published_at,
-        }
+    macro_rules! observation {
+        (
+            $key:expr,
+            $box_id:expr,
+            $kind:expr,
+            $facility:expr,
+            $operation:expr,
+            $lower:expr,
+            $upper:expr,
+            $published_at:expr $(,)?
+        ) => {
+            PhysicalObservation {
+                record_key: $key.to_owned(),
+                canonical_box_id: $box_id.to_owned(),
+                event_kind: $kind.to_owned(),
+                facility_id: $facility.to_owned(),
+                operation_ref: $operation.to_owned(),
+                event_time: TimeEnclosure {
+                    lower: $lower,
+                    upper: $upper,
+                    basis_id: "UTC-REF-A".to_owned(),
+                    qualified: true,
+                },
+                published_at: $published_at,
+            }
+        };
     }
 
     fn valid_pair() -> (Vec<PhysicalObservation>, Vec<PhysicalObservation>) {
         (
-            vec![observation(
+            vec![observation!(
                 "src-A",
                 "BOX-1",
                 "GATE_OUT",
@@ -474,7 +476,7 @@ mod tests {
                 10,
                 11,
             )],
-            vec![observation(
+            vec![observation!(
                 "wit-Z",
                 "BOX-1",
                 "GATE_OUT",
@@ -503,7 +505,7 @@ mod tests {
         match case_id {
             "single_exact" => case(source, witness),
             "within_tolerance" => case(
-                vec![observation(
+                vec![observation!(
                     "src-A",
                     "BOX-1",
                     "GATE_OUT",
@@ -513,7 +515,7 @@ mod tests {
                     11,
                     12,
                 )],
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-1",
                     "GATE_OUT",
@@ -525,7 +527,7 @@ mod tests {
                 )],
             ),
             "outside_tolerance" => case(
-                vec![observation(
+                vec![observation!(
                     "src-A",
                     "BOX-1",
                     "GATE_OUT",
@@ -535,7 +537,7 @@ mod tests {
                     10,
                     11,
                 )],
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-1",
                     "GATE_OUT",
@@ -548,7 +550,7 @@ mod tests {
             ),
             "wrong_site" => case(
                 source,
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-1",
                     "GATE_OUT",
@@ -561,7 +563,7 @@ mod tests {
             ),
             "wrong_kind" => case(
                 source,
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-1",
                     "GATE_IN",
@@ -574,7 +576,7 @@ mod tests {
             ),
             "wrong_box" => case(
                 source,
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-2",
                     "GATE_OUT",
@@ -587,7 +589,7 @@ mod tests {
             ),
             "wrong_operation" => case(
                 source,
-                vec![observation(
+                vec![observation!(
                     "wit-Z",
                     "BOX-1",
                     "GATE_OUT",
@@ -600,7 +602,7 @@ mod tests {
             ),
             "ambiguous_perfect" => case(
                 vec![
-                    observation(
+                    observation!(
                         "src-A",
                         "BOX-1",
                         "GATE_OUT",
@@ -610,7 +612,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "src-B",
                         "BOX-1",
                         "GATE_OUT",
@@ -622,7 +624,7 @@ mod tests {
                     ),
                 ],
                 vec![
-                    observation(
+                    observation!(
                         "wit-X",
                         "BOX-1",
                         "GATE_OUT",
@@ -632,7 +634,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "wit-Y",
                         "BOX-1",
                         "GATE_OUT",
@@ -646,8 +648,8 @@ mod tests {
             ),
             "unique_global" => case(
                 vec![
-                    observation("src-A", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
-                    observation(
+                    observation!("src-A", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
+                    observation!(
                         "src-B",
                         "BOX-1",
                         "GATE_OUT",
@@ -659,8 +661,8 @@ mod tests {
                     ),
                 ],
                 vec![
-                    observation("wit-X", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
-                    observation(
+                    observation!("wit-X", "BOX-1", "GATE_OUT", "DGT-GATE-1", "OP-17", 0, 0, 1),
+                    observation!(
                         "wit-Y",
                         "BOX-1",
                         "GATE_OUT",
@@ -674,7 +676,7 @@ mod tests {
             ),
             "no_perfect" => case(
                 vec![
-                    observation(
+                    observation!(
                         "src-A",
                         "BOX-1",
                         "GATE_OUT",
@@ -684,7 +686,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "src-B",
                         "BOX-2",
                         "GATE_OUT",
@@ -696,7 +698,7 @@ mod tests {
                     ),
                 ],
                 vec![
-                    observation(
+                    observation!(
                         "wit-X",
                         "BOX-1",
                         "GATE_OUT",
@@ -706,7 +708,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "wit-Y",
                         "BOX-3",
                         "GATE_OUT",
@@ -720,7 +722,7 @@ mod tests {
             ),
             "extra_source" => case(
                 vec![
-                    observation(
+                    observation!(
                         "src-A",
                         "BOX-1",
                         "GATE_OUT",
@@ -730,7 +732,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "src-B",
                         "BOX-2",
                         "GATE_OUT",
@@ -745,7 +747,7 @@ mod tests {
             ),
             "duplicate_source_key" => case(
                 vec![
-                    observation(
+                    observation!(
                         "src-A",
                         "BOX-1",
                         "GATE_OUT",
@@ -755,7 +757,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "src-A",
                         "BOX-1",
                         "GATE_OUT",
@@ -771,7 +773,7 @@ mod tests {
             "duplicate_witness_key" => case(
                 source,
                 vec![
-                    observation(
+                    observation!(
                         "wit-Z",
                         "BOX-1",
                         "GATE_OUT",
@@ -781,7 +783,7 @@ mod tests {
                         10,
                         11,
                     ),
-                    observation(
+                    observation!(
                         "wit-Z",
                         "BOX-1",
                         "GATE_OUT",
@@ -902,11 +904,11 @@ mod tests {
         let edge_slots = node_count * node_count;
         for mask in 0usize..(1usize << edge_slots) {
             let mut graph = vec![Vec::new(); node_count];
-            for left in 0..node_count {
+            for (left, edges) in graph.iter_mut().enumerate() {
                 for right in 0..node_count {
                     let bit = left * node_count + right;
                     if (mask & (1usize << bit)) != 0 {
-                        graph[left].push(right);
+                        edges.push(right);
                     }
                 }
             }
