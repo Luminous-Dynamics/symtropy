@@ -350,3 +350,12 @@ A second caveat is essential: Wu and Lü's 2025 PRD paper finds that first-order
 - full nonlinear branch existence.
 
 Do not conflate a divergent first-order thermodynamic coefficient with failure of the full finite-coupling EGB branch.
+
+
+## 14. Fixed-boundary Ma--Lü map: horizon radius and physical spin must be transported together
+
+The equal-spin radial gauge has \(R^2=A(1+\alpha_RH_7)\), so the comparison requires both the radius map and the physical horizon angular velocity map. The exact-symbolic first-coupling calculation in #6965 gives the fixed-Symtropy conversion in terms of \(\nu_S=\Omega_HR_H\) and \(\epsilon_S=\alpha_R/R_H^2\). In particular, the GR limit is already \(R_H^2=r_h^2+a^2\); at first coupling, the \(H_7\) orbit-space shift and the \(H_2/H_4\) angular-velocity terms contribute independently.
+
+The machine-readable expansions live in ma_lu_fixed_symtropy_boundary_map_v1.json. Treat \(\mu/R_H^2\) there only as the transformed background MP parameter, not the corrected ADM mass. Extract the physical ADM charge from the full transformed metric, including \(H_1\), when the metric comparison is executed.
+
+This improves the benchmark contract: compare candidates at the same \((R_H,\Omega_H,\epsilon_S)\), not at parameters that merely share the same old-coordinate \(r_h\) or background \(q\).
