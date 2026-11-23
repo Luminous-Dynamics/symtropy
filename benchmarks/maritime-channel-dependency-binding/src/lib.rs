@@ -10,7 +10,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PROFILE_SCHEMA: &str = "maritime-channel-dependency-binding-v0.1";
-pub const CLOSURE_SCHEMA: &str = "mycelix-dependency-closure-projection-v1";
+pub const CLOSURE_SCHEMA: &str = "mycelix-closure-projection-consumer-contract-v0.1";
 pub const MYCELIX_RECEIVER_PR: u32 = 6121;
 pub const MYCELIX_RECEIVER_HEAD: &str = "92948ecc24392a25cec77dd646130f9d98e8c790";
 
@@ -445,7 +445,7 @@ fn validate_profile_and_projection(
                         errors.insert(ValidationError::EmptyInventory);
                     }
                     DimensionInventory::Partial(_) | DimensionInventory::Unknown => {}
-                    DimensionInventory::NotApplicable { rationale }
+                    DimensionInventory::NotApplicable { rationale, owner }
                         if rationale.trim().is_empty() || owner.trim().is_empty() =>
                     {
                         errors.insert(ValidationError::EmptyNotApplicableRationale);
