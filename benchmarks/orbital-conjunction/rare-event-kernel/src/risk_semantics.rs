@@ -714,11 +714,7 @@ mod tests {
     #[test]
     fn zero_calibration_policy_and_exposure_digests_are_rejected() {
         assert_eq!(
-            CollisionNullPValue::new(
-                rational(1, 10),
-                CollisionNullHypothesis::DirectHit,
-                [0; 32],
-            ),
+            CollisionNullPValue::new(rational(1, 10), CollisionNullHypothesis::DirectHit, [0; 32],),
             Err(RiskSemanticsError::InvalidEvidenceDigest)
         );
         assert_eq!(
