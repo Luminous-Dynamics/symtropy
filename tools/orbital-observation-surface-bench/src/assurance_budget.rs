@@ -240,9 +240,16 @@ fn validate(corpus: &AssuranceBudgetCorpus) -> Result<(), String> {
                         ));
                     }
                 }
-                let receipt_id = claim.claim_receipt_id.as_deref().unwrap();
+                let receipt_id = claim
+                    .claim_receipt_id
+                    .as_deref()
+                    .ok_or_else(|| {
+                        format!("statistical claim {} has no claim receipt", claim.claim_id)
+                    })?;
                 if !claim_receipts.insert(receipt_id) {
-                    return Err("statistical claim receipt IDs must not be double-counted".to_owned());
+                    return Err(
+                        "statistical claim receipt IDs must not be double-counted".to_owned(),
+                    );
                 }
             }
             "STRUCTURAL_ONLY" => {
@@ -379,7 +386,9 @@ pub fn evaluate(corpus: &AssuranceBudgetCorpus) -> Result<AssuranceBudgetResult,
                 None,
                 None,
             )
-        } else if alpha_allocated.compare_exact(&corpus.total_alpha) == std::cmp::Ordering::Greater {
+        } else if alpha_allocated.compare_exact(&corpus.total_alpha)
+            == std::cmp::Ordering::Greater
+        {
             (
                 "ASSURANCE_BUDGET_EXCEEDED",
                 Some(alpha_allocated.clone()),
