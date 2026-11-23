@@ -566,12 +566,10 @@ mod tests {
         assert_eq!(metrics.identified_joint_coverage_lower_pct(), 80.0);
         assert_eq!(metrics.identified_joint_coverage_upper_pct(), 100.0);
         assert!(
-            metrics.identified_joint_coverage_lower_pct()
-                <= metrics.latent_joint_coverage_pct()
+            metrics.identified_joint_coverage_lower_pct() <= metrics.latent_joint_coverage_pct()
         );
         assert!(
-            metrics.latent_joint_coverage_pct()
-                <= metrics.identified_joint_coverage_upper_pct()
+            metrics.latent_joint_coverage_pct() <= metrics.identified_joint_coverage_upper_pct()
         );
         assert_eq!(metrics.non_cancelling_coverage_debt_pp(), 10.0);
         assert_eq!(metrics.latent_coverage_debt_pp(), 10.0);
