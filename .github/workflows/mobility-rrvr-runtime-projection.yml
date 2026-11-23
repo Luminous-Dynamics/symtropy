@@ -380,6 +380,7 @@ jobs:
             and .scene_broadcaster_id == "gz::sim::systems::SceneBroadcaster"
             and (.scene_broadcaster_sha256 | test("^[a-fA-F0-9]{64}$"))
             and .scene_broadcaster_loaded == true
+            and .world_stats_topic == "/world/rrvr-reference-world/stats"
             and .selected_stepping_method == "step_simulation_service"
             and .live_simulator_discovery_performed == false
             and .simulator_mutation_performed == false
