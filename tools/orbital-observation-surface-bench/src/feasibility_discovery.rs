@@ -1137,6 +1137,83 @@ mod tests {
     }
 
     #[test]
+    fn outcome_class_regret_uses_one_common_action_not_hidden_scenario_oracle() {
+        let mut corpus = fixture();
+        let decision = &mut corpus.cases[1].base_decision;
+        let safe = decision
+            .scenario_manifest
+            .scenarios
+            .iter_mut()
+            .find(|scenario| scenario.scenario_id == "v0-s")
+            .expect("v0 scenario exists");
+        safe.action_outcomes
+            .get_mut("safe")
+            .expect("safe row exists")
+            .loss = Some(Rational {
+            numerator: 1,
+            denominator: 10,
+        });
+        safe.action_outcomes
+            .get_mut("alternate")
+            .expect("alternate row exists")
+            .loss = Some(Rational {
+            numerator: 6,
+            denominator: 10,
+        });
+        let other = decision
+            .scenario_manifest
+            .scenarios
+            .iter_mut()
+            .find(|scenario| scenario.scenario_id == "v1-s")
+            .expect("v1 scenario exists");
+        other
+            .action_outcomes
+            .get_mut("safe")
+            .expect("safe row exists")
+            .loss = Some(Rational {
+            numerator: 9,
+            denominator: 10,
+        });
+        other
+            .action_outcomes
+            .get_mut("alternate")
+            .expect("alternate row exists")
+            .loss = Some(Rational {
+            numerator: 6,
+            denominator: 10,
+        });
+        decision.scenario_manifest.scenarios_sha256 =
+            digest_scenarios(&decision.scenario_manifest.scenarios)
+                .expect("mutated scenario rows can be digested");
+
+        let evaluation = evaluate(&corpus).expect("mutated corpus evaluates");
+        let result = case(&evaluation, "no_query_dominates_paid_query");
+        let policy = result
+            .policy_metrics
+            .iter()
+            .find(|metric| {
+                metric.query_id.as_deref() == Some("redundant-query")
+                    && metric.branch_actions.get("same").is_some_and(|id| id == "alternate")
+            })
+            .expect("alternate branch policy exists");
+        assert_eq!(policy.worst_case_wait_and_see_regret.numerator, 1);
+        assert_eq!(policy.worst_case_wait_and_see_regret.denominator, 2);
+        assert_eq!(policy.worst_case_outcome_class_regret.numerator, 0);
+        assert_eq!(policy.worst_case_outcome_class_regret.denominator, 1);
+
+        let safe_policy = result
+            .policy_metrics
+            .iter()
+            .find(|metric| {
+                metric.query_id.as_deref() == Some("redundant-query")
+                    && metric.branch_actions.get("same").is_some_and(|id| id == "safe")
+            })
+            .expect("safe branch policy exists");
+        assert_eq!(safe_policy.worst_case_outcome_class_regret.numerator, 3);
+        assert_eq!(safe_policy.worst_case_outcome_class_regret.denominator, 10);
+    }
+
+    #[test]
     fn no_physical_qualification_or_authority_is_granted() {
         let evaluation = evaluate(&fixture()).expect("discovery corpus evaluates");
         assert!(!evaluation.physical_qualification_granted);
