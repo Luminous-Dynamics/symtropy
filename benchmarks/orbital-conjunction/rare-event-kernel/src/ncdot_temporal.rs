@@ -530,7 +530,11 @@ mod tests {
         }
     }
 
-    fn report(log_rate: f64, significant_node_count: usize, rule: LebedevRule) -> NcdotSphereReport {
+    fn report(
+        log_rate: f64,
+        significant_node_count: usize,
+        rule: LebedevRule,
+    ) -> NcdotSphereReport {
         let materialized = log_rate.exp();
         NcdotSphereReport {
             rule,
@@ -631,10 +635,14 @@ mod tests {
             .collect::<Vec<_>>();
         let result = integrate_ncdot_time_series(&identity(), horizon(5.0, 1.0), &samples)
             .expect("multimodal series");
-        let maxima = result.extrema.iter()
+        let maxima = result
+            .extrema
+            .iter()
             .filter(|extremum| extremum.kind == NcdotTemporalExtremumKind::Maximum)
             .collect::<Vec<_>>();
-        let minima = result.extrema.iter()
+        let minima = result
+            .extrema
+            .iter()
             .filter(|extremum| extremum.kind == NcdotTemporalExtremumKind::Minimum)
             .collect::<Vec<_>>();
         assert_eq!(maxima.len(), 2);
@@ -717,8 +725,7 @@ mod tests {
         let result = integrate_ncdot_time_series(&identity(), horizon(10.0, 10.0), &samples)
             .expect("rare positive rate");
         assert!(
-            (result.log_expected_collision_count - (-900.0_f64 + 10.0_f64.ln())).abs()
-                < 1.0e-12
+            (result.log_expected_collision_count - (-900.0_f64 + 10.0_f64.ln())).abs() < 1.0e-12
         );
         assert_eq!(result.expected_collision_count, 0.0);
         assert!(result.collision_count_underflowed);
