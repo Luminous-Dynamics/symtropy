@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_oracle_v0_1.schema.json",
+  "title": "Nonanticipative Service Oracle Scenario Tree v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "nodes",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "NONANTICIPATIVE-SERVICE-ORACLE-001"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 31,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "flightEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "site_configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_seconds",
+        "valid_from_seconds",
+        "valid_until_seconds"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "valid_from_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "valid_until_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        }
+      }
+    },
+    "requestReveal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "receipt_id",
+        "evidence"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evidence": {
+          "$ref": "#/$defs/flightEvidence"
+        }
+      }
+    },
+    "aerialObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "weather_state",
+        "permission_state",
+        "receipt_id",
+        "evidence"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "weather_state": {
+          "enum": [
+            "go",
+            "no_go",
+            "unknown"
+          ]
+        },
+        "permission_state": {
+          "enum": [
+            "approved",
+            "denied",
+            "unknown"
+          ]
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evidence": {
+          "$ref": "#/$defs/flightEvidence"
+        }
+      }
+    },
+    "fallbackObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "available",
+        "receipt_id",
+        "evidence"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evidence": {
+          "$ref": "#/$defs/flightEvidence"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "parent_node_id",
+        "decision_time_seconds",
+        "conditional_probability_ppm",
+        "request_reveals",
+        "aerial_reveals",
+        "fallback_reveals"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "parent_node_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "decision_time_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "conditional_probability_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "request_reveals": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/requestReveal"
+          }
+        },
+        "aerial_reveals": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/aerialObservation"
+          }
+        },
+        "fallback_reveals": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/fallbackObservation"
+          }
+        }
+      }
+    }
+  }
+}
