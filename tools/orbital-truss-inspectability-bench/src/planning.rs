@@ -761,7 +761,8 @@ fn published_style_k_coverage_greedy(
                 required_failure_domains: selected_feature.required_failure_domains,
                 selected_nominal_failure_domains: selected_feature.nominal_failure_domain_count,
                 selected_robust_failure_domains: selected_feature.robust_failure_domain_count,
-                nominal_failure_domain_requirement_met: selected_feature.nominal_failure_domain_count
+                nominal_failure_domain_requirement_met: selected_feature
+                    .nominal_failure_domain_count
                     >= selected_feature.required_failure_domains,
                 robust_failure_domain_requirement_met: selected_feature.robust_failure_domain_count
                     >= selected_feature.required_failure_domains,
@@ -1426,7 +1427,10 @@ mod tests {
         assert!(baseline.attainable_capped_target_covered);
         assert!(!baseline.robust_requested_k_covered);
         assert_eq!(baseline.feature_coverage[0].available_candidate_views, 2);
-        assert_eq!(baseline.feature_coverage[0].available_robust_candidate_views, 1);
+        assert_eq!(
+            baseline.feature_coverage[0].available_robust_candidate_views,
+            1
+        );
         assert_eq!(baseline.feature_coverage[0].selected_views, 2);
         assert_eq!(baseline.feature_coverage[0].selected_robust_views, 1);
     }
