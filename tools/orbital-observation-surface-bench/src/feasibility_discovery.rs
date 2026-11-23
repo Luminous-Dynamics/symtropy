@@ -303,7 +303,10 @@ fn validate_query_universe(case: &DiscoveryCase) -> Result<(), String> {
             ));
         }
         for (value, field) in [
-            (query.admissibility_receipt_id.as_deref(), "admissibility receipt"),
+            (
+                query.admissibility_receipt_id.as_deref(),
+                "admissibility receipt",
+            ),
             (query.evidence_receipt_id.as_deref(), "evidence receipt"),
         ] {
             if query.admissibility_status == "admissible"
@@ -357,8 +360,16 @@ fn empty_case_result(case: &DiscoveryCase, status: &str, base_status: &str) -> C
             .compatible_world_set
             .world_ids_sha256
             .clone(),
-        action_ids_sha256: case.base_decision.action_universe.expected_action_ids_sha256.clone(),
-        scenario_manifest_sha256: case.base_decision.scenario_manifest.scenarios_sha256.clone(),
+        action_ids_sha256: case
+            .base_decision
+            .action_universe
+            .expected_action_ids_sha256
+            .clone(),
+        scenario_manifest_sha256: case
+            .base_decision
+            .scenario_manifest
+            .scenarios_sha256
+            .clone(),
         query_universe_receipt_id: case.query_universe.source_receipt_id.clone(),
         query_universe_scope_id: case.query_universe.scope_id.clone(),
         expected_query_ids_sha256: case.query_universe.expected_query_ids_sha256.clone(),
@@ -392,7 +403,10 @@ fn class_scenarios<'a>(
     scenarios: &'a [FeasibilityScenario],
     class_worlds: &[String],
 ) -> Vec<&'a FeasibilityScenario> {
-    let world_set = class_worlds.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let world_set = class_worlds
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     scenarios
         .iter()
         .filter(|scenario| world_set.contains(scenario.world_id.as_str()))
@@ -434,7 +448,12 @@ fn scenario_best_loss(scenario: &FeasibilityScenario) -> Result<Rational, String
         .filter_map(|outcome| outcome.loss.as_ref())
         .min_by(|left, right| left.compare_exact(right))
         .map(Rational::canonicalized)
-        .ok_or_else(|| format!("scenario {} has no feasible action loss", scenario.scenario_id))
+        .ok_or_else(|| {
+            format!(
+                "scenario {} has no feasible action loss",
+                scenario.scenario_id
+            )
+        })
 }
 
 fn policy_identifier(
@@ -511,8 +530,7 @@ fn build_policy(
     // observable class. Do not let the comparator see the hidden scenario.
     let mut outcome_class_regret_by_observation = BTreeMap::new();
     for (outcome_id, class_worlds) in classes {
-        let class_rows =
-            class_scenarios(&base.scenario_manifest.scenarios, class_worlds);
+        let class_rows = class_scenarios(&base.scenario_manifest.scenarios, class_worlds);
         let options = class_options
             .get(outcome_id)
             .ok_or_else(|| format!("missing common action set for {outcome_id}"))?;
@@ -547,9 +565,8 @@ fn build_policy(
                     worst_for_action = Some(regret);
                 }
             }
-            let worst_for_action = worst_for_action.ok_or_else(|| {
-                format!("observation class {outcome_id} has no linked scenarios")
-            })?;
+            let worst_for_action = worst_for_action
+                .ok_or_else(|| format!("observation class {outcome_id} has no linked scenarios"))?;
             if action_id == branch_action_id {
                 selected_worst_class_regret = Some(worst_for_action.clone());
             }
@@ -582,15 +599,12 @@ fn build_policy(
         let action_id = branches
             .get(outcome_id)
             .ok_or_else(|| format!("policy omitted observable outcome {outcome_id}"))?;
-        let outcome = scenario
-            .action_outcomes
-            .get(action_id)
-            .ok_or_else(|| {
-                format!(
-                    "policy action {action_id} missing from scenario {}",
-                    scenario.scenario_id
-                )
-            })?;
+        let outcome = scenario.action_outcomes.get(action_id).ok_or_else(|| {
+            format!(
+                "policy action {action_id} missing from scenario {}",
+                scenario.scenario_id
+            )
+        })?;
         if outcome.feasibility_status != "feasible" {
             return Err(format!(
                 "policy action {} is not feasible in scenario {}",
@@ -647,12 +661,18 @@ fn build_policy(
         .collect();
     let worst_wait_and_see_scenario_ids = per_scenario
         .iter()
-        .filter(|item| item.wait_and_see_regret.exactly_equals(&worst_case_wait_and_see_regret))
+        .filter(|item| {
+            item.wait_and_see_regret
+                .exactly_equals(&worst_case_wait_and_see_regret)
+        })
         .map(|item| item.scenario_id.clone())
         .collect();
     let worst_outcome_class_regret_scenario_ids = per_scenario
         .iter()
-        .filter(|item| item.outcome_class_regret.exactly_equals(&worst_case_outcome_class_regret))
+        .filter(|item| {
+            item.outcome_class_regret
+                .exactly_equals(&worst_case_outcome_class_regret)
+        })
         .map(|item| item.scenario_id.clone())
         .collect();
 
@@ -778,12 +798,7 @@ fn evaluate_one_query(
     }
 
     let mut branch_candidates = Vec::new();
-    enumerate_policy_branches(
-        &choices,
-        0,
-        &mut BTreeMap::new(),
-        &mut branch_candidates,
-    );
+    enumerate_policy_branches(&choices, 0, &mut BTreeMap::new(), &mut branch_candidates);
 
     let mut policies = Vec::with_capacity(branch_candidates.len());
     for branches in branch_candidates {
@@ -871,7 +886,11 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
             | "FEASIBILITY_INDETERMINATE"
             | "NO_FEASIBLE_ACTION_IN_SCENARIO"
     ) {
-        return Ok(empty_case_result(case, "BASE_DECISION_INDETERMINATE", &base_status));
+        return Ok(empty_case_result(
+            case,
+            "BASE_DECISION_INDETERMINATE",
+            &base_status,
+        ));
     }
 
     validate_query_universe(case)?;
@@ -925,7 +944,10 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
         .map(|metric| metric.policy_id.clone())
         .collect::<Vec<_>>();
 
-    let query_policy_count = policy_metrics.iter().filter(|item| item.query_id.is_some()).count();
+    let query_policy_count = policy_metrics
+        .iter()
+        .filter(|item| item.query_id.is_some())
+        .count();
     let has_no_query = !no_query_policy_ids.is_empty();
     let status = if policy_metrics.is_empty() {
         "NO_FEASIBLE_QUERY_OR_STATIC_POLICY"
@@ -939,9 +961,21 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
         case_id: case.case_id.clone(),
         status: status.to_owned(),
         base_feasibility_status: base_status,
-        compatible_world_ids_sha256: case.base_decision.compatible_world_set.world_ids_sha256.clone(),
-        action_ids_sha256: case.base_decision.action_universe.expected_action_ids_sha256.clone(),
-        scenario_manifest_sha256: case.base_decision.scenario_manifest.scenarios_sha256.clone(),
+        compatible_world_ids_sha256: case
+            .base_decision
+            .compatible_world_set
+            .world_ids_sha256
+            .clone(),
+        action_ids_sha256: case
+            .base_decision
+            .action_universe
+            .expected_action_ids_sha256
+            .clone(),
+        scenario_manifest_sha256: case
+            .base_decision
+            .scenario_manifest
+            .scenarios_sha256
+            .clone(),
         query_universe_receipt_id: case.query_universe.source_receipt_id.clone(),
         query_universe_scope_id: case.query_universe.scope_id.clone(),
         expected_query_ids_sha256: case.query_universe.expected_query_ids_sha256.clone(),
@@ -1047,8 +1081,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> DiscoveryCorpus {
-        serde_json::from_str(include_str!("../fixtures/v0.1/feasibility-discovery-cases.json"))
-            .expect("feasibility discovery fixture parses")
+        serde_json::from_str(include_str!(
+            "../fixtures/v0.1/feasibility-discovery-cases.json"
+        ))
+        .expect("feasibility discovery fixture parses")
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
@@ -1095,10 +1131,12 @@ mod tests {
         );
         assert_eq!(metric.worst_case_loss.numerator, 3);
         assert_eq!(metric.worst_case_loss.denominator, 10);
-        assert!(metric
-            .per_scenario
-            .iter()
-            .all(|scenario| scenario.wait_and_see_regret.numerator == 0));
+        assert!(
+            metric
+                .per_scenario
+                .iter()
+                .all(|scenario| scenario.wait_and_see_regret.numerator == 0)
+        );
     }
 
     #[test]
@@ -1233,7 +1271,10 @@ mod tests {
             .iter()
             .find(|metric| {
                 metric.query_id.as_deref() == Some("redundant-query")
-                    && metric.branch_actions.get("same").is_some_and(|id| id == "alternate")
+                    && metric
+                        .branch_actions
+                        .get("same")
+                        .is_some_and(|id| id == "alternate")
             })
             .expect("alternate branch policy exists");
         assert_eq!(policy.worst_case_wait_and_see_regret.numerator, 1);
@@ -1246,7 +1287,10 @@ mod tests {
             .iter()
             .find(|metric| {
                 metric.query_id.as_deref() == Some("redundant-query")
-                    && metric.branch_actions.get("same").is_some_and(|id| id == "safe")
+                    && metric
+                        .branch_actions
+                        .get("same")
+                        .is_some_and(|id| id == "safe")
             })
             .expect("safe branch policy exists");
         assert_eq!(safe_policy.worst_case_outcome_class_regret.numerator, 0);
