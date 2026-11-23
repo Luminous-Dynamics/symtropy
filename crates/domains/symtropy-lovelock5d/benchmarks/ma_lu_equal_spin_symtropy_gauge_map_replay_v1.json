@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_symtropy_full_metric_comparison_replay",
-  "status": "exact_public_source_replays_passed_for_parameter_map_fixed_boundary_map_ADM_mass_and_full_metric_comparator; original_row_fixture_verifier_replay_pending",
+  "status": "exact_public_source_replays_passed_for_parameter_map_fixed_boundary_map_ADM_mass_full_metric_comparator_and_original_rows",
   "source": {
     "paper": "Ma and Lu, JHEP 05 (2026) 081",
     "doi": "10.1007/JHEP05(2026)081",
@@ -71,7 +71,7 @@
     "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
     "exact_blob_replay": "pending; independent equivalent local reconstruction is recorded above"
   },
-  "claim_ceiling": "Exact first-coupling O(chi^2) source overlap for the complete angular block, fixed boundary map, ADM mass and four original Symtropy even rows. The consolidated JHEP-version-of-record verifier has exact public-source replay; only the separate fixture-driven original-row verifier replay is still pending. No finite-coupling branch, interval existence or hyperbolicity result.",
+  "claim_ceiling": "Exact first-coupling O(chi^2) overlap: complete angular block, fixed-boundary map, ADM mass and all four original Symtropy even-sector rows. Consolidated VOR verifier and fixture-driven original-row verifier both have exact public-source replay. No finite-coupling branch, interval existence or hyperbolicity result.",
   "full_version_of_record_verifier": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
     "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
@@ -79,5 +79,23 @@
     "exact_bytes_match": true,
     "local_execution": "Python 3.13.5 / SymPy 1.14.0; full angular block, fixed-boundary series, negative controls and Eq. (3.4) ADM mass match pass."
   },
-  "full_verifier_exact_replay": true
+  "full_verifier_exact_replay": true,
+  "original_row_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_boundary_spin2_original_rows.py",
+    "git_blob_sha1": "d2210a8490e4442ffaf44c38bcb7a66a7e61d765",
+    "sha256": "91a1a21e843fe208d37f6fb17c461b83ac0debbb4ecf7b25e3307a7c298bad7b",
+    "fixture_git_blob_sha1": "0c3388caf7d78460124c0d930eafa6a2313a0c60",
+    "exact_public_source_and_fixture_replay": true,
+    "results": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0",
+      "Ef_reconstruction": "0"
+    },
+    "negative_controls": {
+      "tangent_as_mode_offset_rejected": true,
+      "mutated_H1_rejected": true
+    }
+  }
 }
