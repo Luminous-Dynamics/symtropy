@@ -774,12 +774,14 @@ fn evaluate_benchmark() -> Vec<CandidateResult> {
 // mapping from observed partitions to actions and evaluates feasibility and
 // lexicographic regret through a separate direct formulation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg(test)]
 struct OraclePolicy {
     worst_regret: Regret,
     partition_regrets: Vec<Regret>,
     action_indices: Vec<usize>,
 }
 
+#[cfg(test)]
 fn oracle_world_outcome(world: &World, action_index: usize) -> Option<(u32, u32, u8)> {
     match action_index {
         0 if world.reserve_available && world.a_authorized => {
@@ -793,6 +795,7 @@ fn oracle_world_outcome(world: &World, action_index: usize) -> Option<(u32, u32,
     }
 }
 
+#[cfg(test)]
 fn oracle_mode_allows(mode: ObservationMode, action_index: usize) -> bool {
     match mode {
         ObservationMode::NoObservation | ObservationMode::AdvisoryOnly => action_index == 2,
@@ -800,6 +803,7 @@ fn oracle_mode_allows(mode: ObservationMode, action_index: usize) -> bool {
     }
 }
 
+#[cfg(test)]
 fn oracle_best_world_value(world: &World) -> Option<(u32, u32, u8)> {
     let mut best: Option<(u32, u32, u8)> = None;
     for action_index in 0..3 {
@@ -817,6 +821,7 @@ fn oracle_best_world_value(world: &World) -> Option<(u32, u32, u8)> {
     best
 }
 
+#[cfg(test)]
 fn oracle_regret(world: &World, action_index: usize, acquisition_cost: u32) -> Option<Regret> {
     let (actual_a, actual_b, actual_misses) = oracle_world_outcome(world, action_index)?;
     let (best_a, best_b, best_misses) = oracle_best_world_value(world)?;
@@ -828,6 +833,7 @@ fn oracle_regret(world: &World, action_index: usize, acquisition_cost: u32) -> O
     })
 }
 
+#[cfg(test)]
 fn oracle_policy_score(
     worlds: &[World; WORLD_COUNT],
     labels: &[usize; WORLD_COUNT],
@@ -851,9 +857,7 @@ fn oracle_policy_score(
         let mut partition_worst = Regret::default();
 
         for index in indices {
-            if oracle_world_outcome(&worlds[index], action_index).is_none() {
-                return None;
-            }
+            oracle_world_outcome(&worlds[index], action_index)?;
             let regret = oracle_regret(&worlds[index], action_index, acquisition_cost)?;
             partition_worst = partition_worst.max(regret);
         }
@@ -869,6 +873,7 @@ fn oracle_policy_score(
     })
 }
 
+#[cfg(test)]
 fn oracle_policy_is_better(candidate: &OraclePolicy, incumbent: &OraclePolicy) -> bool {
     (
         candidate.worst_regret,
@@ -881,20 +886,31 @@ fn oracle_policy_is_better(candidate: &OraclePolicy, incumbent: &OraclePolicy) -
     )
 }
 
-fn enumerate_oracle_policies(
-    position: usize,
-    worlds: &[World; WORLD_COUNT],
-    labels: &[usize; WORLD_COUNT],
-    unique: &[usize],
+#[cfg(test)]
+struct OracleSearch<'a> {
+    worlds: &'a [World; WORLD_COUNT],
+    labels: &'a [usize; WORLD_COUNT],
+    unique: &'a [usize],
     mode: ObservationMode,
     acquisition_cost: u32,
+}
+
+#[cfg(test)]
+fn enumerate_oracle_policies(
+    search: &OracleSearch<'_>,
+    position: usize,
     current: &mut Vec<usize>,
     best: &mut Option<OraclePolicy>,
 ) {
-    if position == unique.len() {
-        let Some(candidate) =
-            oracle_policy_score(worlds, labels, unique, mode, acquisition_cost, current)
-        else {
+    if position == search.unique.len() {
+        let Some(candidate) = oracle_policy_score(
+            search.worlds,
+            search.labels,
+            search.unique,
+            search.mode,
+            search.acquisition_cost,
+            current,
+        ) else {
             return;
         };
         if best
@@ -908,20 +924,12 @@ fn enumerate_oracle_policies(
 
     for action_index in 0..3 {
         current.push(action_index);
-        enumerate_oracle_policies(
-            position + 1,
-            worlds,
-            labels,
-            unique,
-            mode,
-            acquisition_cost,
-            current,
-            best,
-        );
+        enumerate_oracle_policies(search, position + 1, current, best);
         current.pop();
     }
 }
 
+#[cfg(test)]
 fn exhaustive_oracle(
     worlds: &[World; WORLD_COUNT],
     labels: &[usize; WORLD_COUNT],
@@ -929,14 +937,17 @@ fn exhaustive_oracle(
     acquisition_cost: u32,
 ) -> Option<OraclePolicy> {
     let unique = unique_labels(labels);
-    let mut best = None;
-    enumerate_oracle_policies(
-        0,
+    let search = OracleSearch {
         worlds,
         labels,
-        &unique,
+        unique: &unique,
         mode,
         acquisition_cost,
+    };
+    let mut best = None;
+    enumerate_oracle_policies(
+        &search,
+        0,
         &mut Vec::with_capacity(unique.len()),
         &mut best,
     );
