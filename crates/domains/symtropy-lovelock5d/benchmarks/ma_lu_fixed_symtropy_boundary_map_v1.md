@@ -14,7 +14,7 @@ q=\frac{a}{r_h},\qquad
 \epsilon_R=\frac{\alpha_R}{r_h^2},\qquad
 \epsilon_S=\frac{\alpha_R}{R_H^2}.
 \]
-Ma–Lü's equal-spin MP horizon relation gives
+Ma–Lü's equal-spin MP horizon relation and printed Eq. (10), chi=a/mu, give
 \[
 \frac{\mu}{r_h^2}=\frac{(1+q^2)^2}{2},\qquad
 \nu_h=\frac{q}{1+q^2},\qquad
@@ -99,8 +99,8 @@ q=\nu_S+\frac12\nu_S^3
 +O(\epsilon_S^2,\nu_S^4),
 \]
 \[
-\chi=\sqrt2\left(\nu_S-\frac12\nu_S^3
-+7\epsilon_S\nu_S-\frac{5509}{90}\epsilon_S\nu_S^3\right)
+\chi R_H=2\nu_S-2\nu_S^3+\frac{52}{3}\epsilon_S\nu_S
+-\frac{2344}{15}\epsilon_S\nu_S^3
 +O(\epsilon_S^2,\nu_S^5).
 \]
 
@@ -122,3 +122,8 @@ This result is a first-order-coupling, equal-spin, slow-rotation parameter conve
 
 
 **Source-convention correction:** the published Eq. (10) is chi=a/mu. In this fixed-boundary map the scale-explicit combination is chi*R_H, with series 2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3. The earlier square-root-based chi expression has been superseded.
+
+
+## Corrected printed-parameter convention
+
+The published Eq. (10) is \(\chi=a/\mu\), not \(a/\sqrt{\mu}\). The scale-explicit fixed-boundary combination is \(\chi R_H\), with series \(2\nu_S-2\nu_S^3+(52/3)\epsilon_S\nu_S-(2344/15)\epsilon_S\nu_S^3\). The previous square-root-based expression is superseded.
