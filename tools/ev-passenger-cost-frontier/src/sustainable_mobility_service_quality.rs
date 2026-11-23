@@ -1180,6 +1180,48 @@ mod tests {
     }
 
     #[test]
+    fn late_completion_is_counted_separately_from_unserved_requests() {
+        let report = evaluate_service_quality(&fixture()).expect("frozen fixture");
+        for policy in report.policy_results {
+            assert_eq!(policy.completed_late, 1);
+            assert!(policy.outcomes.iter().any(|outcome| {
+                outcome.request_id == "request-late-completion"
+                    && outcome.disposition == RequestDisposition::CompletedLate
+                    && outcome.service_start_seconds == Some(15_000)
+                    && outcome.service_completion_seconds == Some(15_600)
+            }));
+            assert_eq!(
+                policy.completed_on_time + policy.completed_late + policy.unserved_requests,
+                policy.accepted_requests
+            );
+        }
+    }
+
+    #[test]
+    fn payload_capacity_is_a_hard_service_constraint() {
+        let mut input = fixture();
+        input.requests = vec![ServiceRequest {
+            request_id: "oversize".to_owned(),
+            arrival_seconds: 0,
+            accept_by_seconds: 0,
+            deadline_seconds: 2_000,
+            required_service_seconds: 300,
+            payload_units: 101,
+            service_class: "oversize".to_owned(),
+            allowed_mode: ServiceMode::AerialOnly,
+        }];
+        input.aerial_opportunities.truncate(1);
+        input.fallback_opportunities.clear();
+        input.capacity_source.max_aerial_opportunities = 1;
+        let result = evaluate_service_quality(&input).expect("oversize request is safely unserved");
+        assert_eq!(result.policy_results[0].unserved_requests, 1);
+        assert_eq!(
+            result.policy_results[0].outcomes[0].disposition,
+            RequestDisposition::Unserved
+        );
+    }
+
+    #[test]
     fn overlapping_aerial_opportunities_on_one_aircraft_are_rejected() {
         let mut input = fixture();
         input.aerial_opportunities[1].start_seconds = input.aerial_opportunities[0].start_seconds + 1;
