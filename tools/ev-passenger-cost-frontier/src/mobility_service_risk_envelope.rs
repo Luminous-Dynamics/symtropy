@@ -992,14 +992,9 @@ mod tests {
                         radius,
                         minimize,
                     );
-                    let actual = worst_case_tv_expectation(
-                        &leaves,
-                        denominator,
-                        radius,
-                        on_time,
-                        minimize,
-                    )
-                    .expect("TV evaluator");
+                    let actual =
+                        worst_case_tv_expectation(&leaves, denominator, radius, on_time, minimize)
+                            .expect("TV evaluator");
                     assert_eq!(
                         actual,
                         ExactRiskRatio {
@@ -1079,10 +1074,12 @@ mod tests {
         let tree = tree_fixture();
         let mut manifest = risk_fixture().probability_manifest;
         manifest.probability_basis = ProbabilityBasis::HistoricalFrequencyEstimate;
-        manifest.source_dataset_digest =
-            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
-        manifest.calibration_report_digest =
-            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.source_dataset_digest = Some(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        );
+        manifest.calibration_report_digest = Some(
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+        );
         manifest.sample_count = Some(100);
         manifest.effective_sample_size_milli = Some(80_000);
         manifest.training_cutoff_seconds = Some(500);
@@ -1102,10 +1099,12 @@ mod tests {
         let tree = tree_fixture();
         let mut manifest = risk_fixture().probability_manifest;
         manifest.probability_basis = ProbabilityBasis::ForecastModel;
-        manifest.source_dataset_digest =
-            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
-        manifest.calibration_report_digest =
-            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.source_dataset_digest = Some(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        );
+        manifest.calibration_report_digest = Some(
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+        );
         manifest.training_cutoff_seconds = Some(100);
         manifest.forecast_issue_time_seconds = Some(200);
         manifest.evaluation_window_start_seconds = Some(200);
