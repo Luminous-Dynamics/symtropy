@@ -1151,13 +1151,22 @@ mod tests {
         let baseline = candidate(&results, "no_observation");
         let policy = baseline.solution.as_ref().expect("robust baseline");
 
-        assert_eq!(
-            policy.actions_by_partition,
-            vec![(0, Action::Hold)]
+        assert_eq!(policy.actions_by_partition, vec![(0, Action::Hold)]);
+        assert!(
+            WORLDS
+                .iter()
+                .all(|world| action_feasible(Action::Hold, world))
         );
-        assert!(WORLDS.iter().all(|world| action_feasible(Action::Hold, world)));
-        assert!(!WORLDS.iter().all(|world| action_feasible(Action::ReserveToA, world)));
-        assert!(!WORLDS.iter().all(|world| action_feasible(Action::ReserveToB, world)));
+        assert!(
+            !WORLDS
+                .iter()
+                .all(|world| action_feasible(Action::ReserveToA, world))
+        );
+        assert!(
+            !WORLDS
+                .iter()
+                .all(|world| action_feasible(Action::ReserveToB, world))
+        );
     }
 
     #[test]
