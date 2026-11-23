@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-route-policy-known-answers-v0.1",
+  "title": "MFG-ROUTE-ROBUST-001 independent known answers v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "case_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "https://luminousdynamics.io/schemas/mfg-route-policy-known-answers-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ROUTE-ROBUST-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "case_count": {
+      "const": 120
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 120,
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "oracle_route_id",
+          "oracle_expected_cost_units_micros",
+          "policies"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "oracle_route_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "oracle_expected_cost_units_micros": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "policies": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "policy_id",
+                "chosen_route_id",
+                "expected_cost_units_micros",
+                "regret_units_micros",
+                "synthetic_completion",
+                "on_time",
+                "realized_cost_units"
+              ],
+              "properties": {
+                "policy_id": {
+                  "enum": [
+                    "cheapest_admissible",
+                    "fastest_admissible",
+                    "reliability_first",
+                    "expected_cost",
+                    "fixed_priority"
+                  ]
+                },
+                "chosen_route_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "expected_cost_units_micros": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "regret_units_micros": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "synthetic_completion": {
+                  "type": "boolean"
+                },
+                "on_time": {
+                  "type": "boolean"
+                },
+                "realized_cost_units": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
