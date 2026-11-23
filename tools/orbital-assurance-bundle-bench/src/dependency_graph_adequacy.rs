@@ -690,8 +690,7 @@ mod tests {
         let result = case(&report, "ambiguous_dependency_source");
         assert_eq!(result.disposition, "DEPENDENCY_SOURCE_UNAVAILABLE");
         assert!(result.findings.iter().any(|finding| {
-            finding.code == "DEPENDENCY_SOURCE_UNAVAILABLE"
-                && finding.detail.contains("found 2")
+            finding.code == "DEPENDENCY_SOURCE_UNAVAILABLE" && finding.detail.contains("found 2")
         }));
     }
 
