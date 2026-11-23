@@ -204,12 +204,27 @@ pub fn plan_active_evidence_with_reliability(
 
     // Validate report completeness, common inventory and common partition
     // across the entire reliability-admitted candidate set.
-    let combined_plan = plan_active_evidence_with_decision_relevance(
+    let combined_plan = match plan_active_evidence_with_decision_relevance(
         policy,
         &admitted_candidates,
         &admitted_reports,
-    )
-    .map_err(ReliableEvidencePlannerError::Decision)?;
+    ) {
+        Ok(plan) => plan,
+        Err(ActiveEvidenceDecisionError::Acquisition(ActiveEvidenceAcquisitionError::NoFeasibleAction)) => {
+            return Ok(ReliableActiveEvidencePlan {
+                reason: ReliableEvidencePlanReason::NoConditionalActionValue,
+                recommended_action_id: None,
+                pareto_frontier: Vec::new(),
+                reliability_rejections: admission.rejected_actions,
+                hypothesis_inventory_sha256: None,
+                decision_partition_sha256: None,
+                decision_assignments: None,
+                conditional_target_reached: false,
+                authority_transition_not_authorized_by_plan: true,
+            });
+        }
+        Err(error) => return Err(ReliableEvidencePlannerError::Decision(error)),
+    };
 
     if combined_plan.recommended_action_id.is_none() {
         return Ok(ReliableActiveEvidencePlan {
@@ -256,17 +271,20 @@ pub fn plan_active_evidence_with_reliability(
         let pair_count = conditional.distinguishable_decision_pair_count as f64;
         let expected_pair_lower = reliability.probability_lower_bound * pair_count;
         let expected_pair_upper = reliability.probability_upper_bound * pair_count;
-        let expected_pl_lower =
+        let expected_pl_at_lower_probability =
             reliability.probability_lower_bound * conditional.conditional_protection_level_delta_m;
-        let expected_pl_upper =
+        let expected_pl_at_upper_probability =
             reliability.probability_upper_bound * conditional.conditional_protection_level_delta_m;
         if !expected_pair_lower.is_finite()
             || !expected_pair_upper.is_finite()
-            || !expected_pl_lower.is_finite()
-            || !expected_pl_upper.is_finite()
+            || !expected_pl_at_lower_probability.is_finite()
+            || !expected_pl_at_upper_probability.is_finite()
         {
             return Err(ReliableEvidencePlannerError::ArithmeticOverflow(candidate.action_id));
         }
+        // Multiplication by a negative signed PL change reverses interval order.
+        let expected_pl_lower = expected_pl_at_lower_probability.min(expected_pl_at_upper_probability);
+        let expected_pl_upper = expected_pl_at_lower_probability.max(expected_pl_at_upper_probability);
 
         assessments.push(ReliableEvidenceActionAssessment {
             conditional,
@@ -520,6 +538,33 @@ mod tests {
         assert_eq!(plan.reliability_rejections.len(), 1);
         assert_eq!(plan.reliability_rejections[0].action_id, 1);
         assert_eq!(plan.reliability_rejections[0].reason, crate::active_evidence_reliability::ReliabilityRejectionReason::ProbabilityLowerBoundTooSmall);
+    }
+
+    #[test]
+    fn negative_expected_pl_change_keeps_the_probability_interval_ordered() {
+        let candidates = [candidate(1, 3.5, 40, 200)];
+        let reports = [report(1, [0.0, 2.0, 2.0])];
+        let contracts = [contract(1, 0.8, 0.95, 9)];
+        let plan = plan_active_evidence_with_reliability(
+            &policy(), &reliability_policy(), &candidates, &reports, &contracts,
+        ).unwrap();
+        let item = &plan.pareto_frontier[0];
+        assert!((item.expected_protection_level_reduction_lower_bound_m - (-0.475)).abs() < 1e-12);
+        assert!((item.expected_protection_level_reduction_upper_bound_m - (-0.4)).abs() < 1e-12);
+        assert!(item.expected_protection_level_reduction_lower_bound_m
+            <= item.expected_protection_level_reduction_upper_bound_m);
+    }
+
+    #[test]
+    fn fully_admitted_but_nonvaluable_actions_do_not_get_recommended() {
+        let candidates = [candidate(1, 3.0, 40, 200)];
+        let reports = [report(1, [0.0, 0.0, 0.0])];
+        let contracts = [contract(1, 0.8, 0.95, 9)];
+        let plan = plan_active_evidence_with_reliability(
+            &policy(), &reliability_policy(), &candidates, &reports, &contracts,
+        ).unwrap();
+        assert_eq!(plan.reason, ReliableEvidencePlanReason::NoConditionalActionValue);
+        assert_eq!(plan.recommended_action_id, None);
     }
 
     #[test]
