@@ -144,6 +144,15 @@ pub fn decide_peak_overlap_convergence(
     config: PeakOverlapConvergenceConfig,
 ) -> Result<PeakOverlapConvergenceDecision, KernelError> {
     validate_config(config)?;
+    if observation
+        .last_col_adjustment_iteration
+        .is_some_and(|last_adjustment| last_adjustment > observation.iteration)
+        || observation
+            .current_vs_two_back_md2
+            .is_some_and(|value| !value.is_finite() || value < 0.0)
+    {
+        return Err(KernelError::InvalidPeakOverlapConvergenceObservation);
+    }
     let acceleration_iteration =
         ((0.25 * config.maximum_iterations as f64).round() as usize).min(25);
     let averaging_iteration =
@@ -520,6 +529,10 @@ mod tests {
         let mut input = observation(22, 2.0e-4);
         input.last_col_adjustment_iteration = Some(20);
         input.current_vs_two_back_md2 = Some(0.2e-12);
+        let not_yet_eligible = decide_peak_overlap_convergence(input, config()).unwrap();
+        assert_eq!(not_yet_eligible.status, PeakOverlapConvergenceStatus::NotConverged);
+
+        input.iteration = 23;
         let result = decide_peak_overlap_convergence(input, config()).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::OscillationResolved);
         assert_eq!(result.source_convergence_code, 0.5);
@@ -528,6 +541,27 @@ mod tests {
     #[test]
     fn eligible_oscillation_branch_requires_two_back_md2() {
         let input = observation(16, 1.0e-4);
+        assert_eq!(
+            decide_peak_overlap_convergence(input, config()),
+            Err(KernelError::InvalidPeakOverlapConvergenceObservation)
+        );
+    }
+
+
+    #[test]
+    fn future_col_adjustment_iteration_is_rejected() {
+        let mut input = observation(10, 1.0e-4);
+        input.last_col_adjustment_iteration = Some(11);
+        assert_eq!(
+            decide_peak_overlap_convergence(input, config()),
+            Err(KernelError::InvalidPeakOverlapConvergenceObservation)
+        );
+    }
+
+    #[test]
+    fn invalid_optional_two_back_md2_is_rejected_even_before_oscillation_window() {
+        let mut input = observation(1, 1.0e-4);
+        input.current_vs_two_back_md2 = Some(f64::NAN);
         assert_eq!(
             decide_peak_overlap_convergence(input, config()),
             Err(KernelError::InvalidPeakOverlapConvergenceObservation)
