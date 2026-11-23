@@ -192,11 +192,17 @@ impl fmt::Display for ScheduleError {
             ),
             Self::InvalidBudget => write!(f, "measurement budget must be positive"),
             Self::InvalidLatencyLimit => {
-                write!(f, "maximum total diagnostic latency must be finite and positive")
+                write!(
+                    f,
+                    "maximum total diagnostic latency must be finite and positive"
+                )
             }
             Self::InvalidActionLimit => write!(f, "maximum selected-action count is invalid"),
             Self::TooManyDiagnosticOptions { actual, maximum } => {
-                write!(f, "diagnostic option count {actual} exceeds limit {maximum}")
+                write!(
+                    f,
+                    "diagnostic option count {actual} exceeds limit {maximum}"
+                )
             }
             Self::EmptyActionId { index } => write!(f, "diagnostic action {index} has an empty ID"),
             Self::DuplicateActionId(id) => write!(f, "duplicate diagnostic action ID: {id}"),
@@ -207,14 +213,20 @@ impl fmt::Display for ScheduleError {
                 write!(f, "diagnostic action {action_id} has invalid latency")
             }
             Self::EmptyActionCapabilities { action_id } => {
-                write!(f, "diagnostic action {action_id} has no capability declaration")
+                write!(
+                    f,
+                    "diagnostic action {action_id} has no capability declaration"
+                )
             }
             Self::EvidenceReceiptNotRequired { action_id } => write!(
                 f,
                 "diagnostic action {action_id} cannot be selected without a required evidence receipt"
             ),
             Self::NonFiniteAccumulation => {
-                write!(f, "diagnostic schedule accumulation is non-finite or overflowed")
+                write!(
+                    f,
+                    "diagnostic schedule accumulation is non-finite or overflowed"
+                )
             }
         }
     }
@@ -370,11 +382,10 @@ pub fn schedule_diagnostics(
                 .map(|index| options[*index].clone())
                 .collect();
             selected_actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
-            let before_requalification = trigger_reasons
-                .contains(&TriggerReason::ObserverStateUnqualified);
+            let before_requalification =
+                trigger_reasons.contains(&TriggerReason::ObserverStateUnqualified);
             let after_requalification = plan.observer_requalification_required;
-            let observer_requalification_required =
-                before_requalification || after_requalification;
+            let observer_requalification_required = before_requalification || after_requalification;
             let observer_requalification_phase =
                 match (before_requalification, after_requalification) {
                     (false, false) => ObserverRequalificationPhase::NotRequired,
@@ -426,12 +437,20 @@ fn validate_config(config: &ScheduleConfig) -> Result<(), ScheduleError> {
     {
         return Err(ScheduleError::InvalidLatencyLimit);
     }
-    if config.maximum_selected_actions == 0 || config.maximum_selected_actions > MAX_DIAGNOSTIC_OPTIONS {
+    if config.maximum_selected_actions == 0
+        || config.maximum_selected_actions > MAX_DIAGNOSTIC_OPTIONS
+    {
         return Err(ScheduleError::InvalidActionLimit);
     }
     for (field, value) in [
-        ("maximum_uncertainty_ratio", config.thresholds.maximum_uncertainty_ratio),
-        ("maximum_out_of_domain_score", config.thresholds.maximum_out_of_domain_score),
+        (
+            "maximum_uncertainty_ratio",
+            config.thresholds.maximum_uncertainty_ratio,
+        ),
+        (
+            "maximum_out_of_domain_score",
+            config.thresholds.maximum_out_of_domain_score,
+        ),
         (
             "maximum_model_disagreement_sigma",
             config.thresholds.maximum_model_disagreement_sigma,
@@ -460,8 +479,14 @@ fn validate_config(config: &ScheduleConfig) -> Result<(), ScheduleError> {
 fn validate_snapshot(snapshot: &SentinelSnapshot) -> Result<(), ScheduleError> {
     for (field, value) in [
         ("acquisition_id", snapshot.acquisition_id.as_str()),
-        ("dependence_cluster_id", snapshot.dependence_cluster_id.as_str()),
-        ("protocol_fingerprint", snapshot.protocol_fingerprint.as_str()),
+        (
+            "dependence_cluster_id",
+            snapshot.dependence_cluster_id.as_str(),
+        ),
+        (
+            "protocol_fingerprint",
+            snapshot.protocol_fingerprint.as_str(),
+        ),
         ("observer_state_id", snapshot.observer_state_id.as_str()),
     ] {
         if value.trim().is_empty() || value.chars().any(char::is_control) {
@@ -471,16 +496,20 @@ fn validate_snapshot(snapshot: &SentinelSnapshot) -> Result<(), ScheduleError> {
     for (field, value) in [
         ("uncertainty_ratio", snapshot.uncertainty_ratio),
         ("out_of_domain_score", snapshot.out_of_domain_score),
-        ("model_disagreement_sigma", snapshot.model_disagreement_sigma),
-        ("conservation_residual_sigma", snapshot.conservation_residual_sigma),
+        (
+            "model_disagreement_sigma",
+            snapshot.model_disagreement_sigma,
+        ),
+        (
+            "conservation_residual_sigma",
+            snapshot.conservation_residual_sigma,
+        ),
         (
             "seconds_since_last_high_fidelity",
             snapshot.seconds_since_last_high_fidelity,
         ),
     ] {
-        if value.is_some_and(|value| {
-            !value.is_finite() || (METRIC_NONNEGATIVE && value < 0.0)
-        }) {
+        if value.is_some_and(|value| !value.is_finite() || (METRIC_NONNEGATIVE && value < 0.0)) {
             return Err(ScheduleError::InvalidSnapshotMetric { field });
         }
     }
@@ -496,15 +525,11 @@ fn validate_options(options: &[DiagnosticOption]) -> Result<(), ScheduleError> {
     }
     let mut ids = BTreeSet::new();
     for (index, option) in options.iter().enumerate() {
-        if option.action_id.trim().is_empty()
-            || option.action_id.chars().any(char::is_control)
-        {
+        if option.action_id.trim().is_empty() || option.action_id.chars().any(char::is_control) {
             return Err(ScheduleError::EmptyActionId { index });
         }
         if !ids.insert(option.action_id.as_str()) {
-            return Err(ScheduleError::DuplicateActionId(
-                option.action_id.clone(),
-            ));
+            return Err(ScheduleError::DuplicateActionId(option.action_id.clone()));
         }
         if option.cost_units == 0 {
             return Err(ScheduleError::InvalidActionCost {
@@ -655,7 +680,9 @@ fn select_capability_cover(
             latency,
             observer_requalification_required,
         };
-        let replace = best.as_ref().is_none_or(|current| candidate_better(&candidate, current));
+        let replace = best
+            .as_ref()
+            .is_none_or(|current| candidate_better(&candidate, current));
         if replace {
             best = Some(candidate);
         }
@@ -694,9 +721,7 @@ fn determine_abstention(
     if !required.is_subset(&all_available_capabilities) {
         return AbstentionReason::NoAvailableActionCoversRequiredCapabilities;
     }
-    if rejected.observer_requalification_missing > 0
-        && !any_observer_requalification
-    {
+    if rejected.observer_requalification_missing > 0 && !any_observer_requalification {
         return AbstentionReason::ObserverRequalificationUnavailable;
     }
     if rejected.over_action_limit > 0
@@ -706,9 +731,7 @@ fn determine_abstention(
     {
         return AbstentionReason::SelectedActionLimitExceeded;
     }
-    if rejected.over_latency > 0
-        && rejected.over_budget == 0
-    {
+    if rejected.over_latency > 0 && rejected.over_budget == 0 {
         return AbstentionReason::LatencyLimitExceeded;
     }
     if rejected.over_budget > 0 || config.measurement_budget_units == 0 {
@@ -940,14 +963,18 @@ mod tests {
             report.observer_requalification_phase,
             ObserverRequalificationPhase::AfterMeasurement
         );
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::LptShakeTheBox));
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification));
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::LptShakeTheBox)
+        );
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification)
+        );
     }
 
     #[test]
@@ -986,10 +1013,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::ReferenceRequalification));
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::ReferenceRequalification)
+        );
     }
 
     #[test]
@@ -1004,10 +1033,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification));
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification)
+        );
         assert_eq!(
             report.observer_requalification_phase,
             ObserverRequalificationPhase::BeforeMeasurement
@@ -1118,10 +1149,12 @@ mod tests {
         .unwrap();
         assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
         assert!(report.observer_requalification_required);
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification));
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification)
+        );
         assert_eq!(
             report.observer_requalification_phase,
             ObserverRequalificationPhase::AfterMeasurement
@@ -1140,10 +1173,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
-        assert!(report
-            .selected_actions
-            .iter()
-            .any(|action| action.kind == DiagnosticKind::SentinelPiv));
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| action.kind == DiagnosticKind::SentinelPiv)
+        );
         assert!(report.trigger_reasons.iter().any(|reason| matches!(
             reason,
             TriggerReason::SentinelTelemetryIncomplete("out_of_domain_score")
@@ -1161,12 +1196,17 @@ mod tests {
             &catalog(),
         )
         .unwrap();
-        assert!(report
-            .trigger_reasons
-            .contains(&TriggerReason::HighFidelityAcquisitionStale));
-        assert!(report.selected_actions.iter().any(|action| {
-            action.kind == DiagnosticKind::HighResolutionPiv
-        }));
+        assert!(
+            report
+                .trigger_reasons
+                .contains(&TriggerReason::HighFidelityAcquisitionStale)
+        );
+        assert!(
+            report
+                .selected_actions
+                .iter()
+                .any(|action| { action.kind == DiagnosticKind::HighResolutionPiv })
+        );
     }
 
     #[test]
@@ -1226,7 +1266,10 @@ mod tests {
             .collect();
         assert_eq!(baseline_ids, permuted_ids);
         assert_eq!(baseline.total_cost_units, permuted.total_cost_units);
-        assert_eq!(baseline.total_latency_seconds, permuted.total_latency_seconds);
+        assert_eq!(
+            baseline.total_latency_seconds,
+            permuted.total_latency_seconds
+        );
         assert!(permuted.observer_requalification_required);
     }
 
@@ -1260,9 +1303,11 @@ mod tests {
             &catalog(),
         )
         .unwrap();
-        assert!(report
-            .trigger_reasons
-            .contains(&TriggerReason::SpatialCoverageMissing(FlowRegion::NearWall)));
+        assert!(
+            report
+                .trigger_reasons
+                .contains(&TriggerReason::SpatialCoverageMissing(FlowRegion::NearWall))
+        );
         assert!(report.selected_actions.iter().any(|action| {
             action
                 .capabilities
