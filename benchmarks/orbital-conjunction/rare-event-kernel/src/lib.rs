@@ -30,9 +30,9 @@ use core::fmt;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
-pub mod ncdot_refinement;
 pub mod normal_positive_part;
 pub mod residual;
 pub mod sequential;
@@ -53,14 +53,14 @@ pub use ncdot_sphere::{
     NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
     integrate_ncdot_sphere,
 };
+pub use ncdot_refinement::{
+    NcdotRefinementDecision, NcdotRefinementDisposition, NcdotRefinementPolicy,
+    NcdotRefinementReason, NcdotRefinementSnapshot, decide_ncdot_refinement,
+};
 pub use ncdot_temporal::{
     NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon, NcdotTemporalIdentity,
     NcdotTemporalReport, NcdotTemporalSample, TemporalHorizonCoverageClaim,
     integrate_ncdot_time_series,
-};
-pub use ncdot_refinement::{
-    NcdotRefinementDecision, NcdotRefinementDisposition, NcdotRefinementPolicy,
-    NcdotRefinementReason, NcdotRefinementSnapshot, decide_ncdot_refinement,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
