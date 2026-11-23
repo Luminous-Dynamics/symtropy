@@ -360,6 +360,62 @@ mod tests {
         assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
     }
 
+    fn degree_sequence(structure: &StructureV0) -> Vec<usize> {
+        let mut degrees = structure
+            .nodes
+            .iter()
+            .map(|node| {
+                structure
+                    .relations
+                    .iter()
+                    .filter(|relation| relation.participants.contains(&node.id))
+                    .count()
+            })
+            .collect::<Vec<_>>();
+        degrees.sort_unstable();
+        degrees
+    }
+
+    fn triangle_count(structure: &StructureV0) -> usize {
+        let mut triangles = 0;
+        for left in &structure.nodes {
+            for middle in &structure.nodes {
+                for right in &structure.nodes {
+                    if left.id < middle.id
+                        && middle.id < right.id
+                        && has_undirected_edge(structure, left.id, middle.id)
+                        && has_undirected_edge(structure, middle.id, right.id)
+                        && has_undirected_edge(structure, right.id, left.id)
+                    {
+                        triangles += 1;
+                    }
+                }
+            }
+        }
+        triangles
+    }
+
+    fn has_undirected_edge(structure: &StructureV0, left: u32, right: u32) -> bool {
+        structure.relations.iter().any(|relation| {
+            relation.orientation == super::super::transfer::RelationOrientationV0::Undirected
+                && relation.participants.len() == 2
+                && ((relation.participants[0] == left && relation.participants[1] == right)
+                    || (relation.participants[0] == right && relation.participants[1] == left))
+        })
+    }
+
+    #[test]
+    fn degree_matched_false_pair_has_distinct_triangle_invariant() {
+        let world =
+            TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic);
+        let view = world.policy_view();
+
+        assert_eq!(degree_sequence(&view.source), vec![3, 3, 3, 3, 3, 3]);
+        assert_eq!(degree_sequence(&view.target), vec![3, 3, 3, 3, 3, 3]);
+        assert_eq!(triangle_count(&view.source), 0);
+        assert_eq!(triangle_count(&view.target), 2);
+    }
+
     #[test]
     fn structural_match_can_fail_under_intervention_divergence() {
         let world = TransferAtlasWorldV0::generate(
