@@ -24,7 +24,7 @@ use crate::sustainable_mobility_service_capacity::{
     evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
-    CapacityOpportunityQualification, EvidenceClass, FallbackMode,
+    EvidenceClass, FallbackMode,
     FallbackServiceOpportunity, FlightEvidence, FulfilmentMode,
     LinkedServiceQualityInput, PermissionState, RequestDisposition,
     ServiceRequest, WeatherState, evaluate_linked_service_quality,
@@ -265,8 +265,6 @@ struct Model<'a> {
 
 #[derive(Debug, Clone, Serialize)]
 struct ObservationDigestPayload<'a> {
-    node_id: &'a str,
-    parent_node_id: &'a Option<String>,
     decision_time_seconds: u64,
     request_reveals: &'a [ScenarioRequestReveal],
     aerial_reveals: &'a [ScenarioAerialObservation],
@@ -654,8 +652,6 @@ fn hash_observation(
     let mut fallback_reveals = node.fallback_reveals.clone();
     fallback_reveals.sort_by(|left, right| left.opportunity_id.cmp(&right.opportunity_id));
     let payload = ObservationDigestPayload {
-        node_id: &node.node_id,
-        parent_node_id: &node.parent_node_id,
         decision_time_seconds: node.decision_time_seconds,
         request_reveals: &request_reveals,
         aerial_reveals: &aerial_reveals,
@@ -1154,11 +1150,22 @@ pub fn evaluate_nonanticipative_service_oracle(
     let mut normalized = Vec::with_capacity(raw_nodes.len());
     let mut global_receipts = BTreeSet::new();
     let mut information_digests = Vec::<String>::with_capacity(raw_nodes.len());
+    let mut sibling_information_sets: BTreeMap<usize, BTreeSet<String>> = BTreeMap::new();
     for (index, node) in raw_nodes.iter().enumerate() {
         let parent_digest = parent_indices[index]
             .map(|parent| information_digests[parent].as_str());
         let (observation_digest, information_set_digest) = hash_observation(node, parent_digest)
             .map_err(|error| vec![error])?;
+        if let Some(parent_index) = parent_indices[index] {
+            let seen = sibling_information_sets.entry(parent_index).or_default();
+            if !seen.insert(information_set_digest.clone()) {
+                node_error(
+                    &mut errors,
+                    &node.node_id,
+                    "identical_sibling_information_sets_must_be_merged",
+                );
+            }
+        }
         if node.request_reveals.is_empty()
             && node.aerial_reveals.is_empty()
             && node.fallback_reveals.is_empty()
@@ -1584,25 +1591,38 @@ mod tests {
     }
 
     #[test]
-    fn weather_no_go_blocks_scenario_aerial_opportunity_but_not_fallback() {
+    fn weather_no_go_blocks_aerial_and_uses_fallback_when_available() {
         let mut tree = tree_fixture();
-        let high = tree.nodes.iter_mut().find(|node| node.node_id == "high-demand").expect("high");
-        high.fallback_reveals[0].available = true;
-        // The first opportunity is root-owned; a no-go state is exercised by
-        // moving the branch observation to the root in the dedicated test below.
-        let report = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
-            .expect("valid availability update");
-        assert_eq!(report.leaf_count, 2);
+        tree.nodes[0].aerial_reveals[0].weather_state = WeatherState::NoGo;
+        let report = evaluate_nonanticipative_service_oracle(
+            &tree,
+            &linked_fixture(),
+            &capacity_fixture(),
+        )
+        .expect("no-go should be a valid unavailable observation");
+        let root = report.policy.iter().find(|node| node.node_id == "root").expect("root");
+        assert!(root.assignments.is_empty());
+        let high = report.leaf_results.iter().find(|leaf| leaf.leaf_node_id == "high-demand").expect("high");
+        assert_eq!(high.on_time_services, 1);
+        assert_eq!(high.rejected_requests, 1);
     }
 
     #[test]
     fn request_reveal_after_its_acceptance_cutoff_is_rejected_by_the_policy() {
-        let mut tree = tree_fixture();
-        let high = tree.nodes.iter_mut().find(|node| node.node_id == "high-demand").expect("high");
-        high.request_reveals[0].evidence.observed_at_seconds = 300;
-        let report = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
+        let tree = tree_fixture();
+        let mut service = linked_fixture();
+        let late_request = service
+            .requests
+            .iter_mut()
+            .find(|request| request.request_id == "request-hidden-later")
+            .expect("hidden request");
+        late_request.accept_by_seconds = 200;
+        let report = evaluate_nonanticipative_service_oracle(&tree, &service, &capacity_fixture())
             .expect("late reveal is an explicit rejected request");
-        assert_eq!(report.leaf_results.iter().find(|leaf| leaf.leaf_node_id == "high-demand").unwrap().rejected_requests, 1);
+        assert_eq!(
+            report.leaf_results.iter().find(|leaf| leaf.leaf_node_id == "high-demand").unwrap().rejected_requests,
+            1
+        );
     }
 
     #[test]
@@ -1645,8 +1665,12 @@ mod tests {
     #[test]
     fn duplicate_request_on_one_path_is_rejected() {
         let mut tree = tree_fixture();
+        let repeated = tree.nodes.iter().find(|node| node.node_id == "high-demand")
+            .expect("high")
+            .request_reveals[0]
+            .clone();
         let low = tree.nodes.iter_mut().find(|node| node.node_id == "low-demand").expect("low");
-        low.request_reveals.push(tree.nodes[1].request_reveals[0].clone());
+        low.request_reveals.push(repeated);
         let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
             .expect_err("same request re-revealed on one path");
         assert!(errors.iter().any(|error| error.contains("request_revealed_twice_on_path")));
@@ -1682,9 +1706,43 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_sibling_observation_history_must_be_merged_into_one_information_node() {
+        let mut tree = tree_fixture();
+        let mut duplicate = tree.nodes[1].clone();
+        duplicate.node_id = "high-demand-copy".to_owned();
+        duplicate.conditional_probability_ppm = 100_000;
+        tree.nodes[1].conditional_probability_ppm = 400_000;
+        tree.nodes.push(duplicate);
+        tree.nodes[2].conditional_probability_ppm = 500_000;
+        let errors = evaluate_nonanticipative_service_oracle(
+            &tree,
+            &linked_fixture(),
+            &capacity_fixture(),
+        )
+        .expect_err("same observation history cannot have two separately optimized actions");
+        assert!(errors.iter().any(|error| error.contains("identical_sibling_information_sets_must_be_merged")));
+    }
+
+    #[test]
+    fn stale_receipt_cannot_be_replayed_in_two_scenario_branches() {
+        let mut tree = tree_fixture();
+        let high_receipt = tree.nodes[1].fallback_reveals[0].receipt_id.clone();
+        tree.nodes[2].fallback_reveals[0].receipt_id = high_receipt.clone();
+        tree.nodes[2].fallback_reveals[0].evidence.evidence_reference = high_receipt;
+        let errors = evaluate_nonanticipative_service_oracle(
+            &tree,
+            &linked_fixture(),
+            &capacity_fixture(),
+        )
+        .expect_err("one receipt may not be replayed across scenario branches");
+        assert!(errors.iter().any(|error| error.contains("scenario_fallback_observation_invalid_or_replayed")));
+    }
+
+    #[test]
     fn bounds_exceeded_tree_is_rejected() {
         let mut tree = tree_fixture();
-        tree.nodes.extend(tree.nodes.clone());
+        let duplicated = tree.nodes.clone();
+        tree.nodes.extend(duplicated);
         let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
             .expect_err("node bound");
         assert!(errors.iter().any(|error| error == "nonanticipative_identity_or_bounds_invalid"));
