@@ -10,6 +10,7 @@ on:
     paths:
       - "tools/orbital-observation-surface-bench/**"
       - "research/orbital/ACTION_UNIVERSE_CLOSURE_BENCHMARK_V0_1.md"
+      - "research/orbital/DECISION_ASSURANCE_TOURNAMENT_V0_1.md"
       - ".github/workflows/orbital-action-universe-closure-v0-1.yml"
 
 permissions:
