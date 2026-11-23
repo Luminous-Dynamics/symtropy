@@ -1,0 +1,217 @@
+{
+  "contract_id": "ehd_piv_field_reconstruction_uq_v0_1",
+  "version": "0.1.0",
+  "status": "prospective_benchmark_contract_not_executed",
+  "issue": 6963,
+  "estimands": [
+    "instantaneous_physical_field",
+    "conditional_expected_field",
+    "ensemble_or_time_mean",
+    "derived_functional_or_statistic"
+  ],
+  "uncertainty_classes": [
+    "physical_aleatoric_variability",
+    "piv_measurement_uncertainty",
+    "reference_uncertainty",
+    "shared_common_mode_uncertainty",
+    "reconstruction_epistemic_uncertainty",
+    "model_form_discrepancy",
+    "numerical_approximation_error",
+    "observer_intervention_effect"
+  ],
+  "default_independence_assumption": false,
+  "cohort_roles": {
+    "model_training": "fit weights, bases, transforms and preprocessing statistics",
+    "model_selection": "select model family, features and hyperparameters",
+    "uncertainty_calibration": "calibrate intervals after predictor freeze; cannot fit predictor or select architecture",
+    "sealed_evaluation": "one-time final test; no model, threshold, feature or interval tuning",
+    "out_of_domain_challenge": "frozen shift/falsification cohort; never used to tune in-domain threshold"
+  },
+  "split_policy": {
+    "grouping_key": "highest_shared_cause_component_in_UQ008_dependency_graph",
+    "groups": [
+      "campaign",
+      "session",
+      "geometry_or_flow_family",
+      "reference_calibration",
+      "timing_chain",
+      "tracer_batch",
+      "sensor_setup",
+      "acquisition_cluster"
+    ],
+    "prohibit_random_splits_of": [
+      "vectors",
+      "pixels",
+      "frames",
+      "overlapping_windows",
+      "adjacent_temporal_samples"
+    ],
+    "require_disjoint_groups_between_all_roles": true
+  },
+  "conformal_field_score": {
+    "example": "max_x ||u_ref(x)-u_hat(x)|| / max(s(x),s_floor)",
+    "independent_unit": "complete_acquisition_or_dependence_cluster",
+    "missing_vector_policy": "missing points cannot silently be removed from the declared scoring domain",
+    "marginal_pointwise_coverage_separate_from_simultaneous_whole_field_coverage": true,
+    "minimum_finite_rank_clusters_at_95_percent": 19,
+    "minimum_is_not_adequate_sample_recommendation": true,
+    "coverage_confidence_intervals_required": true,
+    "approximate_test_clusters_for_95pct_coverage_and_2pp_half_width": 456,
+    "sample_size_note": "simple independent-binomial approximation only; final plan must account for grouping, heterogeneity and exact intervals"
+  },
+  "baselines": [
+    "persistence_and_nearest_time_interpolation",
+    "POD_linear_regression",
+    "LSE",
+    "SAMM_RR",
+    "linear_Kalman_filter_and_smoother",
+    "SVGP_KAN",
+    "covariance_aware_GP_or_reduced_rank_GP",
+    "Symtropy_or_Symthaea_HDC_CfC_experimental_challenger"
+  ],
+  "matched_privileges": [
+    "same_observations",
+    "same_sensor_history",
+    "same_train_selection_calibration_test_partitions",
+    "same_preprocessing_information",
+    "same_inference_cutoff",
+    "same_compute_budget_policy"
+  ],
+  "scoreboards": {
+    "reconstruction": [
+      "relative_L2",
+      "normalized_RMSE",
+      "region_P50_P90_P95_max",
+      "profile_error",
+      "wake_and_shear_layer_location",
+      "vorticity_divergence",
+      "spectral_and_structure_function_error",
+      "temporal_phase_and_event_timing",
+      "declared_ensemble_statistics"
+    ],
+    "uncertainty": [
+      "pointwise_coverage_50_80_90_95_99",
+      "simultaneous_whole_field_coverage",
+      "functional_coverage",
+      "calibration_slope_intercept",
+      "uncertainty_ratio_between_observations",
+      "CRPS",
+      "weighted_interval_score",
+      "energy_score",
+      "variogram_score",
+      "interval_width_or_region_volume",
+      "cluster_bootstrap_confidence_intervals"
+    ],
+    "selective_prediction": [
+      "risk_coverage_curve",
+      "false_safe_rate_on_shift_controls",
+      "abstention_precision_recall",
+      "detection_delay",
+      "recovery_after_fresh_evidence",
+      "worst_slice_by_region_flow_family_SNR_sampling_and_dropout"
+    ],
+    "vector_validity": [
+      "matched_F1_and_ROC_AUC",
+      "valid_and_invalid_precision_recall",
+      "valid_vector_retention",
+      "false_removal_rate",
+      "low_amplitude_error_sensitivity",
+      "structure_preservation",
+      "rejection_probability_calibration"
+    ],
+    "engineering_functionals": [
+      "mass_or_volume_flow",
+      "momentum_flux",
+      "vorticity",
+      "Reynolds_stress",
+      "functional_coverage_and_sharpness",
+      "geometry_density_pressure_boundary_uncertainty"
+    ],
+    "systems": [
+      "p50_p95_p99_latency",
+      "throughput",
+      "peak_memory",
+      "energy",
+      "bytes_moved",
+      "model_size",
+      "end_to_end_cost_including_preprocessing_calibration_fallback_and_receipts"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "FFS-S-PIV",
+      "doi": "10.5281/zenodo.21732072",
+      "role": "synthetic_image_and_displacement_software_verification",
+      "admission_status": "candidate_payload_license_and_version_verification_required",
+      "physical_claim_allowed": false
+    },
+    {
+      "name": "INRAE_Re3900_experimental_PIV_2026",
+      "doi": "10.57745/DHJXM6",
+      "role": "experimental_flow_structure_and_distribution_shift",
+      "admission_status": "rights_review_required_explicit_reuse_license_not_verified",
+      "has_reference_truth_residuals": false,
+      "physical_EHD_claim_allowed": false
+    },
+    {
+      "name": "INRAE_Re3900_Eulerian_Lagrangian_DNS",
+      "doi": "10.15454/GLNRHK",
+      "license": "Etalab_Open_License_2_0",
+      "role": "DNS_particle_tracking_and_observation_operator_verification",
+      "admission_status": "candidate_version_and_file_hash_pinning_required",
+      "physical_PIV_or_EHD_measurement_claim_allowed": false
+    },
+    {
+      "name": "SVGP_KAN_pulsed_impinging_jet",
+      "doi": "10.1016/j.aitf.2026.100034",
+      "role": "matched_method_reproduction",
+      "admission_status": "author_request_for_full_data_and_code_required",
+      "physical_turbulent_EHD_claim_allowed": false
+    },
+    {
+      "name": "EHD_physical_observer_cohort",
+      "doi": null,
+      "role": "physical_EHD_observer_and_functional_validation",
+      "admission_status": "not_available_in_current_work",
+      "physical_claim_allowed": false
+    }
+  ],
+  "research_targets": {
+    "reproduce_published_SVGP_KAN_SAMM_RR_LSE_before_superiority_claim": true,
+    "disjoint_fit_selection_calibration_and_test_groups": true,
+    "nominal_whole_field_and_functional_coverage": "95_percent_with_predeclared_confidence_bounds_and_sharpness",
+    "zero_false_qualification_on_frozen_shift_reference_mutation_and_observer_controls": true,
+    "matched_compute_improvement_criterion": "lower_error_without_worse_calibration_or_sharper_regions_at_matched_coverage_or_lower_selective_risk_at_matched_useful_coverage",
+    "reproduce_PIVPostProcess_exact_matched_cohort_before_classifier_superiority": true,
+    "valid_vector_retention_and_low_corruption_metrics_required": true,
+    "synthetic_DNS_or_non_EHD_success_never_promoted_to_physical_EHD_result": true
+  },
+  "qualification_dispositions": [
+    "QualifiedInDomain",
+    "OutOfEnvelope",
+    "NotIdentifiable",
+    "InsufficientEvidence",
+    "CalibrationInsufficient",
+    "ReferenceUnqualified",
+    "ObserverEffectUnresolved",
+    "MeasurementFunctionalNotQualified"
+  ],
+  "explicit_nonclaims": [
+    "no model implementation added",
+    "no published baseline reproduced",
+    "no dataset payload ingested",
+    "no empirical coverage measured",
+    "no physical EHD experiment or force balance completed",
+    "no SOTA superiority demonstrated"
+  ],
+  "references": {
+    "svgpk_an_paper": "https://doi.org/10.1016/j.aitf.2026.100034",
+    "pivpostprocess": "https://doi.org/10.1007/s00348-026-04319-7",
+    "pivtools": "https://doi.org/10.1016/j.softx.2026.102967",
+    "ffs_s_piv": "https://doi.org/10.5281/zenodo.21732072",
+    "inrae_experimental_piv": "https://doi.org/10.57745/DHJXM6",
+    "inrae_dns_lpt": "https://doi.org/10.15454/GLNRHK",
+    "piv_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
+    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298"
+  }
+}
