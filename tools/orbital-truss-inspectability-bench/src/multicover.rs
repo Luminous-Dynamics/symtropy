@@ -967,15 +967,15 @@ mod tests {
             features: vec![
                 MultiCoverFeature {
                     feature_id: "F1".to_owned(),
-                    requested_k: 1,
+                    requested_k: 2,
                 },
                 MultiCoverFeature {
                     feature_id: "F2".to_owned(),
-                    requested_k: 1,
+                    requested_k: 2,
                 },
                 MultiCoverFeature {
                     feature_id: "F3".to_owned(),
-                    requested_k: 1,
+                    requested_k: 2,
                 },
             ],
             views: vec![
@@ -993,9 +993,22 @@ mod tests {
                     nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
                     robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
                 },
+                MultiCoverView {
+                    view_id: "VIEW-3".to_owned(),
+                    failure_domain_id: "D3".to_owned(),
+                    vertical_order_rank: 2,
+                    nominal_feature_ids: vec!["F2".to_owned(), "F3".to_owned()],
+                    robust_feature_ids: vec!["F2".to_owned(), "F3".to_owned()],
+                },
             ],
         };
         let indexed = validate_problem(&problem).unwrap();
+        assert!(
+            indexed
+                .nominal_candidate_counts
+                .iter()
+                .all(|available| *available >= 2)
+        );
         let at_fifty = overlap_pruning_baseline(&indexed, 50, "VERTICAL_BOTTOM_TO_TOP").unwrap();
         let at_seventy = overlap_pruning_baseline(&indexed, 70, "VERTICAL_BOTTOM_TO_TOP").unwrap();
         assert_eq!(at_fifty.selected_view_ids, vec!["VIEW-1"]);
