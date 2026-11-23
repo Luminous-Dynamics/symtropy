@@ -2797,7 +2797,7 @@ mod world_index_integrity_tests {
         assert!(duplicate_handles
             .validate_world_indices()
             .unwrap_err()
-            .contains("cardinality mismatch"));
+            .contains("duplicate body handle"));
 
         let mut duplicate_net_ids = PhysicsWorld::<3>::new(SVector::zeros());
         let a = duplicate_net_ids.add_sphere(Point::origin(), 0.5, 1.0);
