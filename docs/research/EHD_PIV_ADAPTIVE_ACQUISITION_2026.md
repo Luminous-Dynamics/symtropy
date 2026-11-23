@@ -23,9 +23,9 @@ The sentinel record binds acquisition, dependence cluster, protocol and observer
 
 The action catalog carries action cost, latency, capabilities, availability, observer impact and evidence-receipt requirements.
 
-The controller converts triggers and evidence target into required capabilities, then performs a bounded exhaustive set-cover search (maximum 16 action options). It returns the lowest-cost feasible set, using latency and stable action IDs as tie-breakers. Any action with potentially perturbative or unknown observer impact must be accompanied by observer requalification. If no complete capability cover fits the budget/latency/action limits, the controller abstains.
+The controller converts triggers and evidence target into required capabilities, then performs a bounded exhaustive set-cover search (maximum 16 action options). It returns the lowest-cost feasible set, using latency and stable action IDs as tie-breakers. Any action with potentially perturbative or unknown observer impact must be accompanied by observer requalification after the measurement. An already-unqualified observer state requires requalification before measurement; when both conditions hold, both boundaries are required. If no complete capability cover fits the budget/latency/action limits, the controller abstains.
 
-The controller does not actuate equipment or infer that an action is physically safe.
+The controller does not actuate equipment or infer that an action is physically safe. A field-covariance target always requires high-resolution PIV, coverage of declared regions and reference qualification, even when the sentinel snapshot is otherwise benign.
 
 ## Hard evidence constraints
 
@@ -38,7 +38,7 @@ The controller does not actuate equipment or infer that an action is physically 
 
 ## Manufactured benchmark
 
-The 18 authored tests exercise benign sentinel continuation, uncertainty escalation, out-of-domain 3D escalation, reference/observer requalification, hard force/thrust capability requirements, missing direct-force resource, budget abstention, potentially perturbative diagnostics, incomplete telemetry, stale high-fidelity data, cost/tie-break choice, missing spatial regions, duplicate IDs, receiptless actions, non-finite data and exhaustive-search bounds.
+The 21 authored tests exercise benign sentinel continuation, uncertainty escalation, out-of-domain 3D escalation, reference/observer requalification, hard force/thrust capability requirements, missing direct-force resource, budget abstention, potentially perturbative diagnostics, incomplete telemetry, stale high-fidelity data, cost/tie-break choice, missing spatial regions, duplicate IDs, receiptless actions, non-finite data and exhaustive-search bounds.
 
 ## Competitive benchmark
 
