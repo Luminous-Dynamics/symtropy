@@ -796,7 +796,7 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
                     generation_kind: "AUGMENTED_TILT_AZIMUTH".to_owned(),
                     tilt_degrees_millideg: Some(quantize(*tilt_degrees, 1.0e3)?),
                     azimuth_degrees_millideg: Some(quantize(*azimuth_degrees, 1.0e3)?),
-                    visible_feature_ids,
+                    visible_feature_ids: visible_features,
                 });
             }
         }
