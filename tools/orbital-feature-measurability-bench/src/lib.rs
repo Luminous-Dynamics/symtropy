@@ -513,9 +513,7 @@ mod tests {
             [0.0, 51.0, 103.0, 154.0, 206.0, 257.0, 309.0]
                 .iter()
                 .enumerate()
-                .map(|(index, angle)| {
-                    observation(&format!("E{index}"), *angle, true, true)
-                })
+                .map(|(index, angle)| observation(&format!("E{index}"), *angle, true, true))
                 .collect(),
             100.0,
         );
@@ -523,9 +521,7 @@ mod tests {
             [315.0, 330.0, 345.0, 0.0, 15.0, 30.0, 45.0]
                 .iter()
                 .enumerate()
-                .map(|(index, angle)| {
-                    observation(&format!("C{index}"), *angle, true, true)
-                })
+                .map(|(index, angle)| observation(&format!("C{index}"), *angle, true, true))
                 .collect(),
             100.0,
         );
