@@ -160,7 +160,7 @@ The independent JS oracle is compared field-by-field against the Rust receipt. N
 
 Consumes the current finite surviving-world set, closed action universe, world-specific feasible actions and exact integer loss matrix. Retains an incumbent only if it is feasible in every surviving world and worst-case regret is no greater than the separately reported materiality margin plus switching cost. Equality retains. Any open/stale domain, stale evidence, inadequate model family, empty world set, scope mismatch, loss-unit mismatch or incomplete matrix abstains.
 
-Fifteen frozen controls cover decision-irrelevant shifts, different world optima within the regret margin, threshold crossing/equality, incumbent infeasibility, empty/open/stale/ambiguous states, loss-unit/scope mismatch and malformed loss matrices. The Rust suite includes an exact typed i64 overflow mutation. A separate JS oracle is compared against the complete Rust receipt. No world probabilities are inferred and no replacement action is selected/executed.
+Sixteen frozen controls cover decision-irrelevant shifts, different world optima within the regret margin, threshold crossing/equality, incumbent infeasibility, empty/open/stale/ambiguous states, loss-unit/scope mismatch and malformed loss matrices. The Rust suite includes an exact typed i64 overflow mutation. A separate JS oracle is compared against the complete Rust receipt. No world probabilities are inferred and no replacement action is selected/executed.
 
 ~~~bash
 cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin incumbent-decision-adequacy -- \
