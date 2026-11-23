@@ -60,6 +60,11 @@ function evalCase(c){
   }
  }
  const reqById=new Map(reqs.map(r=>[r.id,r]));
+ for(const [id,model] of models){
+  const requirement=reqById.get(id);
+  if(requirement&&model.family!==requirement.family)
+   findings.push(mkFinding("MODEL_FAMILY_MISMATCH",id,null,"producer model family differs from the independently registered model family"));
+ }
  const expectedModels=new Set(reqs.map(r=>r.id));
  const producerIds=new Set(models.keys()),declaredIds=new Set(c.declared_model_ids);
  if(declaredIds.size!==c.declared_model_ids.length||[...declaredIds].some(id=>!validId(id)))
@@ -125,7 +130,7 @@ function evalCase(c){
  findings.sort((a,b)=>cmp(a.code,b.code)||cmp(a.model_id||"",b.model_id||"")||cmp(a.pair_id||"",b.pair_id||"")||cmp(a.detail,b.detail));
  const unique=[];for(const f of findings)if(!unique.length||JSON.stringify(unique.at(-1))!==JSON.stringify(f))unique.push(f);
  const codes=new Set(unique.map(f=>f.code));
- const disposition=codes.has("MODEL_STALE")?"MODEL_STALE":codes.has("MODEL_OUT_OF_PROFILE")?"MODEL_OUT_OF_PROFILE":
+ const disposition=codes.has("MODEL_FAMILY_MISMATCH")?"MODEL_FAMILY_MISMATCH":codes.has("MODEL_STALE")?"MODEL_STALE":codes.has("MODEL_OUT_OF_PROFILE")?"MODEL_OUT_OF_PROFILE":
   codes.has("MODEL_SOURCE_UNAVAILABLE")?"MODEL_SOURCE_UNAVAILABLE":codes.has("MODEL_SCOPE_MISMATCH")?"MODEL_SCOPE_MISMATCH":
   codes.has("MODEL_RECEIPT_ALIAS")?"MODEL_RECEIPT_ALIAS":codes.has("COMMON_MODE_MODEL_OMISSION")?"COMMON_MODE_MODEL_OMISSION":
   codes.has("MISSING_LOSS_MODEL")?"MISSING_LOSS_MODEL":codes.has("UNWITNESSED_MODEL_EXCLUSION")?"UNWITNESSED_MODEL_EXCLUSION":
