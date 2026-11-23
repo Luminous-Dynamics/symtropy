@@ -69,6 +69,7 @@ struct RecourseAction {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct PartitionDecision {
     outcome: &'static str,
+    world_ids: String,
     action_id: &'static str,
     worst_case_regret_service_units: u32,
 }
@@ -86,7 +87,7 @@ struct CandidateResult {
     partition_count: Option<usize>,
     worst_case_regret_service_units: Option<u32>,
     partition_actions: Vec<PartitionDecision>,
-    evidence_receipts: &'static str,
+    evidence_receipts: String,
     recommended: bool,
 }
 
@@ -284,7 +285,9 @@ fn evidence_blocker(sensor: &SensorAction) -> Option<&'static str> {
         return None;
     }
 
-    let gate = sensor.gate?;
+    let Some(gate) = sensor.gate else {
+        return Some("BLOCKED_MISSING_GATE_RECEIPT");
+    };
 
     if !gate.read_only_authorized {
         return Some("BLOCKED_NOT_AUTHORIZED_READ_ONLY");
@@ -425,8 +428,14 @@ fn evaluate_partitions(
 
         let (partition_regret, action_id) = best_action?;
         worst_case_regret = worst_case_regret.max(partition_regret);
+        let world_ids = world_indices
+            .iter()
+            .map(|&world_index| WORLDS[world_index].id)
+            .collect::<Vec<_>>()
+            .join("|");
         decisions.push(PartitionDecision {
             outcome,
+            world_ids,
             action_id,
             worst_case_regret_service_units: partition_regret,
         });
@@ -471,7 +480,7 @@ fn evaluate_sensor(
         partition_count: partitions,
         worst_case_regret_service_units: regret,
         partition_actions: actions,
-        evidence_receipts: Box::leak(evidence_receipts.clone().into_boxed_str()),
+        evidence_receipts: evidence_receipts.clone(),
         recommended: false,
     };
 
@@ -516,7 +525,7 @@ fn choose_recommendation(results: &[CandidateResult]) -> Option<&'static str> {
         .map(|(_, _, id)| id)
 }
 
-pub fn evaluate_benchmark() -> Vec<CandidateResult> {
+fn evaluate_benchmark() -> Vec<CandidateResult> {
     let Some(oracle) = clairvoyant_values() else {
         return Vec::new();
     };
@@ -557,7 +566,7 @@ pub fn render_csv() -> String {
                 .map(|decision| {
                     format!(
                         "{}:{}:{}",
-                        decision.outcome,
+                        format!("{}[{}]", decision.outcome, decision.world_ids),
                         decision.action_id,
                         decision.worst_case_regret_service_units
                     )
@@ -700,6 +709,7 @@ mod tests {
             .expect("known independent-inspection partition");
 
         assert_eq!(unavailable.action_id, "maintain_primary");
+        assert_eq!(unavailable.world_ids, "primary_delayed_reserve_unavailable");
     }
 
     #[test]
@@ -712,6 +722,29 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(selected, vec!["independent_field_inspection"]);
+    }
+
+
+    #[test]
+    fn missing_gate_receipt_and_correlated_or_revoked_dependencies_fail_closed() {
+        let mut missing_gate = SENSORS[0];
+        missing_gate.mode = SensingMode::IndependentWitness;
+        missing_gate.gate = None;
+        assert_eq!(
+            evidence_blocker(&missing_gate),
+            Some("BLOCKED_MISSING_GATE_RECEIPT")
+        );
+
+        for dependency in [
+            DependencyDisposition::PotentiallyCorrelated,
+            DependencyDisposition::Revoked,
+        ] {
+            let mut sensor = SENSORS[1];
+            let mut gate = sensor.gate.expect("fixture gate");
+            gate.dependency = dependency;
+            sensor.gate = Some(gate);
+            assert!(evidence_blocker(&sensor).is_some());
+        }
     }
 
     #[test]
