@@ -23,6 +23,12 @@ The public sources do not support a single unquestioned 2024 national diesel-dem
 
 Q2 2026 customs data records 3.3 billion litres of diesel imports. India supplied 27%, the United States 21%, Oman 15%, Togo 9% and the Netherlands 5%. The top-three concentration was therefore 63% for that quarter. This is a customs-flow observation for one quarter, not a long-run dependency or current inventory estimate.
 
+## Time-varying supplier origin observations
+
+The [Q2 2026 Energy Trade Report](research/SOURCES.md) reports a quarter-specific origin mix. A separate customs dashboard from Econo Energy Tools reports a different September 2026 monthly mix. These sources have different publication and methodology status and must not be joined or treated as a continuous, like-for-like time series.
+
+See [IMPORT_ORIGIN_VOLATILITY.md](research/IMPORT_ORIGIN_VOLATILITY.md) for the explicit source comparison and a proposal to model supplier origin as time-varying, with uncertainty and source provenance attached.
+
 ## Run
 
 From this directory:
