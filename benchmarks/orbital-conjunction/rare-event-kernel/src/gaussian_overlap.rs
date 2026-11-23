@@ -783,7 +783,7 @@ pub struct NasaPeakOverlapReport {
     pub fclip: f64,
     /// Lclip = (HBR * Fclip)^2, applied to both source covariances and their precision sum.
     pub clip_floor: f64,
-};
+}
 
 #[cfg(test)]
 mod tests {
