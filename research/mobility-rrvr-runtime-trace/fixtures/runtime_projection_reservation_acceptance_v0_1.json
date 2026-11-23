@@ -225,7 +225,7 @@
           "owner_revision": "revision-8",
           "evidence_id": "initial-evidence-8",
           "scope": {
-            "logical_effect_id": "effect-1",
+            "logical_effect_id": "synthetic-effect-1",
             "attempt_id": "attempt-2",
             "subject_boot_epoch": 1,
             "subject_controller_epoch": 1
@@ -479,7 +479,7 @@
           "owner_revision": "revision-8",
           "evidence_id": "initial-evidence-8",
           "scope": {
-            "logical_effect_id": "effect-1",
+            "logical_effect_id": "synthetic-effect-1",
             "attempt_id": "attempt-2",
             "subject_boot_epoch": 1,
             "subject_controller_epoch": 1
@@ -733,7 +733,7 @@
           "owner_revision": "revision-8",
           "evidence_id": "initial-evidence-8",
           "scope": {
-            "logical_effect_id": "effect-1",
+            "logical_effect_id": "synthetic-effect-1",
             "attempt_id": "attempt-2",
             "subject_boot_epoch": 1,
             "subject_controller_epoch": 1
@@ -987,7 +987,7 @@
           "owner_revision": "revision-8",
           "evidence_id": "initial-evidence-8",
           "scope": {
-            "logical_effect_id": "effect-1",
+            "logical_effect_id": "synthetic-effect-1",
             "attempt_id": "attempt-2",
             "subject_boot_epoch": 1,
             "subject_controller_epoch": 1
