@@ -70,7 +70,10 @@ impl<const D: usize> AabbSeparationWitness<D> {
     /// Any endpoint change, non-finite endpoint, reversed interval, invalid
     /// axis, or loss of strict separation invalidates this witness.
     pub fn verify(&self, a: &Aabb<D>, b: &Aabb<D>) -> bool {
-        if self.axis >= D || !aabb_has_finite_ordered_bounds(a) || !aabb_has_finite_ordered_bounds(b) {
+        if self.axis >= D
+            || !aabb_has_finite_ordered_bounds(a)
+            || !aabb_has_finite_ordered_bounds(b)
+        {
             return false;
         }
 
@@ -83,24 +86,17 @@ impl<const D: usize> AabbSeparationWitness<D> {
         }
 
         match self.relation {
-            AabbSeparationRelation::SelfMaxBelowOtherMin => {
-                a.max[self.axis] < b.min[self.axis]
-            }
-            AabbSeparationRelation::OtherMaxBelowSelfMin => {
-                b.max[self.axis] < a.min[self.axis]
-            }
+            AabbSeparationRelation::SelfMaxBelowOtherMin => a.max[self.axis] < b.min[self.axis],
+            AabbSeparationRelation::OtherMaxBelowSelfMin => b.max[self.axis] < a.min[self.axis],
         }
     }
 }
 
 fn aabb_has_finite_ordered_bounds<const D: usize>(aabb: &Aabb<D>) -> bool {
     (0..D).all(|axis| {
-        aabb.min[axis].is_finite()
-            && aabb.max[axis].is_finite()
-            && aabb.min[axis] <= aabb.max[axis]
+        aabb.min[axis].is_finite() && aabb.max[axis].is_finite() && aabb.min[axis] <= aabb.max[axis]
     })
 }
-
 
 impl<const D: usize> Aabb<D> {
     /// Construct a checkable witness if these finite, ordered AABBs are
@@ -109,9 +105,7 @@ impl<const D: usize> Aabb<D> {
     /// Tangency is overlap for broadphase purposes and therefore produces no
     /// witness. Invalid or non-finite endpoints also produce no witness.
     pub fn separation_witness(&self, other: &Self) -> Option<AabbSeparationWitness<D>> {
-        if !aabb_has_finite_ordered_bounds(self)
-            || !aabb_has_finite_ordered_bounds(other)
-        {
+        if !aabb_has_finite_ordered_bounds(self) || !aabb_has_finite_ordered_bounds(other) {
             return None;
         }
 
