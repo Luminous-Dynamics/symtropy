@@ -7,9 +7,21 @@ if (!receiptPath || !oraclePath) {
 const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
 const oracle = JSON.parse(fs.readFileSync(oraclePath, "utf8"));
 
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value).sort().map(key => [key, canonicalize(value[key])])
+    );
+  }
+  return value;
+}
+
 function assertEqual(actual, expected, label) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`${label} mismatch\nreceipt: ${JSON.stringify(actual)}\noracle:   ${JSON.stringify(expected)}`);
+  const actualCanonical = JSON.stringify(canonicalize(actual));
+  const expectedCanonical = JSON.stringify(canonicalize(expected));
+  if (actualCanonical !== expectedCanonical) {
+    throw new Error(`${label} mismatch\nreceipt: ${actualCanonical}\noracle:   ${expectedCanonical}`);
   }
 }
 assertEqual(receipt.result, oracle.result, "overall result");
