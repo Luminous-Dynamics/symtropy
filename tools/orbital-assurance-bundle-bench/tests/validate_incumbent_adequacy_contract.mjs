@@ -13,7 +13,7 @@ if (schema.$schema !== "https://json-schema.org/draft/2020-12/schema"
 if (corpus.schema !== schema.properties.schema.const
   || corpus.evidence_class !== schema.properties.evidence_class.const
   || corpus.claim_ceiling !== schema.properties.claim_ceiling.const
-  || !Array.isArray(corpus.cases) || corpus.cases.length !== 15) {
+  || !Array.isArray(corpus.cases) || corpus.cases.length !== 16) {
   throw new Error("incumbent adequacy corpus does not match its v0.1 contract");
 }
 const ids = new Set();
