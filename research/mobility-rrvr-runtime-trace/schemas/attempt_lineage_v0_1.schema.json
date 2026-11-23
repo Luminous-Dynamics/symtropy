@@ -324,23 +324,12 @@
           ]
         },
         "downstream_quiescence": {
-          "allOf": [
+          "oneOf": [
             {
-              "$ref": "#/$defs/observer_owner_evidence_ref"
+              "type": "null"
             },
             {
-              "properties": {
-                "domain": {
-                  "const": "downstream_observer_quorum"
-                },
-                "asserted_value": {
-                  "const": "quiescent"
-                }
-              },
-              "required": [
-                "domain",
-                "asserted_value"
-              ]
+              "$ref": "#/$defs/observer_owner_evidence_ref"
             }
           ]
         }
