@@ -56,3 +56,17 @@ The companion \`ray_geometry\` module and \`sampling-ray-generator-bench\` CLI g
 The four fixtures cover a known 3×3 triangle projection (five hits), front/rear occlusion (the rear surface receives zero hits), two separately identified views, and a square split into two triangles where shared-diagonal pixels are counted once (four hits, two tie pixels).
 
 Element areas remain caller-declared synthetic metadata; this generator does not derive area uncertainty, model finite pixel footprints, lens distortion, radiometry, structured-light projected patterns or sensor noise. Its counts are exact only relative to the stated ideal pinhole/pixel-centre/triangle model. The independent Python oracle implements the projection and triangle-intersection calculations separately; it is a test oracle, not production code.
+
+
+## Geometry-to-density bridge v0.1
+
+\`ray_geometry::bridge_geometry_to_density\` connects generated camera/triangle intersections to the existing exact density-accounting contract. It takes an explicit requirement for every mesh element, a selected-view ID set and a view-count ceiling. It generates per-element/per-view \`ViewRayCount\` rows directly from the ray engine; callers do not enter the counts manually.
+
+The bridge:
+- rejects a geometry case whose expected hit-count matrix does not match the generated ray counts;
+- preserves element ID, mesh revision and caller-declared area in square micrometres;
+- marks generated counts \`EXACT_SYNTHETIC_ORACLE\` only relative to the ideal pinhole/pixel-centre/triangle implementation;
+- invokes the existing integer-rational density accountant, preserving candidate-pool infeasibility separately from selected-plan/budget infeasibility;
+- records hashes of the serialized geometry case and derived sampling case.
+
+The generated count means one pixel-centre ray whose nearest triangle hit is attributed to the element. It is not a physical sample, NDE probe measurement, independent observation, calibrated measurement or POD trial. Area is still declared fixture metadata. No camera calibration, lens distortion, finite pixel-footprint, photometric response, illumination, reflectance, depth-of-field, noise or robot reachability is modeled.

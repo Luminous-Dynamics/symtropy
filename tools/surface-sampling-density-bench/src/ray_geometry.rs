@@ -716,15 +716,15 @@ mod density_bridge_tests {
     fn expected_geometry_hit_mismatch_is_rejected_before_density_accounting() {
         let mut corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
         corpus.cases[0].expected_hit_counts[0].hit_pixel_count = 4;
-        assert_eq!(
+        assert!(matches!(
             bridge_geometry_to_density(
                 &corpus.cases[0],
                 &["VIEW-A".to_owned()],
                 1,
                 &[requirement("TRIANGLE-FRONT", 2, 1)],
             ),
-            Err("GEOMETRY_EXPECTED_HIT_MATRIX_MISMATCH".to_owned())
-        );
+            Err(error) if error == "GEOMETRY_EXPECTED_HIT_MATRIX_MISMATCH"
+        ));
     }
 }
 
