@@ -1,9 +1,11 @@
-use safrb_network::{base_case, Grade};
+use safrb_network::{Grade, base_case};
 
 fn main() -> Result<(), String> {
     let result = base_case().simulate()?;
     println!("# SAFRB v0.2 — synthetic three-node chain; not a South African calibrated network");
-    println!("scenario,opening_l,cargo_receipts_l,production_l,delivered_l,unserved_l,transit_loss_l,closing_nodes_l,closing_transit_l,network_residual_l");
+    println!(
+        "scenario,opening_l,cargo_receipts_l,production_l,delivered_l,unserved_l,transit_loss_l,closing_nodes_l,closing_transit_l,network_residual_l"
+    );
     println!(
         "{},{},{},{},{},{},{},{},{},{}",
         result.scenario_id,
