@@ -1050,7 +1050,11 @@ mod tests {
                     .undercovered_feature_ids_before_augmentation
                     .contains(&candidate.source_feature_id)
             );
-            assert!(candidate.visible_feature_ids.contains(&candidate.source_feature_id));
+            assert!(
+                candidate
+                    .visible_feature_ids
+                    .contains(&candidate.source_feature_id)
+            );
             assert!(candidate.tilt_degrees_millideg.is_some());
             assert!(candidate.tilt_degrees_millideg.unwrap() <= 45_000);
             assert!(candidate.azimuth_degrees_millideg.is_some());
