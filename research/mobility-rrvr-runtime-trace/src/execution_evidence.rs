@@ -88,6 +88,7 @@ pub struct ResetEvidenceReceipt {
     pub reset_profile_sha256: String,
     pub expected_initial_state_sha256: String,
     pub observed_initial_state_sha256: String,
+    pub clock_id: String,
     pub simulation_step: u64,
 }
 
@@ -250,6 +251,7 @@ fn validate_receipt(
         || !nonempty(&receipt.producer_revision)
         || !nonempty(&receipt.raw_artifact_id)
         || !valid_sha256(&receipt.raw_artifact_sha256)
+        || !nonempty(&receipt.clock_id)
         || receipt.run_id != bundle.run_id
         || receipt.run_epoch != bundle.run_epoch
         || receipt.world_epoch != bundle.world_epoch
@@ -922,6 +924,12 @@ impl ExecutionEvidenceBundle {
             .into_iter()
             .flatten()
             .collect();
+            if phase_receipts
+                .first()
+                .is_some_and(|first| first.clock_id != reset_receipt.clock_id)
+            {
+                return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+            }
             for adjacent in phase_receipts.windows(2) {
                 if adjacent[0].clock_id != adjacent[1].clock_id
                     || adjacent[0].simulation_step > adjacent[1].simulation_step
@@ -1058,6 +1066,17 @@ mod tests {
             .as_mut()
             .unwrap()
             .simulation_step += 1;
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_event_clock_that_differs_from_reset_clock() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.reset.receipt.as_mut().unwrap().clock_id = "reset-clock".into();
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
