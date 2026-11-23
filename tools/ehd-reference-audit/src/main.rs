@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Offline integrity and comparability audit for the public EHD reference atlas.
 //!
 //! This checks source transcription structure and cohort boundaries. It does
@@ -7,22 +9,21 @@
 use serde_json::Value;
 use std::{env, fs, process};
 
-mod exchange;
-mod geometry;
-mod gcl;
-mod exchange_receipt;
-mod polynomial_moments;
+mod control_volume;
 mod drag_dissipation;
 mod drag_trajectory;
-mod control_volume;
+mod exchange;
+mod exchange_receipt;
+mod gcl;
+mod geometry;
 mod identifiability;
 mod observer_perturbation;
-mod tracer_screening;
-mod piv_qualification;
 mod piv_displacement_uncertainty;
+mod piv_qualification;
+mod polynomial_moments;
+mod tracer_screening;
 
-const EMBEDDED_ATLAS: &str =
-    include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
+const EMBEDDED_ATLAS: &str = include_str!("../../../data/research/ehd_reference_atlas_v0_1.json");
 const EMBEDDED_FRONTIER_PATTERNS: &str =
     include_str!("../../../data/research/ehd_frontier_design_patterns_v0_1.json");
 const EMBEDDED_EXCHANGE_CONTRACT: &str =
@@ -73,7 +74,10 @@ fn len_at(value: &Value, path: &[&str]) -> Option<usize> {
 }
 
 fn find_record<'a>(records: Option<&'a Vec<Value>>, wanted: &str) -> Option<&'a Value> {
-    records.and_then(|rows| rows.iter().find(|row| text_at(row, &["id"]) == Some(wanted)))
+    records.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["id"]) == Some(wanted))
+    })
 }
 
 fn row_matches(row: &Value, expected: &[(&str, f64)]) -> bool {
@@ -126,7 +130,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     ] {
         let found = at(root, &["comparability_policy"])
             .and_then(Value::as_array)
-            .is_some_and(|items| items.iter().any(|v| v.as_str().is_some_and(|s| s.contains(policy))));
+            .is_some_and(|items| {
+                items
+                    .iter()
+                    .any(|v| v.as_str().is_some_and(|s| s.contains(policy)))
+            });
         push_if_missing(
             &mut findings,
             found,
@@ -183,9 +191,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     // Usuelli pressure/gap figure data must retain the source-recorded row
     // counts. The exported values are figure data, not instrument time series.
-    let usuelli = records.and_then(|rows| rows.iter().find(|r| {
-        text_at(r, &["source_id"]) == Some("USUELLI_2025_GRID_PRESSURE_DATA_V2")
-    }));
+    let usuelli = records.and_then(|rows| {
+        rows.iter()
+            .find(|r| text_at(r, &["source_id"]) == Some("USUELLI_2025_GRID_PRESSURE_DATA_V2"))
+    });
     push_if_missing(
         &mut findings,
         usuelli.is_some(),
@@ -194,11 +203,43 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     );
     if let Some(record) = usuelli {
         for (path, expected, name) in [
-            (&["extracted_figure_data", "figure3_ignition_voltage", "rows"][..], 45, "Figure 3"),
-            (&["extracted_figure_data", "figure4_breakdown_voltage", "rows"][..], 30, "Figure 4"),
-            (&["extracted_figure_data", "figure5_ignition_to_breakdown_voltage_delta", "rows"][..], 29, "Figure 5"),
-            (&["extracted_figure_data", "figure12_altitude_projection", "thrust_density_variation"][..], 17, "Figure 12 T/A"),
-            (&["extracted_figure_data", "figure12_altitude_projection", "thrust_to_power_variation"][..], 17, "Figure 12 T/P"),
+            (
+                &["extracted_figure_data", "figure3_ignition_voltage", "rows"][..],
+                45,
+                "Figure 3",
+            ),
+            (
+                &["extracted_figure_data", "figure4_breakdown_voltage", "rows"][..],
+                30,
+                "Figure 4",
+            ),
+            (
+                &[
+                    "extracted_figure_data",
+                    "figure5_ignition_to_breakdown_voltage_delta",
+                    "rows",
+                ][..],
+                29,
+                "Figure 5",
+            ),
+            (
+                &[
+                    "extracted_figure_data",
+                    "figure12_altitude_projection",
+                    "thrust_density_variation",
+                ][..],
+                17,
+                "Figure 12 T/A",
+            ),
+            (
+                &[
+                    "extracted_figure_data",
+                    "figure12_altitude_projection",
+                    "thrust_to_power_variation",
+                ][..],
+                17,
+                "Figure 12 T/P",
+            ),
         ] {
             push_if_missing(
                 &mut findings,
@@ -215,47 +256,160 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            contains_any(record, &["provenance", "limitations"], "Not raw instrument acquisition"),
+            contains_any(
+                record,
+                &["provenance", "limitations"],
+                "Not raw instrument acquisition",
+            ),
             "USUELLI_RAW_DATA_BOUNDARY",
             "missing figure-data versus raw-acquisition limitation",
         );
         push_if_missing(
             &mut findings,
-            contains_any(record, &["provenance", "limitations"], "Do not count repeated figure data as independent samples"),
+            contains_any(
+                record,
+                &["provenance", "limitations"],
+                "Do not count repeated figure data as independent samples",
+            ),
             "USUELLI_DUPLICATION_BOUNDARY",
             "repeated figures must not be counted as independent observations",
         );
-        let figure3 = at(record, &["extracted_figure_data", "figure3_ignition_voltage", "rows"])
-            .and_then(Value::as_array);
-        let figure4 = at(record, &["extracted_figure_data", "figure4_breakdown_voltage", "rows"])
-            .and_then(Value::as_array);
-        let figure5 = at(record, &["extracted_figure_data", "figure5_ignition_to_breakdown_voltage_delta", "rows"])
-            .and_then(Value::as_array);
-        let figure12_ta = at(record, &["extracted_figure_data", "figure12_altitude_projection", "thrust_density_variation"])
-            .and_then(Value::as_array);
-        let figure12_tp = at(record, &["extracted_figure_data", "figure12_altitude_projection", "thrust_to_power_variation"])
-            .and_then(Value::as_array);
+        let figure3 = at(
+            record,
+            &["extracted_figure_data", "figure3_ignition_voltage", "rows"],
+        )
+        .and_then(Value::as_array);
+        let figure4 = at(
+            record,
+            &["extracted_figure_data", "figure4_breakdown_voltage", "rows"],
+        )
+        .and_then(Value::as_array);
+        let figure5 = at(
+            record,
+            &[
+                "extracted_figure_data",
+                "figure5_ignition_to_breakdown_voltage_delta",
+                "rows",
+            ],
+        )
+        .and_then(Value::as_array);
+        let figure12_ta = at(
+            record,
+            &[
+                "extracted_figure_data",
+                "figure12_altitude_projection",
+                "thrust_density_variation",
+            ],
+        )
+        .and_then(Value::as_array);
+        let figure12_tp = at(
+            record,
+            &[
+                "extracted_figure_data",
+                "figure12_altitude_projection",
+                "thrust_to_power_variation",
+            ],
+        )
+        .and_then(Value::as_array);
 
         let source_points_match = figure3.is_some_and(|rows| {
             rows.len() == 55
-                && rows.first().is_some_and(|row| row_matches(row, &[("gap_mm", 20.0), ("pressure_pa", 100.0), ("ignition_voltage_kv", 7.29)]))
-                && rows.get(44).is_some_and(|row| row_matches(row, &[("gap_mm", 60.0), ("pressure_pa", 20.0), ("ignition_voltage_kv", 5.12)]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("gap_mm", 20.0),
+                            ("pressure_pa", 100.0),
+                            ("ignition_voltage_kv", 7.29),
+                        ],
+                    )
+                })
+                && rows.get(44).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("gap_mm", 60.0),
+                            ("pressure_pa", 20.0),
+                            ("ignition_voltage_kv", 5.12),
+                        ],
+                    )
+                })
         }) && figure4.is_some_and(|rows| {
             rows.len() == 30
-                && rows.first().is_some_and(|row| row_matches(row, &[("pressure_gap_pa_m", 400.0), ("breakdown_voltage_kv", 7.5395)]))
-                && rows.get(29).is_some_and(|row| row_matches(row, &[("pressure_gap_pa_m", 3500.0), ("breakdown_voltage_kv", 24.7899)]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("pressure_gap_pa_m", 400.0),
+                            ("breakdown_voltage_kv", 7.5395),
+                        ],
+                    )
+                })
+                && rows.get(29).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("pressure_gap_pa_m", 3500.0),
+                            ("breakdown_voltage_kv", 24.7899),
+                        ],
+                    )
+                })
         }) && figure5.is_some_and(|rows| {
             rows.len() == 29
-                && rows.first().is_some_and(|row| row_matches(row, &[("gap_mm", 20.0), ("pressure_pa", 20000.0), ("delta_voltage_kv", 4.5195)]))
-                && rows.get(28).is_some_and(|row| row_matches(row, &[("gap_mm", 50.0), ("pressure_pa", 70000.0), ("delta_voltage_kv", 16.6149)]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("gap_mm", 20.0),
+                            ("pressure_pa", 20000.0),
+                            ("delta_voltage_kv", 4.5195),
+                        ],
+                    )
+                })
+                && rows.get(28).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("gap_mm", 50.0),
+                            ("pressure_pa", 70000.0),
+                            ("delta_voltage_kv", 16.6149),
+                        ],
+                    )
+                })
         }) && figure12_ta.is_some_and(|rows| {
             rows.len() == 17
-                && rows.first().is_some_and(|row| row_matches(row, &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)]))
-                && rows.get(16).is_some_and(|row| row_matches(row, &[("altitude_km", 11.7763701), ("percentage_variation", -80.33792326)]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)],
+                    )
+                })
+                && rows.get(16).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("altitude_km", 11.7763701),
+                            ("percentage_variation", -80.33792326),
+                        ],
+                    )
+                })
         }) && figure12_tp.is_some_and(|rows| {
             rows.len() == 17
-                && rows.first().is_some_and(|row| row_matches(row, &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)]))
-                && rows.get(16).is_some_and(|row| row_matches(row, &[("altitude_km", 11.7763701), ("percentage_variation", -78.04621025)]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[("altitude_km", 0.11090105), ("percentage_variation", 0.0)],
+                    )
+                })
+                && rows.get(16).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("altitude_km", 11.7763701),
+                            ("percentage_variation", -78.04621025),
+                        ],
+                    )
+                })
         });
         push_if_missing(
             &mut findings,
@@ -267,9 +421,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     // The Terenzi paper's headline maxima belong to distinct configurations
     // and its published T/W mass basis is collector-only.
-    let terenzi = records.and_then(|rows| rows.iter().find(|r| {
-        text_at(r, &["source_id"]) == Some("TERENZI_2025_GRID_COLLECTOR")
-    }));
+    let terenzi = records.and_then(|rows| {
+        rows.iter()
+            .find(|r| text_at(r, &["source_id"]) == Some("TERENZI_2025_GRID_COLLECTOR"))
+    });
     push_if_missing(
         &mut findings,
         terenzi.is_some(),
@@ -277,8 +432,22 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         "missing grid-collector source record",
     );
     if let Some(record) = terenzi {
-        let ta_config = text_at(record, &["reported_configuration_specific_results", "maximum_thrust_density_n_m2", "configuration"]);
-        let tp_config = text_at(record, &["reported_configuration_specific_results", "maximum_thrust_to_power_n_kw", "configuration"]);
+        let ta_config = text_at(
+            record,
+            &[
+                "reported_configuration_specific_results",
+                "maximum_thrust_density_n_m2",
+                "configuration",
+            ],
+        );
+        let tp_config = text_at(
+            record,
+            &[
+                "reported_configuration_specific_results",
+                "maximum_thrust_to_power_n_kw",
+                "configuration",
+            ],
+        );
         push_if_missing(
             &mut findings,
             ta_config == Some("III") && tp_config == Some("I") && ta_config != tp_config,
@@ -287,8 +456,22 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            (number_at(record, &["reported_configuration_specific_results", "maximum_thrust_density_n_m2", "value"]) == Some(7.03))
-                && (number_at(record, &["reported_configuration_specific_results", "maximum_thrust_to_power_n_kw", "value"]) == Some(6.52)),
+            (number_at(
+                record,
+                &[
+                    "reported_configuration_specific_results",
+                    "maximum_thrust_density_n_m2",
+                    "value",
+                ],
+            ) == Some(7.03))
+                && (number_at(
+                    record,
+                    &[
+                        "reported_configuration_specific_results",
+                        "maximum_thrust_to_power_n_kw",
+                        "value",
+                    ],
+                ) == Some(6.52)),
             "TERENZI_SOURCE_VALUES",
             "source-reported headline values have changed; re-audit source transcription",
         );
@@ -300,14 +483,18 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            contains_any(record, &["mass_boundary", "excluded"], "high-voltage converter")
-                && contains_any(record, &["mass_boundary", "excluded"], "frame"),
+            contains_any(
+                record,
+                &["mass_boundary", "excluded"],
+                "high-voltage converter",
+            ) && contains_any(record, &["mass_boundary", "excluded"], "frame"),
             "TERENZI_MASS_EXCLUSIONS",
             "integrated-system mass exclusions must remain explicit",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["public_data", "data_kind"]) == Some("figure pickle assets, not disclosed raw instrument time-series"),
+            text_at(record, &["public_data", "data_kind"])
+                == Some("figure pickle assets, not disclosed raw instrument time-series"),
             "TERENZI_DATA_KIND",
             "figure assets must not be represented as raw acquisition traces",
         );
@@ -315,9 +502,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     // The Mars/low-pressure cohort is per-span thrust, not total thrust, and
     // its power boundary is the real AC cycle-average.
-    let liu = records.and_then(|rows| rows.iter().find(|r| {
-        text_at(r, &["source_id"]) == Some("LIU_2026_MARS_CO2_DBD")
-    }));
+    let liu = records.and_then(|rows| {
+        rows.iter()
+            .find(|r| text_at(r, &["source_id"]) == Some("LIU_2026_MARS_CO2_DBD"))
+    });
     push_if_missing(
         &mut findings,
         liu.is_some(),
@@ -327,21 +515,30 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     if let Some(record) = liu {
         push_if_missing(
             &mut findings,
-            number_at(record, &["reported_results", "at_600_pa_co2", "thrust_per_span_mn_m"]) == Some(5.498)
-                && number_at(record, &["reported_results", "at_600_pa_air", "thrust_per_span_mn_m"]) == Some(1.451),
+            number_at(
+                record,
+                &["reported_results", "at_600_pa_co2", "thrust_per_span_mn_m"],
+            ) == Some(5.498)
+                && number_at(
+                    record,
+                    &["reported_results", "at_600_pa_air", "thrust_per_span_mn_m"],
+                ) == Some(1.451),
             "LIU_PER_SPAN_VALUES",
             "600 Pa CO2/air per-span values changed; re-audit source",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["measurement", "power"]).is_some_and(|s| s.contains("integral of u(t)*i(t)")),
+            text_at(record, &["measurement", "power"])
+                .is_some_and(|s| s.contains("integral of u(t)*i(t)")),
             "LIU_REAL_POWER",
             "AC power must remain a cycle-average real-power integral",
         );
         push_if_missing(
             &mut findings,
             text_at(record, &["comparability", "not_vacuum_propellantless"]) == Some("true")
-                || at(record, &["comparability", "not_vacuum_propellantless"]).and_then(Value::as_bool) == Some(true),
+                || at(record, &["comparability", "not_vacuum_propellantless"])
+                    .and_then(Value::as_bool)
+                    == Some(true),
             "LIU_COHORT_BOUNDARY",
             "low-pressure CO2 DBD must not be treated as vacuum propellantless thrust",
         );
@@ -350,9 +547,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     // Jiang et al. 2026 is a recent same-study, voltage-matched electrode
     // configuration comparison. Keep absolute thrust separate from T/P and
     // preserve the authors' explicit thrust-to-power trade-off.
-    let jiang = records.and_then(|rows| rows.iter().find(|r| {
-        text_at(r, &["source_id"]) == Some("JIANG_2026_SUB_UNIT_ELECTRODE")
-    }));
+    let jiang = records.and_then(|rows| {
+        rows.iter()
+            .find(|r| text_at(r, &["source_id"]) == Some("JIANG_2026_SUB_UNIT_ELECTRODE"))
+    });
     push_if_missing(
         &mut findings,
         jiang.is_some(),
@@ -372,12 +570,35 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             number_at(record, &["reported_results", "applied_voltage_kv"]) == Some(22.0)
-                && number_at(record, &["reported_results", "conventional", "thrust_mn"]) == Some(50.23)
+                && number_at(record, &["reported_results", "conventional", "thrust_mn"])
+                    == Some(50.23)
                 && number_at(record, &["reported_results", "sub_unit", "thrust_mn"]) == Some(64.09)
-                && number_at(record, &["reported_results", "sub_unit_plus", "thrust_mn"]) == Some(68.70)
-                && number_at(record, &["reported_results", "sub_unit", "relative_gain_percent_vs_conventional"]) == Some(27.59)
-                && number_at(record, &["reported_results", "sub_unit_plus", "relative_gain_percent_vs_conventional"]) == Some(36.77)
-                && number_at(record, &["reported_results", "sub_unit_plus", "relative_gain_percent_vs_sub_unit"]) == Some(7.19),
+                && number_at(record, &["reported_results", "sub_unit_plus", "thrust_mn"])
+                    == Some(68.70)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "sub_unit",
+                        "relative_gain_percent_vs_conventional",
+                    ],
+                ) == Some(27.59)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "sub_unit_plus",
+                        "relative_gain_percent_vs_conventional",
+                    ],
+                ) == Some(36.77)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "sub_unit_plus",
+                        "relative_gain_percent_vs_sub_unit",
+                    ],
+                ) == Some(7.19),
             "JIANG_SOURCE_VALUES",
             "same-study 22 kV thrust values or relative changes changed; re-audit primary source",
         );
@@ -385,8 +606,12 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             &mut findings,
             text_at(record, &["measurement", "thrust_method"])
                 .is_some_and(|method| method.contains("apparent-weight difference"))
-                && at(record, &["measurement", "repeated_measurements_per_condition"])
-                    .and_then(Value::as_u64) == Some(10)
+                && at(
+                    record,
+                    &["measurement", "repeated_measurements_per_condition"],
+                )
+                .and_then(Value::as_u64)
+                    == Some(10)
                 && number_at(record, &["measurement", "ambient_temperature_c"]) == Some(21.0)
                 && number_at(record, &["measurement", "relative_humidity_percent"]) == Some(22.8),
             "JIANG_MEASUREMENT_BOUNDARY",
@@ -395,50 +620,127 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             at(record, &["reported_results", "absolute_current_a"]).is_some_and(Value::is_null)
-                && at(record, &["reported_results", "absolute_real_power_w"]).is_some_and(Value::is_null)
-                && at(record, &["reported_results", "absolute_thrust_to_power", "value"]).is_some_and(Value::is_null)
-                && at(record, &["comparability", "thrust_to_power_leaderboard_eligible"])
-                    .and_then(Value::as_bool) == Some(false),
+                && at(record, &["reported_results", "absolute_real_power_w"])
+                    .is_some_and(Value::is_null)
+                && at(
+                    record,
+                    &["reported_results", "absolute_thrust_to_power", "value"],
+                )
+                .is_some_and(Value::is_null)
+                && at(
+                    record,
+                    &["comparability", "thrust_to_power_leaderboard_eligible"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(false),
             "JIANG_POWER_BOUNDARY",
             "exact current, real-power and thrust-to-power values must remain unclaimed and excluded from ranking",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["reported_results", "figure9_22kv", "evidence_class"])
-                == Some("approximate_visual_digitization_from_source_figure_not_tabulated_exact_values")
-                && number_at(record, &["reported_results", "figure9_22kv", "thrust_to_power_n_kw", "conventional_approx"]) == Some(3.0)
-                && number_at(record, &["reported_results", "figure9_22kv", "thrust_to_power_n_kw", "sub_unit_plus_approx"]) == Some(2.4)
-                && number_at(record, &["reported_results", "figure9_22kv", "current_ma", "conventional_approx"]) == Some(0.77)
-                && number_at(record, &["reported_results", "figure9_22kv", "current_ma", "sub_unit_plus_approx"]) == Some(1.34)
+            text_at(
+                record,
+                &["reported_results", "figure9_22kv", "evidence_class"],
+            ) == Some(
+                "approximate_visual_digitization_from_source_figure_not_tabulated_exact_values",
+            ) && number_at(
+                record,
+                &[
+                    "reported_results",
+                    "figure9_22kv",
+                    "thrust_to_power_n_kw",
+                    "conventional_approx",
+                ],
+            ) == Some(3.0)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "figure9_22kv",
+                        "thrust_to_power_n_kw",
+                        "sub_unit_plus_approx",
+                    ],
+                ) == Some(2.4)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "figure9_22kv",
+                        "current_ma",
+                        "conventional_approx",
+                    ],
+                ) == Some(0.77)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "figure9_22kv",
+                        "current_ma",
+                        "sub_unit_plus_approx",
+                    ],
+                ) == Some(1.34)
                 && text_at(record, &["measurement", "uncertainty_details"])
                     .is_some_and(|note| note.contains("95% confidence intervals")),
             "JIANG_FIGURE9_BOUNDARY",
             "approximate Fig. 9 values must remain labelled as graph estimates, separate from exact data and with CI caveat",
         );
-        let figure10 = at(record, &["reported_results", "figure10_22kv_sub_unit_plus_sweep", "configurations"])
-            .and_then(Value::as_array);
+        let figure10 = at(
+            record,
+            &[
+                "reported_results",
+                "figure10_22kv_sub_unit_plus_sweep",
+                "configurations",
+            ],
+        )
+        .and_then(Value::as_array);
         push_if_missing(
             &mut findings,
-            figure10.is_some_and(|rows| rows.len() == 4
-                && number_at(&rows[0], &["sub_unit_plus_width_mm"]) == Some(50.0)
-                && number_at(&rows[0], &["distance_mm"]) == Some(10.0)
-                && number_at(&rows[0], &["thrust_mn"]) == Some(68.70)
-                && number_at(&rows[1], &["thrust_mn"]) == Some(67.08)
-                && number_at(&rows[2], &["thrust_mn"]) == Some(63.23)
-                && number_at(&rows[3], &["thrust_mn"]) == Some(61.63))
-                && text_at(record, &["reported_results", "figure10_22kv_sub_unit_plus_sweep", "uncertainty_representation"])
-                    .is_some_and(|note| note.contains("95% confidence intervals")),
+            figure10.is_some_and(|rows| {
+                rows.len() == 4
+                    && number_at(&rows[0], &["sub_unit_plus_width_mm"]) == Some(50.0)
+                    && number_at(&rows[0], &["distance_mm"]) == Some(10.0)
+                    && number_at(&rows[0], &["thrust_mn"]) == Some(68.70)
+                    && number_at(&rows[1], &["thrust_mn"]) == Some(67.08)
+                    && number_at(&rows[2], &["thrust_mn"]) == Some(63.23)
+                    && number_at(&rows[3], &["thrust_mn"]) == Some(61.63)
+            }) && text_at(
+                record,
+                &[
+                    "reported_results",
+                    "figure10_22kv_sub_unit_plus_sweep",
+                    "uncertainty_representation",
+                ],
+            )
+            .is_some_and(|note| note.contains("95% confidence intervals")),
             "JIANG_FIGURE10_SWEEP",
             "sub-unit-plus geometry sweep values and confidence-interval provenance changed",
         );
         push_if_missing(
             &mut findings,
-            at(record, &["comparability", "absolute_thrust_leaderboard_eligible"])
-                .and_then(Value::as_bool) == Some(false)
-                && at(record, &["comparability", "system_thrust_to_weight_leaderboard_eligible"])
-                    .and_then(Value::as_bool) == Some(false)
-                && at(record, &["reported_results", "thrust_to_power_tradeoff_reported_by_authors"])
-                    .and_then(Value::as_bool) == Some(true),
+            at(
+                record,
+                &["comparability", "absolute_thrust_leaderboard_eligible"],
+            )
+            .and_then(Value::as_bool)
+                == Some(false)
+                && at(
+                    record,
+                    &[
+                        "comparability",
+                        "system_thrust_to_weight_leaderboard_eligible",
+                    ],
+                )
+                .and_then(Value::as_bool)
+                    == Some(false)
+                && at(
+                    record,
+                    &[
+                        "reported_results",
+                        "thrust_to_power_tradeoff_reported_by_authors",
+                    ],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true),
             "JIANG_COMPARABILITY_BOUNDARY",
             "same-study thrust comparison must not be promoted to cross-study or efficiency leaderboard",
         );
@@ -447,9 +749,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     // Earlier EHD tracer-selection precedent: retain the Pitot reference and
     // electrical-current observations as part of tracer suitability, not just
     // optical particle-following criteria.
-    let hamdi = records.and_then(|rows| rows.iter().find(|record| {
-        text_at(record, &["source_id"]) == Some("HAMDI_2014_PIV_TRACER_SELECTION")
-    }));
+    let hamdi = records.and_then(|rows| {
+        rows.iter().find(|record| {
+            text_at(record, &["source_id"]) == Some("HAMDI_2014_PIV_TRACER_SELECTION")
+        })
+    });
     push_if_missing(
         &mut findings,
         hamdi.is_some(),
@@ -468,19 +772,43 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             text_at(record, &["method", "independent_velocity_reference"]) == Some("Pitot tube")
-                && contains_any(record, &["method", "dimensionless_selection_criteria"], "electrical mobility ratio")
-                && contains_any(record, &["method", "electrical_diagnostics"], "current evolution during tracer seeding")
+                && contains_any(
+                    record,
+                    &["method", "dimensionless_selection_criteria"],
+                    "electrical mobility ratio",
+                )
+                && contains_any(
+                    record,
+                    &["method", "electrical_diagnostics"],
+                    "current evolution during tracer seeding",
+                )
                 && at(record, &["method", "selected_suitable_tracers_in_study"])
-                    == Some(&serde_json::json!(["TiO2", "SiO2 microballoons", "incense smoke"])),
+                    == Some(&serde_json::json!([
+                        "TiO2",
+                        "SiO2 microballoons",
+                        "incense smoke"
+                    ])),
             "HAMDI_TRACER_METHOD",
             "Pitot-referenced flow, electrical mobility and tracer-current controls must remain explicit",
         );
         push_if_missing(
             &mut findings,
-            at(record, &["reported_results", "quantitative_tracer_velocity_error"]).is_some_and(Value::is_null)
-                && at(record, &["reported_results", "quantitative_current_changes"]).is_some_and(Value::is_null)
-                && at(record, &["comparability", "distinct_from_2026_dehs_incense_cohort"])
-                    .and_then(Value::as_bool) == Some(true),
+            at(
+                record,
+                &["reported_results", "quantitative_tracer_velocity_error"],
+            )
+            .is_some_and(Value::is_null)
+                && at(
+                    record,
+                    &["reported_results", "quantitative_current_changes"],
+                )
+                .is_some_and(Value::is_null)
+                && at(
+                    record,
+                    &["comparability", "distinct_from_2026_dehs_incense_cohort"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true),
             "HAMDI_TRACER_EVIDENCE_BOUNDARY",
             "untranscribed numerical results must remain unknown and the study distinct from the 2026 cohort",
         );
@@ -489,9 +817,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     // 2026 PIV seeding cohort: diagnostics are physical interventions, not
     // assumed-passive measurements. Keep the reported source values and
     // raw-data/uncertainty boundaries explicit.
-    let observer_cohort = records.and_then(|rows| rows.iter().find(|record| {
-        text_at(record, &["source_id"]) == Some("ZWOLINSKA_2026_PIV_SEEDING_HUMIDITY")
-    }));
+    let observer_cohort = records.and_then(|rows| {
+        rows.iter().find(|record| {
+            text_at(record, &["source_id"]) == Some("ZWOLINSKA_2026_PIV_SEEDING_HUMIDITY")
+        })
+    });
     push_if_missing(
         &mut findings,
         observer_cohort.is_some(),
@@ -512,10 +842,13 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             &mut findings,
             number_at(record, &["apparatus", "fan_diameter_mm"]) == Some(22.0)
                 && number_at(record, &["apparatus", "inter_electrode_distance_mm"]) == Some(11.0)
-                && at(record, &["apparatus", "applied_voltage_range_kv"]).and_then(Value::as_array)
-                    .is_some_and(|values| values.len() == 2
-                        && values[0].as_f64() == Some(4.0)
-                        && values[1].as_f64() == Some(14.0))
+                && at(record, &["apparatus", "applied_voltage_range_kv"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|values| {
+                        values.len() == 2
+                            && values[0].as_f64() == Some(4.0)
+                            && values[1].as_f64() == Some(14.0)
+                    })
                 && at(record, &["apparatus", "relative_humidity_levels_percent"])
                     == Some(&serde_json::json!([36, 50, 80])),
             "OBSERVER_PERTURBATION_OPERATING_ENVELOPE",
@@ -523,33 +856,109 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            number_at(record, &["diagnostic_protocol", "piv", "image_pairs_per_voltage_and_tracer"]) == Some(200.0)
-                && number_at(record, &["diagnostic_protocol", "piv", "acquisition_rate_hz"]) == Some(10.0)
-                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "applied_voltage_kv"]) == Some(8.0)
-                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "samples"]) == Some(180.0)
-                && number_at(record, &["diagnostic_protocol", "seeding_stability_test", "duration_minutes"]) == Some(15.0),
+            number_at(
+                record,
+                &[
+                    "diagnostic_protocol",
+                    "piv",
+                    "image_pairs_per_voltage_and_tracer",
+                ],
+            ) == Some(200.0)
+                && number_at(
+                    record,
+                    &["diagnostic_protocol", "piv", "acquisition_rate_hz"],
+                ) == Some(10.0)
+                && number_at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "seeding_stability_test",
+                        "applied_voltage_kv",
+                    ],
+                ) == Some(8.0)
+                && number_at(
+                    record,
+                    &["diagnostic_protocol", "seeding_stability_test", "samples"],
+                ) == Some(180.0)
+                && number_at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "seeding_stability_test",
+                        "duration_minutes",
+                    ],
+                ) == Some(15.0),
             "OBSERVER_PERTURBATION_DIAGNOSTIC_PROTOCOL",
             "PIV acquisition or 15-minute seeding stability protocol changed",
         );
         push_if_missing(
             &mut findings,
-            number_at(record, &["reported_results", "at_14_kv", "peak_axial_velocity_m_s", "dehs"]) == Some(3.8)
-                && number_at(record, &["reported_results", "at_14_kv", "peak_axial_velocity_m_s", "incense_smoke"]) == Some(5.9)
-                && number_at(record, &["reported_results", "at_14_kv", "volumetric_flow_l_s", "dehs"]) == Some(0.89)
-                && number_at(record, &["reported_results", "at_14_kv", "volumetric_flow_l_s", "incense_smoke"]) == Some(1.07)
-                && number_at(record, &["reported_results", "at_14_kv", "dehs_peak_velocity_reduction_percent"]) == Some(36.0)
-                && number_at(record, &["reported_results", "at_14_kv", "dehs_flow_underestimate_percent"]) == Some(17.0),
+            number_at(
+                record,
+                &[
+                    "reported_results",
+                    "at_14_kv",
+                    "peak_axial_velocity_m_s",
+                    "dehs",
+                ],
+            ) == Some(3.8)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "at_14_kv",
+                        "peak_axial_velocity_m_s",
+                        "incense_smoke",
+                    ],
+                ) == Some(5.9)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "at_14_kv",
+                        "volumetric_flow_l_s",
+                        "dehs",
+                    ],
+                ) == Some(0.89)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "at_14_kv",
+                        "volumetric_flow_l_s",
+                        "incense_smoke",
+                    ],
+                ) == Some(1.07)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "at_14_kv",
+                        "dehs_peak_velocity_reduction_percent",
+                    ],
+                ) == Some(36.0)
+                && number_at(
+                    record,
+                    &[
+                        "reported_results",
+                        "at_14_kv",
+                        "dehs_flow_underestimate_percent",
+                    ],
+                ) == Some(17.0),
             "OBSERVER_PERTURBATION_SOURCE_VALUES",
             "published tracer-induced velocity or flow differences changed",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["key_interpretation", "observer_perturbation"])
-                .is_some_and(|value| value.contains("not only an additive velocity-measurement error"))
-                && text_at(record, &["provenance", "evidence_class"])
-                    == Some("peer_reviewed_experimental_comparison_source_transcribed_not_raw_data_reproduced")
+            text_at(record, &["key_interpretation", "observer_perturbation"]).is_some_and(
+                |value| value.contains("not only an additive velocity-measurement error"),
+            ) && text_at(record, &["provenance", "evidence_class"])
+                == Some(
+                    "peer_reviewed_experimental_comparison_source_transcribed_not_raw_data_reproduced",
+                )
                 && at(record, &["comparability", "ml_training_target_eligible"])
-                    .and_then(Value::as_bool) == Some(false)
+                    .and_then(Value::as_bool)
+                    == Some(false)
                 && text_at(record, &["diagnostic_protocol", "data_availability"])
                     .is_some_and(|value| value.contains("reasonable request")),
             "OBSERVER_PERTURBATION_EVIDENCE_BOUNDARY",
@@ -559,9 +968,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     // Low-density air IWT PIV source: preserve pressure-resolved tracer
     // image quality, discharge-interaction controls and collector-optics limits.
-    let low_density_piv = records.and_then(|rows| rows.iter().find(|record| {
-        text_at(record, &["source_id"]) == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
-    }));
+    let low_density_piv = records.and_then(|rows| {
+        rows.iter().find(|record| {
+            text_at(record, &["source_id"]) == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+        })
+    });
     push_if_missing(
         &mut findings,
         low_density_piv.is_some(),
@@ -579,53 +990,102 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             "LOW_DENSITY_PIV_IDENTITY",
             "Noelle 2025 low-density air cohort identity and pressure range changed",
         );
-        let tracer_table = at(record, &["diagnostic_protocol", "low_density_tracer_screening_table"])
-            .and_then(Value::as_array);
+        let tracer_table = at(
+            record,
+            &["diagnostic_protocol", "low_density_tracer_screening_table"],
+        )
+        .and_then(Value::as_array);
         push_if_missing(
             &mut findings,
-            tracer_table.is_some_and(|rows| rows.len() == 10
-                && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
-                && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
-                && text_at(&rows[0], &["fog_machine"]) == Some("32")
-                && text_at(&rows[0], &["sio2"]) == Some("(32)-64")
-                && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
-                && text_at(&rows[5], &["fog_machine"]) == Some("-")
-                && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
-                && text_at(&rows[9], &["dehs"]) == Some("-")
-                && text_at(&rows[9], &["incense_sticks"]) == Some("(64)-128")
-                && text_at(&rows[9], &["sio2"]) == Some("128")),
+            tracer_table.is_some_and(|rows| {
+                rows.len() == 10
+                    && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
+                    && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+                    && text_at(&rows[0], &["fog_machine"]) == Some("32")
+                    && text_at(&rows[0], &["sio2"]) == Some("(32)-64")
+                    && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
+                    && text_at(&rows[5], &["fog_machine"]) == Some("-")
+                    && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
+                    && text_at(&rows[9], &["dehs"]) == Some("-")
+                    && text_at(&rows[9], &["incense_sticks"]) == Some("(64)-128")
+                    && text_at(&rows[9], &["sio2"]) == Some("128")
+            }),
             "LOW_DENSITY_PIV_TRACER_MATRIX",
             "pressure-resolved tracer/interrogation-area table changed",
         );
         push_if_missing(
             &mut findings,
-            number_at(record, &["diagnostic_protocol", "corona_interaction_test", "voltage_kv"]) == Some(8.0)
-                && at(record, &["diagnostic_protocol", "corona_interaction_test", "inlet_velocity_m_s"])
-                    == Some(&serde_json::json!([2.5, 5.0]))
-                && text_at(record, &["diagnostic_protocol", "corona_interaction_test", "caveat"])
-                    .is_some_and(|value| value.contains("minimize ion-wind interference")),
+            number_at(
+                record,
+                &[
+                    "diagnostic_protocol",
+                    "corona_interaction_test",
+                    "voltage_kv",
+                ],
+            ) == Some(8.0)
+                && at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "corona_interaction_test",
+                        "inlet_velocity_m_s",
+                    ],
+                ) == Some(&serde_json::json!([2.5, 5.0]))
+                && text_at(
+                    record,
+                    &["diagnostic_protocol", "corona_interaction_test", "caveat"],
+                )
+                .is_some_and(|value| value.contains("minimize ion-wind interference")),
             "LOW_DENSITY_PIV_CORONA_CONTROL",
             "8 kV tracer/corona interaction control and low-interference caveat changed",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_best"])
-                .is_some_and(|value| value.contains("black aluminum tape"))
-                && text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_worst"])
-                    .is_some_and(|value| value.contains("shiny aluminum tape"))
-                && contains_any(record, &["diagnostic_protocol", "collector_surface_test", "caution"], "8 kV"),
+            text_at(
+                record,
+                &[
+                    "diagnostic_protocol",
+                    "collector_surface_test",
+                    "reported_best",
+                ],
+            )
+            .is_some_and(|value| value.contains("black aluminum tape"))
+                && text_at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "collector_surface_test",
+                        "reported_worst",
+                    ],
+                )
+                .is_some_and(|value| value.contains("shiny aluminum tape"))
+                && contains_any(
+                    record,
+                    &["diagnostic_protocol", "collector_surface_test", "caution"],
+                    "8 kV",
+                ),
             "LOW_DENSITY_PIV_COLLECTOR_OPTICS",
             "collector surface optical ranking and 8 kV electrical-validation limit changed",
         );
         push_if_missing(
             &mut findings,
-            at(record, &["comparability", "distinct_from_atmospheric_ambient_air"])
-                .and_then(Value::as_bool) == Some(true)
+            at(
+                record,
+                &["comparability", "distinct_from_atmospheric_ambient_air"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
                 && at(record, &["comparability", "distinct_from_mars_co2_dbd"])
-                    .and_then(Value::as_bool) == Some(true)
-                && at(record, &["comparability", "distinct_from_true_space_vacuum"])
-                    .and_then(Value::as_bool) == Some(true)
-                && at(record, &["reported_results", "quantitative_thrust_result"]).is_some_and(Value::is_null),
+                    .and_then(Value::as_bool)
+                    == Some(true)
+                && at(
+                    record,
+                    &["comparability", "distinct_from_true_space_vacuum"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true)
+                && at(record, &["reported_results", "quantitative_thrust_result"])
+                    .is_some_and(Value::is_null),
             "LOW_DENSITY_PIV_COHORT_BOUNDARY",
             "low-density air PIV must not be promoted to atmospheric, Mars-CO2, true-vacuum or thrust validation",
         );
@@ -634,9 +1094,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     // Noelle et al. 2025: low-density-air IWT PIV tracer/collector cohort.
     // The table is an image-resolution envelope, not a velocity-accuracy or
     // thrust-validation table.
-    let noelle = records.and_then(|rows| rows.iter().find(|record| {
-        text_at(record, &["source_id"]) == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
-    }));
+    let noelle = records.and_then(|rows| {
+        rows.iter().find(|record| {
+            text_at(record, &["source_id"]) == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+        })
+    });
     push_if_missing(
         &mut findings,
         noelle.is_some(),
@@ -654,53 +1116,102 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             "NOELLE_LOW_DENSITY_PIV_IDENTITY",
             "Noelle 2025 cohort identity and 1.0–0.3 atm air-pressure envelope changed",
         );
-        let tracer_table = at(record, &["diagnostic_protocol", "low_density_tracer_screening_table"])
-            .and_then(Value::as_array);
+        let tracer_table = at(
+            record,
+            &["diagnostic_protocol", "low_density_tracer_screening_table"],
+        )
+        .and_then(Value::as_array);
         push_if_missing(
             &mut findings,
-            tracer_table.is_some_and(|rows| rows.len() == 10
-                && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
-                && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
-                && text_at(&rows[0], &["fog_machine"]) == Some("32")
-                && text_at(&rows[0], &["sio2"]) == Some("(32)-64")
-                && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
-                && text_at(&rows[5], &["fog_machine"]) == Some("-")
-                && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
-                && text_at(&rows[9], &["dehs"]) == Some("-")
-                && text_at(&rows[9], &["incense_sticks"]) == Some("(64)-128")
-                && text_at(&rows[9], &["sio2"]) == Some("128")),
+            tracer_table.is_some_and(|rows| {
+                rows.len() == 10
+                    && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
+                    && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+                    && text_at(&rows[0], &["fog_machine"]) == Some("32")
+                    && text_at(&rows[0], &["sio2"]) == Some("(32)-64")
+                    && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
+                    && text_at(&rows[5], &["fog_machine"]) == Some("-")
+                    && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
+                    && text_at(&rows[9], &["dehs"]) == Some("-")
+                    && text_at(&rows[9], &["incense_sticks"]) == Some("(64)-128")
+                    && text_at(&rows[9], &["sio2"]) == Some("128")
+            }),
             "NOELLE_LOW_DENSITY_PIV_TRACER_MATRIX",
             "ten-point pressure/tracer interrogation-area table changed",
         );
         push_if_missing(
             &mut findings,
-            number_at(record, &["diagnostic_protocol", "corona_interaction_test", "voltage_kv"]) == Some(8.0)
-                && at(record, &["diagnostic_protocol", "corona_interaction_test", "inlet_velocity_m_s"])
-                    == Some(&serde_json::json!([2.5, 5.0]))
-                && text_at(record, &["diagnostic_protocol", "corona_interaction_test", "caveat"])
-                    .is_some_and(|value| value.contains("minimize ion-wind interference")),
+            number_at(
+                record,
+                &[
+                    "diagnostic_protocol",
+                    "corona_interaction_test",
+                    "voltage_kv",
+                ],
+            ) == Some(8.0)
+                && at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "corona_interaction_test",
+                        "inlet_velocity_m_s",
+                    ],
+                ) == Some(&serde_json::json!([2.5, 5.0]))
+                && text_at(
+                    record,
+                    &["diagnostic_protocol", "corona_interaction_test", "caveat"],
+                )
+                .is_some_and(|value| value.contains("minimize ion-wind interference")),
             "NOELLE_LOW_DENSITY_PIV_CORONA_CONTROL",
             "8 kV tracer/corona interaction test and low-interference caveat changed",
         );
         push_if_missing(
             &mut findings,
-            text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_best"])
-                .is_some_and(|value| value.contains("black aluminum tape"))
-                && text_at(record, &["diagnostic_protocol", "collector_surface_test", "reported_worst"])
-                    .is_some_and(|value| value.contains("shiny aluminum tape"))
-                && contains_any(record, &["diagnostic_protocol", "collector_surface_test", "caution"], "8 kV"),
+            text_at(
+                record,
+                &[
+                    "diagnostic_protocol",
+                    "collector_surface_test",
+                    "reported_best",
+                ],
+            )
+            .is_some_and(|value| value.contains("black aluminum tape"))
+                && text_at(
+                    record,
+                    &[
+                        "diagnostic_protocol",
+                        "collector_surface_test",
+                        "reported_worst",
+                    ],
+                )
+                .is_some_and(|value| value.contains("shiny aluminum tape"))
+                && contains_any(
+                    record,
+                    &["diagnostic_protocol", "collector_surface_test", "caution"],
+                    "8 kV",
+                ),
             "NOELLE_LOW_DENSITY_PIV_COLLECTOR_OPTICS",
             "collector optical ranking and limited electrical-surface validation changed",
         );
         push_if_missing(
             &mut findings,
-            at(record, &["comparability", "distinct_from_atmospheric_ambient_air"])
-                .and_then(Value::as_bool) == Some(true)
+            at(
+                record,
+                &["comparability", "distinct_from_atmospheric_ambient_air"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
                 && at(record, &["comparability", "distinct_from_mars_co2_dbd"])
-                    .and_then(Value::as_bool) == Some(true)
-                && at(record, &["comparability", "distinct_from_true_space_vacuum"])
-                    .and_then(Value::as_bool) == Some(true)
-                && at(record, &["reported_results", "quantitative_thrust_result"]).is_some_and(Value::is_null),
+                    .and_then(Value::as_bool)
+                    == Some(true)
+                && at(
+                    record,
+                    &["comparability", "distinct_from_true_space_vacuum"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true)
+                && at(record, &["reported_results", "quantitative_thrust_result"])
+                    .is_some_and(Value::is_null),
             "NOELLE_LOW_DENSITY_PIV_COHORT_BOUNDARY",
             "low-density air tracer tests must not be promoted to Mars CO2, true vacuum or thrust validation",
         );
@@ -708,7 +1219,10 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     // Specialist solver scopes are intentionally narrow.
     let solvers = at(root, &["solver_profiles"]).and_then(Value::as_array);
-    let merlino = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("MERLINO2D")));
+    let merlino = solvers.and_then(|rows| {
+        rows.iter()
+            .find(|s| text_at(s, &["solver_id"]) == Some("MERLINO2D"))
+    });
     push_if_missing(
         &mut findings,
         merlino.is_some(),
@@ -718,25 +1232,34 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     if let Some(profile) = merlino {
         push_if_missing(
             &mut findings,
-            text_at(profile, &["license"]) == Some("GPL-3.0") && text_at(profile, &["language"]) == Some("MATLAB"),
+            text_at(profile, &["license"]) == Some("GPL-3.0")
+                && text_at(profile, &["language"]) == Some("MATLAB"),
             "MERLINO_DEPENDENCY_SCOPE",
             "Merlino2D MATLAB/GPL-3.0 dependency boundary changed",
         );
         push_if_missing(
             &mut findings,
-            contains_any(profile, &["important_limits"], "does not by itself solve the full neutral-gas Navier–Stokes"),
+            contains_any(
+                profile,
+                &["important_limits"],
+                "does not by itself solve the full neutral-gas Navier–Stokes",
+            ),
             "MERLINO_FLOW_LIMIT",
             "Merlino2D must not be presented as a complete neutral-flow/thrust solver",
         );
         push_if_missing(
             &mut findings,
-            text_at(profile, &["recommended_role"]).is_some_and(|s| s.contains("external discharge-physics engine")),
+            text_at(profile, &["recommended_role"])
+                .is_some_and(|s| s.contains("external discharge-physics engine")),
             "MERLINO_ROLE",
             "Merlino2D must remain an external discharge solver",
         );
     }
 
-    let zapdos = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("ZAPDOS")));
+    let zapdos = solvers.and_then(|rows| {
+        rows.iter()
+            .find(|s| text_at(s, &["solver_id"]) == Some("ZAPDOS"))
+    });
     push_if_missing(
         &mut findings,
         zapdos.is_some(),
@@ -746,22 +1269,32 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     if let Some(profile) = zapdos {
         push_if_missing(
             &mut findings,
-            text_at(profile, &["published_validation_envelope"]).is_some_and(|s| s.contains("0.1–1 Torr")),
+            text_at(profile, &["published_validation_envelope"])
+                .is_some_and(|s| s.contains("0.1–1 Torr")),
             "ZAPDOS_VALIDATION_SCOPE",
             "Zapdos validation envelope must retain the published RF-CCP 0.1–1 Torr scope",
         );
         push_if_missing(
             &mut findings,
-            contains_any(profile, &["important_limit"], "not automatic validation for atmospheric corona EHD"),
+            contains_any(
+                profile,
+                &["important_limit"],
+                "not automatic validation for atmospheric corona EHD",
+            ),
             "ZAPDOS_TRANSFER_LIMIT",
             "Zapdos CCP validation must not be silently transferred to atmospheric EHD",
         );
     }
 
-    let rigid = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("SYMTROPY_RIGID_BODY")));
+    let rigid = solvers.and_then(|rows| {
+        rows.iter()
+            .find(|s| text_at(s, &["solver_id"]) == Some("SYMTROPY_RIGID_BODY"))
+    });
     push_if_missing(
         &mut findings,
-        rigid.is_some_and(|s| text_at(s, &["current_claim_boundary"]).is_some_and(|v| v.contains("not a plasma"))),
+        rigid.is_some_and(|s| {
+            text_at(s, &["current_claim_boundary"]).is_some_and(|v| v.contains("not a plasma"))
+        }),
         "SYMTROPY_CLAIM_BOUNDARY",
         "Symtropy rigid-body engine must not be represented as a plasma solver",
     );
@@ -769,38 +1302,68 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     let integration_refs = at(root, &["system_integration_references"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        integration_refs.is_some_and(|rows| rows.iter().any(|r| text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER"))),
+        integration_refs.is_some_and(|rows| {
+            rows.iter().any(|r| {
+                text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER")
+            })
+        }),
         "TAO_SYSTEM_REFERENCE",
         "missing integrated ion-wind microrobot reference",
     );
-    let tao = integration_refs.and_then(|rows| rows.iter().find(|r| {
-        text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER")
-    }));
+    let tao = integration_refs.and_then(|rows| {
+        rows.iter().find(|r| {
+            text_at(r, &["source_id"]) == Some("TAO_2026_ION_MICROROBOT_CONTROLLED_HOVER")
+        })
+    });
     if let Some(reference) = tao {
         push_if_missing(
             &mut findings,
             number_at(reference, &["platform", "reported_robot_mass_mg"]) == Some(36.7)
-                && number_at(reference, &["performance", "reported_thrust_to_weight_ratio"]) == Some(5.0)
-                && number_at(reference, &["performance", "reported_hover_duration_hours"]) == Some(1.0),
+                && number_at(
+                    reference,
+                    &["performance", "reported_thrust_to_weight_ratio"],
+                ) == Some(5.0)
+                && number_at(reference, &["performance", "reported_hover_duration_hours"])
+                    == Some(1.0),
             "TAO_SOURCE_VALUES",
             "microrobot mass, T/W or tethered hover values changed",
         );
         push_if_missing(
             &mut findings,
-            at(reference, &["operating_boundary", "hover_power_boundary"]).and_then(Value::as_str) == Some("tethered")
-                && at(reference, &["operating_boundary", "self_powered_free_flight_demonstrated"]).and_then(Value::as_bool) == Some(false),
+            at(reference, &["operating_boundary", "hover_power_boundary"]).and_then(Value::as_str)
+                == Some("tethered")
+                && at(
+                    reference,
+                    &[
+                        "operating_boundary",
+                        "self_powered_free_flight_demonstrated",
+                    ],
+                )
+                .and_then(Value::as_bool)
+                    == Some(false),
             "TAO_POWER_BOUNDARY",
             "tethered hover must not be promoted to self-powered free flight",
         );
         push_if_missing(
             &mut findings,
-            at(reference, &["comparability", "leaderboard_eligible_against_bare_thrusters"]).and_then(Value::as_bool) == Some(false),
+            at(
+                reference,
+                &[
+                    "comparability",
+                    "leaderboard_eligible_against_bare_thrusters",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(false),
             "TAO_COMPARABILITY",
             "integrated microrobot control result must remain separate from bare-thruster leaderboard",
         );
     }
 
-    let comsol = solvers.and_then(|rows| rows.iter().find(|s| text_at(s, &["solver_id"]) == Some("COMSOL_MULTIPHYSICS")));
+    let comsol = solvers.and_then(|rows| {
+        rows.iter()
+            .find(|s| text_at(s, &["solver_id"]) == Some("COMSOL_MULTIPHYSICS"))
+    });
     push_if_missing(
         &mut findings,
         comsol.is_some(),
@@ -817,22 +1380,31 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             contains_any(profile, &["important_limits"], "omits the ionisation layer")
-                && contains_any(profile, &["important_limits"], "electron dynamics are not solved"),
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "electron dynamics are not solved",
+                ),
             "COMSOL_CORONA_SCOPE",
             "simplified Corona Discharge interface must retain its ionisation-layer / electron-dynamics limitations",
         );
         push_if_missing(
             &mut findings,
-            contains_any(profile, &["capabilities"], "CFD-module electrohydrodynamics multiphysics capability"),
+            contains_any(
+                profile,
+                &["capabilities"],
+                "CFD-module electrohydrodynamics multiphysics capability",
+            ),
             "COMSOL_EHD_CAPABILITY",
             "commercial EHD flow-coupling capability must remain identified as a distinct profile",
         );
     }
 
     let find_solver = |solver_id: &str| {
-        solvers.and_then(|rows| rows.iter().find(|profile| {
-            text_at(profile, &["solver_id"]) == Some(solver_id)
-        }))
+        solvers.and_then(|rows| {
+            rows.iter()
+                .find(|profile| text_at(profile, &["solver_id"]) == Some(solver_id))
+        })
     };
 
     let anemone = find_solver("ANEMONE_3D");
@@ -844,9 +1416,17 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                 && text_at(profile, &["license"]) == Some("MIT")
                 && text_at(profile, &["dimensionality"]) == Some("3D")
                 && text_at(profile, &["language"]) == Some("C++")
-                && contains_any(profile, &["formulation"], "electrons, positive ions and negative ions")
+                && contains_any(
+                    profile,
+                    &["formulation"],
+                    "electrons, positive ions and negative ions",
+                )
                 && contains_any(profile, &["validation_evidence"], "theoretical results")
-                && contains_any(profile, &["important_limits"], "not evidence of independent force-stand")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "not evidence of independent force-stand",
+                )
         }),
         "ANEMONE_SCOPE",
         "ANEMONE must remain a 3D three-component plasma-fluid reference with the published validation boundary",
@@ -861,8 +1441,16 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                 && number_at(profile, &["reported_validation", "mape_percent"]) == Some(4.13)
                 && text_at(profile, &["reported_validation", "observable"])
                     == Some("corona-discharge component")
-                && contains_any(profile, &["important_limits"], "not to independently measured thrust")
-                && contains_any(profile, &["important_limits"], "preliminary engineering guidance")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "not to independently measured thrust",
+                )
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "preliminary engineering guidance",
+                )
         }),
         "ANALYTICAL_CORONA_SCOPE",
         "4.13% MAPE must remain bounded to the 20 mm corona component, not whole-thruster validation",
@@ -877,8 +1465,16 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                 && number_at(profile, &["reported_metrics", "r2"]) == Some(0.8961)
                 && number_at(profile, &["reported_metrics", "mae"]) == Some(0.0859)
                 && number_at(profile, &["reported_metrics", "mse"]) == Some(0.0115)
-                && contains_any(profile, &["important_limits"], "not a plasma conservation solver")
-                && contains_any(profile, &["important_limits"], "not automatically a sealed holdout")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "not a plasma conservation solver",
+                )
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "not automatically a sealed holdout",
+                )
         }),
         "AIRFLOW_SURROGATE_SCOPE",
         "published Gradient Boosting airflow metrics must remain dataset-specific, with no thrust or conservation overclaim",
@@ -894,10 +1490,19 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
                 && text_at(profile, &["dimensionality"]) == Some("1D")
                 && contains_any(profile, &["formulation"], "drift-diffusion continuity")
                 && contains_any(profile, &["circuit_coupling"], "RLC")
-                && at(profile, &["electrode_emission"]).and_then(Value::as_array)
+                && at(profile, &["electrode_emission"])
+                    .and_then(Value::as_array)
                     .is_some_and(|items| items.len() >= 5)
-                && contains_any(profile, &["important_limits"], "does not include an electron-energy equation")
-                && contains_any(profile, &["important_limits"], "not validation of 2D/3D EHD geometry")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "does not include an electron-energy equation",
+                )
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "not validation of 2D/3D EHD geometry",
+                )
         }),
         "PASCHEN_1D_SCOPE",
         "PASCHEN-1D must retain its 1D circuit/emission strengths and electron-energy/thrust limits",
@@ -907,10 +1512,19 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         comsol_corona.is_some_and(|profile| {
-            text_at(profile, &["product"]) == Some("Electric Discharge Module 6.4 — Corona Discharge interface")
+            text_at(profile, &["product"])
+                == Some("Electric Discharge Module 6.4 — Corona Discharge interface")
                 && text_at(profile, &["license"]) == Some("commercial")
-                && contains_any(profile, &["important_limits"], "does not include the corona ionization layer")
-                && contains_any(profile, &["important_limits"], "Electron dynamics are not solved")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "does not include the corona ionization layer",
+                )
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "Electron dynamics are not solved",
+                )
         }),
         "COMSOL_SIMPLIFIED_CORONA_SCOPE",
         "COMSOL simplified Corona interface must remain separate and reduced from full electric discharge",
@@ -920,12 +1534,18 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         comsol_edis.is_some_and(|profile| {
-            text_at(profile, &["product"]) == Some("Electric Discharge Module 6.4 — Electric Discharge interface")
+            text_at(profile, &["product"])
+                == Some("Electric Discharge Module 6.4 — Electric Discharge interface")
                 && text_at(profile, &["license"]) == Some("commercial")
                 && contains_any(profile, &["formulation"], "fully coupled to Poisson")
-                && at(profile, &["dimensionality"]).and_then(Value::as_array)
+                && at(profile, &["dimensionality"])
+                    .and_then(Value::as_array)
                     .is_some_and(|dims| dims.iter().any(|d| d.as_str() == Some("3D")))
-                && contains_any(profile, &["important_limits"], "does not validate a particular EHD device geometry")
+                && contains_any(
+                    profile,
+                    &["important_limits"],
+                    "does not validate a particular EHD device geometry",
+                )
         }),
         "COMSOL_FULL_EDIS_SCOPE",
         "COMSOL Electric Discharge 6.4 must preserve its full charge-transport scope and per-model validation limits",
@@ -934,20 +1554,34 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         comsol.is_some_and(|profile| {
-            at(profile, &["product_profiles"]).and_then(Value::as_array)
-                .is_some_and(|items| items.iter().any(|v| v.as_str() == Some("Electric Discharge Module 6.4")))
-                && at(profile, &["documentation_urls"]).and_then(Value::as_array)
-                    .is_some_and(|items| items.iter().any(|v| v.as_str().is_some_and(|url| url.contains("/6.4/"))))
+            at(profile, &["product_profiles"])
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items
+                        .iter()
+                        .any(|v| v.as_str() == Some("Electric Discharge Module 6.4"))
+                })
+                && at(profile, &["documentation_urls"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|items| {
+                        items
+                            .iter()
+                            .any(|v| v.as_str().is_some_and(|url| url.contains("/6.4/")))
+                    })
         }),
         "COMSOL_VERSION_PIN",
         "COMSOL product profile and documentation URLs must pin the 6.4 Electric Discharge interface",
     );
 
     let matrix = at(root, &["solver_comparison_matrix"]);
-    let tracks = matrix.and_then(|value| at(value, &["tracks"])).and_then(Value::as_array);
-    let track_ids = tracks.map(|rows| rows.iter().filter_map(|row| {
-        text_at(row, &["track_id"]).map(str::to_owned)
-    }).collect::<std::collections::BTreeSet<_>>());
+    let tracks = matrix
+        .and_then(|value| at(value, &["tracks"]))
+        .and_then(Value::as_array);
+    let track_ids = tracks.map(|rows| {
+        rows.iter()
+            .filter_map(|row| text_at(row, &["track_id"]).map(str::to_owned))
+            .collect::<std::collections::BTreeSet<_>>()
+    });
     push_if_missing(
         &mut findings,
         text_at(matrix.unwrap_or(&Value::Null), &["status"])
@@ -965,24 +1599,45 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     );
     push_if_missing(
         &mut findings,
-        tracks.is_some_and(|rows| rows.iter().all(|row| {
-            at(row, &["primary_observables"]).and_then(Value::as_array).is_some_and(|v| !v.is_empty())
-                && at(row, &["match_controls"]).and_then(Value::as_array).is_some_and(|v| !v.is_empty())
-                && at(row, &["prohibitions"]).and_then(Value::as_array).is_some_and(|v| !v.is_empty())
-        })) && at(matrix.unwrap_or(&Value::Null), &["scorecard"]).and_then(Value::as_array)
-            .is_some_and(|items| items.iter().any(|v| v.as_str() == Some("predictive_interval_coverage_and_width"))
-                && items.iter().any(|v| v.as_str() == Some("charge_mass_momentum_energy_closure"))),
+        tracks.is_some_and(|rows| {
+            rows.iter().all(|row| {
+                at(row, &["primary_observables"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|v| !v.is_empty())
+                    && at(row, &["match_controls"])
+                        .and_then(Value::as_array)
+                        .is_some_and(|v| !v.is_empty())
+                    && at(row, &["prohibitions"])
+                        .and_then(Value::as_array)
+                        .is_some_and(|v| !v.is_empty())
+            })
+        }) && at(matrix.unwrap_or(&Value::Null), &["scorecard"])
+            .and_then(Value::as_array)
+            .is_some_and(|items| {
+                items
+                    .iter()
+                    .any(|v| v.as_str() == Some("predictive_interval_coverage_and_width"))
+                    && items
+                        .iter()
+                        .any(|v| v.as_str() == Some("charge_mass_momentum_energy_closure"))
+            }),
         "SOLVER_COMPARATOR_CONTROLS",
         "each solver comparison must declare observables, matched controls and invalid extrapolations",
     );
-    let flow_surrogate = tracks.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["track_id"]) == Some("DATA_DRIVEN_FLOW_SURROGATE")
-    }));
+    let flow_surrogate = tracks.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["track_id"]) == Some("DATA_DRIVEN_FLOW_SURROGATE"))
+    });
     push_if_missing(
         &mut findings,
         flow_surrogate.is_some_and(|row| {
-            at(row, &["candidates"]).and_then(Value::as_array)
-                .is_some_and(|items| items.iter().any(|item| item.as_str() == Some("TOPTAS_YILMAZ_2026_EHD_ML")))
+            at(row, &["candidates"])
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items
+                        .iter()
+                        .any(|item| item.as_str() == Some("TOPTAS_YILMAZ_2026_EHD_ML"))
+                })
                 && contains_any(row, &["match_controls"], "hold out complete geometry")
                 && contains_any(row, &["prohibitions"], "Do not use random point splits")
         }),
@@ -991,9 +1646,11 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     );
 
     let reference_cases = at(root, &["solver_reference_cases"]).and_then(Value::as_array);
-    let merlino_wire_cylinder = reference_cases.and_then(|rows| rows.iter().find(|case| {
-        text_at(case, &["case_id"]) == Some("MERLINO2D_WIRE_CYLINDER_KIOUSIS_2014_IV")
-    }));
+    let merlino_wire_cylinder = reference_cases.and_then(|rows| {
+        rows.iter().find(|case| {
+            text_at(case, &["case_id"]) == Some("MERLINO2D_WIRE_CYLINDER_KIOUSIS_2014_IV")
+        })
+    });
     push_if_missing(
         &mut findings,
         merlino_wire_cylinder.is_some(),
@@ -1003,7 +1660,8 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
     if let Some(case) = merlino_wire_cylinder {
         push_if_missing(
             &mut findings,
-            text_at(case, &["upstream", "commit"]) == Some("08f70dbeba5c9a8cccacbd21f5511896110581f8"),
+            text_at(case, &["upstream", "commit"])
+                == Some("08f70dbeba5c9a8cccacbd21f5511896110581f8"),
             "MERLINO_UPSTREAM_PIN",
             "Merlino2D upstream source commit changed; requalify all pinned files",
         );
@@ -1021,20 +1679,30 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
             "MERLINO_REFERENCE_CIRCUIT",
             "external-circuit resistance or solver choice changed; rebuild exact baseline identity",
         );
-        let csv_rows = at(case, &["experimental_comparator", "source_rows"])
-            .and_then(Value::as_array);
+        let csv_rows =
+            at(case, &["experimental_comparator", "source_rows"]).and_then(Value::as_array);
         let csv_points_match = csv_rows.is_some_and(|rows| {
             rows.len() == 10
-                && rows.first().is_some_and(|row| row_matches(row, &[
-                    ("voltage_kv", 10.99520219328307),
-                    ("current_ma", 0.04150943396226414),
-                    ("current_ua", 41.50943396226414),
-                ]))
-                && rows.get(9).is_some_and(|row| row_matches(row, &[
-                    ("voltage_kv", 20.021932830705964),
-                    ("current_ma", 0.40452830188679245),
-                    ("current_ua", 404.52830188679246),
-                ]))
+                && rows.first().is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("voltage_kv", 10.99520219328307),
+                            ("current_ma", 0.04150943396226414),
+                            ("current_ua", 41.50943396226414),
+                        ],
+                    )
+                })
+                && rows.get(9).is_some_and(|row| {
+                    row_matches(
+                        row,
+                        &[
+                            ("voltage_kv", 20.021932830705964),
+                            ("current_ma", 0.40452830188679245),
+                            ("current_ua", 404.52830188679246),
+                        ],
+                    )
+                })
         });
         push_if_missing(
             &mut findings,
@@ -1061,21 +1729,33 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             text_at(case, &["experimental_comparator", "evidence_class"])
-                == Some("repository_supplied_experimental_csv_linked_by_upstream_plot_script_to_Kiousis_2014"),
+                == Some(
+                    "repository_supplied_experimental_csv_linked_by_upstream_plot_script_to_Kiousis_2014",
+                ),
             "MERLINO_EVIDENCE_CLASS",
             "repository CSV must not be promoted to independently authenticated raw acquisition",
         );
         push_if_missing(
             &mut findings,
             number_at(case, &["geometry", "geo_distance_parameter_mm"]) == Some(30.0)
-                && number_at(case, &["geometry", "derived_minimum_electrode_surface_clearance_mm"]) == Some(29.95),
+                && number_at(
+                    case,
+                    &["geometry", "derived_minimum_electrode_surface_clearance_mm"],
+                ) == Some(29.95),
             "MERLINO_GEOMETRY_CLEARANCE",
             "source geometry parameter and derived metal-surface clearance must remain distinct",
         );
         push_if_missing(
             &mut findings,
-            text_at(case, &["experimental_comparator", "plot_conversion", "simulated_integrated_current_to_microamp"])
-                .is_some_and(|s| s.contains("2e6") && s.contains("half-domain")),
+            text_at(
+                case,
+                &[
+                    "experimental_comparator",
+                    "plot_conversion",
+                    "simulated_integrated_current_to_microamp",
+                ],
+            )
+            .is_some_and(|s| s.contains("2e6") && s.contains("half-domain")),
             "MERLINO_CURRENT_SCALING",
             "half-domain model-current ×2 conversion must remain explicit",
         );
@@ -1083,7 +1763,6 @@ pub fn audit_atlas(root: &Value) -> Vec<String> {
 
     findings
 }
-
 
 /// Audit the separate 2026 frontier cohort without merging it into the older
 /// source atlas. These checks preserve source-local claims and evidence limits.
@@ -1141,11 +1820,17 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         let sub_gain = number_at(row, &["reported_values", "sub_unit_gain_pct_recomputed"]);
         let plus_increment = number_at(
             row,
-            &["reported_values", "sub_unit_plus_increment_over_sub_unit_pct_recomputed"],
+            &[
+                "reported_values",
+                "sub_unit_plus_increment_over_sub_unit_pct_recomputed",
+            ],
         );
         let plus_gain = number_at(
             row,
-            &["reported_values", "sub_unit_plus_gain_over_baseline_pct_recomputed"],
+            &[
+                "reported_values",
+                "sub_unit_plus_gain_over_baseline_pct_recomputed",
+            ],
         );
         let arithmetic_matches = baseline.is_some_and(|b| b > 0.0)
             && sub_unit.is_some_and(|s| s > 0.0)
@@ -1191,7 +1876,8 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
             &mut findings,
             number_at(row, &["reported_values", "maximum_thrust_improvement_pct"]) == Some(36.6)
                 && at(row, &["reported_values", "absolute_thrust_mn"]).is_some_and(Value::is_null)
-                && at(row, &["reported_values", "absolute_thrust_to_power"]).is_some_and(Value::is_null),
+                && at(row, &["reported_values", "absolute_thrust_to_power"])
+                    .is_some_and(Value::is_null),
             "FRONTIER_NONAKA_SOURCE_LOCAL",
             "guide-electrode gain must remain source-local with unknown absolute thrust/T/P",
         );
@@ -1212,7 +1898,8 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
                 && number_at(row, &["reported_values", "hover_duration_hours"]) == Some(1.0)
                 && number_at(row, &["reported_values", "robot_mass_mg"]) == Some(36.7)
                 && number_at(row, &["reported_values", "reported_thrust_to_weight"]) == Some(5.0)
-                && text_at(row, &["system_boundary"]).is_some_and(|value| value.contains("tethered")),
+                && text_at(row, &["system_boundary"])
+                    .is_some_and(|value| value.contains("tethered")),
             "FRONTIER_TAO_BOUNDARY",
             "microrobot one-hour hover must remain tethered and separate from onboard-energy flight",
         );
@@ -1228,8 +1915,20 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     if let Some(row) = shibata {
         push_if_missing(
             &mut findings,
-            number_at(row, &["reported_values", "thrust_per_span_gain_vs_initial_design_approx_factor"]) == Some(6.0)
-                && number_at(row, &["reported_values", "thrust_to_power_ratio_vs_initial_design_approx_factor"]) == Some(0.5)
+            number_at(
+                row,
+                &[
+                    "reported_values",
+                    "thrust_per_span_gain_vs_initial_design_approx_factor",
+                ],
+            ) == Some(6.0)
+                && number_at(
+                    row,
+                    &[
+                        "reported_values",
+                        "thrust_to_power_ratio_vs_initial_design_approx_factor",
+                    ],
+                ) == Some(0.5)
                 && text_at(row, &["reported_values", "metric_unit_n_per_m"]) == Some("N/m"),
             "FRONTIER_SHIBATA_METRICS",
             "Shibata approximate relative gains and per-span N/m unit must remain distinct",
@@ -1239,18 +1938,30 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
             text_at(row, &["method", "operating_regime"]) == Some("stationary zero-freestream")
                 && number_at(row, &["method", "latent_design_variables"]) == Some(4.0)
                 && number_at(row, &["method", "population_per_generation"]) == Some(7.0)
-                && at(row, &["thrust_estimation", "physical_force_measurement_performed"])
-                    .and_then(Value::as_bool) == Some(false),
+                && at(
+                    row,
+                    &["thrust_estimation", "physical_force_measurement_performed"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(false),
             "FRONTIER_SHIBATA_MODEL_SCOPE",
             "the 2D stationary optimiser comparator must not be promoted to physical or flight validation",
         );
         push_if_missing(
             &mut findings,
-            at(row, &["thrust_estimation", "excluded"]).and_then(Value::as_array)
-                .is_some_and(|items| items.iter().any(|value| value.as_str()
-                    .is_some_and(|value| value.contains("friction drag on electrodes")))
-                    && items.iter().any(|value| value.as_str()
-                    .is_some_and(|value| value.contains("friction drag on duct")))),
+            at(row, &["thrust_estimation", "excluded"])
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items.iter().any(|value| {
+                        value
+                            .as_str()
+                            .is_some_and(|value| value.contains("friction drag on electrodes"))
+                    }) && items.iter().any(|value| {
+                        value
+                            .as_str()
+                            .is_some_and(|value| value.contains("friction drag on duct"))
+                    })
+                }),
             "FRONTIER_SHIBATA_DRAG_BOUNDARY",
             "omitted electrode and duct friction drag must remain explicit",
         );
@@ -1268,11 +1979,16 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         let as_of = text_at(root, &["as_of"]);
         push_if_missing(
             &mut findings,
-            issue_date.zip(as_of).is_some_and(|(issue, cutoff)| issue > cutoff)
+            issue_date
+                .zip(as_of)
+                .is_some_and(|(issue, cutoff)| issue > cutoff)
                 && text_at(row, &["evidence_class"])
                     == Some("online_early_source_modelled_prediction_not_ranked")
-                && at(row, &["reported_values", "prescribed_scaled_current_condition"])
-                    .and_then(Value::as_bool)
+                && at(
+                    row,
+                    &["reported_values", "prescribed_scaled_current_condition"],
+                )
+                .and_then(Value::as_bool)
                     == Some(true)
                 && text_at(row, &["comparability"])
                     .is_some_and(|value| value.contains("watchlist only")),
@@ -1292,9 +2008,27 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             at(row, &["method", "experimental_validation"]).and_then(Value::as_bool) == Some(true)
-                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_15_kv_approx_factor"]) == Some(4.46)
-                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_20_kv_approx_factor"]) == Some(2.22)
-                && number_at(row, &["reported_values", "thrust_density_gain_vs_no_booster_at_25_kv_approx_factor"]) == Some(1.84)
+                && number_at(
+                    row,
+                    &[
+                        "reported_values",
+                        "thrust_density_gain_vs_no_booster_at_15_kv_approx_factor",
+                    ],
+                ) == Some(4.46)
+                && number_at(
+                    row,
+                    &[
+                        "reported_values",
+                        "thrust_density_gain_vs_no_booster_at_20_kv_approx_factor",
+                    ],
+                ) == Some(2.22)
+                && number_at(
+                    row,
+                    &[
+                        "reported_values",
+                        "thrust_density_gain_vs_no_booster_at_25_kv_approx_factor",
+                    ],
+                ) == Some(1.84)
                 && at(row, &["reported_values", "metric_unit"]).is_some_and(Value::is_null),
             "FRONTIER_WAKIMOTO_SOURCE_SCOPE",
             "booster-electrode voltage-specific gains and unknown metric unit must remain source-local",
@@ -1313,12 +2047,20 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
             &mut findings,
             text_at(row, &["method", "language"]) == Some("C++")
                 && text_at(row, &["method", "license"]) == Some("MIT")
-                && at(row, &["method", "charged_species"]).and_then(Value::as_array)
+                && at(row, &["method", "charged_species"])
+                    .and_then(Value::as_array)
                     .is_some_and(|species| species.len() == 3)
-                && at(row, &["method", "claimed_outputs"]).and_then(Value::as_array)
-                    .is_some_and(|outputs| outputs.len() == 2
-                        && outputs.iter().any(|v| v.as_str() == Some("corona inception voltage"))
-                        && outputs.iter().any(|v| v.as_str() == Some("energy conversion efficiency")))
+                && at(row, &["method", "claimed_outputs"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|outputs| {
+                        outputs.len() == 2
+                            && outputs
+                                .iter()
+                                .any(|v| v.as_str() == Some("corona inception voltage"))
+                            && outputs
+                                .iter()
+                                .any(|v| v.as_str() == Some("energy conversion efficiency"))
+                    })
                 && text_at(row, &["validation_boundary"]).is_some_and(|value| {
                     value.contains("does not claim independent validation")
                         && value.contains("net thrust")
@@ -1338,12 +2080,23 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     if let Some(row) = integral {
         push_if_missing(
             &mut findings,
-            at(row, &["method", "experimental_comparison_geometries"]).and_then(Value::as_array)
-                .is_some_and(|geometries| geometries.len() == 3
-                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("coaxial cylinder")))
-                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("point-to-plate")))
-                    && geometries.iter().any(|v| v.as_str().is_some_and(|s| s.contains("single-stage thruster"))))
-                && text_at(row, &["validation_boundary"]).is_some_and(|value| value.contains("full neutral-flow")),
+            at(row, &["method", "experimental_comparison_geometries"])
+                .and_then(Value::as_array)
+                .is_some_and(|geometries| {
+                    geometries.len() == 3
+                        && geometries
+                            .iter()
+                            .any(|v| v.as_str().is_some_and(|s| s.contains("coaxial cylinder")))
+                        && geometries
+                            .iter()
+                            .any(|v| v.as_str().is_some_and(|s| s.contains("point-to-plate")))
+                        && geometries.iter().any(|v| {
+                            v.as_str()
+                                .is_some_and(|s| s.contains("single-stage thruster"))
+                        })
+                })
+                && text_at(row, &["validation_boundary"])
+                    .is_some_and(|value| value.contains("full neutral-flow")),
             "FRONTIER_INTEGRAL_MODEL_SCOPE",
             "integral plasma-fluid validation geometries and neutral-flow claim boundary must remain explicit",
         );
@@ -1359,12 +2112,27 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     if let Some(row) = array {
         push_if_missing(
             &mut findings,
-            at(row, &["reported_values", "orthogonal_anodes_force_superposition"])
-                .and_then(Value::as_bool) == Some(false)
-                && number_at(row, &["reported_values", "orthogonal_anodes_resultant_direction_degrees_approx"]) == Some(45.0)
-                && at(row, &["reported_values", "horizontal_anodes_force_superposition"])
-                    .and_then(Value::as_bool) == Some(true)
-                && text_at(row, &["comparability"]).is_some_and(|value| value.contains("not a universal")),
+            at(
+                row,
+                &["reported_values", "orthogonal_anodes_force_superposition"],
+            )
+            .and_then(Value::as_bool)
+                == Some(false)
+                && number_at(
+                    row,
+                    &[
+                        "reported_values",
+                        "orthogonal_anodes_resultant_direction_degrees_approx",
+                    ],
+                ) == Some(45.0)
+                && at(
+                    row,
+                    &["reported_values", "horizontal_anodes_force_superposition"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true)
+                && text_at(row, &["comparability"])
+                    .is_some_and(|value| value.contains("not a universal")),
             "FRONTIER_ARRAY_NONADDITIVITY",
             "paired-anode superposition must remain geometry-dependent, not a universal array assumption",
         );
@@ -1381,12 +2149,10 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
         push_if_missing(
             &mut findings,
             number_at(row, &["method", "experiments_reported"]) == Some(2.0)
-                && text_at(row, &["method", "circuit_topology"]).is_some_and(|value| {
-                    value.contains("series") && value.contains("parallel")
-                })
-                && text_at(row, &["method", "demonstrated_control"]).is_some_and(|value| {
-                    value.contains("duty ratio")
-                })
+                && text_at(row, &["method", "circuit_topology"])
+                    .is_some_and(|value| value.contains("series") && value.contains("parallel"))
+                && text_at(row, &["method", "demonstrated_control"])
+                    .is_some_and(|value| value.contains("duty ratio"))
                 && contains_any(row, &["missing_or_unverified"], "switching loss"),
             "FRONTIER_SWITCHING_SCOPE",
             "duty-ratio thrust control must retain its circuit topology, two-experiment evidence and unresolved switching-loss boundary",
@@ -1408,7 +2174,9 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     let factors_match = factors.is_some_and(|items| {
         items.len() == required_factors.len()
             && required_factors.iter().all(|wanted| {
-                items.iter().any(|item| text_at(item, &["id"]) == Some(*wanted))
+                items
+                    .iter()
+                    .any(|item| text_at(item, &["id"]) == Some(*wanted))
             })
     });
     push_if_missing(
@@ -1445,7 +2213,6 @@ pub fn audit_frontier_patterns(root: &Value) -> Vec<String> {
     findings
 }
 
-
 /// Audit the conservative plasma-neutral exchange interface contract. This
 /// validates only the manifest specification, not a coupled solver result.
 pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
@@ -1462,12 +2229,14 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     );
 
     let methods = at(root, &["force_transfer_methods"]).and_then(Value::as_array);
-    let explicit = methods.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["method_id"]) == Some("explicit_species_collision_drag")
-    }));
-    let reduced = methods.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["method_id"]) == Some("reduced_coulomb_deposition")
-    }));
+    let explicit = methods.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["method_id"]) == Some("explicit_species_collision_drag"))
+    });
+    let reduced = methods.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["method_id"]) == Some("reduced_coulomb_deposition"))
+    });
     push_if_missing(
         &mut findings,
         methods.is_some_and(|rows| rows.len() == 2) && explicit.is_some() && reduced.is_some(),
@@ -1500,9 +2269,16 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
         );
         push_if_missing(
             &mut findings,
-            at(row, &["required_coefficients"]).and_then(Value::as_array)
-                .is_some_and(|fields| fields.iter().any(|v| v.as_str() == Some("omitted_term_bounds"))
-                    && fields.iter().any(|v| v.as_str() == Some("closure_validation_receipt"))),
+            at(row, &["required_coefficients"])
+                .and_then(Value::as_array)
+                .is_some_and(|fields| {
+                    fields
+                        .iter()
+                        .any(|v| v.as_str() == Some("omitted_term_bounds"))
+                        && fields
+                            .iter()
+                            .any(|v| v.as_str() == Some("closure_validation_receipt"))
+                }),
             "EXCHANGE_REDUCED_QUALIFICATION",
             "reduced Coulomb closure must include omitted-term bounds and validation receipt",
         );
@@ -1510,12 +2286,18 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
 
     push_if_missing(
         &mut findings,
-        at(root, &["exchange_mapping", "interpolation_only_is_sufficient"])
-            .and_then(Value::as_bool) == Some(false)
+        at(
+            root,
+            &["exchange_mapping", "interpolation_only_is_sufficient"],
+        )
+        .and_then(Value::as_bool)
+            == Some(false)
             && at(root, &["exchange_mapping", "spatial_meshes_may_differ"])
-                .and_then(Value::as_bool) == Some(true)
+                .and_then(Value::as_bool)
+                == Some(true)
             && at(root, &["exchange_mapping", "temporal_grids_may_differ"])
-                .and_then(Value::as_bool) == Some(true),
+                .and_then(Value::as_bool)
+                == Some(true),
         "EXCHANGE_MAPPING_POLICY",
         "different meshes/time grids are permitted, but simple interpolation alone is not a conservative exchange contract",
     );
@@ -1523,43 +2305,62 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         reference_kernel.is_some_and(|value| {
-            text_at(value, &["implementation"])
-                == Some("tools/ehd-reference-audit/src/exchange.rs")
+            text_at(value, &["implementation"]) == Some("tools/ehd-reference-audit/src/exchange.rs")
                 && text_at(value, &["quantity"])
                     .is_some_and(|text| text.contains("already-integrated vector impulse"))
                 && text_at(value, &["source_reconstruction"])
                     .is_some_and(|text| text.contains("first_order"))
                 && text_at(value, &["coverage_policy"])
                     .is_some_and(|text| text.contains("no implicit renormalization"))
-                && at(value, &["limitations"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.iter().any(|v| v.as_str()
-                        == Some("does_not_compute_geometric_intersections")))
+                && at(value, &["limitations"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.iter()
+                            .any(|v| v.as_str() == Some("does_not_compute_geometric_intersections"))
+                    })
         }),
         "EXCHANGE_REFERENCE_KERNEL",
         "reference impulse kernel must retain its first-order, no-renormalization and no-geometry-engine limits",
     );
     push_if_missing(
         &mut findings,
-        reference_kernel.and_then(|value| at(value, &["geometry_backend"])).is_some_and(|value| {
-            text_at(value, &["implementation"])
-                == Some("tools/ehd-reference-audit/src/geometry.rs")
-                && text_at(value, &["geometry"]) == Some("axis_aligned_space_time_boxes")
-                && at(value, &["supported_dimensions"]).and_then(Value::as_array)
-                    .is_some_and(|dims| dims.len() == 3
-                        && dims[0].as_u64() == Some(2)
-                        && dims[1].as_u64() == Some(3)
-                        && dims[2].as_u64() == Some(4))
-                && at(value, &["checks"]).and_then(Value::as_array)
-                    .is_some_and(|checks| checks.iter().any(|v| v.as_str()
-                        == Some("pairwise_disjoint_destination_intersections_within_source"))
-                        && checks.iter().any(|v| v.as_str()
-                        == Some("complete_source_measure_coverage")))
-                && at(value, &["limitations"]).and_then(Value::as_array)
-                    .is_some_and(|limits| limits.iter().any(|v| v.as_str()
-                        == Some("axis_aligned_boxes_only"))
-                        && limits.iter().any(|v| v.as_str()
-                        == Some("not_general_unstructured_polyhedra")))
-        }),
+        reference_kernel
+            .and_then(|value| at(value, &["geometry_backend"]))
+            .is_some_and(|value| {
+                text_at(value, &["implementation"])
+                    == Some("tools/ehd-reference-audit/src/geometry.rs")
+                    && text_at(value, &["geometry"]) == Some("axis_aligned_space_time_boxes")
+                    && at(value, &["supported_dimensions"])
+                        .and_then(Value::as_array)
+                        .is_some_and(|dims| {
+                            dims.len() == 3
+                                && dims[0].as_u64() == Some(2)
+                                && dims[1].as_u64() == Some(3)
+                                && dims[2].as_u64() == Some(4)
+                        })
+                    && at(value, &["checks"])
+                        .and_then(Value::as_array)
+                        .is_some_and(|checks| {
+                            checks.iter().any(|v| {
+                                v.as_str()
+                                    == Some(
+                                        "pairwise_disjoint_destination_intersections_within_source",
+                                    )
+                            }) && checks
+                                .iter()
+                                .any(|v| v.as_str() == Some("complete_source_measure_coverage"))
+                        })
+                    && at(value, &["limitations"])
+                        .and_then(Value::as_array)
+                        .is_some_and(|limits| {
+                            limits
+                                .iter()
+                                .any(|v| v.as_str() == Some("axis_aligned_boxes_only"))
+                                && limits.iter().any(|v| {
+                                    v.as_str() == Some("not_general_unstructured_polyhedra")
+                                })
+                        })
+            }),
         "EXCHANGE_GEOMETRY_BACKEND",
         "axis-aligned space-time intersection backend must enforce pairwise overlap and full coverage and retain its limited geometry scope",
     );
@@ -1571,9 +2372,9 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
             text_at(value, &["reference"]) == Some("preCICE")
                 && text_at(value, &["documentation"])
                     .is_some_and(|url| url.starts_with("https://precice.org/"))
-                && text_at(value, &["rule"])
-                    .is_some_and(|text| text.contains("extensive quantities")
-                        && text.contains("intensive quantities"))
+                && text_at(value, &["rule"]).is_some_and(|text| {
+                    text.contains("extensive quantities") && text.contains("intensive quantities")
+                })
         }),
         "EXCHANGE_INDUSTRY_INTEROP",
         "preCICE conservative-vs-consistent mapping boundary must be retained as an interoperability reference",
@@ -1583,9 +2384,16 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         mapping_fields.is_some_and(|fields| {
-            ["source_mesh_hash", "destination_mesh_hash", "operator_identity",
-             "mapped_impulse_ns", "source_impulse_ns", "mapping_residual_ns"]
-            .iter().all(|wanted| fields.iter().any(|field| field.as_str() == Some(*wanted)))
+            [
+                "source_mesh_hash",
+                "destination_mesh_hash",
+                "operator_identity",
+                "mapped_impulse_ns",
+                "source_impulse_ns",
+                "mapping_residual_ns",
+            ]
+            .iter()
+            .all(|wanted| fields.iter().any(|field| field.as_str() == Some(*wanted)))
         }),
         "EXCHANGE_MAPPING_RECEIPT",
         "mesh mapping receipt lacks source/destination identity or integral residual",
@@ -1607,7 +2415,8 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
         invariants.is_some_and(|rows| {
             rows.len() == required_invariants.len()
                 && required_invariants.iter().all(|wanted| {
-                    rows.iter().any(|row| text_at(row, &["id"]) == Some(*wanted))
+                    rows.iter()
+                        .any(|row| text_at(row, &["id"]) == Some(*wanted))
                 })
         }),
         "EXCHANGE_INVARIANTS",
@@ -1618,32 +2427,68 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         manifest.is_some_and(|rows| {
-            ["selected_method_id", "chemistry_and_transport_hashes", "plasma_mesh_identity",
-             "neutral_mesh_identity", "plasma_time_grid_identity", "neutral_time_grid_identity",
-             "space_time_transfer_operator", "charge_ledger", "energy_ledger",
-             "uncertainty_budget", "qualification_disposition"]
-            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+            [
+                "selected_method_id",
+                "chemistry_and_transport_hashes",
+                "plasma_mesh_identity",
+                "neutral_mesh_identity",
+                "plasma_time_grid_identity",
+                "neutral_time_grid_identity",
+                "space_time_transfer_operator",
+                "charge_ledger",
+                "energy_ledger",
+                "uncertainty_budget",
+                "qualification_disposition",
+            ]
+            .iter()
+            .all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
         }),
         "EXCHANGE_RUN_MANIFEST",
         "required run manifest is missing solver, mesh/time, exchange, ledger or uncertainty identity",
     );
 
     for (ledger, required) in [
-        ("charge_ledger", &["initial_total_charge_c", "final_total_charge_c",
-            "integrated_boundary_current_c", "charge_closure_residual_c", "uncertainty_c"][..]),
-        ("momentum_ledger", &["initial_charged_momentum_ns", "final_neutral_momentum_ns",
-            "boundary_momentum_flux_ns", "interphase_exchange_impulse_ns",
-            "closure_residual_ns", "uncertainty_ns"][..]),
-        ("energy_ledger", &["terminal_electrical_input_j", "change_neutral_kinetic_energy_j",
-            "joule_and_collisional_heating_j", "electrode_wall_heat_j",
-            "closure_residual_j", "uncertainty_j"][..]),
+        (
+            "charge_ledger",
+            &[
+                "initial_total_charge_c",
+                "final_total_charge_c",
+                "integrated_boundary_current_c",
+                "charge_closure_residual_c",
+                "uncertainty_c",
+            ][..],
+        ),
+        (
+            "momentum_ledger",
+            &[
+                "initial_charged_momentum_ns",
+                "final_neutral_momentum_ns",
+                "boundary_momentum_flux_ns",
+                "interphase_exchange_impulse_ns",
+                "closure_residual_ns",
+                "uncertainty_ns",
+            ][..],
+        ),
+        (
+            "energy_ledger",
+            &[
+                "terminal_electrical_input_j",
+                "change_neutral_kinetic_energy_j",
+                "joule_and_collisional_heating_j",
+                "electrode_wall_heat_j",
+                "closure_residual_j",
+                "uncertainty_j",
+            ][..],
+        ),
     ] {
         let fields = at(root, &[ledger, "required_fields"]).and_then(Value::as_array);
         push_if_missing(
             &mut findings,
-            fields.is_some_and(|rows| required.iter().all(|wanted| {
-                rows.iter().any(|field| field.as_str() == Some(*wanted))
-            })),
+            fields.is_some_and(|rows| {
+                required
+                    .iter()
+                    .all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+            }),
             "EXCHANGE_LEDGER_FIELDS",
             &format!("{ledger} is missing required accounting fields"),
         );
@@ -1652,10 +2497,18 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     let verification = at(root, &["verification_matrix"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        verification.is_some_and(|rows| rows.len() == 10
-            && rows.iter().any(|v| v.as_str() == Some("reject_double_counted_force_closure"))
-            && rows.iter().any(|v| v.as_str() == Some("space_time_mapping_partition_invariance"))
-            && rows.iter().any(|v| v.as_str() == Some("nonnegative_dissipative_collision_heating"))),
+        verification.is_some_and(|rows| {
+            rows.len() == 10
+                && rows
+                    .iter()
+                    .any(|v| v.as_str() == Some("reject_double_counted_force_closure"))
+                && rows
+                    .iter()
+                    .any(|v| v.as_str() == Some("space_time_mapping_partition_invariance"))
+                && rows
+                    .iter()
+                    .any(|v| v.as_str() == Some("nonnegative_dissipative_collision_heating"))
+        }),
         "EXCHANGE_VERIFICATION_MATRIX",
         "ten analytic, conservation, mapping and negative-control tests must remain declared",
     );
@@ -1663,10 +2516,18 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         at(root, &["acceptance_policy", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance_policy", "case_specific_tolerance_required"])
-                .and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance_policy", "thresholds_must_be_predeclared"])
-                .and_then(Value::as_bool) == Some(true),
+            && at(
+                root,
+                &["acceptance_policy", "case_specific_tolerance_required"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &["acceptance_policy", "thresholds_must_be_predeclared"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "EXCHANGE_TOLERANCE_POLICY",
         "do not impose a universal residual threshold; require predeclared case-specific tolerances",
     );
@@ -1685,7 +2546,6 @@ pub fn audit_exchange_contract(root: &Value) -> Vec<String> {
     findings
 }
 
-
 /// Audit the EHD array-interaction measurement protocol. It validates the
 /// data contract and claim boundaries, not measured coupling or controller performance.
 pub fn audit_array_interaction(root: &Value) -> Vec<String> {
@@ -1696,7 +2556,8 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
         text_at(root, &["schema"]) == Some("luminous.ehd_array_interaction_benchmark")
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-ARRAY-INTERACTION-001")
-            && text_at(root, &["status"]) == Some("measurement_protocol_only_no_luminous_array_measurements"),
+            && text_at(root, &["status"])
+                == Some("measurement_protocol_only_no_luminous_array_measurements"),
         "ARRAY_BENCHMARK_IDENTITY",
         "array benchmark identity, version or protocol-only status changed",
     );
@@ -1705,8 +2566,7 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
         &mut findings,
         text_at(root, &["source_anchor", "source_id"])
             == Some("kitamura-2023-multianode-force-vector")
-            && text_at(root, &["source_anchor", "doi"])
-                == Some("10.1109/ISIE51358.2023.10228184")
+            && text_at(root, &["source_anchor", "doi"]) == Some("10.1109/ISIE51358.2023.10228184")
             && text_at(root, &["source_anchor", "evidence_boundary"])
                 .is_some_and(|value| value.contains("not a universal array law")),
         "ARRAY_SOURCE_ANCHOR",
@@ -1716,12 +2576,24 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     let stages = at(root, &["experiment_hierarchy"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        stages.is_some_and(|rows| rows.len() == 5
-            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("isolated_cell_baseline"))
-            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("paired_cell_interaction"))
-            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("small_array_transfer"))
-            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("dynamic_drive_interaction"))
-            && rows.iter().any(|row| text_at(row, &["stage"]) == Some("holdout_transfer"))),
+        stages.is_some_and(|rows| {
+            rows.len() == 5
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["stage"]) == Some("isolated_cell_baseline"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["stage"]) == Some("paired_cell_interaction"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["stage"]) == Some("small_array_transfer"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["stage"]) == Some("dynamic_drive_interaction"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["stage"]) == Some("holdout_transfer"))
+        }),
         "ARRAY_EXPERIMENT_HIERARCHY",
         "five-stage isolated/pair/array/dynamic/holdout experiment ladder is required",
     );
@@ -1730,12 +2602,23 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         measured.is_some_and(|rows| {
-            ["geometry_hash", "cell_positions_m", "orientation_angles_deg",
-             "pairwise_spacing_m", "drive_waveform_hash_by_cell",
-             "voltage_waveform_by_cell", "current_waveform_by_cell",
-             "terminal_power_by_cell", "gas_composition", "freestream_velocity_m_s",
-             "force_balance_calibration_id", "session_id", "run_order"]
-            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+            [
+                "geometry_hash",
+                "cell_positions_m",
+                "orientation_angles_deg",
+                "pairwise_spacing_m",
+                "drive_waveform_hash_by_cell",
+                "voltage_waveform_by_cell",
+                "current_waveform_by_cell",
+                "terminal_power_by_cell",
+                "gas_composition",
+                "freestream_velocity_m_s",
+                "force_balance_calibration_id",
+                "session_id",
+                "run_order",
+            ]
+            .iter()
+            .all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
         }),
         "ARRAY_MEASURED_CONFIGURATION_FIELDS",
         "array configuration manifest must bind geometry, orientation, spacing, per-cell electrical waveforms, environment, calibration and session identity",
@@ -1745,10 +2628,15 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         observations.is_some_and(|rows| {
-            ["measured_total_force_vector_n", "isolated_cell_force_vectors_n",
-             "measured_pairwise_or_array_force_vector_n", "force_vector_covariance_n2",
-             "terminal_electrical_energy_j"]
-            .iter().all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
+            [
+                "measured_total_force_vector_n",
+                "isolated_cell_force_vectors_n",
+                "measured_pairwise_or_array_force_vector_n",
+                "force_vector_covariance_n2",
+                "terminal_electrical_energy_j",
+            ]
+            .iter()
+            .all(|wanted| rows.iter().any(|field| field.as_str() == Some(*wanted)))
         }),
         "ARRAY_OBSERVATION_FIELDS",
         "vector force, isolated baselines, combined force, covariance and electrical energy are required",
@@ -1758,17 +2646,24 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         model.is_some_and(|value| {
-            at(value, &["isolated_cell_additivity_is_default"]).and_then(Value::as_bool) == Some(false)
+            at(value, &["isolated_cell_additivity_is_default"]).and_then(Value::as_bool)
+                == Some(false)
                 && text_at(value, &["optional_local_linearization"])
                     .is_some_and(|v| v.contains("J(configuration, operating_point)"))
-                && text_at(value, &["linearity_scope"]).is_some_and(|v| {
-                    v.contains("local") && v.contains("must not be extrapolated")
-                })
-                && at(value, &["training_holdouts"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() >= 4
-                        && rows.iter().any(|v| v.as_str() == Some("orientation_family"))
-                        && rows.iter().any(|v| v.as_str() == Some("spacing_family"))
-                        && rows.iter().any(|v| v.as_str() == Some("experimental_session")))
+                && text_at(value, &["linearity_scope"])
+                    .is_some_and(|v| v.contains("local") && v.contains("must not be extrapolated"))
+                && at(value, &["training_holdouts"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() >= 4
+                            && rows
+                                .iter()
+                                .any(|v| v.as_str() == Some("orientation_family"))
+                            && rows.iter().any(|v| v.as_str() == Some("spacing_family"))
+                            && rows
+                                .iter()
+                                .any(|v| v.as_str() == Some("experimental_session"))
+                    })
         }),
         "ARRAY_MODEL_SCOPE",
         "array model must reject default additivity and limit local Jacobians to a held-out qualified envelope",
@@ -1777,13 +2672,25 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
     let factors = at(root, &["design_factors"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        factors.is_some_and(|rows| rows.len() == 6
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("anode_orientation"))
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("inter_cell_spacing"))
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("polarity"))
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("voltage_and_duty"))
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("freestream"))
-            && rows.iter().any(|r| text_at(r, &["id"]) == Some("cell_count"))),
+        factors.is_some_and(|rows| {
+            rows.len() == 6
+                && rows
+                    .iter()
+                    .any(|r| text_at(r, &["id"]) == Some("anode_orientation"))
+                && rows
+                    .iter()
+                    .any(|r| text_at(r, &["id"]) == Some("inter_cell_spacing"))
+                && rows.iter().any(|r| text_at(r, &["id"]) == Some("polarity"))
+                && rows
+                    .iter()
+                    .any(|r| text_at(r, &["id"]) == Some("voltage_and_duty"))
+                && rows
+                    .iter()
+                    .any(|r| text_at(r, &["id"]) == Some("freestream"))
+                && rows
+                    .iter()
+                    .any(|r| text_at(r, &["id"]) == Some("cell_count"))
+        }),
         "ARRAY_DESIGN_FACTORS",
         "orientation, spacing, polarity, drive, freestream and cell-count factors are required",
     );
@@ -1795,7 +2702,8 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
             number_at(value, &["force_direction_error_degrees_max"]) == Some(5.0)
                 && number_at(value, &["force_magnitude_relative_error_max"]) == Some(0.10)
                 && at(value, &["all_targets_prospective"]).and_then(Value::as_bool) == Some(true)
-                && at(value, &["holdout_requirements"]).and_then(Value::as_array)
+                && at(value, &["holdout_requirements"])
+                    .and_then(Value::as_array)
                     .is_some_and(|rows| rows.len() == 3)
         }),
         "ARRAY_PROSPECTIVE_GATES",
@@ -1804,12 +2712,17 @@ pub fn audit_array_interaction(root: &Value) -> Vec<String> {
 
     push_if_missing(
         &mut findings,
-        contains_any(root, &["exclusion_rules"], "Do not assume isolated-cell force vectors superpose")
-            && contains_any(root, &["exclusion_rules"], "Do not use a static force map as a transient switching model")
-            && text_at(root, &["claim_ceiling"]).is_some_and(|value| {
-                value.contains("No Luminous multi-anode force map")
-                    && value.contains("physical result")
-            }),
+        contains_any(
+            root,
+            &["exclusion_rules"],
+            "Do not assume isolated-cell force vectors superpose",
+        ) && contains_any(
+            root,
+            &["exclusion_rules"],
+            "Do not use a static force map as a transient switching model",
+        ) && text_at(root, &["claim_ceiling"]).is_some_and(|value| {
+            value.contains("No Luminous multi-anode force map") && value.contains("physical result")
+        }),
         "ARRAY_CLAIM_BOUNDARY",
         "do not assume superposition, reuse static maps for transients, or claim Luminous physical results",
     );
@@ -1846,17 +2759,28 @@ pub fn audit_gcl_benchmark(root: &Value) -> Vec<String> {
         implementation.is_some_and(|value| {
             text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/gcl.rs")
                 && text_at(value, &["geometry"]) == Some("single_axis_aligned_spatial_box")
-                && text_at(value, &["motion"]) == Some("lower_and_upper_bounds_linear_in_normalized_time")
+                && text_at(value, &["motion"])
+                    == Some("lower_and_upper_bounds_linear_in_normalized_time")
                 && text_at(value, &["face_area_integral"])
                     .is_some_and(|method| method.contains("exact_polynomial"))
-                && at(value, &["spatial_dimensions"]).and_then(Value::as_array)
-                    .is_some_and(|dims| dims.len() == 3
-                        && dims[0].as_u64() == Some(1)
-                        && dims[1].as_u64() == Some(2)
-                        && dims[2].as_u64() == Some(3))
-                && at(value, &["reports"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|field| field.as_str() == Some("integrated_grid_flux"))
-                        && fields.iter().any(|field| field.as_str() == Some("gcl_residual")))
+                && at(value, &["spatial_dimensions"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|dims| {
+                        dims.len() == 3
+                            && dims[0].as_u64() == Some(1)
+                            && dims[1].as_u64() == Some(2)
+                            && dims[2].as_u64() == Some(3)
+                    })
+                && at(value, &["reports"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        fields
+                            .iter()
+                            .any(|field| field.as_str() == Some("integrated_grid_flux"))
+                            && fields
+                                .iter()
+                                .any(|field| field.as_str() == Some("gcl_residual"))
+                    })
         }),
         "GCL_REFERENCE_SCOPE",
         "GCL reference implementation must preserve exact polynomial integration and the 1D/2D/3D AABB scope",
@@ -1864,32 +2788,64 @@ pub fn audit_gcl_benchmark(root: &Value) -> Vec<String> {
     let test_families = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        test_families.is_some_and(|rows| rows.len() == 11
-            && rows.iter().any(|row| row.as_str() == Some("independent_temporal_subdivision_additivity"))
-            && rows.iter().any(|row| row.as_str() == Some("uniform_scalar_ale_free_stream"))
-            && rows.iter().any(|row| row.as_str() == Some("forward_reverse_flux_antisymmetry"))),
+        test_families.is_some_and(|rows| {
+            rows.len() == 11
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("independent_temporal_subdivision_additivity"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("uniform_scalar_ale_free_stream"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("forward_reverse_flux_antisymmetry"))
+        }),
         "GCL_TEST_MATRIX",
         "GCL benchmark must retain all eleven authored test families",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance", "case_specific_absolute_plus_relative_tolerance_required"])
-                .and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "geometric_residual_separate_from_impulse_charge_momentum_energy_ledgers"])
-                .and_then(Value::as_bool) == Some(true),
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "case_specific_absolute_plus_relative_tolerance_required",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "geometric_residual_separate_from_impulse_charge_momentum_energy_ledgers",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "GCL_TOLERANCE_AND_LEDGER_POLICY",
         "GCL tolerances must be case-specific and GCL residuals must remain separate from physical ledgers",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["limitations"]).and_then(Value::as_array)
-            .is_some_and(|limits| limits.iter().any(|item| item.as_str() == Some("axis_aligned_cells_only"))
-                && limits.iter().any(|item| item.as_str() == Some("no_general_polyhedra"))
-                && limits.iter().any(|item| item.as_str() == Some("not_a_production_ale_solver")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("No arbitrary moving-mesh GCL compliance")
-                    && claim.contains("No production ALE solver")),
+        at(root, &["limitations"])
+            .and_then(Value::as_array)
+            .is_some_and(|limits| {
+                limits
+                    .iter()
+                    .any(|item| item.as_str() == Some("axis_aligned_cells_only"))
+                    && limits
+                        .iter()
+                        .any(|item| item.as_str() == Some("no_general_polyhedra"))
+                    && limits
+                        .iter()
+                        .any(|item| item.as_str() == Some("not_a_production_ale_solver"))
+            })
+            && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+                claim.contains("No arbitrary moving-mesh GCL compliance")
+                    && claim.contains("No production ALE solver")
+            }),
         "GCL_CLAIM_BOUNDARY",
         "GCL artifact must not promote an analytic AABB oracle into general ALE solver qualification",
     );
@@ -1929,9 +2885,15 @@ pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
     let methods = at(root, &["methods"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        methods.is_some_and(|rows| rows.len() == 2
-            && rows.iter().any(|row| row.as_str() == Some("explicit_species_collision_drag"))
-            && rows.iter().any(|row| row.as_str() == Some("reduced_coulomb_deposition"))),
+        methods.is_some_and(|rows| {
+            rows.len() == 2
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("explicit_species_collision_drag"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("reduced_coulomb_deposition"))
+        }),
         "EXCHANGE_RECEIPT_METHODS",
         "both mutually exclusive physical transfer methods must remain represented",
     );
@@ -1939,10 +2901,19 @@ pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         fields.is_some_and(|rows| {
-            ["event_id", "transfer_path_id", "method", "charged_solver_id",
-             "neutral_solver_id", "charged_frame_id", "neutral_frame_id",
-             "charged_reaction_impulse_ns", "neutral_impulse_ns"]
-                .iter().all(|wanted| rows.iter().any(|row| row.as_str() == Some(*wanted)))
+            [
+                "event_id",
+                "transfer_path_id",
+                "method",
+                "charged_solver_id",
+                "neutral_solver_id",
+                "charged_frame_id",
+                "neutral_frame_id",
+                "charged_reaction_impulse_ns",
+                "neutral_impulse_ns",
+            ]
+            .iter()
+            .all(|wanted| rows.iter().any(|row| row.as_str() == Some(*wanted)))
         }),
         "EXCHANGE_RECEIPT_EVENT_FIELDS",
         "event identity, solver, coordinate frame or paired impulse fields are missing",
@@ -1950,42 +2921,75 @@ pub fn audit_exchange_receipt_contract(root: &Value) -> Vec<String> {
     let invariants = at(root, &["required_invariants"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        invariants.is_some_and(|rows| rows.len() == 8
-            && rows.iter().any(|row| row.as_str() == Some("equal_and_opposite_impulse_per_event"))
-            && rows.iter().any(|row| row.as_str() == Some("one_transfer_method_per_physical_path"))
-            && rows.iter().any(|row| row.as_str() == Some("matching_coordinate_frame_per_event"))
-            && rows.iter().any(|row| row.as_str() == Some("stable_solver_and_frame_identity_per_transfer_path"))),
+        invariants.is_some_and(|rows| {
+            rows.len() == 8
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("equal_and_opposite_impulse_per_event"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("one_transfer_method_per_physical_path"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("matching_coordinate_frame_per_event"))
+                && rows.iter().any(|row| {
+                    row.as_str() == Some("stable_solver_and_frame_identity_per_transfer_path")
+                })
+        }),
         "EXCHANGE_RECEIPT_INVARIANTS",
         "event-local balance, path method exclusivity and frame identity are mandatory",
     );
     let tests = at(root, &["tests"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 12
-            && rows.iter().any(|row| row.as_str() == Some("reject_event_residuals_that_cancel_globally"))
-            && rows.iter().any(|row| row.as_str() == Some("reject_duplicate_event_ids"))
-            && rows.iter().any(|row| row.as_str() == Some("reject_solver_or_frame_identity_changes_within_path"))),
+        tests.is_some_and(|rows| {
+            rows.len() == 12
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("reject_event_residuals_that_cancel_globally"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("reject_duplicate_event_ids"))
+                && rows.iter().any(|row| {
+                    row.as_str() == Some("reject_solver_or_frame_identity_changes_within_path")
+                })
+        }),
         "EXCHANGE_RECEIPT_TEST_MATRIX",
         "event receipt must retain all eleven authored test families",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance", "per_event_check_required"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "aggregate_check_required"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "durable_exactly_once_not_implemented"])
-                .and_then(Value::as_bool) == Some(true),
+            && at(root, &["acceptance", "per_event_check_required"]).and_then(Value::as_bool)
+                == Some(true)
+            && at(root, &["acceptance", "aggregate_check_required"]).and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &["acceptance", "durable_exactly_once_not_implemented"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "EXCHANGE_RECEIPT_ACCEPTANCE",
         "per-event and aggregate checks require predeclared case tolerances; durable exactly-once must remain unimplemented",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["limitations"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.iter().any(|row| row.as_str() == Some("in_memory_batch_only"))
-                && rows.iter().any(|row| row.as_str() == Some("no_durable_idempotency_across_restarts"))
-                && rows.iter().any(|row| row.as_str() == Some("no_atomic_paired_solver_side_commit")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("does not provide durable exactly-once semantics")),
+        at(root, &["limitations"])
+            .and_then(Value::as_array)
+            .is_some_and(|rows| {
+                rows.iter()
+                    .any(|row| row.as_str() == Some("in_memory_batch_only"))
+                    && rows
+                        .iter()
+                        .any(|row| row.as_str() == Some("no_durable_idempotency_across_restarts"))
+                    && rows
+                        .iter()
+                        .any(|row| row.as_str() == Some("no_atomic_paired_solver_side_commit"))
+            })
+            && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+                claim.contains("does not provide durable exactly-once semantics")
+            }),
         "EXCHANGE_RECEIPT_CLAIM_BOUNDARY",
         "in-memory event checks must not be represented as durable exactly-once transaction semantics",
     );
@@ -2011,58 +3015,96 @@ pub fn audit_polynomial_moments_contract(root: &Value) -> Vec<String> {
         &mut findings,
         implementation.is_some_and(|value| {
             text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/polynomial_moments.rs")
-                && text_at(value, &["geometry_backend"]) == Some("tools/ehd-reference-audit/src/geometry.rs")
+                && text_at(value, &["geometry_backend"])
+                    == Some("tools/ehd-reference-audit/src/geometry.rs")
                 && text_at(value, &["supported_geometry"])
                     == Some("axis_aligned_boxes_in_compile_time_dimensions")
                 && text_at(value, &["reconstruction"])
                     .is_some_and(|scope| scope.contains("caller_supplies_coefficients"))
-                && at(value, &["checks"]).and_then(Value::as_array)
-                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("destination_integral_per_cell"))
-                        && checks.iter().any(|item| item.as_str() == Some("global_destination_integral")))
+                && at(value, &["checks"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|checks| {
+                        checks
+                            .iter()
+                            .any(|item| item.as_str() == Some("destination_integral_per_cell"))
+                            && checks
+                                .iter()
+                                .any(|item| item.as_str() == Some("global_destination_integral"))
+                    })
         }),
         "POLY_MOMENT_IMPLEMENTATION_SCOPE",
         "polynomial-moment path, geometry scope, supplied-coefficient boundary or local/global checks changed",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["supported_polynomial_degrees"]).and_then(Value::as_array)
-            .is_some_and(|degrees| degrees.len() == 3
-                && degrees[0].as_u64() == Some(0)
-                && degrees[1].as_u64() == Some(1)
-                && degrees[2].as_u64() == Some(2)),
+        at(root, &["supported_polynomial_degrees"])
+            .and_then(Value::as_array)
+            .is_some_and(|degrees| {
+                degrees.len() == 3
+                    && degrees[0].as_u64() == Some(0)
+                    && degrees[1].as_u64() == Some(1)
+                    && degrees[2].as_u64() == Some(2)
+            }),
         "POLY_MOMENT_DEGREES",
         "P0/P1/P2 polynomial degree support must remain explicit",
     );
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 10
-            && rows.iter().any(|item| item.as_str() == Some("p1_linear_exact_destination_integrals"))
-            && rows.iter().any(|item| item.as_str() == Some("p2_quadratic_exact_destination_integrals"))
-            && rows.iter().any(|item| item.as_str() == Some("reject_requested_maximum_degree_above_p2_scope"))
-            && rows.iter().any(|item| item.as_str() == Some("reject_geometry_gap_before_transfer"))),
+        tests.is_some_and(|rows| {
+            rows.len() == 10
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("p1_linear_exact_destination_integrals"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("p2_quadratic_exact_destination_integrals"))
+                && rows.iter().any(|item| {
+                    item.as_str() == Some("reject_requested_maximum_degree_above_p2_scope")
+                })
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("reject_geometry_gap_before_transfer"))
+        }),
         "POLY_MOMENT_TEST_MATRIX",
         "nine P0/P1/P2 analytic and adversarial tests must remain declared",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance", "per_destination_integral_checked"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "global_integral_checked"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "polynomial_exactness_not_equivalent_to_tpe"]).and_then(Value::as_bool) == Some(true),
+            && at(root, &["acceptance", "per_destination_integral_checked"])
+                .and_then(Value::as_bool)
+                == Some(true)
+            && at(root, &["acceptance", "global_integral_checked"]).and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &["acceptance", "polynomial_exactness_not_equivalent_to_tpe"],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "POLY_MOMENT_ACCEPTANCE",
         "local and global integral checks plus case-specific tolerances and TPE distinction are mandatory",
     );
     let limitations = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limitations.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("caller_supplies_polynomial_coefficients"))
-            && rows.iter().any(|item| item.as_str() == Some("no_cell_average_reconstruction"))
-            && rows.iter().any(|item| item.as_str() == Some("no_tpe_1_or_tpe_2_implementation"))
-            && rows.iter().any(|item| item.as_str() == Some("no_production_remapping_solver")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("does not establish production higher-order remapping")
-                    && claim.contains("TPE(1/2)")),
+        limitations.is_some_and(|rows| {
+            rows.iter()
+                .any(|item| item.as_str() == Some("caller_supplies_polynomial_coefficients"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_cell_average_reconstruction"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_tpe_1_or_tpe_2_implementation"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_production_remapping_solver"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("does not establish production higher-order remapping")
+                && claim.contains("TPE(1/2)")
+        }),
         "POLY_MOMENT_CLAIM_BOUNDARY",
         "analytic moment integration must not be represented as a reconstruction or TPE solver",
     );
@@ -2087,13 +3129,11 @@ pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         closure.is_some_and(|value| {
-            text_at(value, &["neutral_impulse"])
-                == Some("I_n = Gamma * relative_velocity")
-                && text_at(value, &["charged_reaction_impulse"])
-                    == Some("I_c = -I_n")
-                && text_at(value, &["integrated_frictional_heating"])
-                    .is_some_and(|expr| expr.contains("Gamma*|relative_velocity|^2")
-                        && expr.contains(">= 0"))
+            text_at(value, &["neutral_impulse"]) == Some("I_n = Gamma * relative_velocity")
+                && text_at(value, &["charged_reaction_impulse"]) == Some("I_c = -I_n")
+                && text_at(value, &["integrated_frictional_heating"]).is_some_and(|expr| {
+                    expr.contains("Gamma*|relative_velocity|^2") && expr.contains(">= 0")
+                })
         }),
         "DRAG_DISSIPATION_PHYSICS",
         "drag impulse, equal-opposite reaction and non-negative frictional heating identity must remain explicit",
@@ -2105,11 +3145,18 @@ pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
             text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/drag_dissipation.rs")
                 && text_at(value, &["motion"])
                     == Some("constant_relative_velocity_over_event_space_time_slab")
-                && text_at(value, &["summation"])
-                    == Some("event_id_ordered_compensated_summation")
-                && at(value, &["checks"]).and_then(Value::as_array)
-                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("impulse_work_is_nonnegative"))
-                        && checks.iter().any(|item| item.as_str() == Some("impulse_work_matches_predicted_frictional_heating")))
+                && text_at(value, &["summation"]) == Some("event_id_ordered_compensated_summation")
+                && at(value, &["checks"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|checks| {
+                        checks
+                            .iter()
+                            .any(|item| item.as_str() == Some("impulse_work_is_nonnegative"))
+                            && checks.iter().any(|item| {
+                                item.as_str()
+                                    == Some("impulse_work_matches_predicted_frictional_heating")
+                            })
+                    })
         }),
         "DRAG_DISSIPATION_SCOPE",
         "reference implementation must retain constant-drift scope, deterministic summation and energy-sign checks",
@@ -2117,32 +3164,64 @@ pub fn audit_drag_dissipation_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 10
-            && rows.iter().any(|item| item.as_str() == Some("anti_drag_impulse_rejected"))
-            && rows.iter().any(|item| item.as_str() == Some("negative_frictional_work_rejected_even_with_relaxed_impulse_tolerance"))
-            && rows.iter().any(|item| item.as_str() == Some("equal_opposite_wrong_magnitude_rejected"))),
+        tests.is_some_and(|rows| {
+            rows.len() == 10
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("anti_drag_impulse_rejected"))
+                && rows.iter().any(|item| {
+                    item.as_str()
+                        == Some(
+                            "negative_frictional_work_rejected_even_with_relaxed_impulse_tolerance",
+                        )
+                })
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("equal_opposite_wrong_magnitude_rejected"))
+        }),
         "DRAG_DISSIPATION_TESTS",
         "nine analytic and adversarial drag/dissipation test families must remain declared",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance", "per_event_momentum_and_energy_checks_required"])
-                .and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "relative_velocity_constant_within_event_required"])
-                .and_then(Value::as_bool) == Some(true),
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "per_event_momentum_and_energy_checks_required",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "relative_velocity_constant_within_event_required",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "DRAG_DISSIPATION_ACCEPTANCE",
         "case-specific per-event momentum/energy tolerances and constant-drift scope are mandatory",
     );
     let limits = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("constant_relative_velocity_only"))
-            && rows.iter().any(|item| item.as_str() == Some("no_thermal_partition_between_species"))
-            && rows.iter().any(|item| item.as_str() == Some("no_full_fluid_or_plasma_equations")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("constant-drift analytic drag/dissipation oracle only")
-                    && claim.contains("No general time-varying")),
+        limits.is_some_and(|rows| {
+            rows.iter()
+                .any(|item| item.as_str() == Some("constant_relative_velocity_only"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_thermal_partition_between_species"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_full_fluid_or_plasma_equations"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("constant-drift analytic drag/dissipation oracle only")
+                && claim.contains("No general time-varying")
+        }),
         "DRAG_DISSIPATION_CLAIM_BOUNDARY",
         "constant-drift oracle must not be promoted to a general collision/thermal solver",
     );
@@ -2158,7 +3237,9 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-DRAG-TRAJECTORY-001")
             && text_at(root, &["status"])
-                == Some("space_time_quadrature_receipt_validator_authored_tests_rust_execution_pending"),
+                == Some(
+                    "space_time_quadrature_receipt_validator_authored_tests_rust_execution_pending",
+                ),
         "DRAG_TRAJECTORY_IDENTITY",
         "time-varying drag quadrature benchmark identity/version/status changed",
     );
@@ -2166,18 +3247,18 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         physics.is_some_and(|value| {
-            text_at(value, &["coefficient_density"])
-                .is_some_and(|expr| expr.contains(">= 0"))
+            text_at(value, &["coefficient_density"]).is_some_and(|expr| expr.contains(">= 0"))
                 && text_at(value, &["neutral_impulse"])
                     .is_some_and(|expr| expr.contains("alpha*relative_velocity"))
-                && text_at(value, &["frictional_heating"])
-                    .is_some_and(|expr| expr.contains("alpha*|relative_velocity|^2")
-                        && expr.contains(">= 0"))
+                && text_at(value, &["frictional_heating"]).is_some_and(|expr| {
+                    expr.contains("alpha*|relative_velocity|^2") && expr.contains(">= 0")
+                })
                 && at(value, &["discrete_receipt"]).is_some_and(|receipt| {
                     text_at(receipt, &["neutral_impulse"])
                         .is_some_and(|expr| expr.contains("delta_Gamma_q*relative_velocity_q"))
-                        && text_at(receipt, &["frictional_heating"])
-                            .is_some_and(|expr| expr.contains("delta_Gamma_q*|relative_velocity_q|^2"))
+                        && text_at(receipt, &["frictional_heating"]).is_some_and(|expr| {
+                            expr.contains("delta_Gamma_q*|relative_velocity_q|^2")
+                        })
                 })
         }),
         "DRAG_TRAJECTORY_PHYSICS",
@@ -2188,19 +3269,50 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
         &mut findings,
         implementation.is_some_and(|value| {
             text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/drag_trajectory.rs")
-                && at(value, &["input_sample_fields"]).and_then(Value::as_array)
-                    .is_some_and(|fields| ["sample_id","time_fraction","integrated_drag_weight_kg","relative_velocity_m_s"]
-                        .iter().all(|wanted| fields.iter().any(|item| item.as_str() == Some(*wanted))))
-                && at(value, &["event_fields"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("charged_frame_id"))
-                        && fields.iter().any(|item| item.as_str() == Some("neutral_frame_id")))
-                && at(value, &["checks"]).and_then(Value::as_array)
-                    .is_some_and(|checks| checks.iter().any(|item| item.as_str() == Some("neutral_impulse_reconstructed_from_same_samples"))
-                        && checks.iter().any(|item| item.as_str() == Some("reported_frictional_heating_matches_same_samples"))
-                        && checks.iter().any(|item| item.as_str() == Some("deterministic_event_and_sample_ordering")))
-                && at(value, &["receipt_fields"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("quadrature_rule_ids_by_event"))
-                        && fields.iter().any(|item| item.as_str() == Some("coordinate_frame_ids_by_event")))
+                && at(value, &["input_sample_fields"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        [
+                            "sample_id",
+                            "time_fraction",
+                            "integrated_drag_weight_kg",
+                            "relative_velocity_m_s",
+                        ]
+                        .iter()
+                        .all(|wanted| fields.iter().any(|item| item.as_str() == Some(*wanted)))
+                    })
+                && at(value, &["event_fields"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        fields
+                            .iter()
+                            .any(|item| item.as_str() == Some("charged_frame_id"))
+                            && fields
+                                .iter()
+                                .any(|item| item.as_str() == Some("neutral_frame_id"))
+                    })
+                && at(value, &["checks"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|checks| {
+                        checks.iter().any(|item| {
+                            item.as_str() == Some("neutral_impulse_reconstructed_from_same_samples")
+                        }) && checks.iter().any(|item| {
+                            item.as_str()
+                                == Some("reported_frictional_heating_matches_same_samples")
+                        }) && checks.iter().any(|item| {
+                            item.as_str() == Some("deterministic_event_and_sample_ordering")
+                        })
+                    })
+                && at(value, &["receipt_fields"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        fields
+                            .iter()
+                            .any(|item| item.as_str() == Some("quadrature_rule_ids_by_event"))
+                            && fields
+                                .iter()
+                                .any(|item| item.as_str() == Some("coordinate_frame_ids_by_event"))
+                    })
         }),
         "DRAG_TRAJECTORY_IMPLEMENTATION",
         "time-varying drag implementation must retain sample identity, shared momentum/energy quadrature and rule provenance",
@@ -2213,11 +3325,14 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
                 && number_at(value, &["drag_rate_kg_per_s"]) == Some(2.0)
                 && number_at(value, &["expected_frictional_heating_j"])
                     .is_some_and(|heat| (heat - 59.0 / 6.0).abs() < 1.0e-12)
-                && at(value, &["expected_neutral_impulse_ns"]).and_then(Value::as_array)
-                    .is_some_and(|impulse| impulse.len() == 3
-                        && impulse[0].as_f64() == Some(4.0)
-                        && impulse[1].as_f64() == Some(-1.0)
-                        && impulse[2].as_f64() == Some(1.0))
+                && at(value, &["expected_neutral_impulse_ns"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|impulse| {
+                        impulse.len() == 3
+                            && impulse[0].as_f64() == Some(4.0)
+                            && impulse[1].as_f64() == Some(-1.0)
+                            && impulse[2].as_f64() == Some(1.0)
+                    })
         }),
         "DRAG_TRAJECTORY_MANUFACTURED_CASE",
         "variable-drift Simpson manufactured solution and its analytic impulse/heating known answers changed",
@@ -2225,36 +3340,69 @@ pub fn audit_drag_trajectory_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 13
-            && rows.iter().any(|item| item.as_str() == Some("incorrect_impulse_rejected_even_when_heating_matches"))
-            && rows.iter().any(|item| item.as_str() == Some("incorrect_heating_rejected_even_when_impulse_matches"))
-            && rows.iter().any(|item| item.as_str() == Some("event_error_cancellation_rejected"))
-            && rows.iter().any(|item| item.as_str() == Some("implicit_coordinate_frame_mismatch_rejected"))
-            && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        tests.is_some_and(|rows| {
+            rows.len() == 13
+                && rows.iter().any(|item| {
+                    item.as_str() == Some("incorrect_impulse_rejected_even_when_heating_matches")
+                })
+                && rows.iter().any(|item| {
+                    item.as_str() == Some("incorrect_heating_rejected_even_when_impulse_matches")
+                })
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("event_error_cancellation_rejected"))
+                && rows.iter().any(|item| {
+                    item.as_str() == Some("implicit_coordinate_frame_mismatch_rejected")
+                })
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("offline_reference_self_check"))
+        }),
         "DRAG_TRAJECTORY_TEST_MATRIX",
         "twelve variable-drift analytic, adversarial and reference tests must remain declared",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "universal_numeric_tolerance"]).is_some_and(Value::is_null)
-            && at(root, &["acceptance", "same_space_time_quadrature_for_impulse_and_heating"])
-                .and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "quadrature_accuracy_requires_independent_refinement"])
-                .and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "frame_identity_match_required"])
-                .and_then(Value::as_bool) == Some(true),
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "same_space_time_quadrature_for_impulse_and_heating",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
+            && at(
+                root,
+                &[
+                    "acceptance",
+                    "quadrature_accuracy_requires_independent_refinement",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true)
+            && at(root, &["acceptance", "frame_identity_match_required"]).and_then(Value::as_bool)
+                == Some(true),
         "DRAG_TRAJECTORY_ACCEPTANCE",
         "case-specific tolerances and independent quadrature refinement are mandatory",
     );
     let limits = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("validates_supplied_quadrature_receipt_only"))
-            && rows.iter().any(|item| item.as_str() == Some("elastic_drag_frictional_heating_only"))
-            && rows.iter().any(|item| item.as_str() == Some("no_full_collisional_energy_closure")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("does not qualify quadrature accuracy")
-                    && claim.contains("full multi-fluid collisional energy closure")),
+        limits.is_some_and(|rows| {
+            rows.iter()
+                .any(|item| item.as_str() == Some("validates_supplied_quadrature_receipt_only"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("elastic_drag_frictional_heating_only"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_full_collisional_energy_closure"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("does not qualify quadrature accuracy")
+                && claim.contains("full multi-fluid collisional energy closure")
+        }),
         "DRAG_TRAJECTORY_CLAIM_BOUNDARY",
         "supplied quadrature receipt must not be promoted to quadrature accuracy or complete collisional-energy validation",
     );
@@ -2276,11 +3424,21 @@ pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
     let observables = at(root, &["independent_observables"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        observables.is_some_and(|rows| rows.len() == 4
-            && rows.iter().any(|row| text_at(row, &["id"]) == Some("direct_force_balance"))
-            && rows.iter().any(|row| text_at(row, &["id"]) == Some("velocity_field"))
-            && rows.iter().any(|row| text_at(row, &["id"]) == Some("control_volume_momentum"))
-            && rows.iter().any(|row| text_at(row, &["id"]) == Some("solver_prediction"))),
+        observables.is_some_and(|rows| {
+            rows.len() == 4
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["id"]) == Some("direct_force_balance"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["id"]) == Some("velocity_field"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["id"]) == Some("control_volume_momentum"))
+                && rows
+                    .iter()
+                    .any(|row| text_at(row, &["id"]) == Some("solver_prediction"))
+        }),
         "THRUST_OBSERVABILITY_METHODS",
         "direct balance, field measurement, control volume and solver prediction must remain independent observables",
     );
@@ -2288,15 +3446,24 @@ pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         cv.is_some_and(|value| {
-            at(value, &["one_exit_plane_rho_u2_sufficient_for_net_thrust"])
-                .and_then(Value::as_bool) == Some(false)
+            at(value, &["one_exit_plane_rho_u2_sufficient_for_net_thrust"]).and_then(Value::as_bool)
+                == Some(false)
                 && text_at(value, &["inferred_fluid_on_solid_sign"])
                     == Some("negative_of_solid_to_fluid")
-                && at(value, &["terms_must_be_measured_or_bounded"]).and_then(Value::as_array)
-                    .is_some_and(|terms| terms.len() == 6
-                        && terms.iter().any(|item| item.as_str() == Some("momentum_storage"))
-                        && terms.iter().any(|item| item.as_str() == Some("pressure_traction"))
-                        && terms.iter().any(|item| item.as_str() == Some("viscous_traction")))
+                && at(value, &["terms_must_be_measured_or_bounded"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|terms| {
+                        terms.len() == 6
+                            && terms
+                                .iter()
+                                .any(|item| item.as_str() == Some("momentum_storage"))
+                            && terms
+                                .iter()
+                                .any(|item| item.as_str() == Some("pressure_traction"))
+                            && terms
+                                .iter()
+                                .any(|item| item.as_str() == Some("viscous_traction"))
+                    })
         }),
         "THRUST_CONTROL_VOLUME_COMPLETENESS",
         "control-volume momentum, traction and boundary terms/sign convention must remain explicit",
@@ -2307,34 +3474,62 @@ pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
         electrical.is_some_and(|value| {
             text_at(value, &["real_power_definition"])
                 .is_some_and(|expr| expr.contains("integral_v_terminal(t)*i_terminal(t)"))
-                && at(value, &["synchronous_voltage_current_required"])
-                    .and_then(Value::as_bool) == Some(true)
-                && at(value, &["separately_report"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("electrode_terminal_power"))
-                        && fields.iter().any(|item| item.as_str() == Some("switching_loss")))
+                && at(value, &["synchronous_voltage_current_required"]).and_then(Value::as_bool)
+                    == Some(true)
+                && at(value, &["separately_report"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        fields
+                            .iter()
+                            .any(|item| item.as_str() == Some("electrode_terminal_power"))
+                            && fields
+                                .iter()
+                                .any(|item| item.as_str() == Some("switching_loss"))
+                    })
         }),
         "THRUST_ELECTRICAL_BOUNDARY",
         "real terminal power and separate conversion/switching losses must be required",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["mass_boundary", "separate_bare_thruster_and_integrated_platform_cohorts"])
-            .and_then(Value::as_bool) == Some(true)
-            && at(root, &["mass_boundary", "tethered_or_externally_powered_not_self_powered_flight"])
-                .and_then(Value::as_bool) == Some(true),
+        at(
+            root,
+            &[
+                "mass_boundary",
+                "separate_bare_thruster_and_integrated_platform_cohorts",
+            ],
+        )
+        .and_then(Value::as_bool)
+            == Some(true)
+            && at(
+                root,
+                &[
+                    "mass_boundary",
+                    "tethered_or_externally_powered_not_self_powered_flight",
+                ],
+            )
+            .and_then(Value::as_bool)
+                == Some(true),
         "THRUST_MASS_BOUNDARY",
         "bare/integrated and tethered/self-powered system boundaries must remain separate",
     );
     let holdouts = at(root, &["holdouts"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        holdouts.is_some_and(|rows| rows.len() == 3
-            && rows.iter().any(|item| item.as_str() == Some("entire_experimental_session"))
-            && rows.iter().any(|item| item.as_str() == Some("geometry_family"))
-            && rows.iter().any(|item| item.as_str() == Some("waveform_family")))
-            && text_at(root, &["holdout_policy"]).is_some_and(|policy| {
-                policy.contains("Do not split time samples") && policy.contains("before unblinding")
-            }),
+        holdouts.is_some_and(|rows| {
+            rows.len() == 3
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("entire_experimental_session"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("geometry_family"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("waveform_family"))
+        }) && text_at(root, &["holdout_policy"]).is_some_and(|policy| {
+            policy.contains("Do not split time samples") && policy.contains("before unblinding")
+        }),
         "THRUST_HOLDOUT_POLICY",
         "session/geometry/waveform holdouts must be enforced before unblinding",
     );
@@ -2352,18 +3547,24 @@ pub fn audit_thrust_observability_contract(root: &Value) -> Vec<String> {
     let limits = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limits.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("protocol_only_no_measurement_data"))
-            && rows.iter().any(|item| item.as_str() == Some("no_control_volume_integral_implementation"))
-            && rows.iter().any(|item| item.as_str() == Some("no_sota_superiority_claim")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("No Luminous physical EHD thrust measurement")
-                    && claim.contains("no cross-observable agreement")),
+        limits.is_some_and(|rows| {
+            rows.iter()
+                .any(|item| item.as_str() == Some("protocol_only_no_measurement_data"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_control_volume_integral_implementation"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_sota_superiority_claim"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("No Luminous physical EHD thrust measurement")
+                && claim.contains("no cross-observable agreement")
+        }),
         "THRUST_OBSERVABILITY_CLAIM_BOUNDARY",
         "measurement protocol must not be represented as an executed thrust test or SOTA result",
     );
     findings
 }
-
 
 pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
     let mut findings = Vec::new();
@@ -2381,13 +3582,12 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
     push_if_missing(
         &mut findings,
         equation.is_some_and(|value| {
-            text_at(value, &["form"])
-                == Some("S + A = P + V + B + F_solid_to_fluid")
-                && text_at(value, &["reconstructed_solid_on_fluid"])
-                    == Some("S + A - P - V - B")
+            text_at(value, &["form"]) == Some("S + A = P + V + B + F_solid_to_fluid")
+                && text_at(value, &["reconstructed_solid_on_fluid"]) == Some("S + A - P - V - B")
                 && text_at(value, &["inferred_fluid_on_solid"])
                     == Some("negative_of_reconstructed_solid_on_fluid")
-                && at(value, &["sign_convention_id_required"]).and_then(Value::as_bool) == Some(true)
+                && at(value, &["sign_convention_id_required"]).and_then(Value::as_bool)
+                    == Some(true)
         }),
         "CONTROL_VOLUME_SIGN_CONVENTION",
         "control-volume equation/sign convention must remain explicit and fixed",
@@ -2395,10 +3595,19 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
     let required_terms = at(root, &["required_vector_terms"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        required_terms.is_some_and(|rows| rows.len() == 6
-            && ["momentum_storage","advective_momentum_flux_all_surfaces","pressure_traction_all_surfaces",
-                "viscous_traction_all_surfaces","body_force","direct_force_balance_fluid_on_solid"]
-                .iter().all(|wanted| rows.iter().any(|item| item.as_str() == Some(*wanted)))),
+        required_terms.is_some_and(|rows| {
+            rows.len() == 6
+                && [
+                    "momentum_storage",
+                    "advective_momentum_flux_all_surfaces",
+                    "pressure_traction_all_surfaces",
+                    "viscous_traction_all_surfaces",
+                    "body_force",
+                    "direct_force_balance_fluid_on_solid",
+                ]
+                .iter()
+                .all(|wanted| rows.iter().any(|item| item.as_str() == Some(*wanted)))
+        }),
         "CONTROL_VOLUME_REQUIRED_TERMS",
         "all five fluid-side terms and independent balance measurement must be mandatory",
     );
@@ -2408,13 +3617,16 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
         uncertainty.is_some_and(|value| {
             text_at(value, &["cv_uncertainty"])
                 == Some("U_storage + U_advective + U_pressure + U_viscous + U_body")
-                && text_at(value, &["combined_uncertainty"])
-                    == Some("U_cv + U_direct_balance")
+                && text_at(value, &["combined_uncertainty"]) == Some("U_cv + U_direct_balance")
                 && text_at(value, &["method"])
                     .is_some_and(|method| method.contains("worst_case_triangle_inequality"))
                 && at(value, &["rss_allowed_by_default"]).and_then(Value::as_bool) == Some(false)
-                && at(value, &["covariance_aware_future_method_requires_validated_covariance_artifact"])
-                    .and_then(Value::as_bool) == Some(true)
+                && at(
+                    value,
+                    &["covariance_aware_future_method_requires_validated_covariance_artifact"],
+                )
+                .and_then(Value::as_bool)
+                    == Some(true)
         }),
         "CONTROL_VOLUME_UNCERTAINTY_POLICY",
         "uncertainty must use conservative worst-case addition; RSS is not the default",
@@ -2426,9 +3638,16 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
             text_at(value, &["path"]) == Some("tools/ehd-reference-audit/src/control_volume.rs")
                 && text_at(value, &["missing_term_policy"]) == Some("reject_not_zero_fill")
                 && text_at(value, &["duplicate_evidence_id_policy"]) == Some("reject")
-                && at(value, &["outputs"]).and_then(Value::as_array)
-                    .is_some_and(|fields| fields.iter().any(|item| item.as_str() == Some("combined_uncertainty_bound_n"))
-                        && fields.iter().any(|item| item.as_str() == Some("overall_within_combined_bound")))
+                && at(value, &["outputs"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|fields| {
+                        fields
+                            .iter()
+                            .any(|item| item.as_str() == Some("combined_uncertainty_bound_n"))
+                            && fields
+                                .iter()
+                                .any(|item| item.as_str() == Some("overall_within_combined_bound"))
+                    })
         }),
         "CONTROL_VOLUME_IMPLEMENTATION_SCOPE",
         "reducer must reject missing terms, reject duplicate evidence and emit uncertainty-aware reconciliation",
@@ -2436,38 +3655,58 @@ pub fn audit_control_volume_contract(root: &Value) -> Vec<String> {
     let tests = at(root, &["test_families"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        tests.is_some_and(|rows| rows.len() == 10
-            && rows.iter().any(|item| item.as_str() == Some("reject_each_missing_required_term"))
-            && rows.iter().any(|item| item.as_str() == Some("verify_worst_case_uncertainty_sum_not_rss"))
-            && rows.iter().any(|item| item.as_str() == Some("flag_discrepancy_beyond_uncertainty"))
-            && rows.iter().any(|item| item.as_str() == Some("reject_empty_run_and_control_volume_identities"))
-            && rows.iter().any(|item| item.as_str() == Some("offline_reference_self_check"))),
+        tests.is_some_and(|rows| {
+            rows.len() == 10
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("reject_each_missing_required_term"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("verify_worst_case_uncertainty_sum_not_rss"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("flag_discrepancy_beyond_uncertainty"))
+                && rows.iter().any(|item| {
+                    item.as_str() == Some("reject_empty_run_and_control_volume_identities")
+                })
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("offline_reference_self_check"))
+        }),
         "CONTROL_VOLUME_TEST_MATRIX",
         "nine control-volume analytic/adversarial test families must remain declared",
     );
     push_if_missing(
         &mut findings,
         at(root, &["acceptance", "all_six_terms_required"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "unknown_term_is_not_zero"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["acceptance", "worst_case_sum_is_default"]).and_then(Value::as_bool) == Some(true),
+            && at(root, &["acceptance", "unknown_term_is_not_zero"]).and_then(Value::as_bool)
+                == Some(true)
+            && at(root, &["acceptance", "worst_case_sum_is_default"]).and_then(Value::as_bool)
+                == Some(true),
         "CONTROL_VOLUME_ACCEPTANCE",
         "all six terms must be present and unknown terms must not become zero",
     );
     let limitations = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limitations.is_some_and(|rows| rows.iter().any(|item| item.as_str() == Some("no_piv_ldv_image_processing"))
-            && rows.iter().any(|item| item.as_str() == Some("no_velocity_field_surface_integration"))
-            && rows.iter().any(|item| item.as_str() == Some("no_physical_thrust_measurement")))
-            && text_at(root, &["claim_ceiling"])
-                .is_some_and(|claim| claim.contains("not a PIV/LDV pipeline")
-                    && claim.contains("physical thrust measurement")),
+        limitations.is_some_and(|rows| {
+            rows.iter()
+                .any(|item| item.as_str() == Some("no_piv_ldv_image_processing"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_velocity_field_surface_integration"))
+                && rows
+                    .iter()
+                    .any(|item| item.as_str() == Some("no_physical_thrust_measurement"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("not a PIV/LDV pipeline")
+                && claim.contains("physical thrust measurement")
+        }),
         "CONTROL_VOLUME_CLAIM_BOUNDARY",
         "vector reducer must not be promoted into field processing or physical thrust validation",
     );
     findings
 }
-
 
 /// Audit the two-parameter manufactured identifiability benchmark contract.
 /// This is a contract check for the reference fixture, not a physical EHD model.
@@ -2479,18 +3718,25 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-OED-001")
             && text_at(root, &["status"])
-                == Some("two_parameter_manufactured_reference_kernel_authored_tests_rust_execution_pending"),
+                == Some(
+                    "two_parameter_manufactured_reference_kernel_authored_tests_rust_execution_pending",
+                ),
         "IDENTIFIABILITY_IDENTITY",
         "identifiability kernel benchmark identity/version/status changed",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["parameter_contract", "parameter_order"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.len() == 2
-                && rows[0].as_str() == Some("a")
-                && rows[1].as_str() == Some("b"))
-            && at(root, &["parameter_contract", "correlated_covariance_supported"])
-                .and_then(Value::as_bool) == Some(false),
+        at(root, &["parameter_contract", "parameter_order"])
+            .and_then(Value::as_array)
+            .is_some_and(|rows| {
+                rows.len() == 2 && rows[0].as_str() == Some("a") && rows[1].as_str() == Some("b")
+            })
+            && at(
+                root,
+                &["parameter_contract", "correlated_covariance_supported"],
+            )
+            .and_then(Value::as_bool)
+                == Some(false),
         "IDENTIFIABILITY_PARAMETER_CONTRACT",
         "two-parameter order and diagonal-covariance limitation must remain explicit",
     );
@@ -2502,7 +3748,8 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                 == Some("singular_value_i > relative_tolerance * largest_singular_value")
                 && number_at(value, &["relative_rank_tolerance"]) == Some(1.0e-12)
                 && at(value, &["rank_tolerance_is_input_and_receipt_field"])
-                    .and_then(Value::as_bool) == Some(true)
+                    .and_then(Value::as_bool)
+                    == Some(true)
                 && text_at(value, &["parameter_estimate_policy"])
                     == Some("emit_only_when_numerical_rank_equals_two")
         }),
@@ -2516,12 +3763,14 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
         "IDENTIFIABILITY_CASE_COUNT",
         "exactly one rank-deficient and one full-rank manufactured case are required",
     );
-    let repeated = cases.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["case_id"]) == Some("E0-REPEATED-CONDITION-RANK-1")
-    }));
-    let balanced = cases.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["case_id"]) == Some("E0-BALANCED-CONDITION-RANK-2")
-    }));
+    let repeated = cases.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["case_id"]) == Some("E0-REPEATED-CONDITION-RANK-1"))
+    });
+    let balanced = cases.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["case_id"]) == Some("E0-BALANCED-CONDITION-RANK-2"))
+    });
     push_if_missing(
         &mut findings,
         repeated.is_some(),
@@ -2530,20 +3779,34 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     );
     if let Some(case) = repeated {
         let design = at(case, &["design_matrix"]).and_then(Value::as_array);
-        let design_matches = design.is_some_and(|rows| rows.len() == 3 && rows.iter().all(|row| {
-            row.as_array().is_some_and(|cols| cols.len() == 2
-                && cols[0].as_f64() == Some(1.0)
-                && cols[1].as_f64() == Some(1.0))
-        }));
+        let design_matches = design.is_some_and(|rows| {
+            rows.len() == 3
+                && rows.iter().all(|row| {
+                    row.as_array().is_some_and(|cols| {
+                        cols.len() == 2
+                            && cols[0].as_f64() == Some(1.0)
+                            && cols[1].as_f64() == Some(1.0)
+                    })
+                })
+        });
         push_if_missing(
             &mut findings,
             design_matches
-                && at(case, &["expected_information_matrix"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 2
-                        && rows[0].as_array().is_some_and(|cols| cols.len() == 2
-                            && cols[0].as_f64() == Some(3.0) && cols[1].as_f64() == Some(3.0))
-                        && rows[1].as_array().is_some_and(|cols| cols.len() == 2
-                            && cols[0].as_f64() == Some(3.0) && cols[1].as_f64() == Some(3.0)))
+                && at(case, &["expected_information_matrix"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 2
+                            && rows[0].as_array().is_some_and(|cols| {
+                                cols.len() == 2
+                                    && cols[0].as_f64() == Some(3.0)
+                                    && cols[1].as_f64() == Some(3.0)
+                            })
+                            && rows[1].as_array().is_some_and(|cols| {
+                                cols.len() == 2
+                                    && cols[0].as_f64() == Some(3.0)
+                                    && cols[1].as_f64() == Some(3.0)
+                            })
+                    })
                 && at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(1)
                 && text_at(case, &["expected_disposition"]) == Some("not_identifiable")
                 && at(case, &["expected_parameter_estimate"]).is_some_and(Value::is_null),
@@ -2559,29 +3822,44 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     );
     if let Some(case) = balanced {
         let design = at(case, &["design_matrix"]).and_then(Value::as_array);
-        let design_matches = design.is_some_and(|rows| rows.len() == 3
-            && rows[0].as_array().is_some_and(|cols| cols.len() == 2
-                && cols[0].as_f64() == Some(-1.0) && cols[1].as_f64() == Some(1.0))
-            && rows[1].as_array().is_some_and(|cols| cols.len() == 2
-                && cols[0].as_f64() == Some(0.0) && cols[1].as_f64() == Some(1.0))
-            && rows[2].as_array().is_some_and(|cols| cols.len() == 2
-                && cols[0].as_f64() == Some(1.0) && cols[1].as_f64() == Some(1.0)));
+        let design_matches = design.is_some_and(|rows| {
+            rows.len() == 3
+                && rows[0].as_array().is_some_and(|cols| {
+                    cols.len() == 2
+                        && cols[0].as_f64() == Some(-1.0)
+                        && cols[1].as_f64() == Some(1.0)
+                })
+                && rows[1].as_array().is_some_and(|cols| {
+                    cols.len() == 2
+                        && cols[0].as_f64() == Some(0.0)
+                        && cols[1].as_f64() == Some(1.0)
+                })
+                && rows[2].as_array().is_some_and(|cols| {
+                    cols.len() == 2
+                        && cols[0].as_f64() == Some(1.0)
+                        && cols[1].as_f64() == Some(1.0)
+                })
+        });
         push_if_missing(
             &mut findings,
             design_matches
                 && at(case, &["expected_rank"]).and_then(Value::as_u64) == Some(2)
                 && text_at(case, &["expected_disposition"]) == Some("identifiable")
-                && at(case, &["expected_parameter_estimate"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 2
-                        && rows[0].as_f64() == Some(2.0)
-                        && rows[1].as_f64() == Some(0.5)),
+                && at(case, &["expected_parameter_estimate"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 2
+                            && rows[0].as_f64() == Some(2.0)
+                            && rows[1].as_f64() == Some(0.5)
+                    }),
             "IDENTIFIABILITY_BALANCED_EXPECTATION",
             "balanced design must retain its full-rank expected parameter recovery",
         );
     }
-    let near_collinear = cases.and_then(|rows| rows.iter().find(|row| {
-        text_at(row, &["case_id"]) == Some("E0-NEAR-COLLINEAR-RANK-2")
-    }));
+    let near_collinear = cases.and_then(|rows| {
+        rows.iter()
+            .find(|row| text_at(row, &["case_id"]) == Some("E0-NEAR-COLLINEAR-RANK-2"))
+    });
     push_if_missing(
         &mut findings,
         near_collinear.is_some(),
@@ -2595,22 +3873,41 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
                 && text_at(case, &["expected_disposition"]) == Some("identifiable")
                 && number_at(case, &["expected_condition_number_approx"])
                     .is_some_and(|value| (value - 2.0e9).abs() / 2.0e9 < 1.0e-6)
-                && at(case, &["practical_warning_required"])
-                    .and_then(Value::as_bool) == Some(true),
+                && at(case, &["practical_warning_required"]).and_then(Value::as_bool) == Some(true),
             "IDENTIFIABILITY_NEAR_COLLINEAR_EXPECTATION",
             "near-collinear fixture must remain numerically full-rank while exposing severe conditioning",
         );
     }
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|rows| rows.len() == 16
-                && rows.iter().any(|row| row.as_str() == Some("repeated_identical_conditions_do_not_repair_rank_deficiency"))
-                && rows.iter().any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
-                && rows.iter().any(|row| row.as_str() == Some("jacobi_spectrum_retains_a_small_but_resolvable_singular_direction"))
-                && rows.iter().any(|row| row.as_str() == Some("d_and_e_optimal_designs_can_differ_at_the_same_budget"))
-                && rows.iter().any(|row| row.as_str() == Some("design_tournament_rejects_search_space_over_limit"))
-                && rows.iter().any(|row| row.as_str() == Some("offline_reference_self_check"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|rows| {
+                rows.len() == 16
+                    && rows.iter().any(|row| {
+                        row.as_str()
+                            == Some("repeated_identical_conditions_do_not_repair_rank_deficiency")
+                    })
+                    && rows
+                        .iter()
+                        .any(|row| row.as_str() == Some("independent_variance_weights_are_applied"))
+                    && rows.iter().any(|row| {
+                        row.as_str()
+                            == Some(
+                                "jacobi_spectrum_retains_a_small_but_resolvable_singular_direction",
+                            )
+                    })
+                    && rows.iter().any(|row| {
+                        row.as_str()
+                            == Some("d_and_e_optimal_designs_can_differ_at_the_same_budget")
+                    })
+                    && rows.iter().any(|row| {
+                        row.as_str() == Some("design_tournament_rejects_search_space_over_limit")
+                    })
+                    && rows
+                        .iter()
+                        .any(|row| row.as_str() == Some("offline_reference_self_check"))
+            }),
         "IDENTIFIABILITY_TEST_MATRIX",
         "identifiability benchmark must retain all fifteen rank, stability, tournament and self-check families",
     );
@@ -2620,58 +3917,110 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
         tournament.is_some_and(|value| {
             text_at(value, &["algorithm"])
                 == Some("deterministic_exhaustive_discrete_design_enumeration")
-                && at(value, &["criteria"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 2
-                        && rows[0].as_str() == Some("D_optimal_maximize_log_determinant_information")
-                        && rows[1].as_str() == Some("E_optimal_maximize_minimum_information_eigenvalue"))
+                && at(value, &["criteria"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 2
+                            && rows[0].as_str()
+                                == Some("D_optimal_maximize_log_determinant_information")
+                            && rows[1].as_str()
+                                == Some("E_optimal_maximize_minimum_information_eigenvalue")
+                    })
                 && at(value, &["observation_budget"]).and_then(Value::as_u64) == Some(3)
                 && at(value, &["evaluated_design_count"]).and_then(Value::as_u64) == Some(20)
                 && at(value, &["max_observation_budget"]).and_then(Value::as_u64) == Some(32)
-                && at(value, &["candidate_conditions"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 4
-                        && rows[0].get("index").and_then(Value::as_u64) == Some(0)
-                        && rows[0].get("sensitivity").and_then(Value::as_array)
-                            .is_some_and(|cols| cols.len() == 2
-                                && cols[0].as_f64() == Some(-3.0)
-                                && cols[1].as_f64() == Some(-3.0))
-                        && rows[1].get("index").and_then(Value::as_u64) == Some(1)
-                        && rows[1].get("sensitivity").and_then(Value::as_array)
-                            .is_some_and(|cols| cols.len() == 2
-                                && cols[0].as_f64() == Some(-3.0)
-                                && cols[1].as_f64() == Some(-2.0))
-                        && rows[2].get("index").and_then(Value::as_u64) == Some(2)
-                        && rows[2].get("sensitivity").and_then(Value::as_array)
-                            .is_some_and(|cols| cols.len() == 2
-                                && cols[0].as_f64() == Some(-3.0)
-                                && cols[1].as_f64() == Some(-1.0))
-                        && rows[3].get("index").and_then(Value::as_u64) == Some(3)
-                        && rows[3].get("sensitivity").and_then(Value::as_array)
-                            .is_some_and(|cols| cols.len() == 2
-                                && cols[0].as_f64() == Some(-2.0)
-                                && cols[1].as_f64() == Some(0.0))
-                        && rows.iter().all(|row| row.get("variance").and_then(Value::as_f64) == Some(1.0)))
-                && at(value, &["expected_d_optimal", "candidate_indices"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 3
-                        && rows[0].as_u64() == Some(0)
-                        && rows[1].as_u64() == Some(2)
-                        && rows[2].as_u64() == Some(3))
-                && at(value, &["expected_e_optimal", "candidate_indices"]).and_then(Value::as_array)
-                    .is_some_and(|rows| rows.len() == 3
-                        && rows[0].as_u64() == Some(0)
-                        && rows[1].as_u64() == Some(3)
-                        && rows[2].as_u64() == Some(3))
-                && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
-                    .is_some_and(|value| (value - 3.1511421982038947).abs() < 1.0e-10)
-                && number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"])
-                    .is_some_and(|value| (value - 2.583592135001262).abs() < 1.0e-10)
-                && number_at(value, &["expected_d_optimal", "determinant_information"]) == Some(76.0)
-                && number_at(value, &["expected_e_optimal", "determinant_information"]) == Some(72.0)
-                && number_at(value, &["expected_e_optimal", "minimum_information_eigenvalue"])
-                    .zip(number_at(value, &["expected_d_optimal", "minimum_information_eigenvalue"]))
-                    .is_some_and(|(e, d)| e > d)
-                && number_at(value, &["expected_d_optimal", "log_determinant_information"])
-                    .zip(number_at(value, &["expected_e_optimal", "log_determinant_information"]))
-                    .is_some_and(|(d, e)| d > e)
+                && at(value, &["candidate_conditions"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 4
+                            && rows[0].get("index").and_then(Value::as_u64) == Some(0)
+                            && rows[0]
+                                .get("sensitivity")
+                                .and_then(Value::as_array)
+                                .is_some_and(|cols| {
+                                    cols.len() == 2
+                                        && cols[0].as_f64() == Some(-3.0)
+                                        && cols[1].as_f64() == Some(-3.0)
+                                })
+                            && rows[1].get("index").and_then(Value::as_u64) == Some(1)
+                            && rows[1]
+                                .get("sensitivity")
+                                .and_then(Value::as_array)
+                                .is_some_and(|cols| {
+                                    cols.len() == 2
+                                        && cols[0].as_f64() == Some(-3.0)
+                                        && cols[1].as_f64() == Some(-2.0)
+                                })
+                            && rows[2].get("index").and_then(Value::as_u64) == Some(2)
+                            && rows[2]
+                                .get("sensitivity")
+                                .and_then(Value::as_array)
+                                .is_some_and(|cols| {
+                                    cols.len() == 2
+                                        && cols[0].as_f64() == Some(-3.0)
+                                        && cols[1].as_f64() == Some(-1.0)
+                                })
+                            && rows[3].get("index").and_then(Value::as_u64) == Some(3)
+                            && rows[3]
+                                .get("sensitivity")
+                                .and_then(Value::as_array)
+                                .is_some_and(|cols| {
+                                    cols.len() == 2
+                                        && cols[0].as_f64() == Some(-2.0)
+                                        && cols[1].as_f64() == Some(0.0)
+                                })
+                            && rows
+                                .iter()
+                                .all(|row| row.get("variance").and_then(Value::as_f64) == Some(1.0))
+                    })
+                && at(value, &["expected_d_optimal", "candidate_indices"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 3
+                            && rows[0].as_u64() == Some(0)
+                            && rows[1].as_u64() == Some(2)
+                            && rows[2].as_u64() == Some(3)
+                    })
+                && at(value, &["expected_e_optimal", "candidate_indices"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|rows| {
+                        rows.len() == 3
+                            && rows[0].as_u64() == Some(0)
+                            && rows[1].as_u64() == Some(3)
+                            && rows[2].as_u64() == Some(3)
+                    })
+                && number_at(
+                    value,
+                    &["expected_e_optimal", "minimum_information_eigenvalue"],
+                )
+                .is_some_and(|value| (value - 3.1511421982038947).abs() < 1.0e-10)
+                && number_at(
+                    value,
+                    &["expected_d_optimal", "minimum_information_eigenvalue"],
+                )
+                .is_some_and(|value| (value - 2.583592135001262).abs() < 1.0e-10)
+                && number_at(value, &["expected_d_optimal", "determinant_information"])
+                    == Some(76.0)
+                && number_at(value, &["expected_e_optimal", "determinant_information"])
+                    == Some(72.0)
+                && number_at(
+                    value,
+                    &["expected_e_optimal", "minimum_information_eigenvalue"],
+                )
+                .zip(number_at(
+                    value,
+                    &["expected_d_optimal", "minimum_information_eigenvalue"],
+                ))
+                .is_some_and(|(e, d)| e > d)
+                && number_at(
+                    value,
+                    &["expected_d_optimal", "log_determinant_information"],
+                )
+                .zip(number_at(
+                    value,
+                    &["expected_e_optimal", "log_determinant_information"],
+                ))
+                .is_some_and(|(d, e)| d > e)
                 && text_at(value, &["claim_boundary"])
                     .is_some_and(|claim| claim.contains("not EHD operating points"))
         }),
@@ -2681,22 +4030,27 @@ pub fn audit_identifiability_contract(root: &Value) -> Vec<String> {
     let limits = at(root, &["limitations"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        limits.is_some_and(|rows| rows.iter().any(|row| row.as_str() == Some("two_parameters_only"))
-            && rows.iter().any(|row| row.as_str() == Some("diagonal_observation_covariance_only"))
-            && rows.iter().any(|row| row.as_str() == Some("no_nonlinear_profile_likelihood"))
-            && rows.iter().any(|row| row.as_str() == Some("no_physical_ehd_parameter_estimation")))
-            && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
-                claim.contains("not an EHD physical parameter estimator")
-                    && claim.contains("not an experiment authorization")
-            }),
+        limits.is_some_and(|rows| {
+            rows.iter()
+                .any(|row| row.as_str() == Some("two_parameters_only"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("diagonal_observation_covariance_only"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("no_nonlinear_profile_likelihood"))
+                && rows
+                    .iter()
+                    .any(|row| row.as_str() == Some("no_physical_ehd_parameter_estimation"))
+        }) && text_at(root, &["claim_ceiling"]).is_some_and(|claim| {
+            claim.contains("not an EHD physical parameter estimator")
+                && claim.contains("not an experiment authorization")
+        }),
         "IDENTIFIABILITY_CLAIM_BOUNDARY",
         "manufactured linear kernel must retain explicit covariance, nonlinear and physical claim limits",
     );
     findings
 }
-
-
-
 
 /// Audit the observer-perturbation qualification fixture and its fail-closed
 /// baseline, persistence, uncertainty and physical-ledger policies.
@@ -2708,7 +4062,9 @@ pub fn audit_observer_perturbation_contract(root: &Value) -> Vec<String> {
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-DPM-001")
             && text_at(root, &["status"])
-                == Some("manufactured_observer_perturbation_kernel_authored_rust_tests_execution_pending"),
+                == Some(
+                    "manufactured_observer_perturbation_kernel_authored_rust_tests_execution_pending",
+                ),
         "OBSERVER_CONTRACT_IDENTITY",
         "observer-perturbation contract identity, version or status changed",
     );
@@ -2718,18 +4074,35 @@ pub fn audit_observer_perturbation_contract(root: &Value) -> Vec<String> {
             .is_some_and(|value| value.contains("conservative absolute-bound addition"))
             && text_at(root, &["model_contract", "passivity_policy"])
                 .is_some_and(|value| value.contains("post-removal measurement"))
-            && at(root, &["model_contract", "independent_gates"]).and_then(Value::as_array)
-                .is_some_and(|items| items.iter().any(|value| value.as_str() == Some("charge_mass_momentum_energy_ledgers"))),
+            && at(root, &["model_contract", "independent_gates"])
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items
+                        .iter()
+                        .any(|value| value.as_str() == Some("charge_mass_momentum_energy_ledgers"))
+                }),
         "OBSERVER_CONTRACT_POLICY",
         "conservative uncertainty, post-removal and independent physical gates must remain explicit",
     );
     let source = at(root, &["primary_source", "source_result"]);
     push_if_missing(
         &mut findings,
-        number_at(source.unwrap_or(&Value::Null), &["peak_axial_velocity_m_s", "dehs"]) == Some(3.8)
-            && number_at(source.unwrap_or(&Value::Null), &["peak_axial_velocity_m_s", "incense_smoke"]) == Some(5.9)
-            && number_at(source.unwrap_or(&Value::Null), &["volumetric_flow_l_s", "dehs"]) == Some(0.89)
-            && number_at(source.unwrap_or(&Value::Null), &["volumetric_flow_l_s", "incense_smoke"]) == Some(1.07)
+        number_at(
+            source.unwrap_or(&Value::Null),
+            &["peak_axial_velocity_m_s", "dehs"],
+        ) == Some(3.8)
+            && number_at(
+                source.unwrap_or(&Value::Null),
+                &["peak_axial_velocity_m_s", "incense_smoke"],
+            ) == Some(5.9)
+            && number_at(
+                source.unwrap_or(&Value::Null),
+                &["volumetric_flow_l_s", "dehs"],
+            ) == Some(0.89)
+            && number_at(
+                source.unwrap_or(&Value::Null),
+                &["volumetric_flow_l_s", "incense_smoke"],
+            ) == Some(1.07)
             && text_at(root, &["primary_source", "doi"]) == Some("10.1007/s00348-026-04322-y"),
         "OBSERVER_CONTRACT_SOURCE_VALUES",
         "published 14 kV DEHS/incense challenge values or DOI changed",
@@ -2753,12 +4126,25 @@ pub fn audit_observer_perturbation_contract(root: &Value) -> Vec<String> {
     );
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 9
-                && tests.iter().any(|value| value.as_str() == Some("missing_post_removal_observation_never_implies_recovery"))
-                && tests.iter().any(|value| value.as_str() == Some("non_independent_baseline_requires_abstention"))
-                && tests.iter().any(|value| value.as_str() == Some("independent_physical_ledger_failure_has_priority"))
-                && tests.iter().any(|value| value.as_str() == Some("interval_overlapping_tolerance_is_unresolved_not_passed"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|tests| {
+                tests.len() == 9
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("missing_post_removal_observation_never_implies_recovery")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str() == Some("non_independent_baseline_requires_abstention")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str() == Some("independent_physical_ledger_failure_has_priority")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("interval_overlapping_tolerance_is_unresolved_not_passed")
+                    })
+            }),
         "OBSERVER_CONTRACT_TEST_MATRIX",
         "all nine observer-perturbation tests, including abstention and persistence, must remain declared",
     );
@@ -2768,19 +4154,22 @@ pub fn audit_observer_perturbation_contract(root: &Value) -> Vec<String> {
             == Some("tools/ehd-reference-audit/src/observer_perturbation.rs")
             && text_at(root, &["reference_implementation", "function"])
                 == Some("qualify_observer_perturbation")
-            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
-                limits.iter().any(|value| value.as_str() == Some("no_universal_tracer_correction_factor"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_source_reported_uncertainty_bounds_imported"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_physical_ehd_validation_by_this_kernel"))
-            }),
+            && at(root, &["limitations"])
+                .and_then(Value::as_array)
+                .is_some_and(|limits| {
+                    limits.iter().any(|value| {
+                        value.as_str() == Some("no_universal_tracer_correction_factor")
+                    }) && limits.iter().any(|value| {
+                        value.as_str() == Some("no_source_reported_uncertainty_bounds_imported")
+                    }) && limits.iter().any(|value| {
+                        value.as_str() == Some("no_physical_ehd_validation_by_this_kernel")
+                    })
+                }),
         "OBSERVER_CONTRACT_SCOPE",
         "implementation path and no-correction-factor/no-physical-validation limits must remain explicit",
     );
     findings
 }
-
-
-
 
 /// Audit the source-pinned low-density air PIV tracer envelope benchmark.
 pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
@@ -2791,7 +4180,9 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-TRACER-002")
             && text_at(root, &["status"])
-                == Some("source_transcribed_low_density_air_measurement_method_contract_no_raw_vector_reproduction"),
+                == Some(
+                    "source_transcribed_low_density_air_measurement_method_contract_no_raw_vector_reproduction",
+                ),
         "LOW_DENSITY_PIV_CONTRACT_IDENTITY",
         "low-density PIV tracer contract identity or evidence status changed",
     );
@@ -2800,48 +4191,88 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
         text_at(root, &["source", "doi"]) == Some("10.2514/6.2025-0473")
             && text_at(root, &["source", "source_id"])
                 == Some("NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
-            && at(root, &["cohort", "pressure_atm"]) == Some(&serde_json::json!([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3])),
+            && at(root, &["cohort", "pressure_atm"])
+                == Some(&serde_json::json!([
+                    1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3
+                ])),
         "LOW_DENSITY_PIV_CONTRACT_COHORT",
         "source identity or 10 pressure points from 1.0 to 0.3 atm changed",
     );
     let table = at(root, &["source_table", "pressure_tracer_rows"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        table.is_some_and(|rows| rows.len() == 10
-            && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
-            && text_at(&rows[0], &["fog"]) == Some("32")
-            && text_at(&rows[9], &["dehs"]) == Some("-")
-            && text_at(&rows[9], &["fog"]) == Some("-")
-            && text_at(&rows[9], &["sio2"]) == Some("128")),
+        table.is_some_and(|rows| {
+            rows.len() == 10
+                && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+                && text_at(&rows[0], &["fog"]) == Some("32")
+                && text_at(&rows[9], &["dehs"]) == Some("-")
+                && text_at(&rows[9], &["fog"]) == Some("-")
+                && text_at(&rows[9], &["sio2"]) == Some("128")
+        }),
         "LOW_DENSITY_PIV_CONTRACT_TRACER_MATRIX",
         "machine-readable tracer-resolution matrix no longer matches the source table",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["diagnostic_contract", "tracer_axes"]).and_then(Value::as_array)
-            .is_some_and(|axes| axes.len() == 7
-                && axes.iter().any(|v| v.as_str() == Some("electric_field_interaction_and_discharge_non_perturbation"))
-                && axes.iter().any(|v| v.as_str() == Some("flow_field_coverage_and_boundary_layer_resolution")))
-            && text_at(root, &["prospective_benchmark_targets", "no_passivity_from_image_quality"])
-                .is_some_and(|value| value.contains("correlation alone is not a passivity result")),
+        at(root, &["diagnostic_contract", "tracer_axes"])
+            .and_then(Value::as_array)
+            .is_some_and(|axes| {
+                axes.len() == 7
+                    && axes.iter().any(|v| {
+                        v.as_str()
+                            == Some("electric_field_interaction_and_discharge_non_perturbation")
+                    })
+                    && axes.iter().any(|v| {
+                        v.as_str() == Some("flow_field_coverage_and_boundary_layer_resolution")
+                    })
+            })
+            && text_at(
+                root,
+                &[
+                    "prospective_benchmark_targets",
+                    "no_passivity_from_image_quality",
+                ],
+            )
+            .is_some_and(|value| value.contains("correlation alone is not a passivity result")),
         "LOW_DENSITY_PIV_CONTRACT_AXES",
         "optical, dynamic, electrical/passivity, pressure and resolution gates must remain separate",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["independent_controls", "corona_on_off_test", "voltage_kv"])
-            .and_then(Value::as_u64) == Some(8)
-            && text_at(root, &["independent_controls", "corona_on_off_test", "inference_limit"])
-                .is_some_and(|value| value.contains("not a high-thrust")),
+        at(
+            root,
+            &["independent_controls", "corona_on_off_test", "voltage_kv"],
+        )
+        .and_then(Value::as_u64)
+            == Some(8)
+            && text_at(
+                root,
+                &[
+                    "independent_controls",
+                    "corona_on_off_test",
+                    "inference_limit",
+                ],
+            )
+            .is_some_and(|value| value.contains("not a high-thrust")),
         "LOW_DENSITY_PIV_CONTRACT_CORONA_BOUNDARY",
         "the low-thrust 8 kV corona on/off test must not be promoted to a high-thrust passivity test",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 6
-                && tests.iter().any(|v| v.as_str() == Some("fog_unavailability_below_reported_pressure_is_retained"))
-                && tests.iter().any(|v| v.as_str() == Some("collector_surface_optical_and_electrical_limits_remain_distinct"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|tests| {
+                tests.len() == 6
+                    && tests.iter().any(|v| {
+                        v.as_str() == Some("fog_unavailability_below_reported_pressure_is_retained")
+                    })
+                    && tests.iter().any(|v| {
+                        v.as_str()
+                            == Some(
+                                "collector_surface_optical_and_electrical_limits_remain_distinct",
+                            )
+                    })
+            }),
         "LOW_DENSITY_PIV_CONTRACT_TEST_MATRIX",
         "six source-pinned tracer and cohort-boundary test families must remain declared",
     );
@@ -2850,18 +4281,21 @@ pub fn audit_low_density_piv_tracer_contract(root: &Value) -> Vec<String> {
         text_at(root, &["claim_ceiling"]).is_some_and(|value| {
             value.contains("not a complete EHD thruster")
                 && value.contains("not establish suitability for Mars CO2 or true vacuum")
-        }) && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
-            limits.iter().any(|v| v.as_str() == Some("no_raw_piv_images_or_vector_fields_imported"))
-                && limits.iter().any(|v| v.as_str() == Some("no_boundary_layer_resolution_demonstrated"))
-        }),
+        }) && at(root, &["limitations"])
+            .and_then(Value::as_array)
+            .is_some_and(|limits| {
+                limits
+                    .iter()
+                    .any(|v| v.as_str() == Some("no_raw_piv_images_or_vector_fields_imported"))
+                    && limits
+                        .iter()
+                        .any(|v| v.as_str() == Some("no_boundary_layer_resolution_demonstrated"))
+            }),
         "LOW_DENSITY_PIV_CONTRACT_CLAIM_BOUNDARY",
         "no raw-data reproduction, boundary-layer claim or Mars/vacuum transfer must remain explicit",
     );
     findings
 }
-
-
-
 
 /// Audit the exact-pressure PIV tracer-screening fixture.
 pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
@@ -2872,39 +4306,48 @@ pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-TRACER-003")
             && text_at(root, &["status"])
-                == Some("source_bounded_exact_pressure_screen_authored_rust_tests_execution_pending"),
+                == Some(
+                    "source_bounded_exact_pressure_screen_authored_rust_tests_execution_pending",
+                ),
         "PIV_TRACER_SCREEN_IDENTITY",
         "PIV tracer screening fixture identity, version or status changed",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["screen_policy", "exact_pressure_lookup_only"]).and_then(Value::as_bool) == Some(true)
-            && at(root, &["screen_policy", "no_interpolation"]).and_then(Value::as_bool) == Some(true)
+        at(root, &["screen_policy", "exact_pressure_lookup_only"]).and_then(Value::as_bool)
+            == Some(true)
+            && at(root, &["screen_policy", "no_interpolation"]).and_then(Value::as_bool)
+                == Some(true)
             && at(root, &["screen_policy", "pressure_envelope_atm"])
                 == Some(&serde_json::json!([0.3, 1.0]))
             && at(root, &["screen_policy", "supported_pressure_points"])
-                == Some(&serde_json::json!([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3])),
+                == Some(&serde_json::json!([
+                    1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3
+                ])),
         "PIV_TRACER_SCREEN_PRESSURE_POLICY",
         "exact-pressure lookup, no interpolation, pressure envelope or source pressure points changed",
     );
     let source_table = at(root, &["source", "table"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        source_table.is_some_and(|rows| rows.len() == 10
-            && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
-            && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
-            && text_at(&rows[0], &["vaporized_fog"]) == Some("32")
-            && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
-            && text_at(&rows[5], &["vaporized_fog"]) == Some("-")
-            && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
-            && text_at(&rows[9], &["dehs"]) == Some("-")
-            && text_at(&rows[9], &["sio2"]) == Some("128")),
+        source_table.is_some_and(|rows| {
+            rows.len() == 10
+                && number_at(&rows[0], &["pressure_atm"]) == Some(1.0)
+                && text_at(&rows[0], &["dehs"]) == Some("(64)-128")
+                && text_at(&rows[0], &["vaporized_fog"]) == Some("32")
+                && number_at(&rows[5], &["pressure_atm"]) == Some(0.5)
+                && text_at(&rows[5], &["vaporized_fog"]) == Some("-")
+                && number_at(&rows[9], &["pressure_atm"]) == Some(0.3)
+                && text_at(&rows[9], &["dehs"]) == Some("-")
+                && text_at(&rows[9], &["sio2"]) == Some("128")
+        }),
         "PIV_TRACER_SCREEN_SOURCE_TABLE",
         "source notation, no-data distinctions or the ten-point table changed",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["screen_policy", "edge_case_notation"]).and_then(Value::as_str)
+        at(root, &["screen_policy", "edge_case_notation"])
+            .and_then(Value::as_str)
             .is_some_and(|value| value.contains("not promoted to whole-field"))
             && text_at(root, &["screen_policy", "no_data_policy"])
                 .is_some_and(|value| value.contains("distinct"))
@@ -2916,25 +4359,40 @@ pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
     let examples = at(root, &["expected_examples"]).and_then(Value::as_array);
     push_if_missing(
         &mut findings,
-        examples.is_some_and(|rows| rows.len() == 8
-            && text_at(&rows[0], &["expected"]) == Some("FullFieldResolutionAvailable")
-            && text_at(&rows[1], &["expected"]) == Some("UnavailableAtPressure")
-            && text_at(&rows[2], &["expected"]) == Some("EdgeCaseOnly")
-            && text_at(&rows[4], &["expected"]) == Some("EdgeCaseOnly")
-            && text_at(&rows[5], &["expected"]) == Some("BoundaryLayerNotResolved")
-            && text_at(&rows[6], &["expected"]) == Some("UnsupportedSourcePressure")
-            && text_at(&rows[7], &["expected"]) == Some("NoSourceData")),
+        examples.is_some_and(|rows| {
+            rows.len() == 8
+                && text_at(&rows[0], &["expected"]) == Some("FullFieldResolutionAvailable")
+                && text_at(&rows[1], &["expected"]) == Some("UnavailableAtPressure")
+                && text_at(&rows[2], &["expected"]) == Some("EdgeCaseOnly")
+                && text_at(&rows[4], &["expected"]) == Some("EdgeCaseOnly")
+                && text_at(&rows[5], &["expected"]) == Some("BoundaryLayerNotResolved")
+                && text_at(&rows[6], &["expected"]) == Some("UnsupportedSourcePressure")
+                && text_at(&rows[7], &["expected"]) == Some("NoSourceData")
+        }),
         "PIV_TRACER_SCREEN_EXPECTED_CASES",
         "eight exact-pressure/edge-case/boundary-layer examples must remain frozen",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 11
-                && tests.iter().any(|value| value.as_str() == Some("pressure_between_source_points_is_not_interpolated"))
-                && tests.iter().any(|value| value.as_str() == Some("edge_case_window_is_not_promoted_to_full_field_resolution"))
-                && tests.iter().any(|value| value.as_str() == Some("optical_feasibility_never_qualifies_electrical_passivity"))
-                && tests.iter().any(|value| value.as_str() == Some("no_data_is_not_converted_to_unavailable_or_zero"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|tests| {
+                tests.len() == 11
+                    && tests.iter().any(|value| {
+                        value.as_str() == Some("pressure_between_source_points_is_not_interpolated")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("edge_case_window_is_not_promoted_to_full_field_resolution")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("optical_feasibility_never_qualifies_electrical_passivity")
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str() == Some("no_data_is_not_converted_to_unavailable_or_zero")
+                    })
+            }),
         "PIV_TRACER_SCREEN_TEST_MATRIX",
         "eleven tracer screen test families and their no-promotion controls must remain declared",
     );
@@ -2944,19 +4402,23 @@ pub fn audit_piv_tracer_screening_contract(root: &Value) -> Vec<String> {
             == Some("tools/ehd-reference-audit/src/tracer_screening.rs")
             && text_at(root, &["reference_implementation", "function"])
                 == Some("screen_tracer_candidate")
-            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
-                limits.iter().any(|value| value.as_str() == Some("interrogation_window_size_is_not_velocity_accuracy"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_electrical_passivity_inference"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_physical_experiment_recommendation"))
-            }),
+            && at(root, &["limitations"])
+                .and_then(Value::as_array)
+                .is_some_and(|limits| {
+                    limits.iter().any(|value| {
+                        value.as_str() == Some("interrogation_window_size_is_not_velocity_accuracy")
+                    }) && limits
+                        .iter()
+                        .any(|value| value.as_str() == Some("no_electrical_passivity_inference"))
+                        && limits.iter().any(|value| {
+                            value.as_str() == Some("no_physical_experiment_recommendation")
+                        })
+                }),
         "PIV_TRACER_SCREEN_SCOPE",
         "kernel entry point and optical-feasibility-only claim ceiling must remain explicit",
     );
     findings
 }
-
-
-
 
 /// Audit the PIV vector-validity, regional uncertainty and PIV/LPT comparison contract.
 pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
@@ -2978,7 +4440,8 @@ pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
             number_at(gate, &["minimum_f1"]) == Some(0.97)
                 && number_at(gate, &["minimum_recall"]) == Some(0.90)
                 && number_at(gate, &["maximum_false_valid_vector_removal_rate"]) == Some(0.01)
-        }) && text_at(classifier.unwrap_or(&Value::Null), &["positive_class"]) == Some("invalid_vector"),
+        }) && text_at(classifier.unwrap_or(&Value::Null), &["positive_class"])
+            == Some("invalid_vector"),
         "PIV_UQ_CLASSIFIER_GATE",
         "F1, recall and false-valid-vector-removal targets must stay separate and prospective",
     );
@@ -2990,8 +4453,15 @@ pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
                 && at(value, &["acceptable_empirical_coverage_band"])
                     == Some(&serde_json::json!([0.90, 0.98]))
                 && at(value, &["minimum_samples_per_region"]).and_then(Value::as_u64) == Some(200)
-                && at(value, &["regions"]) == Some(&serde_json::json!(["bulk", "near_wall", "shear_layer", "wake"]))
-                && text_at(value, &["policy"]).is_some_and(|policy| policy.contains("no pooled-only pass"))
+                && at(value, &["regions"])
+                    == Some(&serde_json::json!([
+                        "bulk",
+                        "near_wall",
+                        "shear_layer",
+                        "wake"
+                    ]))
+                && text_at(value, &["policy"])
+                    .is_some_and(|policy| policy.contains("no pooled-only pass"))
         }),
         "PIV_UQ_REGIONAL_COVERAGE",
         "nominal coverage, per-region gates, minimum samples and no-pooling rule changed",
@@ -3001,23 +4471,46 @@ pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
         &mut findings,
         cross.is_some_and(|value| {
             text_at(value, &["uncertainty_policy"]).is_some_and(|policy| policy.contains("no RSS"))
-                && at(value, &["methods"]).and_then(Value::as_array)
+                && at(value, &["methods"])
+                    .and_then(Value::as_array)
                     .is_some_and(|items| items.len() == 2)
-                && text_at(value, &["passivity"]).is_some_and(|policy| policy.contains("NotAssessed"))
-                && at(value, &["dependence_disclosure"]).and_then(Value::as_array)
-                    .is_some_and(|items| items.iter().any(|item| item.as_str() == Some("shared_raw_image_acquisition")))
+                && text_at(value, &["passivity"])
+                    .is_some_and(|policy| policy.contains("NotAssessed"))
+                && at(value, &["dependence_disclosure"])
+                    .and_then(Value::as_array)
+                    .is_some_and(|items| {
+                        items
+                            .iter()
+                            .any(|item| item.as_str() == Some("shared_raw_image_acquisition"))
+                    })
         }),
         "PIV_UQ_CROSS_DIAGNOSTIC_POLICY",
         "PIV/LPT uncertainty, shared-acquisition and passivity boundaries changed",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 12
-                && tests.iter().any(|value| value.as_str() == Some("classifier_gate_rejects_high_false_removal_even_when_f1_is_high"))
-                && tests.iter().any(|value| value.as_str() == Some("undercovered_near_wall_region_is_not_hidden_by_bulk_coverage"))
-                && tests.iter().any(|value| value.as_str() == Some("shared_acquisition_is_not_reported_as_independent_cross_validation"))
-                && tests.iter().any(|value| value.as_str() == Some("discrepancy_above_combined_velocity_bounds_is_flagged"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|tests| {
+                tests.len() == 12
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some(
+                                "classifier_gate_rejects_high_false_removal_even_when_f1_is_high",
+                            )
+                    })
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("undercovered_near_wall_region_is_not_hidden_by_bulk_coverage")
+                    }) && tests.iter().any(|value| {
+                    value.as_str()
+                        == Some(
+                            "shared_acquisition_is_not_reported_as_independent_cross_validation",
+                        )
+                }) && tests.iter().any(|value| {
+                    value.as_str() == Some("discrepancy_above_combined_velocity_bounds_is_flagged")
+                })
+            }),
         "PIV_UQ_TEST_MATRIX",
         "all twelve classifier, regional-coverage and PIV/LPT test families must remain declared",
     );
@@ -3025,19 +4518,23 @@ pub fn audit_piv_uq_triangulation_contract(root: &Value) -> Vec<String> {
         &mut findings,
         text_at(root, &["reference_implementation", "path"])
             == Some("tools/ehd-reference-audit/src/piv_qualification.rs")
-            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
-                limits.iter().any(|value| value.as_str() == Some("summary_level_receipt_only_no_raw_image_processing"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_physical_EHD_validation"))
-                    && limits.iter().any(|value| value.as_str() == Some("manual_expert_reference_is_not_physical_truth"))
-            }),
+            && at(root, &["limitations"])
+                .and_then(Value::as_array)
+                .is_some_and(|limits| {
+                    limits.iter().any(|value| {
+                        value.as_str() == Some("summary_level_receipt_only_no_raw_image_processing")
+                    }) && limits
+                        .iter()
+                        .any(|value| value.as_str() == Some("no_physical_EHD_validation"))
+                        && limits.iter().any(|value| {
+                            value.as_str() == Some("manual_expert_reference_is_not_physical_truth")
+                        })
+                }),
         "PIV_UQ_CLAIM_BOUNDARY",
         "summary-only, annotation and no-physical-validation limits must remain explicit",
     );
     findings
 }
-
-
-
 
 /// Audit the local correlation-peak displacement covariance reference.
 pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> {
@@ -3048,7 +4545,9 @@ pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> 
             && text_at(root, &["schema_version"]) == Some("0.1.0")
             && text_at(root, &["benchmark_id"]) == Some("EHD-PIV-UQ-002")
             && text_at(root, &["status"])
-                == Some("manufactured_local_hessian_uncertainty_kernel_authored_tests_execution_pending"),
+                == Some(
+                    "manufactured_local_hessian_uncertainty_kernel_authored_tests_execution_pending",
+                ),
         "PIV_DISPLACEMENT_UQ_IDENTITY",
         "PIV local displacement uncertainty identity, version or status changed",
     );
@@ -3056,8 +4555,9 @@ pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> 
         &mut findings,
         text_at(root, &["statistical_model", "local_covariance"])
             .is_some_and(|value| value.contains("inverse observed Hessian"))
-            && text_at(root, &["statistical_model", "calibration_status"])
-                .is_some_and(|value| value.contains("external empirical interval-coverage receipt"))
+            && text_at(root, &["statistical_model", "calibration_status"]).is_some_and(|value| {
+                value.contains("external empirical interval-coverage receipt")
+            })
             && text_at(root, &["statistical_model", "invalid_curvature"])
                 .is_some_and(|value| value.contains("positive definite")),
         "PIV_DISPLACEMENT_UQ_STATISTICAL_BOUNDARY",
@@ -3079,10 +4579,13 @@ pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> 
         &mut findings,
         expected.is_some_and(|value| {
             at(value, &["displacement_px"]) == Some(&serde_json::json!([10, -5]))
-                && at(value, &["negative_log_likelihood_hessian_px_inverse_squared"])
-                    == Some(&serde_json::json!([[4, 1], [1, 9]]))
+                && at(
+                    value,
+                    &["negative_log_likelihood_hessian_px_inverse_squared"],
+                ) == Some(&serde_json::json!([[4, 1], [1, 9]]))
                 && at(value, &["expected_velocity_m_s"]) == Some(&serde_json::json!([10, -5]))
-                && text_at(value, &["expected_uncertainty_status"]) == Some("LocalApproximationOnly")
+                && text_at(value, &["expected_uncertainty_status"])
+                    == Some("LocalApproximationOnly")
                 && text_at(value, &["status"])
                     == Some("manufactured_hessian_and_metrology_values_not_experimental_piv_data")
         }),
@@ -3091,26 +4594,44 @@ pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> 
     );
     push_if_missing(
         &mut findings,
-        at(root, &["rejection_cases"]).and_then(Value::as_array)
-            .is_some_and(|cases| cases.len() == 7
-                && text_at(&cases[0], &["expected"]) == Some("RejectedNonUniquePeak")
-                && text_at(&cases[1], &["expected"]) == Some("RejectedPeakToSidelobeRatio")
-                && text_at(&cases[2], &["expected"]) == Some("RejectedPeakFitResidual")
-                && text_at(&cases[3], &["expected"]) == Some("NonPositiveDefinitePeakHessian")
-                && text_at(&cases[4], &["expected"]) == Some("LocalApproximationOnly")
-                && text_at(&cases[5], &["expected"]) == Some("CalibrationReceiptAccepted")
-                && text_at(&cases[6], &["expected"]) == Some("CalibrationReceiptRequired")),
+        at(root, &["rejection_cases"])
+            .and_then(Value::as_array)
+            .is_some_and(|cases| {
+                cases.len() == 7
+                    && text_at(&cases[0], &["expected"]) == Some("RejectedNonUniquePeak")
+                    && text_at(&cases[1], &["expected"]) == Some("RejectedPeakToSidelobeRatio")
+                    && text_at(&cases[2], &["expected"]) == Some("RejectedPeakFitResidual")
+                    && text_at(&cases[3], &["expected"]) == Some("NonPositiveDefinitePeakHessian")
+                    && text_at(&cases[4], &["expected"]) == Some("LocalApproximationOnly")
+                    && text_at(&cases[5], &["expected"]) == Some("CalibrationReceiptAccepted")
+                    && text_at(&cases[6], &["expected"]) == Some("CalibrationReceiptRequired")
+            }),
         "PIV_DISPLACEMENT_UQ_REJECTION_CASES",
         "seven peak-quality and calibration-receipt controls must remain frozen",
     );
     push_if_missing(
         &mut findings,
-        at(root, &["test_families"]).and_then(Value::as_array)
-            .is_some_and(|tests| tests.len() == 10
-                && tests.iter().any(|value| value.as_str() == Some("non_unique_correlation_peak_is_rejected_without_covariance"))
-                && tests.iter().any(|value| value.as_str() == Some("calibration_and_timing_uncertainty_create_cross_component_covariance"))
-                && tests.iter().any(|value| value.as_str() == Some("local_covariance_without_coverage_receipt_is_not_called_calibrated"))
-                && tests.iter().any(|value| value.as_str() == Some("calibration_gate_without_receipt_is_rejected"))),
+        at(root, &["test_families"])
+            .and_then(Value::as_array)
+            .is_some_and(|tests| {
+                tests.len() == 10
+                    && tests.iter().any(|value| {
+                        value.as_str()
+                            == Some("non_unique_correlation_peak_is_rejected_without_covariance")
+                    }) && tests.iter().any(|value| {
+                    value.as_str()
+                        == Some(
+                            "calibration_and_timing_uncertainty_create_cross_component_covariance",
+                        )
+                }) && tests.iter().any(|value| {
+                    value.as_str()
+                        == Some(
+                            "local_covariance_without_coverage_receipt_is_not_called_calibrated",
+                        )
+                }) && tests.iter().any(|value| {
+                    value.as_str() == Some("calibration_gate_without_receipt_is_rejected")
+                })
+            }),
         "PIV_DISPLACEMENT_UQ_TEST_MATRIX",
         "ten local covariance, peak rejection and calibration-status tests must remain declared",
     );
@@ -3118,17 +4639,22 @@ pub fn audit_piv_displacement_uncertainty_contract(root: &Value) -> Vec<String> 
         &mut findings,
         text_at(root, &["reference_implementation", "path"])
             == Some("tools/ehd-reference-audit/src/piv_displacement_uncertainty.rs")
-            && at(root, &["limitations"]).and_then(Value::as_array).is_some_and(|limits| {
-                limits.iter().any(|value| value.as_str() == Some("local_laplace_hessian_approximation_only"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_empirical_coverage_calibration_by_this_kernel"))
-                    && limits.iter().any(|value| value.as_str() == Some("no_physical_ehd_validation"))
-            }),
+            && at(root, &["limitations"])
+                .and_then(Value::as_array)
+                .is_some_and(|limits| {
+                    limits.iter().any(|value| {
+                        value.as_str() == Some("local_laplace_hessian_approximation_only")
+                    }) && limits.iter().any(|value| {
+                        value.as_str() == Some("no_empirical_coverage_calibration_by_this_kernel")
+                    }) && limits
+                        .iter()
+                        .any(|value| value.as_str() == Some("no_physical_ehd_validation"))
+                }),
         "PIV_DISPLACEMENT_UQ_CLAIM_BOUNDARY",
         "local-approximation-only and no physical calibration limits must remain explicit",
     );
     findings
 }
-
 
 fn main() {
     let mut args = env::args().skip(1);
@@ -3146,7 +4672,10 @@ fn main() {
                 process::exit(2);
             }
         },
-        None => ("embedded EHD reference atlas".to_owned(), EMBEDDED_ATLAS.to_owned()),
+        None => (
+            "embedded EHD reference atlas".to_owned(),
+            EMBEDDED_ATLAS.to_owned(),
+        ),
     };
 
     let atlas: Value = match serde_json::from_str(&contents) {
@@ -3198,14 +4727,17 @@ fn main() {
         }
     };
     findings.extend(audit_exchange_receipt_contract(&exchange_receipt_contract));
-    let polynomial_moments_contract: Value = match serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS) {
+    let polynomial_moments_contract: Value = match serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS)
+    {
         Ok(value) => value,
         Err(error) => {
             eprintln!("invalid embedded polynomial-moment contract JSON: {error}");
             process::exit(2);
         }
     };
-    findings.extend(audit_polynomial_moments_contract(&polynomial_moments_contract));
+    findings.extend(audit_polynomial_moments_contract(
+        &polynomial_moments_contract,
+    ));
     let drag_dissipation_contract: Value = match serde_json::from_str(EMBEDDED_DRAG_DISSIPATION) {
         Ok(value) => value,
         Err(error) => {
@@ -3222,14 +4754,17 @@ fn main() {
         }
     };
     findings.extend(audit_drag_trajectory_contract(&drag_trajectory_contract));
-    let thrust_observability_contract: Value = match serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY) {
-        Ok(value) => value,
-        Err(error) => {
-            eprintln!("invalid embedded thrust observability contract JSON: {error}");
-            process::exit(2);
-        }
-    };
-    findings.extend(audit_thrust_observability_contract(&thrust_observability_contract));
+    let thrust_observability_contract: Value =
+        match serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("invalid embedded thrust observability contract JSON: {error}");
+                process::exit(2);
+            }
+        };
+    findings.extend(audit_thrust_observability_contract(
+        &thrust_observability_contract,
+    ));
     let control_volume_contract: Value = match serde_json::from_str(EMBEDDED_CONTROL_VOLUME) {
         Ok(value) => value,
         Err(error) => {
@@ -3254,7 +4789,9 @@ fn main() {
                 process::exit(2);
             }
         };
-    findings.extend(audit_observer_perturbation_contract(&observer_perturbation_contract));
+    findings.extend(audit_observer_perturbation_contract(
+        &observer_perturbation_contract,
+    ));
     let low_density_piv_tracer_contract: Value =
         match serde_json::from_str(EMBEDDED_LOW_DENSITY_PIV_TRACER) {
             Ok(value) => value,
@@ -3263,7 +4800,9 @@ fn main() {
                 process::exit(2);
             }
         };
-    findings.extend(audit_low_density_piv_tracer_contract(&low_density_piv_tracer_contract));
+    findings.extend(audit_low_density_piv_tracer_contract(
+        &low_density_piv_tracer_contract,
+    ));
     let piv_tracer_screening_contract: Value =
         match serde_json::from_str(EMBEDDED_PIV_TRACER_SCREENING) {
             Ok(value) => value,
@@ -3272,7 +4811,9 @@ fn main() {
                 process::exit(2);
             }
         };
-    findings.extend(audit_piv_tracer_screening_contract(&piv_tracer_screening_contract));
+    findings.extend(audit_piv_tracer_screening_contract(
+        &piv_tracer_screening_contract,
+    ));
     let piv_uq_triangulation_contract: Value =
         match serde_json::from_str(EMBEDDED_PIV_UQ_TRIANGULATION) {
             Ok(value) => value,
@@ -3281,7 +4822,9 @@ fn main() {
                 process::exit(2);
             }
         };
-    findings.extend(audit_piv_uq_triangulation_contract(&piv_uq_triangulation_contract));
+    findings.extend(audit_piv_uq_triangulation_contract(
+        &piv_uq_triangulation_contract,
+    ));
     let piv_displacement_uncertainty_contract: Value =
         match serde_json::from_str(EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY) {
             Ok(value) => value,
@@ -3290,7 +4833,9 @@ fn main() {
                 process::exit(2);
             }
         };
-    findings.extend(audit_piv_displacement_uncertainty_contract(&piv_displacement_uncertainty_contract));
+    findings.extend(audit_piv_displacement_uncertainty_contract(
+        &piv_displacement_uncertainty_contract,
+    ));
     let exchange_kernel_ok = match exchange::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3354,14 +4899,14 @@ fn main() {
             false
         }
     };
-    let piv_displacement_uncertainty_ok =
-        match piv_displacement_uncertainty::reference_self_check() {
-            Ok(()) => true,
-            Err(error) => {
-                findings.push(format!("PIV_DISPLACEMENT_UNCERTAINTY_SELF_CHECK: {error}"));
-                false
-            }
-        };
+    let piv_displacement_uncertainty_ok = match piv_displacement_uncertainty::reference_self_check()
+    {
+        Ok(()) => true,
+        Err(error) => {
+            findings.push(format!("PIV_DISPLACEMENT_UNCERTAINTY_SELF_CHECK: {error}"));
+            false
+        }
+    };
     let piv_uq_triangulation_ok = match piv_qualification::reference_self_check() {
         Ok(()) => true,
         Err(error) => {
@@ -3386,7 +4931,9 @@ fn main() {
     let design_tournament_ok = match identifiability::tournament_reference_self_check() {
         Ok(()) => true,
         Err(error) => {
-            findings.push(format!("IDENTIFIABILITY_DESIGN_TOURNAMENT_SELF_CHECK: {error}"));
+            findings.push(format!(
+                "IDENTIFIABILITY_DESIGN_TOURNAMENT_SELF_CHECK: {error}"
+            ));
             false
         }
     };
@@ -3438,12 +4985,16 @@ fn main() {
             println!("exact-pressure PIV tracer source-feasibility screen self-check: passed");
         }
         if piv_uq_triangulation_ok {
-            println!("PIV vector validity, regional uncertainty and PIV/LPT comparison self-check: passed");
+            println!(
+                "PIV vector validity, regional uncertainty and PIV/LPT comparison self-check: passed"
+            );
         }
         if piv_displacement_uncertainty_ok {
             println!("local PIV displacement and velocity covariance self-check: passed");
         }
-        println!("scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim");
+        println!(
+            "scope: source structure and analytic reference checks only; no physical V&V, production ALE, TPE(1/2), nonlinear profile likelihood, continuous design optimization, complete collisional-energy closure or durable exactly-once claim"
+        );
     } else {
         eprintln!("FAIL: {label} ({} finding(s))", findings.len());
         for finding in findings {
@@ -3474,40 +5025,49 @@ mod tests {
     fn low_density_piv_matrix_rejects_promoting_fog_below_its_reported_limit() {
         let mut value = atlas();
         let rows = value["source_records"].as_array_mut().unwrap();
-        let record = rows.iter_mut().find(|row| {
-            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
-        }).unwrap();
+        let record = rows
+            .iter_mut()
+            .find(|row| row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+            .unwrap();
         record["diagnostic_protocol"]["low_density_tracer_screening_table"][9]["fog_machine"] =
             serde_json::json!("32");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("LOW_DENSITY_PIV_TRACER_MATRIX")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("LOW_DENSITY_PIV_TRACER_MATRIX") })
+        );
     }
 
     #[test]
     fn low_density_piv_cannot_be_promoted_to_mars_co2_or_true_vacuum_validation() {
         let mut value = atlas();
         let rows = value["source_records"].as_array_mut().unwrap();
-        let record = rows.iter_mut().find(|row| {
-            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
-        }).unwrap();
+        let record = rows
+            .iter_mut()
+            .find(|row| row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+            .unwrap();
         record["comparability"]["distinct_from_mars_co2_dbd"] = Value::Bool(false);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("LOW_DENSITY_PIV_COHORT_BOUNDARY")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("LOW_DENSITY_PIV_COHORT_BOUNDARY") })
+        );
     }
 
     #[test]
     fn hamdi_tracer_precedent_requires_pitot_and_electrical_controls() {
         let mut value = atlas();
         let rows = value["source_records"].as_array_mut().unwrap();
-        let record = rows.iter_mut().find(|row| {
-            row["source_id"] == "HAMDI_2014_PIV_TRACER_SELECTION"
-        }).unwrap();
+        let record = rows
+            .iter_mut()
+            .find(|row| row["source_id"] == "HAMDI_2014_PIV_TRACER_SELECTION")
+            .unwrap();
         record["method"]["independent_velocity_reference"] = serde_json::json!("PIV only");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("HAMDI_TRACER_METHOD")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("HAMDI_TRACER_METHOD") })
+        );
     }
 
     #[test]
@@ -3522,9 +5082,11 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_PIV_DISPLACEMENT_UNCERTAINTY).unwrap();
         value["statistical_model"]["calibration_status"] =
             serde_json::json!("calibrated from local curvature alone");
-        assert!(audit_piv_displacement_uncertainty_contract(&value).iter().any(|finding| {
-            finding.starts_with("PIV_DISPLACEMENT_UQ_STATISTICAL_BOUNDARY")
-        }));
+        assert!(
+            audit_piv_displacement_uncertainty_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("PIV_DISPLACEMENT_UQ_STATISTICAL_BOUNDARY") })
+        );
     }
 
     #[test]
@@ -3538,9 +5100,11 @@ mod tests {
     fn piv_uq_contract_rejects_pooled_only_coverage() {
         let mut value: Value = serde_json::from_str(EMBEDDED_PIV_UQ_TRIANGULATION).unwrap();
         value["uncertainty_contract"]["policy"] = serde_json::json!("pooled global coverage only");
-        assert!(audit_piv_uq_triangulation_contract(&value).iter().any(|finding| {
-            finding.starts_with("PIV_UQ_REGIONAL_COVERAGE")
-        }));
+        assert!(
+            audit_piv_uq_triangulation_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("PIV_UQ_REGIONAL_COVERAGE") })
+        );
     }
 
     #[test]
@@ -3554,9 +5118,11 @@ mod tests {
     fn piv_tracer_screening_contract_rejects_pressure_interpolation() {
         let mut value: Value = serde_json::from_str(EMBEDDED_PIV_TRACER_SCREENING).unwrap();
         value["screen_policy"]["no_interpolation"] = Value::Bool(false);
-        assert!(audit_piv_tracer_screening_contract(&value).iter().any(|finding| {
-            finding.starts_with("PIV_TRACER_SCREEN_PRESSURE_POLICY")
-        }));
+        assert!(
+            audit_piv_tracer_screening_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("PIV_TRACER_SCREEN_PRESSURE_POLICY") })
+        );
     }
 
     #[test]
@@ -3571,9 +5137,11 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_LOW_DENSITY_PIV_TRACER).unwrap();
         value["prospective_benchmark_targets"]["no_passivity_from_image_quality"] =
             serde_json::json!("Good PIV correlation alone is sufficient");
-        assert!(audit_low_density_piv_tracer_contract(&value).iter().any(|finding| {
-            finding.starts_with("LOW_DENSITY_PIV_CONTRACT_AXES")
-        }));
+        assert!(
+            audit_low_density_piv_tracer_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("LOW_DENSITY_PIV_CONTRACT_AXES") })
+        );
     }
 
     #[test]
@@ -3588,9 +5156,11 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_OBSERVER_PERTURBATION).unwrap();
         value["model_contract"]["passivity_policy"] =
             serde_json::json!("baseline and diagnostic point comparison only");
-        assert!(audit_observer_perturbation_contract(&value).iter().any(|finding| {
-            finding.starts_with("OBSERVER_CONTRACT_POLICY")
-        }));
+        assert!(
+            audit_observer_perturbation_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("OBSERVER_CONTRACT_POLICY") })
+        );
     }
 
     #[test]
@@ -3616,8 +5186,8 @@ mod tests {
     #[test]
     fn mixing_grid_collector_maxima_is_rejected() {
         let mut value = atlas();
-        value["source_records"][2]["reported_configuration_specific_results"]
-            ["maximum_thrust_to_power_n_kw"]["configuration"] = Value::String("III".into());
+        value["source_records"][2]["reported_configuration_specific_results"]["maximum_thrust_to_power_n_kw"]
+            ["configuration"] = Value::String("III".into());
         assert!(has_code(&audit_atlas(&value), "TERENZI_MIXED_MAXIMA"));
     }
 
@@ -3641,22 +5211,25 @@ mod tests {
     fn repeated_figure_points_cannot_be_dropped_without_detection() {
         let mut value = atlas();
         value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"]
-            .as_array_mut().unwrap().pop();
+            .as_array_mut()
+            .unwrap()
+            .pop();
         assert!(has_code(&audit_atlas(&value), "USUELLI_ROW_COUNT"));
     }
 
     #[test]
     fn source_figure_endpoints_match_known_answers() {
         let mut value = atlas();
-        value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"][0]["ignition_voltage_kv"] =
-            Value::from(7.31);
+        value["source_records"][1]["extracted_figure_data"]["figure3_ignition_voltage"]["rows"]
+            [0]["ignition_voltage_kv"] = Value::from(7.31);
         assert!(has_code(&audit_atlas(&value), "USUELLI_SOURCE_POINTS"));
     }
 
     #[test]
     fn co2_dbd_power_boundary_is_required() {
         let mut value = atlas();
-        value["source_records"][4]["measurement"]["power"] = Value::String("RMS volts times RMS amps".into());
+        value["source_records"][4]["measurement"]["power"] =
+            Value::String("RMS volts times RMS amps".into());
         assert!(has_code(&audit_atlas(&value), "LIU_REAL_POWER"));
     }
 
@@ -3687,8 +5260,8 @@ mod tests {
     #[test]
     fn tethered_microrobot_hover_cannot_be_promoted_to_free_flight() {
         let mut value = atlas();
-        value["system_integration_references"][0]["operating_boundary"]
-            ["self_powered_free_flight_demonstrated"] = Value::Bool(true);
+        value["system_integration_references"][0]["operating_boundary"]["self_powered_free_flight_demonstrated"] =
+            Value::Bool(true);
         assert!(has_code(&audit_atlas(&value), "TAO_POWER_BOUNDARY"));
     }
 
@@ -3702,9 +5275,10 @@ mod tests {
     #[test]
     fn missing_commercial_comsol_profile_is_rejected() {
         let mut value = atlas();
-        value["solver_profiles"].as_array_mut().unwrap().retain(|p| {
-            p["solver_id"].as_str() != Some("COMSOL_MULTIPHYSICS")
-        });
+        value["solver_profiles"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|p| p["solver_id"].as_str() != Some("COMSOL_MULTIPHYSICS"));
         assert!(has_code(&audit_atlas(&value), "COMSOL_PROFILE"));
     }
 
@@ -3732,8 +5306,8 @@ mod tests {
     #[test]
     fn repository_iva_csv_known_answer_is_enforced() {
         let mut value = atlas();
-        value["solver_reference_cases"][0]["experimental_comparator"]["source_rows"][0]
-            ["current_ma"] = Value::from(0.05);
+        value["solver_reference_cases"][0]["experimental_comparator"]["source_rows"][0]["current_ma"] =
+            Value::from(0.05);
         assert!(has_code(&audit_atlas(&value), "MERLINO_REFERENCE_DATA"));
     }
 
@@ -3748,16 +5322,16 @@ mod tests {
     #[test]
     fn half_domain_current_correction_is_mandatory() {
         let mut value = atlas();
-        value["solver_reference_cases"][0]["experimental_comparator"]["plot_conversion"]
-            ["simulated_integrated_current_to_microamp"] = Value::String("multiply by 1e6".into());
+        value["solver_reference_cases"][0]["experimental_comparator"]["plot_conversion"]["simulated_integrated_current_to_microamp"] =
+            Value::String("multiply by 1e6".into());
         assert!(has_code(&audit_atlas(&value), "MERLINO_CURRENT_SCALING"));
     }
 
     #[test]
     fn wire_cylinder_surface_gap_is_not_conflated_with_geo_parameter() {
         let mut value = atlas();
-        value["solver_reference_cases"][0]["geometry"]
-            ["derived_minimum_electrode_surface_clearance_mm"] = Value::from(30.0);
+        value["solver_reference_cases"][0]["geometry"]["derived_minimum_electrode_surface_clearance_mm"] =
+            Value::from(30.0);
         assert!(has_code(&audit_atlas(&value), "MERLINO_GEOMETRY_CLEARANCE"));
     }
 
@@ -3779,53 +5353,75 @@ mod tests {
     fn sub_unit_gain_arithmetic_is_enforced() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][0]["reported_values"]["sub_unit_gain_pct_recomputed"] = Value::from(10.0);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_JIANG_ARITHMETIC"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_JIANG_ARITHMETIC"
+        ));
     }
 
     #[test]
     fn guide_electrode_absolute_metrics_cannot_be_invented() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][1]["reported_values"]["absolute_thrust_to_power"] = Value::from(9.0);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_NONAKA_SOURCE_LOCAL"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_NONAKA_SOURCE_LOCAL"
+        ));
     }
 
     #[test]
     fn tethered_microrobot_hover_cannot_be_promoted_to_self_powered() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][2]["reported_values"]["hover_is_tethered"] = Value::Bool(false);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_TAO_BOUNDARY"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_TAO_BOUNDARY"
+        ));
     }
 
     #[test]
     fn future_issue_date_mobility_result_cannot_enter_leaderboard() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["records"][3]["evidence_class"] = Value::String("published_measured_benchmark".into());
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DONG_DATE_GUARD"));
+        value["records"][3]["evidence_class"] =
+            Value::String("published_measured_benchmark".into());
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_DONG_DATE_GUARD"
+        ));
     }
 
     #[test]
     fn all_frontier_topology_factors_are_required() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["proposed_design_factors"].as_array_mut().unwrap().retain(|item| {
-            item["id"].as_str() != Some("guide_electrode")
-        });
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_DESIGN_FACTOR_SET"));
+        value["proposed_design_factors"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|item| item["id"].as_str() != Some("guide_electrode"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_DESIGN_FACTOR_SET"
+        ));
     }
-
 
     #[test]
     fn geometry_backend_scope_and_overlap_checks_are_mandatory() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["exchange_mapping"]["reference_kernel"]["geometry_backend"]["limitations"] =
             Value::Array(vec![Value::String("none".into())]);
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_GEOMETRY_BACKEND"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_GEOMETRY_BACKEND"
+        ));
     }
 
     #[test]
     fn exchange_reference_kernel_keeps_its_limited_first_order_scope() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["exchange_mapping"]["reference_kernel"]["limitations"] = Value::Array(Vec::new());
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_REFERENCE_KERNEL"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_REFERENCE_KERNEL"
+        ));
     }
 
     #[test]
@@ -3833,7 +5429,10 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["exchange_mapping"]["industry_interoperability"]["reference"] =
             Value::String("nearest-neighbor".into());
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_INDUSTRY_INTEROP"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_INDUSTRY_INTEROP"
+        ));
     }
 
     #[test]
@@ -3848,43 +5447,61 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["force_transfer_methods"][0]["forbidden_combination"] =
             Value::String("no restrictions".into());
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_EXPLICIT_DOUBLE_COUNT_GUARD"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_EXPLICIT_DOUBLE_COUNT_GUARD"
+        ));
     }
 
     #[test]
     fn reduced_coulomb_closure_requires_omitted_term_bounds() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["force_transfer_methods"][1]["required_coefficients"] = Value::Array(Vec::new());
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_REDUCED_QUALIFICATION"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_REDUCED_QUALIFICATION"
+        ));
     }
 
     #[test]
     fn interpolation_only_mesh_transfer_is_rejected() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["exchange_mapping"]["interpolation_only_is_sufficient"] = Value::Bool(true);
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_MAPPING_POLICY"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_MAPPING_POLICY"
+        ));
     }
 
     #[test]
     fn charge_momentum_and_energy_ledgers_are_mandatory() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["energy_ledger"]["required_fields"] = Value::Array(Vec::new());
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_LEDGER_FIELDS"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_LEDGER_FIELDS"
+        ));
     }
 
     #[test]
     fn universal_tolerance_cannot_replace_case_specific_gates() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_CONTRACT).unwrap();
         value["acceptance_policy"]["universal_numeric_tolerance"] = Value::from(1e-6);
-        assert!(has_code(&audit_exchange_contract(&value), "EXCHANGE_TOLERANCE_POLICY"));
+        assert!(has_code(
+            &audit_exchange_contract(&value),
+            "EXCHANGE_TOLERANCE_POLICY"
+        ));
     }
-
 
     #[test]
     fn multistage_optimizer_per_span_metric_cannot_be_relabelled_as_area_density() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["records"][4]["reported_values"]["metric_unit_n_per_m"] = Value::String("N/m^2".into());
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SHIBATA_METRICS"));
+        value["records"][4]["reported_values"]["metric_unit_n_per_m"] =
+            Value::String("N/m^2".into());
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_SHIBATA_METRICS"
+        ));
     }
 
     #[test]
@@ -3892,45 +5509,64 @@ mod tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][4]["thrust_estimation"]["physical_force_measurement_performed"] =
             Value::Bool(true);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SHIBATA_MODEL_SCOPE"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_SHIBATA_MODEL_SCOPE"
+        ));
     }
-
 
     #[test]
     fn booster_electrode_gains_retain_experimental_source_boundary() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][5]["method"]["experimental_validation"] = Value::Bool(false);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_WAKIMOTO_SOURCE_SCOPE"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_WAKIMOTO_SOURCE_SCOPE"
+        ));
     }
 
     #[test]
     fn anemone_three_dimensional_solver_scope_cannot_be_promoted_to_net_thrust() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["records"][6]["validation_boundary"] = Value::String("Complete neutral-flow and net-thrust validation".into());
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_ANEMONE_SCOPE"));
+        value["records"][6]["validation_boundary"] =
+            Value::String("Complete neutral-flow and net-thrust validation".into());
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_ANEMONE_SCOPE"
+        ));
     }
 
     #[test]
     fn integral_model_experimental_geometry_cohort_is_required() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["records"][7]["method"]["experimental_comparison_geometries"] = Value::Array(Vec::new());
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_INTEGRAL_MODEL_SCOPE"));
+        value["records"][7]["method"]["experimental_comparison_geometries"] =
+            Value::Array(Vec::new());
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_INTEGRAL_MODEL_SCOPE"
+        ));
     }
 
     #[test]
     fn multi_anode_interaction_cannot_be_assumed_additive_for_all_geometries() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
-        value["records"][8]["reported_values"]["orthogonal_anodes_force_superposition"] = Value::Bool(true);
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_ARRAY_NONADDITIVITY"));
+        value["records"][8]["reported_values"]["orthogonal_anodes_force_superposition"] =
+            Value::Bool(true);
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_ARRAY_NONADDITIVITY"
+        ));
     }
 
     #[test]
     fn switched_thrust_comparator_must_retain_switching_loss_unknowns() {
         let mut value: Value = serde_json::from_str(EMBEDDED_FRONTIER_PATTERNS).unwrap();
         value["records"][9]["missing_or_unverified"] = Value::Array(Vec::new());
-        assert!(has_code(&audit_frontier_patterns(&value), "FRONTIER_SWITCHING_SCOPE"));
+        assert!(has_code(
+            &audit_frontier_patterns(&value),
+            "FRONTIER_SWITCHING_SCOPE"
+        ));
     }
-
 
     #[test]
     fn array_interaction_protocol_passes_declared_contract() {
@@ -3943,41 +5579,53 @@ mod tests {
     fn isolated_cell_force_additivity_is_not_a_default() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
         value["model_contract"]["isolated_cell_additivity_is_default"] = Value::Bool(true);
-        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MODEL_SCOPE"));
+        assert!(has_code(
+            &audit_array_interaction(&value),
+            "ARRAY_MODEL_SCOPE"
+        ));
     }
 
     #[test]
     fn local_array_jacobian_requires_orientation_spacing_and_session_holdouts() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
-        value["model_contract"]["training_holdouts"] = Value::Array(vec![
-            Value::String("random_rows".into())
-        ]);
-        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MODEL_SCOPE"));
+        value["model_contract"]["training_holdouts"] =
+            Value::Array(vec![Value::String("random_rows".into())]);
+        assert!(has_code(
+            &audit_array_interaction(&value),
+            "ARRAY_MODEL_SCOPE"
+        ));
     }
 
     #[test]
     fn array_experiment_requires_per_cell_waveforms_and_calibration_identity() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
-        value["measured_configuration_fields"] = Value::Array(vec![
-            Value::String("configuration_id".into())
-        ]);
-        assert!(has_code(&audit_array_interaction(&value), "ARRAY_MEASURED_CONFIGURATION_FIELDS"));
+        value["measured_configuration_fields"] =
+            Value::Array(vec![Value::String("configuration_id".into())]);
+        assert!(has_code(
+            &audit_array_interaction(&value),
+            "ARRAY_MEASURED_CONFIGURATION_FIELDS"
+        ));
     }
 
     #[test]
     fn array_direction_and_magnitude_gates_must_remain_prospective() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
         value["proposed_acceptance_gates"]["all_targets_prospective"] = Value::Bool(false);
-        assert!(has_code(&audit_array_interaction(&value), "ARRAY_PROSPECTIVE_GATES"));
+        assert!(has_code(
+            &audit_array_interaction(&value),
+            "ARRAY_PROSPECTIVE_GATES"
+        ));
     }
 
     #[test]
     fn array_claims_must_not_promote_protocol_to_measurement() {
         let mut value: Value = serde_json::from_str(EMBEDDED_ARRAY_INTERACTION).unwrap();
         value["claim_ceiling"] = Value::String("Luminous measured a global array law".into());
-        assert!(has_code(&audit_array_interaction(&value), "ARRAY_CLAIM_BOUNDARY"));
+        assert!(has_code(
+            &audit_array_interaction(&value),
+            "ARRAY_CLAIM_BOUNDARY"
+        ));
     }
-
 }
 
 #[cfg(test)]
@@ -3995,18 +5643,22 @@ mod moving_gcl_contract_tests {
     fn moving_mesh_gcl_claim_cannot_be_promoted_to_general_ale_validation() {
         let mut value: Value = serde_json::from_str(EMBEDDED_GCL_BENCHMARK).unwrap();
         value["limitations"] = Value::Array(Vec::new());
-        assert!(audit_gcl_benchmark(&value).iter().any(|finding| {
-            finding.starts_with("GCL_CLAIM_BOUNDARY")
-        }));
+        assert!(
+            audit_gcl_benchmark(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("GCL_CLAIM_BOUNDARY") })
+        );
     }
 
     #[test]
     fn moving_mesh_gcl_requires_case_specific_tolerances() {
         let mut value: Value = serde_json::from_str(EMBEDDED_GCL_BENCHMARK).unwrap();
         value["acceptance"]["universal_numeric_tolerance"] = Value::from(1.0e-6);
-        assert!(audit_gcl_benchmark(&value).iter().any(|finding| {
-            finding.starts_with("GCL_TOLERANCE_AND_LEDGER_POLICY")
-        }));
+        assert!(
+            audit_gcl_benchmark(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("GCL_TOLERANCE_AND_LEDGER_POLICY") })
+        );
     }
 }
 
@@ -4025,20 +5677,23 @@ mod exchange_event_receipt_contract_tests {
     fn event_level_exchange_receipt_cannot_claim_durable_exactly_once() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
         value["acceptance"]["durable_exactly_once_not_implemented"] = Value::Bool(false);
-        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
-            finding.starts_with("EXCHANGE_RECEIPT_ACCEPTANCE")
-        }));
+        assert!(
+            audit_exchange_receipt_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("EXCHANGE_RECEIPT_ACCEPTANCE") })
+        );
     }
 
     #[test]
     fn event_level_exchange_receipt_must_check_per_event_balance() {
         let mut value: Value = serde_json::from_str(EMBEDDED_EXCHANGE_RECEIPT).unwrap();
-        value["required_invariants"] = Value::Array(vec![
-            Value::String("aggregate_impulse_balance".into())
-        ]);
-        assert!(audit_exchange_receipt_contract(&value).iter().any(|finding| {
-            finding.starts_with("EXCHANGE_RECEIPT_INVARIANTS")
-        }));
+        value["required_invariants"] =
+            Value::Array(vec![Value::String("aggregate_impulse_balance".into())]);
+        assert!(
+            audit_exchange_receipt_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("EXCHANGE_RECEIPT_INVARIANTS") })
+        );
     }
 }
 
@@ -4057,18 +5712,22 @@ mod polynomial_moment_contract_tests {
     fn polynomial_moment_oracle_cannot_claim_tpe_1_or_tpe_2() {
         let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
         value["limitations"] = Value::Array(Vec::new());
-        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
-            finding.starts_with("POLY_MOMENT_CLAIM_BOUNDARY")
-        }));
+        assert!(
+            audit_polynomial_moments_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("POLY_MOMENT_CLAIM_BOUNDARY") })
+        );
     }
 
     #[test]
     fn polynomial_moment_oracle_requires_local_and_global_integral_checks() {
         let mut value: Value = serde_json::from_str(EMBEDDED_POLYNOMIAL_MOMENTS).unwrap();
         value["acceptance"]["per_destination_integral_checked"] = Value::Bool(false);
-        assert!(audit_polynomial_moments_contract(&value).iter().any(|finding| {
-            finding.starts_with("POLY_MOMENT_ACCEPTANCE")
-        }));
+        assert!(
+            audit_polynomial_moments_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("POLY_MOMENT_ACCEPTANCE") })
+        );
     }
 }
 
@@ -4087,18 +5746,22 @@ mod drag_dissipation_contract_tests {
     fn drag_dissipation_contract_rejects_time_varying_claim_without_quadrature() {
         let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
         value["limitations"] = Value::Array(Vec::new());
-        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
-            finding.starts_with("DRAG_DISSIPATION_CLAIM_BOUNDARY")
-        }));
+        assert!(
+            audit_drag_dissipation_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("DRAG_DISSIPATION_CLAIM_BOUNDARY") })
+        );
     }
 
     #[test]
     fn drag_dissipation_contract_requires_event_level_energy_checks() {
         let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_DISSIPATION).unwrap();
         value["acceptance"]["per_event_momentum_and_energy_checks_required"] = Value::Bool(false);
-        assert!(audit_drag_dissipation_contract(&value).iter().any(|finding| {
-            finding.starts_with("DRAG_DISSIPATION_ACCEPTANCE")
-        }));
+        assert!(
+            audit_drag_dissipation_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("DRAG_DISSIPATION_ACCEPTANCE") })
+        );
     }
 }
 
@@ -4116,19 +5779,24 @@ mod drag_trajectory_contract_tests {
     #[test]
     fn time_varying_drag_contract_requires_same_quadrature_for_impulse_and_heating() {
         let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
-        value["acceptance"]["same_space_time_quadrature_for_impulse_and_heating"] = Value::Bool(false);
-        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
-            finding.starts_with("DRAG_TRAJECTORY_ACCEPTANCE")
-        }));
+        value["acceptance"]["same_space_time_quadrature_for_impulse_and_heating"] =
+            Value::Bool(false);
+        assert!(
+            audit_drag_trajectory_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("DRAG_TRAJECTORY_ACCEPTANCE") })
+        );
     }
 
     #[test]
     fn time_varying_drag_contract_cannot_claim_full_collisional_energy_closure() {
         let mut value: Value = serde_json::from_str(EMBEDDED_DRAG_TRAJECTORY).unwrap();
         value["limitations"] = Value::Array(Vec::new());
-        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
-            finding.starts_with("DRAG_TRAJECTORY_CLAIM_BOUNDARY")
-        }));
+        assert!(
+            audit_drag_trajectory_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("DRAG_TRAJECTORY_CLAIM_BOUNDARY") })
+        );
     }
 }
 
@@ -4143,9 +5811,11 @@ mod drag_trajectory_frame_contract_tests {
             Value::String("event_id".into()),
             Value::String("quadrature_rule_id".into()),
         ]);
-        assert!(audit_drag_trajectory_contract(&value).iter().any(|finding| {
-            finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION")
-        }));
+        assert!(
+            audit_drag_trajectory_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("DRAG_TRAJECTORY_IMPLEMENTATION") })
+        );
     }
 }
 
@@ -4163,19 +5833,24 @@ mod thrust_observability_contract_tests {
     #[test]
     fn thrust_observability_rejects_single_plane_momentum_shortcut() {
         let mut value: Value = serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY).unwrap();
-        value["momentum_equation"]["one_exit_plane_rho_u2_sufficient_for_net_thrust"] = Value::Bool(true);
-        assert!(audit_thrust_observability_contract(&value).iter().any(|finding| {
-            finding.starts_with("THRUST_CONTROL_VOLUME_COMPLETENESS")
-        }));
+        value["momentum_equation"]["one_exit_plane_rho_u2_sufficient_for_net_thrust"] =
+            Value::Bool(true);
+        assert!(
+            audit_thrust_observability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("THRUST_CONTROL_VOLUME_COMPLETENESS") })
+        );
     }
 
     #[test]
     fn thrust_observability_protocol_cannot_claim_measurements_or_sota() {
         let mut value: Value = serde_json::from_str(EMBEDDED_THRUST_OBSERVABILITY).unwrap();
         value["limitations"] = Value::Array(Vec::new());
-        assert!(audit_thrust_observability_contract(&value).iter().any(|finding| {
-            finding.starts_with("THRUST_OBSERVABILITY_CLAIM_BOUNDARY")
-        }));
+        assert!(
+            audit_thrust_observability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("THRUST_OBSERVABILITY_CLAIM_BOUNDARY") })
+        );
     }
 }
 
@@ -4194,21 +5869,24 @@ mod control_volume_contract_tests {
     fn control_volume_contract_requires_complete_six_term_manifest() {
         let mut value: Value = serde_json::from_str(EMBEDDED_CONTROL_VOLUME).unwrap();
         value["required_vector_terms"].as_array_mut().unwrap().pop();
-        assert!(audit_control_volume_contract(&value).iter().any(|finding| {
-            finding.starts_with("CONTROL_VOLUME_REQUIRED_TERMS")
-        }));
+        assert!(
+            audit_control_volume_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("CONTROL_VOLUME_REQUIRED_TERMS") })
+        );
     }
 
     #[test]
     fn control_volume_contract_rejects_root_sum_square_as_default() {
         let mut value: Value = serde_json::from_str(EMBEDDED_CONTROL_VOLUME).unwrap();
         value["uncertainty_policy"]["rss_allowed_by_default"] = Value::Bool(true);
-        assert!(audit_control_volume_contract(&value).iter().any(|finding| {
-            finding.starts_with("CONTROL_VOLUME_UNCERTAINTY_POLICY")
-        }));
+        assert!(
+            audit_control_volume_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("CONTROL_VOLUME_UNCERTAINTY_POLICY") })
+        );
     }
 }
-
 
 #[cfg(test)]
 mod identifiability_contract_tests {
@@ -4226,42 +5904,48 @@ mod identifiability_contract_tests {
         let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
         value["manufactured_cases"][0]["expected_parameter_estimate"] =
             serde_json::json!([2.0, 0.5]);
-        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
-            finding.starts_with("IDENTIFIABILITY_REPEATED_EXPECTATION")
-        }));
+        assert!(
+            audit_identifiability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("IDENTIFIABILITY_REPEATED_EXPECTATION") })
+        );
     }
 
     #[test]
     fn identifiability_contract_requires_diagonal_covariance_boundary() {
         let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
         value["parameter_contract"]["correlated_covariance_supported"] = Value::Bool(true);
-        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
-            finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT")
-        }));
+        assert!(
+            audit_identifiability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("IDENTIFIABILITY_PARAMETER_CONTRACT") })
+        );
     }
-
 
     #[test]
     fn identifiability_contract_rejects_candidate_sensitivity_change() {
         let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
-        value["reference_implementation"]["design_tournament"]["candidate_conditions"][0]
-            ["sensitivity"][0] = serde_json::json!(-4.0);
-        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
-            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
-        }));
+        value["reference_implementation"]["design_tournament"]["candidate_conditions"][0]["sensitivity"]
+            [0] = serde_json::json!(-4.0);
+        assert!(
+            audit_identifiability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT") })
+        );
     }
 
     #[test]
     fn identifiability_contract_requires_distinct_d_and_e_optimal_selections() {
         let mut value: Value = serde_json::from_str(EMBEDDED_IDENTIFIABILITY).unwrap();
-        value["reference_implementation"]["design_tournament"]["expected_e_optimal"]
-            ["candidate_indices"] = serde_json::json!([0, 2, 3]);
-        assert!(audit_identifiability_contract(&value).iter().any(|finding| {
-            finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT")
-        }));
+        value["reference_implementation"]["design_tournament"]["expected_e_optimal"]["candidate_indices"] =
+            serde_json::json!([0, 2, 3]);
+        assert!(
+            audit_identifiability_contract(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("IDENTIFIABILITY_DESIGN_TOURNAMENT") })
+        );
     }
 }
-
 
 #[cfg(test)]
 mod jiang_2026_atlas_tests {
@@ -4280,58 +5964,68 @@ mod jiang_2026_atlas_tests {
     fn jiang_missing_power_values_must_remain_unknown() {
         let mut value = atlas();
         let records = value["source_records"].as_array_mut().unwrap();
-        let record = records.iter_mut().find(|row| {
-            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
-        }).unwrap();
+        let record = records
+            .iter_mut()
+            .find(|row| row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE")
+            .unwrap();
         record["reported_results"]["absolute_real_power_w"] = serde_json::json!(100.0);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("JIANG_POWER_BOUNDARY")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("JIANG_POWER_BOUNDARY") })
+        );
     }
 
     #[test]
     fn jiang_peak_absolute_thrust_cannot_be_promoted_to_efficiency_winner() {
         let mut value = atlas();
         let records = value["source_records"].as_array_mut().unwrap();
-        let record = records.iter_mut().find(|row| {
-            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
-        }).unwrap();
-        record["comparability"]["thrust_to_power_leaderboard_eligible"] =
-            Value::Bool(true);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("JIANG_POWER_BOUNDARY")
-        }));
+        let record = records
+            .iter_mut()
+            .find(|row| row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE")
+            .unwrap();
+        record["comparability"]["thrust_to_power_leaderboard_eligible"] = Value::Bool(true);
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("JIANG_POWER_BOUNDARY") })
+        );
     }
 
     #[test]
     fn jiang_figure9_values_must_remain_approximate_and_separate() {
         let mut value = atlas();
         let records = value["source_records"].as_array_mut().unwrap();
-        let record = records.iter_mut().find(|row| {
-            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
-        }).unwrap();
+        let record = records
+            .iter_mut()
+            .find(|row| row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE")
+            .unwrap();
         record["reported_results"]["figure9_22kv"]["evidence_class"] =
             serde_json::json!("raw_exact_measurement");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("JIANG_FIGURE9_BOUNDARY")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("JIANG_FIGURE9_BOUNDARY") })
+        );
     }
 
     #[test]
     fn jiang_geometry_sweep_requires_all_four_transcribed_points() {
         let mut value = atlas();
         let records = value["source_records"].as_array_mut().unwrap();
-        let record = records.iter_mut().find(|row| {
-            row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE"
-        }).unwrap();
+        let record = records
+            .iter_mut()
+            .find(|row| row["source_id"] == "JIANG_2026_SUB_UNIT_ELECTRODE")
+            .unwrap();
         record["reported_results"]["figure10_22kv_sub_unit_plus_sweep"]["configurations"][0]["thrust_mn"] =
             serde_json::json!(70.0);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("JIANG_FIGURE10_SWEEP")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("JIANG_FIGURE10_SWEEP") })
+        );
     }
 }
-
 
 #[cfg(test)]
 mod solver_comparator_registry_tests {
@@ -4350,79 +6044,96 @@ mod solver_comparator_registry_tests {
     fn simplified_comsol_corona_cannot_claim_full_ionization_physics() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| {
-            row["solver_id"] == "COMSOL_CORONA_SIMPLIFIED_64"
-        }).unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "COMSOL_CORONA_SIMPLIFIED_64")
+            .unwrap();
         profile["important_limits"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("COMSOL_SIMPLIFIED_CORONA_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("COMSOL_SIMPLIFIED_CORONA_SCOPE") })
+        );
     }
 
     #[test]
     fn paschen_one_d_cannot_claim_electron_energy_pde() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| {
-            row["solver_id"] == "PASCHEN_1D"
-        }).unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "PASCHEN_1D")
+            .unwrap();
         profile["important_limits"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("PASCHEN_1D_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("PASCHEN_1D_SCOPE") })
+        );
     }
 
     #[test]
     fn comparator_matrix_requires_matched_controls_for_every_track() {
         let mut value = atlas();
-        value["solver_comparison_matrix"]["tracks"][0]["match_controls"] =
-            serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("SOLVER_COMPARATOR_CONTROLS")
-        }));
+        value["solver_comparison_matrix"]["tracks"][0]["match_controls"] = serde_json::json!([]);
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("SOLVER_COMPARATOR_CONTROLS") })
+        );
     }
 
     #[test]
     fn analytical_corona_score_cannot_be_promoted_to_whole_thruster_mape() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| {
-            row["solver_id"] == "ANALYTICAL_CORONA_SMALL_GAP_2026"
-        }).unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "ANALYTICAL_CORONA_SMALL_GAP_2026")
+            .unwrap();
         profile["reported_validation"]["observable"] =
             serde_json::json!("complete propulsion system thrust");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("ANALYTICAL_CORONA_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("ANALYTICAL_CORONA_SCOPE") })
+        );
     }
 
     #[test]
     fn airflow_surrogate_metrics_cannot_authorize_thrust_claims() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| {
-            row["solver_id"] == "TOPTAS_YILMAZ_2026_EHD_ML"
-        }).unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "TOPTAS_YILMAZ_2026_EHD_ML")
+            .unwrap();
         profile["important_limits"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("AIRFLOW_SURROGATE_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("AIRFLOW_SURROGATE_SCOPE") })
+        );
     }
 
     #[test]
     fn data_driven_flow_track_requires_family_holdout() {
         let mut value = atlas();
-        let tracks = value["solver_comparison_matrix"]["tracks"].as_array_mut().unwrap();
-        let track = tracks.iter_mut().find(|row| {
-            row["track_id"] == "DATA_DRIVEN_FLOW_SURROGATE"
-        }).unwrap();
+        let tracks = value["solver_comparison_matrix"]["tracks"]
+            .as_array_mut()
+            .unwrap();
+        let track = tracks
+            .iter_mut()
+            .find(|row| row["track_id"] == "DATA_DRIVEN_FLOW_SURROGATE")
+            .unwrap();
         track["match_controls"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("FLOW_SURROGATE_HOLDOUT")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("FLOW_SURROGATE_HOLDOUT") })
+        );
     }
 }
-
 
 #[cfg(test)]
 mod solver_comparator_registry_tests {
@@ -4441,46 +6152,62 @@ mod solver_comparator_registry_tests {
     fn anemone_validation_is_not_promoted_to_independent_experiment() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| row["solver_id"] == "ANEMONE_3D").unwrap();
-        profile["validation_evidence"] = serde_json::json!("independent experimental force-stand and PIV");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("ANEMONE_SCOPE")
-        }));
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "ANEMONE_3D")
+            .unwrap();
+        profile["validation_evidence"] =
+            serde_json::json!("independent experimental force-stand and PIV");
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("ANEMONE_SCOPE") })
+        );
     }
 
     #[test]
     fn paschen_one_d_must_disclose_missing_electron_energy_equation() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| row["solver_id"] == "PASCHEN_1D").unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "PASCHEN_1D")
+            .unwrap();
         profile["important_limits"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("PASCHEN_1D_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("PASCHEN_1D_SCOPE") })
+        );
     }
 
     #[test]
     fn simplified_and_full_comsol_interfaces_remain_distinct() {
         let mut value = atlas();
         let rows = value["solver_profiles"].as_array_mut().unwrap();
-        let profile = rows.iter_mut().find(|row| row["solver_id"] == "COMSOL_CORONA_SIMPLIFIED_64").unwrap();
+        let profile = rows
+            .iter_mut()
+            .find(|row| row["solver_id"] == "COMSOL_CORONA_SIMPLIFIED_64")
+            .unwrap();
         profile["important_limits"] = serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("COMSOL_SIMPLIFIED_CORONA_SCOPE")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("COMSOL_SIMPLIFIED_CORONA_SCOPE") })
+        );
     }
 
     #[test]
     fn comparator_matrix_requires_matched_controls_for_every_track() {
         let mut value = atlas();
-        value["solver_comparison_matrix"]["tracks"][0]["match_controls"] =
-            serde_json::json!([]);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("SOLVER_COMPARATOR_CONTROLS")
-        }));
+        value["solver_comparison_matrix"]["tracks"][0]["match_controls"] = serde_json::json!([]);
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("SOLVER_COMPARATOR_CONTROLS") })
+        );
     }
 }
-
 
 #[cfg(test)]
 mod low_density_piv_tracer_tests {
@@ -4499,26 +6226,32 @@ mod low_density_piv_tracer_tests {
     fn low_density_piv_tracer_table_rejects_false_fog_availability_at_point_three_atm() {
         let mut value = atlas();
         let rows = value["source_records"].as_array_mut().unwrap();
-        let record = rows.iter_mut().find(|row| {
-            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
-        }).unwrap();
+        let record = rows
+            .iter_mut()
+            .find(|row| row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+            .unwrap();
         record["diagnostic_protocol"]["low_density_tracer_screening_table"][9]["fog_machine"] =
             serde_json::json!("32");
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("NOELLE_LOW_DENSITY_PIV_TRACER_MATRIX")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("NOELLE_LOW_DENSITY_PIV_TRACER_MATRIX") })
+        );
     }
 
     #[test]
     fn low_density_air_results_cannot_be_relabelled_as_mars_co2_or_vacuum_validation() {
         let mut value = atlas();
         let rows = value["source_records"].as_array_mut().unwrap();
-        let record = rows.iter_mut().find(|row| {
-            row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS"
-        }).unwrap();
+        let record = rows
+            .iter_mut()
+            .find(|row| row["source_id"] == "NOELLE_2025_LOW_DENSITY_IWT_PIV_TRACERS")
+            .unwrap();
         record["comparability"]["distinct_from_mars_co2_dbd"] = Value::Bool(false);
-        assert!(audit_atlas(&value).iter().any(|finding| {
-            finding.starts_with("NOELLE_LOW_DENSITY_PIV_COHORT_BOUNDARY")
-        }));
+        assert!(
+            audit_atlas(&value)
+                .iter()
+                .any(|finding| { finding.starts_with("NOELLE_LOW_DENSITY_PIV_COHORT_BOUNDARY") })
+        );
     }
 }
