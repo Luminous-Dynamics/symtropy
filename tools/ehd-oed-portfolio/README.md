@@ -23,6 +23,8 @@ The crate is a standalone Cargo workspace with no third-party dependencies.
 
 ## CI and reproducibility
 
+The shared CI first formats sources, then emits the exact changed Rust files for diagnosis, and finally re-runs `cargo fmt --all -- --check`; formatting output is copied back into source before a final check-only run. Strict Clippy remains `-D warnings`.
+
 The repository pull-request matrix runs format, tests and strict Clippy for this standalone crate on Ubuntu, Windows and macOS. A successful result must be tied to the exact branch head; queued or skipped steps do not qualify a result.
 
 ## Interpretation rules
