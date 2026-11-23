@@ -142,17 +142,17 @@ The branch now adds `src/dynamics.rs`, exposed as `dynamics`, and `DYNAMICS_TRAN
 
 This is a stronger finite dynamics test than graph correspondence or qualitative effect-sign matching, but it remains a validator for a proposed witness. It does not discover mappings from streams, infer causal mechanisms, authenticate interventions, estimate uncertainty or qualify physical-world transfer. It is not a continuous-time CfC/LTC equivalence test. A continuous extension needs explicit clock transformation, observation delay/sampling, uncertainty, error bounds and held-out rollout / intervention contracts.
 
-**Verification for the combined transfer, acquisition, matching, atlas and dynamics branch:** pending exact-head Rust 1.96 format, tests and strict Clippy.
+**Historical note:** this status line was superseded by the later exact-head verification recorded below.
 
 ## Latest exact-head test finding
 
-The focused run on head `2a68852ac613f625abf095d8a6f73f594963f17c` passed `cargo fmt --check` and all **50 unit tests**. Its doctest then failed because the indented mathematical transition equation in the module-level Rust documentation was parsed as a Rust code example. The same run also reported an unused import in `atlas.rs`. No Clippy result was produced because the test command stopped the workflow.
+The focused run on head `2a68852ac613f625abf095d8a6f73f594963f17c` passed `cargo fmt --check` and all **50 unit tests**, but its doctest interpreted the indented mathematical transition equation in the module-level Rust documentation as executable Rust. That run also exposed an unused library-scope import in `atlas.rs`, and Clippy did not run.
 
 Both narrow issues have been corrected:
-- the equation is now an inline code span, not an executable doctest;
-- the test-only effect-transform import is now scoped to the test module.
+- the formula was removed from the Rust module comment and retained in the standalone Markdown dynamics contract;
+- the test-only effect-transform import was scoped to the test module.
 
-Corrected head: `2315e78f5e2886f8367a4619743be5576c1acd5b`. A new exact-head Rust 1.96 run is required before qualification.
+These corrections were subsequently verified by the exact-source workflow recorded below.
 
 ## Continuous-time / hybrid dynamics transfer protocol
 
@@ -175,4 +175,4 @@ The focused workflow run [#45268504387](https://github.com/Luminous-Dynamics/sym
 - `cargo test --locked`: passed, including 50 unit tests and the dynamics module doctest;
 - strict `cargo clippy --all-targets -- -D warnings`: passed.
 
-After this code head, the only branch change is the documentation-only continuous dynamics protocol at `579c93217cac34196e25a78d190417948d4e3528`. This verification applies to all executable source on the current branch. It is not an OS-sandbox, full blind evaluator, multi-family benchmark, or learner-performance result.
+After this verified code head, the branch has only documentation changes: `CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md`, the linked updates in `TRANSFER_ATLAS_V0_2_PROTOCOL.md`, and this implementation-status record. The current PR head is `957ae173f04a5b75138eaf99a7cb32385420d6d2`; those later commits do not modify executable Rust. This verification therefore applies to all executable source on the current branch. It is not an OS-sandbox, full blind evaluator, multi-family benchmark, or learner-performance result.
