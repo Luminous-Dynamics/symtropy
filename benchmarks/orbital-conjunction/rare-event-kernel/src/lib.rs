@@ -35,6 +35,7 @@ pub mod ncdot_sphere;
 pub mod relative_covariance;
 pub mod residual;
 pub mod sequential;
+pub mod static_peak_overlap;
 pub mod stats;
 pub mod trajectory;
 
@@ -57,6 +58,9 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use static_peak_overlap::{
+    PositionGaussian3, StaticPeakOverlapInputs, StaticPeakOverlapReport, static_peak_overlap,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
