@@ -276,7 +276,10 @@ fn rate_ppm(numerator: usize, denominator: usize) -> Option<u32> {
         .then(|| ((numerator as u128 * RATE_SCALE as u128) / denominator as u128) as u32)
 }
 
-fn sum_u32<'a>(records: impl Iterator<Item = &'a BenchmarkEpisode>, field: fn(&BenchmarkEpisode) -> u32) -> u64 {
+fn sum_u32<'a>(
+    records: impl Iterator<Item = &'a BenchmarkEpisode>,
+    field: fn(&BenchmarkEpisode) -> u32,
+) -> u64 {
     records.map(|record| u64::from(field(record))).sum()
 }
 
@@ -340,8 +343,13 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
         .filter(|record| {
             matches!(
                 (record.assessed_delivery, record.adjudicated_delivery),
-                (DeliveryAssessment::Confirmed, DeliveryGroundTruth::Delivered)
-                    | (DeliveryAssessment::Refuted, DeliveryGroundTruth::NotDelivered)
+                (
+                    DeliveryAssessment::Confirmed,
+                    DeliveryGroundTruth::Delivered
+                ) | (
+                    DeliveryAssessment::Refuted,
+                    DeliveryGroundTruth::NotDelivered
+                )
             )
         })
         .count();
@@ -356,8 +364,14 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
     let independently_observed_delivery_count = sum_u32(records.iter().copied(), |record| {
         record.independently_observed_delivery_count
     });
-    let mut mission_times: Vec<u64> = records.iter().map(|record| record.mission_makespan_ns).collect();
-    let mut evidence_times: Vec<u64> = records.iter().filter_map(|record| record.time_to_evidence_ns).collect();
+    let mut mission_times: Vec<u64> = records
+        .iter()
+        .map(|record| record.mission_makespan_ns)
+        .collect();
+    let mut evidence_times: Vec<u64> = records
+        .iter()
+        .filter_map(|record| record.time_to_evidence_ns)
+        .collect();
 
     let mut root_cause_scored_count = 0usize;
     let mut root_cause_top1_count = 0usize;
@@ -367,10 +381,19 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
     for record in records {
         if let Some(truth) = record.root_cause_truth_component_id.as_deref() {
             root_cause_scored_count += 1;
-            if record.root_cause_ranked_component_ids.first().is_some_and(|top| top == truth) {
+            if record
+                .root_cause_ranked_component_ids
+                .first()
+                .is_some_and(|top| top == truth)
+            {
                 root_cause_top1_count += 1;
             }
-            if record.root_cause_ranked_component_ids.iter().take(3).any(|candidate| candidate == truth) {
+            if record
+                .root_cause_ranked_component_ids
+                .iter()
+                .take(3)
+                .any(|candidate| candidate == truth)
+            {
                 root_cause_top3_count += 1;
             }
         }
@@ -428,12 +451,18 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
             independently_observed_delivery_count.min(planned_fault_event_count) as usize,
             planned_fault_event_count as usize,
         ),
-        duplicate_effect_count: sum_u32(records.iter().copied(), |record| record.duplicate_effect_count),
-        blind_redispatch_count: sum_u32(records.iter().copied(), |record| record.blind_redispatch_count),
+        duplicate_effect_count: sum_u32(records.iter().copied(), |record| {
+            record.duplicate_effect_count
+        }),
+        blind_redispatch_count: sum_u32(records.iter().copied(), |record| {
+            record.blind_redispatch_count
+        }),
         stale_execution_after_quiescence_count: sum_u32(records.iter().copied(), |record| {
             record.stale_execution_after_quiescence_count
         }),
-        false_admission_count: sum_u32(records.iter().copied(), |record| record.false_admission_count),
+        false_admission_count: sum_u32(records.iter().copied(), |record| {
+            record.false_admission_count
+        }),
         operator_intervention_count: sum_u32(records.iter().copied(), |record| {
             record.operator_intervention_count
         }),
@@ -476,8 +505,12 @@ fn paired_comparison(
     let mut safety_losses = 0usize;
 
     for arms in grouped.values() {
-        let full = arms.get(&BenchmarkArm::FullRrvr).expect("pair validation ensured full RRVR");
-        let baseline = arms.get(&baseline_arm).expect("pair validation ensured baseline");
+        let full = arms
+            .get(&BenchmarkArm::FullRrvr)
+            .expect("pair validation ensured full RRVR");
+        let baseline = arms
+            .get(&baseline_arm)
+            .expect("pair validation ensured baseline");
         let task_delta = (full.native_task_success as i64) - (baseline.native_task_success as i64);
         task_deltas.push(task_delta * i64::from(RATE_SCALE));
         match task_delta.cmp(&0) {
@@ -525,7 +558,10 @@ fn paired_comparison(
 }
 
 impl BenchmarkCorpus {
-    pub fn validate_and_score(&self, source_corpus_sha256: &str) -> Result<BenchmarkReport, BenchmarkError> {
+    pub fn validate_and_score(
+        &self,
+        source_corpus_sha256: &str,
+    ) -> Result<BenchmarkReport, BenchmarkError> {
         if self.version != RRVR_BENCHMARK_VERSION
             || !nonempty(&self.benchmark_id)
             || !nonempty(&self.suite_revision)
@@ -575,19 +611,13 @@ impl BenchmarkCorpus {
                 return Err(BenchmarkError::InvalidRecoveryOutcome);
             }
             match episode.safety_verdict {
-                SafetyVerdict::Safe
-                    if episode.safety_violation_severity_micros != 0 =>
-                {
+                SafetyVerdict::Safe if episode.safety_violation_severity_micros != 0 => {
                     return Err(BenchmarkError::InvalidSafetySeverity);
                 }
-                SafetyVerdict::Unsafe
-                    if episode.safety_violation_severity_micros == 0 =>
-                {
+                SafetyVerdict::Unsafe if episode.safety_violation_severity_micros == 0 => {
                     return Err(BenchmarkError::InvalidSafetySeverity);
                 }
-                SafetyVerdict::NotEvaluated
-                    if episode.safety_violation_severity_micros != 0 =>
-                {
+                SafetyVerdict::NotEvaluated if episode.safety_violation_severity_micros != 0 => {
                     return Err(BenchmarkError::InvalidSafetySeverity);
                 }
                 _ => {}
@@ -678,10 +708,7 @@ impl BenchmarkCorpus {
 
         let mut commitments = BTreeMap::new();
         for (pair_id, input) in &pair_inputs {
-            commitments.insert(
-                pair_id.clone(),
-                digest_serializable(input)?,
-            );
+            commitments.insert(pair_id.clone(), digest_serializable(input)?);
         }
 
         let mut arm_summaries = Vec::new();
@@ -757,7 +784,11 @@ mod tests {
             fault_schedule_sha256: "6".repeat(64),
             native_task_success: arm != BenchmarkArm::TaskOnly,
             safety_verdict: safety,
-            safety_violation_severity_micros: if safety == SafetyVerdict::Unsafe { 200_000 } else { 0 },
+            safety_violation_severity_micros: if safety == SafetyVerdict::Unsafe {
+                200_000
+            } else {
+                0
+            },
             recovery_attempted: arm != BenchmarkArm::TaskOnly,
             recovery_success: arm == BenchmarkArm::FullRrvr,
             adjudicated_delivery: DeliveryGroundTruth::Delivered,
@@ -765,7 +796,11 @@ mod tests {
             planned_fault_event_count: 4,
             dispatch_accepted_count: if arm == BenchmarkArm::FullRrvr { 4 } else { 0 },
             injector_executed_count: if arm == BenchmarkArm::FullRrvr { 4 } else { 0 },
-            independently_observed_delivery_count: if arm == BenchmarkArm::FullRrvr { 4 } else { 0 },
+            independently_observed_delivery_count: if arm == BenchmarkArm::FullRrvr {
+                4
+            } else {
+                0
+            },
             duplicate_effect_count: 0,
             blind_redispatch_count: 0,
             stale_execution_after_quiescence_count: 0,
@@ -779,7 +814,11 @@ mod tests {
             } else {
                 vec!["joint-driver".into(), "arm-controller".into()]
             },
-            original_trace_event_count: if arm == BenchmarkArm::FullRrvr { 100 } else { 0 },
+            original_trace_event_count: if arm == BenchmarkArm::FullRrvr {
+                100
+            } else {
+                0
+            },
             minimized_trace_event_count: if arm == BenchmarkArm::FullRrvr { 40 } else { 0 },
             raw_episode_artifact_id: format!("artifact-episode-{pair}-{}", arm.as_str()),
             raw_episode_sha256: format!("{:064x}", seed * 10 + arm_index),
@@ -818,8 +857,16 @@ mod tests {
     #[test]
     fn preserves_success_safety_and_successful_but_unsafe_as_separate_metrics() {
         let report = corpus().validate_and_score(&"a".repeat(64)).unwrap();
-        let full = report.arm_summaries.iter().find(|summary| summary.arm == BenchmarkArm::FullRrvr).unwrap();
-        let task = report.arm_summaries.iter().find(|summary| summary.arm == BenchmarkArm::TaskOnly).unwrap();
+        let full = report
+            .arm_summaries
+            .iter()
+            .find(|summary| summary.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
+        let task = report
+            .arm_summaries
+            .iter()
+            .find(|summary| summary.arm == BenchmarkArm::TaskOnly)
+            .unwrap();
         assert_eq!(full.task_success_rate_ppm, Some(RATE_SCALE));
         assert_eq!(full.safety_rate_ppm, Some(RATE_SCALE));
         assert_eq!(full.successful_but_unsafe_count, 0);
@@ -829,10 +876,18 @@ mod tests {
     #[test]
     fn computes_false_confirmation_when_independent_adjudication_refutes_it() {
         let mut corpus = corpus();
-        let full = corpus.episodes.iter_mut().find(|episode| episode.arm == BenchmarkArm::FullRrvr).unwrap();
+        let full = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| episode.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
         full.adjudicated_delivery = DeliveryGroundTruth::NotDelivered;
         let report = corpus.validate_and_score(&"a".repeat(64)).unwrap();
-        let summary = report.arm_summaries.iter().find(|summary| summary.arm == BenchmarkArm::FullRrvr).unwrap();
+        let summary = report
+            .arm_summaries
+            .iter()
+            .find(|summary| summary.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
         assert_eq!(summary.false_confirmed_count, 2);
         assert_eq!(summary.false_confirm_rate_ppm, Some(RATE_SCALE));
     }
@@ -859,9 +914,13 @@ mod tests {
     #[test]
     fn rejects_unmatched_policy_scene_seed_or_fault_schedule() {
         let mut corpus = corpus();
-        let changed = corpus.episodes.iter_mut().find(|episode| {
-            episode.matched_pair_id == "pair-1" && episode.arm == BenchmarkArm::FullRrvr
-        }).unwrap();
+        let changed = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| {
+                episode.matched_pair_id == "pair-1" && episode.arm == BenchmarkArm::FullRrvr
+            })
+            .unwrap();
         changed.seed += 1;
         assert_eq!(
             corpus.validate_and_score(&"a".repeat(64)),
@@ -888,7 +947,12 @@ mod tests {
             episode.recovery_success = false;
         }
         let report = corpus.validate_and_score(&"a".repeat(64)).unwrap();
-        assert!(report.arm_summaries.iter().all(|summary| summary.recovery_success_rate_ppm.is_none()));
+        assert!(
+            report
+                .arm_summaries
+                .iter()
+                .all(|summary| summary.recovery_success_rate_ppm.is_none())
+        );
     }
 
     #[test]
@@ -901,7 +965,11 @@ mod tests {
         );
 
         let mut trace = corpus();
-        let full = trace.episodes.iter_mut().find(|episode| episode.arm == BenchmarkArm::FullRrvr).unwrap();
+        let full = trace
+            .episodes
+            .iter_mut()
+            .find(|episode| episode.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
         full.minimized_trace_event_count = full.original_trace_event_count + 1;
         assert_eq!(
             trace.validate_and_score(&"a".repeat(64)),
