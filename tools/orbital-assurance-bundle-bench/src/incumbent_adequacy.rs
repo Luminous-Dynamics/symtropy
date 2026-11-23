@@ -129,11 +129,13 @@ fn valid_sha256(value: &str) -> bool {
 }
 
 fn valid_gate_states(case: &Case) -> bool {
-    matches!(case.world_set_state.as_str(), "CURRENT" | "STALE" | "UNAVAILABLE")
-        && matches!(
-            case.domain_closure_state.as_str(),
-            "CLOSED_WITHIN_DECLARED_SCOPE" | "OPEN" | "STALE" | "INADEQUATE"
-        )
+    matches!(
+        case.world_set_state.as_str(),
+        "CURRENT" | "STALE" | "UNAVAILABLE"
+    ) && matches!(
+        case.domain_closure_state.as_str(),
+        "CLOSED_WITHIN_DECLARED_SCOPE" | "OPEN" | "STALE" | "INADEQUATE"
+    )
         && matches!(
             case.dependency_graph_state.as_str(),
             "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
@@ -186,14 +188,7 @@ fn invalid_input(case: &Case, reason: &str) -> CaseResult {
 }
 
 fn abstain(case: &Case, reason: &str, threshold: Option<i64>) -> CaseResult {
-    result(
-        case,
-        "ABSTAIN",
-        reason,
-        threshold,
-        None,
-        Vec::new(),
-    )
+    result(case, "ABSTAIN", reason, threshold, None, Vec::new())
 }
 
 fn evaluate_case(case: &Case) -> CaseResult {
@@ -208,21 +203,33 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.switching_cost < 0
         || !valid_gate_states(case)
     {
-        return invalid_input(case, "invalid case identity, bounds, threshold or gate state");
+        return invalid_input(
+            case,
+            "invalid case identity, bounds, threshold or gate state",
+        );
     }
 
     let Some(retention_threshold) = case.materiality_margin.checked_add(case.switching_cost) else {
-        return invalid_input(case, "materiality margin plus switching cost overflows loss units");
+        return invalid_input(
+            case,
+            "materiality margin plus switching cost overflows loss units",
+        );
     };
 
     let mut action_ids = BTreeSet::new();
     for action_id in &case.action_ids {
         if !valid_id(action_id) || !action_ids.insert(action_id.as_str()) {
-            return invalid_input(case, "action universe contains an empty or duplicate action ID");
+            return invalid_input(
+                case,
+                "action universe contains an empty or duplicate action ID",
+            );
         }
     }
     if !action_ids.contains(case.incumbent_action_id.as_str()) {
-        return invalid_input(case, "incumbent action is absent from the declared finite action universe");
+        return invalid_input(
+            case,
+            "incumbent action is absent from the declared finite action universe",
+        );
     }
 
     // An empty surviving-world set is not certainty and cannot justify retention.
@@ -253,13 +260,21 @@ fn evaluate_case(case: &Case) -> CaseResult {
         && case.dependency_graph_state != "STALE"
         && case.dependency_graph_state != "INDETERMINATE"
     {
-        return abstain(case, "DEPENDENCY_GRAPH_INADEQUATE", Some(retention_threshold));
+        return abstain(
+            case,
+            "DEPENDENCY_GRAPH_INADEQUATE",
+            Some(retention_threshold),
+        );
     }
     if case.dependency_graph_state == "STALE" {
         return abstain(case, "STALE_DEPENDENCY_GRAPH", Some(retention_threshold));
     }
     if case.dependency_graph_state == "INDETERMINATE" {
-        return abstain(case, "INDETERMINATE_DEPENDENCY_GRAPH", Some(retention_threshold));
+        return abstain(
+            case,
+            "INDETERMINATE_DEPENDENCY_GRAPH",
+            Some(retention_threshold),
+        );
     }
     if case.evidence_state == "STALE" {
         return abstain(case, "STALE_EVIDENCE", Some(retention_threshold));
@@ -292,13 +307,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
             return abstain(case, "SCOPE_MISMATCH", Some(retention_threshold));
         }
         if world.feasible_action_ids.is_empty() {
-            return abstain(case, "NO_FEASIBLE_ACTION_IN_WORLD", Some(retention_threshold));
+            return abstain(
+                case,
+                "NO_FEASIBLE_ACTION_IN_WORLD",
+                Some(retention_threshold),
+            );
         }
 
         let mut feasible = BTreeSet::new();
         for action_id in &world.feasible_action_ids {
             if !action_ids.contains(action_id.as_str()) || !feasible.insert(action_id.as_str()) {
-                return invalid_input(case, "world feasible set contains an unknown or duplicate action");
+                return invalid_input(
+                    case,
+                    "world feasible set contains an unknown or duplicate action",
+                );
             }
         }
 
@@ -314,11 +336,17 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 || !feasible.contains(loss.action_id.as_str())
                 || losses.insert(loss.action_id.as_str(), loss.loss).is_some()
             {
-                return invalid_input(case, "loss row is malformed, duplicated or not feasible in its world");
+                return invalid_input(
+                    case,
+                    "loss row is malformed, duplicated or not feasible in its world",
+                );
             }
         }
 
-        if feasible.iter().any(|action_id| !losses.contains_key(action_id)) {
+        if feasible
+            .iter()
+            .any(|action_id| !losses.contains_key(action_id))
+        {
             return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
         }
 
@@ -421,9 +449,7 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .count(),
         threshold_exceeded_cases: cases
             .iter()
-            .filter(|case| {
-                case.trigger_reason == "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD"
-            })
+            .filter(|case| case.trigger_reason == "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD")
             .count(),
         expected_result_mismatches: cases
             .iter()
@@ -453,8 +479,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> Corpus {
-        serde_json::from_str(include_str!("../fixtures/v0.1/incumbent-adequacy-cases.json"))
-            .expect("incumbent adequacy corpus parses")
+        serde_json::from_str(include_str!(
+            "../fixtures/v0.1/incumbent-adequacy-cases.json"
+        ))
+        .expect("incumbent adequacy corpus parses")
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
@@ -596,11 +624,15 @@ mod tests {
         overflow.switching_cost = 1;
         overflow.expected = Expected {
             disposition: "INVALID_INPUT".to_owned(),
-            trigger_reason: "materiality margin plus switching cost overflows loss units".to_owned(),
+            trigger_reason: "materiality margin plus switching cost overflows loss units"
+                .to_owned(),
             worst_case_regret: None,
         };
         let report = evaluate(&corpus).expect("overflow corpus evaluates");
-        assert_eq!(case(&report, "baseline_retain").disposition, "INVALID_INPUT");
+        assert_eq!(
+            case(&report, "baseline_retain").disposition,
+            "INVALID_INPUT"
+        );
         assert_eq!(report.summary.expected_result_mismatches, 0);
 
         let regular = evaluate(&fixture()).expect("regular corpus evaluates");
