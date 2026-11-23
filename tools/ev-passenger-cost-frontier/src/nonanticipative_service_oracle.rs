@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::sustainable_mobility_service_capacity::{
-    CapacityServiceOpportunity, SustainableServiceCapacityInput,
+    SustainableServiceCapacityInput,
     evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
@@ -944,9 +944,6 @@ fn leaf_clairvoyant_score(
         .map(|index| requests[index].clone())
         .collect();
     // Preserve the original indices for compatibility with the shared assignment helper.
-    let leaf_request_refs: Vec<_> = leaf_requests.iter().collect();
-    let _ = (service, leaf_request_refs);
-
     let available: Vec<_> = opportunities.into_values().collect();
     let mut best = RawScore::default();
     enumerate_clairvoyant(
@@ -1055,7 +1052,7 @@ pub fn evaluate_nonanticipative_service_oracle(
 
     let report_bytes = serde_json::to_vec(&capacity_report)
         .map_err(|error| vec![format!("capacity_report_serialization_failed:{error}")])?;
-    source_report_digest = sha256_hex(&report_bytes);
+    let source_report_digest = sha256_hex(&report_bytes);
     let mut architecture_configuration = None;
     for architecture in &capacity.architectures {
         if architecture.architecture_id == service.source_architecture_id {
