@@ -23,9 +23,8 @@ use crate::sustainable_mobility_service_capacity::{
     SustainableServiceCapacityInput, evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
-    EvidenceClass, FallbackMode, FlightEvidence, FulfilmentMode,
-    LinkedServiceQualityInput, PermissionState, RequestDisposition, ServiceRequest, WeatherState,
-    evaluate_linked_service_quality,
+    EvidenceClass, FallbackMode, FlightEvidence, FulfilmentMode, LinkedServiceQualityInput,
+    PermissionState, RequestDisposition, ServiceRequest, WeatherState, evaluate_linked_service_quality,
 };
 
 const MAX_REQUESTS: usize = 4;
