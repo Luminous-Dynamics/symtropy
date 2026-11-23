@@ -339,3 +339,17 @@ The prior shorthand in Section 10 that wrote chi=a/sqrt(mu) and chi=Omega_H*r_h 
 The small-root inverse is q=nu+nu^3+2nu^5+5nu^7+...; thus only the leading O(nu^2) spin-squared metric overlap uses q^2=nu^2+O(nu^4). The printed chi-series normalization is distinct and must be carried explicitly. The manuscript's Eq. (50) gives the equal-spin consistency expansion mu=r_h^2/2+r_h^4*chi^2/4+9*r_h^6*chi^4/32+...; the dimensional convention in Eq. (16) still warrants careful explanation.
 
 The parameter-map script has now been fetched byte-for-byte from the public branch and locally executed with Python 3.13.5 / SymPy 1.14.0. Public Git blob SHA-1 5d17da9c52e0668d699d591c608a5bc18eb98efc; local SHA-256 dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3. All exact symbolic checks pass. See issue #6915 and the parameter-map artifacts in the benchmark directory.
+
+
+## 13. First-coupling identity and perturbative failure mode
+
+The Ma--Lü first-coupling source identity is now analytically closed on Ricci-flat Myers--Perry: the Gauss--Bonnet and Riemann-squared Euler tensors both reduce to \(2R_\mu{}^{\alpha\beta\gamma}R_{\nu\alpha\beta\gamma}-\frac12g_{\mu\nu}Riemann^2\). The candidate normalization is therefore \(\alpha_R=\alpha_{GB}/4\), with \(\epsilon_R=\lambda/4\) for the matched horizon radius. See the new Euler-identity note and fixture in the benchmark directory.
+
+A second caveat is essential: Wu and Lü's 2025 PRD paper finds that first-order quadratic-curvature thermodynamic corrections of MP can develop divergences for generic rotation parameters, with the outcome dependent on ensemble. They argue some divergences may be perturbative artifacts rather than nonexistence of a full nonlinear solution. Thus a high-order spin expansion is not automatically uniform near extremality. Issue [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955) now owns the validity envelope, separating:
+- spin-series truncation;
+- coupling-series truncation \(O(\epsilon_R^2)\);
+- metric and invariant correction magnitudes;
+- ensemble-dependent thermodynamic response;
+- full nonlinear branch existence.
+
+Do not conflate a divergent first-order thermodynamic coefficient with failure of the full finite-coupling EGB branch.
