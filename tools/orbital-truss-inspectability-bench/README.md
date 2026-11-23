@@ -160,3 +160,17 @@ Run the new contract:
 ## Benchmark and SOTA roadmap v0.2
 
 See `docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_2.md` for the direct 2026 GSD k-coverage and GPU multi-robot comparisons, matched benchmark protocol, candidate-pool shortfall semantics, prospective targets and portfolio integration sequence.
+
+
+### Published-style k-coverage comparison baseline
+
+The v0.3 planning receipt adds an independently replayed transcription of the 2026 paper's globally informed greedy k-coverage rule. It computes remaining k deficit, candidate scarcity slack and a dynamic exponential/urgency weight for each feature, then scores each candidate by the sum of visible feature weights. A deterministic fixed-point lookup for \`exp(-slack)\` and lexicographic tie-breaking make the adaptation byte-reproducible. A cleanup pass removes views while preserving the attainable capped targets.
+
+This baseline is kept separate from the robust-domain-aware greedy. It follows the paper's k-view coverage objective and does not claim to satisfy failure-domain diversity. Receipts separately report:
+- original requested k attainment;
+- candidate-pool attainable target \`min(requested_k, available_candidate_views)\`;
+- selected view count versus that attainable target;
+- failure-domain requirement attainment;
+- whether the selected set happens to fit the caller's declared budgets.
+
+This is an independent fixed-point reimplementation of the published pseudocode on the current synthetic visibility matrix, not an exact reproduction of the paper's 3D candidate generation, source meshes or parameter sweep. The heuristic has no theoretical approximation guarantee stated by the paper.
