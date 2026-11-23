@@ -124,3 +124,15 @@ The current unit tests include an adversarial greedy trap (exact plan: two views
 The API problem_from_case / plan_case binds costs to an existing evaluated Case. A subsequent benchmark increment should freeze an external planning fixture, implement a separately authored Python oracle, and add candidate-generation, routing, reachability and uncertainty-family holdouts before any SOTA comparison.
 
 All receipts remain synthetic-only and hard-code no authority, no structural acceptance, no flight authorization, and physical_validation=NOT_ASSESSED.
+
+
+## Frozen planning corpus v0.1
+
+The planner has a second, independent corpus: ORBITAL-TRUSS-PLANNING-001 with five synthetic coverage-matrix cases. The Rust CLI writes a deterministic planning receipt; a separate Python standard-library oracle independently enumerates the same subsets and reconstructs the exact optimum, Pareto frontier, greedy and cheapest-first baselines, budgets, dispositions and cost gaps.
+
+Run:
+
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_1.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle.py docs/research/orbital-truss/fixtures/planning-v0_1.json <40-hex-source-commit>
+
+The corpus covers a greedy trap, budget infeasibility despite sufficient candidate geometry, duplicate declared failure-domain collapse, robust-coverage abstention, and a cost-versus-view-count Pareto frontier. These are small, synthetic algorithm controls, not realistic inspection tasks or physical evidence. The workflow replays the Rust CLI, compares the complete Rust and Python receipts, asserts the intended counterexamples, and retains both receipts with the fixture, schema and exact-head manifest.
