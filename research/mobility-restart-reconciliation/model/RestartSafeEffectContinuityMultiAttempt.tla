@@ -105,39 +105,42 @@ NativeAcceptCurrentAttempt ==
         /\ s.attempts[i].authorizedBootEpoch = s.bootEpoch
         /\ s.attempts[i].authorizedControllerEpoch = s.controllerEpoch
         /\ ~s.attempts[i].commandPending
-        /\ (i = 1 \/
-            /\ s.recoveryPermit = "issued"
-            /\ s.permitForAttempt = i
-            /\ s.ticketStatus = "fresh"
-            /\ s.ticketAttempt = i
-            /\ s.ticketBootEpoch = s.bootEpoch
-            /\ s.ticketControllerEpoch = s.controllerEpoch
-            /\ s.attempts[i - 1].status = "reconciled"
-            /\ s.attempts[i - 1].controllerFenceBootEpoch = s.bootEpoch
-            /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.controllerEpoch
-            /\ s.attempts[i - 1].downstreamFenceBootEpoch = s.bootEpoch
-            /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.controllerEpoch
-            /\ s.m1Current
-            /\ s.m2Current
-            /\ s.ticketBindingValid
-            /\ s.liveBindingValid)
+        /\ (IF i = 1 THEN TRUE ELSE
+                /\ s.recoveryPermit = "issued"
+                /\ s.permitForAttempt = i
+                /\ s.ticketStatus = "fresh"
+                /\ s.ticketAttempt = i
+                /\ s.ticketBootEpoch = s.bootEpoch
+                /\ s.ticketControllerEpoch = s.controllerEpoch
+                /\ s.attempts[i - 1].status = "reconciled"
+                /\ s.attempts[i - 1].controllerFenceBootEpoch = s.bootEpoch
+                /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.controllerEpoch
+                /\ s.attempts[i - 1].downstreamFenceBootEpoch = s.bootEpoch
+                /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.controllerEpoch
+                /\ s.m1Current
+                /\ s.m2Current
+                /\ s.ticketBindingValid
+                /\ s.liveBindingValid)
         /\ s' = [s EXCEPT
                     !.attempts[i].status = "accepted",
                     !.attempts[i].commandPending = TRUE,
                     !.attempts[i].commandOwner = i,
-                    !.attempts[i].admittedFreshBoot = (i = 1) \/ (s.ticketBootEpoch = s.bootEpoch),
+                    !.attempts[i].admittedFreshBoot =
+                        IF i = 1 THEN TRUE ELSE s.ticketBootEpoch = s.bootEpoch,
                     !.attempts[i].admittedFreshController =
-                        (i = 1) \/ (s.ticketControllerEpoch = s.controllerEpoch),
+                        IF i = 1 THEN TRUE ELSE s.ticketControllerEpoch = s.controllerEpoch,
                     !.attempts[i].admittedControllerFence =
-                        (i = 1) \/ (s.attempts[i - 1].controllerFenceBootEpoch = s.bootEpoch
-                                    /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.controllerEpoch),
+                        IF i = 1 THEN TRUE
+                        ELSE s.attempts[i - 1].controllerFenceBootEpoch = s.bootEpoch
+                             /\ s.attempts[i - 1].controllerFenceControllerEpoch = s.controllerEpoch,
                     !.attempts[i].admittedDownstreamFence =
-                        (i = 1) \/ (s.attempts[i - 1].downstreamFenceBootEpoch = s.bootEpoch
-                                    /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.controllerEpoch),
-                    !.attempts[i].admittedM1 = (i = 1) \/ s.m1Current,
-                    !.attempts[i].admittedM2 = (i = 1) \/ s.m2Current,
+                        IF i = 1 THEN TRUE
+                        ELSE s.attempts[i - 1].downstreamFenceBootEpoch = s.bootEpoch
+                             /\ s.attempts[i - 1].downstreamFenceControllerEpoch = s.controllerEpoch,
+                    !.attempts[i].admittedM1 = IF i = 1 THEN TRUE ELSE s.m1Current,
+                    !.attempts[i].admittedM2 = IF i = 1 THEN TRUE ELSE s.m2Current,
                     !.attempts[i].admittedBinding =
-                        (i = 1) \/ (s.ticketBindingValid /\ s.liveBindingValid),
+                        IF i = 1 THEN TRUE ELSE s.ticketBindingValid /\ s.liveBindingValid,
                     !.recoveryPermit = IF i = 1 THEN "absent" ELSE "consumed",
                     !.permitUseCount = @ + (IF i = 1 THEN 0 ELSE 1),
                     !.ticketStatus = IF i = 1 THEN "absent" ELSE "consumed",
@@ -291,9 +294,9 @@ FenceDownstreamExecution ==
                     !.attempts[i].downstreamFenceBootEpoch = s.bootEpoch,
                     !.attempts[i].downstreamFenceControllerEpoch = s.controllerEpoch,
                     !.attempts[i].physicalOutcome =
-                        IF s.attempts[i].commandPending /\ @ = "none"
+                        IF s.attempts[i].commandPending /\ s.attempts[i].physicalOutcome = "none"
                         THEN "no_effect"
-                        ELSE @,
+                        ELSE s.attempts[i].physicalOutcome,
                     !.attempts[i].commandPending = FALSE,
                     !.attempts[i].commandOwner = 0,
                     !.crashCut = "after_downstream_execution_fence"]
