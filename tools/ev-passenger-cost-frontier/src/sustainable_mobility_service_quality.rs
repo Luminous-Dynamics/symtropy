@@ -1276,60 +1276,36 @@ fn exact_assignment_key(assignments: &[Option<ExactOracleAssignment>]) -> Vec<St
 fn exact_policy_gap(
     policy_result: &ServicePolicyResult,
     oracle: &ExactOracleScore,
+    input: &ServiceQualityInput,
 ) -> ExactOraclePolicyGap {
-    let policy_lateness_seconds = policy_result
-        .outcomes
+    let request_by_id: BTreeMap<&str, &ServiceRequest> = input
+        .requests
         .iter()
-        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
-        .filter_map(|outcome| {
-            Some(
-                outcome
-                    .service_completion_seconds?
-                    .saturating_sub(
-                        outcome
-                            .service_start_seconds?
-                            .saturating_sub(outcome.queue_wait_seconds.unwrap_or_default())
-                            .saturating_add(0),
-                    ),
-            )
-        })
-        .fold(0_u64, u64::saturating_add);
+        .map(|request| (request.request_id.as_str(), request))
+        .collect();
+    let mut policy_lateness_seconds = 0_u64;
+    let mut policy_latency_seconds = 0_u64;
 
-    let policy_total_lateness = policy_result
-        .outcomes
-        .iter()
-        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
-        .filter_map(|outcome| {
-            let completion = outcome.service_completion_seconds?;
-            let deadline = outcome.arrival_seconds.checked_add(
-                completion
-                    .saturating_sub(outcome.arrival_seconds)
-                    .saturating_add(0),
-            )?;
-            let _ = deadline;
-            Some(completion)
-        })
-        .count();
-
-    let policy_lateness = policy_result
-        .outcomes
-        .iter()
-        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
-        .filter_map(|outcome| outcome.latency_seconds)
-        .fold(0_u64, u64::saturating_add);
-
-    let _ = (policy_lateness_seconds, policy_total_lateness);
-    let policy_latency = policy_result
-        .outcomes
-        .iter()
-        .filter(|outcome| {
-            matches!(
-                outcome.disposition,
-                RequestDisposition::CompletedOnTime | RequestDisposition::CompletedLate
-            )
-        })
-        .filter_map(|outcome| outcome.latency_seconds)
-        .fold(0_u64, u64::saturating_add);
+    for outcome in &policy_result.outcomes {
+        let Some(request) = request_by_id.get(outcome.request_id.as_str()) else {
+            continue;
+        };
+        match outcome.disposition {
+            RequestDisposition::CompletedOnTime | RequestDisposition::CompletedLate => {
+                if let Some(completion) = outcome.service_completion_seconds {
+                    policy_latency_seconds = policy_latency_seconds
+                        .saturating_add(completion.saturating_sub(request.arrival_seconds));
+                    if outcome.disposition == RequestDisposition::CompletedLate {
+                        policy_lateness_seconds = policy_lateness_seconds
+                            .saturating_add(completion.saturating_sub(request.deadline_seconds));
+                    }
+                }
+            }
+            RequestDisposition::RejectedAfterAcceptanceCutoff
+            | RequestDisposition::InProgressAtHorizon
+            | RequestDisposition::Unserved => {}
+        }
+    }
 
     ExactOraclePolicyGap {
         policy: policy_result.policy,
@@ -1339,8 +1315,10 @@ fn exact_policy_gap(
         completed_by_horizon_gap: oracle
             .completed_by_horizon
             .saturating_sub(policy_result.completed_on_time + policy_result.completed_late),
-        lateness_excess_seconds: policy_lateness.saturating_sub(oracle.total_lateness_seconds),
-        latency_excess_seconds: policy_latency.saturating_sub(oracle.total_latency_seconds),
+        lateness_excess_seconds: policy_lateness_seconds
+            .saturating_sub(oracle.total_lateness_seconds),
+        latency_excess_seconds: policy_latency_seconds
+            .saturating_sub(oracle.total_latency_seconds),
         in_progress_excess: policy_result
             .in_progress_requests
             .saturating_sub(oracle.in_progress_at_horizon),
@@ -1565,7 +1543,7 @@ fn exact_assignment_oracle(
         .ok_or_else(|| vec!["exact_oracle_failed_to_emit_empty_assignment".to_owned()])?;
     let policy_gaps = policy_results
         .iter()
-        .map(|policy| exact_policy_gap(policy, &best.score))
+        .map(|policy| exact_policy_gap(policy, &best.score, input))
         .collect();
 
     Ok(ExactOracleReport {
