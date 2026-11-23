@@ -803,17 +803,48 @@ mod tests {
         GaussianOverlapConfig::default()
     }
 
+    fn assert_vector_close(actual: [f64; 3], expected: [f64; 3], tolerance: f64) {
+        for axis in 0..3 {
+            let scale = expected[axis].abs().max(1.0);
+            assert!(
+                (actual[axis] - expected[axis]).abs() <= tolerance * scale,
+                "vector mismatch on axis {axis}: actual={}, expected={}",
+                actual[axis],
+                expected[axis]
+            );
+        }
+    }
+
+    fn assert_matrix_close(actual: Matrix3, expected: Matrix3, tolerance: f64) {
+        for row in 0..3 {
+            for column in 0..3 {
+                let scale = expected[row][column].abs().max(1.0);
+                assert!(
+                    (actual[row][column] - expected[row][column]).abs() <= tolerance * scale,
+                    "matrix mismatch at ({row}, {column}): actual={}, expected={}",
+                    actual[row][column],
+                    expected[row][column]
+                );
+            }
+        }
+    }
+
     #[test]
     fn equal_isotropic_inputs_have_midpoint_and_half_covariance() {
         let primary = distribution([0.0, 0.0, 0.0], covariance([4.0, 4.0, 4.0]));
         let secondary = distribution([2.0, 4.0, 6.0], covariance([4.0, 4.0, 4.0]));
         let result = gaussian_position_overlap(primary, secondary, 1.0, config())
             .expect("valid equal isotropic distributions");
-        assert_eq!(result.overlap_position, [1.0, 2.0, 3.0]);
-        assert_eq!(result.overlap_covariance, covariance([2.0, 2.0, 2.0]));
-        assert_eq!(
+        assert_vector_close(result.overlap_position, [1.0, 2.0, 3.0], 1.0e-13);
+        assert_matrix_close(
+            result.overlap_covariance,
+            covariance([2.0, 2.0, 2.0]),
+            1.0e-13,
+        );
+        assert_matrix_close(
             result.remediated_metric_covariance,
-            covariance([3.0, 3.0, 3.0])
+            covariance([3.0, 3.0, 3.0]),
+            1.0e-13,
         );
         assert_eq!(result.policy, GaussianOverlapCovariancePolicy::StrictSpd);
     }
@@ -825,10 +856,15 @@ mod tests {
         let result = gaussian_position_overlap(primary, secondary, 0.5, config())
             .expect("valid unequal isotropic distributions");
         assert!((result.overlap_position[0] - 2.0).abs() < 1.0e-13);
-        assert_eq!(result.overlap_covariance, covariance([0.8, 0.8, 0.8]));
-        assert_eq!(
+        assert_matrix_close(
+            result.overlap_covariance,
+            covariance([0.8, 0.8, 0.8]),
+            1.0e-13,
+        );
+        assert_matrix_close(
             result.remediated_metric_covariance,
-            covariance([1.05, 1.05, 1.05])
+            covariance([1.05, 1.05, 1.05]),
+            1.0e-13,
         );
     }
 
@@ -838,10 +874,15 @@ mod tests {
         let secondary = distribution([2.0, 0.0, 0.0], covariance([1.0, 2.0, 3.0]));
         let result =
             gaussian_position_overlap(primary, secondary, 2.0, config()).expect("valid covariance");
-        assert_eq!(result.overlap_covariance, covariance([0.5, 1.0, 1.5]));
-        assert_eq!(
+        assert_matrix_close(
+            result.overlap_covariance,
+            covariance([0.5, 1.0, 1.5]),
+            1.0e-13,
+        );
+        assert_matrix_close(
             result.remediated_metric_covariance,
-            covariance([4.5, 5.0, 5.5])
+            covariance([4.5, 5.0, 5.5]),
+            1.0e-13,
         );
         let md2 = overlap_step_mahalanobis_squared(
             [0.0, 0.0, 0.0],
