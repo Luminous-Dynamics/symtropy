@@ -24,3 +24,4 @@ pub mod hbr_window_fusion;
 pub mod episode_conformal_tube;
 pub mod anytime_episode_coverage;
 pub mod anytime_rolling_coverage;
+pub mod rolling_feasibility_range_index;
