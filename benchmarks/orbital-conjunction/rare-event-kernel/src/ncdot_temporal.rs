@@ -208,18 +208,40 @@ pub fn integrate_ncdot_time_series(
         }
         if sample.report.log_collision_rate.is_nan()
             || sample.report.log_collision_rate == f64::INFINITY
+            || sample.report.log_sphere_integral.is_nan()
+            || sample.report.log_sphere_integral == f64::INFINITY
         {
             return Err(KernelError::InvalidTemporalRate);
         }
-        if sample.report.significant_node_count > sample.report.node_count
+        if sample.report.node_count != sample.report.rule.node_count()
+            || sample.report.significant_node_count > sample.report.node_count
             || sample.report.node_count == 0
+            || sample.report.node_underflow_count > sample.report.node_count
+            || sample.report.node_overflow_count > sample.report.node_count
+            || sample.report.zero_variance_fallback_count > sample.report.node_count
         {
             return Err(KernelError::InvalidTemporalRate);
         }
-        if !sample.report.significant_weight_fraction.is_finite()
+        if !sample.report.weight_sum.is_finite()
+            || (sample.report.weight_sum - 4.0 * core::f64::consts::PI).abs() > 2.0e-12
+            || !sample.report.relative_contribution_threshold.is_finite()
+            || !(0.0..=1.0).contains(&sample.report.relative_contribution_threshold)
+            || !sample.report.significant_weight_fraction.is_finite()
             || !(0.0..=1.0).contains(&sample.report.significant_weight_fraction)
             || !sample.report.significant_integral_fraction.is_finite()
             || !(0.0..=1.0).contains(&sample.report.significant_integral_fraction)
+            || sample.report.exact_zero_integrand
+                != (sample.report.log_collision_rate == f64::NEG_INFINITY)
+        {
+            return Err(KernelError::InvalidTemporalRate);
+        }
+        if sample.report.collision_rate.is_nan()
+            || sample.report.collision_rate < 0.0
+            || sample.report.collision_rate_underflowed
+                != (sample.report.log_collision_rate.is_finite()
+                    && sample.report.collision_rate == 0.0)
+            || sample.report.collision_rate_overflowed
+                != sample.report.collision_rate.is_infinite()
         {
             return Err(KernelError::InvalidTemporalRate);
         }
