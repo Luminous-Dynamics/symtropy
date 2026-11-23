@@ -613,8 +613,11 @@ mod tests {
     #[test]
     fn overlapping_receipt_and_decision_intervals_are_indeterminate() {
         let mut candidate = input(NavigationTimeClaimKind::DecisionEpochNowcast);
-        candidate.decision_cutoff_time = interval(19, 21);
-        candidate.target_valid_time = interval(19, 21);
+        candidate.payload_receipt_time = interval(18, 22);
+        candidate.processing_start_time = interval(22, 22);
+        candidate.processing_completion_time = interval(23, 23);
+        candidate.decision_cutoff_time = interval(20, 24);
+        candidate.target_valid_time = interval(20, 24);
         let result = evaluate_navigation_time_validity(policy(), candidate).unwrap();
         assert_eq!(
             result.disposition,
@@ -655,6 +658,8 @@ mod tests {
 
         let mut slow_processing = input(NavigationTimeClaimKind::DecisionEpochNowcast);
         slow_processing.processing_completion_time = interval(45, 45);
+        slow_processing.decision_cutoff_time = interval(50, 50);
+        slow_processing.target_valid_time = interval(50, 50);
         let result = evaluate_navigation_time_validity(policy(), slow_processing).unwrap();
         assert_eq!(
             result.disposition,
