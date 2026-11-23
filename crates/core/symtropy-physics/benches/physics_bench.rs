@@ -596,10 +596,10 @@ impl BenchPcaSap {
 
         // Eigenvectors are sign-ambiguous. Canonicalize the first material
         // component so the chosen sweep direction is stable under replay.
-        if let Some(pivot) = axis.iter().position(|component| component.abs() > 1e-12) {
-            if axis[pivot] < 0.0 {
-                axis = -axis;
-            }
+        if let Some(pivot) = axis.iter().position(|component| component.abs() > 1e-12)
+            && axis[pivot] < 0.0
+        {
+            axis = -axis;
         }
         axis
     }
