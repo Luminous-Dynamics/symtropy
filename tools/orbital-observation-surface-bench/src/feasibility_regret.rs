@@ -899,6 +899,68 @@ mod tests {
     }
 
     #[test]
+    fn action_rank_reversal_is_retained_across_scenarios() {
+        let evaluation = evaluate(&fixture()).expect("fixture evaluates");
+        let result = case(&evaluation, "action-rank-reversal");
+        assert_eq!(result.robust_feasible_action_ids, vec!["alpha", "beta"]);
+        let alpha = result
+            .action_metrics
+            .iter()
+            .find(|item| item.action_id == "alpha")
+            .expect("alpha metric exists");
+        assert_eq!(alpha.worst_case_wait_and_see_regret.numerator, 3);
+        assert_eq!(alpha.worst_case_wait_and_see_regret.denominator, 10);
+        assert_eq!(result.minimax_wait_and_see_regret_action_ids, vec!["alpha", "beta"]);
+    }
+
+    #[test]
+    fn static_admissibility_indeterminate_blocks_global_regret() {
+        let mut corpus = fixture();
+        let case = &mut corpus.cases[0];
+        let action = case
+            .actions
+            .iter_mut()
+            .find(|item| item.action_id == "conditional")
+            .expect("conditional action exists");
+        action.eligibility_status = "indeterminate".to_owned();
+        for scenario in &mut case.scenario_manifest.scenarios {
+            let outcome = scenario
+                .action_outcomes
+                .get_mut("conditional")
+                .expect("conditional outcome exists");
+            outcome.feasibility_status = "indeterminate".to_owned();
+            outcome.loss = None;
+        }
+        case.scenario_manifest.scenarios_sha256 =
+            digest_scenarios(&case.scenario_manifest.scenarios)
+                .expect("scenario rows can be re-digested");
+        let evaluation = evaluate(&corpus).expect("indeterminate evidence is an explicit result");
+        assert_eq!(
+            case(&evaluation, "infeasible-zero-loss-comparator").status,
+            "ACTION_ADMISSIBILITY_INDETERMINATE"
+        );
+        assert!(case(&evaluation, "infeasible-zero-loss-comparator")
+            .action_metrics
+            .is_empty());
+    }
+
+    #[test]
+    fn multi_world_intersection_keeps_only_actions_feasible_in_every_row() {
+        let evaluation = evaluate(&fixture()).expect("fixture evaluates");
+        let result = case(&evaluation, "multi-world-multi-loss-model");
+        assert_eq!(result.compatible_world_count, 2);
+        assert_eq!(result.scenario_count, 4);
+        assert_eq!(result.robust_feasible_action_ids, vec!["always"]);
+        let conditional = result
+            .action_feasibility_classes
+            .iter()
+            .find(|item| item.action_id == "conditional")
+            .expect("conditional classification exists");
+        assert_eq!(conditional.classification, "SOMETIMES_FEASIBLE");
+        assert_eq!(conditional.feasible_scenario_count, 2);
+    }
+
+    #[test]
     fn no_fixed_action_is_selected_when_scenario_feasible_sets_are_disjoint() {
         let evaluation = evaluate(&fixture()).expect("fixture evaluates");
         let result = case(&evaluation, "disjoint-feasible-sets");
