@@ -304,7 +304,7 @@ fn validate_observer_claim<'a>(
         || !nonempty(&evidence.raw_artifact_id)
         || !valid_sha256(&evidence.raw_artifact_sha256)
         || quorum.fault_model_revision != fault_profile_revision
-        || claim_scope_sha256 != expected_claim_scope_sha256
+        || claim_scope_sha256 != expected_claim_scope_sha256.as_str()
     {
         return Err(LineageError::ObserverClaimMismatch);
     }
@@ -629,6 +629,93 @@ mod tests {
             recording.validate(),
             Err(LineageError::ObserverClaimMismatch)
         );
+    }
+
+    #[test]
+    fn refuses_replayed_observer_artifact_across_attempts() {
+        let mut recording = valid_recording();
+        let old_artifact = recording.attempts[0]
+            .observer_assurance
+            .as_ref()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_ref()
+            .unwrap()
+            .members[0]
+            .raw_artifact_id
+            .clone();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
+            .raw_artifact_id = old_artifact;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverQuorumUnqualified)
+        );
+    }
+
+    #[test]
+    fn refuses_replayed_observation_id_across_attempts() {
+        let mut recording = valid_recording();
+        let old_observation = recording.attempts[0]
+            .observer_assurance
+            .as_ref()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_ref()
+            .unwrap()
+            .members[0]
+            .observation_id
+            .clone();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
+            .observation_id = old_observation;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverQuorumUnqualified)
+        );
+    }
+
+    #[test]
+    fn permits_same_physical_sensor_on_a_later_attempt_with_a_new_observation() {
+        let mut recording = valid_recording();
+        let prior_observer_id = recording.attempts[0]
+            .observer_assurance
+            .as_ref()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_ref()
+            .unwrap()
+            .members[0]
+            .observer_id
+            .clone();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
+            .observer_id = prior_observer_id;
+        assert!(recording.validate().is_ok());
     }
 
     #[test]
