@@ -43,3 +43,7 @@ cargo fmt --manifest-path Cargo.toml -- --check
 ```
 
 The package depends on the sibling `ehd-piv-conformal-functional-uq` crate for the UQ-005 compatibility type.
+
+## CI
+
+The repository pull-request matrix runs formatting, unit tests and strict Clippy for this crate and its UQ-005 dependency on Ubuntu, Windows and macOS. Qualification claims must cite the exact commit head; queued, skipped or cancelled checks are not passes.
