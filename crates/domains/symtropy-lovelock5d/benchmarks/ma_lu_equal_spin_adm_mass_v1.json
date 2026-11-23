@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_adm_mass_asymptotic_check",
+  "status": "exact_equal_spin_ADM_mass_match_through_chi_squared",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "equations": [
+      "(2.8)",
+      "(2.12)",
+      "(3.3)",
+      "(3.4)"
+    ]
+  },
+  "asymptotic": {
+    "H1": "16/(3*r^2)-16*mu/(3*r^4)-32*mu^2/(3*r^6)-(2/45)*chi^2*(282/r^2-162*mu/r^4-356*mu^2/r^6-1076*mu^3/r^8)",
+    "coefficient_1_over_r2": "16/3-188*chi^2/15",
+    "Komar_mass_prefactor": "3*pi/8",
+    "metric_deltaM": "2*pi-47*pi*chi^2/10+O(chi^4)",
+    "paper_deltaM": "2*pi-47*pi*chi^2/10+O(chi^4)"
+  },
+  "checks": {
+    "metric_mass_equals_Eq3_4_through_chi2": true,
+    "radial_map_preserves_leading_1_over_r2_coefficient": true,
+    "negative_control_omit_chi2_H1_rejected": true
+  },
+  "claim_ceiling": "Exact equality of the first-coupling equal-spin asymptotic ADM/Komar mass correction through O(chi^2). Does not validate higher spin orders, finite coupling, or global solution existence."
+}
