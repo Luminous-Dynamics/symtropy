@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital open-world domain corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-open-world-domain.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "independent-finite-domain-grammar-falsification-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ids": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "grammar_version",
+        "snapshot_sha256",
+        "current_snapshot_sha256",
+        "window_start_ms",
+        "window_end_ms",
+        "components",
+        "operations",
+        "actors"
+      ],
+      "properties": {
+        "domain_id": {
+          "$ref": "#/$defs/id"
+        },
+        "grammar_version": {
+          "$ref": "#/$defs/id"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "current_snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "window_start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "capability_ids",
+              "resource_capacity_milli",
+              "active_start_ms",
+              "active_end_ms"
+            ],
+            "properties": {
+              "component_id": {
+                "$ref": "#/$defs/id"
+              },
+              "capability_ids": {
+                "$ref": "#/$defs/ids"
+              },
+              "resource_capacity_milli": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "active_start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "active_end_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation_id",
+              "required_capability_id",
+              "required_role_id",
+              "resource_required_milli",
+              "active_start_ms",
+              "active_end_ms"
+            ],
+            "properties": {
+              "operation_id": {
+                "$ref": "#/$defs/id"
+              },
+              "required_capability_id": {
+                "$ref": "#/$defs/id"
+              },
+              "required_role_id": {
+                "$ref": "#/$defs/id"
+              },
+              "resource_required_milli": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "active_start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "active_end_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "actors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actor_id",
+              "role_ids",
+              "active_start_ms",
+              "active_end_ms"
+            ],
+            "properties": {
+              "actor_id": {
+                "$ref": "#/$defs/id"
+              },
+              "role_ids": {
+                "$ref": "#/$defs/ids"
+              },
+              "active_start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "active_end_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "enumerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enumerator_id",
+        "method_id",
+        "source_id",
+        "snapshot_sha256",
+        "execution_receipt_id",
+        "action_ids"
+      ],
+      "properties": {
+        "enumerator_id": {
+          "$ref": "#/$defs/id"
+        },
+        "method_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_id": {
+          "$ref": "#/$defs/id"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "execution_receipt_id": {
+          "$ref": "#/$defs/id"
+        },
+        "action_ids": {
+          "$ref": "#/$defs/ids"
+        }
+      }
+    },
+    "challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "payload_sha256",
+        "in_scope_evidence_receipt_id"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/id"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "in_scope_evidence_receipt_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "domain",
+        "registry_enumerator",
+        "model_enumerator",
+        "external_challenges"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/id"
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        },
+        "registry_enumerator": {
+          "$ref": "#/$defs/enumerator"
+        },
+        "model_enumerator": {
+          "$ref": "#/$defs/enumerator"
+        },
+        "external_challenges": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/challenge"
+          }
+        }
+      }
+    }
+  }
+}
