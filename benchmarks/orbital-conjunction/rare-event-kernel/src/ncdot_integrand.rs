@@ -36,8 +36,8 @@
 //! NASA source: CARA Analysis Tools, Pc3D_Hall.m, commit
 //! 43f0160f94d76a91805d86521c3e8fa0d09ecd68.
 
-use crate::lebedev::{LebedevRule, LebedevSphereRule, SphereQuadratureDiagnosticsConfig};
 use crate::KernelError;
+use crate::lebedev::{LebedevRule, LebedevSphereRule, SphereQuadratureDiagnosticsConfig};
 use core::f64::consts::{PI, SQRT_2};
 
 const LOG_TWO_PI: f64 = 1.837_877_066_409_345_3;
@@ -404,7 +404,10 @@ pub fn integrate_ncdot_sphere(
         });
     }
 
-    let maximum_log_integrand = finite_logs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let maximum_log_integrand = finite_logs
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
     let weighted_finite_logs = weighted_logs.iter().flatten().copied().collect::<Vec<_>>();
     let log_weighted_total = log_sum_exp(&weighted_finite_logs)?;
     let log_sphere_integral = log_weighted_total;
@@ -489,9 +492,7 @@ fn validate_symmetric(matrix: &[[f64; 3]; 3]) -> Result<(), KernelError> {
     }
     for row in 0..3 {
         for col in (row + 1)..3 {
-            if (matrix[row][col] - matrix[col][row]).abs()
-                > SYMMETRY_REL_TOLERANCE * scale
-            {
+            if (matrix[row][col] - matrix[col][row]).abs() > SYMMETRY_REL_TOLERANCE * scale {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -530,12 +531,9 @@ fn validate_positive_semidefinite(matrix: &[[f64; 3]; 3]) -> Result<(), KernelEr
             return Err(KernelError::NegativeConditionalVelocityVariance);
         }
     }
-    let determinant = matrix[0][0]
-        * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[1][2])
-        - matrix[0][1]
-            * (matrix[0][1] * matrix[2][2] - matrix[1][2] * matrix[0][2])
-        + matrix[0][2]
-            * (matrix[0][1] * matrix[1][2] - matrix[1][1] * matrix[0][2]);
+    let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[1][2])
+        - matrix[0][1] * (matrix[0][1] * matrix[2][2] - matrix[1][2] * matrix[0][2])
+        + matrix[0][2] * (matrix[0][1] * matrix[1][2] - matrix[1][1] * matrix[0][2]);
     if determinant < -determinant_tolerance {
         return Err(KernelError::NegativeConditionalVelocityVariance);
     }
@@ -585,10 +583,7 @@ fn matrix_vector(matrix: [[f64; 3]; 3], vector: [f64; 3]) -> [f64; 3] {
 }
 
 fn dot(left: [f64; 3], right: [f64; 3]) -> f64 {
-    left[0].mul_add(
-        right[0],
-        left[1].mul_add(right[1], left[2] * right[2]),
-    )
+    left[0].mul_add(right[0], left[1].mul_add(right[1], left[2] * right[2]))
 }
 
 fn exp_from_log(value: f64) -> Result<f64, KernelError> {
@@ -664,7 +659,9 @@ mod tests {
             (20.0, 2.385_040_261_391_398e-177, 2.0e-14),
         ];
         for (x, expected, tolerance) in cases {
-            let actual = gaussian_flux_shape_log(x).expect("finite log flux shape").exp();
+            let actual = gaussian_flux_shape_log(x)
+                .expect("finite log flux shape")
+                .exp();
             assert!(
                 (actual - expected).abs() <= expected.abs() * tolerance,
                 "x={x}: actual={actual:e}, expected={expected:e}"
@@ -714,14 +711,10 @@ mod tests {
     fn isotropic_sphere_integral_matches_analytic_surface_rate() {
         let input = base_input();
         let rule = lebedev_sphere_rule(LebedevRule::Points5810).expect("5810-node rule");
-        let report = integrate_ncdot_sphere(
-            &input,
-            &rule,
-            SphereQuadratureDiagnosticsConfig::default(),
-        )
-        .expect("isotropic 3D-Nc sphere integral");
-        let expected_log_rate =
-            2.0 * 0.5_f64.ln() + (4.0 * PI).ln() - 2.0 * LOG_TWO_PI - 0.125;
+        let report =
+            integrate_ncdot_sphere(&input, &rule, SphereQuadratureDiagnosticsConfig::default())
+                .expect("isotropic 3D-Nc sphere integral");
+        let expected_log_rate = 2.0 * 0.5_f64.ln() + (4.0 * PI).ln() - 2.0 * LOG_TWO_PI - 0.125;
         assert!(
             (report.log_rate_per_second.expect("positive rate") - expected_log_rate).abs()
                 < 1.0e-12
@@ -735,12 +728,9 @@ mod tests {
         let mut input = base_input();
         input.relative_position_mean = [1_000.0, 0.0, 0.0];
         let rule = lebedev_sphere_rule(LebedevRule::Points26).expect("26-node rule");
-        let report = integrate_ncdot_sphere(
-            &input,
-            &rule,
-            SphereQuadratureDiagnosticsConfig::default(),
-        )
-        .expect("log-domain rare tail");
+        let report =
+            integrate_ncdot_sphere(&input, &rule, SphereQuadratureDiagnosticsConfig::default())
+                .expect("log-domain rare tail");
         assert!(report.log_rate_per_second.expect("log rate").is_finite());
         assert_eq!(report.rate_per_second, 0.0);
         assert!(report.rate_underflowed);
@@ -759,8 +749,7 @@ mod tests {
     #[test]
     fn globally_indefinite_conditional_covariance_is_rejected_before_sampling() {
         let mut input = base_input();
-        input.conditional_velocity_covariance =
-            [[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        input.conditional_velocity_covariance = [[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         assert_eq!(
             evaluate_ncdot_direction(&input, [1.0, 0.0, 0.0]),
             Err(KernelError::NegativeConditionalVelocityVariance)
@@ -803,23 +792,15 @@ mod tests {
     #[test]
     fn log_normalizer_is_derived_from_inverse_covariance_determinant() {
         let mut input = base_input();
-        input.position_covariance_inverse = [
-            [1.0, 0.0, 0.0],
-            [0.0, 4.0, 0.0],
-            [0.0, 0.0, 9.0],
-        ];
-        let report =
-            evaluate_ncdot_direction(&input, [1.0, 0.0, 0.0]).expect("diagonal inverse");
+        input.position_covariance_inverse = [[1.0, 0.0, 0.0], [0.0, 4.0, 0.0], [0.0, 0.0, 9.0]];
+        let report = evaluate_ncdot_direction(&input, [1.0, 0.0, 0.0]).expect("diagonal inverse");
         let log_det_inverse = (36.0_f64).ln();
         let expected_log_normalizer = 1.5 * LOG_TWO_PI - 0.5 * log_det_inverse;
         let expected_mahalanobis = 0.25;
-        let expected_log_density =
-            -expected_log_normalizer - 0.5 * expected_mahalanobis;
+        let expected_log_density = -expected_log_normalizer - 0.5 * expected_mahalanobis;
         let expected_log_flux = -LOG_SQRT_TWO_PI;
         assert!(
-            (report.log_integrand.expect("integrand")
-                - expected_log_flux
-                - expected_log_density)
+            (report.log_integrand.expect("integrand") - expected_log_flux - expected_log_density)
                 .abs()
                 < 1.0e-12
         );
@@ -830,19 +811,10 @@ mod tests {
         let mut input = base_input();
         input.relative_position_mean = [0.1, -0.2, 0.3];
         input.relative_velocity_mean = [0.4, 0.5, -0.6];
-        input.conditional_velocity_gain = [
-            [0.1, 0.2, 0.0],
-            [0.2, -0.1, 0.1],
-            [0.0, 0.1, 0.3],
-        ];
-        input.conditional_velocity_covariance = [
-            [2.0, 0.1, 0.0],
-            [0.1, 1.5, 0.2],
-            [0.0, 0.2, 1.0],
-        ];
+        input.conditional_velocity_gain = [[0.1, 0.2, 0.0], [0.2, -0.1, 0.1], [0.0, 0.1, 0.3]];
+        input.conditional_velocity_covariance = [[2.0, 0.1, 0.0], [0.1, 1.5, 0.2], [0.0, 0.2, 1.0]];
         let direction = [1.0 / 3.0_f64.sqrt(), 2.0 / 3.0_f64.sqrt(), 0.0];
-        let original =
-            evaluate_ncdot_direction(&input, direction).expect("original coordinates");
+        let original = evaluate_ncdot_direction(&input, direction).expect("original coordinates");
 
         let rotation = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]];
         let rotate_vector = |value: [f64; 3]| matrix_vector(rotation, value);
@@ -852,8 +824,9 @@ mod tests {
                 for col in 0..3 {
                     for first in 0..3 {
                         for second in 0..3 {
-                            result[row][col] +=
-                                rotation[row][first] * matrix[first][second] * rotation[col][second];
+                            result[row][col] += rotation[row][first]
+                                * matrix[first][second]
+                                * rotation[col][second];
                         }
                     }
                 }
@@ -863,16 +836,14 @@ mod tests {
         let mut rotated = input;
         rotated.relative_position_mean = rotate_vector(input.relative_position_mean);
         rotated.relative_velocity_mean = rotate_vector(input.relative_velocity_mean);
-        rotated.position_covariance_inverse =
-            rotate_matrix(input.position_covariance_inverse);
+        rotated.position_covariance_inverse = rotate_matrix(input.position_covariance_inverse);
         rotated.conditional_velocity_gain = rotate_matrix(input.conditional_velocity_gain);
         rotated.conditional_velocity_covariance =
             rotate_matrix(input.conditional_velocity_covariance);
         let transformed =
             evaluate_ncdot_direction(&rotated, rotate_vector(direction)).expect("rotated");
         assert!(
-            (original.log_integrand.unwrap() - transformed.log_integrand.unwrap()).abs()
-                < 1.0e-12
+            (original.log_integrand.unwrap() - transformed.log_integrand.unwrap()).abs() < 1.0e-12
         );
     }
 }
