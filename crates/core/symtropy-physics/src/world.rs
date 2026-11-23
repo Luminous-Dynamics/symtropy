@@ -161,9 +161,9 @@ pub struct PhysicsWorld<const D: usize> {
     /// BodyHandle → Vec index for O(1) body lookup.
     handle_to_index: HashMap<BodyHandle, usize>,
     next_handle: usize,
-    /// Cached broadphase data for Static/Kinematic bodies (rebuilt only on add/remove).
+    /// Cached broadphase data for Static bodies (rebuilt only on add/remove).
     static_broadphase: broadphase::StaticBroadphase<D>,
-    /// Set to true when a static or kinematic body is added or removed.
+    /// Set to true when a static body is added, removed, or mutated.
     static_tree_dirty: bool,
     /// Optional non-convex (mesh) contact generator.
     ///
@@ -311,7 +311,7 @@ impl<const D: usize> PhysicsWorld<D> {
         use crate::body::BodyType;
         let handle = self.allocate_handle();
         body.handle = handle;
-        if body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic {
+        if body.body_type == BodyType::Static {
             self.static_tree_dirty = true;
         }
         let idx = self.bodies.len();
@@ -337,6 +337,9 @@ impl<const D: usize> PhysicsWorld<D> {
             }
             let handle = self.allocate_handle();
             body.handle = handle;
+            if body.body_type == crate::body::BodyType::Static {
+                self.static_tree_dirty = true;
+            }
             body.net_id = Some(net_id);
             self.net_id_map.insert(net_id, handle);
             let idx = self.bodies.len();
@@ -385,18 +388,17 @@ impl<const D: usize> PhysicsWorld<D> {
 
     /// Get a mutable reference to a body by handle.
     ///
-    /// Mutating a static or kinematic transform can invalidate the cached
-    /// broadphase tree. The cache is conservatively marked dirty before the
-    /// mutable reference escapes; callers may then change translation,
-    /// rotation, or collider parameters without leaving stale
-    /// orientation-dependent bounds behind. Body-type transitions should use
-    /// remove/reinsert until a dedicated transition API is introduced.
+    /// Mutating a static transform or collider can invalidate the cached
+    /// broadphase tree. The cache is marked dirty before the mutable reference
+    /// escapes; callers may then change translation, rotation, or collider
+    /// parameters without leaving stale orientation-dependent bounds behind.
+    /// Kinematic bodies are recomputed as moving entries each query, so they
+    /// do not participate in this static-cache invalidation. Body-type
+    /// transitions should use remove/reinsert until a dedicated API exists.
     pub fn body_mut(&mut self, handle: BodyHandle) -> Option<&mut RigidBody<D>> {
         let idx = self.handle_to_index.get(&handle).copied()?;
         let body_type = self.bodies.get(idx)?.body_type;
-        if body_type == crate::body::BodyType::Static
-            || body_type == crate::body::BodyType::Kinematic
-        {
+        if body_type == crate::body::BodyType::Static {
             self.static_tree_dirty = true;
         }
         self.bodies.get_mut(idx)
@@ -2559,5 +2561,47 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+    #[test]
+    fn deterministic_insertion_invalidates_only_the_static_broadphase_cache() {
+        let mut world = PhysicsWorld::<3>::default();
+
+        let static_body =
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit()));
+        world
+            .add_bodies_deterministic(vec![(NetId(1), static_body)])
+            .expect("unique static NetId");
+        assert!(
+            world.static_tree_dirty,
+            "inserting a static body must invalidate cached static bounds"
+        );
+
+        // Model a completed cache rebuild before adding non-static bodies.
+        world.static_tree_dirty = false;
+        let kinematic_body = RigidBody::<3>::new(
+            BodyHandle(0),
+            crate::body::BodyType::Kinematic,
+            Transform::from_translation(Point::new([4.0, 0.0, 0.0])),
+            Box::new(Sphere::unit()),
+            0.0,
+            SVector::zeros(),
+        );
+        world
+            .add_bodies_deterministic(vec![(NetId(2), kinematic_body)])
+            .expect("unique kinematic NetId");
+        assert!(
+            !world.static_tree_dirty,
+            "kinematic bodies are recomputed each query and are not cached as static"
+        );
+
+        let dynamic_body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([8.0, 0.0, 0.0]), 0.5, 1.0);
+        world
+            .add_bodies_deterministic(vec![(NetId(3), dynamic_body)])
+            .expect("unique dynamic NetId");
+        assert!(
+            !world.static_tree_dirty,
+            "dynamic insertion must not invalidate cached static bounds"
+        );
     }
 }

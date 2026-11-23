@@ -347,14 +347,12 @@ impl<const D: usize> BpEntry<D> {
     }
 }
 
-/// Cached broadphase state for Static and Kinematic bodies.
+/// Cached broadphase state for Static bodies.
 ///
-/// Rebuilt only when a static/kinematic body is added or removed (`dirty` flag).
+/// Kinematic bodies are treated as moving entries and recomputed on each query,
+/// so moving-vs-moving pairs (including kinematic-vs-kinematic) remain visible.
 /// This avoids including immovable geometry in the per-frame LBVH rebuild,
 /// which is O(n log n) in the total body count.
-///
-/// For scenes with many static bodies (terrain, walls) and few dynamic bodies,
-/// this typically halves or better the broadphase cost.
 pub struct StaticBroadphase<const D: usize> {
     entries: Vec<BpEntry<D>>,
 }
@@ -366,13 +364,13 @@ impl<const D: usize> StaticBroadphase<D> {
         }
     }
 
-    /// Rebuild the cache from all bodies in the world.
+    /// Rebuild the cache from Static bodies only.
     ///
     /// Call this when `static_tree_dirty` is set on `PhysicsWorld`.
     pub fn rebuild(&mut self, bodies: &[RigidBody<D>]) {
         self.entries = bodies
             .iter()
-            .filter(|b| b.body_type == BodyType::Static || b.body_type == BodyType::Kinematic)
+            .filter(|b| b.body_type == BodyType::Static)
             .map(BpEntry::from_body)
             .collect();
     }
@@ -385,7 +383,8 @@ impl<const D: usize> StaticBroadphase<D> {
         self.entries.len()
     }
 
-    /// Enumerate pairs between a dynamic entry and all cached static entries.
+    /// Enumerate pairs between a moving (Dynamic/Kinematic) entry and all
+    /// cached Static entries.
     ///
     /// Uses orientation-aware AABB overlap.
     fn query_against<'a>(
@@ -417,14 +416,13 @@ impl<const D: usize> Default for StaticBroadphase<D> {
 
 /// Find all potentially colliding pairs using the incremental static cache.
 ///
-/// Separates the body list into dynamic and non-dynamic entries:
-/// - Dynamic–dynamic: brute-force O(n_dyn²), acceptable for typical games
-///   where the number of actively moving bodies is small.
-/// - Dynamic–static: linear scan against the prebuilt `StaticBroadphase`.
-///   For large static geometry this avoids re-packing static bodies into the
-///   LBVH every frame.
+/// Separates the body list into moving and static entries:
+/// - Dynamic/kinematic–dynamic/kinematic: brute-force O(n_moving²).
+/// - Dynamic/kinematic–static: linear scan against the prebuilt
+///   `StaticBroadphase`.
+///   Kinematic bodies stay in the moving set so no kinematic pair is omitted.
 ///
-/// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
+/// For very large moving counts (≥ BRUTE_FORCE_THRESHOLD) the existing
 /// `find_pairs` (full LBVH over all bodies) is called instead, since it is
 /// superior at scale.
 pub fn find_pairs_incremental<const D: usize>(
@@ -440,26 +438,27 @@ pub fn find_pairs_incremental<const D: usize>(
         return find_pairs(bodies);
     }
 
-    // Compute AABB entries for dynamic bodies only
-    let dynamic: Vec<BpEntry<D>> = bodies
+    // Recompute AABBs for all moving bodies. Kinematic bodies can move between
+    // queries and must participate in moving-vs-moving candidate generation.
+    let moving: Vec<BpEntry<D>> = bodies
         .iter()
-        .filter(|b| b.body_type == BodyType::Dynamic)
+        .filter(|b| b.body_type != BodyType::Static)
         .map(BpEntry::from_body)
         .collect();
 
-    // For large dynamic counts fall back to the full LBVH path which is more
+    // For large moving counts fall back to the full LBVH path which is more
     // efficient at scale. The static cache saves rebuilding the full tree.
-    if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
+    if moving.len() >= BRUTE_FORCE_THRESHOLD {
         return find_pairs(bodies);
     }
 
     let mut pairs = Vec::new();
 
-    // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
-    for i in 0..dynamic.len() {
-        for j in (i + 1)..dynamic.len() {
-            let a = &dynamic[i];
-            let b = &dynamic[j];
+    // Dynamic/kinematic–dynamic/kinematic pairs (brute-force AABB overlap)
+    for i in 0..moving.len() {
+        for j in (i + 1)..moving.len() {
+            let a = &moving[i];
+            let b = &moving[j];
             let group_ok = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
             if group_ok && a.aabb.overlaps(&b.aabb) {
@@ -473,9 +472,9 @@ pub fn find_pairs_incremental<const D: usize>(
         }
     }
 
-    // Dynamic–static pairs (linear scan against cached static AABB entries)
-    for dyn_entry in &dynamic {
-        pairs.extend(static_bp.query_against(dyn_entry));
+    // Dynamic/kinematic–static pairs (linear scan against cached static entries)
+    for moving_entry in &moving {
+        pairs.extend(static_bp.query_against(moving_entry));
     }
 
     pairs.sort_unstable_by_key(|p| (p.0, p.1));
@@ -508,7 +507,7 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
 mod tests {
     use super::*;
     use crate::body::RigidBody;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::{Point, Sphere, Transform};
 
     #[test]
     fn overlapping_pair_detected() {
@@ -760,5 +759,106 @@ mod tests {
         // each box is only 0.2 units wide on X.
         let bodies = vec![make(0, 0.0), make(1, 1.0)];
         assert!(find_pairs(&bodies).is_empty());
+    }
+
+    #[test]
+    fn incremental_includes_static_kinematic_pairs() {
+        let bodies = vec![
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit())),
+            RigidBody::<3>::new(
+                BodyHandle(1),
+                BodyType::Kinematic,
+                Transform::from_translation(Point::new([1.5, 0.0, 0.0])),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            ),
+        ];
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+
+        let incremental = find_pairs_incremental(&bodies, &static_bp);
+        let standard = find_pairs(&bodies);
+        assert_eq!(incremental, standard);
+        assert_eq!(
+            incremental,
+            vec![BroadphasePair(BodyHandle(0), BodyHandle(1))]
+        );
+    }
+
+    #[test]
+    fn incremental_includes_kinematic_kinematic_pairs() {
+        // Keep an unrelated static entry so this exercises the incremental
+        // partition instead of its no-static-cache fallback.
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::new([100.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::new(
+                BodyHandle(1),
+                BodyType::Kinematic,
+                Transform::from_translation(Point::origin()),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            ),
+            RigidBody::<3>::new(
+                BodyHandle(2),
+                BodyType::Kinematic,
+                Transform::from_translation(Point::new([1.5, 0.0, 0.0])),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            ),
+        ];
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+
+        let incremental = find_pairs_incremental(&bodies, &static_bp);
+        let standard = find_pairs(&bodies);
+        assert_eq!(incremental, standard);
+        assert_eq!(
+            incremental,
+            vec![BroadphasePair(BodyHandle(1), BodyHandle(2))]
+        );
+    }
+
+    #[test]
+    fn kinematic_pose_is_recomputed_between_queries() {
+        // The static cache is built once. Moving the kinematic body must not
+        // require a static-cache rebuild to expose its newly overlapping pair.
+        let mut bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::new([100.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::new(
+                BodyHandle(1),
+                BodyType::Kinematic,
+                Transform::from_translation(Point::origin()),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([10.0, 0.0, 0.0]), 1.0, 1.0),
+        ];
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+
+        assert!(
+            find_pairs_incremental(&bodies, &static_bp).is_empty(),
+            "the initial kinematic pose is separated"
+        );
+
+        bodies[1].transform = Transform::from_translation(Point::new([8.5, 0.0, 0.0]));
+        let incremental = find_pairs_incremental(&bodies, &static_bp);
+        assert_eq!(
+            incremental,
+            vec![BroadphasePair(BodyHandle(1), BodyHandle(2))]
+        );
+        assert_eq!(incremental, find_pairs(&bodies));
     }
 }
