@@ -56,7 +56,11 @@ for (const item of corpus.cases) {
     || digestIds(modelSet.expected_scenario_ids) !== modelSet.expected_scenario_ids_sha256) {
     throw new Error("physical-world or joint-scenario inventory digest mismatch in " + item.case_id);
   }
-  if (!/^[0-9a-f]{64}$/.test(item.world_set_receipt_sha256)
+  if (item.world_set_receipt_schema !== "luminous.orbital-decision-identifiability.receipt.v0.1"
+    || item.world_set_claim_ceiling !== "exact-finite-world-decision-set-algebra-only"
+    || !/^[0-9a-f]{40}$/.test(item.world_set_source_commit)
+    || !item.world_set_source_case_id
+    || !/^[0-9a-f]{64}$/.test(item.world_set_receipt_sha256)
     || !/^[0-9a-f]{40}$/.test(modelSet.source_commit)
     || !/^[0-9a-f]{64}$/.test(modelSet.source_receipt_sha256)
     || !/^[0-9a-f]{64}$/.test(modelSet.source_scenarios_sha256)
