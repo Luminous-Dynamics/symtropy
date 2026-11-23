@@ -352,11 +352,11 @@ fn candidate_graph_interval_indexed(
         let lower_prefix = context
             .by_lower
             .partition_point(|(lower, _)| *lower <= source_event.event_time.upper);
-        let earliest_allowed_upper = i128::from(source_event.event_time.lower)
-            - i128::from(profile.max_interval_gap);
-        let upper_suffix = context.by_upper.partition_point(|(upper, _)| {
-            i128::from(*upper) < earliest_allowed_upper
-        });
+        let earliest_allowed_upper =
+            i128::from(source_event.event_time.lower) - i128::from(profile.max_interval_gap);
+        let upper_suffix = context
+            .by_upper
+            .partition_point(|(upper, _)| i128::from(*upper) < earliest_allowed_upper);
 
         let lower_candidate_count = lower_prefix;
         let upper_candidate_count = context.by_upper.len() - upper_suffix;
@@ -1519,7 +1519,11 @@ mod tests {
         let mut witness = Vec::new();
         for index in 0..96 {
             let box_id = format!("BOX-{}", next() % 5);
-            let kind = if next() % 2 == 0 { "GATE_IN" } else { "GATE_OUT" };
+            let kind = if next() % 2 == 0 {
+                "GATE_IN"
+            } else {
+                "GATE_OUT"
+            };
             let facility = format!("SITE-{}", next() % 3);
             let operation = format!("OP-{}", next() % 4);
             let lower = i64::try_from(next() % 800).unwrap();
