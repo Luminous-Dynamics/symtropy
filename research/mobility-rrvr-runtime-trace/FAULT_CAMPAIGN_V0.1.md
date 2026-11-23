@@ -130,3 +130,8 @@ The compiled plan is intended to become the stable input to simulator/ROS/contro
 ## Execution receipt contract
 
 Every fault injection in a frozen campaign now binds an expected delivery-signature digest, target revision/profile digest and scheduled simulator step. The compiled plan also pins the injector identity, injector failure domain and native adapter identity. These are not descriptive labels: the execution evidence validator compares them against the target-resolution, dispatch, injector-execution and independent-observation receipts. See [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md).
+
+
+## Supported simulator profile combinations
+
+A campaign now names the Gazebo release explicitly and validates it jointly with the ROS distribution. v0.1 permits the supported LTS pairs Jazzy + Harmonic and Lyrical + Jetty. The synthetic fixture uses the Jazzy/Harmonic labels to exercise the validator; its exact binary/build/profile digests are placeholders and must not be represented as a captured simulator. Live preflight must record real package and binary digests. See Gazebo's current ROS installation matrix: https://gazebosim.org/docs/latest/ros_installation/.
