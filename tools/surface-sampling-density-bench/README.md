@@ -47,3 +47,12 @@ The principal literature comparator is Staderini, Integrated Planning and Optimi
 ## Contract correction
 
 v0.1 receipts now use the correct unit-scaled rational numerator (hits × 10^12), consistent with the exact density threshold. A requested minimum contributing-view count greater than the candidate pool is a valid but infeasible requirement, not malformed input. Likewise, a view-budget ceiling above the candidate count is harmless and no longer invalidates the case.
+
+
+## Geometry-generated ray counts v0.1
+
+The companion \`ray_geometry\` module and \`sampling-ray-generator-bench\` CLI generate a ray-intersection count matrix from explicit synthetic triangle meshes and pinhole pixel-centre rays. Each camera frame must be orthonormal and right-handed; each ray is tested against every non-degenerate triangle using two-sided Möller–Trumbore intersection. The nearest hit owns a pixel. Shared-edge ties within a declared 1 nm distance tolerance are counted once and resolved by stable \`(element_id, triangle_id)\` order.
+
+The four fixtures cover a known 3×3 triangle projection (five hits), front/rear occlusion (the rear surface receives zero hits), two separately identified views, and a square split into two triangles where shared-diagonal pixels are counted once (four hits, two tie pixels).
+
+Element areas remain caller-declared synthetic metadata; this generator does not derive area uncertainty, model finite pixel footprints, lens distortion, radiometry, structured-light projected patterns or sensor noise. Its counts are exact only relative to the stated ideal pinhole/pixel-centre/triangle model. The independent Python oracle implements the projection and triangle-intersection calculations separately; it is a test oracle, not production code.

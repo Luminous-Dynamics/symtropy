@@ -1,0 +1,90 @@
+name: Orbital Triangle Ray-Count Geometry Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/surface-sampling-density-bench/**"
+      - "docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json"
+      - "docs/research/orbital-truss/ray_geometry_v0_1.schema.json"
+      - ".github/workflows/orbital-ray-geometry.yml"
+  push:
+    branches:
+      - "research/orbital-sampling-density-v0-1"
+    paths:
+      - "tools/surface-sampling-density-bench/**"
+      - "docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json"
+      - "docs/research/orbital-truss/ray_geometry_v0_1.schema.json"
+      - ".github/workflows/orbital-ray-geometry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen ray geometry corpus and schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/ray_geometry_v0_1.schema.json").read_text())
+          assert fixture["benchmark_id"] == "ORBITAL-RAY-TRIANGLE-001"
+          assert len(fixture["cases"]) == 4
+          assert len({case["case_id"] for case in fixture["cases"]}) == 4
+          assert schema["properties"]["cases"]["minItems"] == 4
+          assert schema["properties"]["cases"]["maxItems"] == 4
+          print("frozen pinhole/triangle corpus and schema: 4 cases")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust geometry receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-ray-generator-bench -- docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json "$GITHUB_SHA" > /tmp/ray-geometry-a.json
+          cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-ray-generator-bench -- docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json "$GITHUB_SHA" > /tmp/ray-geometry-b.json
+          cmp /tmp/ray-geometry-a.json /tmp/ray-geometry-b.json
+          jq -e '.case_count == 4 and .expected_outcome_matches == 4 and .expected_outcome_mismatches == 0 and .authority_granted == false and .physical_validation == "NOT_ASSESSED"' /tmp/ray-geometry-a.json
+      - name: Independent geometry oracle and full receipt comparison
+        run: |
+          python3 tools/surface-sampling-density-bench/tests/ray_geometry_reference_oracle.py docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json "$GITHUB_SHA" > /tmp/ray-geometry-oracle.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/ray-geometry-a.json").read_text())
+          oracle = json.loads(Path("/tmp/ray-geometry-oracle.json").read_text())
+          assert rust == oracle
+          cases = {case["case_id"]: case for case in rust["cases"]}
+          assert rust["expected_outcome_matches"] == 4
+          assert cases["RG-001-TRIANGLE-3X3-PIXEL-CENTRES"]["total_hit_pixels"] == 5
+          assert cases["RG-002-NEAREST-SURFACE-SHADOWING"]["element_view_hits"][0]["hit_pixel_count"] == 5
+          assert cases["RG-002-NEAREST-SURFACE-SHADOWING"]["element_view_hits"][1]["hit_pixel_count"] == 0
+          assert cases["RG-003-TWO-VIEWS-COUNTED-SEPARATELY"]["total_hit_pixels"] == 10
+          assert cases["RG-004-SHARED-EDGE-PARTITION-COUNTS-PIXEL-ONCE"]["total_hit_pixels"] == 4
+          assert cases["RG-004-SHARED-EDGE-PARTITION-COUNTS-PIXEL-ONCE"]["total_tie_pixels"] == 2
+          print("Rust pinhole/triangle ray counts match independent Python oracle on four analytic meshes")
+          PY
+      - name: Retain exact-head ray geometry evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-ray-geometry-evidence
+          path: |
+            /tmp/ray-geometry-a.json
+            /tmp/ray-geometry-oracle.json
+            docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json
+            docs/research/orbital-truss/ray_geometry_v0_1.schema.json
+            tools/surface-sampling-density-bench/Cargo.lock
+          if-no-files-found: error
+          retention-days: 30
