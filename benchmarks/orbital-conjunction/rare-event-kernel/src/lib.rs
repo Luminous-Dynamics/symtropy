@@ -28,11 +28,19 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
+pub mod lebedev;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use lebedev::{
+    AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
+    ProductionSphereQuadratureConfig, ProductionSphereQuadratureReport,
+    SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
+    integrate_sphere_adaptive, integrate_sphere_production_check, integrate_sphere_samples,
+    lebedev_sphere_rule,
+};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
@@ -102,6 +110,20 @@ pub enum KernelError {
     /// The proposal log density is negative infinity, so the importance ratio
     /// is undefined at a point where a weight was requested.
     ProposalHasZeroDensity,
+    /// A sphere quadrature rule has the wrong number of nodes.
+    InvalidSphereQuadratureNodeCount,
+    /// A sphere quadrature node is not on the unit sphere.
+    InvalidSphereQuadratureNode,
+    /// Sphere quadrature weights are nonpositive, non-finite or do not sum to 4π.
+    InvalidSphereQuadratureWeights,
+    /// A relative significant-contribution threshold lies outside [0, 1].
+    InvalidSphereQuadratureThreshold,
+    /// A sphere integrand contains a negative sample.
+    InvalidSphereIntegrand,
+    /// A sphere integrand is identically zero at all quadrature nodes.
+    ZeroSphereIntegrand,
+    /// Sphere quadrature absolute and relative tolerances are invalid.
+    InvalidSphereQuadratureTolerance,
 }
 
 impl fmt::Display for KernelError {
@@ -137,6 +159,21 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+            Self::InvalidSphereQuadratureNodeCount => {
+                "sphere quadrature sample count does not match the rule"
+            }
+            Self::InvalidSphereQuadratureNode => "sphere quadrature node is not on the unit sphere",
+            Self::InvalidSphereQuadratureWeights => {
+                "sphere quadrature weights must be positive and sum to 4π"
+            }
+            Self::InvalidSphereQuadratureThreshold => {
+                "sphere quadrature contribution threshold must lie in [0, 1]"
+            }
+            Self::InvalidSphereIntegrand => "sphere integrand samples must be nonnegative",
+            Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
+            Self::InvalidSphereQuadratureTolerance => {
+                "sphere quadrature tolerances must be finite, nonnegative and not both zero"
+            }
         };
         f.write_str(message)
     }
