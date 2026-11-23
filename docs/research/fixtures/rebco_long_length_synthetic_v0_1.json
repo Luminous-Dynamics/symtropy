@@ -1,0 +1,211 @@
+{
+  "schema_version": "rebco-long-length-spatial-qualification.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "spatial-genealogy-and-evidence-semantics-only",
+  "reel": {
+    "reel_id": "SYNTH-REEL-001",
+    "lot_id": "SYNTH-LOT-001",
+    "campaign_id": "SYNTH-CAMPAIGN-001",
+    "process_run_id": "SYNTH-RUN-001",
+    "architecture_id": "SYNTH-REBCO-4MM-001",
+    "total_length_mm": 1000,
+    "width_mm": 4,
+    "longitudinal_datum": "synthetic reel leading edge",
+    "positive_direction": "winding_direction",
+    "width_datum": "substrate reference edge",
+    "coordinate_units": "mm",
+    "face_convention": "superconductor_face_reference",
+    "source_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "segments": [
+    {
+      "segment_id": "SYNTH-SEG-A",
+      "parent_reel_id": "SYNTH-REEL-001",
+      "longitudinal_start_mm": 0,
+      "longitudinal_end_mm": 400,
+      "width_start_mm": 0,
+      "width_end_mm": 4,
+      "face": "a",
+      "genealogy_state": "original"
+    },
+    {
+      "segment_id": "SYNTH-SEG-B",
+      "parent_reel_id": "SYNTH-REEL-001",
+      "longitudinal_start_mm": 400,
+      "longitudinal_end_mm": 700,
+      "width_start_mm": 0,
+      "width_end_mm": 4,
+      "face": "a",
+      "genealogy_state": "original"
+    },
+    {
+      "segment_id": "SYNTH-SEG-C",
+      "parent_reel_id": "SYNTH-REEL-001",
+      "longitudinal_start_mm": 700,
+      "longitudinal_end_mm": 1000,
+      "width_start_mm": 0,
+      "width_end_mm": 4,
+      "face": "a",
+      "genealogy_state": "original"
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "SYNTH-OBS-001",
+      "segment_id": "SYNTH-SEG-A",
+      "property": "ic",
+      "evidence_state": "measured",
+      "authority": "synthetic_fixture",
+      "value": 300,
+      "unit": "A",
+      "method": "synthetic four-probe transport test",
+      "coordinate_footprint": {
+        "longitudinal_start_mm": 0,
+        "longitudinal_end_mm": 400,
+        "width_start_mm": 0,
+        "width_end_mm": 4,
+        "face": "a",
+        "spatial_resolution_mm": 20,
+        "registration_uncertainty_mm": 1
+      },
+      "conditions": {
+        "temperature_k": 77,
+        "field_magnitude_t": 0,
+        "field_orientation": "self-field",
+        "current_criterion": "synthetic declared electric-field criterion",
+        "electric_field_criterion_uv_per_cm": 1,
+        "geometry": "4 mm full-conductor width; full thickness not interpreted"
+      },
+      "uncertainty": {
+        "type": "standard_uncertainty",
+        "standard_uncertainty": 3
+      },
+      "measurement_system": {
+        "instrument_id": "SYNTH-INSTRUMENT-001",
+        "calibration_revision": "SYNTH-CAL-001",
+        "calibration_valid_at_measurement": true
+      },
+      "source": {
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "rights_status": "unknown",
+        "review_state": "unreviewed"
+      },
+      "measurement_basis": "direct_transport"
+    },
+    {
+      "observation_id": "SYNTH-OBS-002",
+      "segment_id": "SYNTH-SEG-B",
+      "property": "crack_presence",
+      "evidence_state": "not_detected",
+      "authority": "synthetic_fixture",
+      "unit": "defect-size-mm",
+      "method": "synthetic optical inspection",
+      "detection_limit": 0.2,
+      "coordinate_footprint": {
+        "longitudinal_start_mm": 400,
+        "longitudinal_end_mm": 700,
+        "width_start_mm": 0,
+        "width_end_mm": 4,
+        "face": "a",
+        "spatial_resolution_mm": 1,
+        "registration_uncertainty_mm": 0.5
+      },
+      "conditions": {
+        "temperature_k": 293.15,
+        "field_magnitude_t": 0,
+        "field_orientation": "not_applicable",
+        "geometry": "synthetic optical inspection geometry"
+      },
+      "measurement_system": {
+        "instrument_id": "SYNTH-CAMERA-001",
+        "calibration_revision": "SYNTH-CAL-002",
+        "calibration_valid_at_measurement": true
+      },
+      "source": {
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "rights_status": "unknown",
+        "review_state": "unreviewed"
+      },
+      "measurement_basis": "structural_inspection"
+    },
+    {
+      "observation_id": "SYNTH-OBS-003",
+      "segment_id": "SYNTH-SEG-C",
+      "property": "ic",
+      "evidence_state": "unmeasured",
+      "authority": "synthetic_fixture",
+      "coordinate_footprint": {
+        "longitudinal_start_mm": 700,
+        "longitudinal_end_mm": 1000,
+        "width_start_mm": 0,
+        "width_end_mm": 4,
+        "face": "a"
+      },
+      "source": {
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "rights_status": "unknown",
+        "review_state": "unreviewed"
+      },
+      "measurement_basis": "direct_transport"
+    },
+    {
+      "observation_id": "SYNTH-OBS-004",
+      "segment_id": "SYNTH-SEG-B",
+      "property": "ic",
+      "evidence_state": "measured",
+      "authority": "synthetic_fixture",
+      "measurement_basis": "noncontact_magnetization_proxy",
+      "value": 285,
+      "unit": "A",
+      "method": "synthetic calibrated non-contact magnetization proxy",
+      "coordinate_footprint": {
+        "longitudinal_start_mm": 400,
+        "longitudinal_end_mm": 700,
+        "width_start_mm": 0,
+        "width_end_mm": 4,
+        "face": "a",
+        "spatial_resolution_mm": 5,
+        "registration_uncertainty_mm": 1
+      },
+      "conditions": {
+        "temperature_k": 77,
+        "field_magnitude_t": 0,
+        "field_orientation": "self-field",
+        "current_criterion": "synthetic proxy calibration target criterion",
+        "geometry": "full-width calibrated non-contact mapping"
+      },
+      "uncertainty": {
+        "type": "standard_uncertainty",
+        "standard_uncertainty": 8
+      },
+      "measurement_system": {
+        "instrument_id": "SYNTH-TAPESTAR-001",
+        "calibration_revision": "SYNTH-PROXY-CAL-001",
+        "calibration_valid_at_measurement": true
+      },
+      "source": {
+        "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "rights_status": "unknown",
+        "review_state": "unreviewed"
+      }
+    }
+  ],
+  "application_profiles": [
+    {
+      "profile_id": "SYNTH-PROFILE-77K-SELF-FIELD",
+      "intended_use": "power_cable",
+      "temperature_k": 77,
+      "field_magnitude_t": 0,
+      "field_orientation": "self-field",
+      "current_criterion": "synthetic 1 microvolt/cm criterion",
+      "acceptance_rule_id": "SYNTH-RULE-001",
+      "geometry_convention": "full-conductor cross-section required for Je"
+    }
+  ],
+  "provenance": {
+    "created_at": "2026-11-21T00:00:00Z",
+    "producer": "synthetic-fixture",
+    "rights_status": "unknown",
+    "notes": "All identities, measurements and limits are fabricated solely to exercise the schema."
+  }
+}
