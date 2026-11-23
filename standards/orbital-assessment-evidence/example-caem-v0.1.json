@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "manifest_id": "example-conjunction-2026-11-23-revision-1",
+  "issued_at": "2026-11-23T18:00:00Z",
+  "producer": {
+    "organization": "Example Assessment Provider",
+    "system_id": "example-ca-pipeline",
+    "manifest_generator_version": "0.1.0"
+  },
+  "cdm_binding": {
+    "standard_id": "CCSDS 508.0-B-1",
+    "standard_version": "Issue 1 + Technical Corrigenda 1 and 2",
+    "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "payload_media_type": "application/xml",
+    "canonicalization_profile": "raw-bytes",
+    "message_id": "EXAMPLE-CDM-0001",
+    "originator": "Example Assessment Provider",
+    "creation_date": "2026-11-23T17:55:00Z",
+    "schema_validation": {
+      "status": "passed",
+      "validator_id": "example-cdm-validator",
+      "validator_build_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  },
+  "event": {
+    "event_id": "EXAMPLE-CONJ-0001",
+    "event_revision": "1",
+    "event_semantics": "tca_snapshot",
+    "tca": "2026-11-24T03:00:00Z",
+    "time_scale": "UTC",
+    "reference_frame": "GCRF",
+    "central_body": "Earth",
+    "hbr": {
+      "value": 10,
+      "unit": "m",
+      "source": "operator-supplied shape model"
+    }
+  },
+  "objects": {
+    "primary": {
+      "object_id": "EXAMPLE-PRIMARY",
+      "operational_status": "active",
+      "ephemeris_source": {
+        "source_class": "owner_operator",
+        "source_id": "operator-ephemeris-revision-7",
+        "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "retrieved_at": "2026-11-23T17:30:00Z",
+        "epoch": "2026-11-23T12:00:00Z",
+        "time_scale": "UTC",
+        "reference_frame": "GCRF",
+        "coordinate_representation": "Cartesian position/velocity",
+        "quality_status": "passed",
+        "quality_checks": [
+          {
+            "check_id": "covariance-symmetry-and-positive-definiteness",
+            "status": "passed"
+          }
+        ]
+      }
+    },
+    "secondary": {
+      "object_id": "EXAMPLE-SECONDARY",
+      "operational_status": "unknown",
+      "ephemeris_source": {
+        "source_class": "external_catalogue",
+        "source_id": "catalogue-ephemeris-revision-3",
+        "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "retrieved_at": "2026-11-23T17:25:00Z",
+        "epoch": "2026-11-23T12:00:00Z",
+        "time_scale": "UTC",
+        "reference_frame": "GCRF",
+        "coordinate_representation": "Cartesian position/velocity",
+        "quality_status": "incomplete",
+        "quality_checks": [
+          {
+            "check_id": "source-age-within-provider-policy",
+            "status": "inconclusive",
+            "details": "Illustrative missing source metadata"
+          }
+        ]
+      }
+    }
+  },
+  "assessment": {
+    "method_family": "NASA_CARA_analytical",
+    "method_id": "illustrative-2d-pc",
+    "stage": "2D-Pc",
+    "implementation_reference": "illustrative-pinned-source-reference",
+    "software": {
+      "name": "Example Conjunction Engine",
+      "version": "0.1.0",
+      "git_commit": "0123456789abcdef0123456789abcdef01234567",
+      "build_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "configuration_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "model": {
+      "model_revision": "illustrative-model-revision-1",
+      "model_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "target_distribution_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "force_model_id": "illustrative-force-model",
+      "covariance_model_id": "illustrative-covariance-model"
+    },
+    "input_artifact_digests": [
+      "2222222222222222222222222222222222222222222222222222222222222222",
+      "3333333333333333333333333333333333333333333333333333333333333333"
+    ]
+  },
+  "results": [
+    {
+      "result_id": "pc-tca-result-1",
+      "result_type": "CollisionProbabilityAtTCA",
+      "estimate": 0.00001,
+      "lower_bound": 0.000009,
+      "upper_bound": 0.000011,
+      "unit": "probability",
+      "event_definition_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "model_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "assumption_digest": "9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  ],
+  "assurance": {
+    "statistical": {
+      "status": "not_applicable",
+      "estimator_id": "analytic-2d-pc"
+    },
+    "event_coverage": {
+      "status": "not_assessed",
+      "discovered_mode_count": 1,
+      "unresolved_cell_count": 0
+    },
+    "numerical": {
+      "status": "passed",
+      "enclosure_method": "illustrative-reference-calculation",
+      "arithmetic_policy": "heuristic"
+    },
+    "physical_model": {
+      "status": "incomplete",
+      "model_family_id": "illustrative-model-family",
+      "declared_family_complete": null
+    },
+    "data_quality": {
+      "status": "incomplete",
+      "limitations": [
+        "Secondary object source metadata is incomplete."
+      ]
+    },
+    "replay": {
+      "status": "not_assessed",
+      "deterministic_replay_available": false,
+      "unavailable_dependencies": [
+        "Illustrative external ephemeris artifact is not distributed."
+      ]
+    }
+  },
+  "qualification": {
+    "status": "Unqualified",
+    "qualified_scope": "Illustrative schema example only",
+    "abstention_reasons": [
+      "Example contains intentionally incomplete external source metadata and has not been independently replayed."
+    ]
+  }
+}
