@@ -26,7 +26,7 @@ pub enum NavigationRiskSelectionPreference {
     VarThenAvarThenWorst,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NavigationRiskSelectionPolicy {
     pub expected_domain_fingerprint_sha256: [u8; 32],
     pub expected_acquisition_protocol_sha256: [u8; 32],
