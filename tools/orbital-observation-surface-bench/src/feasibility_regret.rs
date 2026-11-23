@@ -631,8 +631,9 @@ fn evaluate_case(case: &DecisionCase) -> Result<CaseResult, String> {
     }
 
     let robust_set = robust_set.unwrap_or_default();
-    let action_feasibility_classes = case
-        .actions
+    let mut actions_by_id = case.actions.iter().collect::<Vec<_>>();
+    actions_by_id.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+    let action_feasibility_classes = actions_by_id
         .iter()
         .map(|action| {
             let count = per_action_feasible_count
