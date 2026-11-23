@@ -852,7 +852,7 @@ mod tests {
             stale_execution_after_quiescence_count: 0,
             false_admission_count: 0,
             operator_intervention_count: 1,
-            mission_makespan_ns: 1_000_000_000 + u64::from(arm_index) * 100,
+            mission_makespan_ns: 1_000_000_000 + arm_index * 100,
             time_to_evidence_ns: (arm == BenchmarkArm::FullRrvr).then_some(20_000),
             root_cause_truth_component_id: root,
             root_cause_ranked_component_ids: if arm == BenchmarkArm::FullRrvr {
