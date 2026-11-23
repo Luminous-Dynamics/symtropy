@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TimeRole {
@@ -108,6 +108,8 @@ pub struct AssociationReport {
     pub source_visible_count: usize,
     pub witness_visible_count: usize,
     pub candidate_edge_count: usize,
+    /// Number of time-compatibility checks after exact physical-context blocking.
+    pub candidate_pair_evaluations: usize,
     pub receipts: Vec<AssociationReceipt>,
     /// All visible keys remain unresolved unless a unique complete matching exists.
     pub unresolved_source_keys: Vec<String>,
@@ -126,10 +128,16 @@ impl AssociationReport {
             source_visible_count: source_keys.len(),
             witness_visible_count: witness_keys.len(),
             candidate_edge_count,
+            candidate_pair_evaluations: 0,
             receipts: Vec::new(),
             unresolved_source_keys: source_keys,
             unresolved_witness_keys: witness_keys,
         }
+    }
+
+    fn with_candidate_pair_evaluations(mut self, evaluations: usize) -> Self {
+        self.candidate_pair_evaluations = evaluations;
+        self
     }
 }
 
@@ -242,23 +250,62 @@ fn admissible_edge(
             <= i128::from(profile.max_interval_gap)
 }
 
+type EventContext<'a> = (&'a str, &'a str, &'a str, &'a str);
+
+fn event_context(observation: &PhysicalObservation) -> EventContext<'_> {
+    (
+        observation.canonical_box_id.as_str(),
+        observation.event_kind.as_str(),
+        observation.facility_id.as_str(),
+        observation.operation_ref.as_str(),
+    )
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CandidateGraph {
+    edges: Vec<Vec<usize>>,
+    pair_evaluations: usize,
+}
+
 fn candidate_graph(
     source: &[PhysicalObservation],
     witness: &[PhysicalObservation],
     profile: &CorrelationProfile,
-) -> Vec<Vec<usize>> {
-    source
-        .iter()
-        .map(|source_event| {
-            witness
-                .iter()
-                .enumerate()
-                .filter_map(|(index, witness_event)| {
-                    admissible_edge(source_event, witness_event, profile).then_some(index)
-                })
-                .collect()
-        })
-        .collect()
+) -> CandidateGraph {
+    // Exact, already-qualified physical context is a necessary condition for
+    // every edge. Block witness events by that tuple before evaluating time.
+    // This avoids a global source_count × witness_count scan across unrelated
+    // containers/event kinds/sites/operations without dropping any admissible edge.
+    let mut witness_by_context: BTreeMap<EventContext<'_>, Vec<usize>> = BTreeMap::new();
+    for (index, witness_event) in witness.iter().enumerate() {
+        witness_by_context
+            .entry(event_context(witness_event))
+            .or_default()
+            .push(index);
+    }
+
+    let mut pair_evaluations = 0usize;
+    let mut edges = Vec::with_capacity(source.len());
+    for source_event in source {
+        let candidates = witness_by_context
+            .get(&event_context(source_event))
+            .into_iter()
+            .flatten();
+
+        let mut source_edges = Vec::new();
+        for &index in candidates {
+            pair_evaluations += 1;
+            if admissible_edge(source_event, &witness[index], profile) {
+                source_edges.push(index);
+            }
+        }
+        edges.push(source_edges);
+    }
+
+    CandidateGraph {
+        edges,
+        pair_evaluations,
+    }
 }
 
 fn augment_matching(
@@ -426,21 +473,24 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
 
     let (source_keys, witness_keys) = unresolved_keys(&source, &witness);
     let graph = candidate_graph(&source, &witness, profile);
-    let candidate_edge_count = graph.iter().map(Vec::len).sum();
+    let candidate_edge_count = graph.edges.iter().map(Vec::len).sum();
+    let candidate_pair_evaluations = graph.pair_evaluations;
 
-    match classify_graph(&graph, witness.len()) {
+    match classify_graph(&graph.edges, witness.len()) {
         MatchingResult::Unmatched => AssociationReport::new(
             Disposition::Unmatched,
             source_keys,
             witness_keys,
             candidate_edge_count,
-        ),
+        )
+        .with_candidate_pair_evaluations(candidate_pair_evaluations),
         MatchingResult::Ambiguous => AssociationReport::new(
             Disposition::Ambiguous,
             source_keys,
             witness_keys,
             candidate_edge_count,
-        ),
+        )
+        .with_candidate_pair_evaluations(candidate_pair_evaluations),
         MatchingResult::Unique(left_to_right) => {
             let has_unresolved_time_order =
                 left_to_right
@@ -456,7 +506,8 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                     source_keys,
                     witness_keys,
                     candidate_edge_count,
-                );
+                )
+                .with_candidate_pair_evaluations(candidate_pair_evaluations);
             }
 
             let mut report = AssociationReport::new(
@@ -464,7 +515,8 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                 Vec::new(),
                 Vec::new(),
                 candidate_edge_count,
-            );
+            )
+            .with_candidate_pair_evaluations(candidate_pair_evaluations);
 
             for (source_index, witness_index) in left_to_right.into_iter().enumerate() {
                 let source_event = &source[source_index];
@@ -1130,6 +1182,23 @@ mod tests {
             event.published_at = 11;
         }
         assert_eq!(evaluate(&narrow).disposition, Disposition::Ambiguous);
+    }
+
+    #[test]
+    fn exact_context_blocking_avoids_cross_product_time_checks() {
+        let source = vec![
+            observation!("src-A", "BOX-1", "GATE_OUT", "GATE-1", "OP-1", 10, 10, 11),
+            observation!("src-B", "BOX-2", "GATE_OUT", "GATE-1", "OP-2", 20, 20, 21),
+        ];
+        let witness = vec![
+            observation!("wit-A", "BOX-1", "GATE_OUT", "GATE-1", "OP-1", 10, 10, 11),
+            observation!("wit-B", "BOX-2", "GATE_OUT", "GATE-1", "OP-2", 20, 20, 21),
+        ];
+        let report = evaluate(&case(source, witness));
+        assert_eq!(report.disposition, Disposition::UniquelyAssociated);
+        assert_eq!(report.candidate_edge_count, 2);
+        assert_eq!(report.candidate_pair_evaluations, 2);
+        assert_eq!(report.receipts.len(), 2);
     }
 
     #[test]
