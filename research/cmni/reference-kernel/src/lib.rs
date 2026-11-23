@@ -21,6 +21,13 @@ pub use decision_value::{
     InformationSourceQualification,
 };
 
+mod robust_decision_design;
+pub use robust_decision_design::{
+    rank_designs_by_robust_decision_value, RobustDecisionDesignCandidate,
+    RobustDecisionDesignPolicy, RobustDecisionDesignRanking, RobustDecisionDesignScore,
+    RobustDecisionLikelihoodScenario, RobustDecisionProblem,
+};
+
 mod design_decision;
 pub use design_decision::{
     certify_maximum_utility, linear_qoi_eig_utility_interval, parameter_eig_utility_interval,
