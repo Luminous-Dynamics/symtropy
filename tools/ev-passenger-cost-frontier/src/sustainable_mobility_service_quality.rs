@@ -2455,10 +2455,116 @@ mod tests {
                     && outcome.service_completion_seconds == Some(15_600)
             }));
             assert_eq!(
-                policy.completed_on_time + policy.completed_late + policy.unserved_requests,
+                policy.completed_on_time
+                    + policy.completed_late
+                    + policy.in_progress_requests
+                    + policy.unserved_requests,
                 policy.accepted_requests
             );
         }
+    }
+
+    #[test]
+    fn fallback_service_crossing_the_horizon_is_in_progress_not_completed() {
+        let mut input = fixture();
+        input.requests = vec![ServiceRequest {
+            request_id: "fallback-crosses-horizon".to_owned(),
+            arrival_seconds: 28_600,
+            accept_by_seconds: 28_650,
+            deadline_seconds: 28_800,
+            required_service_seconds: 600,
+            payload_units: 1,
+            service_class: "standard".to_owned(),
+            allowed_mode: ServiceMode::FallbackOnly,
+        }];
+        input.aerial_opportunities.clear();
+        input.fallback_opportunities = vec![FallbackServiceOpportunity {
+            opportunity_id: "van-crosses-horizon".to_owned(),
+            fallback_resource_id: "van-01".to_owned(),
+            fallback_mode: FallbackMode::GroundCourier,
+            start_seconds: 28_700,
+            max_service_duration_seconds: 600,
+            max_payload_units: 100,
+        }];
+        input.capacity_source.max_aerial_opportunities = 0;
+        input.policies = vec![AdmissionPolicy::FirstComeFirstServed];
+
+        let result = evaluate_service_quality(&input).expect("bounded in-progress service");
+        let policy = &result.policy_results[0];
+        let outcome = &policy.outcomes[0];
+        assert_eq!(outcome.disposition, RequestDisposition::InProgressAtHorizon);
+        assert_eq!(outcome.service_start_seconds, Some(28_700));
+        assert_eq!(outcome.service_completion_seconds, None);
+        assert_eq!(outcome.projected_completion_seconds, Some(29_300));
+        assert_eq!(outcome.latency_seconds, None);
+        assert_eq!(policy.completed_on_time, 0);
+        assert_eq!(policy.completed_late, 0);
+        assert_eq!(policy.in_progress_requests, 1);
+        assert_eq!(policy.in_progress_by_fallback, 1);
+        assert_eq!(policy.served_by_fallback, 0);
+        assert_eq!(policy.unserved_requests, 0);
+        assert_eq!(policy.completed_requests_per_hour, 0.0);
+    }
+
+    #[test]
+    fn linked_exact_oracle_finds_edf_optimum_and_quantifies_fcfs_regret() {
+        let mut input = linked_fixture();
+        input.requests.truncate(2);
+        input.aerial_opportunity_qualifications.truncate(2);
+        input.fallback_opportunities.clear();
+
+        let report = evaluate_linked_service_quality(&input, &capacity_fixture())
+            .expect("small linked exact-oracle fixture");
+        let exact = report.exact_oracle;
+        assert_eq!(exact.status, ExactOracleStatus::Evaluated);
+        let score = exact.best_score.expect("exact score");
+        assert_eq!(score.completed_on_time, 2);
+        assert_eq!(score.completed_late, 0);
+        assert_eq!(score.completed_by_horizon, 2);
+        assert_eq!(score.in_progress_at_horizon, 0);
+        assert_eq!(score.total_lateness_seconds, 0);
+        assert_eq!(score.total_latency_seconds, 825);
+        assert_eq!(exact.best_assignments.len(), 2);
+
+        let fcfs = exact
+            .policy_gaps
+            .iter()
+            .find(|gap| gap.policy == AdmissionPolicy::FirstComeFirstServed)
+            .expect("FCFS gap");
+        assert_eq!(fcfs.on_time_completion_gap, 1);
+        assert_eq!(fcfs.completed_by_horizon_gap, 0);
+        assert_eq!(fcfs.lateness_excess_seconds, 185);
+        assert_eq!(fcfs.latency_excess_seconds, 0);
+
+        let edf = exact
+            .policy_gaps
+            .iter()
+            .find(|gap| gap.policy == AdmissionPolicy::EarliestDeadlineFirst)
+            .expect("EDF gap");
+        assert_eq!(edf.on_time_completion_gap, 0);
+        assert_eq!(edf.completed_by_horizon_gap, 0);
+        assert_eq!(edf.lateness_excess_seconds, 0);
+        assert_eq!(edf.latency_excess_seconds, 0);
+        assert_eq!(
+            exact.best_assignments[0].request_id,
+            "request-tight-deadline"
+        );
+        assert_eq!(
+            exact.best_assignments[1].request_id,
+            "request-first-arrival"
+        );
+    }
+
+    #[test]
+    fn linked_large_fixture_explicitly_skips_exact_oracle_above_bounds() {
+        let report = linked_report();
+        assert_eq!(
+            report.exact_oracle.status,
+            ExactOracleStatus::NotRunBoundsExceeded
+        );
+        assert!(report.exact_oracle.best_score.is_none());
+        assert!(report.exact_oracle.best_assignments.is_empty());
+        assert!(report.exact_oracle.policy_gaps.is_empty());
     }
 
     #[test]
