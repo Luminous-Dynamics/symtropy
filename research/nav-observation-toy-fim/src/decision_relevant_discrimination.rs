@@ -71,6 +71,8 @@ pub struct DecisionRelevantDiscriminationReport {
     pub distinguishable_decision_pair_count: usize,
     pub ambiguous_decision_pair_count: usize,
     pub disposition: DecisionProjectionDisposition,
+    /// All outcome-set separations are conditional on successful, valid acquisition.
+    pub conditional_on_successful_valid_observation: bool,
     /// Canonical order by hypothesis identity.
     pub decision_assignments: Vec<HypothesisDecisionAssignment>,
     /// Canonical order by (lower_hypothesis_id, upper_hypothesis_id).
@@ -394,6 +396,7 @@ pub fn project_decision_relevant_discrimination(
         distinguishable_decision_pair_count,
         ambiguous_decision_pair_count,
         disposition,
+        conditional_on_successful_valid_observation: true,
         decision_assignments,
         decision_pair_separations: projected_pairs,
     })
@@ -488,6 +491,7 @@ mod tests {
             DecisionProjectionDisposition::AllDecisionIncompatiblePairsSeparated
         );
         assert_eq!(result.decision_pair_separations.len(), 2);
+        assert!(result.conditional_on_successful_valid_observation);
     }
 
     #[test]
