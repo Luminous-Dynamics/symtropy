@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Space-time quadrature receipt for time-varying ion-neutral drag.
 //!
 //! Each sample carries the non-negative integrated drag measure
@@ -86,15 +88,27 @@ pub enum DragTrajectoryError {
     EmptyEvent(u64),
     InvalidTolerance,
     DuplicateEventId(u64),
-    DuplicateSampleId { event_id: u64, sample_id: u64 },
+    DuplicateSampleId {
+        event_id: u64,
+        sample_id: u64,
+    },
     CoordinateFrameMismatch {
         event_id: u64,
         charged_frame_id: u64,
         neutral_frame_id: u64,
     },
-    InvalidTimeFraction { event_id: u64, sample_id: u64 },
-    InvalidIntegratedDragWeight { event_id: u64, sample_id: u64 },
-    NonFiniteVelocity { event_id: u64, sample_id: u64 },
+    InvalidTimeFraction {
+        event_id: u64,
+        sample_id: u64,
+    },
+    InvalidIntegratedDragWeight {
+        event_id: u64,
+        sample_id: u64,
+    },
+    NonFiniteVelocity {
+        event_id: u64,
+        sample_id: u64,
+    },
     NonFiniteReportedValue(u64),
     NonFiniteAccumulation,
     NeutralImpulseMismatch {
@@ -137,45 +151,109 @@ impl fmt::Display for DragTrajectoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyBatch => write!(f, "no time-varying drag events supplied"),
-            Self::EmptyEvent(id) => write!(f, "drag event {id} has no space-time quadrature samples"),
-            Self::InvalidTolerance => write!(f, "drag trajectory tolerances must be finite and non-negative"),
+            Self::EmptyEvent(id) => {
+                write!(f, "drag event {id} has no space-time quadrature samples")
+            }
+            Self::InvalidTolerance => write!(
+                f,
+                "drag trajectory tolerances must be finite and non-negative"
+            ),
             Self::DuplicateEventId(id) => write!(f, "duplicate drag trajectory event id: {id}"),
-            Self::DuplicateSampleId { event_id, sample_id } => write!(
-                f, "drag event {event_id} has duplicate quadrature sample id {sample_id}"
+            Self::DuplicateSampleId {
+                event_id,
+                sample_id,
+            } => write!(
+                f,
+                "drag event {event_id} has duplicate quadrature sample id {sample_id}"
             ),
-            Self::CoordinateFrameMismatch { event_id, charged_frame_id, neutral_frame_id } => write!(
-                f, "drag event {event_id} mixes charged frame {charged_frame_id} and neutral frame {neutral_frame_id}"
+            Self::CoordinateFrameMismatch {
+                event_id,
+                charged_frame_id,
+                neutral_frame_id,
+            } => write!(
+                f,
+                "drag event {event_id} mixes charged frame {charged_frame_id} and neutral frame {neutral_frame_id}"
             ),
-            Self::InvalidTimeFraction { event_id, sample_id } => write!(
-                f, "drag event {event_id} sample {sample_id} has time fraction outside [0, 1] or non-finite"
+            Self::InvalidTimeFraction {
+                event_id,
+                sample_id,
+            } => write!(
+                f,
+                "drag event {event_id} sample {sample_id} has time fraction outside [0, 1] or non-finite"
             ),
-            Self::InvalidIntegratedDragWeight { event_id, sample_id } => write!(
-                f, "drag event {event_id} sample {sample_id} has negative or non-finite integrated drag weight"
+            Self::InvalidIntegratedDragWeight {
+                event_id,
+                sample_id,
+            } => write!(
+                f,
+                "drag event {event_id} sample {sample_id} has negative or non-finite integrated drag weight"
             ),
-            Self::NonFiniteVelocity { event_id, sample_id } => write!(
-                f, "drag event {event_id} sample {sample_id} has a non-finite relative velocity"
+            Self::NonFiniteVelocity {
+                event_id,
+                sample_id,
+            } => write!(
+                f,
+                "drag event {event_id} sample {sample_id} has a non-finite relative velocity"
             ),
             Self::NonFiniteReportedValue(id) => write!(
-                f, "drag event {id} has a non-finite reported impulse or frictional heating"
+                f,
+                "drag event {id} has a non-finite reported impulse or frictional heating"
             ),
-            Self::NonFiniteAccumulation => write!(f, "time-varying drag momentum/energy accumulation became non-finite"),
-            Self::NeutralImpulseMismatch { event_id, component, supplied_ns, expected_ns, allowed_ns } => write!(
-                f, "drag event {event_id} neutral impulse component {component}: supplied {supplied_ns} N*s, expected {expected_ns} N*s, allowed residual {allowed_ns} N*s"
+            Self::NonFiniteAccumulation => write!(
+                f,
+                "time-varying drag momentum/energy accumulation became non-finite"
             ),
-            Self::ChargedReactionMismatch { event_id, component, supplied_ns, expected_ns, allowed_ns } => write!(
-                f, "drag event {event_id} charged reaction component {component}: supplied {supplied_ns} N*s, expected {expected_ns} N*s, allowed residual {allowed_ns} N*s"
+            Self::NeutralImpulseMismatch {
+                event_id,
+                component,
+                supplied_ns,
+                expected_ns,
+                allowed_ns,
+            } => write!(
+                f,
+                "drag event {event_id} neutral impulse component {component}: supplied {supplied_ns} N*s, expected {expected_ns} N*s, allowed residual {allowed_ns} N*s"
             ),
-            Self::NegativeReportedHeating { event_id, supplied_j, allowed_negative_j } => write!(
-                f, "drag event {event_id} reports negative frictional heating {supplied_j} J, allowed negative tolerance {allowed_negative_j} J"
+            Self::ChargedReactionMismatch {
+                event_id,
+                component,
+                supplied_ns,
+                expected_ns,
+                allowed_ns,
+            } => write!(
+                f,
+                "drag event {event_id} charged reaction component {component}: supplied {supplied_ns} N*s, expected {expected_ns} N*s, allowed residual {allowed_ns} N*s"
             ),
-            Self::HeatingMismatch { event_id, supplied_j, expected_j, allowed_j } => write!(
-                f, "drag event {event_id} heating {supplied_j} J differs from quadrature prediction {expected_j} J by more than {allowed_j} J"
+            Self::NegativeReportedHeating {
+                event_id,
+                supplied_j,
+                allowed_negative_j,
+            } => write!(
+                f,
+                "drag event {event_id} reports negative frictional heating {supplied_j} J, allowed negative tolerance {allowed_negative_j} J"
             ),
-            Self::AggregateImpulseMismatch { component, residual_ns, allowed_ns } => write!(
-                f, "aggregate drag impulse component {component} residual {residual_ns} N*s exceeds {allowed_ns} N*s"
+            Self::HeatingMismatch {
+                event_id,
+                supplied_j,
+                expected_j,
+                allowed_j,
+            } => write!(
+                f,
+                "drag event {event_id} heating {supplied_j} J differs from quadrature prediction {expected_j} J by more than {allowed_j} J"
             ),
-            Self::AggregateHeatingMismatch { residual_j, allowed_j } => write!(
-                f, "aggregate drag heating residual {residual_j} J exceeds {allowed_j} J"
+            Self::AggregateImpulseMismatch {
+                component,
+                residual_ns,
+                allowed_ns,
+            } => write!(
+                f,
+                "aggregate drag impulse component {component} residual {residual_ns} N*s exceeds {allowed_ns} N*s"
+            ),
+            Self::AggregateHeatingMismatch {
+                residual_j,
+                allowed_j,
+            } => write!(
+                f,
+                "aggregate drag heating residual {residual_j} J exceeds {allowed_j} J"
             ),
         }
     }
@@ -261,8 +339,14 @@ pub fn validate_drag_trajectory(
         quadrature_rule_ids.insert(event.event_id, event.quadrature_rule_id);
         coordinate_frame_ids.insert(event.event_id, event.charged_frame_id);
         if !event.reported_frictional_heating_j.is_finite()
-            || !event.neutral_impulse_ns.iter().all(|value| value.is_finite())
-            || !event.charged_reaction_impulse_ns.iter().all(|value| value.is_finite())
+            || !event
+                .neutral_impulse_ns
+                .iter()
+                .all(|value| value.is_finite())
+            || !event
+                .charged_reaction_impulse_ns
+                .iter()
+                .all(|value| value.is_finite())
         {
             return Err(DragTrajectoryError::NonFiniteReportedValue(event.event_id));
         }
@@ -285,9 +369,7 @@ pub fn validate_drag_trajectory(
                     sample_id: sample.sample_id,
                 });
             }
-            if !sample.time_fraction.is_finite()
-                || !(0.0..=1.0).contains(&sample.time_fraction)
-            {
+            if !sample.time_fraction.is_finite() || !(0.0..=1.0).contains(&sample.time_fraction) {
                 return Err(DragTrajectoryError::InvalidTimeFraction {
                     event_id: event.event_id,
                     sample_id: sample.sample_id,
@@ -301,7 +383,11 @@ pub fn validate_drag_trajectory(
                     sample_id: sample.sample_id,
                 });
             }
-            if !sample.relative_velocity_m_s.iter().all(|value| value.is_finite()) {
+            if !sample
+                .relative_velocity_m_s
+                .iter()
+                .all(|value| value.is_finite())
+            {
                 return Err(DragTrajectoryError::NonFiniteVelocity {
                     event_id: event.event_id,
                     sample_id: sample.sample_id,
@@ -310,8 +396,7 @@ pub fn validate_drag_trajectory(
 
             let drag_weight = sample.integrated_drag_weight_kg;
             let mut speed_squared = 0.0_f64;
-            for component in 0..3 {
-                let velocity = sample.relative_velocity_m_s[component];
+            for (component, velocity) in sample.relative_velocity_m_s.iter().copied().enumerate() {
                 expected_neutral[component].add(drag_weight * velocity);
                 speed_squared += velocity * velocity;
             }
@@ -340,10 +425,11 @@ pub fn validate_drag_trajectory(
             let supplied_charged = event.charged_reaction_impulse_ns[component];
             let neutral_allowed = tolerance.impulse_absolute_ns
                 + tolerance.impulse_relative
-                    * expected_neutral[component].abs().max(supplied_neutral.abs());
+                    * expected_neutral[component]
+                        .abs()
+                        .max(supplied_neutral.abs());
             let charged_allowed = tolerance.impulse_absolute_ns
-                + tolerance.impulse_relative
-                    * expected_charged.abs().max(supplied_charged.abs());
+                + tolerance.impulse_relative * expected_charged.abs().max(supplied_charged.abs());
             let neutral_residual = supplied_neutral - expected_neutral[component];
             let charged_residual = supplied_charged - expected_charged;
 
@@ -379,8 +465,7 @@ pub fn validate_drag_trajectory(
 
             total_neutral[component].add(supplied_neutral);
             total_charged[component].add(supplied_charged);
-            total_impulse_scale[component]
-                .add(supplied_neutral.abs() + supplied_charged.abs());
+            total_impulse_scale[component].add(supplied_neutral.abs() + supplied_charged.abs());
         }
 
         let supplied_heat = event.reported_frictional_heating_j;
@@ -400,8 +485,7 @@ pub fn validate_drag_trajectory(
         if !energy_residual.is_finite() {
             return Err(DragTrajectoryError::NonFiniteAccumulation);
         }
-        max_event_energy_residual_j =
-            max_event_energy_residual_j.max(energy_residual.abs());
+        max_event_energy_residual_j = max_event_energy_residual_j.max(energy_residual.abs());
         if energy_residual.abs() > energy_allowed {
             return Err(DragTrajectoryError::HeatingMismatch {
                 event_id: event.event_id,
@@ -452,8 +536,8 @@ pub fn validate_drag_trajectory(
     let reported_frictional_heating_j = total_reported_heat.value();
     let aggregate_energy_residual_j =
         reported_frictional_heating_j - predicted_frictional_heating_j;
-    let aggregate_energy_allowed = tolerance.energy_absolute_j
-        + tolerance.energy_relative * total_energy_scale.value();
+    let aggregate_energy_allowed =
+        tolerance.energy_absolute_j + tolerance.energy_relative * total_energy_scale.value();
     if !predicted_frictional_heating_j.is_finite()
         || !reported_frictional_heating_j.is_finite()
         || !aggregate_energy_residual_j.is_finite()
@@ -616,7 +700,10 @@ mod tests {
         event.samples[1].integrated_drag_weight_kg = -1.0;
         assert!(matches!(
             validate_drag_trajectory(&[event], tolerance()).unwrap_err(),
-            DragTrajectoryError::InvalidIntegratedDragWeight { event_id: 1, sample_id: 2 }
+            DragTrajectoryError::InvalidIntegratedDragWeight {
+                event_id: 1,
+                sample_id: 2
+            }
         ));
     }
 
@@ -626,7 +713,11 @@ mod tests {
         event.neutral_impulse_ns[0] += 0.1;
         assert!(matches!(
             validate_drag_trajectory(&[event], tolerance()).unwrap_err(),
-            DragTrajectoryError::NeutralImpulseMismatch { event_id: 1, component: 0, .. }
+            DragTrajectoryError::NeutralImpulseMismatch {
+                event_id: 1,
+                component: 0,
+                ..
+            }
         ));
     }
 
@@ -660,7 +751,11 @@ mod tests {
         second.neutral_impulse_ns[0] -= 0.1;
         assert!(matches!(
             validate_drag_trajectory(&[first, second], tolerance()).unwrap_err(),
-            DragTrajectoryError::NeutralImpulseMismatch { event_id: 1, component: 0, .. }
+            DragTrajectoryError::NeutralImpulseMismatch {
+                event_id: 1,
+                component: 0,
+                ..
+            }
         ));
     }
 
@@ -675,7 +770,10 @@ mod tests {
         event.samples[2].sample_id = event.samples[1].sample_id;
         assert_eq!(
             validate_drag_trajectory(&[event], tolerance()).unwrap_err(),
-            DragTrajectoryError::DuplicateSampleId { event_id: 1, sample_id: 2 }
+            DragTrajectoryError::DuplicateSampleId {
+                event_id: 1,
+                sample_id: 2
+            }
         );
     }
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Split-conformal calibration at the independent acquisition/field level.
 //!
 //! A calibration unit is a complete field/acquisition cluster. Its score is
@@ -102,22 +104,39 @@ pub struct ClusterConformalReport {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ConformalError {
-    EmptyIdentity { field: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
     InvalidMiscoverage,
     InvalidExpectedVectorCount,
     EmptyCalibrationSet,
-    DuplicateClusterId { cluster_id: String },
-    DuplicateSampleId { sample_id: String },
-    ProtocolFingerprintMismatch { cluster_id: String },
+    DuplicateClusterId {
+        cluster_id: String,
+    },
+    DuplicateSampleId {
+        sample_id: String,
+    },
+    ProtocolFingerprintMismatch {
+        cluster_id: String,
+    },
     FieldVectorCountMismatch {
         cluster_id: String,
         expected: usize,
         actual: usize,
     },
-    MissingPhysicalRegion { cluster_id: String, region: FlowRegion },
-    NonFiniteResidual { sample_id: String },
-    InvalidCovariance { sample_id: String },
-    NonFiniteScore { sample_id: String },
+    MissingPhysicalRegion {
+        cluster_id: String,
+        region: FlowRegion,
+    },
+    NonFiniteResidual {
+        sample_id: String,
+    },
+    InvalidCovariance {
+        sample_id: String,
+    },
+    NonFiniteScore {
+        sample_id: String,
+    },
 }
 
 impl fmt::Display for ConformalError {
@@ -126,23 +145,45 @@ impl fmt::Display for ConformalError {
             Self::EmptyIdentity { field } => write!(f, "conformal {field} must be non-empty"),
             Self::InvalidMiscoverage => write!(f, "conformal alpha must be finite and in (0,1)"),
             Self::InvalidExpectedVectorCount => write!(f, "expected vector count must be positive"),
-            Self::EmptyCalibrationSet => write!(f, "at least one complete calibration cluster is required"),
-            Self::DuplicateClusterId { cluster_id } => write!(f, "duplicate calibration cluster: {cluster_id}"),
-            Self::DuplicateSampleId { sample_id } => write!(f, "duplicate calibration sample: {sample_id}"),
-            Self::ProtocolFingerprintMismatch { cluster_id } => {
-                write!(f, "cluster {cluster_id} does not match the target protocol fingerprint")
+            Self::EmptyCalibrationSet => {
+                write!(f, "at least one complete calibration cluster is required")
             }
-            Self::FieldVectorCountMismatch { cluster_id, expected, actual } => {
-                write!(f, "cluster {cluster_id} has {actual} vectors; expected {expected}")
+            Self::DuplicateClusterId { cluster_id } => {
+                write!(f, "duplicate calibration cluster: {cluster_id}")
+            }
+            Self::DuplicateSampleId { sample_id } => {
+                write!(f, "duplicate calibration sample: {sample_id}")
+            }
+            Self::ProtocolFingerprintMismatch { cluster_id } => {
+                write!(
+                    f,
+                    "cluster {cluster_id} does not match the target protocol fingerprint"
+                )
+            }
+            Self::FieldVectorCountMismatch {
+                cluster_id,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "cluster {cluster_id} has {actual} vectors; expected {expected}"
+                )
             }
             Self::MissingPhysicalRegion { cluster_id, region } => {
-                write!(f, "cluster {cluster_id} is missing physical region {region:?}")
+                write!(
+                    f,
+                    "cluster {cluster_id} is missing physical region {region:?}"
+                )
             }
             Self::NonFiniteResidual { sample_id } => {
                 write!(f, "non-finite velocity residual for sample {sample_id}")
             }
             Self::InvalidCovariance { sample_id } => {
-                write!(f, "predictive covariance is not positive definite for sample {sample_id}")
+                write!(
+                    f,
+                    "predictive covariance is not positive definite for sample {sample_id}"
+                )
             }
             Self::NonFiniteScore { sample_id } => {
                 write!(f, "non-finite Mahalanobis score for sample {sample_id}")
@@ -173,7 +214,9 @@ fn squared_mahalanobis(
             sample_id: sample_id.to_owned(),
         });
     }
-    let determinant = covariance.xx.mul_add(covariance.yy, -covariance.xy * covariance.xy);
+    let determinant = covariance
+        .xx
+        .mul_add(covariance.yy, -covariance.xy * covariance.xy);
     if !determinant.is_finite() || determinant <= f64::EPSILON * covariance.xx * covariance.yy {
         return Err(ConformalError::InvalidCovariance {
             sample_id: sample_id.to_owned(),
@@ -181,8 +224,8 @@ fn squared_mahalanobis(
     }
     let x = residual[0];
     let y = residual[1];
-    let score = (covariance.yy * x * x - 2.0 * covariance.xy * x * y
-        + covariance.xx * y * y) / determinant;
+    let score =
+        (covariance.yy * x * x - 2.0 * covariance.xy * x * y + covariance.xx * y * y) / determinant;
     if !score.is_finite() || score < 0.0 {
         return Err(ConformalError::NonFiniteScore {
             sample_id: sample_id.to_owned(),
@@ -202,8 +245,14 @@ pub fn calibrate_cluster_conformal(
 ) -> Result<ClusterConformalReport, ConformalError> {
     for (field, value) in [
         ("campaign_id", input.campaign_id.as_str()),
-        ("target_protocol_fingerprint", input.target_protocol_fingerprint.as_str()),
-        ("exchangeability_attestation_id", input.exchangeability_attestation_id.as_str()),
+        (
+            "target_protocol_fingerprint",
+            input.target_protocol_fingerprint.as_str(),
+        ),
+        (
+            "exchangeability_attestation_id",
+            input.exchangeability_attestation_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(ConformalError::EmptyIdentity { field });
@@ -225,7 +274,9 @@ pub fn calibrate_cluster_conformal(
 
     for cluster in &input.calibration_clusters {
         if cluster.cluster_id.trim().is_empty() {
-            return Err(ConformalError::EmptyIdentity { field: "cluster_id" });
+            return Err(ConformalError::EmptyIdentity {
+                field: "cluster_id",
+            });
         }
         if !cluster_ids.insert(cluster.cluster_id.clone()) {
             return Err(ConformalError::DuplicateClusterId {
@@ -329,7 +380,11 @@ mod tests {
             sample_id: id.to_owned(),
             region,
             residual_m_s: [score.sqrt(), 0.0],
-            covariance_m2_s2: Covariance2 { xx: 1.0, xy: 0.0, yy: 1.0 },
+            covariance_m2_s2: Covariance2 {
+                xx: 1.0,
+                xy: 0.0,
+                yy: 1.0,
+            },
         }
     }
 
@@ -339,9 +394,21 @@ mod tests {
             protocol_fingerprint: "protocol-frozen-v1".to_owned(),
             vectors: vec![
                 vector(&format!("sample-{index}-bulk"), FlowRegion::Bulk, score),
-                vector(&format!("sample-{index}-wall"), FlowRegion::NearWall, score * 0.8),
-                vector(&format!("sample-{index}-shear"), FlowRegion::ShearLayer, score * 0.6),
-                vector(&format!("sample-{index}-wake"), FlowRegion::Wake, score * 0.4),
+                vector(
+                    &format!("sample-{index}-wall"),
+                    FlowRegion::NearWall,
+                    score * 0.8,
+                ),
+                vector(
+                    &format!("sample-{index}-shear"),
+                    FlowRegion::ShearLayer,
+                    score * 0.6,
+                ),
+                vector(
+                    &format!("sample-{index}-wake"),
+                    FlowRegion::Wake,
+                    score * 0.4,
+                ),
             ],
         }
     }
@@ -365,7 +432,10 @@ mod tests {
         assert_eq!(report.quantile_rank, 19);
         assert_eq!(report.calibrated_squared_radius, Some(19.0));
         assert!((report.finite_sample_coverage_lower_bound.unwrap() - 0.95).abs() < 1.0e-12);
-        assert_eq!(report.disposition, ConformalDisposition::FiniteSampleClusterGuaranteeAvailable);
+        assert_eq!(
+            report.disposition,
+            ConformalDisposition::FiniteSampleClusterGuaranteeAvailable
+        );
     }
 
     #[test]
@@ -374,7 +444,10 @@ mod tests {
         assert_eq!(report.quantile_rank, 19);
         assert_eq!(report.calibrated_squared_radius, None);
         assert_eq!(report.finite_sample_coverage_lower_bound, None);
-        assert_eq!(report.disposition, ConformalDisposition::InsufficientCalibrationClusters);
+        assert_eq!(
+            report.disposition,
+            ConformalDisposition::InsufficientCalibrationClusters
+        );
     }
 
     #[test]
@@ -382,8 +455,11 @@ mod tests {
         let mut campaign = input(19);
         campaign.calibration_clusters[4].vectors[3].residual_m_s = [100.0, 0.0];
         let report = calibrate_cluster_conformal(&campaign).unwrap();
-        let row = report.cluster_scores.iter()
-            .find(|row| row.cluster_id == "session-4").unwrap();
+        let row = report
+            .cluster_scores
+            .iter()
+            .find(|row| row.cluster_id == "session-4")
+            .unwrap();
         assert_eq!(row.maximum_squared_mahalanobis, 10_000.0);
     }
 
@@ -434,8 +510,10 @@ mod tests {
     #[test]
     fn duplicate_vector_identity_is_rejected() {
         let mut campaign = input(19);
-        campaign.calibration_clusters[1].vectors[0].sample_id =
-            campaign.calibration_clusters[0].vectors[0].sample_id.clone();
+        campaign.calibration_clusters[1].vectors[0].sample_id = campaign.calibration_clusters[0]
+            .vectors[0]
+            .sample_id
+            .clone();
         assert!(matches!(
             calibrate_cluster_conformal(&campaign),
             Err(ConformalError::DuplicateSampleId { .. })
@@ -445,8 +523,11 @@ mod tests {
     #[test]
     fn invalid_covariance_is_rejected() {
         let mut campaign = input(19);
-        campaign.calibration_clusters[0].vectors[0].covariance_m2_s2 =
-            Covariance2 { xx: 1.0, xy: 2.0, yy: 1.0 };
+        campaign.calibration_clusters[0].vectors[0].covariance_m2_s2 = Covariance2 {
+            xx: 1.0,
+            xy: 2.0,
+            yy: 1.0,
+        };
         assert!(matches!(
             calibrate_cluster_conformal(&campaign),
             Err(ConformalError::InvalidCovariance { .. })
@@ -463,9 +544,15 @@ mod tests {
         ));
         let mut campaign = input(19);
         campaign.alpha = 0.0;
-        assert_eq!(calibrate_cluster_conformal(&campaign).unwrap_err(), ConformalError::InvalidMiscoverage);
+        assert_eq!(
+            calibrate_cluster_conformal(&campaign).unwrap_err(),
+            ConformalError::InvalidMiscoverage
+        );
         let mut campaign = input(19);
         campaign.calibration_clusters.clear();
-        assert_eq!(calibrate_cluster_conformal(&campaign).unwrap_err(), ConformalError::EmptyCalibrationSet);
+        assert_eq!(
+            calibrate_cluster_conformal(&campaign).unwrap_err(),
+            ConformalError::EmptyCalibrationSet
+        );
     }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Event-level conservation receipts for plasma/neutral momentum exchange.
 //!
 //! This module validates an in-memory batch of physical exchange events. It
@@ -93,13 +95,24 @@ impl fmt::Display for ReceiptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyBatch => write!(f, "no exchange events supplied"),
-            Self::InvalidTolerance => write!(f, "exchange receipt tolerances must be finite and non-negative"),
+            Self::InvalidTolerance => write!(
+                f,
+                "exchange receipt tolerances must be finite and non-negative"
+            ),
             Self::DuplicateEventId(id) => write!(f, "duplicate physical exchange event id: {id}"),
-            Self::CoordinateFrameMismatch { event_id, charged_frame_id, neutral_frame_id } => write!(
+            Self::CoordinateFrameMismatch {
+                event_id,
+                charged_frame_id,
+                neutral_frame_id,
+            } => write!(
                 f,
                 "exchange event {event_id} mixes charged frame {charged_frame_id} and neutral frame {neutral_frame_id} without an explicit transform"
             ),
-            Self::TransferMethodConflict { transfer_path_id, first, second } => write!(
+            Self::TransferMethodConflict {
+                transfer_path_id,
+                first,
+                second,
+            } => write!(
                 f,
                 "physical transfer path {transfer_path_id} selects conflicting methods {first:?} and {second:?}"
             ),
@@ -107,16 +120,29 @@ impl fmt::Display for ReceiptError {
                 f,
                 "physical transfer path {transfer_path_id} changed solver-pair or coordinate-frame identity between events"
             ),
-            Self::NonFiniteImpulse(id) => write!(f, "exchange event {id} has a non-finite impulse component"),
-            Self::EventBalanceFailure { event_id, component, residual_ns, allowed_ns } => write!(
+            Self::NonFiniteImpulse(id) => {
+                write!(f, "exchange event {id} has a non-finite impulse component")
+            }
+            Self::EventBalanceFailure {
+                event_id,
+                component,
+                residual_ns,
+                allowed_ns,
+            } => write!(
                 f,
                 "exchange event {event_id} component {component} residual {residual_ns} N*s exceeds allowed {allowed_ns} N*s"
             ),
-            Self::AggregateBalanceFailure { component, residual_ns, allowed_ns } => write!(
+            Self::AggregateBalanceFailure {
+                component,
+                residual_ns,
+                allowed_ns,
+            } => write!(
                 f,
                 "aggregate exchange component {component} residual {residual_ns} N*s exceeds allowed {allowed_ns} N*s"
             ),
-            Self::NonFiniteAccumulation => write!(f, "exchange receipt accumulation became non-finite"),
+            Self::NonFiniteAccumulation => {
+                write!(f, "exchange receipt accumulation became non-finite")
+            }
         }
     }
 }
@@ -233,8 +259,14 @@ pub fn validate_exchange_events(
             }
         }
 
-        if !event.charged_reaction_impulse_ns.iter().all(|value| value.is_finite())
-            || !event.neutral_impulse_ns.iter().all(|value| value.is_finite())
+        if !event
+            .charged_reaction_impulse_ns
+            .iter()
+            .all(|value| value.is_finite())
+            || !event
+                .neutral_impulse_ns
+                .iter()
+                .all(|value| value.is_finite())
         {
             return Err(ReceiptError::NonFiniteImpulse(event.event_id));
         }
@@ -278,8 +310,8 @@ pub fn validate_exchange_events(
     let mut aggregate_residual_ns = [0.0_f64; 3];
 
     for component in 0..3 {
-        let residual = total_charged_reaction_impulse_ns[component]
-            + total_neutral_impulse_ns[component];
+        let residual =
+            total_charged_reaction_impulse_ns[component] + total_neutral_impulse_ns[component];
         let scale = aggregate_scales[component].value();
         let allowed = tolerance.absolute_impulse_ns + tolerance.relative * scale;
         if !residual.is_finite() || !allowed.is_finite() {
@@ -330,6 +362,17 @@ pub fn reference_self_check() -> Result<(), ReceiptError> {
             charged_reaction_impulse_ns: [0.5, -1.0, 0.0],
             neutral_impulse_ns: [-0.5, 1.0, 0.0],
         },
+        ExchangeEvent {
+            event_id: 3,
+            transfer_path_id: 51,
+            method: TransferMethod::ReducedCoulombDeposition,
+            charged_solver_id: 10,
+            neutral_solver_id: 20,
+            charged_frame_id: 7,
+            neutral_frame_id: 7,
+            charged_reaction_impulse_ns: [0.0; 3],
+            neutral_impulse_ns: [0.0; 3],
+        },
     ];
     let receipt = validate_exchange_events(
         &events,
@@ -339,7 +382,8 @@ pub fn reference_self_check() -> Result<(), ReceiptError> {
         },
     )?;
 
-    if receipt.event_count != 2
+    if receipt.event_count != 3
+        || receipt.path_methods.get(&51) != Some(&TransferMethod::ReducedCoulombDeposition)
         || receipt.aggregate_residual_ns != [0.0; 3]
         || receipt.total_charged_reaction_impulse_ns != [-0.5, 1.0, -3.0]
         || receipt.total_neutral_impulse_ns != [0.5, -1.0, 3.0]
@@ -391,13 +435,28 @@ mod tests {
     fn accepts_exact_equal_and_opposite_exchange_events() {
         let receipt = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-1.0, 2.0, -3.0], [1.0, -2.0, 3.0]),
-                event(2, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [0.5, -1.0, 0.0], [-0.5, 1.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-1.0, 2.0, -3.0],
+                    [1.0, -2.0, 3.0],
+                ),
+                event(
+                    2,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [0.5, -1.0, 0.0],
+                    [-0.5, 1.0, 0.0],
+                ),
             ],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(receipt.event_count, 2);
         assert_eq!(receipt.aggregate_residual_ns, [0.0; 3]);
         assert_eq!(
@@ -410,13 +469,28 @@ mod tests {
     fn rejects_duplicate_event_ids() {
         let error = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-                event(1, 6, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-2.0, 0.0, 0.0], [2.0, 0.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                ),
+                event(
+                    1,
+                    6,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-2.0, 0.0, 0.0],
+                    [2.0, 0.0, 0.0],
+                ),
             ],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, ReceiptError::DuplicateEventId(1));
     }
 
@@ -424,19 +498,38 @@ mod tests {
     fn rejects_event_errors_that_cancel_in_the_global_sum() {
         let error = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-0.9, 0.0, 0.0], [1.0, 0.0, 0.0]),
-                event(2, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [0.9, 0.0, 0.0], [-1.0, 0.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-0.9, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                ),
+                event(
+                    2,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [0.9, 0.0, 0.0],
+                    [-1.0, 0.0, 0.0],
+                ),
             ],
             ExchangeTolerance {
                 absolute_impulse_ns: 1.0e-6,
                 relative: 0.0,
             },
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert!(matches!(
             error,
-            ReceiptError::EventBalanceFailure { event_id: 1, component: 0, .. }
+            ReceiptError::EventBalanceFailure {
+                event_id: 1,
+                component: 0,
+                ..
+            }
         ));
     }
 
@@ -444,16 +537,34 @@ mod tests {
     fn rejects_mutually_exclusive_methods_on_one_physical_path() {
         let error = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-                event(2, 5, TransferMethod::ReducedCoulombDeposition, 7, 7,
-                    [-2.0, 0.0, 0.0], [2.0, 0.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                ),
+                event(
+                    2,
+                    5,
+                    TransferMethod::ReducedCoulombDeposition,
+                    7,
+                    7,
+                    [-2.0, 0.0, 0.0],
+                    [2.0, 0.0, 0.0],
+                ),
             ],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert!(matches!(
             error,
-            ReceiptError::TransferMethodConflict { transfer_path_id: 5, .. }
+            ReceiptError::TransferMethodConflict {
+                transfer_path_id: 5,
+                ..
+            }
         ));
     }
 
@@ -471,27 +582,43 @@ mod tests {
         second.neutral_solver_id = 21;
         let error = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                ),
                 second,
             ],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(
             error,
-            ReceiptError::TransferPathIdentityConflict { transfer_path_id: 5 }
+            ReceiptError::TransferPathIdentityConflict {
+                transfer_path_id: 5
+            }
         );
     }
 
     #[test]
     fn rejects_implicit_coordinate_frame_mixing() {
         let error = validate_exchange_events(
-            &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 8,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-            ],
+            &[event(
+                1,
+                5,
+                TransferMethod::ExplicitSpeciesCollisionDrag,
+                7,
+                8,
+                [-1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+            )],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert!(matches!(
             error,
             ReceiptError::CoordinateFrameMismatch {
@@ -505,21 +632,41 @@ mod tests {
     #[test]
     fn rejects_non_finite_impulses() {
         let error = validate_exchange_events(
-            &[
-                event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [f64::NAN, 0.0, 0.0], [0.0, 0.0, 0.0]),
-            ],
+            &[event(
+                1,
+                5,
+                TransferMethod::ExplicitSpeciesCollisionDrag,
+                7,
+                7,
+                [f64::NAN, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+            )],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, ReceiptError::NonFiniteImpulse(1));
     }
 
     #[test]
     fn result_is_deterministic_under_event_input_permutation() {
-        let a = event(2, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-            [0.5, -1.0, 0.0], [-0.5, 1.0, 0.0]);
-        let b = event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-            [-1.0, 2.0, -3.0], [1.0, -2.0, 3.0]);
+        let a = event(
+            2,
+            5,
+            TransferMethod::ExplicitSpeciesCollisionDrag,
+            7,
+            7,
+            [0.5, -1.0, 0.0],
+            [-0.5, 1.0, 0.0],
+        );
+        let b = event(
+            1,
+            5,
+            TransferMethod::ExplicitSpeciesCollisionDrag,
+            7,
+            7,
+            [-1.0, 2.0, -3.0],
+            [1.0, -2.0, 3.0],
+        );
         let forward = validate_exchange_events(&[a, b], tolerance()).unwrap();
         let reverse = validate_exchange_events(&[b, a], tolerance()).unwrap();
         assert_eq!(forward, reverse);
@@ -529,13 +676,28 @@ mod tests {
     fn allows_multiple_events_on_one_path_when_method_is_constant() {
         let receipt = validate_exchange_events(
             &[
-                event(1, 5, TransferMethod::ReducedCoulombDeposition, 9, 9,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]),
-                event(2, 5, TransferMethod::ReducedCoulombDeposition, 9, 9,
-                    [-2.0, 0.0, 0.0], [2.0, 0.0, 0.0]),
+                event(
+                    1,
+                    5,
+                    TransferMethod::ReducedCoulombDeposition,
+                    9,
+                    9,
+                    [-1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                ),
+                event(
+                    2,
+                    5,
+                    TransferMethod::ReducedCoulombDeposition,
+                    9,
+                    9,
+                    [-2.0, 0.0, 0.0],
+                    [2.0, 0.0, 0.0],
+                ),
             ],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             receipt.path_methods.get(&5),
             Some(&TransferMethod::ReducedCoulombDeposition)
@@ -558,10 +720,18 @@ mod tests {
         };
         assert_eq!(
             validate_exchange_events(
-                &[event(1, 5, TransferMethod::ExplicitSpeciesCollisionDrag, 7, 7,
-                    [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0])],
+                &[event(
+                    1,
+                    5,
+                    TransferMethod::ExplicitSpeciesCollisionDrag,
+                    7,
+                    7,
+                    [-1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0]
+                )],
                 invalid,
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             ReceiptError::InvalidTolerance
         );
     }

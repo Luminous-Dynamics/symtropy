@@ -1,0 +1,87 @@
+{
+  "schema": "luminous.ehd_piv_spatial_error_kernel",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-005",
+  "as_of": "2026-11-22",
+  "status": "compact_support_spatial_covariance_reference_authored_tests_execution_pending",
+  "claim_ceiling": "A calibrated-parameter spatial covariance propagation reference. No empirical PIV autocorrelation fitting, raw image reprocessing or physical EHD validation is claimed.",
+  "research_basis": {
+    "paper": "Sciacchitano and Wieneke 2016",
+    "doi": "10.1088/0957-0233/27/8/084006",
+    "published_case": {
+      "window_px": [
+        32,
+        32
+      ],
+      "overlap_percent": 75,
+      "reported_correlation_at_two_vector_spacings": 0.45,
+      "significant_correlation_to_approx_vector_spacings": 3
+    },
+    "boundary": "Published correlations are configuration-specific evidence that spatial covariance matters; they are not reused as universal Luminous kernel parameters."
+  },
+  "covariance_model": {
+    "id": "wendland_c2_anisotropic_3d",
+    "formula": "phi(r)=(1-r)^4*(4*r+1) for 0<=r<1, else 0",
+    "normalized_distance": "sqrt((dx/ell_x)^2+(dy/ell_y)^2+(dz/ell_z)^2)",
+    "component_covariance": "symmetric positive semidefinite 3x3",
+    "field_model": "Cov(delta_u_i,delta_u_j)=K(x_i,x_j)*C_component",
+    "functional_propagation": "sum_i,sum_j K_ij * J_i * C_component * J_j^T",
+    "composition": "add to local independent residual covariance and distinct global shared modes; do not double count kernel covariance in local covariance"
+  },
+  "calibration_receipt": {
+    "receipt_id_required": true,
+    "protocol_fingerprint_required": true,
+    "exact_target_protocol_match": true,
+    "minimum_independent_acquisition_count": 20,
+    "maximum_absolute_correlation_fit_error_prospective": 0.05,
+    "reject_negative_correlation_lobe": true,
+    "assertions_are_external": true,
+    "note": "The calibration receipt fields are supplied by an external calibration pipeline; this crate does not fit the empirical autocorrelation or cryptographically verify the receipt."
+  },
+  "benchmark_plan": {
+    "calibration_splits": "whole acquisition sessions, grouped by processing configuration",
+    "model_comparators": [
+      "empirical_autocorrelation_lookup",
+      "gaussian_kernel",
+      "matern_kernel",
+      "wendland_c2_kernel",
+      "oscillatory_positive_definite_kernel_for_negative_lobes"
+    ],
+    "metrics": [
+      "spatial_correlation_rmse",
+      "maximum_absolute_autocorrelation_fit_error",
+      "positive_definiteness",
+      "functional_covariance_error",
+      "held_out_functional_coverage",
+      "functional_interval_sharpness",
+      "runtime",
+      "memory",
+      "energy"
+    ],
+    "regions": [
+      "bulk",
+      "near_wall",
+      "shear_layer",
+      "wake"
+    ]
+  },
+  "implementation": {
+    "path": "tools/ehd-piv-conformal-functional-uq/src/spatial_correlation.rs",
+    "function": "propagate_spatially_correlated_functional_uncertainty",
+    "model": "wendland_c2_anisotropic_3d",
+    "authored_rust_tests": 11,
+    "complexity": "O(N^2) reference implementation",
+    "execution": "not_run_no_local_rust_toolchain"
+  },
+  "limitations": [
+    "no_empirical_kernel_fit",
+    "no_raw_PIV_images_processed",
+    "stationary_correlated_component",
+    "common_component_covariance_across_samples",
+    "no_negative_correlation_lobe",
+    "no_temporal_covariance",
+    "no_spatially_varying_correlated_amplitude",
+    "receipt_is_external_assertion",
+    "no_EHD_force_or_thrust_validation"
+  ]
+}

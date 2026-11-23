@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Three-component whole-field conformal calibration for stereoscopic / 3D PIV.
 //!
 //! This uses the same complete-field cluster maximum-score construction as
@@ -79,18 +81,39 @@ pub struct ClusterConformal3Report {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Conformal3Error {
-    EmptyIdentity { field: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
     InvalidMiscoverage,
     InvalidExpectedVectorCount,
     EmptyCalibrationSet,
-    DuplicateClusterId { cluster_id: String },
-    DuplicateSampleId { sample_id: String },
-    ProtocolFingerprintMismatch { cluster_id: String },
-    FieldVectorCountMismatch { cluster_id: String, expected: usize, actual: usize },
-    MissingPhysicalRegion { cluster_id: String, region: FlowRegion },
-    NonFiniteResidual { sample_id: String },
-    InvalidCovariance { sample_id: String },
-    NonFiniteScore { sample_id: String },
+    DuplicateClusterId {
+        cluster_id: String,
+    },
+    DuplicateSampleId {
+        sample_id: String,
+    },
+    ProtocolFingerprintMismatch {
+        cluster_id: String,
+    },
+    FieldVectorCountMismatch {
+        cluster_id: String,
+        expected: usize,
+        actual: usize,
+    },
+    MissingPhysicalRegion {
+        cluster_id: String,
+        region: FlowRegion,
+    },
+    NonFiniteResidual {
+        sample_id: String,
+    },
+    InvalidCovariance {
+        sample_id: String,
+    },
+    NonFiniteScore {
+        sample_id: String,
+    },
 }
 
 impl fmt::Display for Conformal3Error {
@@ -98,16 +121,45 @@ impl fmt::Display for Conformal3Error {
         match self {
             Self::EmptyIdentity { field } => write!(f, "3D conformal {field} must be non-empty"),
             Self::InvalidMiscoverage => write!(f, "3D conformal alpha must be finite and in (0,1)"),
-            Self::InvalidExpectedVectorCount => write!(f, "3D conformal expected vector count must be positive"),
-            Self::EmptyCalibrationSet => write!(f, "3D conformal calibration requires complete field clusters"),
-            Self::DuplicateClusterId { cluster_id } => write!(f, "duplicate 3D calibration cluster: {cluster_id}"),
-            Self::DuplicateSampleId { sample_id } => write!(f, "duplicate 3D calibration sample: {sample_id}"),
-            Self::ProtocolFingerprintMismatch { cluster_id } => write!(f, "3D cluster {cluster_id} does not match the target protocol"),
-            Self::FieldVectorCountMismatch { cluster_id, expected, actual } => write!(f, "3D cluster {cluster_id} has {actual} vectors; expected {expected}"),
-            Self::MissingPhysicalRegion { cluster_id, region } => write!(f, "3D cluster {cluster_id} is missing region {region:?}"),
-            Self::NonFiniteResidual { sample_id } => write!(f, "3D residual is non-finite for sample {sample_id}"),
-            Self::InvalidCovariance { sample_id } => write!(f, "3D covariance is not positive definite for sample {sample_id}"),
-            Self::NonFiniteScore { sample_id } => write!(f, "3D Mahalanobis score is non-finite for sample {sample_id}"),
+            Self::InvalidExpectedVectorCount => {
+                write!(f, "3D conformal expected vector count must be positive")
+            }
+            Self::EmptyCalibrationSet => write!(
+                f,
+                "3D conformal calibration requires complete field clusters"
+            ),
+            Self::DuplicateClusterId { cluster_id } => {
+                write!(f, "duplicate 3D calibration cluster: {cluster_id}")
+            }
+            Self::DuplicateSampleId { sample_id } => {
+                write!(f, "duplicate 3D calibration sample: {sample_id}")
+            }
+            Self::ProtocolFingerprintMismatch { cluster_id } => write!(
+                f,
+                "3D cluster {cluster_id} does not match the target protocol"
+            ),
+            Self::FieldVectorCountMismatch {
+                cluster_id,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "3D cluster {cluster_id} has {actual} vectors; expected {expected}"
+            ),
+            Self::MissingPhysicalRegion { cluster_id, region } => {
+                write!(f, "3D cluster {cluster_id} is missing region {region:?}")
+            }
+            Self::NonFiniteResidual { sample_id } => {
+                write!(f, "3D residual is non-finite for sample {sample_id}")
+            }
+            Self::InvalidCovariance { sample_id } => write!(
+                f,
+                "3D covariance is not positive definite for sample {sample_id}"
+            ),
+            Self::NonFiniteScore { sample_id } => write!(
+                f,
+                "3D Mahalanobis score is non-finite for sample {sample_id}"
+            ),
         }
     }
 }
@@ -140,10 +192,11 @@ fn squared_mahalanobis_3(
 
     // Sylvester criterion for a symmetric 3x3 positive-definite matrix.
     let leading_minor_2 = a.mul_add(d, -b * b);
-    let determinant = a * (d * f - e * e)
-        - b * (b * f - c * e)
-        + c * (b * e - c * d);
-    let scale = entries.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let determinant = a * (d * f - e * e) - b * (b * f - c * e) + c * (b * e - c * d);
+    let scale = entries
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     if a <= 0.0
         || leading_minor_2 <= 0.0
         || !determinant.is_finite()
@@ -183,8 +236,14 @@ pub fn calibrate_cluster_conformal_3d(
 ) -> Result<ClusterConformal3Report, Conformal3Error> {
     for (field, value) in [
         ("campaign_id", input.campaign_id.as_str()),
-        ("target_protocol_fingerprint", input.target_protocol_fingerprint.as_str()),
-        ("exchangeability_attestation_id", input.exchangeability_attestation_id.as_str()),
+        (
+            "target_protocol_fingerprint",
+            input.target_protocol_fingerprint.as_str(),
+        ),
+        (
+            "exchangeability_attestation_id",
+            input.exchangeability_attestation_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(Conformal3Error::EmptyIdentity { field });
@@ -206,7 +265,9 @@ pub fn calibrate_cluster_conformal_3d(
 
     for cluster in &input.calibration_clusters {
         if cluster.cluster_id.trim().is_empty() {
-            return Err(Conformal3Error::EmptyIdentity { field: "cluster_id" });
+            return Err(Conformal3Error::EmptyIdentity {
+                field: "cluster_id",
+            });
         }
         if !cluster_ids.insert(cluster.cluster_id.clone()) {
             return Err(Conformal3Error::DuplicateClusterId {
@@ -311,7 +372,12 @@ mod tests {
             region,
             residual_m_s: residual,
             covariance_m2_s2: Covariance3 {
-                xx: 1.0, xy: 0.0, xz: 0.0, yy: 1.0, yz: 0.0, zz: 1.0,
+                xx: 1.0,
+                xy: 0.0,
+                xz: 0.0,
+                yy: 1.0,
+                yz: 0.0,
+                zz: 1.0,
             },
         }
     }
@@ -322,10 +388,26 @@ mod tests {
             cluster_id: format!("stereo-session-{index}"),
             protocol_fingerprint: "stereo-protocol-v1".to_owned(),
             vectors: vec![
-                vector(&format!("s{index}-bulk"), FlowRegion::Bulk, [radius, 0.0, 0.0]),
-                vector(&format!("s{index}-wall"), FlowRegion::NearWall, [radius * 0.8, 0.0, 0.0]),
-                vector(&format!("s{index}-shear"), FlowRegion::ShearLayer, [radius * 0.6, 0.0, 0.0]),
-                vector(&format!("s{index}-wake"), FlowRegion::Wake, [radius * 0.4, 0.0, 0.0]),
+                vector(
+                    &format!("s{index}-bulk"),
+                    FlowRegion::Bulk,
+                    [radius, 0.0, 0.0],
+                ),
+                vector(
+                    &format!("s{index}-wall"),
+                    FlowRegion::NearWall,
+                    [radius * 0.8, 0.0, 0.0],
+                ),
+                vector(
+                    &format!("s{index}-shear"),
+                    FlowRegion::ShearLayer,
+                    [radius * 0.6, 0.0, 0.0],
+                ),
+                vector(
+                    &format!("s{index}-wake"),
+                    FlowRegion::Wake,
+                    [radius * 0.4, 0.0, 0.0],
+                ),
             ],
         }
     }
@@ -337,7 +419,9 @@ mod tests {
             exchangeability_attestation_id: "stereo-design-review-v1".to_owned(),
             alpha: 0.05,
             expected_vectors_per_cluster: 4,
-            calibration_clusters: (0..count).map(|index| cluster(index, index as f64 + 1.0)).collect(),
+            calibration_clusters: (0..count)
+                .map(|index| cluster(index, index as f64 + 1.0))
+                .collect(),
         }
     }
 
@@ -354,12 +438,20 @@ mod tests {
     fn three_dimensional_correlated_covariance_changes_mahalanobis_score() {
         let mut campaign = input(19);
         campaign.calibration_clusters[0].vectors[0].covariance_m2_s2 = Covariance3 {
-            xx: 1.0, xy: 0.8, xz: 0.0, yy: 1.0, yz: 0.0, zz: 1.0,
+            xx: 1.0,
+            xy: 0.8,
+            xz: 0.0,
+            yy: 1.0,
+            yz: 0.0,
+            zz: 1.0,
         };
         campaign.calibration_clusters[0].vectors[0].residual_m_s = [1.0, -1.0, 0.0];
         let report = calibrate_cluster_conformal_3d(&campaign).unwrap();
-        let row = report.cluster_scores.iter()
-            .find(|row| row.cluster_id == "stereo-session-0").unwrap();
+        let row = report
+            .cluster_scores
+            .iter()
+            .find(|row| row.cluster_id == "stereo-session-0")
+            .unwrap();
         assert!(row.maximum_squared_mahalanobis > 1.0);
     }
 
@@ -367,7 +459,12 @@ mod tests {
     fn three_dimensional_non_positive_definite_covariance_is_rejected() {
         let mut campaign = input(19);
         campaign.calibration_clusters[0].vectors[0].covariance_m2_s2 = Covariance3 {
-            xx: 1.0, xy: 0.9, xz: 0.9, yy: 1.0, yz: -0.9, zz: 1.0,
+            xx: 1.0,
+            xy: 0.9,
+            xz: 0.9,
+            yy: 1.0,
+            yz: -0.9,
+            zz: 1.0,
         };
         assert!(matches!(
             calibrate_cluster_conformal_3d(&campaign),

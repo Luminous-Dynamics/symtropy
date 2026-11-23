@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Whole-session conformal calibration for integrated field functionals.
 //!
 //! This calibrates the four-component output vector produced by the functional
@@ -112,37 +114,95 @@ pub struct FunctionalConformalReport {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FunctionalConformalError {
-    EmptyIdentity { field: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
     InvalidMiscoverage,
     InvalidExpectedObservationCount,
     EmptyCalibrationSet,
-    DuplicateClusterId { cluster_id: String },
-    DuplicateObservationId { observation_id: String },
-    DuplicateReferenceEvidenceId { evidence_id: String },
-    ProtocolFingerprintMismatch { cluster_id: String },
-    FunctionalContractMismatch { cluster_id: String },
-    ObservationCountMismatch { cluster_id: String, expected: usize, actual: usize },
-    NonFiniteResidual { observation_id: String },
-    InvalidCovariance { observation_id: String },
-    NonFiniteScore { observation_id: String },
+    DuplicateClusterId {
+        cluster_id: String,
+    },
+    DuplicateObservationId {
+        observation_id: String,
+    },
+    DuplicateReferenceEvidenceId {
+        evidence_id: String,
+    },
+    ProtocolFingerprintMismatch {
+        cluster_id: String,
+    },
+    FunctionalContractMismatch {
+        cluster_id: String,
+    },
+    ObservationCountMismatch {
+        cluster_id: String,
+        expected: usize,
+        actual: usize,
+    },
+    NonFiniteResidual {
+        observation_id: String,
+    },
+    InvalidCovariance {
+        observation_id: String,
+    },
+    NonFiniteScore {
+        observation_id: String,
+    },
 }
 
 impl fmt::Display for FunctionalConformalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptyIdentity { field } => write!(f, "functional conformal {field} must be non-empty"),
-            Self::InvalidMiscoverage => write!(f, "functional conformal alpha must be finite and in (0,1)"),
-            Self::InvalidExpectedObservationCount => write!(f, "expected functional observation count must be positive"),
-            Self::EmptyCalibrationSet => write!(f, "functional conformal calibration requires complete session clusters"),
-            Self::DuplicateClusterId { cluster_id } => write!(f, "duplicate functional calibration cluster: {cluster_id}"),
-            Self::DuplicateObservationId { observation_id } => write!(f, "duplicate functional observation: {observation_id}"),
-            Self::DuplicateReferenceEvidenceId { evidence_id } => write!(f, "duplicate functional reference evidence: {evidence_id}"),
-            Self::ProtocolFingerprintMismatch { cluster_id } => write!(f, "functional cluster {cluster_id} protocol fingerprint differs"),
-            Self::FunctionalContractMismatch { cluster_id } => write!(f, "functional cluster {cluster_id} observable contract differs"),
-            Self::ObservationCountMismatch { cluster_id, expected, actual } => write!(f, "functional cluster {cluster_id} has {actual} observations; expected {expected}"),
-            Self::NonFiniteResidual { observation_id } => write!(f, "functional residual is non-finite for {observation_id}"),
-            Self::InvalidCovariance { observation_id } => write!(f, "functional covariance is not symmetric positive definite for {observation_id}"),
-            Self::NonFiniteScore { observation_id } => write!(f, "functional Mahalanobis score is non-finite for {observation_id}"),
+            Self::EmptyIdentity { field } => {
+                write!(f, "functional conformal {field} must be non-empty")
+            }
+            Self::InvalidMiscoverage => {
+                write!(f, "functional conformal alpha must be finite and in (0,1)")
+            }
+            Self::InvalidExpectedObservationCount => {
+                write!(f, "expected functional observation count must be positive")
+            }
+            Self::EmptyCalibrationSet => write!(
+                f,
+                "functional conformal calibration requires complete session clusters"
+            ),
+            Self::DuplicateClusterId { cluster_id } => {
+                write!(f, "duplicate functional calibration cluster: {cluster_id}")
+            }
+            Self::DuplicateObservationId { observation_id } => {
+                write!(f, "duplicate functional observation: {observation_id}")
+            }
+            Self::DuplicateReferenceEvidenceId { evidence_id } => {
+                write!(f, "duplicate functional reference evidence: {evidence_id}")
+            }
+            Self::ProtocolFingerprintMismatch { cluster_id } => write!(
+                f,
+                "functional cluster {cluster_id} protocol fingerprint differs"
+            ),
+            Self::FunctionalContractMismatch { cluster_id } => write!(
+                f,
+                "functional cluster {cluster_id} observable contract differs"
+            ),
+            Self::ObservationCountMismatch {
+                cluster_id,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "functional cluster {cluster_id} has {actual} observations; expected {expected}"
+            ),
+            Self::NonFiniteResidual { observation_id } => {
+                write!(f, "functional residual is non-finite for {observation_id}")
+            }
+            Self::InvalidCovariance { observation_id } => write!(
+                f,
+                "functional covariance is not symmetric positive definite for {observation_id}"
+            ),
+            Self::NonFiniteScore { observation_id } => write!(
+                f,
+                "functional Mahalanobis score is non-finite for {observation_id}"
+            ),
         }
     }
 }
@@ -192,8 +252,7 @@ fn squared_mahalanobis_4(
                     observation_id: observation_id.to_owned(),
                 });
             }
-            correlation[row][column] =
-                0.5 * (left + right) / covariance_scale;
+            correlation[row][column] = 0.5 * (left + right) / covariance_scale;
         }
     }
 
@@ -244,9 +303,18 @@ pub fn calibrate_functional_conformal(
 ) -> Result<FunctionalConformalReport, FunctionalConformalError> {
     for (field, value) in [
         ("campaign_id", input.campaign_id.as_str()),
-        ("target_protocol_fingerprint", input.target_protocol_fingerprint.as_str()),
-        ("functional_contract_id", input.functional_contract_id.as_str()),
-        ("exchangeability_attestation_id", input.exchangeability_attestation_id.as_str()),
+        (
+            "target_protocol_fingerprint",
+            input.target_protocol_fingerprint.as_str(),
+        ),
+        (
+            "functional_contract_id",
+            input.functional_contract_id.as_str(),
+        ),
+        (
+            "exchangeability_attestation_id",
+            input.exchangeability_attestation_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(FunctionalConformalError::EmptyIdentity { field });
@@ -269,7 +337,9 @@ pub fn calibrate_functional_conformal(
 
     for cluster in &input.calibration_clusters {
         if cluster.cluster_id.trim().is_empty() {
-            return Err(FunctionalConformalError::EmptyIdentity { field: "cluster_id" });
+            return Err(FunctionalConformalError::EmptyIdentity {
+                field: "cluster_id",
+            });
         }
         if !cluster_ids.insert(cluster.cluster_id.clone()) {
             return Err(FunctionalConformalError::DuplicateClusterId {
@@ -328,7 +398,8 @@ pub fn calibrate_functional_conformal(
     }
 
     cluster_scores.sort_by(|left, right| {
-        left.maximum_squared_mahalanobis.total_cmp(&right.maximum_squared_mahalanobis)
+        left.maximum_squared_mahalanobis
+            .total_cmp(&right.maximum_squared_mahalanobis)
     });
     let n = cluster_scores.len();
     let rank = (((n + 1) as f64) * (1.0 - input.alpha)).ceil() as usize;
@@ -417,8 +488,8 @@ mod tests {
     #[test]
     fn functional_report_adapter_preserves_output_order_covariance_and_residual_sign() {
         use crate::functional::{
-            propagate_field_functional_uncertainty, Covariance3, FaceVelocitySample,
-            FieldFunctionalInput,
+            Covariance3, FaceVelocitySample, FieldFunctionalInput,
+            propagate_field_functional_uncertainty,
         };
 
         let predicted = propagate_field_functional_uncertainty(&FieldFunctionalInput {
@@ -431,11 +502,17 @@ mod tests {
                 oriented_area_vector_m2: [1.0, 0.0, 0.0],
                 density_kg_m3: 1.0,
                 local_velocity_covariance_m2_s2: Covariance3 {
-                    xx: 0.25, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0,
+                    xx: 0.25,
+                    xy: 0.0,
+                    xz: 0.0,
+                    yy: 0.0,
+                    yz: 0.0,
+                    zz: 0.0,
                 },
             }],
             shared_modes: Vec::new(),
-        }).unwrap();
+        })
+        .unwrap();
 
         let observation = functional_observation_from_report(
             "observation-1",
@@ -462,7 +539,10 @@ mod tests {
         let report = calibrate_functional_conformal(&input(18)).unwrap();
         assert_eq!(report.quantile_rank, 19);
         assert_eq!(report.calibrated_squared_radius, None);
-        assert_eq!(report.disposition, FunctionalConformalDisposition::InsufficientCalibrationSessions);
+        assert_eq!(
+            report.disposition,
+            FunctionalConformalDisposition::InsufficientCalibrationSessions
+        );
     }
 
     #[test]
@@ -476,8 +556,11 @@ mod tests {
         ];
         campaign.calibration_clusters[0].observations[0].residual = [1.0, -1.0, 0.0, 0.0];
         let report = calibrate_functional_conformal(&campaign).unwrap();
-        let row = report.cluster_scores.iter()
-            .find(|row| row.cluster_id == "lab-session-0").unwrap();
+        let row = report
+            .cluster_scores
+            .iter()
+            .find(|row| row.cluster_id == "lab-session-0")
+            .unwrap();
         assert!((row.maximum_squared_mahalanobis - 10.0).abs() < 1.0e-12);
     }
 
@@ -525,9 +608,13 @@ mod tests {
         campaign.expected_observations_per_cluster = 2;
         let mut duplicate_reference = campaign.calibration_clusters[0].observations[0].clone();
         duplicate_reference.observation_id = "new-functional-observation".to_owned();
-        campaign.calibration_clusters[0].observations.push(duplicate_reference);
+        campaign.calibration_clusters[0]
+            .observations
+            .push(duplicate_reference);
         for (index, cluster) in campaign.calibration_clusters.iter_mut().enumerate().skip(1) {
-            cluster.observations.push(observation(index + 100, index as f64 + 1.0));
+            cluster
+                .observations
+                .push(observation(index + 100, index as f64 + 1.0));
         }
         assert!(matches!(
             calibrate_functional_conformal(&campaign),

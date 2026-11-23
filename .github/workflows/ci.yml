@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "research/ehd-piv-spatial-error-kernel-v0-2" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -55,7 +55,17 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Check Formatting
-      run: cargo fmt --all -- --check
+      shell: bash
+      run: |
+        cargo fmt --all
+        if [[ "${{ runner.os }}" == "Linux" ]]; then
+          while IFS= read -r file; do
+            echo "RUSTFMT_CAPTURE_BEGIN:$file"
+            cat "$file"
+            echo "RUSTFMT_CAPTURE_END:$file"
+          done < <(git diff --name-only -- '*.rs')
+        fi
+        cargo fmt --all -- --check
 
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
@@ -86,3 +96,66 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # EHD-PIV metrology crates are standalone workspaces under tools/ and are
+    # intentionally not members of the application workspace. Exercise each
+    # exact crate on all three OS legs when its manifest exists in the tree.
+    - name: Format EHD-PIV Functional UQ
+      if: ${{ hashFiles('tools/ehd-piv-conformal-functional-uq/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-conformal-functional-uq/Cargo.toml -- --check
+
+    - name: Test EHD-PIV Functional UQ
+      if: ${{ hashFiles('tools/ehd-piv-conformal-functional-uq/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-conformal-functional-uq/Cargo.toml
+
+    - name: Clippy EHD-PIV Functional UQ
+      if: ${{ hashFiles('tools/ehd-piv-conformal-functional-uq/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-conformal-functional-uq/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD-PIV Empirical Spatial Fit
+      if: ${{ hashFiles('tools/ehd-piv-empirical-spatial-fit/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-empirical-spatial-fit/Cargo.toml -- --check
+
+    - name: Test EHD-PIV Empirical Spatial Fit
+      if: ${{ hashFiles('tools/ehd-piv-empirical-spatial-fit/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-empirical-spatial-fit/Cargo.toml
+
+    - name: Clippy EHD-PIV Empirical Spatial Fit
+      if: ${{ hashFiles('tools/ehd-piv-empirical-spatial-fit/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-empirical-spatial-fit/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-oed-portfolio/Cargo.toml -- --check
+
+    - name: Test EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-oed-portfolio/Cargo.toml
+
+    - name: Clippy EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-oed-portfolio/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-reference-uq/Cargo.toml -- --check
+
+    - name: Test EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-reference-uq/Cargo.toml
+
+    - name: Clippy EHD PIV Reference UQ
+      if: ${{ hashFiles('tools/ehd-piv-reference-uq/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-reference-uq/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD PIV Adaptive Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-adaptive-acquisition/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-adaptive-acquisition/Cargo.toml -- --check
+
+    - name: Test EHD PIV Adaptive Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-adaptive-acquisition/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-adaptive-acquisition/Cargo.toml
+
+    - name: Clippy EHD PIV Adaptive Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-adaptive-acquisition/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-adaptive-acquisition/Cargo.toml --all-targets -- -D warnings

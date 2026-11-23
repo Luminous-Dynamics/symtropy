@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Source-bounded pressure/tracer screening for the EHD low-density-air PIV cohort.
 //!
 //! This reports only source-table feasibility. It does not infer velocity
@@ -85,56 +87,106 @@ pub struct PressureTracerRow {
 /// Parenthesized values before a dash are edge-case-only; unparenthesized values
 /// after a dash are whole-field values. A bare parenthesized value is edge-only.
 pub const SOURCE_PRESSURE_TRACER_TABLE: [PressureTracerRow; 10] = [
-    PressureTracerRow { pressure_atm: 1.00, tracers: [
-        available(Some(128), Some(64)), available(Some(32), None),
-        available(Some(64), Some(32)), available(Some(64), Some(32)),
-        available(Some(64), Some(32)),
-    ]},
-    PressureTracerRow { pressure_atm: 0.90, tracers: [
-        available(Some(128), None), available(Some(32), None),
-        available(Some(64), Some(32)), available(Some(64), Some(32)),
-        available(Some(64), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.80, tracers: [
-        available(Some(128), None), available(Some(128), Some(64)),
-        available(Some(64), Some(32)), available(Some(64), None),
-        available(Some(64), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.70, tracers: [
-        available(Some(128), None), available(None, Some(128)),
-        available(Some(64), None), available(Some(64), None),
-        available(Some(64), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.60, tracers: [
-        available(None, Some(128)), unavailable(),
-        available(Some(128), Some(64)), available(Some(64), None),
-        available(Some(64), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.50, tracers: [
-        available(None, Some(128)), unavailable(),
-        available(Some(128), Some(64)), available(Some(128), Some(64)),
-        available(Some(64), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.45, tracers: [
-        unavailable(), unavailable(),
-        available(Some(128), Some(64)), available(Some(128), None),
-        no_data(),
-    ]},
-    PressureTracerRow { pressure_atm: 0.40, tracers: [
-        unavailable(), unavailable(),
-        available(Some(128), Some(64)), available(None, Some(128)),
-        available(Some(128), Some(64)),
-    ]},
-    PressureTracerRow { pressure_atm: 0.35, tracers: [
-        unavailable(), unavailable(),
-        available(Some(128), Some(64)), available(None, Some(128)),
-        available(Some(128), None),
-    ]},
-    PressureTracerRow { pressure_atm: 0.30, tracers: [
-        unavailable(), unavailable(),
-        available(Some(128), Some(64)), available(None, Some(128)),
-        available(Some(128), None),
-    ]},
+    PressureTracerRow {
+        pressure_atm: 1.00,
+        tracers: [
+            available(Some(128), Some(64)),
+            available(Some(32), None),
+            available(Some(64), Some(32)),
+            available(Some(64), Some(32)),
+            available(Some(64), Some(32)),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.90,
+        tracers: [
+            available(Some(128), None),
+            available(Some(32), None),
+            available(Some(64), Some(32)),
+            available(Some(64), Some(32)),
+            available(Some(64), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.80,
+        tracers: [
+            available(Some(128), None),
+            available(Some(128), Some(64)),
+            available(Some(64), Some(32)),
+            available(Some(64), None),
+            available(Some(64), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.70,
+        tracers: [
+            available(Some(128), None),
+            available(None, Some(128)),
+            available(Some(64), None),
+            available(Some(64), None),
+            available(Some(64), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.60,
+        tracers: [
+            available(None, Some(128)),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(Some(64), None),
+            available(Some(64), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.50,
+        tracers: [
+            available(None, Some(128)),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(Some(128), Some(64)),
+            available(Some(64), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.45,
+        tracers: [
+            unavailable(),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(Some(128), None),
+            no_data(),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.40,
+        tracers: [
+            unavailable(),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(None, Some(128)),
+            available(Some(128), Some(64)),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.35,
+        tracers: [
+            unavailable(),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(None, Some(128)),
+            available(Some(128), None),
+        ],
+    },
+    PressureTracerRow {
+        pressure_atm: 0.30,
+        tracers: [
+            unavailable(),
+            unavailable(),
+            available(Some(128), Some(64)),
+            available(None, Some(128)),
+            available(Some(128), None),
+        ],
+    },
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -193,7 +245,10 @@ impl fmt::Display for TracerScreenError {
         match self {
             Self::NonFinitePressure => write!(f, "tracer-screen pressure must be finite"),
             Self::InvalidMaximumWindow => {
-                write!(f, "maximum interrogation window must be a nonzero pixel size")
+                write!(
+                    f,
+                    "maximum interrogation window must be a nonzero pixel size"
+                )
             }
         }
     }
@@ -202,9 +257,9 @@ impl fmt::Display for TracerScreenError {
 impl Error for TracerScreenError {}
 
 fn exact_source_row(pressure_atm: f64) -> Option<&'static PressureTracerRow> {
-    SOURCE_PRESSURE_TRACER_TABLE.iter().find(|row| {
-        (row.pressure_atm - pressure_atm).abs() <= PRESSURE_MATCH_TOLERANCE_ATM
-    })
+    SOURCE_PRESSURE_TRACER_TABLE
+        .iter()
+        .find(|row| (row.pressure_atm - pressure_atm).abs() <= PRESSURE_MATCH_TOLERANCE_ATM)
 }
 
 /// Screen one tracer at one exact pressure from the source's reported PIV
@@ -241,14 +296,16 @@ pub fn screen_tracer_candidate(
                     // The source explicitly says 32x32 px was insufficient for
                     // its boundary layer. Do not infer success from this table.
                     TracerScreenDisposition::BoundaryLayerNotResolved
-                } else if selected.full_field_min_window_px.is_some_and(|window| {
-                    window <= input.maximum_interrogation_window_px
-                }) {
+                } else if selected
+                    .full_field_min_window_px
+                    .is_some_and(|window| window <= input.maximum_interrogation_window_px)
+                {
                     eligible_for_requested_resolution = true;
                     TracerScreenDisposition::FullFieldResolutionAvailable
-                } else if selected.edge_case_min_window_px.is_some_and(|window| {
-                    window <= input.maximum_interrogation_window_px
-                }) {
+                } else if selected
+                    .edge_case_min_window_px
+                    .is_some_and(|window| window <= input.maximum_interrogation_window_px)
+                {
                     eligible_for_requested_resolution = !input.require_full_field;
                     TracerScreenDisposition::EdgeCaseOnly
                 } else {
@@ -315,6 +372,30 @@ pub fn reference_self_check() -> Result<(), TracerScreenError> {
         return Err(TracerScreenError::InvalidMaximumWindow);
     }
 
+    let dehs_unavailable = screen_tracer_candidate(TracerScreenInput {
+        pressure_atm: 0.30,
+        tracer: TracerKind::Dehs,
+        maximum_interrogation_window_px: 128,
+        require_full_field: true,
+        require_boundary_layer_detail: false,
+    })?;
+    if dehs_unavailable.disposition != TracerScreenDisposition::UnavailableAtPressure {
+        return Err(TracerScreenError::InvalidMaximumWindow);
+    }
+
+    let incense_cones_edge_only = screen_tracer_candidate(TracerScreenInput {
+        pressure_atm: 0.30,
+        tracer: TracerKind::IncenseCones,
+        maximum_interrogation_window_px: 128,
+        require_full_field: true,
+        require_boundary_layer_detail: false,
+    })?;
+    if incense_cones_edge_only.disposition != TracerScreenDisposition::EdgeCaseOnly
+        || incense_cones_edge_only.eligible_for_requested_resolution
+    {
+        return Err(TracerScreenError::InvalidMaximumWindow);
+    }
+
     let unmeasured_pressure = screen_tracer_candidate(TracerScreenInput {
         pressure_atm: 0.33,
         tracer: TracerKind::Sio2,
@@ -361,9 +442,8 @@ mod tests {
 
     #[test]
     fn silica_has_source_reported_full_field_feasibility_at_point_three_atm() {
-        let report = screen_tracer_candidate(input(
-            0.30, TracerKind::Sio2, 128, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.30, TracerKind::Sio2, 128, true, false)).unwrap();
         assert_eq!(
             report.disposition,
             TracerScreenDisposition::FullFieldResolutionAvailable
@@ -374,17 +454,20 @@ mod tests {
 
     #[test]
     fn fog_is_unavailable_at_point_five_atm_in_the_source_table() {
-        let report = screen_tracer_candidate(input(
-            0.50, TracerKind::VaporizedFog, 128, true, false,
-        )).unwrap();
-        assert_eq!(report.disposition, TracerScreenDisposition::UnavailableAtPressure);
+        let report =
+            screen_tracer_candidate(input(0.50, TracerKind::VaporizedFog, 128, true, false))
+                .unwrap();
+        assert_eq!(
+            report.disposition,
+            TracerScreenDisposition::UnavailableAtPressure
+        );
     }
 
     #[test]
     fn incense_sticks_at_point_three_atm_are_edge_case_only_for_sixty_four_px() {
-        let report = screen_tracer_candidate(input(
-            0.30, TracerKind::IncenseSticks, 64, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.30, TracerKind::IncenseSticks, 64, true, false))
+                .unwrap();
         assert_eq!(report.disposition, TracerScreenDisposition::EdgeCaseOnly);
         assert!(!report.eligible_for_requested_resolution);
         assert_eq!(report.evidence.unwrap().full_field_min_window_px, Some(128));
@@ -392,35 +475,39 @@ mod tests {
 
     #[test]
     fn dehs_is_unavailable_at_point_three_atm_in_the_source_table() {
-        let report = screen_tracer_candidate(input(
-            0.30, TracerKind::Dehs, 128, true, false,
-        )).unwrap();
-        assert_eq!(report.disposition, TracerScreenDisposition::UnavailableAtPressure);
+        let report =
+            screen_tracer_candidate(input(0.30, TracerKind::Dehs, 128, true, false)).unwrap();
+        assert_eq!(
+            report.disposition,
+            TracerScreenDisposition::UnavailableAtPressure
+        );
     }
 
     #[test]
     fn edge_case_window_is_not_promoted_to_full_field_resolution() {
-        let report = screen_tracer_candidate(input(
-            0.80, TracerKind::VaporizedFog, 64, false, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.80, TracerKind::VaporizedFog, 64, false, false))
+                .unwrap();
         assert_eq!(report.disposition, TracerScreenDisposition::EdgeCaseOnly);
         assert!(report.eligible_for_requested_resolution);
     }
 
     #[test]
     fn boundary_layer_request_abstains_even_when_velocity_field_is_source_feasible() {
-        let report = screen_tracer_candidate(input(
-            0.90, TracerKind::IncenseSticks, 64, true, true,
-        )).unwrap();
-        assert_eq!(report.disposition, TracerScreenDisposition::BoundaryLayerNotResolved);
+        let report =
+            screen_tracer_candidate(input(0.90, TracerKind::IncenseSticks, 64, true, true))
+                .unwrap();
+        assert_eq!(
+            report.disposition,
+            TracerScreenDisposition::BoundaryLayerNotResolved
+        );
         assert!(!report.eligible_for_requested_resolution);
     }
 
     #[test]
     fn pressure_between_source_points_is_not_interpolated() {
-        let report = screen_tracer_candidate(input(
-            0.33, TracerKind::Sio2, 128, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.33, TracerKind::Sio2, 128, true, false)).unwrap();
         assert_eq!(
             report.disposition,
             TracerScreenDisposition::UnsupportedSourcePressure
@@ -430,41 +517,35 @@ mod tests {
 
     #[test]
     fn no_data_is_not_converted_to_unavailable_or_zero() {
-        let report = screen_tracer_candidate(input(
-            0.45, TracerKind::Sio2, 128, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.45, TracerKind::Sio2, 128, true, false)).unwrap();
         assert_eq!(report.disposition, TracerScreenDisposition::NoSourceData);
     }
 
     #[test]
     fn optical_feasibility_never_qualifies_electrical_passivity() {
-        let report = screen_tracer_candidate(input(
-            0.30, TracerKind::Sio2, 128, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.30, TracerKind::Sio2, 128, true, false)).unwrap();
         assert!(report.observer_perturbation_receipt_required);
         assert_eq!(report.passivity_status, PassivityStatus::NotAssessed);
     }
 
     #[test]
     fn pressure_outside_source_envelope_is_not_evaluated() {
-        let report = screen_tracer_candidate(input(
-            0.20, TracerKind::Sio2, 128, true, false,
-        )).unwrap();
+        let report =
+            screen_tracer_candidate(input(0.20, TracerKind::Sio2, 128, true, false)).unwrap();
         assert_eq!(report.disposition, TracerScreenDisposition::OutOfEnvelope);
     }
 
     #[test]
     fn invalid_input_is_rejected() {
         assert_eq!(
-            screen_tracer_candidate(input(
-                f64::NAN, TracerKind::Sio2, 128, true, false,
-            )).unwrap_err(),
+            screen_tracer_candidate(input(f64::NAN, TracerKind::Sio2, 128, true, false,))
+                .unwrap_err(),
             TracerScreenError::NonFinitePressure
         );
         assert_eq!(
-            screen_tracer_candidate(input(
-                0.30, TracerKind::Sio2, 0, true, false,
-            )).unwrap_err(),
+            screen_tracer_candidate(input(0.30, TracerKind::Sio2, 0, true, false,)).unwrap_err(),
             TracerScreenError::InvalidMaximumWindow
         );
     }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Two-parameter weighted identifiability reference kernel.
 //!
 //! This is a manufactured linear-algebra benchmark, not an EHD parameter
@@ -50,18 +52,47 @@ impl fmt::Display for IdentifiabilityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyDesign => write!(f, "identifiability design must contain at least one row"),
-            Self::LengthMismatch => write!(f, "design, observations and variances must have equal row counts"),
-            Self::NonFiniteDesign { row, column } => write!(f, "design row {row} column {column} is non-finite"),
+            Self::LengthMismatch => write!(
+                f,
+                "design, observations and variances must have equal row counts"
+            ),
+            Self::NonFiniteDesign { row, column } => {
+                write!(f, "design row {row} column {column} is non-finite")
+            }
             Self::NonFiniteObservation { row } => write!(f, "observation row {row} is non-finite"),
-            Self::InvalidVariance { row } => write!(f, "observation variance at row {row} must be finite and positive"),
-            Self::InvalidParameterScale { parameter } => write!(f, "parameter scale {parameter} must be finite and positive"),
-            Self::InvalidRankTolerance => write!(f, "relative rank tolerance must be finite and in (0, 1)"),
-            Self::NonFiniteDerivedValue => write!(f, "identifiability calculation produced a non-finite value"),
-            Self::SingularSolveAfterRankCheck => write!(f, "normal-equation solve was singular after full-rank classification"),
-            Self::InvalidCandidateCount => write!(f, "design tournament requires at least one candidate condition"),
-            Self::InvalidObservationBudget => write!(f, "design tournament observation budget must be between 1 and 32"),
-            Self::SearchSpaceLimitExceeded { limit } => write!(f, "design tournament search exceeded its evaluation limit of {limit}"),
-            Self::NoIdentifiableDesign => write!(f, "no full-rank design exists within the candidate set and observation budget"),
+            Self::InvalidVariance { row } => write!(
+                f,
+                "observation variance at row {row} must be finite and positive"
+            ),
+            Self::InvalidParameterScale { parameter } => {
+                write!(f, "parameter scale {parameter} must be finite and positive")
+            }
+            Self::InvalidRankTolerance => {
+                write!(f, "relative rank tolerance must be finite and in (0, 1)")
+            }
+            Self::NonFiniteDerivedValue => {
+                write!(f, "identifiability calculation produced a non-finite value")
+            }
+            Self::SingularSolveAfterRankCheck => write!(
+                f,
+                "normal-equation solve was singular after full-rank classification"
+            ),
+            Self::InvalidCandidateCount => write!(
+                f,
+                "design tournament requires at least one candidate condition"
+            ),
+            Self::InvalidObservationBudget => write!(
+                f,
+                "design tournament observation budget must be between 1 and 32"
+            ),
+            Self::SearchSpaceLimitExceeded { limit } => write!(
+                f,
+                "design tournament search exceeded its evaluation limit of {limit}"
+            ),
+            Self::NoIdentifiableDesign => write!(
+                f,
+                "no full-rank design exists within the candidate set and observation budget"
+            ),
         }
     }
 }
@@ -106,8 +137,8 @@ pub fn analyse_two_parameter_design(
     let mut r1 = 0.0_f64;
 
     for row in 0..n {
-        for column in 0..2 {
-            if !design_rows[row][column].is_finite() {
+        for (column, value) in design_rows[row].iter().copied().enumerate() {
+            if !value.is_finite() {
                 return Err(IdentifiabilityError::NonFiniteDesign { row, column });
             }
         }
@@ -129,7 +160,10 @@ pub fn analyse_two_parameter_design(
         r1 = (weight * x1).mul_add(observations[row], r1);
     }
 
-    if ![g00, g01, g11, r0, r1].iter().all(|value| value.is_finite()) {
+    if ![g00, g01, g11, r0, r1]
+        .iter()
+        .all(|value| value.is_finite())
+    {
         return Err(IdentifiabilityError::NonFiniteDerivedValue);
     }
 
@@ -192,14 +226,11 @@ pub fn analyse_two_parameter_design(
             let v_max = [-v_min[1], v_min[0]];
             let projection_min = v_min[0] * r0 + v_min[1] * r1;
             let projection_max = v_max[0] * r0 + v_max[1] * r1;
-            let phi0 = v_min[0] * (projection_min / lambda_min)
-                + v_max[0] * (projection_max / lambda_max);
-            let phi1 = v_min[1] * (projection_min / lambda_min)
-                + v_max[1] * (projection_max / lambda_max);
-            let estimate = [
-                parameter_scales[0] * phi0,
-                parameter_scales[1] * phi1,
-            ];
+            let phi0 =
+                v_min[0] * (projection_min / lambda_min) + v_max[0] * (projection_max / lambda_max);
+            let phi1 =
+                v_min[1] * (projection_min / lambda_min) + v_max[1] * (projection_max / lambda_max);
+            let estimate = [parameter_scales[0] * phi0, parameter_scales[1] * phi1];
             if !estimate.iter().all(|value| value.is_finite()) {
                 return Err(IdentifiabilityError::NonFiniteDerivedValue);
             }
@@ -244,7 +275,11 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
     let repeated_observations = [2.5, 2.5, 2.5];
     let unit_variances = [1.0, 1.0, 1.0];
     let repeated = analyse_two_parameter_design(
-        &repeated_design, &repeated_observations, &unit_variances, [1.0, 1.0], 1.0e-12,
+        &repeated_design,
+        &repeated_observations,
+        &unit_variances,
+        [1.0, 1.0],
+        1.0e-12,
     )?;
     if repeated.information_matrix != [[3.0, 3.0], [3.0, 3.0]]
         || (repeated.eigenvalues[0] - 6.0).abs() > 1.0e-12
@@ -252,10 +287,12 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
         || repeated.numerical_rank != 1
         || repeated.disposition != IdentificationDisposition::NotIdentifiable
         || repeated.parameter_estimate.is_some()
-        || (repeated.weakest_parameter_direction_scaled[0].abs()
-            - std::f64::consts::FRAC_1_SQRT_2).abs() > 1.0e-12
-        || (repeated.weakest_parameter_direction_scaled[1].abs()
-            - std::f64::consts::FRAC_1_SQRT_2).abs() > 1.0e-12
+        || (repeated.weakest_parameter_direction_scaled[0].abs() - std::f64::consts::FRAC_1_SQRT_2)
+            .abs()
+            > 1.0e-12
+        || (repeated.weakest_parameter_direction_scaled[1].abs() - std::f64::consts::FRAC_1_SQRT_2)
+            .abs()
+            > 1.0e-12
     {
         return Err(IdentifiabilityError::NonFiniteDerivedValue);
     }
@@ -263,7 +300,11 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
     let balanced_design = [[-1.0, 1.0], [0.0, 1.0], [1.0, 1.0]];
     let balanced_observations = [-1.5, 0.5, 2.5];
     let balanced = analyse_two_parameter_design(
-        &balanced_design, &balanced_observations, &unit_variances, [1.0, 1.0], 1.0e-12,
+        &balanced_design,
+        &balanced_observations,
+        &unit_variances,
+        [1.0, 1.0],
+        1.0e-12,
     )?;
     if balanced.information_matrix != [[2.0, 0.0], [0.0, 3.0]]
         || balanced.eigenvalues != [3.0, 2.0]
@@ -272,13 +313,14 @@ pub fn reference_self_check() -> Result<(), IdentifiabilityError> {
         || balanced.parameter_estimate.is_none_or(|estimate| {
             (estimate[0] - 2.0).abs() > 1.0e-12 || (estimate[1] - 0.5).abs() > 1.0e-12
         })
-        || balanced.weighted_residual_sum_squares.is_none_or(|value| value > 1.0e-24)
+        || balanced
+            .weighted_residual_sum_squares
+            .is_none_or(|value| value > 1.0e-24)
     {
         return Err(IdentifiabilityError::NonFiniteDerivedValue);
     }
     Ok(())
 }
-
 
 /// One admissible candidate observation condition in a manufactured design
 /// tournament. This is a sensitivity row and variance, not a physical EHD
@@ -371,8 +413,7 @@ fn score_candidate_design(
     let sigma_max = report.singular_values[0];
     let sigma_min = report.singular_values[1];
     let minimum_information_eigenvalue = sigma_min * sigma_min;
-    let log_determinant_information =
-        2.0 * sigma_max.ln() + 2.0 * sigma_min.ln();
+    let log_determinant_information = 2.0 * sigma_max.ln() + 2.0 * sigma_min.ln();
     let condition_number = sigma_max / sigma_min;
     if !minimum_information_eigenvalue.is_finite()
         || !log_determinant_information.is_finite()
@@ -395,7 +436,8 @@ fn is_better_d(candidate: &DesignScore, incumbent: &DesignScore) -> bool {
         .log_determinant_information
         .total_cmp(&incumbent.log_determinant_information)
         .is_gt()
-        || (candidate.log_determinant_information
+        || (candidate
+            .log_determinant_information
             .total_cmp(&incumbent.log_determinant_information)
             .is_eq()
             && candidate.candidate_indices < incumbent.candidate_indices)
@@ -443,15 +485,10 @@ pub fn select_discrete_designs(
     for (index, candidate) in candidates.iter().enumerate() {
         for column in 0..2 {
             if !candidate.sensitivity[column].is_finite() {
-                return Err(IdentifiabilityError::NonFiniteDesign {
-                    row: index,
-                    column,
-                });
+                return Err(IdentifiabilityError::NonFiniteDesign { row: index, column });
             }
         }
-        if !candidate.observation_variance.is_finite()
-            || candidate.observation_variance <= 0.0
-        {
+        if !candidate.observation_variance.is_finite() || candidate.observation_variance <= 0.0 {
             return Err(IdentifiabilityError::InvalidVariance { row: index });
         }
     }
@@ -501,21 +538,28 @@ pub fn select_discrete_designs(
 /// allocations at the same three-observation budget.
 pub fn tournament_reference_case() -> [CandidateCondition; 4] {
     [
-        CandidateCondition { sensitivity: [-3.0, -3.0], observation_variance: 1.0 },
-        CandidateCondition { sensitivity: [-3.0, -2.0], observation_variance: 1.0 },
-        CandidateCondition { sensitivity: [-3.0, -1.0], observation_variance: 1.0 },
-        CandidateCondition { sensitivity: [-2.0, 0.0], observation_variance: 1.0 },
+        CandidateCondition {
+            sensitivity: [-3.0, -3.0],
+            observation_variance: 1.0,
+        },
+        CandidateCondition {
+            sensitivity: [-3.0, -2.0],
+            observation_variance: 1.0,
+        },
+        CandidateCondition {
+            sensitivity: [-3.0, -1.0],
+            observation_variance: 1.0,
+        },
+        CandidateCondition {
+            sensitivity: [-2.0, 0.0],
+            observation_variance: 1.0,
+        },
     ]
 }
 
 pub fn tournament_reference_self_check() -> Result<(), IdentifiabilityError> {
-    let result = select_discrete_designs(
-        &tournament_reference_case(),
-        3,
-        [1.0, 1.0],
-        1.0e-12,
-        100,
-    )?;
+    let result =
+        select_discrete_designs(&tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 100)?;
     if result.evaluated_design_count != 20
         || result.identifiable_design_count == 0
         || result.d_optimal.candidate_indices != [0, 2, 3]
@@ -536,17 +580,27 @@ pub fn tournament_reference_self_check() -> Result<(), IdentifiabilityError> {
 mod tests {
     use super::*;
 
-    fn unit_variances() -> [f64; 3] { [1.0, 1.0, 1.0] }
+    fn unit_variances() -> [f64; 3] {
+        [1.0, 1.0, 1.0]
+    }
 
     #[test]
     fn repeated_identical_conditions_do_not_repair_rank_deficiency() {
         let design = [[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]];
         let observations = [2.5, 2.5, 2.5];
         let report = analyse_two_parameter_design(
-            &design, &observations, &unit_variances(), [1.0, 1.0], 1.0e-12,
-        ).unwrap();
+            &design,
+            &observations,
+            &unit_variances(),
+            [1.0, 1.0],
+            1.0e-12,
+        )
+        .unwrap();
         assert_eq!(report.numerical_rank, 1);
-        assert_eq!(report.disposition, IdentificationDisposition::NotIdentifiable);
+        assert_eq!(
+            report.disposition,
+            IdentificationDisposition::NotIdentifiable
+        );
         assert!(report.parameter_estimate.is_none());
         assert!((report.eigenvalues[0] - 6.0).abs() < 1.0e-12);
         assert!(report.eigenvalues[1].abs() < 1.0e-12);
@@ -557,8 +611,13 @@ mod tests {
         let design = [[-1.0, 1.0], [0.0, 1.0], [1.0, 1.0]];
         let observations = [-1.5, 0.5, 2.5];
         let report = analyse_two_parameter_design(
-            &design, &observations, &unit_variances(), [1.0, 1.0], 1.0e-12,
-        ).unwrap();
+            &design,
+            &observations,
+            &unit_variances(),
+            [1.0, 1.0],
+            1.0e-12,
+        )
+        .unwrap();
         assert_eq!(report.numerical_rank, 2);
         assert_eq!(report.disposition, IdentificationDisposition::Identifiable);
         let estimate = report.parameter_estimate.unwrap();
@@ -572,7 +631,8 @@ mod tests {
         let observations = [2.0];
         let variances = [0.0];
         assert_eq!(
-            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12).unwrap_err(),
+            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12)
+                .unwrap_err(),
             IdentifiabilityError::InvalidVariance { row: 0 }
         );
     }
@@ -583,7 +643,8 @@ mod tests {
         let observations = [2.0];
         let variances = [1.0];
         assert_eq!(
-            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 0.0).unwrap_err(),
+            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 0.0)
+                .unwrap_err(),
             IdentifiabilityError::InvalidRankTolerance
         );
     }
@@ -604,8 +665,12 @@ mod tests {
         let design = [[1.0, 1.0], [-1.0, 1.0]];
         let observations = [2.0, 0.0];
         let variances = [1.0, 1.0];
-        let unit = analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12).unwrap();
-        let scaled = analyse_two_parameter_design(&design, &observations, &variances, [10.0, 1.0], 1.0e-12).unwrap();
+        let unit =
+            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12)
+                .unwrap();
+        let scaled =
+            analyse_two_parameter_design(&design, &observations, &variances, [10.0, 1.0], 1.0e-12)
+                .unwrap();
         assert_ne!(unit.information_matrix, scaled.information_matrix);
         assert_eq!(unit.numerical_rank, scaled.numerical_rank);
     }
@@ -615,7 +680,9 @@ mod tests {
         let design = [[1.0, 1.0], [-1.0, 1.0]];
         let observations = [2.0, 0.0];
         let variances = [4.0, 1.0];
-        let report = analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12).unwrap();
+        let report =
+            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12)
+                .unwrap();
         assert_eq!(report.information_matrix, [[1.25, -0.75], [-0.75, 1.25]]);
     }
 
@@ -624,74 +691,87 @@ mod tests {
         let design = [[1.0, 0.0], [1.0, 1.0e-9]];
         let observations = [1.0, 1.0];
         let variances = [1.0, 1.0];
-        let report = analyse_two_parameter_design(
-            &design, &observations, &variances, [1.0, 1.0], 1.0e-12,
-        ).unwrap();
+        let report =
+            analyse_two_parameter_design(&design, &observations, &variances, [1.0, 1.0], 1.0e-12)
+                .unwrap();
         assert_eq!(report.numerical_rank, 2);
         assert!(report.singular_values[1] > 1.0e-12 * report.singular_values[0]);
         assert!(report.condition_number.unwrap() > 1.0e8);
     }
 }
 
-    #[test]
-    fn d_and_e_optimal_designs_can_differ_at_the_same_budget() {
-        let result = select_discrete_designs(
-            &tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 100,
-        ).unwrap();
-        assert_eq!(result.evaluated_design_count, 20);
-        assert_eq!(result.d_optimal.candidate_indices, vec![0, 2, 3]);
-        assert_eq!(result.e_optimal.candidate_indices, vec![0, 3, 3]);
-        assert!(result.d_optimal.log_determinant_information
-            > result.e_optimal.log_determinant_information);
-        assert!(result.e_optimal.minimum_information_eigenvalue
-            > result.d_optimal.minimum_information_eigenvalue);
-    }
+#[test]
+fn d_and_e_optimal_designs_can_differ_at_the_same_budget() {
+    let result =
+        select_discrete_designs(&tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 100).unwrap();
+    assert_eq!(result.evaluated_design_count, 20);
+    assert_eq!(result.d_optimal.candidate_indices, vec![0, 2, 3]);
+    assert_eq!(result.e_optimal.candidate_indices, vec![0, 3, 3]);
+    assert!(
+        result.d_optimal.log_determinant_information > result.e_optimal.log_determinant_information
+    );
+    assert!(
+        result.e_optimal.minimum_information_eigenvalue
+            > result.d_optimal.minimum_information_eigenvalue
+    );
+}
 
-    #[test]
-    fn design_tournament_rejects_search_space_over_limit() {
-        assert_eq!(
-            select_discrete_designs(
-                &tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 19,
-            ).unwrap_err(),
-            IdentifiabilityError::SearchSpaceLimitExceeded { limit: 19 }
-        );
-    }
+#[test]
+fn design_tournament_rejects_search_space_over_limit() {
+    assert_eq!(
+        select_discrete_designs(&tournament_reference_case(), 3, [1.0, 1.0], 1.0e-12, 19,)
+            .unwrap_err(),
+        IdentifiabilityError::SearchSpaceLimitExceeded { limit: 19 }
+    );
+}
 
-    #[test]
-    fn design_tournament_rejects_all_rank_deficient_allocations() {
-        let candidates = [
-            CandidateCondition { sensitivity: [1.0, 1.0], observation_variance: 1.0 },
-            CandidateCondition { sensitivity: [2.0, 2.0], observation_variance: 1.0 },
-        ];
-        assert_eq!(
-            select_discrete_designs(&candidates, 3, [1.0, 1.0], 1.0e-12, 20).unwrap_err(),
-            IdentifiabilityError::NoIdentifiableDesign
-        );
-    }
+#[test]
+fn design_tournament_rejects_all_rank_deficient_allocations() {
+    let candidates = [
+        CandidateCondition {
+            sensitivity: [1.0, 1.0],
+            observation_variance: 1.0,
+        },
+        CandidateCondition {
+            sensitivity: [2.0, 2.0],
+            observation_variance: 1.0,
+        },
+    ];
+    assert_eq!(
+        select_discrete_designs(&candidates, 3, [1.0, 1.0], 1.0e-12, 20).unwrap_err(),
+        IdentifiabilityError::NoIdentifiableDesign
+    );
+}
 
-    #[test]
-    fn design_tournament_rejects_observation_budget_above_recursion_bound() {
-        assert_eq!(
-            select_discrete_designs(
-                &tournament_reference_case(),
-                MAX_DISCRETE_OBSERVATION_BUDGET + 1,
-                [1.0, 1.0],
-                1.0e-12,
-                usize::MAX,
-            ).unwrap_err(),
-            IdentifiabilityError::InvalidObservationBudget
-        );
-    }
+#[test]
+fn design_tournament_rejects_observation_budget_above_recursion_bound() {
+    assert_eq!(
+        select_discrete_designs(
+            &tournament_reference_case(),
+            MAX_DISCRETE_OBSERVATION_BUDGET + 1,
+            [1.0, 1.0],
+            1.0e-12,
+            usize::MAX,
+        )
+        .unwrap_err(),
+        IdentifiabilityError::InvalidObservationBudget
+    );
+}
 
-    #[test]
-    fn design_tournament_rejects_nonpositive_candidate_variance() {
-        let candidates = [
-            CandidateCondition { sensitivity: [1.0, 0.0], observation_variance: 1.0 },
-            CandidateCondition { sensitivity: [0.0, 1.0], observation_variance: 0.0 },
-        ];
-        assert_eq!(
-            select_discrete_designs(&candidates, 2, [1.0, 1.0], 1.0e-12, 10).unwrap_err(),
-            IdentifiabilityError::InvalidVariance { row: 1 }
-        );
-    }
-
+#[test]
+fn design_tournament_rejects_nonpositive_candidate_variance() {
+    let candidates = [
+        CandidateCondition {
+            sensitivity: [1.0, 0.0],
+            observation_variance: 1.0,
+        },
+        CandidateCondition {
+            sensitivity: [0.0, 1.0],
+            observation_variance: 0.0,
+        },
+    ];
+    assert_eq!(
+        select_discrete_designs(&candidates, 2, [1.0, 1.0], 1.0e-12, 10).unwrap_err(),
+        IdentifiabilityError::InvalidVariance { row: 1 }
+    );
+}

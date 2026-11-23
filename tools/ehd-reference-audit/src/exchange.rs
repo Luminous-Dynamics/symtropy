@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Conservative remapping of already-integrated vector impulses.
 //!
 //! This is a reference kernel, not a geometric intersection engine. The caller
@@ -83,19 +85,45 @@ impl fmt::Display for MappingError {
         match self {
             Self::EmptySourceEvents => write!(formatter, "no source impulse events supplied"),
             Self::InvalidTolerance(name) => write!(formatter, "invalid mapping tolerance: {name}"),
-            Self::DuplicateSourceEventId(id) => write!(formatter, "duplicate source event id: {id}"),
-            Self::NonFiniteImpulse(id) => write!(formatter, "source event {id} has a non-finite impulse"),
-            Self::NonFiniteWeight(id) => write!(formatter, "source event {id} has a non-finite overlap weight"),
-            Self::NegativeWeight(id) => write!(formatter, "source event {id} has a negative overlap weight"),
-            Self::WeightExceedsOne(id) => write!(formatter, "source event {id} has an overlap fraction greater than one"),
-            Self::UnknownSourceEvent(id) => write!(formatter, "overlap references unknown source event {id}"),
-            Self::UnmappedSourceEvent(id) => write!(formatter, "source event {id} has no destination overlap"),
-            Self::SourceCoverageMismatch { source_event_id, fraction_sum, tolerance } => write!(
+            Self::DuplicateSourceEventId(id) => {
+                write!(formatter, "duplicate source event id: {id}")
+            }
+            Self::NonFiniteImpulse(id) => {
+                write!(formatter, "source event {id} has a non-finite impulse")
+            }
+            Self::NonFiniteWeight(id) => write!(
+                formatter,
+                "source event {id} has a non-finite overlap weight"
+            ),
+            Self::NegativeWeight(id) => {
+                write!(formatter, "source event {id} has a negative overlap weight")
+            }
+            Self::WeightExceedsOne(id) => write!(
+                formatter,
+                "source event {id} has an overlap fraction greater than one"
+            ),
+            Self::UnknownSourceEvent(id) => {
+                write!(formatter, "overlap references unknown source event {id}")
+            }
+            Self::UnmappedSourceEvent(id) => {
+                write!(formatter, "source event {id} has no destination overlap")
+            }
+            Self::SourceCoverageMismatch {
+                source_event_id,
+                fraction_sum,
+                tolerance,
+            } => write!(
                 formatter,
                 "source event {source_event_id} overlap fractions sum to {fraction_sum}, outside 1 ± {tolerance}"
             ),
-            Self::NonFiniteAccumulation => write!(formatter, "impulse accumulation became non-finite"),
-            Self::ConservationFailure { component, residual_ns, allowed_ns } => write!(
+            Self::NonFiniteAccumulation => {
+                write!(formatter, "impulse accumulation became non-finite")
+            }
+            Self::ConservationFailure {
+                component,
+                residual_ns,
+                allowed_ns,
+            } => write!(
                 formatter,
                 "global impulse component {component} residual {residual_ns} N s exceeds allowed {allowed_ns} N s"
             ),
@@ -154,7 +182,11 @@ pub fn map_integrated_impulses(
         if !event_ids.insert(event.source_event_id) {
             return Err(MappingError::DuplicateSourceEventId(event.source_event_id));
         }
-        if !event.impulse_ns.iter().all(|component| component.is_finite()) {
+        if !event
+            .impulse_ns
+            .iter()
+            .all(|component| component.is_finite())
+        {
             return Err(MappingError::NonFiniteImpulse(event.source_event_id));
         }
     }
@@ -224,9 +256,9 @@ pub fn map_integrated_impulses(
     let mut source_absolute_total = [CompensatedSum::default(); 3];
 
     for event in &sorted_events {
-        for component in 0..3 {
-            source_total[component].add(event.impulse_ns[component]);
-            source_absolute_total[component].add(event.impulse_ns[component].abs());
+        for (component, impulse) in event.impulse_ns.iter().copied().enumerate() {
+            source_total[component].add(impulse);
+            source_absolute_total[component].add(impulse.abs());
         }
     }
 
@@ -238,8 +270,8 @@ pub fn map_integrated_impulses(
             .entry(destination_id)
             .or_insert([CompensatedSum::default(); 3]);
 
-        for component in 0..3 {
-            destination[component].add(event.impulse_ns[component] * fraction.value());
+        for (component, impulse) in event.impulse_ns.iter().copied().enumerate() {
+            destination[component].add(impulse * fraction.value());
         }
     }
 
@@ -369,11 +401,18 @@ mod tests {
     }
 
     fn event(id: u64, impulse_ns: [f64; 3]) -> ImpulseEvent {
-        ImpulseEvent { source_event_id: id, impulse_ns }
+        ImpulseEvent {
+            source_event_id: id,
+            impulse_ns,
+        }
     }
 
     fn weight(source: u64, destination: u64, fraction: f64) -> OverlapWeight {
-        OverlapWeight { source_event_id: source, destination_cell_id: destination, fraction }
+        OverlapWeight {
+            source_event_id: source,
+            destination_cell_id: destination,
+            fraction,
+        }
     }
 
     #[test]
@@ -387,7 +426,8 @@ mod tests {
             &[event(7, [2.0, -3.0, 4.0])],
             &[weight(7, 70, 1.0)],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.destination_impulses_ns[&70], [2.0, -3.0, 4.0]);
         assert_eq!(result.source_total_ns, result.destination_total_ns);
         assert_eq!(result.conservation_residual_ns, [0.0; 3]);
@@ -399,7 +439,8 @@ mod tests {
             &[event(1, [12.0, -8.0, 4.0])],
             &[weight(1, 10, 0.25), weight(1, 20, 0.75)],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.destination_impulses_ns[&10], [3.0, -2.0, 1.0]);
         assert_eq!(result.destination_impulses_ns[&20], [9.0, -6.0, 3.0]);
         assert_eq!(result.destination_total_ns, [12.0, -8.0, 4.0]);
@@ -411,7 +452,8 @@ mod tests {
             &[event(2, [1.0, 2.0, 3.0]), event(1, [4.0, 5.0, 6.0])],
             &[weight(1, 9, 1.0), weight(2, 9, 1.0)],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.destination_impulses_ns[&9], [5.0, 7.0, 9.0]);
     }
 
@@ -420,11 +462,14 @@ mod tests {
         let result = map_integrated_impulses(
             &[event(1, [2.0, 0.0, 0.0]), event(2, [6.0, 0.0, 0.0])],
             &[
-                weight(1, 10, 0.5), weight(1, 11, 0.5),
-                weight(2, 10, 0.25), weight(2, 12, 0.75),
+                weight(1, 10, 0.5),
+                weight(1, 11, 0.5),
+                weight(2, 10, 0.25),
+                weight(2, 12, 0.75),
             ],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.destination_total_ns, [8.0, 0.0, 0.0]);
         assert_eq!(result.destination_impulses_ns[&10], [2.5, 0.0, 0.0]);
         assert_eq!(result.destination_impulses_ns[&11], [1.0, 0.0, 0.0]);
@@ -440,7 +485,8 @@ mod tests {
             &[events[1], events[0]],
             &[weights[2], weights[1], weights[0]],
             tolerance(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(forward, reverse);
     }
 
@@ -450,13 +496,21 @@ mod tests {
             &[event(1, [1.0, 0.0, 0.0])],
             &[weight(1, 2, 0.75)],
             tolerance(),
-        ).unwrap_err();
-        assert!(matches!(error, MappingError::SourceCoverageMismatch { source_event_id: 1, .. }));
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            MappingError::SourceCoverageMismatch {
+                source_event_id: 1,
+                ..
+            }
+        ));
     }
 
     #[test]
     fn rejects_an_unmapped_source_event() {
-        let error = map_integrated_impulses(&[event(4, [1.0, 0.0, 0.0])], &[], tolerance()).unwrap_err();
+        let error =
+            map_integrated_impulses(&[event(4, [1.0, 0.0, 0.0])], &[], tolerance()).unwrap_err();
         assert_eq!(error, MappingError::UnmappedSourceEvent(4));
     }
 
@@ -466,7 +520,8 @@ mod tests {
             &[event(1, [1.0, 0.0, 0.0])],
             &[weight(99, 2, 1.0)],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, MappingError::UnknownSourceEvent(99));
     }
 
@@ -476,14 +531,16 @@ mod tests {
             &[event(1, [1.0, 0.0, 0.0])],
             &[weight(1, 2, -0.1)],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(negative, MappingError::NegativeWeight(1));
 
         let non_finite = map_integrated_impulses(
             &[event(1, [1.0, 0.0, 0.0])],
             &[weight(1, 2, f64::NAN)],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(non_finite, MappingError::NonFiniteWeight(1));
     }
 
@@ -493,7 +550,8 @@ mod tests {
             &[event(1, [1.0, f64::INFINITY, 0.0])],
             &[weight(1, 2, 1.0)],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, MappingError::NonFiniteImpulse(1));
     }
 
@@ -503,18 +561,20 @@ mod tests {
             &[event(1, [1.0, 0.0, 0.0]), event(1, [2.0, 0.0, 0.0])],
             &[weight(1, 2, 1.0)],
             tolerance(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
         assert_eq!(error, MappingError::DuplicateSourceEventId(1));
     }
 
     #[test]
     fn rejects_invalid_tolerances() {
-        let invalid = MappingTolerance { fraction_sum_abs: -1.0, ..tolerance() };
-        let error = map_integrated_impulses(
-            &[event(1, [1.0, 0.0, 0.0])],
-            &[weight(1, 2, 1.0)],
-            invalid,
-        ).unwrap_err();
+        let invalid = MappingTolerance {
+            fraction_sum_abs: -1.0,
+            ..tolerance()
+        };
+        let error =
+            map_integrated_impulses(&[event(1, [1.0, 0.0, 0.0])], &[weight(1, 2, 1.0)], invalid)
+                .unwrap_err();
         assert_eq!(error, MappingError::InvalidTolerance("fraction_sum_abs"));
     }
 
@@ -543,7 +603,14 @@ mod tests {
             &[event(1, [100.0, 0.0, 0.0]), event(2, [-100.0, 0.0, 0.0])],
             &[weight(1, 3, 0.5), weight(2, 4, 1.0)],
             tolerance(),
-        ).unwrap_err();
-        assert!(matches!(error, MappingError::SourceCoverageMismatch { source_event_id: 1, .. }));
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            MappingError::SourceCoverageMismatch {
+                source_event_id: 1,
+                ..
+            }
+        ));
     }
 }

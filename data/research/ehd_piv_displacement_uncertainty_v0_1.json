@@ -1,0 +1,93 @@
+{
+  "schema": "luminous.ehd_piv_local_displacement_uncertainty",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-002",
+  "as_of": "2026-11-23",
+  "status": "manufactured_local_hessian_uncertainty_kernel_authored_tests_execution_pending",
+  "claim_ceiling": "A local correlation-peak Hessian approximation for displacement covariance and first-order metrology propagation. It is not raw-image correlation processing, empirically calibrated coverage, or physical EHD validation.",
+  "statistical_model": {
+    "local_covariance": "Local Laplace approximation from the inverse observed Hessian of the negative log likelihood at a unique fitted correlation peak.",
+    "calibration_status": "Local curvature alone is not empirical calibration; a calibrated claim requires an external empirical interval-coverage receipt on independent acquisition clusters.",
+    "invalid_curvature": "The observed Hessian must be symmetric positive definite; non-positive-definite curvature is rejected rather than regularized."
+  },
+  "velocity_model": {
+    "velocity": "v = d * metres_per_pixel / pulse_separation_seconds",
+    "cross_component_covariance": "Uncertainty in shared calibration/timing inputs can induce cross-component covariance even when the displacement covariance is diagonal.",
+    "assumptions": "Local displacement components and the metres-per-pixel and pulse-separation inputs are mutually independent unless an explicitly evidenced joint covariance is supplied."
+  },
+  "manufactured_case": {
+    "displacement_px": [
+      10,
+      -5
+    ],
+    "negative_log_likelihood_hessian_px_inverse_squared": [
+      [
+        4,
+        1
+      ],
+      [
+        1,
+        9
+      ]
+    ],
+    "expected_velocity_m_s": [
+      10,
+      -5
+    ],
+    "expected_uncertainty_status": "LocalApproximationOnly",
+    "status": "manufactured_hessian_and_metrology_values_not_experimental_piv_data"
+  },
+  "rejection_cases": [
+    {
+      "case": "multiple_equal_correlation_peaks",
+      "expected": "RejectedNonUniquePeak"
+    },
+    {
+      "case": "peak_to_sidelobe_ratio_below_frozen_minimum",
+      "expected": "RejectedPeakToSidelobeRatio"
+    },
+    {
+      "case": "local_peak_fit_residual_above_frozen_maximum",
+      "expected": "RejectedPeakFitResidual"
+    },
+    {
+      "case": "non_positive_definite_hessian",
+      "expected": "NonPositiveDefinitePeakHessian"
+    },
+    {
+      "case": "valid_local_hessian_without_external_coverage_receipt",
+      "expected": "LocalApproximationOnly"
+    },
+    {
+      "case": "valid_external_coverage_receipt",
+      "expected": "CalibrationReceiptAccepted"
+    },
+    {
+      "case": "calibration_gate_claimed_without_receipt_identity",
+      "expected": "CalibrationReceiptRequired"
+    }
+  ],
+  "test_families": [
+    "non_unique_correlation_peak_is_rejected_without_covariance",
+    "low_peak_to_sidelobe_ratio_is_rejected",
+    "excessive_peak_fit_residual_is_rejected",
+    "non_positive_definite_hessian_is_rejected",
+    "local_covariance_is_symmetric_and_positive_definite",
+    "calibration_and_timing_uncertainty_create_cross_component_covariance",
+    "local_covariance_without_coverage_receipt_is_not_called_calibrated",
+    "valid_receipt_is_required_for_calibrated_status",
+    "calibration_gate_without_receipt_is_rejected",
+    "nonfinite_and_invalid_metrology_inputs_fail_closed"
+  ],
+  "reference_implementation": {
+    "path": "tools/ehd-reference-audit/src/piv_displacement_uncertainty.rs",
+    "role": "local Hessian covariance and first-order displacement-to-velocity propagation"
+  },
+  "limitations": [
+    "local_laplace_hessian_approximation_only",
+    "no_empirical_coverage_calibration_by_this_kernel",
+    "no_raw_image_processing_or_peak_detection",
+    "no_spatial_or_temporal_covariance_model",
+    "no_physical_ehd_validation"
+  ]
+}

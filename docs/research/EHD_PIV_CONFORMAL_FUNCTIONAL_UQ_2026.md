@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-004 — cluster-conformal field coverage and physical-functional uncertainty
 
-**Status:** standalone Rust reference authored; 32 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
+**Status:** standalone Rust reference authored; 43 unit tests authored; Rust execution pending; exact-head hosted CI pending.  
 **Branch:** research/ehd-piv-conformal-functional-uq-v0-1  
 **Parent:** EHD-PIV-UQ-003 covariance calibration
 
@@ -60,6 +60,28 @@ The result is a session-level prediction region for integrated functionals, not 
 
 The calibrated functional radius can only qualify the exact integrated functional definition represented by the observations. It cannot fill missing control-volume pressure, viscous, body-force or momentum-storage terms, and cannot override a failed direct force-balance reconciliation.
 
+### Spatially correlated PIV vector errors
+
+The shared-latent-mode representation above captures global causes such as common calibration scale, timing and surface registration. It does not by itself capture local spatial dependence caused by overlapping interrogation windows. Sciacchitano and Wieneke (2016) derive uncertainty propagation for vorticity, divergence, means and Reynolds stresses, and show that spatial error correlation is needed. Their Monte Carlo case for 32×32 px Gaussian-weighted windows with 75% overlap reports correlation around 0.45 at two vector spacings, with significant correlation out to roughly three spacings. They emphasize that correlation parameters depend on the PIV processing configuration and may be estimated with Monte Carlo for that configuration. The published value is not a universal kernel parameter.
+
+The new `spatial_correlation.rs` path adds a compact-support anisotropic Wendland C2 component:
+
+`Cov(delta_u_i, delta_u_j) = K(x_i,x_j) C_component`
+
+where `K` is positive definite in 3D and the component covariance is symmetric positive semidefinite. It propagates the complete i,j cross-sample terms through the same mass/momentum Jacobians as the field-functional reducer. It is explicitly an additive component: local per-sample covariance must exclude the same correlated component to avoid double counting.
+
+The kernel has a deliberately strict external calibration receipt: at least 20 independent acquisition clusters, a frozen processing-protocol fingerprint matching the target run, a bounded empirical correlation-fit error, and no resolved negative correlation lobe. The current nonnegative Wendland family cannot represent the slight negative undershoot that some PIV processing filters produce. When such a lobe is observed, the correct result is to reject this model and compare an alternative positive-definite oscillatory/spectral kernel or an empirical covariance model, not force a fit.
+
+The reference implementation is O(N²) in the number of face samples. Production use needs a compact neighbor list or matrix-free sparse operator while preserving exact covariance accumulation. The current model is stationary and uses a common correlated-component covariance; spatially varying amplitude, flow-dependent anisotropy and temporal correlation remain future extensions.
+
+### Spatial correlation from overlapping windows
+
+Common latent modes represent global calibration/timing/registration causes, but they do not capture the local spatial dependence created by overlap between neighboring interrogation windows. Sciacchitano and Wieneke (2016) show that the uncertainty of derivatives and spatially averaged quantities requires the spatial error-correlation function. Their Monte Carlo example reports approximately 0.45 correlation at two vector spacings for 32×32 px Gaussian-weighted windows with 75% overlap, with significant correlation to roughly three spacings. They emphasize that this function depends on the processing configuration.
+
+EHD-PIV-UQ-005 adds an anisotropic compact-support Wendland C2 kernel. It is not assigned a universal length scale: the caller must provide a calibration receipt with matching frozen processing fingerprint, at least 20 independent acquisition clusters as an initial screen, a maximum absolute empirical correlation-fit error within a predeclared bound (initial prospective value 0.05), and no resolved negative correlation lobe. This kernel is nonnegative; it rejects rather than hides the negative undershoot observed for some PIV filters.
+
+The new path adds the i,j cross-sample covariance terms to the existing local-plus-shared-mode model. The base per-sample covariance must exclude the same kernel component. It is an O(N²) reference implementation; production needs neighbor lists or a matrix-free operator. Its stationary common correlated component does not yet model spatially varying amplitude or temporal covariance.
+
 ## Existing literature and why this matters
 
 Sciacchitano & Wieneke (2016), *PIV uncertainty propagation*, DOI 10.1088/0957-0233/27/8/084006, explicitly derive propagation to vorticity, divergence, means and Reynolds stresses. They show that spatial correlation of displacement errors matters for derivatives and integrated/statistical quantities, and report experimental assessments with roughly 5–10% differences for vorticity uncertainty under their tested setup and within 5% / 10% for selected time-averaged quantities / Reynolds stresses. This is not a gap that the Luminous work invented; our opportunity is to carry that logic into complete field functionals and EHD force/mass/momentum boundaries with traceable shared modes.
@@ -111,6 +133,10 @@ The integrated-functional conformal kernel adds 8 tests for:
 - rejection of nonsymmetric or singular covariance;
 - protocol and functional-contract identity mismatch;
 - duplicate independent-reference evidence.
+
+The spatial-correlation kernel adds 9 authored tests for neighboring-window covariance, compact-support cutoff, anisotropy, cross-component/cross-functional propagation, preservation of local covariance, calibration-receipt and protocol gates, poor fit/negative-lobe rejection, and non-PSD component covariance.
+
+The spatial PIV error-kernel extension adds 11 Rust tests for overlap correlation, compact support, anisotropy, inter-component covariance, retained local covariance, receipt and protocol checks, calibration sample/fit-error gates, negative-lobe rejection, non-PSD covariance and output symmetry.
 
 ## Limitations and pending work
 

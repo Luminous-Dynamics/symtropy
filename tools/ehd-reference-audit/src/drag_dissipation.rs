@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Analytic ion-neutral drag momentum/energy consistency reference.
 //!
 //! For a constant relative drift over one source space-time event, the
@@ -112,28 +114,57 @@ impl fmt::Display for DragError {
                 "drag event {id} has a negative or non-finite integrated drag coefficient"
             ),
             Self::NonFiniteInput(id) => write!(f, "drag event {id} has a non-finite input"),
-            Self::NonFiniteAccumulation => write!(f, "drag momentum/energy accumulation became non-finite"),
-            Self::NeutralImpulseMismatch { event_id, component, supplied_ns, expected_ns, allowed_ns } => write!(
+            Self::NonFiniteAccumulation => {
+                write!(f, "drag momentum/energy accumulation became non-finite")
+            }
+            Self::NeutralImpulseMismatch {
+                event_id,
+                component,
+                supplied_ns,
+                expected_ns,
+                allowed_ns,
+            } => write!(
                 f,
                 "drag event {event_id} neutral impulse component {component}: {supplied_ns} N*s != expected {expected_ns} N*s within {allowed_ns}"
             ),
-            Self::ChargedReactionMismatch { event_id, component, supplied_ns, expected_ns, allowed_ns } => write!(
+            Self::ChargedReactionMismatch {
+                event_id,
+                component,
+                supplied_ns,
+                expected_ns,
+                allowed_ns,
+            } => write!(
                 f,
                 "drag event {event_id} charged reaction component {component}: {supplied_ns} N*s != expected {expected_ns} N*s within {allowed_ns}"
             ),
-            Self::NegativeFrictionalHeating { event_id, supplied_work_j, allowed_negative_j } => write!(
+            Self::NegativeFrictionalHeating {
+                event_id,
+                supplied_work_j,
+                allowed_negative_j,
+            } => write!(
                 f,
                 "drag event {event_id} creates negative frictional heating: {supplied_work_j} J, allowed negative {allowed_negative_j} J"
             ),
-            Self::EventEnergyMismatch { event_id, residual_j, allowed_j } => write!(
+            Self::EventEnergyMismatch {
+                event_id,
+                residual_j,
+                allowed_j,
+            } => write!(
                 f,
                 "drag event {event_id} frictional-energy residual {residual_j} J exceeds allowed {allowed_j} J"
             ),
-            Self::AggregateImpulseMismatch { component, residual_ns, allowed_ns } => write!(
+            Self::AggregateImpulseMismatch {
+                component,
+                residual_ns,
+                allowed_ns,
+            } => write!(
                 f,
                 "aggregate drag impulse component {component} residual {residual_ns} N*s exceeds allowed {allowed_ns} N*s"
             ),
-            Self::AggregateEnergyMismatch { residual_j, allowed_j } => write!(
+            Self::AggregateEnergyMismatch {
+                residual_j,
+                allowed_j,
+            } => write!(
                 f,
                 "aggregate drag energy residual {residual_j} J exceeds allowed {allowed_j} J"
             ),
@@ -210,9 +241,18 @@ pub fn validate_drag_dissipation(
         if !gamma.is_finite() || gamma < 0.0 {
             return Err(DragError::InvalidDragCoefficient(event.event_id));
         }
-        if !event.relative_velocity_m_s.iter().all(|value| value.is_finite())
-            || !event.neutral_impulse_ns.iter().all(|value| value.is_finite())
-            || !event.charged_reaction_impulse_ns.iter().all(|value| value.is_finite())
+        if !event
+            .relative_velocity_m_s
+            .iter()
+            .all(|value| value.is_finite())
+            || !event
+                .neutral_impulse_ns
+                .iter()
+                .all(|value| value.is_finite())
+            || !event
+                .charged_reaction_impulse_ns
+                .iter()
+                .all(|value| value.is_finite())
         {
             return Err(DragError::NonFiniteInput(event.event_id));
         }
@@ -236,13 +276,16 @@ pub fn validate_drag_dissipation(
             let neutral_residual = neutral - expected_neutral;
             let charged_residual = charged - expected_charged;
 
-            if !neutral_allowed.is_finite() || !charged_allowed.is_finite()
-                || !neutral_residual.is_finite() || !charged_residual.is_finite()
+            if !neutral_allowed.is_finite()
+                || !charged_allowed.is_finite()
+                || !neutral_residual.is_finite()
+                || !charged_residual.is_finite()
             {
                 return Err(DragError::NonFiniteAccumulation);
             }
-            max_event_impulse_residual_ns =
-                max_event_impulse_residual_ns.max(neutral_residual.abs()).max(charged_residual.abs());
+            max_event_impulse_residual_ns = max_event_impulse_residual_ns
+                .max(neutral_residual.abs())
+                .max(charged_residual.abs());
 
             if neutral_residual.abs() > neutral_allowed {
                 return Err(DragError::NeutralImpulseMismatch {
@@ -333,8 +376,8 @@ pub fn validate_drag_dissipation(
     let predicted_frictional_heating_j = predicted_heat.value();
     let impulse_work_j = impulse_work.value();
     let energy_identity_residual_j = impulse_work_j - predicted_frictional_heating_j;
-    let allowed_energy = tolerance.energy_absolute_j
-        + tolerance.energy_relative * energy_scale.value();
+    let allowed_energy =
+        tolerance.energy_absolute_j + tolerance.energy_relative * energy_scale.value();
     if !predicted_frictional_heating_j.is_finite()
         || !impulse_work_j.is_finite()
         || !energy_identity_residual_j.is_finite()
@@ -415,11 +458,7 @@ mod tests {
         }
     }
 
-    fn event(
-        event_id: u64,
-        gamma: f64,
-        drift: [f64; 3],
-    ) -> DragEvent {
+    fn event(event_id: u64, gamma: f64, drift: [f64; 3]) -> DragEvent {
         let neutral = drift.map(|value| gamma * value);
         DragEvent {
             event_id,
@@ -432,10 +471,8 @@ mod tests {
 
     #[test]
     fn exact_constant_drift_drag_passes_momentum_and_energy_identity() {
-        let report = validate_drag_dissipation(
-            &[event(1, 2.0, [3.0, -1.0, 2.0])],
-            tolerance(),
-        ).unwrap();
+        let report =
+            validate_drag_dissipation(&[event(1, 2.0, [3.0, -1.0, 2.0])], tolerance()).unwrap();
         assert_eq!(report.total_neutral_impulse_ns, [6.0, -2.0, 4.0]);
         assert_eq!(report.total_charged_reaction_impulse_ns, [-6.0, 2.0, -4.0]);
         assert_eq!(report.predicted_frictional_heating_j, 28.0);
@@ -444,10 +481,7 @@ mod tests {
 
     #[test]
     fn zero_drift_produces_zero_impulse_and_zero_frictional_heating() {
-        let report = validate_drag_dissipation(
-            &[event(1, 10.0, [0.0; 3])],
-            tolerance(),
-        ).unwrap();
+        let report = validate_drag_dissipation(&[event(1, 10.0, [0.0; 3])], tolerance()).unwrap();
         assert_eq!(report.total_neutral_impulse_ns, [0.0; 3]);
         assert_eq!(report.predicted_frictional_heating_j, 0.0);
     }
@@ -470,7 +504,11 @@ mod tests {
         let error = validate_drag_dissipation(&[item], tolerance()).unwrap_err();
         assert!(matches!(
             error,
-            DragError::NeutralImpulseMismatch { event_id: 1, component: 0, .. }
+            DragError::NeutralImpulseMismatch {
+                event_id: 1,
+                component: 0,
+                ..
+            }
         ));
     }
 
@@ -496,7 +534,11 @@ mod tests {
         item.charged_reaction_impulse_ns = [-1.0, 0.0, 0.0];
         assert!(matches!(
             validate_drag_dissipation(&[item], tolerance()).unwrap_err(),
-            DragError::NeutralImpulseMismatch { event_id: 1, component: 0, .. }
+            DragError::NeutralImpulseMismatch {
+                event_id: 1,
+                component: 0,
+                ..
+            }
         ));
     }
 

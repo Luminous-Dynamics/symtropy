@@ -193,8 +193,9 @@
     "spatial_conformal_tests": 4,
     "field_functional_tests": 10,
     "integrated_functional_conformal_tests": 8,
-    "total_authored_rust_tests": 32,
-    "rust_execution": "not_run_no_local_rust_toolchain"
+    "total_authored_rust_tests": 43,
+    "rust_execution": "not_run_no_local_rust_toolchain",
+    "spatial_correlation_tests": 11
   },
   "integrated_functional_conformal_contract": {
     "dimension": 4,
@@ -259,6 +260,28 @@
     "cluster_maximum_field_conformal_3d",
     "hierarchical_group_conformal_CDF_pooling",
     "hierarchical_group_conformal_repeated_subsampling",
-    "cluster_maximum_integrated_functional_conformal"
-  ]
+    "cluster_maximum_integrated_functional_conformal",
+    "empirical_spatial_error_autocorrelation_lookup",
+    "gaussian_spatial_covariance",
+    "matern_spatial_covariance",
+    "wendland_c2_spatial_covariance",
+    "oscillatory_positive_definite_covariance_when_negative_lobes_are_observed"
+  ],
+  "spatial_correlation_contract": {
+    "module_path": "tools/ehd-piv-conformal-functional-uq/src/spatial_correlation.rs",
+    "parameter_calibration_receipt": {
+      "minimum_independent_acquisition_count": 20,
+      "maximum_absolute_correlation_fit_error_prospective": 0.05,
+      "target_protocol_fingerprint_match_required": true,
+      "negative_correlation_lobe_rejected": true
+    },
+    "comparators": [
+      "empirical_autocorrelation_lookup",
+      "gaussian",
+      "matern",
+      "wendland_c2",
+      "oscillatory_positive_definite"
+    ],
+    "claim_boundary": "No spatial kernel parameters have been fitted to raw experimental PIV fields. Receipt is externally asserted; current kernel is a stationary, nonnegative-correlation candidate only."
+  }
 }
