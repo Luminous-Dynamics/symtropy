@@ -1,0 +1,148 @@
+{
+  "schema_version": "cmni-randomized-robust-policy-v1",
+  "fixture_kind": "analytic_finite_zero_sum_game",
+  "claim_boundary": "Exact finite synthetic game in real arithmetic; Rust implementation reports floating-point primal/dual verification, not a formal certificate or physical result.",
+  "decision_problem": {
+    "state_ids": [
+      "state-0",
+      "state-1",
+      "state-2"
+    ],
+    "state_probabilities": [
+      0.4,
+      0.4,
+      0.2
+    ],
+    "action_ids": [
+      "action-0",
+      "action-1",
+      "action-2"
+    ],
+    "action_utilities_action_major": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  "candidate": {
+    "candidate_id": "strict-randomization-improvement",
+    "outcome_ids": [
+      "outcome-0",
+      "outcome-1",
+      "outcome-2"
+    ],
+    "dependence_scope_receipt_id": "receipt:randomized-policy-game-v1",
+    "resource_cost": 0.01,
+    "scenarios": [
+      {
+        "scenario_id": "dependence-a",
+        "likelihoods_state_major": [
+          [
+            0.6,
+            0.2,
+            0.2
+          ],
+          [
+            0.2,
+            0.6,
+            0.2
+          ],
+          [
+            0.4,
+            0.2,
+            0.4
+          ]
+        ]
+      },
+      {
+        "scenario_id": "dependence-b",
+        "likelihoods_state_major": [
+          [
+            0.2,
+            0.4,
+            0.4
+          ],
+          [
+            0.4,
+            0.4,
+            0.2
+          ],
+          [
+            0.4,
+            0.2,
+            0.4
+          ]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "prior_best_action_utility": 0.4,
+    "deterministic_maximin_utility": 0.4,
+    "primal_randomized_policy_support": [
+      {
+        "action_ids_by_outcome": [
+          "action-0",
+          "action-0",
+          "action-2"
+        ],
+        "probability": 0.6666666666666666,
+        "scenario_utilities": [
+          0.4,
+          0.48
+        ]
+      },
+      {
+        "action_ids_by_outcome": [
+          "action-2",
+          "action-0",
+          "action-2"
+        ],
+        "probability": 0.3333333333333333,
+        "scenario_utilities": [
+          0.56,
+          0.4
+        ]
+      }
+    ],
+    "randomized_worst_case_utility": 0.4533333333333333,
+    "randomized_evsi": 0.05333333333333334,
+    "resource_cost_in_utility_units": 0.01,
+    "net_robust_decision_value": 0.043333333333333335,
+    "dual_least_favourable_scenario_mixture": [
+      {
+        "scenario_id": "dependence-a",
+        "probability": 0.3333333333333333
+      },
+      {
+        "scenario_id": "dependence-b",
+        "probability": 0.6666666666666666
+      }
+    ],
+    "primal_dual_value": 0.4533333333333333,
+    "primal_dual_gap": 0,
+    "deterministic_to_randomized_gain": 0.05333333333333334,
+    "exact_policy_maps_enumerated": 27,
+    "payoff_cells_evaluated": 54
+  },
+  "limits": [
+    "Finite scenarios only",
+    "Finite deterministic policy maps mixed into a randomized policy",
+    "Finite support-basis enumeration",
+    "f64 solver and numerical tolerances",
+    "Dependence receipt identifier is not authenticated",
+    "No physical validation"
+  ]
+}

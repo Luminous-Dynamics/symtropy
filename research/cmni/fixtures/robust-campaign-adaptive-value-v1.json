@@ -1,0 +1,205 @@
+{
+  "schema_version": "cmni-robust-campaign-adaptive-value-v1",
+  "fixture_kind": "analytic_two_stage_finite_campaign",
+  "claim_boundary": "Finite deterministic policy-tree oracle over two identical admitted dependence scenarios; synthetic control, not physical data.",
+  "states": [
+    "state-0",
+    "state-1",
+    "state-2",
+    "state-3"
+  ],
+  "state_probabilities": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+  ],
+  "actions": [
+    "choose-state-0",
+    "choose-state-1",
+    "choose-state-2",
+    "choose-state-3"
+  ],
+  "action_utilities_action_major": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "abstention_utility": 0,
+  "dependence_scope_receipt_id": "receipt:robust-two-stage-campaign-v1",
+  "scenarios": [
+    "dependence-a",
+    "dependence-b"
+  ],
+  "acquisitions": [
+    {
+      "option_id": "coarse",
+      "cost": 0.05,
+      "outcomes": [
+        "outcome-0",
+        "outcome-1"
+      ],
+      "likelihood_state_major": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "option_id": "detail-a",
+      "cost": 0.05,
+      "outcomes": [
+        "outcome-0",
+        "outcome-1"
+      ],
+      "likelihood_state_major": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "option_id": "detail-b",
+      "cost": 0.05,
+      "outcomes": [
+        "outcome-0",
+        "outcome-1"
+      ],
+      "likelihood_state_major": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  ],
+  "policy": {
+    "max_steps": 2,
+    "remaining_resource_budget": 0.1,
+    "cost_to_utility_rate": 1,
+    "max_campaign_policy_trees": 10000
+  },
+  "expected": {
+    "prior_best_terminal_utility": 0.25,
+    "best_one_stage_net_utility": 0.45,
+    "best_two_stage_net_utility": 0.9,
+    "gross_terminal_utility": 1,
+    "expected_resource_cost": 0.1,
+    "cost_in_utility_units": 0.1,
+    "robust_expected_value_of_campaign": 0.65,
+    "clairvoyant_campaign_upper_bound": 0.9,
+    "non_anticipativity_gap": 0,
+    "selected_root_option": "coarse",
+    "branch_0_second_option": "detail-a",
+    "branch_1_second_option": "detail-b",
+    "complete_policy_trees_evaluated": 9080,
+    "one_stage_policy_trees_evaluated": 80
+  },
+  "adversarial_control": {
+    "name": "hidden calibration reversal",
+    "state_probabilities": [
+      0.5,
+      0.5
+    ],
+    "scenarios": [
+      {
+        "scenario_id": "forward",
+        "likelihood_state_major": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      {
+        "scenario_id": "reversed",
+        "likelihood_state_major": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    ],
+    "expected_robust_net_utility": 0.5,
+    "expected_clairvoyant_upper_bound": 0.95,
+    "expected_non_anticipativity_gap": 0.45,
+    "selected_plan": "stop without acquisition"
+  },
+  "limitations": [
+    "At most two acquisition stages",
+    "Finite admitted dependence scenarios",
+    "Deterministic complete campaign trees only",
+    "Conditional independence of sequential acquisitions given expanded scientific state and scenario",
+    "f64 calculations; no formal certificate",
+    "Dependence-scope receipt identifier is not authenticated",
+    "No physical validation"
+  ]
+}

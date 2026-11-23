@@ -1,0 +1,76 @@
+{
+  "fixture_type": "synthetic_cmni_identifiability_design_v1",
+  "provenance": "fully synthetic algebraic oracle; no laboratory observations",
+  "parameter_names": [
+    "mechanism_A_amplitude",
+    "mechanism_B_amplitude"
+  ],
+  "parameter_scaling": "dimensionless unit-scale parameters for this fixture only",
+  "design_A": {
+    "expected_counts": [
+      100
+    ],
+    "jacobian": [
+      [
+        1,
+        0
+      ]
+    ],
+    "fisher_information": [
+      [
+        0.01,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "expected_effective_rank": 1,
+    "interpretation": "The observation is locally insensitive to parameter B."
+  },
+  "design_B": {
+    "expected_counts": [
+      100
+    ],
+    "jacobian": [
+      [
+        0,
+        1
+      ]
+    ],
+    "fisher_information": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0.01
+      ]
+    ],
+    "expected_effective_rank": 1,
+    "interpretation": "The complementary observation is locally insensitive to parameter A."
+  },
+  "combined_design": {
+    "fisher_information": [
+      [
+        0.01,
+        0
+      ],
+      [
+        0,
+        0.01
+      ]
+    ],
+    "expected_effective_rank": 2,
+    "expected_condition_number": 1,
+    "expected_log_determinant": -9.210340371976182,
+    "interpretation": "Combining complementary observation conditions removes the local rank deficiency."
+  },
+  "limits": [
+    "Local information only; not proof of global identifiability.",
+    "Jacobian is supplied, not derived from the CMNI forward model.",
+    "No physical experiment or material parameter is represented."
+  ]
+}
