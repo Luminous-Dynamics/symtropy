@@ -46,14 +46,30 @@ pub struct BodyResponse {
     pub angular_impulse: [f64; 3],
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SolverTermination {
+    Converged,
+    IterationLimit,
+    WorkBudgetExhausted,
+    Diverged,
+    Aborted,
+    Unsupported,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SolverResponseSnapshot {
     pub scenario_digest: String,
     pub initial_state_digest: String,
     pub physics_model_digest: String,
     pub solver_config_digest: String,
-    /// Adapter-defined equal-work unit, such as constraint-row visits.
+    pub work_unit_schema_digest: String,
+    /// Maximum work allowed for both paired runs.
     pub work_budget_units: u64,
+    /// Work actually consumed; the two runs need not consume the same amount.
+    pub work_consumed_units: u64,
+    pub solver_iterations: u64,
+    pub solver_rows_submitted: u64,
+    pub solver_termination: SolverTermination,
     /// Candidate-set and warm-start digests may differ between policies.
     pub candidate_set_digest: String,
     pub warm_start_digest: String,
@@ -87,6 +103,15 @@ pub struct ResponseComparison {
     pub physics_model_digest: String,
     pub solver_config_digest: String,
     pub work_budget_units: u64,
+    pub full_work_consumed_units: u64,
+    pub reduced_work_consumed_units: u64,
+    pub full_solver_iterations: u64,
+    pub reduced_solver_iterations: u64,
+    pub full_solver_rows_submitted: u64,
+    pub reduced_solver_rows_submitted: u64,
+    pub full_solver_termination: SolverTermination,
+    pub reduced_solver_termination: SolverTermination,
+    pub both_solvers_converged: bool,
     pub full_candidate_set_digest: String,
     pub reduced_candidate_set_digest: String,
     pub full_warm_start_digest: String,
@@ -150,6 +175,7 @@ fn body_index(snapshot: &SolverResponseSnapshot) -> Result<BodyIndex<'_>, Respon
         ("initial state", &snapshot.initial_state_digest),
         ("physics model", &snapshot.physics_model_digest),
         ("solver config", &snapshot.solver_config_digest),
+        ("work unit schema", &snapshot.work_unit_schema_digest),
         ("candidate set", &snapshot.candidate_set_digest),
         ("warm start", &snapshot.warm_start_digest),
     ] {
@@ -197,10 +223,18 @@ fn validate_pair<'a, 'b>(
     if full.solver_config_digest != reduced.solver_config_digest {
         return Err(ResponseError::new("solver configuration digests differ"));
     }
+    if full.work_unit_schema_digest != reduced.work_unit_schema_digest {
+        return Err(ResponseError::new("work-unit schema digests differ"));
+    }
     if full.work_budget_units != reduced.work_budget_units {
         return Err(ResponseError::new(
             "equal-work comparison requires matching work budgets",
         ));
+    }
+    if full.work_consumed_units > full.work_budget_units
+        || reduced.work_consumed_units > reduced.work_budget_units
+    {
+        return Err(ResponseError::new("actual work consumption exceeds its declared budget"));
     }
 
     let full_bodies = body_index(full)?;
@@ -414,6 +448,16 @@ pub fn compare_responses(
         physics_model_digest: full.physics_model_digest.clone(),
         solver_config_digest: full.solver_config_digest.clone(),
         work_budget_units: full.work_budget_units,
+        full_work_consumed_units: full.work_consumed_units,
+        reduced_work_consumed_units: reduced.work_consumed_units,
+        full_solver_iterations: full.solver_iterations,
+        reduced_solver_iterations: reduced.solver_iterations,
+        full_solver_rows_submitted: full.solver_rows_submitted,
+        reduced_solver_rows_submitted: reduced.solver_rows_submitted,
+        full_solver_termination: full.solver_termination,
+        reduced_solver_termination: reduced.solver_termination,
+        both_solvers_converged: full.solver_termination == SolverTermination::Converged
+            && reduced.solver_termination == SolverTermination::Converged,
         full_candidate_set_digest: full.candidate_set_digest.clone(),
         reduced_candidate_set_digest: reduced.candidate_set_digest.clone(),
         full_warm_start_digest: full.warm_start_digest.clone(),
@@ -452,7 +496,12 @@ mod tests {
             initial_state_digest: "state-001".to_owned(),
             physics_model_digest: "model-001".to_owned(),
             solver_config_digest: "solver-001".to_owned(),
+            work_unit_schema_digest: "constraint-row-visits-v1".to_owned(),
             work_budget_units: 128,
+            work_consumed_units: 100,
+            solver_iterations: 10,
+            solver_rows_submitted: 4,
+            solver_termination: SolverTermination::Converged,
             candidate_set_digest: candidate.to_owned(),
             warm_start_digest: format!("warm-{candidate}"),
             bodies,
