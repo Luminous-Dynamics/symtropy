@@ -294,9 +294,47 @@ jobs:
           cp "$JAR" "$ROOT/tla2tools.jar"
           (
             cd "$ROOT"
+            MODEL_SHA=$(sha256sum RestartSafeEffectContinuity.tla | cut -d ' ' -f 1)
+            TRACE_SPEC_SHA=$(sha256sum RestartSafeEffectContinuityTrace.tla | cut -d ' ' -f 1)
+            TRACE_CFG_SHA=$(sha256sum RestartSafeEffectContinuityTrace.cfg | cut -d ' ' -f 1)
+            TLC_JAR_SHA=$(sha256sum tla2tools.jar | cut -d ' ' -f 1)
+            RESERVATION_LOG_SHA=$(sha256sum tlc-reservation.log | cut -d ' ' -f 1)
+            RECOVERY_LOG_SHA=$(sha256sum tlc-no-effect-recovery.log | cut -d ' ' -f 1)
+            NEGATIVE_LOG_SHA=$(sha256sum tlc-negative-wrong-action.log | cut -d ' ' -f 1)
+            jq -n \
+              --arg model_sha256 "$MODEL_SHA" \
+              --arg trace_spec_sha256 "$TRACE_SPEC_SHA" \
+              --arg trace_config_sha256 "$TRACE_CFG_SHA" \
+              --arg tlc_jar_sha256 "$TLC_JAR_SHA" \
+              --arg reservation_log_sha256 "$RESERVATION_LOG_SHA" \
+              --arg recovery_log_sha256 "$RECOVERY_LOG_SHA" \
+              --arg negative_log_sha256 "$NEGATIVE_LOG_SHA" \
+              '{
+                schema_version:"0.1",
+                tla_conformance:"passed",
+                checker:"TLC",
+                trace_contract:"named-action plus exact complete successor-state equality",
+                valid_traces:{
+                  reservation:{result:"passed",snapshots:4,log_sha256:$reservation_log_sha256},
+                  no_effect_recovery:{result:"passed",snapshots:17,log_sha256:$recovery_log_sha256}
+                },
+                negative_control:{
+                  mutation:"Rename first recorded ReserveAttempt action to MarkDispatchStarted without changing successor state",
+                  expected:"TraceNotStuck violated",
+                  result:"rejected",
+                  log_sha256:$negative_log_sha256
+                },
+                pins:{
+                  model_sha256:$model_sha256,
+                  trace_spec_sha256:$trace_spec_sha256,
+                  trace_config_sha256:$trace_config_sha256,
+                  tla2tools_jar_sha256:$tlc_jar_sha256
+                },
+                claim_ceiling:"Recorded state/action traces conform to the pinned TLA abstraction; this does not authenticate source artifacts or prove physical truth."
+              }' > formal-conformance-manifest.json
             sha256sum RestartSafeEffectContinuityTrace.tla RestartSafeEffectContinuityTrace.cfg \
               RestartSafeEffectContinuity.tla tla2tools.jar tlc-reservation.log tlc-no-effect-recovery.log \
-              tlc-negative-wrong-action.log >> SHA256SUMS
+              tlc-negative-wrong-action.log formal-conformance-manifest.json >> SHA256SUMS
           )
 
       - name: Upload projection conformance package
