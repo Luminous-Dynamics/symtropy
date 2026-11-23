@@ -2,6 +2,7 @@ pub mod action_universe_closure;
 pub mod decision_identifiability;
 pub mod feasibility_regret;
 pub mod joint_loss_scenarios;
+pub mod open_world_domain;
 pub mod regret_calibration;
 pub mod robust_decision;
 
