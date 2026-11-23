@@ -1,10 +1,11 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
-use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
+use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere, Transform};
+use symtropy_physics::broadphase::{self, StaticBroadphase};
+use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 
@@ -219,6 +220,121 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+
+
+// ═══ Static-heavy broadphase baselines ═══
+
+fn static_heavy_broadphase_scene(
+    static_count: usize,
+    moving_count: usize,
+) -> Vec<RigidBody<3>> {
+    let mut bodies = Vec::with_capacity(static_count + moving_count);
+
+    // Static bodies are widely separated. Each moving body is colocated with
+    // one selected static body, producing a small, deterministic candidate set.
+    for index in 0..static_count {
+        let x = index as f64 * 3.0;
+        bodies.push(RigidBody::<3>::static_body(
+            BodyHandle(index),
+            Point::new([x, 0.0, 0.0]),
+            Box::new(HyperBox::<3>::cube(0.5)),
+        ));
+    }
+
+    for index in 0..moving_count {
+        let static_index = index * static_count / moving_count.max(1);
+        let x = static_index as f64 * 3.0;
+        bodies.push(RigidBody::<3>::new(
+            BodyHandle(static_count + index),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([x, 0.0, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+    }
+
+    bodies
+}
+
+fn bench_broadphase_static_heavy(c: &mut Criterion) {
+    let mut group = c.benchmark_group("broadphase_static_heavy_3d");
+
+    // Keep moving counts below the incremental path's 50-body fallback so
+    // these measurements actually exercise the flat static-cache scan.
+    for static_count in [64usize, 256, 1024, 4096] {
+        for moving_count in [1usize, 8, 32] {
+            let bodies = static_heavy_broadphase_scene(static_count, moving_count);
+
+            let mut static_cache = StaticBroadphase::new();
+            static_cache.rebuild(&bodies);
+
+            // Verify exact candidate-set parity before timing. The full path
+            // is the current LBVH implementation for these scene sizes.
+            let reference_pairs = broadphase::find_pairs(&bodies);
+            let incremental_pairs =
+                broadphase::find_pairs_incremental(&bodies, &static_cache);
+            assert_eq!(
+                incremental_pairs, reference_pairs,
+                "incremental/full candidate mismatch for static={static_count}, moving={moving_count}"
+            );
+
+            let case = format!(
+                "static_{static_count}_moving_{moving_count}_pairs_{}",
+                reference_pairs.len()
+            );
+
+            group.bench_function(
+                BenchmarkId::new("flat_static_cache_query", &case),
+                |bench| {
+                    bench.iter(|| {
+                        black_box(broadphase::find_pairs_incremental(
+                            black_box(&bodies),
+                            black_box(&static_cache),
+                        ));
+                    });
+                },
+            );
+
+            group.bench_function(
+                BenchmarkId::new("full_lbvh_rebuild_and_query", &case),
+                |bench| {
+                    bench.iter(|| {
+                        black_box(broadphase::find_pairs(black_box(&bodies)));
+                    });
+                },
+            );
+
+            group.bench_function(
+                BenchmarkId::new("static_cache_rebuild_only", &case),
+                |bench| {
+                    bench.iter(|| {
+                        let mut cache = StaticBroadphase::new();
+                        cache.rebuild(black_box(&bodies));
+                        black_box(cache.len());
+                    });
+                },
+            );
+
+            group.bench_function(
+                BenchmarkId::new("incremental_rebuild_plus_query", &case),
+                |bench| {
+                    bench.iter(|| {
+                        let mut cache = StaticBroadphase::new();
+                        cache.rebuild(black_box(&bodies));
+                        black_box(broadphase::find_pairs_incremental(
+                            black_box(&bodies),
+                            black_box(&cache),
+                        ));
+                    });
+                },
+            );
+        }
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -237,5 +353,7 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    // Broadphase static-heavy baselines
+    bench_broadphase_static_heavy,
 );
 criterion_main!(benches);
