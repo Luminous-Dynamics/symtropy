@@ -1352,10 +1352,7 @@ fn extend_exact_score(
     score
 }
 
-fn insert_exact_dp_state(
-    target: &mut Option<ExactOracleBest>,
-    candidate: ExactOracleBest,
-) {
+fn insert_exact_dp_state(target: &mut Option<ExactOracleBest>, candidate: ExactOracleBest) {
     let replace = target.as_ref().is_none_or(|current| {
         exact_score_is_better(
             &candidate.score,
@@ -1562,10 +1559,7 @@ fn exact_assignment_oracle(
                     projected_completion_seconds: candidate.completion_seconds,
                     disposition,
                 }));
-                insert_exact_dp_state(
-                    &mut next_states[request_mask | request_bit],
-                    assigned,
-                );
+                insert_exact_dp_state(&mut next_states[request_mask | request_bit], assigned);
             }
 
             if transition_limit_reached {
@@ -2629,7 +2623,10 @@ mod tests {
     fn linked_full_fixture_is_solved_by_bitmask_dynamic_programming() {
         let report = linked_report();
         assert_eq!(report.exact_oracle.status, ExactOracleStatus::Evaluated);
-        let score = report.exact_oracle.best_score.expect("bounded exact DP score");
+        let score = report
+            .exact_oracle
+            .best_score
+            .expect("bounded exact DP score");
         assert!(score.completed_on_time <= report.policy_results[0].accepted_requests);
         assert_eq!(
             score.completed_by_horizon,
@@ -2662,18 +2659,23 @@ mod tests {
             <= MAX_EXACT_ORACLE_OPPORTUNITIES
         {
             let index = too_many_opportunities.fallback_opportunities.len();
-            too_many_opportunities.fallback_opportunities.push(FallbackServiceOpportunity {
-                opportunity_id: format!("extra-fallback-{index}"),
-                fallback_resource_id: format!("extra-resource-{index}"),
-                fallback_mode: FallbackMode::GroundCourier,
-                start_seconds: 0,
-                max_service_duration_seconds: 600,
-                max_payload_units: 100,
-            });
+            too_many_opportunities
+                .fallback_opportunities
+                .push(FallbackServiceOpportunity {
+                    opportunity_id: format!("extra-fallback-{index}"),
+                    fallback_resource_id: format!("extra-resource-{index}"),
+                    fallback_mode: FallbackMode::GroundCourier,
+                    start_seconds: 0,
+                    max_service_duration_seconds: 600,
+                    max_payload_units: 100,
+                });
         }
         let opportunity_skip = exact_assignment_oracle(&too_many_opportunities, &[])
             .expect("over-bound opportunity count returns an abstention report");
-        assert_eq!(opportunity_skip.status, ExactOracleStatus::NotRunBoundsExceeded);
+        assert_eq!(
+            opportunity_skip.status,
+            ExactOracleStatus::NotRunBoundsExceeded
+        );
         assert_eq!(opportunity_skip.dp_transitions, 0);
     }
 
