@@ -384,6 +384,6 @@ Exact public-source local replays:
 - fixed-boundary map: Git blob SHA-1 f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9;
 - asymptotic mass check: Git blob SHA-1 32d91014925518358ad92395ca6aec020d383d6d.
 
-The full angular/fixed-boundary check has an independent local exact SymPy reconstruction; its consolidated public verifier is committed but its exact-blob replay is still pending. The four original rows have an exact local rational evaluation; the latest fixture-driven verifier's exact-blob replay remains pending.
+The full angular/fixed-boundary and ADM-mass checks now pass in the consolidated verifier replayed byte-for-byte from its public Git blob (SHA-1 b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd; SHA-256 e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f). The four original rows have exact local rational results; the separate fixture-driven row verifier's exact-blob replay remains pending.
 
 Still open: finite-positive-coupling corrected BVPs, finite-difference convergence of the full boundary map, interval existence/local uniqueness on a branch segment, and separate physical-principal-symbol/strong-hyperbolicity qualification. These first-coupling results are not finite-coupling existence, global uniqueness, or hyperbolicity results.
