@@ -65,15 +65,15 @@ fn cross(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
 fn normalize(value: [f64; 3]) -> Result<[f64; 3], OracleError> {
     let norm = stable_norm(&value);
     if !norm.is_finite() || norm <= 0.0 {
-        return Err(OracleError::new("contact normal or tangent basis has invalid norm"));
+        return Err(OracleError::new(
+            "contact normal or tangent basis has invalid norm",
+        ));
     }
     Ok([value[0] / norm, value[1] / norm, value[2] / norm])
 }
 
 fn tangent_basis(normal: [f64; 3]) -> Result<([f64; 3], [f64; 3]), OracleError> {
-    let reference = if normal[0].abs() <= normal[1].abs()
-        && normal[0].abs() <= normal[2].abs()
-    {
+    let reference = if normal[0].abs() <= normal[1].abs() && normal[0].abs() <= normal[2].abs() {
         [1.0, 0.0, 0.0]
     } else if normal[1].abs() <= normal[2].abs() {
         [0.0, 1.0, 0.0]
@@ -87,7 +87,9 @@ fn tangent_basis(normal: [f64; 3]) -> Result<([f64; 3], [f64; 3]), OracleError> 
 
 fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleError> {
     if !model.characteristic_length.is_finite() || model.characteristic_length <= 0.0 {
-        return Err(OracleError::new("characteristic length must be finite and positive"));
+        return Err(OracleError::new(
+            "characteristic length must be finite and positive",
+        ));
     }
     if model.contacts.is_empty() {
         return Err(OracleError::new("at least one contact is required"));
@@ -113,7 +115,9 @@ fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleErr
             || contact.friction_u < 0.0
             || contact.friction_v < 0.0
         {
-            return Err(OracleError::new("friction semi-axes must be finite and non-negative"));
+            return Err(OracleError::new(
+                "friction semi-axes must be finite and non-negative",
+            ));
         }
         if !contact.min_normal_fraction.is_finite()
             || !contact.max_normal_fraction.is_finite()
@@ -121,7 +125,9 @@ fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleErr
             || contact.max_normal_fraction > 1.0
             || contact.min_normal_fraction > contact.max_normal_fraction
         {
-            return Err(OracleError::new("normal-load bounds must satisfy 0 <= min <= max <= 1"));
+            return Err(OracleError::new(
+                "normal-load bounds must satisfy 0 <= min <= max <= 1",
+            ));
         }
         minimum_total += contact.min_normal_fraction;
         maximum_total += contact.max_normal_fraction;
@@ -202,7 +208,9 @@ pub fn evaluate_support(
         || !direction_norm.is_finite()
         || direction_norm <= 0.0
     {
-        return Err(OracleError::new("wrench direction must have a finite non-zero norm and ID"));
+        return Err(OracleError::new(
+            "wrench direction must have a finite non-zero norm and ID",
+        ));
     }
     let unit_direction = std::array::from_fn(|index| direction.components[index] / direction_norm);
 
@@ -215,11 +223,7 @@ pub fn evaluate_support(
             model.characteristic_length,
             model.cone_sides,
         )?;
-        contact_scores.push((
-            index,
-            support_per_unit_normal_load,
-            selected_friction_ray,
-        ));
+        contact_scores.push((index, support_per_unit_normal_load, selected_friction_ray));
     }
 
     let mut allocations = model
@@ -247,7 +251,9 @@ pub fn evaluate_support(
         remaining -= added;
     }
     if remaining > 1.0e-10 {
-        return Err(OracleError::new("normal-load allocation did not satisfy unit total"));
+        return Err(OracleError::new(
+            "normal-load allocation did not satisfy unit total",
+        ));
     }
 
     let mut support_value = 0.0_f64;
@@ -263,7 +269,9 @@ pub fn evaluate_support(
         });
     }
     if !support_value.is_finite() {
-        return Err(OracleError::new("aggregate contact-wrench support is non-finite"));
+        return Err(OracleError::new(
+            "aggregate contact-wrench support is non-finite",
+        ));
     }
     report_allocations.sort_by(|left, right| left.contact_id.cmp(&right.contact_id));
 
@@ -342,8 +350,16 @@ mod tests {
         let result = evaluate_support(&model, &direction("fz", [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]))
             .expect("bounded load allocation");
         assert!((result.support_value - 0.4).abs() < 1.0e-12);
-        let z_load = result.allocations.iter().find(|item| item.contact_id == "z-normal").unwrap();
-        let x_load = result.allocations.iter().find(|item| item.contact_id == "x-normal").unwrap();
+        let z_load = result
+            .allocations
+            .iter()
+            .find(|item| item.contact_id == "z-normal")
+            .unwrap();
+        let x_load = result
+            .allocations
+            .iter()
+            .find(|item| item.contact_id == "x-normal")
+            .unwrap();
         assert!((z_load.normal_load_fraction - 0.4).abs() < 1.0e-12);
         assert!((x_load.normal_load_fraction - 0.6).abs() < 1.0e-12);
     }
@@ -361,7 +377,11 @@ mod tests {
         let result = evaluate_support(&model, &direction("fz", [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]))
             .expect("minimum load constraints");
         assert!((result.support_value - 0.7).abs() < 1.0e-12);
-        let x_load = result.allocations.iter().find(|item| item.contact_id == "x-normal").unwrap();
+        let x_load = result
+            .allocations
+            .iter()
+            .find(|item| item.contact_id == "x-normal")
+            .unwrap();
         assert!((x_load.normal_load_fraction - 0.3).abs() < 1.0e-12);
     }
 
@@ -374,15 +394,7 @@ mod tests {
                 [-half_step.sin(), half_step.cos(), 0.0, 0.0, 0.0, 0.0],
             );
             let model = ContactWrenchModel {
-                contacts: vec![contact(
-                    "c0",
-                    [0.0; 3],
-                    [0.0, 0.0, 1.0],
-                    0.5,
-                    0.5,
-                    0.0,
-                    1.0,
-                )],
+                contacts: vec![contact("c0", [0.0; 3], [0.0, 0.0, 1.0], 0.5, 0.5, 0.0, 1.0)],
                 cone_sides,
                 characteristic_length: 1.0,
             };
@@ -403,7 +415,9 @@ mod tests {
             cone_sides: 4,
             characteristic_length: 1.0,
         };
-        assert!(evaluate_support(&model, &direction("fz", [0.0, 0.0, 1.0, 0.0, 0.0, 0.0])).is_err());
+        assert!(
+            evaluate_support(&model, &direction("fz", [0.0, 0.0, 1.0, 0.0, 0.0, 0.0])).is_err()
+        );
     }
 
     #[test]
@@ -431,7 +445,9 @@ mod tests {
             cone_sides: 8,
             characteristic_length: 1.0,
         };
-        assert!(evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])).is_err());
+        assert!(
+            evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])).is_err()
+        );
 
         let valid = ContactWrenchModel {
             contacts: vec![contact("c0", [0.0; 3], [0.0, 0.0, 1.0], 0.2, 0.2, 0.0, 1.0)],
