@@ -111,7 +111,7 @@ pub struct RobustCampaignPlanningResult {
     pub pathwise_resource_budget: f64,
     /// True only when the selected tree respects the hard limit on every path.
     pub pathwise_budget_satisfied: bool,
-    pub robust_expected_value_of_campaign: f64;
+    pub robust_expected_value_of_campaign: f64,
     /// Best scenario-specific tree value, minimized over scenarios. Clairvoyant
     /// because a different tree may be selected after revealing the scenario.
     pub clairvoyant_campaign_upper_bound: f64,
