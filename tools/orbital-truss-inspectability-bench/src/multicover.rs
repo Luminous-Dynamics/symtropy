@@ -2,11 +2,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const MULTICOVER_CORPUS_SCHEMA: &str =
-    "luminous.orbital-truss.multicover-scale-corpus.v0.2";
+pub const MULTICOVER_CORPUS_SCHEMA: &str = "luminous.orbital-truss.multicover-scale-corpus.v0.2";
 pub const MULTICOVER_BENCHMARK_ID: &str = "ORBITAL-MULTICOVER-SCALE-002";
-pub const MULTICOVER_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss.multicover-scale-receipt.v0.2";
+pub const MULTICOVER_RECEIPT_SCHEMA: &str = "luminous.orbital-truss.multicover-scale-receipt.v0.2";
 pub const MAX_CANDIDATE_VIEWS: usize = 100_000;
 pub const MAX_FEATURES: usize = 250_000;
 pub const MAX_VISIBILITY_EDGES: usize = 50_000_000;
@@ -162,7 +160,9 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
         if feature.feature_id.trim().is_empty()
             || feature.requested_k == 0
             || feature.requested_k > MAX_REQUESTED_K
-            || feature_indices.insert(feature.feature_id.as_str(), index).is_some()
+            || feature_indices
+                .insert(feature.feature_id.as_str(), index)
+                .is_some()
         {
             return Err("MULTICOVER_FEATURE_INVALID".to_owned());
         }
@@ -193,8 +193,13 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
         failure_domain_ids.push(view.failure_domain_id.clone());
         vertical_order_ranks.push(view.vertical_order_rank);
 
-        let nominal_names: BTreeSet<&str> = view.nominal_feature_ids.iter().map(String::as_str).collect();
-        let robust_names: BTreeSet<&str> = view.robust_feature_ids.iter().map(String::as_str).collect();
+        let nominal_names: BTreeSet<&str> = view
+            .nominal_feature_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+        let robust_names: BTreeSet<&str> =
+            view.robust_feature_ids.iter().map(String::as_str).collect();
         if nominal_names.len() != view.nominal_feature_ids.len()
             || robust_names.len() != view.robust_feature_ids.len()
             || !robust_names.is_subset(&nominal_names)
@@ -238,7 +243,11 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
 
     Ok(IndexedProblem {
         feature_ids,
-        view_ids: problem.views.iter().map(|view| view.view_id.clone()).collect(),
+        view_ids: problem
+            .views
+            .iter()
+            .map(|view| view.view_id.clone())
+            .collect(),
         vertical_order_ranks,
         requested_k,
         failure_domain_ids,
@@ -296,15 +305,16 @@ fn weight_vector(
         let delta_sigma = sigmas[index].saturating_sub(minimum_sigma);
         let exp_weight = exp_table.get(delta_sigma).copied().unwrap_or(0);
         let deficit_squared = (deficit as u128) * (deficit as u128);
-        let k_squared = (indexed.requested_k[index] as u128)
-            * (indexed.requested_k[index] as u128);
+        let k_squared = (indexed.requested_k[index] as u128) * (indexed.requested_k[index] as u128);
         let weight = (u128::from(exp_weight) * deficit_squared) / k_squared;
         weights[index] = weight.min(u128::from(u64::MAX)) as u64;
     }
     weights
 }
 
-fn select_greedily(indexed: &IndexedProblem) -> Result<(Vec<bool>, Vec<usize>, Vec<usize>), String> {
+fn select_greedily(
+    indexed: &IndexedProblem,
+) -> Result<(Vec<bool>, Vec<usize>, Vec<usize>), String> {
     let target = indexed
         .requested_k
         .iter()
@@ -318,7 +328,11 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<(Vec<bool>, Vec<usize>, V
     let exp_table = exponential_decay_table();
 
     loop {
-        if covered.iter().zip(&target).all(|(actual, required)| actual >= required) {
+        if covered
+            .iter()
+            .zip(&target)
+            .all(|(actual, required)| actual >= required)
+        {
             break;
         }
         let weights = weight_vector(indexed, &target, &covered, &remaining, &exp_table);
@@ -339,8 +353,7 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<(Vec<bool>, Vec<usize>, V
                     score > best_score
                         || (score == best_score
                             && score > 0
-                            && indexed.view_ids[view_index]
-                                < indexed.view_ids[best_index])
+                            && indexed.view_ids[view_index] < indexed.view_ids[best_index])
                 }
             };
             if replace {
@@ -483,8 +496,8 @@ fn dual_certificate(indexed: &IndexedProblem) -> Result<DualBoundCertificate, St
     }
     let denominator = u128::from(FIXED_SCALE);
     let lower_bound_floor = (best.objective_numerator / denominator) as u64;
-    let lower_bound_ceiling = lower_bound_floor
-        + u64::from(best.objective_numerator % denominator != 0);
+    let lower_bound_ceiling =
+        lower_bound_floor + u64::from(best.objective_numerator % denominator != 0);
     Ok(DualBoundCertificate {
         method: "FEASIBLE_SET_MULTICOVER_LP_DUAL_V0_1".to_owned(),
         ordering: best.ordering.to_owned(),
@@ -540,8 +553,10 @@ fn build_feature_coverage(
                 requested_k_met: selected_nominal[index] >= requested_k,
                 attainable_target_met: selected_nominal[index] >= attainable,
                 robust_requested_k_met: selected_robust[index] >= requested_k,
-                nominal_failure_domain_count_available: indexed.nominal_available_domains[index].len(),
-                robust_failure_domain_count_available: indexed.robust_available_domains[index].len(),
+                nominal_failure_domain_count_available: indexed.nominal_available_domains[index]
+                    .len(),
+                robust_failure_domain_count_available: indexed.robust_available_domains[index]
+                    .len(),
                 nominal_failure_domain_count_selected: selected_nominal_domains[index].len(),
                 robust_failure_domain_count_selected: selected_robust_domains[index].len(),
             }
@@ -645,11 +660,8 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     let mut overlap_pruning_baselines = Vec::with_capacity(4);
     for threshold in [50_u8, 70_u8] {
         for ordering in ["VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING"] {
-            overlap_pruning_baselines.push(overlap_pruning_baseline(
-                &indexed,
-                threshold,
-                ordering,
-            )?);
+            overlap_pruning_baselines
+                .push(overlap_pruning_baseline(&indexed, threshold, ordering)?);
         }
     }
 
@@ -677,15 +689,18 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     let candidate_pool_requested_k_fully_available = feature_coverage
         .iter()
         .all(|feature| feature.available_nominal_candidate_views >= feature.requested_k);
-    let selected_requested_k_fully_covered =
-        feature_coverage.iter().all(|feature| feature.requested_k_met);
-    let selected_attainable_targets_fully_covered =
-        feature_coverage.iter().all(|feature| feature.attainable_target_met);
-    let selected_robust_requested_k_fully_covered =
-        feature_coverage.iter().all(|feature| feature.robust_requested_k_met);
+    let selected_requested_k_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.requested_k_met);
+    let selected_attainable_targets_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.attainable_target_met);
+    let selected_robust_requested_k_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.robust_requested_k_met);
     let excess = selected_count as u64 - dual_bound.lower_bound_ceiling;
-    let relative_excess_over_dual_lower_bound_basis_points =
-        (dual_bound.lower_bound_ceiling > 0).then(|| {
+    let relative_excess_over_dual_lower_bound_basis_points = (dual_bound.lower_bound_ceiling > 0)
+        .then(|| {
             let numerator = (excess as u128) * 10_000_u128;
             let denominator = dual_bound.lower_bound_ceiling as u128;
             ((numerator + denominator - 1) / denominator) as u64
@@ -701,7 +716,8 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         source_commit: String::new(),
         input_sha256: String::new(),
         evidence_class: "synthetic".to_owned(),
-        claim_ceiling: "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only".to_owned(),
+        claim_ceiling: "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
+            .to_owned(),
         candidate_view_count: problem.views.len(),
         feature_count: problem.features.len(),
         nominal_visibility_edge_count,
@@ -728,12 +744,13 @@ pub fn audit_multicover(bytes: &[u8], source_commit: &str) -> Result<MultiCoverR
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
     }
-    let corpus: MultiCoverCorpus =
-        serde_json::from_slice(bytes).map_err(|error| format!("MULTICOVER_CORPUS_PARSE_FAILED:{error}"))?;
+    let corpus: MultiCoverCorpus = serde_json::from_slice(bytes)
+        .map_err(|error| format!("MULTICOVER_CORPUS_PARSE_FAILED:{error}"))?;
     if corpus.schema != MULTICOVER_CORPUS_SCHEMA
         || corpus.benchmark_id != MULTICOVER_BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
-        || corpus.claim_ceiling != "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
+        || corpus.claim_ceiling
+            != "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
     {
         return Err("MULTICOVER_CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
     }
@@ -750,7 +767,8 @@ pub fn audit_multicover(bytes: &[u8], source_commit: &str) -> Result<MultiCoverR
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!("../../../docs/research/orbital-truss/fixtures/multicover-scale-v0_2.json");
+    const FIXTURE: &str =
+        include_str!("../../../docs/research/orbital-truss/fixtures/multicover-scale-v0_2.json");
 
     fn toy_problem() -> MultiCoverProblem {
         MultiCoverProblem {
