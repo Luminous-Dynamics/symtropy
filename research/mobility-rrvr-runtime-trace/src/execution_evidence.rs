@@ -966,6 +966,7 @@ mod tests {
         assert_eq!(summary.dispatch_accepted_count, 4);
         assert_eq!(summary.executed_count, 4);
         assert_eq!(summary.delivery_confirmed_count, 4);
+        assert_eq!(summary.delivery_observer_receipt_count, 8);
         assert!(!summary.reconcile_required);
         assert!(!summary.retry_permitted);
     }
@@ -977,15 +978,7 @@ mod tests {
         evidence.events[0].execution.status = ExecutionStatus::Unknown;
         evidence.events[0].execution.receipt = None;
         evidence.events[0].delivery_observation.verdict = DeliveryVerdict::Unknown;
-        evidence.events[0].delivery_observation.observer_id = None;
-        evidence.events[0].delivery_observation.observer_revision = None;
-        evidence.events[0]
-            .delivery_observation
-            .observer_fault_domain_id = None;
-        evidence.events[0]
-            .delivery_observation
-            .observed_fault_signature_sha256 = None;
-        evidence.events[0].delivery_observation.receipt = None;
+        evidence.events[0].delivery_observation.members.clear();
         let summary = evidence.validate_against_plan(&plan).unwrap();
         assert_eq!(summary.delivery_confirmed_count, 3);
         assert!(summary.reconcile_required);
@@ -1073,11 +1066,55 @@ mod tests {
     fn rejects_observer_reuse_of_injector_fault_domain() {
         let plan = plan();
         let mut evidence = bundle();
-        evidence.events[0]
-            .delivery_observation
-            .observer_fault_domain_id = Some(plan.platform.fault_injector_fault_domain_id.clone());
+        evidence.events[0].delivery_observation.members[0].common_cause_domains =
+            vec![plan.platform.fault_injector_fault_domain_id.clone()];
         assert_eq!(
             evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ObserverNotDistinct)
+        );
+    }
+
+    #[test]
+    fn one_observer_is_not_a_delivery_quorum() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0].delivery_observation.members.pop();
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::InvalidDeliveryObservation)
+        );
+    }
+
+    #[test]
+    fn rejects_common_cause_overlap_between_delivery_observers() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0].delivery_observation.members[1].common_cause_domains =
+            evidence.events[0].delivery_observation.members[0]
+                .common_cause_domains
+                .clone();
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ObserverNotDistinct)
+        );
+    }
+
+    #[test]
+    fn rejects_unpinned_observer_binary_or_revision() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0].delivery_observation.members[0].observer_binary_sha256 =
+            "c".repeat(64);
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ObserverNotDistinct)
+        );
+
+        let mut revision = bundle();
+        revision.events[0].delivery_observation.members[0].observer_revision =
+            "unreviewed-observer".into();
+        assert_eq!(
+            revision.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ObserverNotDistinct)
         );
     }
@@ -1104,7 +1141,8 @@ mod tests {
         let mut evidence = bundle();
         evidence.events[0]
             .delivery_observation
-            .observed_fault_signature_sha256 = Some("f".repeat(64));
+            .members[0]
+            .observed_fault_signature_sha256 = "f".repeat(64);
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::DeliverySignatureMismatch)
@@ -1120,15 +1158,7 @@ mod tests {
         evidence.events[0].execution.status = ExecutionStatus::Unknown;
         evidence.events[0].execution.receipt = None;
         evidence.events[0].delivery_observation.verdict = DeliveryVerdict::Unknown;
-        evidence.events[0].delivery_observation.observer_id = None;
-        evidence.events[0].delivery_observation.observer_revision = None;
-        evidence.events[0]
-            .delivery_observation
-            .observer_fault_domain_id = None;
-        evidence.events[0]
-            .delivery_observation
-            .observed_fault_signature_sha256 = None;
-        evidence.events[0].delivery_observation.receipt = None;
+        evidence.events[0].delivery_observation.members.clear();
         let summary = evidence.validate_against_plan(&plan).unwrap();
         assert!(summary.reconcile_required);
         assert!(!summary.retry_permitted);
