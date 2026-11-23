@@ -17,7 +17,9 @@ pub struct ContactFrame {
     pub id: String,
     pub position: [f64; 3],
     pub normal: [f64; 3],
-    /// Friction semi-axis along the deterministic local tangent-u direction.
+    /// Caller-declared material tangent direction, projected into the contact plane.
+    pub tangent_u_hint: [f64; 3],
+    /// Friction semi-axis along the material tangent-u direction.
     pub friction_u: f64,
     /// Friction semi-axis along the deterministic local tangent-v direction.
     pub friction_v: f64,
@@ -132,6 +134,7 @@ fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleErr
         minimum_total += contact.min_normal_fraction;
         maximum_total += contact.max_normal_fraction;
         let normal = normalize(contact.normal)?;
+        tangent_basis(normal, contact.tangent_u_hint)?;
         bases.push(normal);
     }
 
@@ -150,11 +153,12 @@ fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleErr
 fn contact_ray_support(
     contact: &ContactFrame,
     normal: [f64; 3],
+    tangent_u_hint: [f64; 3],
     direction: &[f64; 6],
     characteristic_length: f64,
     cone_sides: usize,
 ) -> Result<(f64, usize), OracleError> {
-    let (tangent_u, tangent_v) = tangent_basis(normal)?;
+    let (tangent_u, tangent_v) = tangent_basis(normal, tangent_u_hint)?;
     let [fx, fy, fz, mx, my, mz] = *direction;
     let inverse_length = 1.0 / characteristic_length;
     let mut best_support = f64::NEG_INFINITY;
@@ -219,6 +223,7 @@ pub fn evaluate_support(
         let (support_per_unit_normal_load, selected_friction_ray) = contact_ray_support(
             contact,
             normals[index],
+            contact.tangent_u_hint,
             &unit_direction,
             model.characteristic_length,
             model.cone_sides,
@@ -299,6 +304,7 @@ mod tests {
             id: id.into(),
             position,
             normal,
+            tangent_u_hint,
             friction_u,
             friction_v,
             min_normal_fraction,
@@ -335,6 +341,30 @@ mod tests {
         let result = evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
             .expect("anisotropic friction");
         assert!((result.support_value - 0.7).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn anisotropic_friction_follows_material_tangent_hint() {
+        let model = ContactWrenchModel {
+            contacts: vec![contact(
+                "c0",
+                [0.0; 3],
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+                0.2,
+                0.7,
+                0.0,
+                1.0,
+            )],
+            cone_sides: 4,
+            characteristic_length: 1.0,
+        };
+        let result = evaluate_support(
+            &model,
+            &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        )
+        .expect("friction along tangent-u");
+        assert!((result.support_value - 0.2).abs() < 1.0e-12);
     }
 
     #[test]
