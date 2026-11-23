@@ -569,7 +569,10 @@ impl AttemptLineageRecording {
                 if !context
                     .operational_evidence_ids
                     .insert(receipt.evidence_id.clone())
-                    || !context.artifact_ids.insert(receipt.raw_artifact_id.clone())
+                {
+                    return Err(LineageError::DuplicateEvidenceIdentity);
+                }
+                if !context.artifact_ids.insert(receipt.raw_artifact_id.clone())
                     || !context
                         .artifact_hashes
                         .insert(receipt.raw_artifact_sha256.clone())
