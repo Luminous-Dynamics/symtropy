@@ -382,7 +382,8 @@ pub fn reference_self_check() -> Result<(), ReceiptError> {
         },
     )?;
 
-    if receipt.event_count != 2
+    if receipt.event_count != 3
+        || receipt.path_methods.get(&51) != Some(&TransferMethod::ReducedCoulombDeposition)
         || receipt.aggregate_residual_ns != [0.0; 3]
         || receipt.total_charged_reaction_impulse_ns != [-0.5, 1.0, -3.0]
         || receipt.total_neutral_impulse_ns != [0.5, -1.0, 3.0]
