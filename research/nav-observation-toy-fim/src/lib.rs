@@ -22,3 +22,4 @@ pub mod hbr_residual_gate;
 pub mod hbr_bctr_objective;
 pub mod hbr_window_fusion;
 pub mod episode_conformal_tube;
+pub mod anytime_episode_coverage;
