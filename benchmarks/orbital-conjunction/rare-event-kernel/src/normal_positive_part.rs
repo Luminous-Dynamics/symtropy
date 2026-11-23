@@ -195,10 +195,8 @@ fn positive_tail_report(
         });
     }
 
-    let log_expectation = standard_deviation.ln()
-        - 0.5 * squared
-        - LOG_SQRT_TWO_PI
-        + scaled_mills_remainder.ln();
+    let log_expectation =
+        standard_deviation.ln() - 0.5 * squared - LOG_SQRT_TWO_PI + scaled_mills_remainder.ln();
     if log_expectation.is_nan() {
         return Err(KernelError::NumericalOverflow);
     }
@@ -242,7 +240,10 @@ mod tests {
         let inward = gaussian_negative_part_expectation(-4.0, 0.0).expect("deterministic inward");
         assert_eq!(inward.expectation, 4.0);
         assert_eq!(inward.log_expectation, 4.0_f64.ln());
-        assert_eq!(inward.branch, GaussianPositivePartBranch::DeterministicLimit);
+        assert_eq!(
+            inward.branch,
+            GaussianPositivePartBranch::DeterministicLimit
+        );
 
         let outward = gaussian_negative_part_expectation(4.0, 0.0).expect("deterministic outward");
         assert_eq!(outward.expectation, 0.0);
@@ -261,10 +262,12 @@ mod tests {
             assert_eq!(report.branch, GaussianPositivePartBranch::DirectErfc);
         }
 
-        let far_tail = gaussian_negative_part_expectation(-40.0, 1.0)
-            .expect("far negative mean");
+        let far_tail = gaussian_negative_part_expectation(-40.0, 1.0).expect("far negative mean");
         assert_eq!(far_tail.expectation, 40.0);
-        assert_eq!(far_tail.branch, GaussianPositivePartBranch::NegativeMeanTail);
+        assert_eq!(
+            far_tail.branch,
+            GaussianPositivePartBranch::NegativeMeanTail
+        );
     }
 
     #[test]
@@ -283,25 +286,28 @@ mod tests {
 
     #[test]
     fn positive_tail_asymptotic_matches_independent_log_references() {
-        for (z, expected_log) in [
-            (20.0, -206.917_838_509_425_1),
-            (40.0, -808.298_568_356_62),
-        ] {
+        for (z, expected_log) in [(20.0, -206.917_838_509_425_1), (40.0, -808.298_568_356_62)] {
             let report = gaussian_negative_part_expectation(z, 1.0).expect("positive tail");
             assert!(
                 (report.log_expectation - expected_log).abs() < 2.0e-10,
                 "z={z}: log={:.17e}, expected={expected_log:.17e}",
                 report.log_expectation
             );
-            assert_eq!(report.branch, GaussianPositivePartBranch::PositiveMeanAsymptotic);
+            assert_eq!(
+                report.branch,
+                GaussianPositivePartBranch::PositiveMeanAsymptotic
+            );
         }
     }
 
     #[test]
     fn positive_tail_transition_at_twelve_matches_high_precision_reference() {
-        let report = gaussian_negative_part_expectation(12.0, 1.0)
-            .expect("asymptotic transition point");
-        assert_eq!(report.branch, GaussianPositivePartBranch::PositiveMeanAsymptotic);
+        let report =
+            gaussian_negative_part_expectation(12.0, 1.0).expect("asymptotic transition point");
+        assert_eq!(
+            report.branch,
+            GaussianPositivePartBranch::PositiveMeanAsymptotic
+        );
         assert!(
             (report.log_expectation - (-77.909_100_545_007_35)).abs() < 2.0e-11,
             "log expectation={:.17e}",
@@ -322,7 +328,11 @@ mod tests {
         let unit = gaussian_negative_part_expectation(5.0, 1.0).expect("unit scale");
         let scaled = gaussian_negative_part_expectation(10.0, 2.0).expect("scaled inputs");
         assert_relative(scaled.expectation, 2.0 * unit.expectation, 1.0e-14);
-        assert_relative(scaled.log_expectation, unit.log_expectation + 2.0_f64.ln(), 1.0e-14);
+        assert_relative(
+            scaled.log_expectation,
+            unit.log_expectation + 2.0_f64.ln(),
+            1.0e-14,
+        );
     }
 
     #[test]
