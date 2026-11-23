@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! EHD diagnostic observer-perturbation qualification reference.
 //!
 //! This module treats a diagnostic intervention as potentially changing the
@@ -102,19 +104,31 @@ impl fmt::Display for ObserverPerturbationError {
                 write!(f, "observer perturbation {field} must be non-empty")
             }
             Self::DuplicateEvidenceId => {
-                write!(f, "baseline, diagnostic and post-removal evidence IDs must be distinct")
+                write!(
+                    f,
+                    "baseline, diagnostic and post-removal evidence IDs must be distinct"
+                )
             }
             Self::NonFiniteMeasurement { slot } => {
                 write!(f, "observer perturbation {slot} measurement is non-finite")
             }
             Self::InvalidUncertaintyBound { slot } => {
-                write!(f, "observer perturbation {slot} uncertainty bound must be finite and non-negative")
+                write!(
+                    f,
+                    "observer perturbation {slot} uncertainty bound must be finite and non-negative"
+                )
             }
             Self::InvalidEffectTolerance { field } => {
-                write!(f, "observer perturbation {field} must be finite and non-negative")
+                write!(
+                    f,
+                    "observer perturbation {field} must be finite and non-negative"
+                )
             }
             Self::NonFiniteDerivedValue => {
-                write!(f, "observer perturbation calculation produced a non-finite value")
+                write!(
+                    f,
+                    "observer perturbation calculation produced a non-finite value"
+                )
             }
         }
     }
@@ -135,7 +149,9 @@ fn validate_measurement(
         return Err(ObserverPerturbationError::InvalidUncertaintyBound { slot });
     }
     if measurement.evidence_id.trim().is_empty() {
-        return Err(ObserverPerturbationError::EmptyIdentity { field: "evidence_id" });
+        return Err(ObserverPerturbationError::EmptyIdentity {
+            field: "evidence_id",
+        });
     }
     Ok(())
 }
@@ -145,17 +161,15 @@ fn compare_effect(
     comparison: &ObserverMeasurement,
     maximum_allowed_absolute_effect: f64,
 ) -> Result<EffectInterval, ObserverPerturbationError> {
-    if !maximum_allowed_absolute_effect.is_finite()
-        || maximum_allowed_absolute_effect < 0.0
-    {
+    if !maximum_allowed_absolute_effect.is_finite() || maximum_allowed_absolute_effect < 0.0 {
         return Err(ObserverPerturbationError::InvalidEffectTolerance {
             field: "maximum_allowed_absolute_effect",
         });
     }
 
     let difference = comparison.value - baseline.value;
-    let combined_bound = baseline.absolute_uncertainty_bound
-        + comparison.absolute_uncertainty_bound;
+    let combined_bound =
+        baseline.absolute_uncertainty_bound + comparison.absolute_uncertainty_bound;
     let absolute_difference = difference.abs();
     let lower = (absolute_difference - combined_bound).max(0.0);
     let upper = absolute_difference + combined_bound;
@@ -194,7 +208,10 @@ pub fn qualify_observer_perturbation(
 ) -> Result<ObserverPerturbationReport, ObserverPerturbationError> {
     for (field, value) in [
         ("comparison_id", input.comparison_id.as_str()),
-        ("operating_condition_id", input.operating_condition_id.as_str()),
+        (
+            "operating_condition_id",
+            input.operating_condition_id.as_str(),
+        ),
         ("diagnostic_id", input.diagnostic_id.as_str()),
         ("metric_unit", input.metric_unit.as_str()),
         ("baseline_method", input.baseline_method.as_str()),
@@ -204,8 +221,7 @@ pub fn qualify_observer_perturbation(
             return Err(ObserverPerturbationError::EmptyIdentity { field });
         }
     }
-    if !input.maximum_allowed_active_effect.is_finite()
-        || input.maximum_allowed_active_effect < 0.0
+    if !input.maximum_allowed_active_effect.is_finite() || input.maximum_allowed_active_effect < 0.0
     {
         return Err(ObserverPerturbationError::InvalidEffectTolerance {
             field: "maximum_allowed_active_effect",
@@ -238,7 +254,8 @@ pub fn qualify_observer_perturbation(
         &input.during_diagnostic,
         input.maximum_allowed_active_effect,
     )?;
-    let persistent_effect = input.after_removal
+    let persistent_effect = input
+        .after_removal
         .as_ref()
         .map(|after| {
             compare_effect(
@@ -265,9 +282,8 @@ pub fn qualify_observer_perturbation(
         ObserverDisposition::ObserverPerturbationDetected
     } else if active_effect.classification == EffectClassification::Unresolved
         || persistent_effect.is_none()
-        || persistent_effect.is_some_and(|effect| {
-            effect.classification == EffectClassification::Unresolved
-        })
+        || persistent_effect
+            .is_some_and(|effect| effect.classification == EffectClassification::Unresolved)
     {
         ObserverDisposition::ObserverPerturbationUnresolved
     } else {
@@ -347,7 +363,10 @@ mod tests {
             report.active_effect.classification,
             EffectClassification::PerturbationDetected
         );
-        assert_eq!(report.disposition, ObserverDisposition::ObserverPerturbationDetected);
+        assert_eq!(
+            report.disposition,
+            ObserverDisposition::ObserverPerturbationDetected
+        );
     }
 
     #[test]
@@ -356,7 +375,10 @@ mod tests {
         input.during_diagnostic = measurement(5.88, 0.05, "diagnostic-evidence");
         input.after_removal = Some(measurement(5.91, 0.05, "post-removal-evidence"));
         let report = qualify_observer_perturbation(&input).unwrap();
-        assert_eq!(report.active_effect.classification, EffectClassification::WithinTolerance);
+        assert_eq!(
+            report.active_effect.classification,
+            EffectClassification::WithinTolerance
+        );
         assert_eq!(
             report.persistent_effect.unwrap().classification,
             EffectClassification::WithinTolerance
@@ -370,7 +392,10 @@ mod tests {
         input.during_diagnostic = measurement(5.65, 0.1, "diagnostic-evidence");
         input.after_removal = Some(measurement(5.9, 0.05, "post-removal-evidence"));
         let report = qualify_observer_perturbation(&input).unwrap();
-        assert_eq!(report.active_effect.classification, EffectClassification::Unresolved);
+        assert_eq!(
+            report.active_effect.classification,
+            EffectClassification::Unresolved
+        );
         assert_eq!(
             report.disposition,
             ObserverDisposition::ObserverPerturbationUnresolved
@@ -400,7 +425,10 @@ mod tests {
             report.persistent_effect.unwrap().classification,
             EffectClassification::PerturbationDetected
         );
-        assert_eq!(report.disposition, ObserverDisposition::ObserverPerturbationDetected);
+        assert_eq!(
+            report.disposition,
+            ObserverDisposition::ObserverPerturbationDetected
+        );
     }
 
     #[test]
@@ -419,7 +447,10 @@ mod tests {
         let mut input = reference_input();
         input.conservation_ledgers_pass = false;
         let report = qualify_observer_perturbation(&input).unwrap();
-        assert_eq!(report.disposition, ObserverDisposition::PhysicalLedgerFailure);
+        assert_eq!(
+            report.disposition,
+            ObserverDisposition::PhysicalLedgerFailure
+        );
     }
 
     #[test]
