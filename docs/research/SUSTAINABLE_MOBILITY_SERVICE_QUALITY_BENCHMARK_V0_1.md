@@ -5,7 +5,7 @@
 **Industry baseline:** [#6226](https://github.com/Luminous-Dynamics/symtropy/issues/6226)  
 **Matched SOTA tournament:** [#6247](https://github.com/Luminous-Dynamics/symtropy/issues/6247)  
 **Branch:** \`research/sustainable-mobility-service-quality-v0-1\`  
-**Status:** deterministic request-to-service-opportunity evaluator, strict schema, frozen request fixture, CLI and 14 Rust test definitions committed; exact-head CI pending.
+**Status:** deterministic request-to-service-opportunity evaluator, strict schema, frozen request fixture, CLI and 14 Rust test definitions committed; exact-head CI passed.
 
 ## 1. Why v0.2 is a separate problem
 
@@ -159,6 +159,8 @@ The next network-level extension should connect a service opportunity to the rep
 Source: [DOI 10.1016/j.trd.2026.105458](https://doi.org/10.1016/j.trd.2026.105458).
 
 ## 6. Benchmark tournament and targets
+
+Exact-head Actions run [#45134172381](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45134172381) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic FCFS/EDF report assertions and artifact upload. Test binaries reported 203 passed, 0 failed; all 14 service-quality tests passed. Clippy remains unverified.
 
 These are targets, not achieved comparisons.
 
