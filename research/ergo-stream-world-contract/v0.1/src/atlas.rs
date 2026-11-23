@@ -1,0 +1,274 @@
+//! Paired-world Transfer Atlas reference cases for ErgoStream v0.1.
+//!
+//! The first cases are intentionally small and finite:
+//! - a true correspondence under node/relation relabeling and directed reversal;
+//! - a false analogy pair with identical undirected degree signatures but
+//!   different graph structure (K3,3 versus the triangular prism).
+//!
+//! This module exposes a policy view and an evaluator-side disposition API.
+//! It is a local research reference, not a process-isolation boundary. Do not
+//! link evaluator methods into an untrusted learner process.
+
+use super::matching::{GraphMatchErrorV0, UniqueIncidenceSignatureBaselineV0};
+use super::transfer::{
+    StructuralCorrespondenceV0, StructuralTransferWitnessV0, StructureV0,
+    TransferErrorV0, validate_structural_correspondence,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferAtlasFamilyV0 {
+    RelabelledReverse,
+    DegreeMatchedNonIsomorphic,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransferAtlasPolicyViewV0 {
+    pub source: StructureV0,
+    pub target: StructureV0,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferAtlasDispositionV0 {
+    TransferAccepted,
+    CorrectAbstention,
+    MissedTransfer,
+    FalseUnification,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransferAtlasReportV0 {
+    pub disposition: TransferAtlasDispositionV0,
+    pub witness: Option<StructuralTransferWitnessV0>,
+    pub validation_error: Option<TransferErrorV0>,
+}
+
+/// Owner-side paired-world fixture and evaluator.
+///
+/// The expected-transfer flag is intentionally private and absent from the
+/// learner-facing policy view. The evaluate method is evaluator-only and must
+/// not be exposed across an untrusted process boundary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransferAtlasWorldV0 {
+    policy_view: TransferAtlasPolicyViewV0,
+    transfer_expected: bool,
+}
+
+impl TransferAtlasWorldV0 {
+    pub fn generate(family: TransferAtlasFamilyV0) -> Self {
+        match family {
+            TransferAtlasFamilyV0::RelabelledReverse => Self {
+                policy_view: relabelled_reverse_pair(),
+                transfer_expected: true,
+            },
+            TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic => Self {
+                policy_view: degree_matched_non_isomorphic_pair(),
+                transfer_expected: false,
+            },
+        }
+    }
+
+    /// Learner-visible source and target structures, without the expected
+    /// transfer disposition. A caller must still ensure the learner cannot
+    /// access this owner's evaluator process or hidden fixture custody.
+    pub fn policy_view(&self) -> &TransferAtlasPolicyViewV0 {
+        &self.policy_view
+    }
+
+    /// Evaluate an optional frozen learner-proposed mapping.
+    ///
+    /// None is an explicit abstention. An invalid mapping is a missed transfer
+    /// for positive pairs and a correct rejection for negative pairs. A
+    /// structurally valid mapping on a negative pair is a false unification.
+    pub fn evaluate(
+        &self,
+        candidate: Option<&StructuralCorrespondenceV0>,
+    ) -> TransferAtlasReportV0 {
+        let Some(candidate) = candidate else {
+            return TransferAtlasReportV0 {
+                disposition: if self.transfer_expected {
+                    TransferAtlasDispositionV0::MissedTransfer
+                } else {
+                    TransferAtlasDispositionV0::CorrectAbstention
+                },
+                witness: None,
+                validation_error: None,
+            };
+        };
+
+        match validate_structural_correspondence(
+            &self.policy_view.source,
+            &self.policy_view.target,
+            candidate,
+        ) {
+            Ok(witness) => TransferAtlasReportV0 {
+                disposition: if self.transfer_expected {
+                    TransferAtlasDispositionV0::TransferAccepted
+                } else {
+                    TransferAtlasDispositionV0::FalseUnification
+                },
+                witness: Some(witness),
+                validation_error: None,
+            },
+            Err(error) => TransferAtlasReportV0 {
+                disposition: if self.transfer_expected {
+                    TransferAtlasDispositionV0::MissedTransfer
+                } else {
+                    TransferAtlasDispositionV0::CorrectAbstention
+                },
+                witness: None,
+                validation_error: Some(error),
+            },
+        }
+    }
+
+    /// Run the transparent unique-incidence baseline on the policy view, then
+    /// score its frozen proposal. The baseline's error is preserved so
+    /// ambiguity-driven abstention is observable.
+    pub fn run_unique_incidence_baseline(
+        &self,
+    ) -> Result<TransferAtlasReportV0, GraphMatchErrorV0> {
+        let matcher = UniqueIncidenceSignatureBaselineV0;
+        let matched =
+            matcher.match_structures(&self.policy_view.source, &self.policy_view.target)?;
+        Ok(self.evaluate(Some(&matched.correspondence)))
+    }
+}
+
+fn relabelled_reverse_pair() -> TransferAtlasPolicyViewV0 {
+    use super::transfer::{NodeV0, RelationOrientationV0, RelationV0};
+
+    let source = StructureV0 {
+        nodes: vec![NodeV0 { id: 1 }, NodeV0 { id: 2 }, NodeV0 { id: 3 }],
+        relations: vec![
+            RelationV0 {
+                id: 10,
+                kind: 1,
+                orientation: RelationOrientationV0::Directed,
+                participants: vec![1, 2],
+            },
+            RelationV0 {
+                id: 20,
+                kind: 2,
+                orientation: RelationOrientationV0::Undirected,
+                participants: vec![2, 3],
+            },
+        ],
+    };
+
+    let target = StructureV0 {
+        nodes: vec![NodeV0 { id: 11 }, NodeV0 { id: 12 }, NodeV0 { id: 13 }],
+        relations: vec![
+            RelationV0 {
+                id: 110,
+                kind: 100,
+                orientation: RelationOrientationV0::Directed,
+                participants: vec![12, 11],
+            },
+            RelationV0 {
+                id: 120,
+                kind: 200,
+                orientation: RelationOrientationV0::Undirected,
+                participants: vec![13, 12],
+            },
+        ],
+    };
+
+    TransferAtlasPolicyViewV0 { source, target }
+}
+
+fn degree_matched_non_isomorphic_pair() -> TransferAtlasPolicyViewV0 {
+    use super::transfer::{NodeV0, RelationOrientationV0, RelationV0};
+
+    let source_nodes = (1..=6).map(|id| NodeV0 { id }).collect();
+    let mut source_relations = Vec::with_capacity(9);
+    let mut relation_id = 10;
+    // K3,3: every node has degree three and the graph is bipartite.
+    for left in 1..=3 {
+        for right in 4..=6 {
+            source_relations.push(RelationV0 {
+                id: relation_id,
+                kind: 1,
+                orientation: RelationOrientationV0::Undirected,
+                participants: vec![left, right],
+            });
+            relation_id += 1;
+        }
+    }
+
+    let target_nodes = (11..=16).map(|id| NodeV0 { id }).collect();
+    let target_edges = [
+        (11, 12),
+        (12, 13),
+        (13, 11),
+        (14, 15),
+        (15, 16),
+        (16, 14),
+        (11, 14),
+        (12, 15),
+        (13, 16),
+    ];
+    let target_relations = target_edges
+        .into_iter()
+        .enumerate()
+        .map(|(index, (left, right))| RelationV0 {
+            id: 110 + u32::try_from(index).expect("nine fixture edges fit u32"),
+            kind: 100,
+            orientation: RelationOrientationV0::Undirected,
+            participants: vec![left, right],
+        })
+        .collect();
+
+    TransferAtlasPolicyViewV0 {
+        source: StructureV0 {
+            nodes: source_nodes,
+            relations: source_relations,
+        },
+        target: StructureV0 {
+            nodes: target_nodes,
+            relations: target_relations,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_incidence_baseline_transfers_relabelled_reverse_pair() {
+        let world = TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::RelabelledReverse);
+        let report = world.run_unique_incidence_baseline().unwrap();
+
+        assert_eq!(report.disposition, TransferAtlasDispositionV0::TransferAccepted);
+        assert_eq!(report.witness.unwrap().mapped_nodes, 3);
+    }
+
+    #[test]
+    fn unique_incidence_baseline_abstains_on_degree_matched_false_analogy() {
+        let world =
+            TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic);
+
+        let result = world.run_unique_incidence_baseline();
+        assert_eq!(result, Err(GraphMatchErrorV0::AmbiguousNodeSignature));
+
+        let report = world.evaluate(None);
+        assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
+    }
+
+    #[test]
+    fn incomplete_candidate_is_not_accepted_on_non_isomorphic_pair() {
+        let world =
+            TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic);
+        let view = world.policy_view();
+        let incomplete = StructuralCorrespondenceV0::default();
+
+        let report = world.evaluate(Some(&incomplete));
+        assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
+        assert_eq!(
+            report.validation_error,
+            Some(TransferErrorV0::NodeMapIncomplete)
+        );
+        assert_eq!(view.source.nodes.len(), 6);
+        assert_eq!(view.target.nodes.len(), 6);
+    }
+}
