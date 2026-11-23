@@ -48,8 +48,8 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains **249 authored `#[test]` cases**:
-30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 13 in `refinement_scheduler.rs`, and 18 in `risk_semantics.rs`.
+The current authored test corpus contains **253 authored `#[test]` cases**:
+30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 13 in `refinement_scheduler.rs`, and 22 in `risk_semantics.rs`.
 
 The package also includes:
 - A deterministic NASA-style sampled Ncdot refinement controller for boundary extension, top-four sampled peaks, zero-rate MD2 fallback, dominant trapezoid contributions and significant-rate spacing. It does not certify between-sample peak completeness.
@@ -58,7 +58,7 @@ The package also includes:
 - A typed PeakOverlapPos convergence controller preserving the source convergence values: strict 1.0, oscillation 0.5, relaxed 0.1–0.35 and not-converged 0.0. It preserves strict/relaxed thresholds, maximum-iteration ordering, CoL-adjustment gating and delayed two-cycle detection. It consumes caller-computed MD2 values and does not independently qualify their covariance metric.
 - An exact synthetic space-time × sphere product-partition verifier. The first prototype tiles integer-second horizons with contiguous slabs, requires the exact north/south hemisphere measure, binds event/model/target digests, rejects missing/duplicated product cells, and recomputes rational π-scaled contributions independently.
 - A deterministic uncertainty-per-cost refinement scheduler using exact rational contribution widths and estimated compute costs, stable identity tie-breaking, greedy budget selection, and a complete unresolved-candidate ledger. Scheduling does not mark work evaluated or remove residual uncertainty.
-- A typed risk-semantics and mission-aggregation kernel that keeps conditional Pc, collision-null p-values, collision-detection probability and expected collision counts as distinct Rust types. It computes sharp dependence-free union bounds and permits the independence product only behind an explicit assumption digest, a common target probability measure and a common conditioning-set identity.
+- A typed risk-semantics and mission-aggregation kernel that keeps conditional Pc, collision-null p-values, collision-detection probability and expected collision counts as distinct Rust types. It computes sharp dependence-free union bounds and permits the independence product only behind an explicit assumption digest, a common target probability measure and a common conditioning-set identity. Required provenance digests reject the all-zero placeholder rather than treating it as an evidence identity.
 
 ## Important limitations
 
