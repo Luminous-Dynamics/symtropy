@@ -30,6 +30,7 @@ use core::fmt;
 pub mod coverage;
 pub mod residual;
 pub mod sequential;
+pub mod small_hbr_nc;
 pub mod stats;
 pub mod trajectory;
 
@@ -39,6 +40,10 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use small_hbr_nc::{
+    SmallHbrNcApproximationInputs, SmallHbrNcApproximationReport, SmallHbrRegimeDeclaration,
+    small_hbr_nc_approximation,
+};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
 pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
@@ -102,6 +107,12 @@ pub enum KernelError {
     /// The proposal log density is negative infinity, so the importance ratio
     /// is undefined at a point where a weight was requested.
     ProposalHasZeroDensity,
+    /// A required positive input to the small-HBR 2D-Nc oracle is not positive.
+    InvalidSmallHbrInput,
+    /// The caller did not declare all required small-HBR approximation assumptions.
+    OutsideSmallHbrAssumptions,
+    /// The small-HBR asymptotic formula produced a value greater than one.
+    ApproximationExceedsUnitProbability,
 }
 
 impl fmt::Display for KernelError {
@@ -137,6 +148,11 @@ impl fmt::Display for KernelError {
             Self::ZeroProjectedVariance => "half-space projection has zero variance",
             Self::NumericalOverflow => "numerical intermediate is outside the representable range",
             Self::ProposalHasZeroDensity => "proposal density is zero at the evaluation point",
+            Self::InvalidSmallHbrInput => "small-HBR oracle inputs must be strictly positive",
+            Self::OutsideSmallHbrAssumptions => "small-HBR asymptotic assumptions are not declared",
+            Self::ApproximationExceedsUnitProbability => {
+                "small-HBR asymptotic approximation exceeds one"
+            }
         };
         f.write_str(message)
     }
