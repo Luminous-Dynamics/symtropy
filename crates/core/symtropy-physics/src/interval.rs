@@ -409,12 +409,8 @@ mod tests {
             let widths = SVector::<f64, 4>::from_fn(|_, _| sample().abs() * 4.0);
             let local_max = local_min + widths;
 
-            let result = transform_aabb_affine_outward(
-                &matrix,
-                &translation,
-                &local_min,
-                &local_max,
-            );
+            let result =
+                transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max);
             let (world_min, world_max) = result
                 .unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
 
