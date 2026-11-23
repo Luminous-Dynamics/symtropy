@@ -388,24 +388,40 @@ fn source_permission_state(state: SourcePermissionState) -> PermissionState {
     }
 }
 
-fn flight_weather_evidence_digest(window: &FlightWindow) -> Result<String, String> {
+fn flight_weather_evidence_digest(
+    window: &FlightWindow,
+    weather_state: WeatherState,
+) -> Result<String, String> {
+    let source_state = match weather_state {
+        WeatherState::Go => SourceWeatherState::Go,
+        WeatherState::NoGo => SourceWeatherState::NoGo,
+        WeatherState::Unknown => SourceWeatherState::Unknown,
+    };
     let bytes = serde_json::to_vec(&(
         window.window_id.as_str(),
         window.start_seconds,
         window.end_seconds,
-        window.weather_state,
+        source_state,
         &window.evidence,
     ))
     .map_err(|error| format!("flight_weather_evidence_serialization_failed:{error}"))?;
     Ok(sha256_hex(&bytes))
 }
 
-fn flight_permission_evidence_digest(window: &FlightWindow) -> Result<String, String> {
+fn flight_permission_evidence_digest(
+    window: &FlightWindow,
+    permission_state: PermissionState,
+) -> Result<String, String> {
+    let source_state = match permission_state {
+        PermissionState::Approved => SourcePermissionState::Approved,
+        PermissionState::Denied => SourcePermissionState::Denied,
+        PermissionState::Unknown => SourcePermissionState::Unknown,
+    };
     let bytes = serde_json::to_vec(&(
         window.window_id.as_str(),
         window.start_seconds,
         window.end_seconds,
-        window.permission_state,
+        source_state,
         &window.evidence,
     ))
     .map_err(|error| format!("flight_permission_evidence_serialization_failed:{error}"))?;
@@ -437,10 +453,8 @@ fn validate_node_flight_observation(
         || evidence.observed_at_seconds > node.decision_time_seconds
         || evidence.valid_from_seconds > node.decision_time_seconds
         || evidence.valid_until_seconds < node.decision_time_seconds
-        || source_weather_state(window.weather_state) != node.weather_state
-        || source_permission_state(window.permission_state) != node.permission_state
-        || flight_weather_evidence_digest(window)? != node.weather_evidence_digest
-        || flight_permission_evidence_digest(window)? != node.permission_evidence_digest
+        || flight_weather_evidence_digest(window, node.weather_state)? != node.weather_evidence_digest
+        || flight_permission_evidence_digest(window, node.permission_state)? != node.permission_evidence_digest
     {
         return Err(format!(
             "information_node_weather_permission_evidence_invalid:{}",
