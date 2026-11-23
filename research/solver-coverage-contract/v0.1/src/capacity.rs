@@ -203,7 +203,6 @@ pub struct ContactManifoldLineage {
     pub identity_mode: PointIdentityMode,
     /// Present when any generated point is intentionally reduced by policy.
     pub reduction_policy_id: Option<String>,
-    /// Inline manifold point capacity; None means the adapter declares no fixed cap.
     /// Capacity of the temporary candidate buffer before deliberate reduction.
     pub candidate_buffer_capacity: Option<u64>,
     /// Capacity of the final stored manifold points.
@@ -905,7 +904,9 @@ mod tests {
             pair_id: "body-a/body-b".into(),
             identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: Some("area-preserving-v1".into()),
-            point_capacity: Some(8),
+            candidate_buffer_capacity: Some(8),
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(8),
             generated_points: vec![
                 retained("p0"),
                 retained("p1"),
@@ -939,7 +940,9 @@ mod tests {
             pair_id: "pair-0".into(),
             identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: Some("policy-0".into()),
-            point_capacity: Some(4),
+            candidate_buffer_capacity: None,
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(4),
             generated_points: vec![GeometricPointRecord {
                 point_id: "p0".into(),
                 disposition: GeometricPointDisposition::ReducedByPolicy,
@@ -963,7 +966,9 @@ mod tests {
             pair_id: "pair-0".into(),
             identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: None,
-            point_capacity: Some(4),
+            candidate_buffer_capacity: None,
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(4),
             generated_points: vec![GeometricPointRecord {
                 point_id: "p0".into(),
                 disposition: GeometricPointDisposition::ReducedByPolicy,
@@ -982,7 +987,8 @@ mod tests {
             pair_id: "pair-0".into(),
             identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: None,
-            point_capacity: Some(1),
+            candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(1),
             generated_points: vec![retained("p0"), retained("p1")],
             solver_contacts: vec![],
             aggregate_counts: None,
@@ -997,14 +1003,18 @@ mod tests {
             pair_id: "aggregate-pair".into(),
             identity_mode: PointIdentityMode::AggregateOnly,
             reduction_policy_id: Some("area-policy-v2".into()),
-            point_capacity: Some(4),
+            candidate_buffer_capacity: None,
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(4),
             generated_points: vec![],
             solver_contacts: vec![],
             aggregate_counts: Some(AggregateManifoldCounts {
                 generated_points: 5,
                 retained_points: 3,
                 reduced_by_policy: 1,
-                capacity_dropped: 1,
+                candidate_buffer_capacity_dropped: 1,
+                manifold_candidate_buffer_capacity_dropped: 0,
+                manifold_capacity_dropped: 0,
                 invalid_points: 0,
                 unsupported_points: 0,
                 solver_contact_groups: 2,
@@ -1022,7 +1032,7 @@ mod tests {
         assert_eq!(report.generated_points, 5);
         assert_eq!(report.retained_points, 3);
         assert_eq!(report.reduced_by_policy, 1);
-        assert_eq!(report.capacity_dropped, 1);
+        assert_eq!(report.candidate_buffer_capacity_dropped, 1);
         assert_eq!(report.solver_groups, 2);
         assert_eq!(report.solver_solved_points, 1);
         assert_eq!(report.solver_capacity_dropped_points, 2);
@@ -1035,14 +1045,17 @@ mod tests {
             pair_id: "aggregate-invalid".into(),
             identity_mode: PointIdentityMode::AggregateOnly,
             reduction_policy_id: None,
-            point_capacity: Some(8),
+            candidate_buffer_capacity: Some(8),
+            manifold_candidate_buffer_capacity: None,
+            manifold_point_capacity: Some(8),
             generated_points: vec![],
             solver_contacts: vec![],
             aggregate_counts: Some(AggregateManifoldCounts {
                 generated_points: 4,
                 retained_points: 2,
                 reduced_by_policy: 0,
-                capacity_dropped: 0,
+                candidate_buffer_capacity_dropped: 0,
+                manifold_capacity_dropped: 0,
                 invalid_points: 0,
                 unsupported_points: 0,
                 solver_contact_groups: 1,
