@@ -25,7 +25,6 @@ const MAX_QUERIES: usize = 64;
 const MAX_WORLD_OBSERVATIONS: usize = 64;
 const MAX_POLICIES_PER_QUERY: usize = 4096;
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-const NO_QUERY_ID: &str = "__NO_QUERY__";
 const NO_QUERY_OUTCOME: &str = "__NO_QUERY__";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -207,6 +206,7 @@ fn digest_queries(queries: &[Query]) -> Result<String, String> {
     Ok(sha256_hex(&bytes))
 }
 
+#[cfg(test)]
 fn digest_scenarios(scenarios: &[FeasibilityScenario]) -> Result<String, String> {
     let mut sorted = scenarios.to_vec();
     sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
@@ -941,11 +941,11 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
     }
 
     for policy in &mut policy_metrics {
-        if policy.query_id.is_some() {
-            if let Some(baseline) = &no_query_best {
-                policy.worst_loss_reduction_vs_best_no_query =
-                    Some(signed_difference(baseline, &policy.worst_case_loss)?);
-            }
+        if policy.query_id.is_some()
+            && let Some(baseline) = &no_query_best
+        {
+            policy.worst_loss_reduction_vs_best_no_query =
+                Some(signed_difference(baseline, &policy.worst_case_loss)?);
         }
     }
 
