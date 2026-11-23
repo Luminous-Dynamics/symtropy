@@ -191,12 +191,12 @@ fn graph_has_cycle(node_ids: &BTreeSet<String>, edges: &BTreeSet<EdgeKey>) -> bo
         node_ids.iter().map(|id| (id.as_str(), 0)).collect();
     let mut children: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for (parent, child, _) in edges {
-        let Some(count) = indegree.get_mut(child.as_str()) else {
-            return true;
-        };
         if !indegree.contains_key(parent.as_str()) {
             return true;
         }
+        let Some(count) = indegree.get_mut(child.as_str()) else {
+            return true;
+        };
         *count += 1;
         children.entry(parent.as_str()).or_default().push(child.as_str());
     }
