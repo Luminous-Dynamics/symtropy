@@ -1665,7 +1665,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!(checked, 900);
+        assert_eq!(checked, 1_764);
     }
 
     #[test]
