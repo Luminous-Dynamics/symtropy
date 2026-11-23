@@ -88,7 +88,10 @@ impl MaritimeDependencyClass {
             Self::MeasurementQualification
             | Self::ClockOrTimeRoot
             | Self::CalibrationOrMetrologyAuthority => {
-                matches!(stage, MaritimeStage::Detection | MaritimeStage::Interpretation)
+                matches!(
+                    stage,
+                    MaritimeStage::Detection | MaritimeStage::Interpretation
+                )
             }
             Self::PowerSupplyOrUps => matches!(
                 stage,
@@ -1540,9 +1543,11 @@ mod tests {
         );
         let result = assess(&profile, &projection);
         assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
-        assert!(result.validation_errors.contains(
-            &ValidationError::DependencyClassStageMismatch
-        ));
+        assert!(
+            result
+                .validation_errors
+                .contains(&ValidationError::DependencyClassStageMismatch)
+        );
     }
 
     #[test]
@@ -1812,10 +1817,7 @@ mod tests {
             result.findings[0].disposition,
             SeparationDisposition::Indeterminate
         );
-        assert_eq!(
-            result.disposition,
-            ProfileDisposition::ProfileIndeterminate
-        );
+        assert_eq!(result.disposition, ProfileDisposition::ProfileIndeterminate);
         assert!(result.findings[0].left_not_applicable);
         assert_eq!(result.findings[0].right_known_count, 1);
     }
