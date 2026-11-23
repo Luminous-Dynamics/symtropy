@@ -745,10 +745,15 @@ mod tests {
             }
         );
         assert!(supervisor.is_suspended());
-        assert!(matches!(
+        assert_eq!(
             supervisor.observe(&evidence("e-2", 12)),
-            Disposition::AlreadySuspended { .. }
-        ));
+            Disposition::AlreadySuspended {
+                action: FailureAction::AbstainOutOfEnvelope {
+                    feature: "velocity".into()
+                },
+                reason: Reason::FeatureOutsideScope
+            }
+        );
     }
 
     #[test]
