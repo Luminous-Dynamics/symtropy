@@ -2810,6 +2810,7 @@ mod world_index_integrity_tests {
                 .unwrap_err()
                 .contains("duplicate body handle")
         );
+        assert_ne!(first, second);
 
         let mut duplicate_net_ids = PhysicsWorld::<3>::new(SVector::zeros());
         let a = duplicate_net_ids.add_sphere(Point::origin(), 0.5, 1.0);
