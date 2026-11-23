@@ -21,7 +21,7 @@ The top three contribute 63% and the top five 77% of the report's Q2 origin mix.
 
 ## Observation B — secondary monthly dashboard, September 2026
 
-Econo Energy Tools' public customs dashboard (updated 6 November 2026) reports approximately **1.048 billion litres** of diesel imports in September 2026, with a different origin mix:
+Econo Energy Tools' public customs dashboard (updated 3 November 2026) reports approximately **1.048 billion litres** of diesel imports in September 2026, with a different origin mix:
 
 | Origin | Reported share | Reported litres |
 |---|---:|---:|
@@ -32,6 +32,8 @@ Econo Energy Tools' public customs dashboard (updated 6 November 2026) reports a
 | Singapore | 10.4% | 108.8 million L |
 
 The top three sum to 62.2%, while the top five sum to 87.1% of that dashboard's September observation.
+
+The dashboard identifies its underlying source as SARS Merchandise Trade Statistics under tariff heading 27.10, Additional Note 1(g), and warns that SARS may revise historical data. Its customs-district breakdown is a statistical entry point and does **not** necessarily identify the physical port of discharge. Do not use customs-district shares as a physical berth, terminal or pipeline routing map.
 
 ## What we can and cannot infer
 
