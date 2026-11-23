@@ -128,3 +128,16 @@ A high feature score must not compensate for a hard constraint failure. No compo
 - NDE 4.0 review (26 June 2026): https://doi.org/10.3390/ndt4030017
 
 The NDE 4.0 review specifically cautions that statistically qualified POD is not interchangeable with classifier accuracy/F1 and that domain shift, sensor variability, weak interoperability and lack of qualified decision rules remain adoption barriers. v0.1 therefore stops at geometric identifiability and does not emit POD-like outputs.
+
+
+## 10. Metrology and qualification standards boundary (research map, checked 23 November 2026)
+
+The feature-identifiability score is only a precondition. A physical measurement programme needs a separate metrology chain:
+
+- **Optical 3D coordinate-measuring-system performance:** ISO 10360-13:2021 specifies acceptance and periodic reverification tests for optical 3D CMS length performance, within its stated cooperative surface-characteristic scope. Its ISO lifecycle page moved to systematic review (90.20) on 15 July 2026 and indicates that the standard is to be revised. Track the revision; do not freeze a 2021 profile as indefinitely current. https://www.iso.org/standard/74957.html
+- **Conformity decisions with uncertainty:** ISO 14253-1:2017 defines decision rules for conformity/nonconformity of workpiece characteristics and equipment MPEs taking measurement uncertainty into account. ISO records it as confirmed in 2023 and current at the time of this check. This belongs in the #6846 decision profile, not in this geometric score. https://www.iso.org/standard/70137.html
+- **Uncertainty propagation and models:** JCGM 100:2008/Amd.1:2026 addresses nonlinearity in measurement models; JCGM 101:2008 provides Monte Carlo propagation; JCGM 102:2011 extends to multiple outputs; JCGM 106:2012 addresses uncertainty in conformity assessment; GUM-5:2026 provides examples. Applicable model assumptions, distributions, degrees of freedom and correlations must be explicit. https://www.bipm.org/en/web/guest/publications/guides
+- **NDE probability of detection:** ASTM E2862-23 covers statistical hit/miss POD analysis for a specific examination parameter set, including model validation and interpretation. No POD estimate may be derived from visibility, feature rank, condition number, MAE alone, or a synthetic corpus. https://store.astm.org/e2862-23.html
+- **Articulated-arm CMMs:** ASME B89.4.22-2004 (R2024) is the reaffirmed performance-evaluation standard for articulated-arm coordinate measuring machines. Use only when that instrument class is actually in scope; it is not a generic optical scanner profile. https://www.asme.org/codes-standards/find-codes-standards/methods-for-performance-evaluation-of-articulated-arm-coordinate-measuring-machines
+
+An optical 3D CMS acceptance/reverification test does not automatically qualify a particular feature-fitting algorithm, defect inspection method, NDE procedure, or robot trajectory. Keep instrument verification, measurement uncertainty, feature-fitting performance, defect POD and engineering disposition as separate qualification objects.
