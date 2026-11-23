@@ -212,7 +212,7 @@ fn log_gaussian_flux_shape_positive(value: f64) -> Result<f64, KernelError> {
     if value >= 8.0 {
         let square = value * value;
         if !square.is_finite() {
-            return Ok(f64::NEG_INFINITY);
+            return Err(KernelError::NumericalOverflow);
         }
 
         // H(x) ~ exp(-x^2)/(2 x^2) *
@@ -280,6 +280,9 @@ fn evaluate_prepared_direction(
     let (conditional_mean, used_zero_variance_limit, log_flux) = if variance == 0.0 {
         // Match NASA CARA's zero-sigma limit exactly.
         let inward_mean = -dot(input.relative_velocity_mean, direction);
+        if !inward_mean.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
         if inward_mean <= 0.0 {
             (inward_mean, true, None)
         } else {
@@ -307,14 +310,10 @@ fn evaluate_prepared_direction(
             conditional_mean.abs().ln() - log_sigma - 0.5 * core::f64::consts::LN_2
         };
         let eta = (conditional_mean / sigma) / SQRT_2;
-        let log_shape = if eta.is_finite() {
-            gaussian_flux_shape_log(eta)?
-        } else if conditional_mean > 0.0 {
-            f64::NEG_INFINITY
-        } else {
-            // For eta -> -infinity, H(eta) ~ 2 sqrt(pi) |eta|.
-            LOG_TWO_SQRT_PI + log_abs_eta
-        };
+        if !eta.is_finite() {
+            return Err(KernelError::NumericalOverflow);
+        }
+        let log_shape = gaussian_flux_shape_log(eta)?;
         let log_flux = if log_shape == f64::NEG_INFINITY {
             None
         } else {
@@ -324,7 +323,16 @@ fn evaluate_prepared_direction(
     };
 
     let log_position_density = -prepared.log_position_normalizer - 0.5 * mahalanobis_squared;
-    let log_integrand = log_flux.map(|value| value + log_position_density);
+    let log_integrand = match log_flux {
+        Some(value) => {
+            let combined = value + log_position_density;
+            if !combined.is_finite() {
+                return Err(KernelError::NumericalOverflow);
+            }
+            Some(combined)
+        }
+        None => None,
+    };
     let one_sided_flux = match log_flux {
         Some(value) => exp_from_log(value)?,
         None => 0.0,
@@ -742,6 +750,17 @@ mod tests {
     fn negative_conditional_variance_is_rejected_not_clipped() {
         let mut input = base_input();
         input.conditional_velocity_covariance[0][0] = -1.0;
+        assert_eq!(
+            evaluate_ncdot_direction(&input, [1.0, 0.0, 0.0]),
+            Err(KernelError::NegativeConditionalVelocityVariance)
+        );
+    }
+
+    #[test]
+    fn globally_indefinite_conditional_covariance_is_rejected_before_sampling() {
+        let mut input = base_input();
+        input.conditional_velocity_covariance =
+            [[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         assert_eq!(
             evaluate_ncdot_direction(&input, [1.0, 0.0, 0.0]),
             Err(KernelError::NegativeConditionalVelocityVariance)
