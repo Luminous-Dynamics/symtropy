@@ -254,7 +254,7 @@ They share the mathematical integral but use distinct quadrature algorithms. Bot
 
 ## Ma--Lü map correction and replay (23 November 2026)
 
-The paper's Eq. (16) prints chi=a/mu, not a/sqrt(mu), and it is not chi=Omega_H*r_H. For equal spins, its Eqs. (4), (6), (16) imply mu/r_h^2=(1+q^2)^2/2, nu=q/(1+q^2), and chi*r_h=2q/(1+q^2)^2, with q=a/r_h, nu=Omega_H*r_h. Exact inversion gives q=nu+nu^3+2nu^5+... and chi*r_h=2nu-2nu^3-2nu^5+.... The parameter-map script was replayed locally from its exact public blob; all symbolic checks pass. Do not use the earlier shorthand conversion for higher-spin comparisons.
+Correction: the published Eq. (2.9) defines chi=a/sqrt(mu), not a/mu. For equal spins q=a/r_h and nu=Omega_H*r_h=q/(1+q^2), chi=sqrt(2)*q/(1+q^2)=sqrt(2)*nu exactly. The inverse physical ratio is q=nu+nu^3+2nu^5+5nu^7+14nu^9+42nu^11+O(nu^13). The corrected parameter-map script was replayed from its exact public Git blob; all symbolic checks, including the paper's Eq. (3.9) mass expansion, pass.
 
 
 ## First-coupling 5D MP cross-check: action identity established; validity envelope added
@@ -264,3 +264,8 @@ The Ricci-flat Euler-tensor identity now establishes the exact first-coupling so
 The exact Ma--Lü equal-spin kinematic map is checked through \(\nu^{11}\), using the paper's printed \(\chi=a/\mu\) convention. The corrected task and artifacts explicitly prohibit the earlier shorthand \(\chi=\Omega_Hr_H\) at finite spin.
 
 The newly opened #6955 adds a perturbative validity envelope because Wu--Lü (2025) found rotation/ensemble-dependent divergences in first-order MP thermodynamic corrections. Report spin-series truncation, coupling-series truncation, metric/invariant correction size and ensemble dependence separately. A divergent perturbative observable is not proof that the full nonlinear solution fails to exist.
+
+
+## Ma-Lu convention correction (23 November 2026)
+
+The Eq. (2.9) square root was previously misread in extracted PDF text. The published definition is chi_a=a/sqrt(mu), chi_b=b/sqrt(mu). For equal spins, chi=sqrt(2)*nu exactly, where nu=Omega_H*r_h; q=a/r_h instead obeys nu=q/(1+q^2). The corrected verifier checks the Eq. (3.9) equal-spin mass expansion as well as the exact inverse q(nu) series. Public source Git blob SHA-1 3b14fe1ba1062cc840da07267c89275b1096b7f7 and SHA-256 2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a; exact local replay passes.
