@@ -1610,6 +1610,65 @@ mod tests {
     }
 
     #[test]
+    fn interval_tree_matches_full_scan_for_every_small_temporal_interval_pair() {
+        let mut intervals = Vec::new();
+        for lower in 0_i64..=5 {
+            for upper in lower..=5 {
+                intervals.push((lower, upper));
+            }
+        }
+
+        let mut checked = 0usize;
+        for (source_lower, source_upper) in &intervals {
+            for (witness_lower, witness_upper) in &intervals {
+                for max_gap in 0_i64..=3 {
+                    let source = vec![observation!(
+                        "source",
+                        "BOX-EXHAUSTIVE",
+                        "GATE_OUT",
+                        "SITE-EXHAUSTIVE",
+                        "OP-EXHAUSTIVE",
+                        *source_lower,
+                        *source_upper,
+                        source_upper + 1,
+                    )];
+                    let witness = vec![observation!(
+                        "witness",
+                        "BOX-EXHAUSTIVE",
+                        "GATE_OUT",
+                        "SITE-EXHAUSTIVE",
+                        "OP-EXHAUSTIVE",
+                        *witness_lower,
+                        *witness_upper,
+                        witness_upper + 1,
+                    )];
+                    let mut case = case(source, witness);
+                    case.profile.as_mut().unwrap().max_interval_gap = max_gap;
+
+                    let profile = case.profile.as_ref().unwrap();
+                    let baseline =
+                        candidate_graph(&case.source_events, &case.witness_events, profile);
+                    let indexed = candidate_graph_interval_indexed(
+                        &case.source_events,
+                        &case.witness_events,
+                        profile,
+                    );
+                    assert_eq!(
+                        indexed.edges, baseline.edges,
+                        "source=[{source_lower},{source_upper}] witness=[{witness_lower},{witness_upper}] max_gap={max_gap}"
+                    );
+                    assert_eq!(
+                        indexed.pair_evaluations,
+                        indexed.edges.iter().map(Vec::len).sum::<usize>()
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert_eq!(checked, 900);
+    }
+
+    #[test]
     fn interval_indexed_candidate_window_matches_full_scan_on_seeded_mixed_contexts() {
         let mut state = 0x6a09_e667_f3bc_c909u64;
         let mut next = || {
