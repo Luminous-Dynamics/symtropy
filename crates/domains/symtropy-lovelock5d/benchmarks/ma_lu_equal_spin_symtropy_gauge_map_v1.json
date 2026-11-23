@@ -1,16 +1,19 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_symtropy_radial_time_sector_map",
-  "status": "radial_temporal_fibre_and_frame_dragging_map_derived; angular_diagonal_block_pending",
+  "status": "exact_radial_time_sector_map_derived; full angular block and ADM mass independently qualified at O(alpha_R,chi^2)",
   "source": {
-    "paper": "Ma and Lu, JHEP 05 (2026) 081, arXiv:2512.23797",
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "version": "JHEP version of record, published 2026-05-08",
     "equations": [
-      "(9)",
-      "(10)",
-      "(13)"
+      "(2.8)",
+      "(2.9)",
+      "(2.12)",
+      "(3.4)"
     ],
-    "chi_definition": "chi=a/mu",
-    "compact_rotation_combination": "mu*chi^2=a^2/mu"
+    "chi_definition": "chi=a/sqrt(mu)",
+    "chi_squared": "chi^2=a^2/mu"
   },
   "definitions": {
     "A": "r^2+a^2",
@@ -19,11 +22,11 @@
     "G": "A*(1+alpha_R*H7)"
   },
   "equal_spin_radial_functions_through_chi2": {
-    "H1": "16/(3*r^2)-16*mu/(3*r^4)-32*mu^2/(3*r^6)-(2/45)*(a^2/mu)*(282/r^2-162*mu/r^4-356*mu^2/r^6-1076*mu^3/r^8)",
-    "H2": "-8/(3*r^2)-16*mu/(3*r^4)+(2/45)*(a^2/mu)*(141/r^2+48*mu/r^4+418*mu^2/r^6)",
+    "H1": "16/(3*r^2)-16*mu/(3*r^4)-32*mu^2/(3*r^6)-(2/45)*chi^2*(282/r^2-162*mu/r^4-356*mu^2/r^6-1076*mu^3/r^8)",
+    "H2": "-8/(3*r^2)-16*mu/(3*r^4)+(2/45)*chi^2*(141/r^2+48*mu/r^4+418*mu^2/r^6)",
     "H3": "H2",
-    "H4": "-22/(3*mu)-12/r^2-16*mu/(3*r^4)+(a^2/mu)*(71/(10*mu)+119/(15*r^2)+217*mu/(15*r^4)+836*mu^2/(45*r^6))",
-    "H7": "8/(3*r^2)+4*mu/(3*r^4)-(2/45)*(a^2/mu)*(141/r^2+48*mu/r^4-22*mu^2/r^6)"
+    "H4": "-22/(3*mu)-12/r^2-16*mu/(3*r^4)+chi^2*(71/(10*mu)+119/(15*r^2)+217*mu/(15*r^4)+836*mu^2/(45*r^6))",
+    "H7": "8/(3*r^2)+4*mu/(3*r^4)-(2/45)*chi^2*(141/r^2+48*mu/r^4-22*mu^2/r^6)"
   },
   "radial_gauge": {
     "definition": "R^2=G=A*(1+alpha_R*H7)",
@@ -63,8 +66,13 @@
     "note": "cB,cH are zeroth-order deviations from the MP homogeneous horizon modes; the first-coupling tangent values are output derivatives, not cB/cH inputs."
   },
   "angular_diagonal_components": {
-    "H5_H6": "not certified in this increment",
-    "claim": "The complete equal-spin five-dimensional angular block is not yet accepted as a match; verify the original H5/H6 dphi^2,dpsi^2 components directly against the reduced Hopf-frame metric."
+    "S": "165/r^4+330*mu/r^6+150*mu^2/r^8",
+    "H5": "H7-(4/45)*a^2*x^2*S",
+    "H6": "H7-(4/45)*a^2*(1-x^2)*S",
+    "line_element": "G*[dtheta^2+(1-x^2)dphi^2+x^2 dpsi^2]+D*(1+alpha_R*H4)*[(1-x^2)dphi+x^2 dpsi]^2",
+    "component_match": "g_psi_psi, g_phi_phi and g_phi_psi all match the Hopf-fibre form through O(alpha_R*a^2)",
+    "axis_factors": "x^2 for dpsi^2; 1-x^2 for dphi^2",
+    "local_verification": "Independent exact SymPy reconstruction using JHEP version-of-record Eqs. (2.8),(2.12); all three components and axis controls pass"
   },
   "checks": {
     "published_chi_equals_a_over_mu": true,
@@ -76,7 +84,23 @@
     "all_four_original_even_rows_exact_zero_in_local_reconstruction": true,
     "Ef_algebraic_reconstruction_exact": true,
     "frame_dragging_W1_matches_at_O_a": true,
-    "angular_diagonal_H5_H6_match": false
+    "angular_diagonal_H5_H6_match": false,
+    "published_chi_a_over_sqrt_mu": true,
+    "radial_f_chain_rule_identity_through_alpha": true,
+    "H5_H6_direct_Eq2_12_reduction": true,
+    "all_three_angular_components_hopf_match_through_alpha_a2": true,
+    "angular_axis_regular_factors": true,
+    "fixed_boundary_parameter_map_uses_version_of_record_chi": true,
+    "all_four_original_even_rows_exact_zero_locally": true,
+    "asymptotic_ADM_mass_matches_Eq3_4_through_chi2": true
   },
-  "claim_ceiling": "The Ma-Lu radial, temporal, Hopf-fibre cross-term, and frame-dragging sectors reproduce the fixed-(R_H,Omega_H) Symtropy O(lambda a^2) profiles and all four original even-sector action rows exactly. The H5/H6 angular-diagonal components, ADM mass, finite-coupling branch, interval existence, and hyperbolicity remain open."
+  "claim_ceiling": "Exact first-coupling, equal-spin, O(chi^2) comparison: Ma-Lu radial/time/fibre/frame-dragging sectors, all three angular components, fixed-(R_H,Omega_H) map, four original Symtropy even-sector action rows, and ADM/Komar mass coefficient through chi^2. No finite-coupling nonlinear branch, interval existence/uniqueness, global uniqueness or hyperbolicity result.",
+  "adm_mass_check": {
+    "paper": "Delta M=2*pi-(47*pi/20)*(chi_a^2+chi_b^2)+O(chi^4)",
+    "equal_spin": "Delta M=2*pi-(47*pi/10)*chi^2+O(chi^4)",
+    "asymptotic_H1_coefficient": "16/3-188*chi^2/15",
+    "Komar_prefactor": "3*pi/8",
+    "metric_result": "(3*pi/8)*(16/3-188*chi^2/15)=2*pi-47*pi*chi^2/10",
+    "status": "exact_equal_spin_match_through_chi_squared"
+  }
 }
