@@ -24,9 +24,9 @@ The Rust evaluator in `tools/orbital-observation-surface-bench/src/action_univer
 3. **Positive action witnesses.** Every action ID is attached to one partition, a payload digest and a witness receipt. Both the ID inventory and the sorted action-ID/payload-digest pairs are bound.
 4. **Negative-space witnesses.** Excluded and not-applicable partitions carry explicit exclusion IDs, reason codes, evidence receipts and negative-space witness receipts. An empty exclusion or missing receipt is not interpreted as “nothing else exists.”
 5. **Distinct enumerator receipts.** At least two enumerators bind method ID, algorithm digest, source registry, the same domain snapshot, execution receipt, dependency IDs and action inventory.
-6. **Common-cause analysis.** Shared registries and declared dependencies are exposed. Matching outputs do not establish independence when source dependencies overlap or are unknown.
+6. **Common-cause screening.** Shared registries and declared dependencies are exposed. Each enumerator binds its dependency-ID list to a digest and an opaque dependency-inventory receipt ID. Matching outputs do not establish independence when source dependencies overlap, when dependency evidence is absent, or when undeclared dependencies remain possible.
 
-The evaluator uses exact set and digest checks. It does not infer probabilities from the number of enumerators or partitions and does not grant downstream global optimality on an open or unresolved universe.
+The evaluator uses exact set and digest checks. It requires dependency-inventory receipt identifiers, but v0.1 does **not** authenticate those receipts, prove the declared dependency lists are exhaustive, recompute the supplied component/scope snapshot digests from source records, or inspect the underlying action payloads. Its common-cause rule is therefore a conservative screen over declared dependencies—not a proof of independent enumeration. It does not infer probabilities from the number of enumerators or partitions and does not grant downstream global optimality on an open or unresolved universe.
 
 ## Status semantics
 
@@ -45,7 +45,7 @@ Malformed manifests and digest mismatches are input errors, not a closure status
 
 ## Frozen synthetic challenge corpus
 
-The v0.1 corpus contains eight cases:
+The v0.1 corpus contains ten cases:
 
 - Fully witnessed finite scope with two distinct enumerators (positive control).
 - Two enumerators sharing the same registry/API (common-cause negative control).
@@ -55,8 +55,10 @@ The v0.1 corpus contains eight cases:
 - Domain-snapshot drift after enumeration.
 - An enumerator bound to an older snapshot.
 - An unbounded scope presented as if it could be closed.
+- Missing dependency-inventory evidence despite distinct enumerator labels.
+- An extra, unplanned exclusion that is otherwise fully witnessed.
 
-The independent Node oracle recomputes the canonical SHA-256 inventories, dependency intersections, status precedence and summary. The Rust receipt is compared field-for-field against that independently authored implementation.
+The independent Node oracle recomputes the canonical SHA-256 inventories (including each dependency inventory), dependency intersections, status precedence and summary. The Rust receipt is compared field-for-field against that independently authored implementation.
 
 ## Industry and research comparison
 
@@ -65,7 +67,7 @@ This is not a replacement for robust optimization, K-adaptability, conformal pre
 - **Robust decision-focused learning** addresses uncertainty in objective coefficients and deployment shift; compare matched regret, feasibility and shift cases: [Yamao et al., UAI 2026](https://proceedings.mlr.press/v337/yamao26a.html).
 - **Conformal robustness control** treats prediction-set construction as a decision problem under robustness constraints; compare matched false-feasible risk and calibration burden: [Hu et al., ICLR 2026](https://openreview.net/forum?id=4mT3WQO6hJ).
 - **Decision-dependent robust optimization** studies paid queries that shrink uncertainty sets; compare query cost and recourse against the non-anticipative policy branch: [Ley et al., OR Spectrum (2026)](https://link.springer.com/article/10.1007/s00291-026-00856-z).
-- **Robust K-adaptability** bounds the number of policies needed for exactness in certain settings and exposes complexity growth under constraint uncertainty; compare exact finite policy trees against bounded K-policy menus: [Poss et al., Mathematical Programming (2026)](https://link.springer.com/article/10.1007/s10107-026-02329-1).
+- **Robust K-adaptability** bounds the number of policies needed for exactness in certain settings and exposes complexity growth under constraint uncertainty; compare exact finite policy trees against bounded K-policy menus: [Kurtz, Mathematical Programming (2026)](https://link.springer.com/article/10.1007/s10107-026-02329-1).
 - **Assurance cases and systems security engineering** provide the industry pattern for claims, assumptions, argument and evidence; the contribution here is a machine-checkable, replayable closure sub-claim, not a replacement for independent assurance review: [NIST SP 800-160 Vol. 1 Rev. 1](https://csrc.nist.gov/pubs/sp/800/160/v1/r1/final) and [NIST assurance-case terminology](https://csrc.nist.gov/glossary/term/assurance_case).
 - **Safety-critical software assurance** requires process and verification evidence beyond a passing unit-test suite; compare the evidence packaging and exact baseline binding with [FAA AC 20-115D](https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_20-115D.pdf) and DO-178C / DO-333 practice.
 
