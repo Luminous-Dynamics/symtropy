@@ -2072,12 +2072,7 @@ mod box_box_sat_tests {
     #[test]
     fn high_dimensional_contact_builder_spills_without_panicking_or_truncating() {
         let contacts = (0..16)
-            .map(|index| {
-                (
-                    SVector::<f64, 4>::from([index as f64, 0.0, 0.0, 0.0]),
-                    0.25,
-                )
-            })
+            .map(|index| (SVector::<f64, 4>::from([index as f64, 0.0, 0.0, 0.0]), 0.25))
             .collect::<Vec<_>>();
         let manifold = PhysicsWorld::<4>::manifold_from_contacts(
             BodyHandle(0),
