@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "maritime-active-sensing-benchmark"
+version = "0.1.0"
