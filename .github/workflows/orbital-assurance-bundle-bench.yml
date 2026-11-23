@@ -5,11 +5,13 @@ on:
     branches: ["research/orbital-assurance-bundle-v0-1"]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
+      - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
+      - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   workflow_dispatch:
 
