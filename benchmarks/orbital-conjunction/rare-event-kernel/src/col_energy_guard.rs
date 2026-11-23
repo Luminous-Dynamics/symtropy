@@ -352,8 +352,8 @@ fn energy_enclosure(inputs: ColEnergyGuardInputs, x_lower: f64, x_upper: f64) ->
         let mut value = Enclosure::point(inputs.conditional_mean_velocity[i])?;
         for (j, position_component) in position.iter().enumerate() {
             let beta = Enclosure::point(inputs.conditional_velocity_regression[i][j])?;
-            let pos_offset =
-                position_component.subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
+            let pos_offset = position_component
+                .subtract(Enclosure::point(inputs.conditional_mean_position[j])?)?;
             value = value.add(beta.multiply(pos_offset)?)?;
         }
         *velocity_component = value;
