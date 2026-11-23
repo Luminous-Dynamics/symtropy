@@ -1,10 +1,31 @@
 {
-  "schema_version":1,
-  "artifact_kind":"ma_lu_equal_spin_parameter_map_replay",
-  "status":"corrected_source_published_exact_replay_pending",
-  "script_path":"crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
-  "source_sha256":"pending exact local replay",
-  "environment":{"python":"3.13.5","sympy":"1.14.0"},
-  "checks":{"horizon_relation_exact":true,"angular_velocity_relation_exact":true,"printed_chi_a_over_mu_exact":true,"inverse_q_series_exact_through_nu11":true,"chi_rh_series_exact_through_nu11":true,"eq50_equal_spin_mass_series_through_y4":true,"coupling_coefficient_identity":true},
-  "claim_ceiling":"Exact kinematic parameter relations and first-coupling coefficient normalization only."
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_parameter_map_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
+  "source": {
+    "git_blob_sha1": "956ad645c8b90882441a6a76ba89e11dcac99144",
+    "sha256": "6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "command": "python3 derive_ma_lu_equal_spin_parameter_map.py --output ma_lu_equal_spin_parameter_map_v1.json",
+    "checks": {
+      "horizon_relation_exact": true,
+      "angular_velocity_relation_exact": true,
+      "printed_chi_a_over_mu_exact": true,
+      "inverse_q_series_exact_through_nu11": true,
+      "chi_rh_series_exact_through_nu11": true,
+      "eq50_equal_spin_mass_series_through_y4": true,
+      "coupling_coefficient_identity": true
+    },
+    "q_of_nu_h": "nu_h+nu_h^3+2*nu_h^5+5*nu_h^7+14*nu_h^9+42*nu_h^11+O(nu_h^13)",
+    "chi_rh_of_nu_h": "2*nu_h-2*nu_h^3-2*nu_h^5-4*nu_h^7-10*nu_h^9-28*nu_h^11+O(nu_h^13)",
+    "eq50": "mu/r_h^2=1/2+(chi*r_h)^2/4+9*(chi*r_h)^4/32+O((chi*r_h)^6)"
+  },
+  "claim_ceiling": "Exact kinematic parameter relations and first-coupling coefficient normalization only. No corrected metric component comparison or finite-coupling EGB result is claimed."
 }
