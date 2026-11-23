@@ -144,8 +144,7 @@ pub fn gaussian_product_mode(
     let rhs_norm = infinity_norm(mean_difference);
     let solution_norm = infinity_norm(solved_mean_difference);
     let covariance_sum_norm = matrix_infinity_norm(covariance_sum);
-    let residual_scale =
-        (rhs_norm + covariance_sum_norm * solution_norm).max(f64::MIN_POSITIVE);
+    let residual_scale = (rhs_norm + covariance_sum_norm * solution_norm).max(f64::MIN_POSITIVE);
     let normalized_linear_solve_residual = residual_norm / residual_scale;
     if !normalized_linear_solve_residual.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -278,10 +277,7 @@ fn log_determinant_from_cholesky(lower: &[[f64; 3]; 3]) -> f64 {
     2.0 * (lower[0][0].ln() + lower[1][1].ln() + lower[2][2].ln())
 }
 
-fn matrix_product(
-    left: [[f64; 3]; 3],
-    right: [[f64; 3]; 3],
-) -> [[f64; 3]; 3] {
+fn matrix_product(left: [[f64; 3]; 3], right: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
     let mut result = [[0.0; 3]; 3];
     for row in 0..3 {
         for col in 0..3 {
@@ -294,10 +290,7 @@ fn matrix_product(
     result
 }
 
-fn matrix_vector(
-    matrix: [[f64; 3]; 3],
-    vector: [f64; 3],
-) -> Result<[f64; 3], KernelError> {
+fn matrix_vector(matrix: [[f64; 3]; 3], vector: [f64; 3]) -> Result<[f64; 3], KernelError> {
     let result = [
         dot(matrix[0], vector)?,
         dot(matrix[1], vector)?,
@@ -310,17 +303,11 @@ fn matrix_vector(
 }
 
 fn dot(left: [f64; 3], right: [f64; 3]) -> Result<f64, KernelError> {
-    let value = left[0].mul_add(
-        right[0],
-        left[1].mul_add(right[1], left[2] * right[2]),
-    );
+    let value = left[0].mul_add(right[0], left[1].mul_add(right[1], left[2] * right[2]));
     finite(value)
 }
 
-fn add_matrices(
-    left: [[f64; 3]; 3],
-    right: [[f64; 3]; 3],
-) -> Result<[[f64; 3]; 3], KernelError> {
+fn add_matrices(left: [[f64; 3]; 3], right: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
     let mut result = [[0.0; 3]; 3];
     for row in 0..3 {
         for col in 0..3 {
@@ -334,11 +321,7 @@ fn add_matrices(
 }
 
 fn add_vectors(left: [f64; 3], right: [f64; 3]) -> Result<[f64; 3], KernelError> {
-    let result = [
-        left[0] + right[0],
-        left[1] + right[1],
-        left[2] + right[2],
-    ];
+    let result = [left[0] + right[0], left[1] + right[1], left[2] + right[2]];
     if result.iter().any(|value| !value.is_finite()) {
         return Err(KernelError::NumericalOverflow);
     }
@@ -346,11 +329,7 @@ fn add_vectors(left: [f64; 3], right: [f64; 3]) -> Result<[f64; 3], KernelError>
 }
 
 fn subtract_vectors(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] - right[0],
-        left[1] - right[1],
-        left[2] - right[2],
-    ]
+    [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
 }
 
 fn infinity_norm(vector: [f64; 3]) -> f64 {
@@ -510,7 +489,9 @@ mod tests {
         let second = gaussian_product_mode(translated).expect("translated coordinates");
         for axis in 0..3 {
             let shift = translated.primary_mean[axis] - base.primary_mean[axis];
-            assert!((second.mode_position[axis] - first.mode_position[axis] - shift).abs() < 1.0e-12);
+            assert!(
+                (second.mode_position[axis] - first.mode_position[axis] - shift).abs() < 1.0e-12
+            );
         }
         assert!((first.log_overlap_integral - second.log_overlap_integral).abs() < 1.0e-12);
     }
@@ -524,19 +505,20 @@ mod tests {
             [[1.3, 0.1, 0.2], [0.1, 4.0, 0.0], [0.2, 0.0, 2.5]],
         );
         let rotation = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]];
-        let rotate_vector = |v: [f64; 3]| [
-            rotation[0][0] * v[0] + rotation[0][1] * v[1] + rotation[0][2] * v[2],
-            rotation[1][0] * v[0] + rotation[1][1] * v[1] + rotation[1][2] * v[2],
-            rotation[2][0] * v[0] + rotation[2][1] * v[1] + rotation[2][2] * v[2],
-        ];
+        let rotate_vector = |v: [f64; 3]| {
+            [
+                rotation[0][0] * v[0] + rotation[0][1] * v[1] + rotation[0][2] * v[2],
+                rotation[1][0] * v[0] + rotation[1][1] * v[1] + rotation[1][2] * v[2],
+                rotation[2][0] * v[0] + rotation[2][1] * v[1] + rotation[2][2] * v[2],
+            ]
+        };
         let rotate_matrix = |matrix: [[f64; 3]; 3]| {
             let mut result = [[0.0; 3]; 3];
             for row in 0..3 {
                 for col in 0..3 {
                     for i in 0..3 {
                         for j in 0..3 {
-                            result[row][col] +=
-                                rotation[row][i] * matrix[i][j] * rotation[col][j];
+                            result[row][col] += rotation[row][i] * matrix[i][j] * rotation[col][j];
                         }
                     }
                 }
