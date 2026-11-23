@@ -282,7 +282,12 @@ mod tests {
     #[test]
     fn released_packet_with_required_owner_evidence_is_schema_valid() {
         let packet = released_packet();
-        assert!(validator().is_valid(&packet));
+        let validator = validator();
+        assert!(
+            validator.is_valid(&packet),
+            "{:?}",
+            validate_packet(&validator, &packet)
+        );
     }
 
     #[test]
@@ -302,7 +307,12 @@ mod tests {
         assert!(!validator().is_valid(&packet));
 
         set_gate(&mut packet, "G4");
-        assert!(validator().is_valid(&packet));
+        let validator = validator();
+        assert!(
+            validator.is_valid(&packet),
+            "{:?}",
+            validate_packet(&validator, &packet)
+        );
     }
 
     #[test]
