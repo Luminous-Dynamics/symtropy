@@ -625,6 +625,16 @@ pub fn validate_delivery_observer_quorum(
         }
         previous_observer = Some(&observation.observer_id);
 
+        if observation.common_cause_domains.is_empty()
+            || observation.common_cause_domains.iter().any(|domain| {
+                !nonempty(domain)
+                    || domain == &plan.platform.fault_injector_fault_domain_id
+                    || !common_cause_domains.insert(domain.as_str())
+            })
+        {
+            return Err(GazeboAdapterError::ObserverCommonCauseOverlap);
+        }
+
         let profile = plan
             .platform
             .observer_profiles
@@ -648,15 +658,6 @@ pub fn validate_delivery_observer_quorum(
         }
         if observation.simulation_step < fault.scheduled_simulation_step {
             return Err(GazeboAdapterError::ObserverStepMismatch);
-        }
-        if observation.common_cause_domains.is_empty()
-            || observation.common_cause_domains.iter().any(|domain| {
-                !nonempty(domain)
-                    || domain == &plan.platform.fault_injector_fault_domain_id
-                    || !common_cause_domains.insert(domain.as_str())
-            })
-        {
-            return Err(GazeboAdapterError::ObserverCommonCauseOverlap);
         }
     }
     Ok(())
