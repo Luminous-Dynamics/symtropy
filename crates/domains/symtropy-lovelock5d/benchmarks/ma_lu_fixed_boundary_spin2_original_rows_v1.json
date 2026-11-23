@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_fixed_boundary_spin2_original_row_verification",
+  "status": "all_four_original_even_rows_exact_zero",
+  "branch_coordinates": {
+    "cB": "0 (MP-connected zeroth-order mode offset)",
+    "cH": "0 (MP-connected zeroth-order mode offset)",
+    "note": "B21'(1) and H21(1) are outputs of first-coupling sensitivities, not cB/cH inputs"
+  },
+  "profiles": {
+    "B1": "(r^2-1)*(11*r^6+11*r^4+22*r^2+9)/(9*r^10)",
+    "F21": "(r^2-1)*(22*r^4-11*r^2-35)/(18*r^8)",
+    "H1": "-(r^2+1)*(11*r^2+3)/(6*r^6)",
+    "B1_prime_at_horizon": "106/9",
+    "H1_at_horizon": "-14/3"
+  },
+  "original_equation_rows": {
+    "b": "0",
+    "f": "0",
+    "g": "0",
+    "h": "0"
+  },
+  "algebraic_Ef_reconstruction_residual": "0",
+  "negative_controls": {
+    "tangent_misused_as_mode_offsets_rejected": true,
+    "mutated_H1_profile_rejected": true
+  },
+  "source": {
+    "version_of_record": "Ma and Lu, JHEP 05 (2026) 081",
+    "fixed_boundary_coordinates": "(R_H,Omega_H)",
+    "fixture": "spin2_boundary_map_lambda1_action_rows_v1.json"
+  },
+  "claim_ceiling": "Exact rational identity check of four original O(lambda a^2) even-sector rows on fixed-(R_H,Omega_H) profiles. Formal first-coupling/slow-spin comparison only."
+}
