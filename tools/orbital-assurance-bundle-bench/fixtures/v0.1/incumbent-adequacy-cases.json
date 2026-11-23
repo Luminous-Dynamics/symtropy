@@ -227,7 +227,7 @@
       "switching_cost": 3,
       "expected": {
         "disposition": "REOPTIMIZATION_WARRANTED",
-        "trigger_reason": "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD",
+        "trigger_reason": "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD",
         "worst_case_improvement": 20
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
