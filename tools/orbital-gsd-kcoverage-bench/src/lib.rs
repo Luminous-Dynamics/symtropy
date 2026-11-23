@@ -1032,6 +1032,14 @@ mod tests {
             receipt.candidate_view_count,
             receipt.initial_candidate_view_count + receipt.augmented_candidate_view_count
         );
+        assert_eq!(
+            receipt.augmentation_candidate_attempt_count,
+            receipt.augmented_candidate_view_count
+                + receipt.augmentation_rejected_max_oblique_count
+                + receipt.augmentation_rejected_source_occlusion_count
+                + receipt.augmentation_rejected_source_visibility_count
+        );
+        assert!(receipt.augmentation_rejected_max_oblique_count > 0);
         for candidate in receipt
             .candidate_views
             .iter()
@@ -1042,7 +1050,9 @@ mod tests {
                     .undercovered_feature_ids_before_augmentation
                     .contains(&candidate.source_feature_id)
             );
+            assert!(candidate.visible_feature_ids.contains(&candidate.source_feature_id));
             assert!(candidate.tilt_degrees_millideg.is_some());
+            assert!(candidate.tilt_degrees_millideg.unwrap() <= 45_000);
             assert!(candidate.azimuth_degrees_millideg.is_some());
         }
     }
