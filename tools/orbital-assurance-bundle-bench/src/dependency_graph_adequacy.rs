@@ -598,7 +598,12 @@ mod tests {
     #[test]
     fn scope_mismatch_blocks_graph_adequacy() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
-        assert_eq!(case(&report, "scope_mismatch").disposition, "DEPENDENCY_SCOPE_MISMATCH");
+        let result = case(&report, "scope_mismatch");
+        assert_eq!(result.disposition, "DEPENDENCY_SCOPE_MISMATCH");
+        assert!(result.findings.iter().any(|finding| {
+            finding.code == "DEPENDENCY_SCOPE_MISMATCH"
+                && finding.dependency_edge.as_deref() == Some("output:domain_oracle")
+        }));
     }
 
     #[test]
