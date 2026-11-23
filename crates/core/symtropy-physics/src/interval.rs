@@ -342,8 +342,7 @@ mod tests {
         let local_max = SVector::from([3.0, 2.0, 4.0]);
 
         let (world_min, world_max) =
-            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
-                .unwrap();
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max).unwrap();
 
         // Enumerate all 2^3 vertices independently of the interval row
         // accumulation. This checks the affine hull's corners, which attain
