@@ -1,0 +1,873 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-observability-cases-v0.1",
+  "benchmark_id": "MFG-POLICY-OBSERVABILITY-001",
+  "evidence_class": "synthetic",
+  "case_count": 20,
+  "cases": [
+    {
+      "case_id": "OBS-01-ONTIME",
+      "scenario_family_id": "on-time",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-1",
+          "event_type": "ROUTE_STARTED",
+          "effective_min_ms": 25,
+          "effective_max_ms": 25,
+          "observed_at_ms": 40,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-1",
+          "event_type": "ROUTE_FINISHED",
+          "effective_min_ms": 70,
+          "effective_max_ms": 70,
+          "observed_at_ms": 80,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-02-LATE-OLD-EFFECTIVE",
+      "scenario_family_id": "late-arrival",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "provider-a",
+          "source_owner": "owner-provider-a",
+          "sequence": 1,
+          "subject_id": "resource-a",
+          "event_type": "OUTAGE",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 80,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-03-REPLAY-DUPLICATE",
+      "scenario_family_id": "duplicate-replay",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "lot-1",
+          "event_type": "LOT_RECEIVED",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "lot-1",
+          "event_type": "LOT_RECEIVED",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "lot-1",
+          "event_type": "LOT_RELEASED",
+          "effective_min_ms": 40,
+          "effective_max_ms": 40,
+          "observed_at_ms": 45,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-04-ADMITTED-CORRECTION",
+      "scenario_family_id": "correction",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-4",
+          "event_type": "MACHINE_ASSIGNED",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-4",
+          "event_type": "MACHINE_REASSIGNED",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 75,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": "e1",
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-05-UNKNOWN-CORRECTION",
+      "scenario_family_id": "correction",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-5",
+          "event_type": "MACHINE_ASSIGNED",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-5",
+          "event_type": "MACHINE_REASSIGNED",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 75,
+          "disposition": "UNKNOWN",
+          "supersedes_event_id": "e1",
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-06-CLOCK-UNCERTAINTY",
+      "scenario_family_id": "clock-bounds",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "sensor-a",
+          "source_owner": "owner-sensor-a",
+          "sequence": 1,
+          "subject_id": "machine-1",
+          "event_type": "TEMPERATURE",
+          "effective_min_ms": 20,
+          "effective_max_ms": 70,
+          "observed_at_ms": 40,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "sensor-a",
+          "source_owner": "owner-sensor-a",
+          "sequence": 2,
+          "subject_id": "machine-1",
+          "event_type": "VIBRATION",
+          "effective_min_ms": 10,
+          "effective_max_ms": 20,
+          "observed_at_ms": 30,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c50",
+          "cutoff_ms": 50
+        },
+        {
+          "decision_cut_id": "c80",
+          "cutoff_ms": 80
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-07-FUTURE-EFFECTIVE",
+      "scenario_family_id": "future-effective",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "planner",
+          "source_owner": "owner-planner",
+          "sequence": 1,
+          "subject_id": "job-7",
+          "event_type": "PLANNED_MAINTENANCE",
+          "effective_min_ms": 90,
+          "effective_max_ms": 110,
+          "observed_at_ms": 30,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c120",
+          "cutoff_ms": 120
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-08-CONFLICTED-SOURCE",
+      "scenario_family_id": "conflicting-source",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "provider-a",
+          "source_owner": "owner-provider-a",
+          "sequence": 1,
+          "subject_id": "resource-8",
+          "event_type": "AVAILABILITY",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 25,
+          "disposition": "CONFLICTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "provider-b",
+          "source_owner": "owner-provider-b",
+          "sequence": 1,
+          "subject_id": "resource-8",
+          "event_type": "AVAILABILITY",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 26,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-09-UNKNOWN-EXECUTION",
+      "scenario_family_id": "unknown-outcome",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-9",
+          "event_type": "EXECUTION_RESULT",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 40,
+          "disposition": "UNKNOWN",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-10-LATE-MEASUREMENT",
+      "scenario_family_id": "late-arrival",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "metrology",
+          "source_owner": "owner-metrology",
+          "sequence": 1,
+          "subject_id": "feature-10",
+          "event_type": "MEASUREMENT_RESULT",
+          "effective_min_ms": 20,
+          "effective_max_ms": 20,
+          "observed_at_ms": 90,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c100",
+          "cutoff_ms": 100
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-11-REORDERED-SEQUENCE",
+      "scenario_family_id": "sequence-reordering",
+      "events": [
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-11",
+          "event_type": "OPERATION_FINISHED",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-11",
+          "event_type": "OPERATION_STARTED",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 40,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-12-REVISION-SCOPE",
+      "scenario_family_id": "scope-isolation",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "quality",
+          "source_owner": "owner-quality",
+          "sequence": 1,
+          "subject_id": "product-rev-a",
+          "event_type": "QUALIFICATION",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "quality",
+          "source_owner": "owner-quality",
+          "sequence": 2,
+          "subject_id": "product-rev-b",
+          "event_type": "QUALIFICATION",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 25,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-13-REPLAY-AND-CONFLICT",
+      "scenario_family_id": "duplicate-replay",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-13",
+          "event_type": "WORK_ORDER",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-13",
+          "event_type": "WORK_ORDER",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-13",
+          "event_type": "EXECUTION_UNKNOWN",
+          "effective_min_ms": 25,
+          "effective_max_ms": 25,
+          "observed_at_ms": 35,
+          "disposition": "CONFLICTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-14-CORRECTION-CHAIN",
+      "scenario_family_id": "correction",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-14",
+          "event_type": "ROUTE",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 10,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-14",
+          "event_type": "ROUTE",
+          "effective_min_ms": 15,
+          "effective_max_ms": 15,
+          "observed_at_ms": 20,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": "e1",
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e3",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 3,
+          "subject_id": "job-14",
+          "event_type": "ROUTE",
+          "effective_min_ms": 18,
+          "effective_max_ms": 18,
+          "observed_at_ms": 80,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": "e2",
+          "evidence_sha256": "3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-15-TWO-SOURCES",
+      "scenario_family_id": "conflicting-source",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "provider-a",
+          "source_owner": "owner-provider-a",
+          "sequence": 1,
+          "subject_id": "resource-15",
+          "event_type": "CAPACITY",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "provider-b",
+          "source_owner": "owner-provider-b",
+          "sequence": 1,
+          "subject_id": "resource-15",
+          "event_type": "CAPACITY",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "CONFLICTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-16-UNKNOWN-THEN-RECONCILED",
+      "scenario_family_id": "reconciliation",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-16",
+          "event_type": "EXECUTION_STATUS",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "UNKNOWN",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-16",
+          "event_type": "EXECUTION_STATUS",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 80,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": "e1",
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-17-EFFECTIVE-WINDOW-PAST",
+      "scenario_family_id": "clock-bounds",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "sensor",
+          "source_owner": "owner-sensor",
+          "sequence": 1,
+          "subject_id": "machine-17",
+          "event_type": "STATE",
+          "effective_min_ms": 10,
+          "effective_max_ms": 20,
+          "observed_at_ms": 40,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30
+        },
+        {
+          "decision_cut_id": "c50",
+          "cutoff_ms": 50
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-18-EXACT-CUTOFF",
+      "scenario_family_id": "cutoff-boundary",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-18",
+          "event_type": "STARTED",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 60,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-18",
+          "event_type": "FINISHED",
+          "effective_min_ms": 20,
+          "effective_max_ms": 20,
+          "observed_at_ms": 61,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c61",
+          "cutoff_ms": 61
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-19-SCOPE-SPECIFIC-CORRECTION",
+      "scenario_family_id": "scope-isolation",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "quality",
+          "source_owner": "owner-quality",
+          "sequence": 1,
+          "subject_id": "product-rev-a",
+          "event_type": "DIMENSIONAL_PASS",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 20,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "quality",
+          "source_owner": "owner-quality",
+          "sequence": 2,
+          "subject_id": "product-rev-b",
+          "event_type": "DIMENSIONAL_PASS",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 30,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-20-MIXED-RECEIPTS",
+      "scenario_family_id": "mixed",
+      "events": [
+        {
+          "event_id": "e1",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 1,
+          "subject_id": "job-20",
+          "event_type": "STARTED",
+          "effective_min_ms": 10,
+          "effective_max_ms": 10,
+          "observed_at_ms": 15,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e2",
+          "source_id": "metrology",
+          "source_owner": "owner-metrology",
+          "sequence": 1,
+          "subject_id": "feature-20",
+          "event_type": "MEASUREMENT",
+          "effective_min_ms": 20,
+          "effective_max_ms": 45,
+          "observed_at_ms": 25,
+          "disposition": "ADMITTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e3",
+          "source_id": "provider",
+          "source_owner": "owner-provider",
+          "sequence": 1,
+          "subject_id": "resource-20",
+          "event_type": "AVAILABILITY",
+          "effective_min_ms": 5,
+          "effective_max_ms": 5,
+          "observed_at_ms": 35,
+          "disposition": "CONFLICTED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "event_id": "e4",
+          "source_id": "mes",
+          "source_owner": "owner-mes",
+          "sequence": 2,
+          "subject_id": "job-20",
+          "event_type": "FINISHED",
+          "effective_min_ms": 50,
+          "effective_max_ms": 50,
+          "observed_at_ms": 70,
+          "disposition": "RECONCILED",
+          "supersedes_event_id": null,
+          "evidence_sha256": "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "decision_cuts": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60
+        },
+        {
+          "decision_cut_id": "c80",
+          "cutoff_ms": 80
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "synthetic event-receipt visibility and decision-cut projection only; no external event truth, production execution or physical state is certified"
+}
