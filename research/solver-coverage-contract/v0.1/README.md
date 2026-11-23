@@ -32,7 +32,7 @@ An explicitly reported omission can be protocol-complete while the physical comp
 
 ## Canonical identities
 
-The crate exposes deterministic, order-independent canonical preimage bytes for the request and complete receipt. The SHA-256 operation is deliberately external: the caller hashes the request preimage and supplies the computed digest to `validate_receipt_with_computed_request_digest`, which compares it to `request_set_sha256`. `validate_receipt` alone checks the structure and digest syntax; it does not authenticate caller-supplied digests.
+The crate exposes deterministic, order-independent canonical preimage bytes for the request and complete receipt. Floating-point signed zero is normalized to positive zero in canonical bytes, so numerically equal +0.0 and -0.0 values do not produce different content identities. The SHA-256 operation is deliberately external: the caller hashes the request preimage and supplies the computed digest to `validate_receipt_with_computed_request_digest`, which compares it to `request_set_sha256`. `validate_receipt` alone checks the structure and digest syntax; it does not authenticate caller-supplied digests.
 
 ## Tests
 
@@ -47,6 +47,7 @@ The unit suite includes:
 - aggregate row-attribution ambiguity under partial omission;
 - canonical order invariance;
 - malformed digest and caller-computed request-digest mismatch;
+- canonical signed-zero normalization for observable values and interval bounds;
 - invalid uncertainty interval.
 
 Run:
