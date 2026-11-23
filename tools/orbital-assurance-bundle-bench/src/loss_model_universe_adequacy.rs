@@ -122,13 +122,27 @@ fn evaluate_case(case: &Case) -> CaseResult {
             return invalid(case, "malformed, duplicate or out-of-scope physical world");
         }
     }
+    let mut findings = vec![];
     let mut models = BTreeMap::new();
+    let mut receipt_owners = BTreeMap::new();
     for m in &case.producer_models {
         if !valid_id(&m.model_id) || !valid_id(&m.family) || !valid_id(&m.version)
-            || !valid_sha(&m.scope_sha256) || m.scope_sha256 != case.scope_sha256
+            || !valid_sha(&m.scope_sha256)
             || !matches!(m.state.as_str(), "CURRENT"|"STALE"|"OUT_OF_PROFILE"|"INDETERMINATE")
             || models.insert(m.model_id.as_str(), m).is_some() {
-            return invalid(case, "malformed, duplicate or out-of-scope producer model");
+            return invalid(case, "malformed or duplicate producer model");
+        }
+        if m.scope_sha256 != case.scope_sha256 {
+            findings.push(finding("MODEL_SCOPE_MISMATCH", Some(&m.model_id), None,
+                "producer model scope differs from the campaign scope"));
+        }
+        if let Some(receipt_id) = m.source_receipt_id.as_deref() {
+            if let Some(owner) = receipt_owners.insert(receipt_id, m.model_id.as_str()) {
+                if owner != m.model_id {
+                    findings.push(finding("MODEL_RECEIPT_ALIAS", Some(&m.model_id), None,
+                        "one source receipt ID is reused for distinct consequence models"));
+                }
+            }
         }
     }
     let req_by_id = reqs.iter().map(|r| (r.id, r)).collect::<BTreeMap<_,_>>();
@@ -138,7 +152,6 @@ fn evaluate_case(case: &Case) -> CaseResult {
     if declared_ids.len() != case.declared_model_ids.len() || declared_ids.iter().any(|x| !valid_id(x)) {
         return invalid(case, "duplicate or malformed declared model ID");
     }
-    let mut findings = vec![];
     let mut missing_models = BTreeSet::new();
     let mut unexpected_models = BTreeSet::new();
     for id in &expected_models {
@@ -182,23 +195,45 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || applicability.insert((a.world_id.as_str(), a.model_id.as_str()), a).is_some() {
             return invalid(case, "unknown or duplicate applicability identity");
         }
-        let Some(req) = req_by_id.get(a.model_id.as_str()) else {
-            findings.push(finding("UNEXPECTED_APPLICABILITY", Some(&a.model_id), Some(&pair_id(&a.world_id,&a.model_id)), "applicability references an unknown model"));
-            continue;
-        };
-        let world = worlds[a.world_id.as_str()];
-        let applies = req.tag.is_none_or(|tag| world.profile_tags.iter().any(|v| v == tag));
-        if applies && !a.declared_applicable {
-            unwitnessed += 1;
-            findings.push(finding("UNWITNESSED_MODEL_EXCLUSION", Some(&a.model_id), Some(&pair_id(&a.world_id,&a.model_id)), "grammar requires the model in this world but manifest excludes it"));
-        } else if !applies && a.declared_applicable {
-            findings.push(finding("UNEXPECTED_WORLD_MODEL_PAIR", Some(&a.model_id), Some(&pair_id(&a.world_id,&a.model_id)), "manifest declares a pair excluded by profile grammar"));
-        } else if !applies {
-            let witnessed = a.exclusion_reason.as_deref() == Some("profile_not_applicable")
-                && a.evidence_receipt_id.as_deref().is_some_and(valid_id);
-            if !witnessed {
+        if !req_by_id.contains_key(a.model_id.as_str()) {
+            findings.push(finding("UNEXPECTED_APPLICABILITY", Some(&a.model_id),
+                Some(&pair_id(&a.world_id,&a.model_id)), "applicability references an unknown model"));
+        }
+    }
+    // The applicability manifest is total over every world × required model pair.
+    // A non-applicable pair is still a declared exclusion and needs evidence.
+    for world in &case.worlds {
+        for req in reqs {
+            if !producer_ids.contains(req.id) || !declared_ids.contains(req.id) { continue; }
+            let key = (world.world_id.as_str(), req.id);
+            let pair = pair_id(world.world_id.as_str(), req.id);
+            let applies = req.tag.is_none_or(|tag| world.profile_tags.iter().any(|v| v == tag));
+            let Some(row) = applicability.get(&key) else {
+                if applies {
+                    findings.push(finding("MISSING_WORLD_MODEL_PAIR", Some(req.id), Some(&pair),
+                        "required applicability row is absent from the manifest"));
+                } else {
+                    unwitnessed += 1;
+                    findings.push(finding("UNWITNESSED_MODEL_EXCLUSION", Some(req.id), Some(&pair),
+                        "non-applicable model has no explicit witnessed exclusion row"));
+                }
+                continue;
+            };
+            if applies && !row.declared_applicable {
                 unwitnessed += 1;
-                findings.push(finding("UNWITNESSED_MODEL_EXCLUSION", Some(&a.model_id), Some(&pair_id(&a.world_id,&a.model_id)), "profile exclusion lacks reason or evidence receipt"));
+                findings.push(finding("UNWITNESSED_MODEL_EXCLUSION", Some(req.id), Some(&pair),
+                    "grammar requires the model in this world but manifest excludes it"));
+            } else if !applies && row.declared_applicable {
+                findings.push(finding("UNEXPECTED_WORLD_MODEL_PAIR", Some(req.id), Some(&pair),
+                    "manifest declares a pair excluded by profile grammar"));
+            } else if !applies {
+                let witnessed = row.exclusion_reason.as_deref() == Some("profile_not_applicable")
+                    && row.evidence_receipt_id.as_deref().is_some_and(valid_id);
+                if !witnessed {
+                    unwitnessed += 1;
+                    findings.push(finding("UNWITNESSED_MODEL_EXCLUSION", Some(req.id), Some(&pair),
+                        "profile exclusion lacks reason or evidence receipt"));
+                }
             }
         }
     }
@@ -231,6 +266,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
     let disposition = if codes.contains("MODEL_STALE") { "MODEL_STALE" }
         else if codes.contains("MODEL_OUT_OF_PROFILE") { "MODEL_OUT_OF_PROFILE" }
         else if codes.contains("MODEL_SOURCE_UNAVAILABLE") { "MODEL_SOURCE_UNAVAILABLE" }
+        else if codes.contains("MODEL_SCOPE_MISMATCH") { "MODEL_SCOPE_MISMATCH" }
+        else if codes.contains("MODEL_RECEIPT_ALIAS") { "MODEL_RECEIPT_ALIAS" }
         else if codes.contains("COMMON_MODE_MODEL_OMISSION") { "COMMON_MODE_MODEL_OMISSION" }
         else if codes.contains("MISSING_LOSS_MODEL") { "MISSING_LOSS_MODEL" }
         else if codes.contains("UNWITNESSED_MODEL_EXCLUSION") { "UNWITNESSED_MODEL_EXCLUSION" }
