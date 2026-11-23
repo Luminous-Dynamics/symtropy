@@ -485,31 +485,39 @@ mod tests {
 
     #[test]
     fn fixed_weights_produce_tight_outward_bounds() {
-        let point = point_assessment(&[(1, 2, 3, 1, 2), (1, 3, 2, 2, 2)]);
+        let point = point_assessment(&[
+            (1, 2, 3, 1, 2),
+            (1, 3, 2, 2, 2),
+            (2, 3, 1, 1, 2),
+        ]);
         let result = assess_robust_decision_impact(
             &point,
-            &policy(&[(1, 2, 2, 2), (1, 3, 2, 2)]),
+            &policy(&[(1, 2, 2, 2), (1, 3, 2, 2), (2, 3, 2, 2)]),
         )
         .unwrap();
-        // (2 * 1/3 + 2 * 1) / 4 = 2/3.
-        assert_eq!(result.worst_case_resolved_fraction_parts_per_billion, 666_666_666);
-        assert_eq!(result.best_case_resolved_fraction_parts_per_billion, 666_666_667);
+        // (2 * 1/3 + 2 * 1 + 2 * 1) / 6 = 7/9.
+        assert_eq!(result.worst_case_resolved_fraction_parts_per_billion, 777_777_777);
+        assert_eq!(result.best_case_resolved_fraction_parts_per_billion, 777_777_778);
         assert_eq!(result.minimum_class_pair_resolution_lower_parts_per_billion, 333_333_333);
         assert_eq!(result.minimum_class_pair_resolution_pair, (1, 2));
     }
 
     #[test]
     fn interval_box_reports_sharp_adversarial_weight_extremes() {
-        let point = point_assessment(&[(1, 2, 1, 0, 1), (1, 3, 1, 1, 1)]);
+        let point = point_assessment(&[
+            (1, 2, 1, 0, 1),
+            (1, 3, 1, 1, 1),
+            (2, 3, 1, 0, 1),
+        ]);
         let result = assess_robust_decision_impact(
             &point,
-            &policy(&[(1, 2, 1, 100), (1, 3, 1, 100)]),
+            &policy(&[(1, 2, 1, 100), (1, 3, 1, 100), (2, 3, 1, 1)]),
         )
         .unwrap();
-        assert_eq!(result.worst_case_resolved_fraction_parts_per_billion, 9_900_990);
-        assert_eq!(result.best_case_resolved_fraction_parts_per_billion, 990_099_010);
-        assert_eq!(result.worst_case_unresolved_fraction_parts_per_billion, 990_099_010);
-        assert_eq!(result.best_case_unresolved_fraction_parts_per_billion, 9_900_990);
+        assert_eq!(result.worst_case_resolved_fraction_parts_per_billion, 9_803_921);
+        assert_eq!(result.best_case_resolved_fraction_parts_per_billion, 980_392_157);
+        assert_eq!(result.worst_case_unresolved_fraction_parts_per_billion, 990_196_079);
+        assert_eq!(result.best_case_unresolved_fraction_parts_per_billion, 19_607_843);
     }
 
     #[test]
@@ -569,7 +577,11 @@ mod tests {
 
     #[test]
     fn missing_duplicate_extra_and_invalid_weight_intervals_reject() {
-        let point = point_assessment(&[(1, 2, 2, 1, 3), (1, 3, 2, 1, 3)]);
+        let point = point_assessment(&[
+            (1, 2, 2, 1, 3),
+            (1, 3, 2, 1, 3),
+            (2, 3, 2, 1, 3),
+        ]);
         assert_eq!(
             assess_robust_decision_impact(&point, &policy(&[(1, 2, 1, 2)])),
             Err(RobustDecisionImpactError::MissingWeightInterval(1, 3))
@@ -584,7 +596,7 @@ mod tests {
         assert_eq!(
             assess_robust_decision_impact(
                 &point,
-                &policy(&[(1, 2, 1, 2), (1, 3, 1, 2), (2, 3, 1, 2)]),
+                &policy(&[(1, 2, 1, 2), (1, 3, 1, 2), (2, 3, 1, 2), (2, 4, 1, 2)]),
             ),
             Err(RobustDecisionImpactError::UnexpectedWeightInterval(2, 3))
         );
