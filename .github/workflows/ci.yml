@@ -113,3 +113,15 @@ jobs:
     - name: Clippy EHD-PIV Empirical Spatial Fit
       if: ${{ hashFiles('tools/ehd-piv-empirical-spatial-fit/Cargo.toml') != '' }}
       run: cargo clippy --manifest-path tools/ehd-piv-empirical-spatial-fit/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-oed-portfolio/Cargo.toml -- --check
+
+    - name: Test EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-oed-portfolio/Cargo.toml
+
+    - name: Clippy EHD OED Portfolio
+      if: ${{ hashFiles('tools/ehd-oed-portfolio/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-oed-portfolio/Cargo.toml --all-targets -- -D warnings
