@@ -99,7 +99,7 @@ One complete independent acquisition/dependence cluster contributes one score. A
 
 The domain, mask policy, scale floor, vector norm, normalization, region treatment, confidence level and calibration cohort must be frozen. Missing vectors cannot silently disappear from the maximum.
 
-Nineteen independent calibration units is the mathematical finite-rank minimum for a finite split-conformal 95% order statistic; it is not an adequate general-purpose benchmark sample. Coverage confidence intervals must use independent evaluation clusters, not pixels or vectors. Under a simple binomial approximation, approximately 456 independent test clusters give a 95% confidence half-width near two percentage points when true coverage is 95%; the actual plan must account for dependence, heterogeneity and exact intervals.
+Nineteen independent calibration units is the mathematical finite-rank minimum for a finite split-conformal 95% order statistic; it is not an adequate general-purpose benchmark sample. Coverage confidence intervals must use independent evaluation clusters, not pixels or vectors. Under a simple binomial approximation, approximately 457 independent test clusters give a 95% confidence half-width near two percentage points when true coverage is 95%; the actual plan must account for dependence, heterogeneity and exact intervals.
 
 ## 6. Baselines and matched privileges
 
