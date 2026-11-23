@@ -1791,9 +1791,8 @@ mod tests {
                     }
                 }
             }
-            let dual_expected_utility =
-                scenario_a_weight * scenario_utilities[0]
-                    + scenario_b_weight * scenario_utilities[1];
+            let dual_expected_utility = scenario_a_weight * scenario_utilities[0]
+                + scenario_b_weight * scenario_utilities[1];
             assert!(dual_expected_utility <= score.dual_game_value + 1.0e-9);
         }
         assert!(!score.formal_certificate);
