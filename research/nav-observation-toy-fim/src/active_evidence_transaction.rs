@@ -12,7 +12,11 @@ use crate::active_evidence_attempt_ledger::{
     AdmittedAttemptReceipt, EvidenceAttemptRequest,
 };
 use crate::active_evidence_decision_planner::{
-    ActiveEvidenceDecisionPlan, ActiveEvidenceDecisionReason,
+    ActiveEvidenceDecisionPlan, ActiveEvidenceDecisionReason, EvidenceActionDecisionAssessment,
+};
+use crate::active_evidence_reliability::{AdmittedAcquisitionReliability};
+use crate::active_evidence_reliability_planner::{
+    ReliableActiveEvidencePlan, ReliableEvidencePlanReason,
 };
 use crate::navigation_time_validity::{
     NavigationTimeDisposition, NavigationTimeValidityError, NavigationTimeValidityInput,
@@ -53,6 +57,8 @@ pub struct EvidenceTransactionReport {
     pub decision_partition_sha256: [u8; 32],
     pub disposition: EvidenceTransactionDisposition,
     pub qualified_evidence_binding: Option<QualifiedEvidenceBinding>,
+    /// Preserves the exact admitted acquisition-reliability interval and cohort/method lineage.
+    pub selected_acquisition_reliability: Option<AdmittedAcquisitionReliability>,
     pub time_report: Option<NavigationTimeValidityReport>,
     pub eligible_for_independent_posterior_audit: bool,
     /// Always false. The posterior/fault-envelope owner must perform the update.
@@ -69,6 +75,8 @@ pub enum EvidenceTransactionError {
     AttemptDoesNotMatchRecommendedAction,
     EvidenceBindingMissing,
     EvidenceBindingMismatch,
+    ReliablePlanHasNoRecommendedAction,
+    SelectedReliabilityMissing(u64),
     AttemptLedger(ActiveEvidenceAttemptError),
     TimeValidity(NavigationTimeValidityError),
 }
@@ -82,6 +90,8 @@ impl fmt::Display for EvidenceTransactionError {
             Self::AttemptDoesNotMatchRecommendedAction => write!(f, "attempt action does not match the plan's recommendation"),
             Self::EvidenceBindingMissing => write!(f, "qualified acquisition is missing its payload/receipt/source binding"),
             Self::EvidenceBindingMismatch => write!(f, "payload, receipt, result, attempt, action or source-manifest bindings do not match"),
+            Self::ReliablePlanHasNoRecommendedAction => write!(f, "reliability-aware plan has no recommended action"),
+            Self::SelectedReliabilityMissing(id) => write!(f, "selected action {id} has no admitted reliability evidence in the plan frontier"),
             Self::AttemptLedger(error) => write!(f, "attempt ledger rejected transition: {error}"),
             Self::TimeValidity(error) => write!(f, "time-validity assessment failed: {error}"),
         }
@@ -205,11 +215,86 @@ pub fn record_selected_evidence_outcome(
         decision_partition_sha256: partition,
         disposition,
         qualified_evidence_binding,
+        selected_acquisition_reliability: None,
         time_report,
         eligible_for_independent_posterior_audit: audit_eligible,
         posterior_updated: false,
         navigation_authorized: false,
     })
+}
+
+/// Convert the selected reliability-aware plan into the shared transaction
+/// view while retaining its exact per-action admitted reliability contract.
+///
+/// The selected conditional assessment is cloned only as a compatibility
+/// projection. The full reliability record is preserved in the transaction
+/// report and is not reduced to a scalar confidence field.
+fn reliable_plan_transaction_view(
+    plan: &ReliableActiveEvidencePlan,
+) -> Result<(ActiveEvidenceDecisionPlan, AdmittedAcquisitionReliability), EvidenceTransactionError> {
+    let action_id = plan
+        .recommended_action_id
+        .ok_or(EvidenceTransactionError::ReliablePlanHasNoRecommendedAction)?;
+    let selected = plan
+        .pareto_frontier
+        .iter()
+        .find(|assessment| assessment.conditional.action.action_id == action_id)
+        .ok_or(EvidenceTransactionError::SelectedReliabilityMissing(action_id))?;
+    let decision_reason = match plan.reason {
+        ReliableEvidencePlanReason::TargetAlreadySatisfied =>
+            ActiveEvidenceDecisionReason::TargetAlreadySatisfied,
+        ReliableEvidencePlanReason::LowestLatencyDecisionResolvingTarget =>
+            ActiveEvidenceDecisionReason::LowestLatencyDecisionResolvingAction,
+        ReliableEvidencePlanReason::LowestLatencyTargetReachingByProtectionReduction =>
+            ActiveEvidenceDecisionReason::LowestLatencyTargetReachingAction,
+        ReliableEvidencePlanReason::BestExpectedDecisionResolution =>
+            ActiveEvidenceDecisionReason::BestDecisionDiscriminationAvailableButTargetNotReached,
+        ReliableEvidencePlanReason::BestExpectedProtectionReduction =>
+            ActiveEvidenceDecisionReason::BestProtectionReductionAvailableButTargetNotReached,
+        ReliableEvidencePlanReason::NoReliablyAdmittedAction
+        | ReliableEvidencePlanReason::NoConditionalActionValue =>
+            return Err(EvidenceTransactionError::ReliablePlanHasNoRecommendedAction),
+    };
+    let decision_plan = ActiveEvidenceDecisionPlan {
+        reason: decision_reason,
+        recommended_action_id: Some(action_id),
+        pareto_frontier: vec![selected.conditional.clone()],
+        conditional_target_reached: plan.conditional_target_reached,
+        hypothesis_inventory_sha256: plan.hypothesis_inventory_sha256,
+        decision_partition_sha256: plan.decision_partition_sha256,
+        decision_assignments: plan.decision_assignments.clone(),
+        authority_transition_not_authorized_by_plan: true,
+    };
+    Ok((decision_plan, selected.reliability))
+}
+
+/// Consume an outcome for an action selected by the reliability-aware planner.
+///
+/// This preserves the selected action's complete admitted reliability record
+/// (interval, confidence error, independent campaign-block count, empirical
+/// yield and source/cohort/method commitments) alongside the consume-once
+/// attempt and exact payload/receipt/time binding.
+pub fn record_reliably_selected_evidence_outcome(
+    plan: &ReliableActiveEvidencePlan,
+    ledger: &mut ActiveEvidenceAttemptLedger,
+    request: EvidenceAttemptRequest,
+    outcome: AcquisitionAttemptOutcome,
+    observed_navigation_state_sha256: [u8; 32],
+    evidence_binding: Option<QualifiedEvidenceBinding>,
+    time_assessment: Option<(NavigationTimeValidityPolicy, NavigationTimeValidityInput)>,
+) -> Result<EvidenceTransactionReport, EvidenceTransactionError> {
+    let (decision_plan, reliability) = reliable_plan_transaction_view(plan)?;
+    let mut report = record_selected_evidence_outcome(
+        &decision_plan,
+        ledger,
+        request,
+        outcome,
+        observed_navigation_state_sha256,
+        evidence_binding,
+        time_assessment,
+    )?;
+    report.selected_acquisition_reliability = Some(reliability);
+    Ok(report)
 }
 
 #[cfg(test)]
