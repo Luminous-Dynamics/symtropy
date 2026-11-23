@@ -91,6 +91,31 @@ A wider interval can trivially improve empirical coverage while making schedules
 
 Use matched calibration sample counts and chronological evaluation windows. Report paired seed-level results, uncertainty intervals and timeouts. Never compare a method's 50-vessel result against a competitor's 30-vessel optimum or treat a timeout as a solved objective.
 
+## Strong online-conformal comparators to add before SOTA claims
+
+Two 2026 results materially strengthen the method matrix:
+
+- **SAOCP / SF-OGD**: Bhatnagar et al.'s strongly adaptive online conformal methods use experts on dyadic active intervals and target regret on every contiguous time window, rather than only a signed average error over the entire stream. PACE (1 September 2026) identifies SAOCP as its primary formal comparator. A recent theory paper also proposes simultaneous non-cancelling coverage violation and efficiency guarantees against a dynamically evolving benchmark. References:
+  - PACE empirical comparison (2026): https://doi.org/10.3390/forecast8050077
+  - Simultaneous coverage and efficiency (29 July 2026): https://arxiv.org/abs/2607.26577
+  - Strong online conformal foundations: https://jmlr.org/papers/v25/22-1218.html
+- **PACE**: a heterogeneous-horizon population of quantile calibrators with different windows, decay and scale, fitness-weighted top-K aggregation and periodic clonal replacement. PACE reports stronger empirical coverage in extreme regimes than five adaptive baselines, but generally wider intervals and less favorable interval scores than SAOCP on most datasets. It is heuristic and does not claim an equivalent strongly adaptive regret/coverage guarantee.
+- **Online conformal via online optimization** (ICML 2025): a formal adversarial/stochastic online baseline with confidence-set coverage guarantees; its paper reports experiments on 15+ datasets and a pre-registered Texas electricity-demand experiment. https://proceedings.mlr.press/v267/areces25a.html
+
+The current crate implements simple fixed marginal, fixed joint, rolling joint and ACI baselines; it does **not** yet implement SAOCP, PACE, FACI, AgACI, PID-Conformal, SF-OGD or the online-optimization algorithms. Treat the next items as reproduction gates, not as already completed work.
+
+### Non-cancelling coverage and efficiency scorecard
+
+Signed long-run coverage error can conceal extended undercoverage if later overcoverage compensates for it. Therefore preserve each local-window result and calculate:
+- **coverage debt**: `max(0, nominal joint coverage − latent joint coverage)` per window, with no cancellation across windows;
+- **observed-to-latent optimism**: observed-only joint coverage minus evaluator-only latent joint coverage, exposing MNAR selection bias;
+- interval width / interval score, so wider sets cannot win on coverage alone;
+- worst-window coverage debt and time-to-recover after a detected shift;
+- prequential miss run length and maximum consecutive undercoverage;
+- service-impact score once intervals are propagated through berth/crane recourse.
+
+A method should not be called better than SAOCP or PACE unless compared on matched seeds, shifts, missingness masks, interval width, non-cancelling coverage debt, calibration sample sizes and runtime. Compare methods on the same hidden truth; only the evaluator may access missing labels.
+
 ## Required metrics
 
 Each method/window row emits:
