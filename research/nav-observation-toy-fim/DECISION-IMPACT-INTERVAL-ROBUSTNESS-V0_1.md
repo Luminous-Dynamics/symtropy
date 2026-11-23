@@ -182,7 +182,7 @@ For sequential sensing, the next step is a non-anticipative decision tree in whi
 - #7165 reliability interval cross-check for qualified-result mass;
 - baseline retention for failed/invalid/unknown branches;
 - mean, VaR, AVaR and maximum residual outputs;
-- tests for a rare high-residual outcome hidden by a low mean, exact fractional tail mass, alpha monotonicity, unknown outcome retention, reliability/mass mismatch, commitment mismatch, permutation invariance and malformed scenarios.
+- tests for a rare high-residual outcome hidden by a low mean, exact fractional tail mass, alpha monotonicity, unknown outcome retention, reliability/mass mismatch, selected-action and outcome-model binding, reliability-action binding, commitment mismatch, permutation invariance and malformed scenarios.
 
 These tests are authored; exact-head Rust CI is the qualification gate.
 
