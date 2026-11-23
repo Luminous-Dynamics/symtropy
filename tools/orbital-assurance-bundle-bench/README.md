@@ -164,6 +164,24 @@ node tools/orbital-assurance-bundle-bench/tests/incumbent_adequacy_oracle.mjs \
 ~~~
 
 
+## Joint physical-world / loss-model incumbent bridge v0.1
+
+The incumbent gate now consumes two separate source-pinned inventories: the finite compatible-world receipt from #6835 and the coherent joint loss-model scenario receipt from #6939. A joint scenario is a (physical-world ID, loss-model ID) row; several loss models may share one physical world. It verifies exact planned and observed IDs, source receipt/schema/claim-ceiling pins, per-scenario evidence status and receipt IDs, and a digest of the projected scenario rows consumed by the comparator.
+
+The source rational loss is carried alongside its projected integer loss. The projection has an explicit source unit, target loss unit, projection ID and rational scale. The evaluator requires exact divisibility and equality with the projected integer; it never rounds or uses floating-point arithmetic. The 29-case corpus covers a valid fractional projection (1/10 × 1000 = 100), inexact 1/3 conversion rejection, integer projection mismatch, stale/indeterminate/out-of-profile loss manifests, per-scenario evidence blockers, omitted joint scenarios, omitted physical-world coverage and multiple loss models for one physical world.
+
+**Important source boundary:** v0.1 consumes the finite #6835 decision-identifiability receipt. It does not consume or inherit #6887's anytime-valid sequential sampling/stopping guarantee. That requires a separate typed adapter. Source digests are structural pins, not issuer authentication or proof of loss-model calibration/completeness.
+
+Detailed contract: [INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md](../../research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md).
+
+~~~bash
+cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin incumbent-decision-adequacy -- \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-adequacy-cases.json \
+  --source-commit <40-lowercase-hex-commit>
+node tools/orbital-assurance-bundle-bench/tests/incumbent_adequacy_oracle.mjs \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-adequacy-cases.json
+~~~
+
 ## Commands
 
 
