@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_parameter_map",
+  "status": "exact_symbolic_first_coupling_parameter_map_derived_locally",
+  "definitions": {
+    "q": "a/r_h",
+    "nu_h": "Omega_H*r_h",
+    "nu_S": "Omega_H*R_H",
+    "epsilon_R": "alpha_R/r_h^2",
+    "epsilon_S": "alpha_R/R_H^2",
+    "chi": "a/sqrt(mu)"
+  },
+  "horizon_values": {
+    "mu_over_rh2": "(1+q^2)^2/2",
+    "H2_h_through_q2": "838*q^2/45-16/3",
+    "H4_h_through_q2": "4141*q^2/45-88/3",
+    "H7_h_through_q2": "10/3-578*q^2/45",
+    "nuS_of_q_epsilonR": "q-q^3/2-7*epsilon_R*q+(5509/90)*epsilon_R*q^3",
+    "R_H_over_r_h_of_q_epsilonR": "1+q^2/2+(5/3)*epsilon_R-(503/90)*epsilon_R*q^2"
+  },
+  "fixed_symtropy_boundary_expansions": {
+    "epsilon_R": "epsilon_S*(1+nu_S^2)+O(epsilon_S^2,nu_S^4)",
+    "q": "nu_S+nu_S^3/2+epsilon_S*(7*nu_S-(3619/90)*nu_S^3)+O(epsilon_S^2,nu_S^5)",
+    "R_H_over_r_h": "1+(5/3)*epsilon_S+nu_S^2/2+(277/90)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
+    "r_h_over_R_H": "1-(5/3)*epsilon_S-nu_S^2/2-(127/90)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
+    "a_over_R_H": "nu_S+(16/3)*epsilon_S*nu_S-(2068/45)*epsilon_S*nu_S^3+O(epsilon_S^2,nu_S^5)",
+    "mu_over_R_H2": "1/2-(5/3)*epsilon_S+nu_S^2/2+(454/45)*epsilon_S*nu_S^2+O(epsilon_S^2,nu_S^4)",
+    "chi": "sqrt(2)*(nu_S-nu_S^3/2+7*epsilon_S*nu_S-(5509/90)*epsilon_S*nu_S^3)+O(epsilon_S^2,nu_S^5)"
+  },
+  "checks": {
+    "horizon_values_from_H2_H4_H7": true,
+    "nuS_and_radius_expansions": true,
+    "inverse_q_series": true,
+    "a_and_mu_maps": true,
+    "chi_map": true,
+    "GR_exact_limit": true,
+    "negative_control_omit_H7": true,
+    "negative_control_omit_H2_H4": true,
+    "negative_control_nu_h_vs_nu_S": true,
+    "negative_control_chi_factor": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "local_prototype_source_sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
+  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation reparameterization at fixed Symtropy (R_H,Omega_H), through the displayed orders. No corrected metric component comparison, full EOM residual, finite-coupling solution or existence theorem is claimed."
+}
