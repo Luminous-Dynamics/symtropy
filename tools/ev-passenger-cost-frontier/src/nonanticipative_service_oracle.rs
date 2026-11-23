@@ -999,19 +999,26 @@ pub fn evaluate_nonanticipative_service_oracle(
         || input.nodes.len() > MAX_TREE_NODES
         || service.requests.is_empty()
         || service.requests.len() > MAX_REQUESTS
-        || service.aerial_opportunity_qualifications.len() > MAX_OPPORTUNITIES_PER_PATH
-        || service.fallback_opportunities.len() > MAX_OPPORTUNITIES_PER_PATH
+        || service.aerial_opportunity_qualifications.len()
+            + service.fallback_opportunities.len()
+            > MAX_OPPORTUNITIES_PER_PATH
         || service.horizon_seconds != capacity.horizon_seconds
     {
         add_error(&mut errors, "nonanticipative_identity_or_bounds_invalid");
     }
-    if let Err(linked_errors) = evaluate_linked_service_quality(service, capacity) {
-        errors.extend(
-            linked_errors
-                .into_iter()
-                .map(|error| format!("linked_source_rejected:{error}")),
-        );
-    }
+    let linked_report = match evaluate_linked_service_quality(service, capacity) {
+        Ok(report) => report,
+        Err(linked_errors) => {
+            errors.extend(
+                linked_errors
+                    .into_iter()
+                    .map(|error| format!("linked_source_rejected:{error}")),
+            );
+            errors.sort();
+            errors.dedup();
+            return Err(errors);
+        }
+    };
     if !errors.is_empty() {
         errors.sort();
         errors.dedup();
@@ -1067,6 +1074,14 @@ pub fn evaluate_nonanticipative_service_oracle(
     let service_opportunities_bytes = serde_json::to_vec(&selected.service_opportunities)
         .map_err(|error| vec![format!("service_opportunity_digest_serialization_failed:{error}")])?;
     let capacity_service_opportunity_digest = sha256_hex(&service_opportunities_bytes);
+    if linked_report.capacity_source_report_digest != source_report_digest
+        || linked_report.capacity_service_opportunity_digest
+            != capacity_service_opportunity_digest
+        || linked_report.capacity_architecture_configuration_digest
+            != architecture_configuration_digest
+    {
+        return Err(vec!["linked_and_scenario_capacity_digests_disagree".to_owned()]);
+    }
 
     let mut raw_nodes = input.nodes.clone();
     raw_nodes.sort_by(|left, right| {
