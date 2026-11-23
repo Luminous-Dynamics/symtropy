@@ -212,7 +212,13 @@ pub fn assess_navigation_outcome_risk(
         ));
     }
 
+    if selected.conditional.outcome_model_sha256 != contract.outcome_model_sha256 {
+        return Err(NavigationOutcomeRiskError::ImpactCommitmentMismatch);
+    }
     let reliability = &selected.reliability;
+    if reliability.action_id != contract.action_id {
+        return Err(NavigationOutcomeRiskError::InvalidReliabilityRecord);
+    }
     validate_reliability(reliability)?;
     let mut seen_ids = BTreeSet::new();
     let mut total_probability = 0_u64;
@@ -853,6 +859,30 @@ mod tests {
                 &law,
             ),
             Err(NavigationOutcomeRiskError::SelectedActionMismatch)
+        );
+    }
+
+    #[test]
+    fn outcome_model_and_reliability_action_are_bound_to_selected_plan_entry() {
+        let scenarios = vec![scenario(
+            1,
+            PROBABILITY_SCALE,
+            NavigationObservationOutcomeKind::QualifiedObservation,
+            250_000_000,
+        )];
+        let law = contract(950_000_000, 0, scenarios);
+        let mut plan = reliable_plan(7, 0.99, 1.0);
+        plan.pareto_frontier[0].conditional.outcome_model_sha256 = [0x99; 32];
+        assert_eq!(
+            assess_navigation_outcome_risk(&plan, &robust_impact(7), &law),
+            Err(NavigationOutcomeRiskError::ImpactCommitmentMismatch)
+        );
+
+        let mut plan = reliable_plan(7, 0.99, 1.0);
+        plan.pareto_frontier[0].reliability.action_id = 8;
+        assert_eq!(
+            assess_navigation_outcome_risk(&plan, &robust_impact(7), &law),
+            Err(NavigationOutcomeRiskError::InvalidReliabilityRecord)
         );
     }
 
