@@ -710,7 +710,9 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
             post_validation_errors.insert(ValidationError::InvalidSharedAcceptance);
             continue;
         };
-        if !finding.shared_identities.contains(&acceptance.identity) {
+        if finding.disposition != SeparationDisposition::Shared
+            || !finding.shared_identities.contains(&acceptance.identity)
+        {
             post_validation_errors.insert(ValidationError::UnobservedSharedAcceptance);
             continue;
         }
@@ -849,8 +851,8 @@ mod tests {
                 for left_partial in [false, true] {
                     for right_partial in [false, true] {
                         let ids = |mask: u8, role_binding: &str, prefix: &str| {
-                            (0..4)
-                                .filter(|index| mask & (1 << index) != 0)
+                            (0u8..4)
+                                .filter(|index| mask & (1u8 << *index) != 0)
                                 .map(|index| {
                                     witness(
                                         (index + 1) as u8,
