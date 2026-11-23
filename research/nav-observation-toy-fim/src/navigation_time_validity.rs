@@ -9,8 +9,12 @@
 //! This is a temporal-applicability gate only. It does not calculate spatial
 //! error, predictor error, covariance, protection levels, physical clock
 //! truth, PHMI or navigation authority. Time digests are caller-supplied
-//! commitments. Streaming/incremental payloads and durable clock correlation
-//! are outside this first batch-receipt contract.
+//! commitments. The caller must first obtain normalized intervals and a
+//! current correlation artifact from Mycelix Position #435; the manifest digest
+//! is bound here, not re-parsed or authenticated. Source clock identity,
+//! conversion validity interval and correlation uncertainty remain owned by
+//! #435. Streaming/incremental payloads and durable clock correlation are
+//! outside this first batch-receipt contract.
 
 use std::fmt;
 
