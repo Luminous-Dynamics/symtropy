@@ -649,6 +649,7 @@ mod tests {
         );
 
         let mut cycle = case.events.clone();
+        cycle[0].observed_at_ms = cycle[1].observed_at_ms;
         cycle[0].supersedes_event_id = Some("e2".into());
         assert_eq!(normalize_events(&cycle).unwrap_err(), "supersession_cycle_detected");
     }
