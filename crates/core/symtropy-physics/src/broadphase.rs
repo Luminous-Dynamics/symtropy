@@ -747,7 +747,11 @@ mod tests {
         assert!(stats.tree_height >= 1);
         assert!(stats.tree_height <= 7);
         assert!(stats.owned_buffer_bytes > 0);
-        assert!(stats.internal_bounds_measure_ratio.is_some_and(|ratio| ratio >= 1.0));
+        assert!(
+            stats
+                .internal_bounds_measure_ratio
+                .is_some_and(|ratio| ratio >= 1.0)
+        );
     }
 
     #[test]
