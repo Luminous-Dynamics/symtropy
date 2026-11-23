@@ -455,7 +455,7 @@ fn validate_attempt_observer_assurance(
         &attempt.downstream_quiescence.receipt.owner_id,
     ]
     .iter()
-    .map(|owner_id| (*owner_id).clone())
+    .map(|owner_id| owner_id.as_str().to_owned())
     .collect();
 
     let physical = validate_observer_claim(
