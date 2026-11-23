@@ -28,6 +28,7 @@ Both primary berths are disrupted in every world. There is one reserve berth and
 | a_critical_reserve_outage | A | no | yes | yes |
 | a_critical_a_consent_revoked | A | yes | no | yes |
 | b_critical_b_consent_revoked | B | yes | yes | no |
+| a_critical_reserve_ready_sensor_only_fault | A | yes | yes | yes |
 
 Each primary berth disruption leaves 30 service_units for each participant without recovery. Assigning the reserve berth to A gives A 80 and B 30; assigning it to B gives A 30 and B 80. The critical participant misses its deadline unless the reserve is assigned to it. The service values and deadline semantics are synthetic, declared model inputs.
 
@@ -61,12 +62,20 @@ The synthetic conversion is explicit: 1 service_unit per kWh and 2 service_units
 
 The shared TOS signal distinguishes A-critical from B-critical reports but shares the TOS/gateway failure path and cannot qualify reserve availability. Therefore it may remain advisory but cannot authorize reserve allocation.
 
-The independent inspection separates all five worlds. Participant authorization is not inferred from the physical inspection: a current Mycelix-style authorization snapshot is separately required. The reserve is assigned:
+The shared TOS signal has an explicit **outcome-dependent missingness control**. Its observable labels are:
+- A-priority in the first and fourth worlds;
+- B-priority in the second and fifth worlds;
+- MISSING in both the reserve-plus-gateway common-cause outage world and the sensor-only-failure world where reserve capacity is actually healthy.
+
+The evaluator separately retains the hidden cause of each missing observation. The policy sees only the shared MISSING token and must not infer which hidden cause occurred. This is a deterministic finite structural test of non-ignorable/missing-not-at-random observation behavior; it does not estimate statistical missingness probabilities, calibrate a stochastic likelihood or establish field missingness rates. The hidden cause is deliberately not part of the `World` type passed into the policy solver; it appears only in the evaluator's adjudication receipt.
+
+The independent inspection separates all six worlds. Participant authorization is not inferred from the physical inspection: a current Mycelix-style authorization snapshot is separately required. The reserve is assigned:
 - to A in the A-critical/ready world;
 - to B in the B-critical/ready world;
 - to nobody when the reserve is unavailable;
 - to B when A's reallocation consent is revoked;
-- to A when B's reallocation consent is revoked.
+- to A when B's reallocation consent is revoked;
+- to A in the sixth world, where reserve capacity is healthy but the shared telemetry sensor alone has failed.
 
 ## Hand-calculated known answers
 
@@ -91,7 +100,7 @@ The test-only oracle takes a separate route:
 - compute each policy's worst-case regret;
 - select the lexicographically best full policy, including deterministic tie-breaking.
 
-There are 52 set partitions of five worlds. The test suite compares the production solver with exhaustive enumeration over every partition and the full three-action policy space. It also checks 64 deterministically generated five-world sets across all 52 partitions (3,328 generated-world/partition comparisons), in addition to the hand-authored known-answer worlds, and compares the three named observation policies with the independent oracle.
+There are 203 set partitions of six worlds. The test suite compares the production solver with exhaustive enumeration over every partition and the full three-action policy space. It also checks 64 deterministically generated six-world sets across all 203 partitions (12,992 generated-world/partition comparisons), in addition to the hand-authored known-answer worlds, and compares the three named observation policies with the independent oracle.
 
 ## Current owner boundaries
 
