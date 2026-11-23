@@ -323,6 +323,72 @@ jobs:
             and .native_action_authority == "not_created"
           ' "$REPORT"
 
+      - name: Compile, deterministically replay and verify the RRVR campaign plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          SOURCE="$ROOT/fixtures/fault_campaign_paired_v0_1.json"
+          SCHEMA="$ROOT/schemas/compiled_campaign_plan_v0_1.schema.json"
+          PLAN_A="$RUNNER_TEMP/rrvr-campaign-plan-a.json"
+          PLAN_B="$RUNNER_TEMP/rrvr-campaign-plan-b.json"
+          REPORT="$RUNNER_TEMP/rrvr-campaign-plan-report.json"
+          VERIFY_REPORT="$RUNNER_TEMP/rrvr-campaign-plan-verify.json"
+          TAMPERED="$RUNNER_TEMP/rrvr-campaign-plan-tampered.json"
+
+          jq empty "$SCHEMA"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_A" "$REPORT" > "$RUNNER_TEMP/rrvr-campaign-compile.stdout"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_compile -- "$SOURCE" "$PLAN_B" > /dev/null
+          cmp "$PLAN_A" "$PLAN_B"
+
+          jq -e '
+            .version == "0.1"
+            and .canonicalization == "serde-json-value-sorted-keys-v0.1"
+            and (.source_manifest_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.plan_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.fault_model_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.native_adapter_revision | length > 0)
+            and (.platform.runtime_monitor_revision | length > 0)
+            and (.scenarios | length == 4)
+            and (.pairs | length == 2)
+            and ([.scenarios[].schedule_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.pairs[].pair_commitment_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
+            and ([.scenarios | group_by(.pair_id)[] | ([.[].pair_commitment_sha256] | unique | length == 1)] | all)
+            and ([.scenarios[].fault_events | to_entries[] | .value.sequence == (.key + 1)] | all)
+          ' "$PLAN_A"
+
+          EXPECTED_PLAN_SHA=$(jq -r '.plan_sha256' "$REPORT")
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$PLAN_A" "$SOURCE" "$EXPECTED_PLAN_SHA" "$VERIFY_REPORT" > /dev/null
+          EXPECTED_SOURCE_SHA=$(sha256sum "$SOURCE" | cut -d ' ' -f 1)
+          PLAN_ARTIFACT_SHA=$(sha256sum "$PLAN_A" | cut -d ' ' -f 1)
+          jq -e --arg source_sha "$EXPECTED_SOURCE_SHA" --arg artifact_sha "$PLAN_ARTIFACT_SHA" '
+            .validation == "passed"
+            and .source_manifest_binding == true
+            and .canonical_encoding == true
+            and .nested_pair_and_schedule_commitments == true
+            and .external_expected_digest_match == true
+            and .source_manifest_sha256 == $source_sha
+            and .compiled_plan_artifact_sha256 == $artifact_sha
+            and .fault_injection_executed == false
+            and .native_authority_created == false
+            and .platform_inventory_authenticated == false
+            and .physical_safety_established == false
+          ' "$VERIFY_REPORT"
+
+          jq '.scenarios[0].fault_events[0].kind = "power_loss"' "$PLAN_A" > "$TAMPERED"
+          set +e
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_campaign_verify -- "$TAMPERED" "$SOURCE" "$EXPECTED_PLAN_SHA" > "$RUNNER_TEMP/rrvr-campaign-tamper.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Campaign plan verifier accepted a mutated fault event."
+            exit 1
+          fi
+          echo "Expected negative control rejected: tampered compiled plan."
+
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
 
