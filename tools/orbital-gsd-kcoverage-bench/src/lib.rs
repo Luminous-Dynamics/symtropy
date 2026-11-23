@@ -1203,9 +1203,9 @@ mod tests {
                 .iter()
                 .all(|support| support.half_extents_um.iter().all(|extent| *extent >= 1))
         );
-        assert!(supports
-            .iter()
-            .all(|support| (0_i64..=3_141_594_i64).contains(&support.normal_cone_half_angle_microrad)));
+        assert!(supports.iter().all(|support| {
+            (0_i64..=3_141_594_i64).contains(&support.normal_cone_half_angle_microrad)
+        }));
         assert!(supports.iter().any(|support| {
             support.support_kind == "PLANAR_VOXEL_FACE"
                 && support.normal_cone_half_angle_microrad <= 2
