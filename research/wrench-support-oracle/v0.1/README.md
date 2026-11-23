@@ -7,7 +7,7 @@ This is intentionally a small, auditable model. It does not implement a general 
 ## Model and exactness boundary
 
 The model has:
-- 3D contact points relative to an explicitly declared wrench origin;
+- 3D contact points relative to an explicitly declared wrench origin, each with a finite non-negative narrow-phase penetration depth;
 - one shared contact normal, fixed to +Z, with all points required to be coplanar in a plane parallel to XY;
 - unit total normal load, distributed arbitrarily across nonnegative contact loads;
 - a Coulomb friction disk at each point, with common coefficient mu;
@@ -76,7 +76,7 @@ The cone is an inscribed polygonal approximation of the Coulomb friction ellipse
 
 Compare on frozen identical candidate sets:
 - full-candidate support ceiling;
-- current Symtropy best-N/area heuristic;
+- current Symtropy deepest/farthest/area/centroid best-N heuristic, reproduced as a deterministic baseline using the same candidate depths and positions;
 - Bullet-style deepest-point plus maximum-area policy;
 - Jolt's bounded stable-manifold policy;
 - Rapier-style contact clustering with solver groups kept distinct from geometric manifolds;
@@ -85,6 +85,8 @@ Compare on frozen identical candidate sets:
 - future branch-and-bound and direction-adaptive selectors.
 
 Add NVIDIA Newton's documented contact reduction as another baseline: it groups contacts by normal direction, scores spatial distribution and penetration depth, and uses aspect-ratio-based normalized voxel grids for mesh/SDF coverage. The key commonality across engines is that reduction is not a point-count-only problem; geometry coverage, penetration/depth, normal clusters, persistence and solver correspondence matter.
+
+The crate now includes a source-aligned reproduction of Symtropy's current best-N stages (deepest, farthest from deepest, farthest from the first-two line, then farthest from the three-point centroid). On the same five-point counterexample used for the greedy test, the reproduced best-N policy selects p1/p2/p4 and has more than 40% worst sampled normalized support deficit, while the exact three-point oracle selects p2/p3/p4 with zero deficit across the nine frozen axes. This is a synthetic model result, not a measured production-engine outcome; the tie-break policy is made stable by point IDs.
 
 The industry descriptions are not matched performance results. Rapier documents that contact clustering can merge same-normal manifolds and solve at most four contacts per plane; when clustering applies, geometric manifold impulses are not the solver impulses. Jolt documents a four-point stable manifold and exposes reduction visualization. Bullet describes retaining the deepest point and maximizing area when reducing its persistent cache to four. Newton documents normal bins, spatial distribution and penetration depth. These are architectural references; compare actual outputs with identical fixtures before claiming a win.
 
@@ -130,6 +132,7 @@ The unit suite contains 30 tests across both models and covers:
 - greedy agreement with exact selection on a symmetric known-answer patch;
 - exact-vs-greedy objective ordering and greedy evaluation guard;
 - a five-point local-choice counterexample exposing a greedy optimality gap;
+- the current Symtropy deepest/farthest/area best-N baseline scored against the exact wrench optimum;
 - rejection of non-coplanar points in the shared-normal model;
 - varying contact normals and bounded load allocation;
 - per-contact anisotropic friction and material tangent-hint orientation;
