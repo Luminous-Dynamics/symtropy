@@ -7,6 +7,8 @@ ASSUME MaxAttempts \in Nat /\ MaxAttempts >= 3
 ASSUME MaxEpoch \in Nat /\ MaxEpoch >= MaxAttempts
 ASSUME UnsafeRetryEnabled \in BOOLEAN
 
+VARIABLES s
+
 Attempts == 1..MaxAttempts
 ResolvedPersistence == {"committed", "definitely_not_committed"}
 PhysicalOutcomes == {"none", "applied", "no_effect", "partial", "unknown", "disputed"}
