@@ -36,6 +36,7 @@ pub mod ncdot_temporal;
 pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
+pub mod pop_convergence;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -73,6 +74,11 @@ pub use pop_col_adjustment::{
 };
 pub use pop_col_energy::{
     PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy, conditional_velocity_at_col,
+};
+pub use pop_convergence::{
+    PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
+    PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
+    decide_peak_overlap_convergence,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
@@ -197,6 +203,10 @@ pub enum KernelError {
     InvalidPopColAdjustmentInput,
     /// A CoL fraction midpoint cannot be represented distinctly in floating point.
     PopColAdjustmentResolutionLimit,
+    /// PeakOverlapPos convergence policy contains invalid tolerances.
+    InvalidPeakOverlapConvergenceConfig,
+    /// PeakOverlapPos convergence observation is incomplete or inconsistent.
+    InvalidPeakOverlapConvergenceObservation,
 }
 
 impl fmt::Display for KernelError {
@@ -290,6 +300,12 @@ impl fmt::Display for KernelError {
             }
             Self::PopColAdjustmentResolutionLimit => {
                 "CoL fraction midpoint is not representable as a distinct value"
+            }
+            Self::InvalidPeakOverlapConvergenceConfig => {
+                "PeakOverlapPos convergence tolerances are invalid"
+            }
+            Self::InvalidPeakOverlapConvergenceObservation => {
+                "PeakOverlapPos convergence observation is incomplete or inconsistent"
             }
         };
         f.write_str(message)
