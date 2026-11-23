@@ -25,7 +25,10 @@
     "simulation_interfaces_revision": "simulation_interfaces-fixture-v0.1",
     "scene_broadcaster_id": "gz::sim::systems::SceneBroadcaster",
     "scene_broadcaster_revision": "gazebo-build-2026.11.23",
-    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "observer_id": "sim-ground-truth-observer",
+    "observer_fault_domain_id": "world-state-observer-domain-a",
+    "observer_binary_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   },
   "reset": {
     "kind": "simulator_snapshot_restore",
