@@ -178,22 +178,37 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
 /// rejected request leaves the body's transform, velocities and accumulators
 /// unchanged. This is a *single-body* transaction only; a multi-body world step
 /// still needs a world-level preflight/commit boundary.
-pub fn try_integrate<const D: usize>(
-    body: &mut RigidBody<D>,
+/// Prepared state for one admitted body integration. This value is private to
+/// the physics crate and may only be committed to the body handle it records.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct PreparedBodyIntegration<const D: usize> {
+    body_handle: crate::body::BodyHandle,
+    translation: Point<D>,
+    rotation: Rotor<D>,
+    linear_velocity: SVector<f64, D>,
+    angular_velocity: Bivector<D>,
+    rotational_outcome: crate::body::RotationalAcceleration<D>,
+}
+
+/// Prepare one body's integration without changing any body state or accumulator.
+pub(crate) fn prepare_integrate_with_force<const D: usize>(
+    body: &RigidBody<D>,
     gravity: &SVector<f64, D>,
+    force_accumulator: &SVector<f64, D>,
     dt: f64,
-) -> Result<crate::body::RotationalAcceleration<D>, crate::body::RotationalResponseError> {
+) -> Result<PreparedBodyIntegration<D>, crate::body::RotationalResponseError> {
     use crate::body::{RotationalAcceleration, RotationalResponseError};
 
     if !body.is_dynamic() {
-        body.clear_accumulators();
-        return Ok(RotationalAcceleration::StaticOrKinematic);
+        return Err(RotationalResponseError::UnsupportedModel {
+            model: body.rotational_inertia_model(),
+        });
     }
     if !dt.is_finite() || dt <= 0.0 {
         return Err(RotationalResponseError::InvalidTimeStep);
     }
     if !gravity.iter().all(|value| value.is_finite())
-        || !body.force_accumulator.iter().all(|value| value.is_finite())
+        || !force_accumulator.iter().all(|value| value.is_finite())
         || !body.linear_velocity.iter().all(|value| value.is_finite())
         || !body.transform.translation.0.iter().all(|value| value.is_finite())
     {
@@ -221,8 +236,8 @@ pub fn try_integrate<const D: usize>(
         return Err(RotationalResponseError::InvalidDamping);
     }
 
-    // Rotational admission is deliberately first: unsupported/stale inertia
-    // must not allow the linear state or the accumulators to advance.
+    // Rotational admission is deliberately first. Unsupported/stale inertia
+    // cannot allow linear candidate state to be prepared as an accepted step.
     let rotational_outcome =
         body.try_angular_acceleration_from_torque(&body.torque_accumulator)?;
     let angular_acceleration = match rotational_outcome {
@@ -233,7 +248,7 @@ pub fn try_integrate<const D: usize>(
         } => angular_acceleration,
     };
 
-    let linear_acceleration = body.force_accumulator * body.inv_mass + gravity;
+    let linear_acceleration = force_accumulator * body.inv_mass + gravity;
     if !linear_acceleration.iter().all(|value| value.is_finite()) {
         return Err(RotationalResponseError::NonFiniteResponse);
     }
@@ -286,13 +301,48 @@ pub fn try_integrate<const D: usize>(
         return Err(RotationalResponseError::InvalidRotation);
     }
 
-    // Commit point: every fallible calculation above completed successfully.
-    body.linear_velocity = next_linear_velocity;
-    body.transform.translation = Point(next_translation);
-    body.angular_velocity = next_angular_velocity;
-    body.transform.rotation = next_rotation;
+    Ok(PreparedBodyIntegration {
+        body_handle: body.handle,
+        translation: Point(next_translation),
+        rotation: next_rotation,
+        linear_velocity: next_linear_velocity,
+        angular_velocity: next_angular_velocity,
+        rotational_outcome,
+    })
+}
+
+/// Commit a prepared integration to its originating body. The private
+/// prepared type and source handle prevent accidental cross-body application.
+pub(crate) fn commit_prepared_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    prepared: PreparedBodyIntegration<D>,
+) -> crate::body::RotationalAcceleration<D> {
+    assert_eq!(body.handle, prepared.body_handle, "prepared integration belongs to another body");
+    body.transform.translation = prepared.translation;
+    body.transform.rotation = prepared.rotation;
+    body.linear_velocity = prepared.linear_velocity;
+    body.angular_velocity = prepared.angular_velocity;
     body.clear_accumulators();
-    Ok(rotational_outcome)
+    prepared.rotational_outcome
+}
+
+/// Strict single-body integration with preflight and commit-on-success.
+///
+/// This is atomic for one body. For multiple bodies, prepare every candidate
+/// first and only then commit them; `PhysicsWorld::try_step_with_callback` does
+/// this for the complete integration phase.
+pub fn try_integrate<const D: usize>(
+    body: &mut RigidBody<D>,
+    gravity: &SVector<f64, D>,
+    dt: f64,
+) -> Result<crate::body::RotationalAcceleration<D>, crate::body::RotationalResponseError> {
+    if !body.is_dynamic() {
+        body.clear_accumulators();
+        return Ok(crate::body::RotationalAcceleration::StaticOrKinematic);
+    }
+    let force_accumulator = body.force_accumulator;
+    let prepared = prepare_integrate_with_force(body, gravity, &force_accumulator, dt)?;
+    Ok(commit_prepared_integrate(body, prepared))
 }
 /// Apply a position correction to separate overlapping bodies.
 pub fn separate<const D: usize>(body: &mut RigidBody<D>, correction: &SVector<f64, D>) {

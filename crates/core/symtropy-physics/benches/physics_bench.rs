@@ -69,6 +69,50 @@ fn bench_physics_step_10_bodies(c: &mut Criterion) {
     });
 }
 
+fn bench_world_strict_preflight_10_bodies(c: &mut Criterion) {
+    c.bench_function("physics_try_step_preflight_10_bodies_3d", |bench| {
+        bench.iter_batched(
+            || {
+                let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+                for i in 0..10 {
+                    let handle = world.add_sphere(
+                        Point::new([i as f64 * 3.0, 10.0, 0.0]), 0.5, 1.0,
+                    );
+                    world.body_mut(handle).unwrap().linear_velocity =
+                        SVector::from([0.0, -5.0, 0.0]);
+                }
+                world
+            },
+            |mut world| {
+                world.try_step(0.016).expect("strict integration preflight must pass");
+                black_box(world.invariant_snapshot());
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+}
+
+fn bench_world_strict_preflight_100_bodies(c: &mut Criterion) {
+    c.bench_function("physics_try_step_preflight_100_bodies_3d", |bench| {
+        bench.iter_batched(
+            || {
+                let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+                for i in 0..100 {
+                    let x = (i % 10) as f64 * 2.5;
+                    let y = (i / 10) as f64 * 2.5 + 5.0;
+                    world.add_sphere(Point::new([x, y, 0.0]), 0.5, 1.0);
+                }
+                world
+            },
+            |mut world| {
+                world.try_step(0.016).expect("strict integration preflight must pass");
+                black_box(world.invariant_snapshot());
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+}
+
 fn bench_physics_step_100_bodies(c: &mut Criterion) {
     c.bench_function("physics_step_100_bodies_3d", |bench| {
         bench.iter_batched(
@@ -425,6 +469,8 @@ criterion_group!(
     bench_strict_vs_legacy_integration_3d,
     // Physics step at scale
     bench_physics_step_10_bodies,
+    bench_world_strict_preflight_10_bodies,
+    bench_world_strict_preflight_100_bodies,
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
