@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_id": "mfg-accepted-output-scorecard-cases-v0.1",
+  "benchmark_id": "MFG-ACCEPTED-OUTPUT-SCORECARD-001",
+  "evidence_class": "synthetic_offline",
+  "case_count": 4,
+  "cases": [
+    {
+      "case_id": "CASE-NOMINAL",
+      "scenario_family_id": "nominal_recovery",
+      "disturbance_at_ms": 100,
+      "horizon_end_ms": 1000,
+      "demand_units": 10,
+      "recovery_target_units": 6,
+      "outputs": [
+        {"output_id": "N-01", "produced_at_ms": 120, "units": 3, "disposition": "ACCEPTED", "disposition_at_ms": 150, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "N-02", "produced_at_ms": 250, "units": 4, "disposition": "ACCEPTED", "disposition_at_ms": 400, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "N-03", "produced_at_ms": 500, "units": 2, "disposition": "REJECTED", "disposition_at_ms": 600, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "N-04", "produced_at_ms": 700, "units": 5, "disposition": "ACCEPTED", "disposition_at_ms": 750, "verifier_class": "PRODUCER", "evidence_disposition": "ADMITTED"},
+        {"output_id": "N-05", "produced_at_ms": 800, "units": 1, "disposition": "ACCEPTED", "disposition_at_ms": 850, "verifier_class": "INDEPENDENT", "evidence_disposition": "UNKNOWN"},
+        {"output_id": "N-06", "produced_at_ms": 900, "units": 2, "disposition": "UNKNOWN", "disposition_at_ms": null, "verifier_class": "UNKNOWN", "evidence_disposition": "UNKNOWN"}
+      ]
+    },
+    {
+      "case_id": "CASE-COMMON-CAUSE",
+      "scenario_family_id": "correlated_disruption",
+      "disturbance_at_ms": 0,
+      "horizon_end_ms": 1000,
+      "demand_units": 10,
+      "recovery_target_units": 5,
+      "outputs": [
+        {"output_id": "C-01", "produced_at_ms": 100, "units": 2, "disposition": "ACCEPTED", "disposition_at_ms": 200, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "C-02", "produced_at_ms": 550, "units": 3, "disposition": "ACCEPTED", "disposition_at_ms": 600, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "C-03", "produced_at_ms": 700, "units": 2, "disposition": "REJECTED", "disposition_at_ms": 750, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "C-04", "produced_at_ms": 800, "units": 4, "disposition": "ACCEPTED", "disposition_at_ms": 900, "verifier_class": "INDEPENDENT", "evidence_disposition": "CONFLICTED"}
+      ]
+    },
+    {
+      "case_id": "CASE-NO-ACCEPTANCE",
+      "scenario_family_id": "measurement_unknown",
+      "disturbance_at_ms": 50,
+      "horizon_end_ms": 500,
+      "demand_units": 5,
+      "recovery_target_units": 3,
+      "outputs": [
+        {"output_id": "U-01", "produced_at_ms": 100, "units": 2, "disposition": "REJECTED", "disposition_at_ms": 150, "verifier_class": "INDEPENDENT", "evidence_disposition": "ADMITTED"},
+        {"output_id": "U-02", "produced_at_ms": 200, "units": 3, "disposition": "ACCEPTED", "disposition_at_ms": 300, "verifier_class": "PRODUCER", "evidence_disposition": "ADMITTED"},
+        {"output_id": "U-03", "produced_at_ms": 400, "units": 1, "disposition": "UNKNOWN", "disposition_at_ms": null, "verifier_class": "UNKNOWN", "evidence_disposition": "UNKNOWN"}
+      ]
+    },
+    {
+      "case_id": "CASE-NO-OUTPUT",
+      "scenario_family_id": "complete_outage",
+      "disturbance_at_ms": 0,
+      "horizon_end_ms": 1000,
+      "demand_units": 4,
+      "recovery_target_units": 2,
+      "outputs": []
+    }
+  ],
+  "claim_ceiling": "Synthetic offline metric contract only; no physical acceptance, product conformity, production release, or industrial resilience claim."
+}
