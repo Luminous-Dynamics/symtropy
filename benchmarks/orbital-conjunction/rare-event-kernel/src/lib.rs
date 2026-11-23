@@ -28,6 +28,7 @@
 use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
+pub mod col_energy_guard;
 pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_pointwise;
@@ -66,6 +67,10 @@ pub use trajectory::{
     TrajectoryContactClassification, TrajectoryContactReport, classify_polynomial_contact,
 };
 
+pub use col_energy_guard::{
+    ColEnergyGuardConfig, ColEnergyGuardDisposition, ColEnergyGuardInputs,
+    ColEnergyGuardReport, certify_col_energy_path,
+};
 pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
     affine_box_image_bounds, affine_box_norm_lower_bound, affine_cell_excludes_collision_ball,
@@ -150,6 +155,12 @@ pub enum KernelError {
     InvalidJointCovariance,
     /// A NASA DCP sigma is negative or non-finite.
     InvalidDcpSigma,
+    /// The CoL energy path configuration has a zero budget or invalid bracket width.
+    InvalidColEnergyGuardConfig,
+    /// Gravitational parameter or relative energy-change tolerance is invalid.
+    InvalidColEnergyGuardInputs,
+    /// The reference CoL has nonnegative specific orbital energy and is not bound.
+    UnboundReferenceCoL,
 }
 
 impl fmt::Display for KernelError {
@@ -214,6 +225,15 @@ impl fmt::Display for KernelError {
                 "primary, secondary and cross covariances do not form a positive-semidefinite joint model"
             }
             Self::InvalidDcpSigma => "NASA DCP sigma values must be finite and nonnegative",
+            Self::InvalidColEnergyGuardConfig => {
+                "CoL energy guard budget must be nonzero and fraction bracket width must lie in (0, 1)"
+            }
+            Self::InvalidColEnergyGuardInputs => {
+                "CoL energy guard requires positive finite GM and relative energy tolerance"
+            }
+            Self::UnboundReferenceCoL => {
+                "reference center-of-linearity state has nonnegative specific orbital energy"
+            }
         };
         f.write_str(message)
     }
