@@ -3,8 +3,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const MULTICOVER_CORPUS_SCHEMA: &str =
-    "luminous.orbital-truss.multicover-scale-corpus.v0.1";
-pub const MULTICOVER_BENCHMARK_ID: &str = "ORBITAL-MULTICOVER-SCALE-001";
+    "luminous.orbital-truss.multicover-scale-corpus.v0.2";
+pub const MULTICOVER_BENCHMARK_ID: &str = "ORBITAL-MULTICOVER-SCALE-002";
 pub const MULTICOVER_RECEIPT_SCHEMA: &str =
     "luminous.orbital-truss.multicover-scale-receipt.v0.2";
 pub const MAX_CANDIDATE_VIEWS: usize = 100_000;
@@ -750,7 +750,7 @@ pub fn audit_multicover(bytes: &[u8], source_commit: &str) -> Result<MultiCoverR
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!("../../../docs/research/orbital-truss/fixtures/multicover-scale-v0_1.json");
+    const FIXTURE: &str = include_str!("../../../docs/research/orbital-truss/fixtures/multicover-scale-v0_2.json");
 
     fn toy_problem() -> MultiCoverProblem {
         MultiCoverProblem {
@@ -762,10 +762,10 @@ mod tests {
                 MultiCoverFeature { feature_id: "F3".to_owned(), requested_k: 1 },
             ],
             views: vec![
-                MultiCoverView { view_id: "V1".to_owned(), failure_domain_id: "D1".to_owned(), nominal_feature_ids: vec!["F1".to_owned(), "F2".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F2".to_owned()] },
-                MultiCoverView { view_id: "V2".to_owned(), failure_domain_id: "D2".to_owned(), nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()] },
-                MultiCoverView { view_id: "V3".to_owned(), failure_domain_id: "D3".to_owned(), nominal_feature_ids: vec!["F2".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F2".to_owned(), "F3".to_owned()] },
-                MultiCoverView { view_id: "V4".to_owned(), failure_domain_id: "D4".to_owned(), nominal_feature_ids: vec!["F1".to_owned()], robust_feature_ids: vec!["F1".to_owned()] },
+                MultiCoverView { view_id: "V1".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 0, nominal_feature_ids: vec!["F1".to_owned(), "F2".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F2".to_owned()] },
+                MultiCoverView { view_id: "V2".to_owned(), failure_domain_id: "D2".to_owned(), vertical_order_rank: 1, nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()] },
+                MultiCoverView { view_id: "V3".to_owned(), failure_domain_id: "D3".to_owned(), vertical_order_rank: 2, nominal_feature_ids: vec!["F2".to_owned(), "F3".to_owned()], robust_feature_ids: vec!["F2".to_owned(), "F3".to_owned()] },
+                MultiCoverView { view_id: "V4".to_owned(), failure_domain_id: "D4".to_owned(), vertical_order_rank: 3, nominal_feature_ids: vec!["F1".to_owned()], robust_feature_ids: vec!["F1".to_owned()] },
             ],
         }
     }
@@ -819,8 +819,8 @@ mod tests {
             coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
             features: vec![MultiCoverFeature { feature_id: "SURFACE".to_owned(), requested_k: 3 }],
             views: vec![
-                MultiCoverView { view_id: "VIEW-A".to_owned(), failure_domain_id: "D1".to_owned(), nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec!["SURFACE".to_owned()] },
-                MultiCoverView { view_id: "VIEW-B".to_owned(), failure_domain_id: "D1".to_owned(), nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec![] },
+                MultiCoverView { view_id: "VIEW-A".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 0, nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec!["SURFACE".to_owned()] },
+                MultiCoverView { view_id: "VIEW-B".to_owned(), failure_domain_id: "D1".to_owned(), vertical_order_rank: 1, nominal_feature_ids: vec!["SURFACE".to_owned()], robust_feature_ids: vec![] },
             ],
         };
         let receipt = solve_multicover(&problem).unwrap();
@@ -832,6 +832,62 @@ mod tests {
         assert!(!feature.requested_k_met);
         assert!(!feature.robust_requested_k_met);
         assert!(!receipt.candidate_pool_requested_k_fully_available);
+    }
+
+    #[test]
+    fn overlap_pruning_uses_strict_overlap_threshold_semantics() {
+        let problem = MultiCoverProblem {
+            case_id: "OVERLAP-STRICT-THRESHOLD".to_owned(),
+            coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
+            features: vec![
+                MultiCoverFeature { feature_id: "F1".to_owned(), requested_k: 1 },
+                MultiCoverFeature { feature_id: "F2".to_owned(), requested_k: 1 },
+                MultiCoverFeature { feature_id: "F3".to_owned(), requested_k: 1 },
+            ],
+            views: vec![
+                MultiCoverView {
+                    view_id: "VIEW-1".to_owned(),
+                    failure_domain_id: "D1".to_owned(),
+                    vertical_order_rank: 0,
+                    nominal_feature_ids: vec!["F1".to_owned(), "F2".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned(), "F2".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "VIEW-2".to_owned(),
+                    failure_domain_id: "D2".to_owned(),
+                    vertical_order_rank: 1,
+                    nominal_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned(), "F3".to_owned()],
+                },
+            ],
+        };
+        let indexed = validate_problem(&problem).unwrap();
+        let at_fifty = overlap_pruning_baseline(&indexed, 50, "VERTICAL_BOTTOM_TO_TOP").unwrap();
+        let at_seventy = overlap_pruning_baseline(&indexed, 70, "VERTICAL_BOTTOM_TO_TOP").unwrap();
+        assert_eq!(at_fifty.selected_view_ids, vec!["VIEW-1"]);
+        assert!(!at_fifty.full_nominal_union_covered);
+        assert_eq!(at_seventy.selected_view_ids, vec!["VIEW-1", "VIEW-2"]);
+        assert!(at_seventy.full_nominal_union_covered);
+        assert!(!at_seventy.requested_k_fully_covered);
+    }
+
+    #[test]
+    fn four_paper_overlap_pruning_configurations_are_reported() {
+        let receipt = audit_multicover(FIXTURE.as_bytes(), &"a".repeat(40)).unwrap();
+        assert_eq!(receipt.overlap_pruning_baselines.len(), 4);
+        assert_eq!(
+            receipt
+                .overlap_pruning_baselines
+                .iter()
+                .map(|baseline| (baseline.threshold_percent, baseline.ordering.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                (50, "VERTICAL_BOTTOM_TO_TOP"),
+                (50, "VISIBILITY_DESCENDING"),
+                (70, "VERTICAL_BOTTOM_TO_TOP"),
+                (70, "VISIBILITY_DESCENDING"),
+            ]
+        );
     }
 
     #[test]
