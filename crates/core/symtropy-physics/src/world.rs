@@ -345,7 +345,7 @@ impl<const D: usize> PhysicsWorld<D> {
         // world. Sorting makes this check deterministic and O(n).
         for pair in bodies.windows(2) {
             if pair[0].0 == pair[1].0 {
-                return Err(format!("duplicate NetId({}) in input batch", pair[0].0));
+                return Err(format!("duplicate NetId({}) in input batch", pair[0].0.0));
             }
         }
 
