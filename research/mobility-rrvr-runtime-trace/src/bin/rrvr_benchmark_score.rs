@@ -27,9 +27,7 @@ fn digest_hex(bytes: &[u8]) -> String {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 && args.len() != 3 {
-        return Err(
-            "usage: rrvr_benchmark_score <benchmark-corpus.json> [report.json]".to_owned(),
-        );
+        return Err("usage: rrvr_benchmark_score <benchmark-corpus.json> [report.json]".to_owned());
     }
 
     let corpus_bytes =
