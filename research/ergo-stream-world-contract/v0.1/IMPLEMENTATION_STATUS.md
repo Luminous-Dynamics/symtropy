@@ -36,3 +36,19 @@ cargo fmt --manifest-path research/ergo-stream-world-contract/v0.1/Cargo.toml --
 cargo test --locked --manifest-path research/ergo-stream-world-contract/v0.1/Cargo.toml
 cargo clippy --locked --manifest-path research/ergo-stream-world-contract/v0.1/Cargo.toml --all-targets -- -D warnings
 ```
+
+## Structural-transfer witness extension
+
+A follow-on implementation is staged in [ERGO-STREAM-TRANSFER-001 #7171](https://github.com/Luminous-Dynamics/symtropy/issues/7171) and its stacked pull request:
+
+- `src/transfer.rs` validates a total one-to-one map of finite nodes, relation kinds and relation instances.
+- Directed relations explicitly preserve or reverse participant order; undirected incidence is compared without order.
+- Relation-kind mapping is one-to-one, preventing distinct source relation classes from being collapsed into one target class.
+- Intervention-effect mapping is validated separately against declared held-out qualitative observations.
+- No intervention map returns an explicitly unqualified behavior result; missing or contradictory evidence cannot be promoted to support.
+- Negative tests cover incidence mismatch, relation-kind collision, non-injective node mapping, incomplete relation mapping, invalid transforms, missing evidence and intervention counterexamples.
+- `TRANSFER_WITNESS_V0_1.md` records the claim boundary and reproduction commands.
+
+This is a finite witness validator, not an analogy-discovery learner, causal proof, authenticated observation system, hidden-world service or isolation boundary. It does not yet implement the multi-world generator, false-unification family, active discriminating interventions, or non-identifiability protocol.
+
+**Verification for this extension:** pending exact-head Rust 1.96 formatting, tests and strict Clippy. The previous v0.1 focused pass and repository CI pass remain attached to the parent #7152 head, not this extension.
