@@ -585,6 +585,22 @@ mod tests {
     }
 
     #[test]
+    fn partial_identification_bounds_contain_mixed_hidden_outcomes() {
+        let metrics = WindowMetrics {
+            total: 10,
+            observed: 8,
+            missing: 2,
+            observed_joint_covered: 7,
+            latent_joint_covered: 8,
+            ..WindowMetrics::default()
+        };
+
+        assert_eq!(metrics.identified_joint_coverage_lower_pct(), 70.0);
+        assert_eq!(metrics.latent_joint_coverage_pct(), 80.0);
+        assert_eq!(metrics.identified_joint_coverage_upper_pct(), 90.0);
+    }
+
+    #[test]
     fn local_undercoverage_debt_cannot_be_cancelled_by_a_later_overcovered_window() {
         let undercovered = WindowMetrics {
             total: 100,
