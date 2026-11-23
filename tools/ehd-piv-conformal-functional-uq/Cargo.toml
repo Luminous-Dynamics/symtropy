@@ -8,3 +8,5 @@ description = "Cluster-conformal field coverage and spatially correlated PIV fun
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
