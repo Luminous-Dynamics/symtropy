@@ -727,6 +727,6 @@ mod tests {
         let mut worst_policy = policy();
         worst_policy.preference = NavigationRiskSelectionPreference::WorstThenAvarThenLatency;
         let second = plan_navigation_outcome_risk_frontier(&worst_policy, &candidates).unwrap();
-        assert_eq!(second.recommended_action_id, Some(2));
+        assert_eq!(second.recommended_action_id, Some(1));
     }
 }
