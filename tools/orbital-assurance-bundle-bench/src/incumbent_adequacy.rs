@@ -36,7 +36,7 @@ pub struct World {
 pub struct Expected {
     pub disposition: String,
     pub trigger_reason: String,
-    pub worst_case_regret: Option<i64>,
+    pub worst_case_improvement: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -72,8 +72,8 @@ pub struct WorldAssessment {
     pub world_id: String,
     pub incumbent_feasible: bool,
     pub incumbent_loss: Option<i64>,
-    pub best_feasible_loss: Option<i64>,
-    pub regret: Option<i64>,
+    pub reference_common_action_loss: Option<i64>,
+    pub incumbent_minus_reference_loss: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -85,7 +85,10 @@ pub struct CaseResult {
     pub materiality_margin: i64,
     pub switching_cost: i64,
     pub retention_threshold: Option<i64>,
-    pub worst_case_regret: Option<i64>,
+    pub reference_common_action_id: Option<String>,
+    pub current_worst_case_loss: Option<i64>,
+    pub reference_common_worst_case_loss: Option<i64>,
+    pub worst_case_improvement: Option<i64>,
     pub world_assessments: Vec<WorldAssessment>,
     pub authority_granted: bool,
     pub expected_result_matched: bool,
@@ -155,17 +158,32 @@ fn valid_gate_states(case: &Case) -> bool {
         )
 }
 
+#[derive(Debug, Default)]
+struct ComparisonMetrics {
+    reference_common_action_id: Option<String>,
+    current_worst_case_loss: Option<i64>,
+    reference_common_worst_case_loss: Option<i64>,
+    worst_case_improvement: Option<i64>,
+}
+
+#[derive(Debug)]
+struct ValidatedWorld {
+    world_id: String,
+    feasible_action_ids: BTreeSet<String>,
+    losses: BTreeMap<String, i64>,
+}
+
 fn result(
     case: &Case,
     disposition: &str,
     trigger_reason: &str,
     retention_threshold: Option<i64>,
-    worst_case_regret: Option<i64>,
+    metrics: ComparisonMetrics,
     world_assessments: Vec<WorldAssessment>,
 ) -> CaseResult {
     let expected_result_matched = case.expected.disposition == disposition
         && case.expected.trigger_reason == trigger_reason
-        && case.expected.worst_case_regret == worst_case_regret;
+        && case.expected.worst_case_improvement == metrics.worst_case_improvement;
     CaseResult {
         case_id: case.case_id.clone(),
         disposition: disposition.to_owned(),
@@ -174,7 +192,10 @@ fn result(
         materiality_margin: case.materiality_margin,
         switching_cost: case.switching_cost,
         retention_threshold,
-        worst_case_regret,
+        reference_common_action_id: metrics.reference_common_action_id,
+        current_worst_case_loss: metrics.current_worst_case_loss,
+        reference_common_worst_case_loss: metrics.reference_common_worst_case_loss,
+        worst_case_improvement: metrics.worst_case_improvement,
         world_assessments,
         authority_granted: false,
         expected_result_matched,
@@ -182,11 +203,25 @@ fn result(
 }
 
 fn invalid_input(case: &Case, reason: &str) -> CaseResult {
-    result(case, "INVALID_INPUT", reason, None, None, Vec::new())
+    result(
+        case,
+        "INVALID_INPUT",
+        reason,
+        None,
+        ComparisonMetrics::default(),
+        Vec::new(),
+    )
 }
 
 fn abstain(case: &Case, reason: &str, threshold: Option<i64>) -> CaseResult {
-    result(case, "ABSTAIN", reason, threshold, None, Vec::new())
+    result(
+        case,
+        "ABSTAIN",
+        reason,
+        threshold,
+        ComparisonMetrics::default(),
+        Vec::new(),
+    )
 }
 
 fn evaluate_case(case: &Case) -> CaseResult {
@@ -216,14 +251,14 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let mut action_ids = BTreeSet::new();
     for action_id in &case.action_ids {
-        if !valid_id(action_id) || !action_ids.insert(action_id.as_str()) {
+        if !valid_id(action_id) || !action_ids.insert(action_id.clone()) {
             return invalid_input(
                 case,
                 "action universe contains an empty or duplicate action ID",
             );
         }
     }
-    if !action_ids.contains(case.incumbent_action_id.as_str()) {
+    if !action_ids.contains(&case.incumbent_action_id) {
         return invalid_input(
             case,
             "incumbent action is absent from the declared finite action universe",
@@ -238,7 +273,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         return invalid_input(case, "surviving-world set exceeds bound");
     }
 
-    // External/producer state gates take precedence over numerical regret.
+    // External/producer state gates take precedence over numerical comparison.
     if case.world_set_state == "UNAVAILABLE" {
         return abstain(case, "WORLD_SET_UNAVAILABLE", Some(retention_threshold));
     }
@@ -286,9 +321,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let mut world_ids = BTreeSet::new();
     let mut total_loss_rows = 0usize;
-    let mut assessments = Vec::with_capacity(case.worlds.len());
+    let mut validated_worlds = Vec::with_capacity(case.worlds.len());
     let mut incumbent_infeasible = false;
-    let mut worst_case_regret = 0i64;
 
     for world in &case.worlds {
         if !valid_id(&world.world_id)
@@ -314,7 +348,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
         let mut feasible = BTreeSet::new();
         for action_id in &world.feasible_action_ids {
-            if !action_ids.contains(action_id.as_str()) || !feasible.insert(action_id.as_str()) {
+            if !action_ids.contains(action_id) || !feasible.insert(action_id.clone()) {
                 return invalid_input(
                     case,
                     "world feasible set contains an unknown or duplicate action",
@@ -331,8 +365,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
         for loss in &world.losses {
             if !valid_id(&loss.action_id)
                 || loss.loss < 0
-                || !feasible.contains(loss.action_id.as_str())
-                || losses.insert(loss.action_id.as_str(), loss.loss).is_some()
+                || !feasible.contains(&loss.action_id)
+                || losses.insert(loss.action_id.clone(), loss.loss).is_some()
             {
                 return invalid_input(
                     case,
@@ -341,60 +375,135 @@ fn evaluate_case(case: &Case) -> CaseResult {
             }
         }
 
-        if feasible
-            .iter()
-            .any(|action_id| !losses.contains_key(action_id))
-        {
+        if feasible.iter().any(|action_id| !losses.contains_key(action_id)) {
             return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
         }
 
-        let best_feasible_loss = losses.values().copied().min();
-        let incumbent_feasible = feasible.contains(case.incumbent_action_id.as_str());
-        let incumbent_loss = losses.get(case.incumbent_action_id.as_str()).copied();
-        let regret = match (incumbent_loss, best_feasible_loss) {
-            (Some(incumbent_loss), Some(best_loss)) => {
-                let Some(regret) = incumbent_loss.checked_sub(best_loss) else {
-                    return invalid_input(case, "regret subtraction overflowed");
-                };
-                Some(regret)
-            }
-            _ => None,
-        };
-
-        if !incumbent_feasible {
-            incumbent_infeasible = true;
-        } else if let Some(regret) = regret {
-            worst_case_regret = worst_case_regret.max(regret);
-        }
-
-        assessments.push(WorldAssessment {
+        let incumbent_feasible = feasible.contains(&case.incumbent_action_id);
+        incumbent_infeasible |= !incumbent_feasible;
+        validated_worlds.push(ValidatedWorld {
             world_id: world.world_id.clone(),
-            incumbent_feasible,
-            incumbent_loss,
-            best_feasible_loss,
-            regret,
+            feasible_action_ids: feasible,
+            losses,
         });
     }
 
-    assessments.sort_by(|left, right| left.world_id.cmp(&right.world_id));
-
+    // An infeasible incumbent is an unconditional review trigger. Do not surface
+    // a replacement candidate: this evaluator never selects or authorizes actions.
     if incumbent_infeasible {
+        let assessments = validated_worlds
+            .iter()
+            .map(|world| WorldAssessment {
+                world_id: world.world_id.clone(),
+                incumbent_feasible: world.feasible_action_ids.contains(&case.incumbent_action_id),
+                incumbent_loss: world.losses.get(&case.incumbent_action_id).copied(),
+                reference_common_action_loss: None,
+                incumbent_minus_reference_loss: None,
+            })
+            .collect();
         return result(
             case,
             "REOPTIMIZATION_WARRANTED",
             "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
             Some(retention_threshold),
-            None,
+            ComparisonMetrics::default(),
             assessments,
         );
     }
-    if worst_case_regret > retention_threshold {
+
+    // The incumbent is feasible in every surviving world, so the common feasible
+    // action set must contain it. This is a static non-anticipative comparator:
+    // one action must be feasible without knowing which hidden world is true.
+    let mut common_feasible_actions = validated_worlds[0].feasible_action_ids.clone();
+    for world in validated_worlds.iter().skip(1) {
+        common_feasible_actions.retain(|action_id| world.feasible_action_ids.contains(action_id));
+    }
+    if common_feasible_actions.is_empty()
+        || !common_feasible_actions.contains(&case.incumbent_action_id)
+    {
+        return invalid_input(
+            case,
+            "common feasible action set is empty despite incumbent feasibility",
+        );
+    }
+
+    let mut current_worst_case_loss = 0i64;
+    for world in &validated_worlds {
+        let Some(loss) = world.losses.get(&case.incumbent_action_id).copied() else {
+            return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
+        };
+        current_worst_case_loss = current_worst_case_loss.max(loss);
+    }
+
+    // The best common action is a benchmark comparator only, not a recommendation.
+    // BTreeSet iteration plus the explicit tie-break makes it deterministic.
+    let mut reference_common_action: Option<(i64, String)> = None;
+    for action_id in &common_feasible_actions {
+        let mut worst_case_loss = 0i64;
+        for world in &validated_worlds {
+            let Some(loss) = world.losses.get(action_id).copied() else {
+                return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
+            };
+            worst_case_loss = worst_case_loss.max(loss);
+        }
+        let candidate = (worst_case_loss, action_id.clone());
+        if reference_common_action
+            .as_ref()
+            .is_none_or(|best| (&candidate.0, &candidate.1) < (&best.0, &best.1))
+        {
+            reference_common_action = Some(candidate);
+        }
+    }
+    let Some((reference_common_worst_case_loss, reference_common_action_id)) =
+        reference_common_action
+    else {
+        return invalid_input(case, "no common feasible reference action was derived");
+    };
+
+    let Some(worst_case_improvement) =
+        current_worst_case_loss.checked_sub(reference_common_worst_case_loss)
+    else {
+        return invalid_input(case, "common-action improvement subtraction overflowed");
+    };
+    if worst_case_improvement < 0 {
+        return invalid_input(
+            case,
+            "reference common action is worse than the incumbent in worst-case loss",
+        );
+    }
+
+    let assessments = validated_worlds
+        .iter()
+        .map(|world| {
+            let incumbent_loss = world.losses[&case.incumbent_action_id];
+            let reference_loss = world.losses[&reference_common_action_id];
+            let incumbent_minus_reference_loss = incumbent_loss
+                .checked_sub(reference_loss)
+                .expect("difference of two non-negative i64 losses is representable");
+            WorldAssessment {
+                world_id: world.world_id.clone(),
+                incumbent_feasible: true,
+                incumbent_loss: Some(incumbent_loss),
+                reference_common_action_loss: Some(reference_loss),
+                incumbent_minus_reference_loss: Some(incumbent_minus_reference_loss),
+            }
+        })
+        .collect();
+
+    let metrics = ComparisonMetrics {
+        reference_common_action_id: Some(reference_common_action_id),
+        current_worst_case_loss: Some(current_worst_case_loss),
+        reference_common_worst_case_loss: Some(reference_common_worst_case_loss),
+        worst_case_improvement: Some(worst_case_improvement),
+    };
+
+    if worst_case_improvement > retention_threshold {
         return result(
             case,
             "REOPTIMIZATION_WARRANTED",
-            "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD",
+            "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD",
             Some(retention_threshold),
-            Some(worst_case_regret),
+            metrics,
             assessments,
         );
     }
@@ -404,7 +513,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         "RETAIN_INCUMBENT",
         "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
         Some(retention_threshold),
-        Some(worst_case_regret),
+        metrics,
         assessments,
     )
 }
