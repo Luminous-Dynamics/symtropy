@@ -149,12 +149,16 @@ for (const item of corpus.cases) {
     }
   }
 
-  if (scenarioIds.size !== modelSet.expected_scenario_ids.length
-    || modelSet.expected_scenario_ids.some(id => !scenarioIds.has(id))) {
+  const expectedJointOmission = item.case_id === "joint_scenario_omission"
+    && item.expected?.trigger_reason === "observed joint scenarios do not match planned loss-model inventory";
+  if ((scenarioIds.size !== modelSet.expected_scenario_ids.length
+    || modelSet.expected_scenario_ids.some(id => !scenarioIds.has(id))) && !expectedJointOmission) {
     throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
   }
-  if (worldIds.size !== item.expected_world_ids.length
-    || item.expected_world_ids.some(id => !worldIds.has(id))) {
+  const expectedWorldOmission = item.case_id === "physical_world_omission"
+    && item.expected?.trigger_reason === "joint loss scenarios do not cover the exact surviving physical-world inventory";
+  if ((worldIds.size !== item.expected_world_ids.length
+    || item.expected_world_ids.some(id => !worldIds.has(id))) && !expectedWorldOmission) {
     throw new Error("joint scenarios do not cover exact physical-world inventory in " + item.case_id);
   }
   if (projectedDigest(item.worlds) !== modelSet.projected_scenarios_sha256) {
