@@ -55,7 +55,7 @@ The point scorer's class-pair report is revalidated for pair counts, separated/u
 
 ## Synthetic verification suite
 
-The module includes eight tests:
+The module includes nine tests:
 
 1. Fixed weight intervals produce tight outward bounds around a non-integer rational resolution.
 2. A two-class-pair adversarial interval box returns the exact endpoint extremes for a zero/one resolution case.
@@ -64,7 +64,8 @@ The module includes eight tests:
 5. Missing, duplicate, extra, zero and reversed weight intervals reject.
 6. Partition, impact-model and uncertainty-model commitment mismatches reject.
 7. Pair/weight input permutation produces identical output.
-8. Tampered counts, class-pair residuals and inconsistent aggregate totals reject.
+8. Incomplete decision-class-pair graphs reject.
+9. Tampered counts, class-pair residuals and inconsistent aggregate totals reject.
 
 These are authored synthetic tests. They are not passing until the exact PR head's CI reports success.
 
