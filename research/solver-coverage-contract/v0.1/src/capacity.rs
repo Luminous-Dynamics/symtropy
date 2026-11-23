@@ -632,12 +632,36 @@ impl CapacityEvidence {
                 ));
             }
             let report = lineage.validate()?;
-            manifold_pairs += 1;
-            geometric_points_generated += report.generated_points;
-            geometric_points_retained += report.retained_points;
-            geometric_points_reduced += report.reduced_by_policy;
-            geometric_points_candidate_buffer_dropped += report.candidate_buffer_capacity_dropped;
-            geometric_points_manifold_capacity_dropped += report.manifold_capacity_dropped;
+            manifold_pairs = checked_sum(
+                &[manifold_pairs, 1],
+                "capacity.manifold_pairs",
+            )?;
+            geometric_points_generated = checked_sum(
+                &[geometric_points_generated, report.generated_points],
+                "capacity.geometric_points_generated",
+            )?;
+            geometric_points_retained = checked_sum(
+                &[geometric_points_retained, report.retained_points],
+                "capacity.geometric_points_retained",
+            )?;
+            geometric_points_reduced = checked_sum(
+                &[geometric_points_reduced, report.reduced_by_policy],
+                "capacity.geometric_points_reduced",
+            )?;
+            geometric_points_candidate_buffer_dropped = checked_sum(
+                &[
+                    geometric_points_candidate_buffer_dropped,
+                    report.candidate_buffer_capacity_dropped,
+                ],
+                "capacity.geometric_points_candidate_buffer_dropped",
+            )?;
+            geometric_points_manifold_capacity_dropped = checked_sum(
+                &[
+                    geometric_points_manifold_capacity_dropped,
+                    report.manifold_capacity_dropped,
+                ],
+                "capacity.geometric_points_manifold_capacity_dropped",
+            )?;
             geometric_points_capacity_dropped = checked_sum(
                 &[
                     geometric_points_capacity_dropped,
@@ -646,9 +670,15 @@ impl CapacityEvidence {
                 ],
                 "capacity.geometric_points_capacity_dropped",
             )?;
-            solver_contact_groups += report.solver_groups;
+            solver_contact_groups = checked_sum(
+                &[solver_contact_groups, report.solver_groups],
+                "capacity.solver_contact_groups",
+            )?;
             if !report.solver_mapping_complete {
-                solver_mapping_incomplete_pairs += 1;
+                solver_mapping_incomplete_pairs = checked_sum(
+                    &[solver_mapping_incomplete_pairs, 1],
+                    "capacity.solver_mapping_incomplete_pairs",
+                )?;
             }
         }
 
@@ -669,8 +699,18 @@ impl CapacityEvidence {
                 ));
             }
             match observation.validate()? {
-                StepOverflowAttribution::OccurredThisStep => overflow_occurred_this_step += 1,
-                StepOverflowAttribution::Unattributable => overflow_not_attributable_to_step += 1,
+                StepOverflowAttribution::OccurredThisStep => {
+                    overflow_occurred_this_step = checked_sum(
+                        &[overflow_occurred_this_step, 1],
+                        "capacity.overflow_occurred_this_step",
+                    )?;
+                }
+                StepOverflowAttribution::Unattributable => {
+                    overflow_not_attributable_to_step = checked_sum(
+                        &[overflow_not_attributable_to_step, 1],
+                        "capacity.overflow_not_attributable_to_step",
+                    )?;
+                }
                 StepOverflowAttribution::DidNotOccurThisStep => {}
             }
         }
