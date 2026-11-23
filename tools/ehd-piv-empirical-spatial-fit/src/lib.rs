@@ -54,6 +54,9 @@ pub struct FitConfig {
     /// Maximum held-out absolute correlation error. 0.05 is an initial
     /// prospective target, not a universal PIV law.
     pub maximum_validation_correlation_error: f64,
+    /// Separate maximum relative held-out component-variance shift. The
+    /// initial 0.10 target is prospective and must be frozen pre-evaluation.
+    pub maximum_validation_relative_variance_error: f64,
     /// Cluster-level significance threshold for a negative same-component
     /// spatial-correlation lobe.
     pub negative_lobe_z_threshold: f64,
@@ -69,6 +72,7 @@ pub struct EmpiricalSpatialFit {
     pub coordinates_m: Vec<[f64; 3]>,
     pub length_scale_candidates_m: Vec<f64>,
     pub maximum_validation_correlation_error: f64,
+    pub maximum_validation_relative_variance_error: f64,
     pub negative_lobe_z_threshold: f64,
     pub length_scale_m: f64,
     /// Correlated stationary component S, in (m/s)^2.
@@ -112,6 +116,7 @@ impl EmpiricalSpatialFit {
 pub enum QualificationStatus {
     Qualified,
     RejectedNegativeCorrelationLobe,
+    RejectedHeldOutVarianceScale,
     RejectedHeldOutCorrelationFit,
 }
 
@@ -130,6 +135,13 @@ pub struct SpatialFitValidation {
     pub receipt_id: String,
     pub maximum_absolute_correlation_fit_error: f64,
     pub maximum_allowed_absolute_correlation_fit_error: f64,
+    /// Validation-to-calibration marginal variance ratio, one per component.
+    /// None is permitted only when both calibration and validation variance
+    /// are numerically zero for that component.
+    pub validation_to_calibration_variance_ratio: [Option<f64>; 3],
+    pub maximum_validation_relative_variance_error: f64,
+    pub maximum_allowed_validation_relative_variance_error: f64,
+    pub zero_to_nonzero_variance_component_detected: bool,
     pub negative_correlation_lobe_detected: bool,
     /// A separate diagnostic; it is not silently absorbed into covariance.
     pub maximum_validation_mean_bias_shift_m_s: f64,
@@ -290,6 +302,8 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
         || !fit.length_scale_candidates_m.contains(&fit.length_scale_m)
         || !fit.maximum_validation_correlation_error.is_finite()
         || fit.maximum_validation_correlation_error <= 0.0
+        || !fit.maximum_validation_relative_variance_error.is_finite()
+        || fit.maximum_validation_relative_variance_error <= 0.0
         || !fit.negative_lobe_z_threshold.is_finite()
         || fit.negative_lobe_z_threshold < 1.96
         || !fit.maximum_calibration_mean_bias_m_s.is_finite()
@@ -432,6 +446,46 @@ fn centered_residuals(field: &ResidualField, mean_profile: &[[f64; 3]]) -> Vec<[
     }).collect()
 }
 
+fn matrix_sum(left: Matrix3, right: Matrix3) -> Matrix3 {
+    let mut sum = zero_matrix();
+    for row in 0..3 {
+        for column in 0..3 {
+            sum[row][column] = left[row][column] + right[row][column];
+        }
+    }
+    sum
+}
+
+/// Compare held-out marginal variances against the frozen calibration C(0).
+/// Components with zero calibration variance are not assigned an infinite
+/// ratio; a newly non-zero held-out variance is reported as a separate hard
+/// mismatch. The maximum relative error covers components with positive
+/// calibration variance.
+fn held_out_variance_scale_metrics(
+    calibration: Matrix3,
+    validation: Matrix3,
+) -> ([Option<f64>; 3], f64, bool) {
+    let mut ratios = [None; 3];
+    let mut maximum_relative_error = 0.0_f64;
+    let mut zero_to_nonzero = false;
+
+    for component in 0..3 {
+        let calibration_variance = calibration[component][component].max(0.0);
+        let validation_variance = validation[component][component].max(0.0);
+        if calibration_variance <= MATRIX_EPSILON {
+            if validation_variance > MATRIX_EPSILON {
+                zero_to_nonzero = true;
+            }
+        } else {
+            let ratio = validation_variance / calibration_variance;
+            ratios[component] = Some(ratio);
+            maximum_relative_error =
+                maximum_relative_error.max((ratio - 1.0).abs());
+        }
+    }
+    (ratios, maximum_relative_error, zero_to_nonzero)
+}
+
 fn zero_lag_covariance(fields: &[ResidualField], mean_profile: &[[f64; 3]]) -> Matrix3 {
     let mut covariance = zero_matrix();
     let denominator = (fields.len() * mean_profile.len()) as f64;
@@ -490,6 +544,8 @@ fn validate_config(config: &FitConfig) -> Result<(), SpatialFitError> {
         || candidates.windows(2).any(|w| w[0] >= w[1])
         || !config.maximum_validation_correlation_error.is_finite()
         || config.maximum_validation_correlation_error <= 0.0
+        || !config.maximum_validation_relative_variance_error.is_finite()
+        || config.maximum_validation_relative_variance_error <= 0.0
         || !config.negative_lobe_z_threshold.is_finite()
         || config.negative_lobe_z_threshold < 1.96
     {
@@ -616,6 +672,7 @@ pub fn fit_spatial_error_kernel(
         coordinates_m: coordinates.clone(),
         length_scale_candidates_m: config.length_scale_candidates_m.clone(),
         maximum_validation_correlation_error: config.maximum_validation_correlation_error,
+        maximum_validation_relative_variance_error: config.maximum_validation_relative_variance_error,
         negative_lobe_z_threshold: config.negative_lobe_z_threshold,
         length_scale_m: best.length_scale_m,
         spatial_component_covariance_m2_s2: best.spatial_covariance,
@@ -725,11 +782,16 @@ pub fn validate_spatial_error_kernel(
         .map(|_| std::array::from_fn(|_| Vec::new()))
         .collect();
     let validation_mean_profile = mean_residual_profile(validation_fields, coordinates.len());
-    // Use one variance scale estimated from the entire independent holdout,
-    // not a noisy per-field denominator based on a handful of spatial points.
-    // Each acquisition still contributes one equally weighted correlation
-    // observation to the lag-bin means and cluster-level standard errors.
+    // Keep the calibration zero-lag variance fixed. Normalizing by validation
+    // C(0) would hide a held-out amplitude shift while appearing to preserve
+    // correlation shape. The held-out C(0) is scored separately below.
+    let calibration_c0 = matrix_sum(
+        fit.spatial_component_covariance_m2_s2,
+        fit.local_nugget_covariance_m2_s2,
+    );
     let validation_c0 = zero_lag_covariance(validation_fields, &validation_mean_profile);
+    let (variance_ratios, maximum_variance_error, zero_to_nonzero_variance) =
+        held_out_variance_scale_metrics(calibration_c0, validation_c0);
 
     for field in validation_fields {
         // Estimate the held-out mean profile only to separate its covariance
@@ -758,7 +820,7 @@ pub fn validate_spatial_error_kernel(
             let mut predicted_correlation = zero_matrix();
             for a in 0..3 {
                 for b in 0..3 {
-                    let denominator = (validation_c0[a][a].max(0.0) * validation_c0[b][b].max(0.0)).sqrt();
+                    let denominator = (calibration_c0[a][a].max(0.0) * calibration_c0[b][b].max(0.0)).sqrt();
                     if denominator > MATRIX_EPSILON {
                         observed_correlation[a][b] = observed[a][b] / denominator;
                         predicted_correlation[a][b] = predicted[a][b] / denominator;
@@ -810,8 +872,12 @@ pub fn validate_spatial_error_kernel(
         ]))
         .fold(0.0_f64, f64::max);
 
+    let variance_scale_mismatch = zero_to_nonzero_variance
+        || maximum_variance_error > fit.maximum_validation_relative_variance_error;
     let status = if negative_lobe {
         QualificationStatus::RejectedNegativeCorrelationLobe
+    } else if variance_scale_mismatch {
+        QualificationStatus::RejectedHeldOutVarianceScale
     } else if maximum_error > fit.maximum_validation_correlation_error {
         QualificationStatus::RejectedHeldOutCorrelationFit
     } else {
@@ -832,6 +898,10 @@ pub fn validate_spatial_error_kernel(
         receipt_id: receipt_id.to_owned(),
         maximum_absolute_correlation_fit_error: maximum_error,
         maximum_allowed_absolute_correlation_fit_error: fit.maximum_validation_correlation_error,
+        validation_to_calibration_variance_ratio: variance_ratios,
+        maximum_validation_relative_variance_error: maximum_variance_error,
+        maximum_allowed_validation_relative_variance_error: fit.maximum_validation_relative_variance_error,
+        zero_to_nonzero_variance_component_detected: zero_to_nonzero_variance,
         negative_correlation_lobe_detected: negative_lobe,
         maximum_validation_mean_bias_shift_m_s: maximum_bias_shift,
         lag_bin_width_m: spacing,
@@ -856,6 +926,11 @@ impl SpatialFitValidation {
             || self.maximum_absolute_correlation_fit_error < 0.0
             || self.maximum_allowed_absolute_correlation_fit_error <= 0.0
             || self.maximum_allowed_absolute_correlation_fit_error != fit.maximum_validation_correlation_error
+            || !self.maximum_validation_relative_variance_error.is_finite()
+            || self.maximum_validation_relative_variance_error > fit.maximum_validation_relative_variance_error
+            || !self.maximum_allowed_validation_relative_variance_error.is_finite()
+            || self.maximum_allowed_validation_relative_variance_error != fit.maximum_validation_relative_variance_error
+            || self.zero_to_nonzero_variance_component_detected
             || self.validation_acquisition_count < MIN_INDEPENDENT_ACQUISITIONS
             || !valid_sha256(&self.validation_manifest_sha256)
             || self.receipt_id.trim().is_empty()
@@ -959,6 +1034,7 @@ mod tests {
             reference_uncertainty_assessment_id: "reference-uncertainty-assessment-001".into(),
             length_scale_candidates_m: vec![1.0, 1.5, 2.0, 2.5, 3.0, 4.0],
             maximum_validation_correlation_error: 0.05,
+            maximum_validation_relative_variance_error: 0.10,
             negative_lobe_z_threshold: 1.96,
         }
     }
