@@ -20,7 +20,10 @@ function projectedDigest(scenarios) {
     scope_sha256: scenario.scope_sha256,
     feasible_action_ids: [...scenario.feasible_action_ids].sort(),
     losses: [...scenario.losses].sort((a, b) =>
-      a.action_id < b.action_id ? -1 : a.action_id > b.action_id ? 1 : 0).map(loss => ({
+      (a.action_id < b.action_id ? -1 : a.action_id > b.action_id ? 1 : 0)
+      || a.source_numerator - b.source_numerator
+      || a.source_denominator - b.source_denominator
+      || a.loss - b.loss).map(loss => ({
         action_id: loss.action_id,
         source_numerator: loss.source_numerator,
         source_denominator: loss.source_denominator,
