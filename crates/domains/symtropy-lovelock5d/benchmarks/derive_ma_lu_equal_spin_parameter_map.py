@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Exact equal-spin 5D Myers-Perry parameter map for the Ma-Lu benchmark.
 
-Transcribes the published horizon relation and angular velocity, takes the
-paper's printed chi=a/mu convention literally, and derives the inverse
-small-spin series in SymPy. Does not compare corrected metrics.
+Eq. (2.9) of Ma-Lu defines chi_a=a/sqrt(mu), chi_b=b/sqrt(mu).
+This tool derives the exact equal-spin relation to nu=Omega_H*r_h and its
+inverse small-spin expansion. It does not compare corrected metrics.
 """
 from __future__ import annotations
 import argparse
@@ -22,25 +22,26 @@ def exact_zero(label: str, expr: sp.Expr) -> None:
 
 def derive() -> dict:
     q, nu, r_h = sp.symbols("q nu r_h", positive=True)
-    mu = sp.symbols("mu", positive=True)
+    alpha_gb, alpha_r, tensor = sp.symbols("alpha_GB alpha_R T")
 
-    # Ma-Lu Eq. (4), equal spins a=b=q*r_h:
-    # Delta_r(r_h)=0 => (r_h^2+a^2)^2/r_h^2 = 2*mu.
+    # Ma-Lu Eq. (2.1): Delta_r(r_h)=0, with equal spins a=b=q*r_h.
     mu_horizon = r_h**2 * (1 + q**2)**2 / 2
     exact_zero(
         "equal-spin horizon equation",
         (r_h**2 + (q*r_h)**2)**2 / r_h**2 - 2*mu_horizon,
     )
 
-    # Ma-Lu Eq. (6): Omega_H=a/(r_h^2+a^2).
+    # Ma-Lu Eq. (2.2): Omega_H=a/(r_h^2+a^2).
     nu_of_q = q / (1 + q**2)
-    chi_r_h_of_q = sp.factor((q*r_h) * r_h / mu_horizon)
-    exact_zero(
-        "printed chi=a/mu relation",
-        chi_r_h_of_q - 2*q/(1+q**2)**2,
-    )
 
-    # Symtropy spin convention: a_S/r_H = Omega_H*r_H = nu.
+    # Ma-Lu Eq. (2.9): chi=a/sqrt(mu), exactly sqrt(2)*nu at equal spin.
+    chi_of_q = sp.factor(q*r_h / sp.sqrt(mu_horizon))
+    exact_zero("printed chi=a/sqrt(mu) relation",
+               chi_of_q - sp.sqrt(2)*q/(1+q**2))
+    exact_zero("chi=sqrt(2)*nu exactly",
+               chi_of_q - sp.sqrt(2)*nu_of_q)
+
+    # Invert nu(q) on the small, subextremal root through nu^11.
     coeffs = sp.symbols("c0:6")
     q_ansatz = sum(coeffs[n] * nu**(2*n+1) for n in range(6))
     residual = sp.series(q_ansatz/(1+q_ansatz**2)-nu, nu, 0, 12).removeO().expand()
@@ -53,13 +54,19 @@ def derive() -> dict:
         "inverse series through nu^11",
         sp.series(q_of_nu/(1+q_of_nu**2)-nu, nu, 0, 12).removeO(),
     )
-    chi_r_h_of_nu = sp.series(
-        2*q_of_nu/(1+q_of_nu**2)**2, nu, 0, 12
-    ).removeO().expand()
 
-    # Coefficient match once the two Euler tensors are shown equal on MP:
-    # Symtropy contributes alpha_GB/4 * H_GB; Ma-Lu contributes alpha_R * H_Riem2.
-    alpha_gb, alpha_r, tensor = sp.symbols("alpha_GB alpha_R T")
+    # The paper's Eq. (3.9) equal-spin mu expansion is an additional control.
+    mu_series_in_chi = sp.series(
+        (1+q_of_nu**2)**2/2, nu, 0, 8
+    ).removeO().subs(nu, sp.Symbol("chi")/sp.sqrt(2))
+    chi = sp.Symbol("chi")
+    exact_zero(
+        "Eq. (3.9) equal-spin mass series",
+        sp.series(mu_series_in_chi - (sp.Rational(1,2)
+          + chi**2/2 + 5*chi**4/8 + 7*chi**6/8), chi, 0, 8).removeO(),
+    )
+
+    # First-order coefficient matching on a Ricci-flat MP background.
     coupling_solution = sp.solve(
         sp.Eq(alpha_gb*tensor/4, alpha_r*tensor), alpha_r
     )
@@ -75,41 +82,48 @@ def derive() -> dict:
         "artifact_kind": "ma_lu_equal_spin_parameter_map",
         "status": "exact_symbolic_parameter_relations_derived",
         "source_equations": {
-            "ma_lu_eq_4": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
-            "ma_lu_eq_6_equal_spin": "Omega_H=a/(r_h^2+a^2)",
-            "ma_lu_eq_16_printed": "chi=a/mu",
-            "ma_lu_eq_50_crosscheck": "mu=r_h^2/2+r_h^4*chi^2/4+O(chi^4) for a=b",
+            "ma_lu_eq_2_1": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
+            "ma_lu_eq_2_2_equal_spin": "Omega_H=a/(r_h^2+a^2)",
+            "ma_lu_eq_2_9_printed": "chi_a=a/sqrt(mu), chi_b=b/sqrt(mu)",
+            "ma_lu_eq_3_9_equal_spin_crosscheck":
+                "mu/r_h^2=1/2+chi^2/2+5*chi^4/8+7*chi^6/8+O(chi^8)",
         },
         "definitions": {
             "q": "a/r_h",
             "nu": "Omega_H*r_h",
-            "chi": "a/mu (paper's printed convention; do not silently replace)",
+            "chi": "a/sqrt(mu) (paper's Eq. 2.9)",
             "symtropy_spin": "a_S/r_H=Omega_H*r_H=nu",
         },
         "exact_equal_spin_relations": {
             "mu_over_rh2": sp.sstr(sp.factor(mu_horizon/r_h**2)),
             "nu_of_q": sp.sstr(nu_of_q),
-            "chi_times_rh_of_q": sp.sstr(chi_r_h_of_q),
+            "chi_of_q": sp.sstr(chi_of_q),
+            "chi_of_nu": "sqrt(2)*nu",
             "q_of_nu_exact_small_root": "(1-sqrt(1-4*nu^2))/(2*nu)",
             "valid_real_subextremal_branch": "0<=nu<1/2, 0<=q<1",
         },
         "series_about_zero_spin": {
             "q_of_nu_through_nu11": sp.sstr(q_of_nu),
-            "chi_times_rh_of_nu_through_nu11": sp.sstr(chi_r_h_of_nu),
+            "chi_of_nu_exact": "sqrt(2)*nu",
+            "mu_over_rh2_of_chi_through_chi6":
+                "1/2+chi^2/2+5*chi^4/8+7*chi^6/8",
             "q_minus_nu_order": "O(nu^3)",
-            "chi_rh_minus_2nu_order": "O(nu^3)",
         },
         "coupling_map": {
             "symtropy_action": "R + alpha_GB*L_GB/4",
             "ma_lu_action": "R + alpha_R*Riemann^2",
-            "candidate_first_coupling_map": sp.sstr(sp.Eq(alpha_r, coupling_solution[0])).replace(" ", ""),
+            "candidate_first_coupling_map": sp.sstr(
+                sp.Eq(alpha_r, coupling_solution[0])
+            ).replace(" ", ""),
             "scope": "First-order correction about a Ricci-flat Myers-Perry background only",
         },
         "checks": {
             "horizon_relation_exact": True,
             "angular_velocity_relation_exact": True,
             "printed_chi_relation_exact": True,
+            "chi_equals_sqrt2_nu_exact": True,
             "inverse_series_exact_through_nu11": True,
+            "eq_3_9_equal_spin_mass_series": True,
             "coupling_coefficient_identity": True,
         },
         "claim_ceiling": (
