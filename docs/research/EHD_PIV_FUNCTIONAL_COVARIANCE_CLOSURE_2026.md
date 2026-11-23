@@ -1,6 +1,6 @@
 # EHD-PIV-UQ-011 — joint functional covariance closure
 
-**Status:** reference implementation authored; Rust format/build/tests/Clippy pending.  
+**Status:** reference implementation authored; six new numerical covariance tests are included; Rust format/build/tests/Clippy pending.  
 **Issue:** #7005.  
 **Parent:** UQ-005 / PR #6899, with covariance-family and input-evidence work in UQ-007–UQ-010.
 
