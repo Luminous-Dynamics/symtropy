@@ -67,6 +67,7 @@ fn run() -> Result<(), String> {
         "platform_profile_sha256": manifest.platform.profile_sha256,
         "environment_artifact_sha256": manifest.platform.environment_artifact_sha256,
         "simulator_revision": manifest.platform.simulator_revision,
+        "world_stats_topic": manifest.platform.world_stats_topic,
         "scene_broadcaster_id": manifest.platform.scene_broadcaster_id,
         "scene_broadcaster_revision": manifest.platform.scene_broadcaster_revision,
         "scene_broadcaster_sha256": manifest.platform.scene_broadcaster_sha256,
