@@ -208,6 +208,8 @@ jobs:
             and .applied_attempt_count == 1
             and .head_attempt_id == "attempt-3"
             and .head_physical_outcome == "applied"
+            and .head_outcome_verdict == "confirmed"
+            and .head_physical_observer_quorum_qualified == true
             and .owner_authentication == "not_performed"
             and .evidence_completeness == "not_established"
             and .tla_refinement == "not_checked"
