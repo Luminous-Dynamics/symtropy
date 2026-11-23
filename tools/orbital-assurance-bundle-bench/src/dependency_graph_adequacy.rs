@@ -167,8 +167,9 @@ fn invalid_graph(case: &Case, detail: &str) -> CaseResult {
         dependency_edge: None,
         detail: detail.to_owned(),
     }];
-    findings.sort_by(|a, b| (&a.code, &a.dependency_edge, &a.detail)
-        .cmp(&(&b.code, &b.dependency_edge, &b.detail)));
+    findings.sort_by(|a, b| {
+        (&a.code, &a.dependency_edge, &a.detail).cmp(&(&b.code, &b.dependency_edge, &b.detail))
+    });
     CaseResult {
         case_id: case.case_id.clone(),
         disposition: "INVALID_GRAPH".to_owned(),
@@ -187,8 +188,7 @@ fn invalid_graph(case: &Case, detail: &str) -> CaseResult {
 }
 
 fn graph_has_cycle(node_ids: &BTreeSet<String>, edges: &BTreeSet<EdgeKey>) -> bool {
-    let mut indegree: BTreeMap<&str, usize> =
-        node_ids.iter().map(|id| (id.as_str(), 0)).collect();
+    let mut indegree: BTreeMap<&str, usize> = node_ids.iter().map(|id| (id.as_str(), 0)).collect();
     let mut children: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for (parent, child, _) in edges {
         if !indegree.contains_key(parent.as_str()) {
@@ -198,7 +198,10 @@ fn graph_has_cycle(node_ids: &BTreeSet<String>, edges: &BTreeSet<EdgeKey>) -> bo
             return true;
         };
         *count += 1;
-        children.entry(parent.as_str()).or_default().push(child.as_str());
+        children
+            .entry(parent.as_str())
+            .or_default()
+            .push(child.as_str());
     }
     let mut ready = indegree
         .iter()
@@ -253,10 +256,17 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_id(&producer.artifact_type)
             || !valid_sha256(&producer.content_sha256)
             || !valid_sha256(&producer.scope_sha256)
-            || producers_by_node.insert(producer.node_id.as_str(), producer).is_some()
-            || producer_by_artifact.insert(producer.artifact_id.as_str(), producer).is_some()
+            || producers_by_node
+                .insert(producer.node_id.as_str(), producer)
+                .is_some()
+            || producer_by_artifact
+                .insert(producer.artifact_id.as_str(), producer)
+                .is_some()
         {
-            return invalid_graph(case, "duplicate producer identity or malformed artifact binding");
+            return invalid_graph(
+                case,
+                "duplicate producer identity or malformed artifact binding",
+            );
         }
         node_ids.insert(producer.node_id.clone());
         producers_by_type
@@ -273,15 +283,23 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_id(&consumer.operation)
             || !valid_sha256(&consumer.scope_sha256)
             || consumer.input_artifact_ids.iter().any(|id| !valid_id(id))
-            || consumers_by_node.insert(consumer.node_id.as_str(), consumer).is_some()
+            || consumers_by_node
+                .insert(consumer.node_id.as_str(), consumer)
+                .is_some()
         {
-            return invalid_graph(case, "duplicate consumer identity or malformed consumer manifest");
+            return invalid_graph(
+                case,
+                "duplicate consumer identity or malformed consumer manifest",
+            );
         }
         let Some(output) = producers_by_node.get(consumer.node_id.as_str()) else {
             return invalid_graph(case, "consumer output has no producer record");
         };
         if output.artifact_id != consumer.output_artifact_id {
-            return invalid_graph(case, "consumer output artifact differs from producer manifest");
+            return invalid_graph(
+                case,
+                "consumer output artifact differs from producer manifest",
+            );
         }
         if output.scope_sha256 != consumer.scope_sha256 {
             add_finding(
@@ -292,8 +310,15 @@ fn evaluate_case(case: &Case) -> CaseResult {
             );
         }
         let mut inputs = BTreeSet::new();
-        if consumer.input_artifact_ids.iter().any(|id| !inputs.insert(id.as_str())) {
-            return invalid_graph(case, "consumer input manifest contains duplicate artifact IDs");
+        if consumer
+            .input_artifact_ids
+            .iter()
+            .any(|id| !inputs.insert(id.as_str()))
+        {
+            return invalid_graph(
+                case,
+                "consumer input manifest contains duplicate artifact IDs",
+            );
         }
     }
 
@@ -307,7 +332,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || producers_by_node[edge.parent_node_id.as_str()].artifact_id != edge.artifact_id
             || edge.parent_node_id == edge.consumer_node_id
         {
-            return invalid_graph(case, "declared edge has missing endpoint or mismatched artifact");
+            return invalid_graph(
+                case,
+                "declared edge has missing endpoint or mismatched artifact",
+            );
         }
         let key = (
             edge.parent_node_id.clone(),
@@ -333,7 +361,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 &mut findings,
                 "DEPENDENCY_MODEL_INADEQUATE",
                 None,
-                &format!("operation {} has no registered dependency grammar", consumer.operation),
+                &format!(
+                    "operation {} has no registered dependency grammar",
+                    consumer.operation
+                ),
             );
             continue;
         };
@@ -438,7 +469,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .cmp(&(&b.code, &b.dependency_edge, &b.detail)));
     findings.dedup();
 
-    let codes = findings.iter().map(|finding| finding.code.as_str()).collect::<BTreeSet<_>>();
+    let codes = findings
+        .iter()
+        .map(|finding| finding.code.as_str())
+        .collect::<BTreeSet<_>>();
     let disposition = if codes.contains("INVALID_GRAPH") {
         "INVALID_GRAPH"
     } else if codes.contains("DEPENDENCY_MODEL_INADEQUATE") {
@@ -461,8 +495,18 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let missing_dependency_edges = missing.into_iter().collect::<Vec<_>>();
     let extra_dependency_edges = extra.into_iter().collect::<Vec<_>>();
-    let expected_missing = case.expected.missing_dependency_edges.iter().cloned().collect::<BTreeSet<_>>();
-    let expected_extra = case.expected.extra_dependency_edges.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_missing = case
+        .expected
+        .missing_dependency_edges
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let expected_extra = case
+        .expected
+        .extra_dependency_edges
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let expected_result_matched = disposition == case.expected.disposition
         && expected_missing == missing_dependency_edges.iter().cloned().collect()
         && expected_extra == extra_dependency_edges.iter().cloned().collect()
@@ -504,7 +548,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
     }
     cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
 
-    let count = |disposition: &str| cases.iter().filter(|case| case.disposition == disposition).count();
+    let count = |disposition: &str| {
+        cases
+            .iter()
+            .filter(|case| case.disposition == disposition)
+            .count()
+    };
     let summary = Summary {
         case_count: cases.len(),
         graph_complete_cases: count("GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"),
@@ -516,9 +565,18 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
         source_unavailable_cases: count("DEPENDENCY_SOURCE_UNAVAILABLE"),
         scope_mismatch_cases: count("DEPENDENCY_SCOPE_MISMATCH"),
         invalid_graph_cases: count("INVALID_GRAPH"),
-        missing_dependency_edge_count: cases.iter().map(|case| case.missing_dependency_edges.len()).sum(),
-        extra_dependency_edge_count: cases.iter().map(|case| case.extra_dependency_edges.len()).sum(),
-        expected_result_mismatches: cases.iter().filter(|case| !case.expected_result_matched).count(),
+        missing_dependency_edge_count: cases
+            .iter()
+            .map(|case| case.missing_dependency_edges.len())
+            .sum(),
+        extra_dependency_edge_count: cases
+            .iter()
+            .map(|case| case.extra_dependency_edges.len())
+            .sum(),
+        expected_result_mismatches: cases
+            .iter()
+            .filter(|case| !case.expected_result_matched)
+            .count(),
     };
     let result = if summary.expected_result_mismatches == 0
         && summary.graph_complete_cases >= 1
@@ -548,7 +606,11 @@ mod tests {
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
-        evaluation.cases.iter().find(|item| item.case_id == id).expect("case exists")
+        evaluation
+            .cases
+            .iter()
+            .find(|item| item.case_id == id)
+            .expect("case exists")
     }
 
     #[test]
@@ -564,7 +626,10 @@ mod tests {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "missing_graph_edge");
         assert_eq!(result.disposition, "MISSING_DEPENDENCY_EDGE");
-        assert_eq!(result.missing_dependency_edges, vec!["domain_oracle->query_policy#artifact-domain-oracle"]);
+        assert_eq!(
+            result.missing_dependency_edges,
+            vec!["domain_oracle->query_policy#artifact-domain-oracle"]
+        );
     }
 
     #[test]
@@ -578,7 +643,10 @@ mod tests {
     #[test]
     fn consumer_manifest_omission_is_separate_from_graph_omission() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
-        assert_eq!(case(&report, "consumer_manifest_omission").disposition, "CONSUMER_MANIFEST_OMISSION");
+        assert_eq!(
+            case(&report, "consumer_manifest_omission").disposition,
+            "CONSUMER_MANIFEST_OMISSION"
+        );
     }
 
     #[test]
@@ -586,13 +654,19 @@ mod tests {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         let result = case(&report, "extra_edge");
         assert_eq!(result.disposition, "UNDECLARED_DEPENDENCY_EDGE");
-        assert_eq!(result.extra_dependency_edges, vec!["unrelated_campaign->decision_frontier#artifact-campaign"]);
+        assert_eq!(
+            result.extra_dependency_edges,
+            vec!["unrelated_campaign->decision_frontier#artifact-campaign"]
+        );
     }
 
     #[test]
     fn unknown_transform_does_not_become_a_closed_graph() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
-        assert_eq!(case(&report, "unknown_transform").disposition, "DEPENDENCY_MODEL_INADEQUATE");
+        assert_eq!(
+            case(&report, "unknown_transform").disposition,
+            "DEPENDENCY_MODEL_INADEQUATE"
+        );
     }
 
     #[test]
