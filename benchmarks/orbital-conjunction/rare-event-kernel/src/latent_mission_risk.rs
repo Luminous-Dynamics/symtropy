@@ -120,13 +120,19 @@ impl core::fmt::Display for LatentMissionRiskError {
             Self::EmptyLatentStateSet => "shared latent-state distribution must not be empty",
             Self::DuplicateLatentStateIdentity => "shared latent-state identities must be unique",
             Self::InvalidLatentStateWeight => "latent-state posterior weight must lie in [0, 1]",
-            Self::LatentWeightsNotNormalized => "latent-state posterior weights must sum exactly to one",
+            Self::LatentWeightsNotNormalized => {
+                "latent-state posterior weights must sum exactly to one"
+            }
             Self::MissionScopeMismatch => "latent risk cell belongs to another mission scope",
             Self::UnknownLatentState => "risk cell references an undeclared latent state",
             Self::InvalidEvidenceDigest => "risk cell CDM revision digest must not be all zero",
-            Self::EventRevisionMismatch => "a conjunction changes CDM revision across latent states",
+            Self::EventRevisionMismatch => {
+                "a conjunction changes CDM revision across latent states"
+            }
             Self::DuplicateLatentRiskCell => "conjunction is duplicated within a latent state",
-            Self::IncompleteLatentEventGrid => "latent states do not contain the same complete event set",
+            Self::IncompleteLatentEventGrid => {
+                "latent states do not contain the same complete event set"
+            }
             Self::DomainSizeOverflow => "latent state/event domain size overflowed usize",
             Self::ProbabilityMeasureMismatch => "risk cell uses another target probability measure",
             Self::ConditioningSetMismatch => "risk cell uses another common conditioning set",
@@ -189,11 +195,10 @@ pub fn aggregate_latent_mission_collision_risk(
         return Err(LatentMissionRiskError::LatentWeightsNotNormalized);
     }
 
-    let mut cells_by_state: BTreeMap<u64, BTreeMap<u64, LatentConjunctionRiskCell>> =
-        state_weights
-            .keys()
-            .map(|state_id| (*state_id, BTreeMap::new()))
-            .collect();
+    let mut cells_by_state: BTreeMap<u64, BTreeMap<u64, LatentConjunctionRiskCell>> = state_weights
+        .keys()
+        .map(|state_id| (*state_id, BTreeMap::new()))
+        .collect();
     let mut revision_by_event = BTreeMap::new();
 
     for cell in cells {
@@ -223,10 +228,7 @@ pub fn aggregate_latent_mission_collision_risk(
         let state_cells = cells_by_state
             .get_mut(&cell.state_id)
             .ok_or(LatentMissionRiskError::UnknownLatentState)?;
-        if state_cells
-            .insert(cell.conjunction_id, *cell)
-            .is_some()
-        {
+        if state_cells.insert(cell.conjunction_id, *cell).is_some() {
             return Err(LatentMissionRiskError::DuplicateLatentRiskCell);
         }
     }
@@ -458,8 +460,9 @@ mod tests {
 
         // Each event has marginal Pc = 1/2. Multiplying those two marginal
         // survival probabilities would return 3/4, not the latent mixture.
-        let naive_global_independence =
-            Rational::from_integer(1).checked_sub(rational(1, 2).checked_mul(rational(1, 2)).unwrap()).unwrap();
+        let naive_global_independence = Rational::from_integer(1)
+            .checked_sub(rational(1, 2).checked_mul(rational(1, 2)).unwrap())
+            .unwrap();
         assert_eq!(naive_global_independence, rational(3, 4));
         assert_eq!(report.reported_lower_bound, rational(91, 100));
         assert_ne!(report.reported_lower_bound, naive_global_independence);
@@ -519,11 +522,7 @@ mod tests {
 
     #[test]
     fn missing_event_cell_in_one_state_is_rejected() {
-        let cells = vec![
-            cell(1, 10, 1, 10),
-            cell(1, 20, 1, 5),
-            cell(2, 10, 1, 10),
-        ];
+        let cells = vec![cell(1, 10, 1, 10), cell(1, 20, 1, 5), cell(2, 10, 1, 10)];
         assert_eq!(
             aggregate_latent_mission_collision_risk(
                 scope(),
