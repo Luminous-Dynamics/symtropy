@@ -514,8 +514,8 @@ mod tests {
         let result = plan_navigation_outcome_risk_frontier(
             &policy(),
             &[
-                candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
-                candidate(2, 350_000_000, 550_000_000, 450_000_000, 600_000_000, 400, 400),
+                candidate(1, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800),
+                candidate(2, 350_000_000, 400_000_000, 450_000_000, 600_000_000, 400, 400),
             ],
         )
         .unwrap();
@@ -534,7 +534,7 @@ mod tests {
             &[
                 candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
                 candidate(2, 350_000_000, 550_000_000, 450_000_000, 600_000_000, 400, 400),
-                candidate(3, 400_000_000, 700_000_000, 600_000_000, 800_000_000, 900, 900),
+                candidate(3, 400_000_000, 500_000_000, 600_000_000, 800_000_000, 900, 900),
             ],
         )
         .unwrap();
@@ -548,7 +548,7 @@ mod tests {
             &policy(),
             &[
                 candidate(1, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800),
-                candidate(2, 300_000_000, 600_000_000, 950_000_000, 700_000_000, 400, 400),
+                candidate(2, 300_000_000, 700_000_000, 950_000_000, 1_000_000_000, 400, 400),
                 candidate(3, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 1_200, 400),
             ],
         )
@@ -563,7 +563,7 @@ mod tests {
     fn no_candidate_meets_hard_contract_so_selector_abstains() {
         let result = plan_navigation_outcome_risk_frontier(
             &policy(),
-            &[candidate(1, 300_000_000, 600_000_000, 950_000_000, 700_000_000, 800, 800)],
+            &[candidate(1, 300_000_000, 900_000_000, 950_000_000, 1_000_000_000, 800, 800)],
         )
         .unwrap();
         assert_eq!(result.recommended_action_id, None);
@@ -589,7 +589,7 @@ mod tests {
             Err(NavigationRiskSelectionError::DuplicateActionId(1))
         );
 
-        let mut mismatch = candidate(4, 300_000_000, 600_000_000, 500_000_000, 700_000_000, 800, 800);
+        let mut mismatch = candidate(4, 300_000_000, 400_000_000, 500_000_000, 700_000_000, 800, 800);
         mismatch.risk.impact_model_sha256 = [0x99; 32];
         assert_eq!(
             plan_navigation_outcome_risk_frontier(&policy(), &[mismatch]),
@@ -609,6 +609,40 @@ mod tests {
         assert_eq!(
             plan_navigation_outcome_risk_frontier(&policy(), &[bad]),
             Err(NavigationRiskSelectionError::InvalidRiskAssessment(1))
+        );
+    }
+
+    #[test]
+    fn confidence_level_and_reliability_strength_must_be_comparable() {
+        let mut wrong_alpha = candidate(
+            1,
+            300_000_000,
+            400_000_000,
+            500_000_000,
+            700_000_000,
+            800,
+            800,
+        );
+        wrong_alpha.risk.avar_confidence_level_parts_per_billion = 900_000_000;
+        wrong_alpha.risk.avar_tail_probability_mass_parts_per_billion = 100_000_000;
+        assert_eq!(
+            plan_navigation_outcome_risk_frontier(&policy(), &[wrong_alpha]),
+            Err(NavigationRiskSelectionError::InvalidRiskAssessment(1))
+        );
+
+        let mut weak_reliability = candidate(
+            2,
+            300_000_000,
+            400_000_000,
+            500_000_000,
+            700_000_000,
+            800,
+            800,
+        );
+        weak_reliability.risk.reliability_probability_lower_bound = 0.7;
+        assert_eq!(
+            plan_navigation_outcome_risk_frontier(&policy(), &[weak_reliability]),
+            Err(NavigationRiskSelectionError::InvalidRiskAssessment(2))
         );
     }
 
