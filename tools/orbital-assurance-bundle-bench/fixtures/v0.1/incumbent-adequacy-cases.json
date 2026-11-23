@@ -932,7 +932,7 @@
       "switching_cost": 2,
       "expected": {
         "disposition": "INVALID_INPUT",
-        "trigger_reason": "loss row is malformed, duplicated or not feasible in its world",
+        "trigger_reason": "loss row is malformed, duplicated or references an unknown action",
         "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
