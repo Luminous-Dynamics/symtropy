@@ -82,6 +82,7 @@ The Rust reference:
 - enumerates every feasible stop/root/conditional-second-stage deterministic tree;
 - keeps the complete tree fixed across scenarios;
 - reports per-scenario expected terminal utility, expected resource cost and net utility;
+- reports the selected tree's maximum root-to-leaf acquisition cost, the declared budget and an explicit pathwise-budget-satisfied flag;
 - reports worst-case net utility, robust campaign EVSI, clairvoyant upper bound and non-anticipativity gap;
 - enforces a hard complete-tree cap before enumeration and fails closed when it would be exceeded;
 - validates common ordered scenario IDs and dependence-scope receipt references.
