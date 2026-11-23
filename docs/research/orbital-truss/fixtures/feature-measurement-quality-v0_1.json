@@ -9,7 +9,7 @@
       "feature_id": "HOLE-1",
       "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
       "max_condition_number": 100,
-      "relative_rank_tolerance": 1e-9,
+      "relative_rank_tolerance": 1e-7,
       "observations": [
         {
           "observation_id": "O0",
@@ -53,7 +53,7 @@
       "feature_id": "HOLE-2",
       "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
       "max_condition_number": 100,
-      "relative_rank_tolerance": 1e-9,
+      "relative_rank_tolerance": 1e-7,
       "observations": [
         {
           "observation_id": "O0",
@@ -121,7 +121,7 @@
       "feature_id": "HOLE-3",
       "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
       "max_condition_number": 100,
-      "relative_rank_tolerance": 1e-9,
+      "relative_rank_tolerance": 1e-7,
       "observations": [
         {
           "observation_id": "O0",
@@ -165,7 +165,7 @@
       "feature_id": "HOLE-4",
       "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
       "max_condition_number": 100,
-      "relative_rank_tolerance": 1e-9,
+      "relative_rank_tolerance": 1e-7,
       "observations": [
         {
           "observation_id": "O0",
@@ -209,7 +209,7 @@
       "feature_id": "HOLE-5",
       "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
       "max_condition_number": 100,
-      "relative_rank_tolerance": 1e-9,
+      "relative_rank_tolerance": 1e-7,
       "observations": [
         {
           "observation_id": "O0",
