@@ -233,13 +233,16 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "RELEASED_FOR_FABRICATION" } } },
+      "if": { "properties": { "status": { "enum": ["RELEASED_FOR_FABRICATION", "ACCEPTED_FOR_USE"] } } },
       "then": {
         "properties": {
           "product": {
             "properties": {
               "product_id": { "$ref": "#/$defs/nonempty_string" },
               "product_revision": { "$ref": "#/$defs/nonempty_string" },
+              "intended_use": { "$ref": "#/$defs/nonempty_string" },
+              "operating_environment": { "$ref": "#/$defs/nonempty_string" },
+              "controller_interface": { "$ref": "#/$defs/nonempty_string" },
               "cartridge": {
                 "properties": {
                   "manufacturer": { "$ref": "#/$defs/nonempty_string" },
@@ -274,11 +277,16 @@
               "operation_id": { "$ref": "#/$defs/nonempty_string" },
               "operation_revision": { "$ref": "#/$defs/nonempty_string" },
               "description": { "$ref": "#/$defs/nonempty_string" },
-              "sequence": { "minItems": 1 },
-              "component_revisions": { "minItems": 1 },
-              "contact_surfaces": { "minItems": 1 },
-              "datums": { "minItems": 1 },
-              "loads_and_forces": { "$ref": "#/$defs/nonempty_string" }
+              "sequence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonempty_string" } },
+              "component_revisions": {
+                "type": "array", "minItems": 1,
+                "items": { "properties": { "component_id": { "$ref": "#/$defs/nonempty_string" }, "revision": { "$ref": "#/$defs/nonempty_string" } } }
+              },
+              "contact_surfaces": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonempty_string" } },
+              "datums": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonempty_string" } },
+              "loads_and_forces": { "$ref": "#/$defs/nonempty_string" },
+              "keep_out_zones": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonempty_string" } },
+              "downstream_operation": { "$ref": "#/$defs/nonempty_string" }
             }
           },
           "geometry": {
@@ -288,7 +296,21 @@
               "cad_revision": { "$ref": "#/$defs/nonempty_string" },
               "cad_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
               "datum_scheme": { "$ref": "#/$defs/nonempty_string" },
-              "critical_features": { "minItems": 1 },
+              "critical_features": {
+                "type": "array", "minItems": 1,
+                "items": {
+                  "properties": {
+                    "feature_id": { "$ref": "#/$defs/nonempty_string" },
+                    "nominal_value": { "type": "number" },
+                    "lower_tolerance": { "type": "number" },
+                    "upper_tolerance": { "type": "number" },
+                    "unit": { "$ref": "#/$defs/nonempty_string" },
+                    "functional_basis": { "$ref": "#/$defs/nonempty_string" },
+                    "measurement_method_ref": { "$ref": "#/$defs/evidence_ref" }
+                  }
+                }
+              },
+              "clearance_envelope_ref": { "$ref": "#/$defs/evidence_ref" },
               "measurement_method": { "$ref": "#/$defs/nonempty_string" },
               "instrument_ref": { "$ref": "#/$defs/evidence_ref" },
               "calibration_ref": { "$ref": "#/$defs/evidence_ref" },
@@ -300,8 +322,13 @@
               "material_specification": { "$ref": "#/$defs/nonempty_string" },
               "material_supplier": { "$ref": "#/$defs/nonempty_string" },
               "material_lot": { "$ref": "#/$defs/nonempty_string" },
+              "conditioning": { "$ref": "#/$defs/nonempty_string" },
+              "environmental_exposure": { "$ref": "#/$defs/nonempty_string" },
               "process_family": { "enum": ["MATERIAL_EXTRUSION", "CNC", "SHEET_METAL", "OTHER"] },
-              "machine_profile_ref": { "$ref": "#/$defs/evidence_ref" }
+              "machine_profile_ref": { "$ref": "#/$defs/evidence_ref" },
+              "process_recipe_ref": { "$ref": "#/$defs/evidence_ref" },
+              "orientation": { "$ref": "#/$defs/nonempty_string" },
+              "load_deflection_and_creep_basis": { "$ref": "#/$defs/nonempty_string" }
             }
           },
           "rights": {
@@ -316,7 +343,19 @@
               "quantity": { "type": "number", "exclusiveMinimum": 0 },
               "unit": { "$ref": "#/$defs/nonempty_string" },
               "demand_source_ref": { "$ref": "#/$defs/evidence_ref" },
-              "baseline_quotes": { "minItems": 1 }
+              "baseline_quotes": {
+                "type": "array", "minItems": 1,
+                "items": {
+                  "properties": {
+                    "supplier_or_route": { "$ref": "#/$defs/nonempty_string" },
+                    "quote_ref": { "$ref": "#/$defs/evidence_ref" },
+                    "quote_date": { "$ref": "#/$defs/nonempty_string" },
+                    "cost": { "type": "number", "exclusiveMinimum": 0 },
+                    "currency": { "$ref": "#/$defs/nonempty_string" },
+                    "lead_time_hours": { "type": "number", "exclusiveMinimum": 0 }
+                  }
+                }
+              }
             }
           },
           "acceptance": {
@@ -342,7 +381,7 @@
             "properties": {
               "owner_id": { "$ref": "#/$defs/nonempty_string" },
               "reviewer_id": { "$ref": "#/$defs/nonempty_string" },
-              "disposition": { "const": "RELEASED_FOR_FABRICATION" },
+              "disposition": { "enum": ["RELEASED_FOR_FABRICATION", "ACCEPTED_FOR_USE"] },
               "decision_ref": { "$ref": "#/$defs/evidence_ref" },
               "recorded_at": { "$ref": "#/$defs/nonempty_string" }
             }
