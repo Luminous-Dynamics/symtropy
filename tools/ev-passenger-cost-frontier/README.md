@@ -410,3 +410,31 @@ The legacy one-file mode is retained explicitly with the --legacy flag for backw
 
 New dossier: docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md. Exact-head CI for this linked-consumer branch is pending; the source currently contains 24 focused tests, but no compile/test claim is made until the new workflow run completes.
 
+
+## Linked service quality: exact assignment oracle and horizon accounting
+
+The linked service-quality evaluator now distinguishes **completed on-time**, **completed late**, **in progress at horizon**, **unserved**, and **rejected after acceptance cutoff**. A service that starts but ends beyond the evaluation horizon has no service_completion_seconds or completed latency. Its projected completion is reported separately and it is not counted as delivered, late-completed or completed-requests/hour.
+
+Run the frozen bounded exact-oracle challenge:
+
+\`\`\`bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \\
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json \\
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+\`\`\`
+
+The exact reference uses bitmask dynamic programming, bounded to at most 12 requests and 16 combined aerial/fallback opportunities, with a 1,000,000-transition ceiling. It is explicitly a clairvoyant full-horizon offline upper bound that sees the complete frozen request stream; it is not a deployable online policy. Above the input bounds it returns not_run_bounds_exceeded; on transition exhaustion it returns transition_limit_reached. Neither status includes an optimum or policy regret. For an evaluated instance, the objective is lexicographic: maximize on-time completions; maximize total completed-by-horizon services; minimize cumulative lateness; minimize work left in progress at the cut-off; minimize completed-request latency; then apply a canonical ID tie-break. No arbitrary weighted scalar score or service-class weight is introduced.
+
+The two-request/two-opportunity frozen source-receipt challenge yields:
+- FCFS: one on-time and one late completion; 185 seconds cumulative deadline lateness.
+- EDF: two on-time completions; zero deadline lateness.
+- Exact oracle: same outcome as EDF on this tiny instance; FCFS loses one on-time completion and has 185 seconds of lateness excess.
+
+The full 12-request linked fixture has 7 qualified aerial plus 5 fallback opportunities and now falls within the 12-request/16-opportunity DP bound. It solves in 768 transitions: 7 on-time + 1 late, 8 completed, 0 in progress, 170 s cumulative lateness and 6,715 s completed latency. FCFS offline upper-bound gap is one on-time completion and 185 s excess lateness; EDF matches the upper bound on this fixture. Larger instances still abstain above declared bounds. Use the gaps as offline upper-bound distance, not online-policy regret.
+
+The linked consumer still re-runs the capacity event simulator and derives aircraft/time/duration/turnaround only from source opportunity receipts. Exact oracle code: src/sustainable_mobility_service_quality.rs; bounded fixture: fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json; full linked fixture: fixtures/sustainable_mobility_service_quality_linked_v0_1.json; dossier: docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md.
+
+Exact-head verification for the 12×16 bitmask-DP plus explicit offline-information-model revision: [Actions #45211825272](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45211825272) at `dc69e4e28a62cda46ca0198ecdf2e11d5d6e0756` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact/offline-model assertions and artifact upload. Test binaries reported 224 passed, 0 failed across binaries; the service-quality module contains 31 focused Rust test definitions. The full 12-request fixture solved in 768 transitions and returned 7 on-time, 1 late, 8 completed, 0 in-progress; 170 s cumulative lateness and 6,715 s completed latency. FCFS offline upper-bound gap vector was [1,0,185,0,0]; EDF [0,0,0,0,0]. The report explicitly labels the exact result a clairvoyant full-horizon offline upper bound and says deployable_online_policy=false. Clippy and physical/field validation are not included.
+
+
+**Information boundary:** a full-horizon exact assignment can use later revealed requests when choosing earlier opportunity assignments. The result is therefore labelled `clairvoyant_full_horizon_offline_upper_bound` and `deployable_online_policy=false`. A separate nonanticipative scenario-tree oracle is tracked in [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133).

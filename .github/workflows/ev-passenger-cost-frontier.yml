@@ -148,6 +148,7 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json '
             . as $input
             | ($schema[0].required | sort) as $required
@@ -550,13 +551,15 @@ jobs:
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .completed_on_time] == [6])
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .unserved_requests] == [4])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .unserved_requests] == [3])
+            and all(.policy_results[]; .in_progress_requests == 0)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .max_waiting_requests_peak] == [3])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .max_waiting_requests_peak] == [3])
             and ([(.policy_results[] | select(.policy == "first_come_first_served") | .completed_requests_per_hour - 0.75) | fabs] | all(.[]; . < 0.000001))
             and ([(.policy_results[] | select(.policy == "earliest_deadline_first") | .completed_requests_per_hour - 0.875) | fabs] | all(.[]; . < 0.000001))
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .served_by_aerial, .served_by_fallback] == [2,4])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .served_by_aerial, .served_by_fallback] == [3,4])
-            and all(.policy_results[]; .served_by_aerial + .served_by_fallback == .completed_on_time + .completed_late)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and all(.policy_results[]; .aerial_opportunity_utilization_percent >= 0 and .aerial_opportunity_utilization_percent <= 100)
             and all(.policy_results[]; .fallback_opportunity_utilization_percent >= 0 and .fallback_opportunity_utilization_percent <= 100)
             and all(.policy_results[]; .on_time_rate_of_offered_percent >= 0 and .on_time_rate_of_offered_percent <= 100)
@@ -576,6 +579,24 @@ jobs:
             and .capacity_source_architecture_id == "fixed_dock4_reference_profile"
             and .capacity_opportunities_in_source == 38
             and .capacity_opportunities_qualified == 7
+            and .exact_oracle.status == "evaluated"
+            and (.exact_oracle.best_score != null)
+            and .exact_oracle.information_model == "clairvoyant_full_horizon_offline_upper_bound"
+            and .exact_oracle.deployable_online_policy == false
+            and .exact_oracle.dp_transitions > 0
+            and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
+            and .exact_oracle.best_score.completed_on_time == 7
+            and .exact_oracle.best_score.completed_late == 1
+            and .exact_oracle.best_score.completed_by_horizon == 8
+            and .exact_oracle.best_score.in_progress_at_horizon == 0
+            and .exact_oracle.best_score.total_lateness_seconds == 170
+            and .exact_oracle.best_score.total_latency_seconds == 6715
+            and (.exact_oracle.best_assignments | length) == 8
+            and (.exact_oracle.policy_gaps | length) == 2
+            and ([.exact_oracle.policy_gaps[] | select(.policy == "first_come_first_served") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds, .in_progress_excess] == [1,0,185,0,0])
+            and ([.exact_oracle.policy_gaps[] | select(.policy == "earliest_deadline_first") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds, .in_progress_excess] == [0,0,0,0,0])
+            and all(.policy_results[]; .in_progress_requests == 0)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and (.capacity_source_report_digest | test("^sha256:[0-9a-f]{64}$"))
             and (.capacity_service_opportunity_digest | test("^sha256:[0-9a-f]{64}$"))
             and .capacity_architecture_configuration_digest == "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024"
@@ -584,7 +605,7 @@ jobs:
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .offered_requests, .accepted_requests, .rejected_requests, .completed_on_time, .completed_late, .unserved_requests] == [12,11,1,7,1,3])
             and ([.policy_results[] | select(.policy == "first_come_first_served") | .served_by_aerial, .served_by_fallback] == [4,4])
             and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .served_by_aerial, .served_by_fallback] == [4,4])
-            and all(.policy_results[]; .served_by_aerial + .served_by_fallback == .completed_on_time + .completed_late)
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and all(.policy_results[].outcomes[] | select(.fulfilment_mode == "aerial");
               . as $outcome
               | any($capacity[0].architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .service_opportunities[];
@@ -593,6 +614,26 @@ jobs:
             and all(.policy_results[]; .claim_ceiling | length > 0)
           ' sustainable-mobility-service-quality-linked-report.json
           cat sustainable-mobility-service-quality-linked-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+            > sustainable-mobility-service-quality-exact-oracle-report.json
+          jq -e '
+            .exact_oracle.status == "evaluated"
+            and .exact_oracle.information_model == "clairvoyant_full_horizon_offline_upper_bound"
+            and .exact_oracle.deployable_online_policy == false
+            and .exact_oracle.dp_transitions > 0 and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
+            and .exact_oracle.best_score.completed_on_time == 2
+            and .exact_oracle.best_score.completed_late == 0
+            and .exact_oracle.best_score.completed_by_horizon == 2
+            and .exact_oracle.best_score.in_progress_at_horizon == 0
+            and .exact_oracle.best_score.total_lateness_seconds == 0
+            and .exact_oracle.best_score.total_latency_seconds == 825
+            and ([.exact_oracle.best_assignments[].request_id] == ["request-tight-deadline", "request-first-arrival"])
+            and ([.exact_oracle.policy_gaps[] | select(.policy == "first_come_first_served") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds] == [1,0,185,0])
+            and ([.exact_oracle.policy_gaps[] | select(.policy == "earliest_deadline_first") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds] == [0,0,0,0])
+          ' sustainable-mobility-service-quality-exact-oracle-report.json
+          cat sustainable-mobility-service-quality-exact-oracle-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -641,6 +682,9 @@ jobs:
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json \
             sustainable-mobility-service-quality-linked-report.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json \
+            sustainable-mobility-service-quality-exact-oracle-report.json \
+            docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/sustainable_mobility_service_quality_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json \
@@ -694,6 +738,9 @@ jobs:
             sustainable-mobility-service-capacity-report.json
             sustainable-mobility-service-quality-report.json
             sustainable-mobility-service-quality-linked-report.json
+            sustainable-mobility-service-quality-exact-oracle-report.json
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
+            docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
             docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md
