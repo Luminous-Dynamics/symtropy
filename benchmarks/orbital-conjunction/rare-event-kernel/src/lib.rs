@@ -33,8 +33,8 @@ pub mod lebedev;
 pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
-pub mod pop_col_energy;
 pub mod normal_positive_part;
+pub mod pop_col_energy;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -63,12 +63,11 @@ pub use ncdot_temporal::{
     NcdotTemporalReport, NcdotTemporalSample, TemporalHorizonCoverageClaim,
     integrate_ncdot_time_series,
 };
-pub use pop_col_energy::{
-    PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy,
-    conditional_velocity_at_col,
-};
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
+};
+pub use pop_col_energy::{
+    PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy, conditional_velocity_at_col,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
