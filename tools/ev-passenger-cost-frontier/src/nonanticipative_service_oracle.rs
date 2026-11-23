@@ -13,7 +13,7 @@
 //! This is a finite synthetic decision oracle, not a deployable dispatcher,
 //! route planner, flight authorization system or field-performance claim.
 
-use std::cmp::Ordering;
+use std::cmp::{Ordering, Reverse};
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
@@ -765,15 +765,21 @@ fn enumerate_clairvoyant(
     }
     if index == opportunities.len() {
         let score = raw_score_from_assignments(current, requests, horizon_seconds)?;
-        let better = score.on_time > best.on_time
-            || (score.on_time == best.on_time
-                && (score.completed > best.completed
-                    || (score.completed == best.completed
-                        && (score.lateness_seconds < best.lateness_seconds
-                            || (score.lateness_seconds == best.lateness_seconds
-                                && (score.in_progress < best.in_progress
-                                    || (score.in_progress == best.in_progress
-                                        && score.latency_seconds < best.latency_seconds))))));
+        let score_key = (
+            score.on_time,
+            score.completed,
+            Reverse(score.lateness_seconds),
+            Reverse(score.in_progress),
+            Reverse(score.latency_seconds),
+        );
+        let best_key = (
+            best.on_time,
+            best.completed,
+            Reverse(best.lateness_seconds),
+            Reverse(best.in_progress),
+            Reverse(best.latency_seconds),
+        );
+        let better = score_key > best_key;
         if better {
             *best = score;
         }
