@@ -127,8 +127,7 @@ impl AcquisitionAttemptOutcome {
         }
         Ok(())
     }
-
-
+}
 
 impl ResolvedAcquisitionOutcome {
     fn validate(self, attempt_id: u64) -> Result<(), ActiveEvidenceAttemptError> {
