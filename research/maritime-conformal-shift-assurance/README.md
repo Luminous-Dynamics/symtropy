@@ -35,7 +35,7 @@ The joint score is defined as the maximum of normalized arrival and handling res
 - arrival residual divided by 5 hours;
 - handling residual divided by 20 hours.
 
-The joint conformal quantile is the finite-sample order statistic k = ceil((n + 1) × (1 − alpha)). The same quantile scales both arrival and handling residual bounds, so the joint event is tested directly. This is still a marginal-in-time finite-sample guarantee under exchangeability; it is not conditional coverage for every vessel class, season, berth or weather regime.
+The joint conformal quantile is the finite-sample order statistic k = ceil((n + 1) × (1 − alpha)). The same quantile scales both arrival and handling residual bounds, so the joint event is tested directly. This is still a marginal-in-time finite-sample guarantee under exchangeability; it is not conditional coverage for every vessel class, season, berth or weather regime. It is also **per-vessel-pair coverage only**: it does not imply simultaneous 90% coverage or feasibility for a schedule containing many vessel calls and shared resources. Schedule-level simultaneous coverage is a separate follow-on in [#7224](https://github.com/Luminous-Dynamics/symtropy/issues/7224).
 
 The ACI update changes the future miscoverage level after an observed miss/success. If the outcome is missing, no update is made. This deliberately exposes a central limitation: adaptive recalibration cannot learn from outcomes systematically hidden by an MNAR observation process unless a separate evidence source or a defensible missingness model exists.
 
