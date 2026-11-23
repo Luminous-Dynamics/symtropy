@@ -52,6 +52,7 @@ pub struct GazeboCapabilityProfile {
     pub ros_distribution: String,
     pub simulation_interfaces_revision: String,
     pub world_name: String,
+    pub world_stats_topic: String,
     pub world_profile_sha256: String,
     pub reset_profile_sha256: String,
     pub scene_broadcaster_id: String,
@@ -59,6 +60,20 @@ pub struct GazeboCapabilityProfile {
     pub scene_broadcaster_sha256: String,
     pub scene_broadcaster_loaded: bool,
     pub capabilities: BTreeSet<GazeboCapability>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GazeboWorldStatisticsReceipt {
+    pub topic: String,
+    pub message_type: String,
+    pub producer_id: String,
+    pub producer_revision: String,
+    pub raw_artifact_id: String,
+    pub raw_artifact_sha256: String,
+    pub clock_id: String,
+    pub iterations: u64,
+    pub simulation_time_ns: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -73,6 +88,9 @@ pub struct GazeboWorldSnapshot {
     pub simulation_time_ns: u64,
     pub state: SimulationState,
     pub state_sha256: String,
+    /// Independent telemetry from the world's stats stream; a step-service
+    /// response alone is not evidence that the requested iteration occurred.
+    pub world_statistics: GazeboWorldStatisticsReceipt,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -101,6 +119,7 @@ pub enum GazeboAdapterError {
     WrongWorldEpoch,
     InvalidClock,
     WorldStateDigestMismatch,
+    WorldStatisticsMismatch,
     ResetProfileMismatch,
     UnsupportedResetKind,
     ResetDidNotAdvanceEpoch,
@@ -145,6 +164,7 @@ impl GazeboCapabilityProfile {
             || !nonempty(&self.ros_distribution)
             || !nonempty(&self.simulation_interfaces_revision)
             || !nonempty(&self.world_name)
+            || !nonempty(&self.world_stats_topic)
             || !nonempty(&self.scene_broadcaster_id)
             || !nonempty(&self.scene_broadcaster_revision)
             || !valid_sha256(&self.scene_broadcaster_sha256)
@@ -165,7 +185,9 @@ impl GazeboCapabilityProfile {
         if self.simulation_interfaces_revision != plan.platform.simulation_interfaces_revision {
             return Err(GazeboAdapterError::PlatformRevisionMismatch);
         }
-        if self.world_profile_sha256 != plan.platform.environment_artifact_sha256 {
+        if self.world_profile_sha256 != plan.platform.environment_artifact_sha256
+            || self.world_stats_topic != plan.platform.world_stats_topic
+        {
             return Err(GazeboAdapterError::InvalidCapabilityProfile);
         }
         if self.reset_profile_sha256 != plan.reset.profile_sha256 {
@@ -224,6 +246,19 @@ impl GazeboWorldSnapshot {
         }
         if !valid_sha256(&self.state_sha256) {
             return Err(GazeboAdapterError::WorldStateDigestMismatch);
+        }
+        let stats = &self.world_statistics;
+        if stats.topic != profile.world_stats_topic
+            || stats.message_type != "gz.msgs.WorldStatistics"
+            || stats.producer_id != profile.simulator_id
+            || stats.producer_revision != profile.simulator_revision
+            || !nonempty(&stats.raw_artifact_id)
+            || !valid_sha256(&stats.raw_artifact_sha256)
+            || stats.clock_id != self.clock_id
+            || stats.iterations != self.simulation_step
+            || stats.simulation_time_ns != self.simulation_time_ns
+        {
+            return Err(GazeboAdapterError::WorldStatisticsMismatch);
         }
         Ok(())
     }
@@ -733,7 +768,8 @@ mod tests {
             simulator_revision: plan.platform.simulator_revision.clone(),
             ros_distribution: plan.platform.ros_distribution.clone(),
             simulation_interfaces_revision: plan.platform.simulation_interfaces_revision.clone(),
-            world_name: "rrvr-world".into(),
+            world_name: "rrvr-reference-world".into(),
+            world_stats_topic: plan.platform.world_stats_topic.clone(),
             world_profile_sha256: plan.platform.environment_artifact_sha256.clone(),
             reset_profile_sha256: plan.reset.profile_sha256.clone(),
             scene_broadcaster_id: plan.platform.scene_broadcaster_id.clone(),
