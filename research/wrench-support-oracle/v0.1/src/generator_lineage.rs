@@ -65,7 +65,10 @@ pub struct CandidateGenerationReport {
     pub final_storage_dropped_count: u64,
     pub final_storage_spill_used: bool,
     pub trace_complete: bool,
+    /// Evidence/receipt is complete even when known failures and omissions occurred.
     pub evidence_complete: bool,
+    /// All requested support computations passed admission and final storage.
+    pub required_work_complete: bool,
 }
 
 fn checked_sum(values: &[u64], field: &str) -> Result<u64, OracleError> {
@@ -240,7 +243,8 @@ impl CandidateGenerationCounts {
 
         let trace_complete = self.trace_disposition == TraceDisposition::Complete
             && self.diagnostic_events_dropped == 0;
-        let evidence_complete = trace_complete
+        let evidence_complete = trace_complete;
+        let required_work_complete = evidence_complete
             && self.support_queries_failed == 0
             && self.candidate_admission_capacity_rejected == 0
             && self.final_storage_dropped_count == 0;
@@ -257,6 +261,7 @@ impl CandidateGenerationCounts {
             final_storage_spill_used: self.final_storage_spill_used,
             trace_complete,
             evidence_complete,
+            required_work_complete,
         })
     }
 }
@@ -309,6 +314,7 @@ mod tests {
         assert!(!report.final_storage_spill_used);
         assert!(report.trace_complete);
         assert!(report.evidence_complete);
+        assert!(report.required_work_complete);
     }
 
     #[test]
@@ -325,7 +331,8 @@ mod tests {
         let report = counts.validate().expect("admission loss explicit");
         assert_eq!(report.support_queries_attempted, 9);
         assert_eq!(report.best_n_reduced_count, 1);
-        assert!(!report.evidence_complete);
+        assert!(report.evidence_complete);
+        assert!(!report.required_work_complete);
     }
 
     #[test]
@@ -344,7 +351,8 @@ mod tests {
         counts.best_n_reduced_count = 4;
         let report = counts.validate().expect("8 total admission, 16 backing");
         assert_eq!(report.support_candidates_admitted, 7);
-        assert!(!report.evidence_complete);
+        assert!(report.evidence_complete);
+        assert!(!report.required_work_complete);
     }
 
     #[test]
@@ -360,6 +368,7 @@ mod tests {
         let report = counts.validate().expect("best-N reduction");
         assert_eq!(report.best_n_reduced_count, 4);
         assert!(report.evidence_complete);
+        assert!(report.required_work_complete);
     }
 
     #[test]
@@ -381,6 +390,8 @@ mod tests {
         let report = counts.validate().expect("spill without loss");
         assert!(report.final_storage_spill_used);
         assert_eq!(report.final_storage_dropped_count, 0);
+        assert!(report.evidence_complete);
+        assert!(report.required_work_complete);
     }
 
     #[test]
@@ -392,7 +403,8 @@ mod tests {
         counts.final_storage_dropped_count = 1;
         let report = counts.validate().expect("fixed capacity drop");
         assert_eq!(report.final_storage_dropped_count, 1);
-        assert!(!report.evidence_complete);
+        assert!(report.evidence_complete);
+        assert!(!report.required_work_complete);
     }
 
     #[test]
@@ -405,6 +417,7 @@ mod tests {
         let report = counts.validate().expect("diagnostic truncation explicit");
         assert!(!report.trace_complete);
         assert!(!report.evidence_complete);
+        assert!(!report.required_work_complete);
         assert_eq!(report.final_storage_dropped_count, 0);
     }
 
@@ -418,7 +431,8 @@ mod tests {
         counts.best_n_reduced_count = 1;
         let report = counts.validate().expect("query failure explicit");
         assert_eq!(report.support_queries_failed, 1);
-        assert!(!report.evidence_complete);
+        assert!(report.evidence_complete);
+        assert!(!report.required_work_complete);
     }
 
     #[test]
