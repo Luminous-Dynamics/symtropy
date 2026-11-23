@@ -451,6 +451,9 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.simulation_step > expected.scheduled_simulation_step {
+                        return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                    }
                     if receipt.producer_id != self.platform.native_adapter_id
                         || receipt.producer_revision != self.platform.native_adapter_revision
                     {
@@ -490,6 +493,9 @@ impl ExecutionEvidenceBundle {
                     expected,
                     resolved_target.unwrap_or(&expected.target_component_id),
                 )?;
+                if receipt.simulation_step > expected.scheduled_simulation_step {
+                    return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                }
                 if receipt.producer_id != self.platform.native_adapter_id
                     || receipt.producer_revision != self.platform.native_adapter_revision
                 {
@@ -617,6 +623,9 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.simulation_step != expected.scheduled_simulation_step {
+                        return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                    }
                     if receipt.producer_id != self.platform.fault_injector_id
                         || receipt.producer_revision != self.platform.fault_injector_revision
                     {
@@ -816,24 +825,61 @@ impl ExecutionEvidenceBundle {
                     delivery_unknown_count += 1;
                     if event.execution.status == ExecutionStatus::Executed
                         || event.dispatch.status == DispatchStatus::Unknown
+                        || event.execution.status == ExecutionStatus::Unknown
                     {
                         reconcile_required = true;
                     }
                     if let Some(receipt) = observation.receipt.as_ref() {
-                        let target_id = resolved_target.unwrap_or(&expected.target_component_id);
+                        let observer_id = observation
+                            .observer_id
+                            .as_deref()
+                            .filter(|value| nonempty(value))
+                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
+                        let observer_revision = observation
+                            .observer_revision
+                            .as_deref()
+                            .filter(|value| nonempty(value))
+                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
+                        let observer_fault_domain_id = observation
+                            .observer_fault_domain_id
+                            .as_deref()
+                            .filter(|value| nonempty(value))
+                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
+                        if observer_id == self.platform.fault_injector_id
+                            || observer_fault_domain_id
+                                == self.platform.fault_injector_fault_domain_id
+                        {
+                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
+                        }
+                        if let Some(signature) = observation.observed_fault_signature_sha256.as_deref() {
+                            if !valid_sha256(signature) {
+                                return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
+                            }
+                        }
                         validate_receipt(
                             receipt,
                             EvidencePhase::DeliveryObservation,
                             self,
                             expected,
-                            target_id,
+                            resolved_target.unwrap_or(&expected.target_component_id),
                         )?;
+                        if receipt.producer_id != observer_id
+                            || receipt.producer_revision != observer_revision
+                        {
+                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
+                        }
                         register_receipt(
                             receipt,
                             &mut evidence_ids,
                             &mut artifact_ids,
                             &mut artifact_hashes,
                         )?;
+                    } else if observation.observer_id.is_some()
+                        || observation.observer_revision.is_some()
+                        || observation.observer_fault_domain_id.is_some()
+                        || observation.observed_fault_signature_sha256.is_some()
+                    {
+                        return Err(ExecutionEvidenceError::InvalidDeliveryObservation);
                     }
                 }
                 DeliveryVerdict::NotObserved => {
