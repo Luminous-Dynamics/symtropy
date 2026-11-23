@@ -29,7 +29,7 @@ Gates:
 - **G3 — Fabrication release:** approved verification plan, fixture risk controls, baseline and product-owner release disposition.
 - **G4 — First article:** measured dimensions, repeatability, load/deflection where relevant, assembly trial, no unacceptable product damage, traceability and post-use checks.
 
-A PASS requires an owner/reviewer, decision reference, timestamp and at least one evidence reference. BLOCKED and NOT_APPLICABLE require a non-empty reason, reviewer, decision reference and timestamp. NOT_APPLICABLE must be justified and approved; it must not be used to bypass a critical requirement. Packet state and owner disposition must agree. The JSON Schema enforces the core state transition requirements for RELEASED_FOR_FABRICATION and ACCEPTED_FOR_USE. A schema-valid packet still needs domain-owner review; schema validation is not an authorization system.
+A PASS requires an owner/reviewer, decision reference, timestamp and at least one evidence reference. BLOCKED and NOT_APPLICABLE require a non-empty reason, reviewer, decision reference and timestamp. NOT_APPLICABLE must be justified and approved; it must not be used to bypass a critical requirement. Packet state and owner disposition must agree exactly: a fabrication release cannot carry an accepted-for-use disposition, and vice versa. The JSON Schema enforces the core state transition requirements for RELEASED_FOR_FABRICATION and ACCEPTED_FOR_USE. A schema-valid packet still needs domain-owner review; schema validation is not an authorization system.
 
 ## Evidence references
 
@@ -55,6 +55,6 @@ The schema is Draft 2020-12 and uses strict `additionalProperties: false` throug
 5. ACCEPTED_FOR_USE without G4 first-article evidence fails;
 6. hashes that are malformed, blank evidence references, and empty identifiers fail;
 7. NOT_APPLICABLE without a documented reviewer/decision/reason fails;
-8. packet status and owner disposition cannot contradict one another.
+8. packet status and owner disposition cannot contradict one another, including RELEASED_FOR_FABRICATION versus ACCEPTED_FOR_USE.
 
 Schema validity does not authenticate a source or verify that the evidence content supports the field. Authentication and owner disposition remain external responsibilities.
