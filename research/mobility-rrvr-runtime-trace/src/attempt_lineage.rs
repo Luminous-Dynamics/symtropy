@@ -161,6 +161,8 @@ pub struct LineageSummary {
     pub applied_attempt_count: usize,
     pub head_attempt_id: String,
     pub head_outcome: PhysicalOutcome,
+    pub head_outcome_status: OwnerEvidenceStatus,
+    pub head_physical_observer_qualified: bool,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -634,6 +636,13 @@ impl AttemptLineageRecording {
             applied_attempt_count,
             head_attempt_id: head.attempt_id.clone(),
             head_outcome: head.physical_outcome.outcome,
+            head_outcome_status: head.physical_outcome.receipt.status,
+            head_physical_observer_qualified: head
+                .observer_assurance
+                .as_ref()
+                .is_some_and(|assurance| {
+                    assurance.physical_outcome.status == OwnerEvidenceStatus::QuorumQualified
+                }),
         })
     }
 }
@@ -658,6 +667,8 @@ mod tests {
         assert_eq!(summary.applied_attempt_count, 1);
         assert_eq!(summary.head_attempt_id, "attempt-3");
         assert_eq!(summary.head_outcome, PhysicalOutcome::Applied);
+        assert_eq!(summary.head_outcome_status, OwnerEvidenceStatus::Confirmed);
+        assert!(summary.head_physical_observer_qualified);
     }
 
     #[test]
