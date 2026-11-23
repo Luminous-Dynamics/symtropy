@@ -153,3 +153,26 @@ Both narrow issues have been corrected:
 - the test-only effect-transform import is now scoped to the test module.
 
 Corrected head: `2315e78f5e2886f8367a4619743be5576c1acd5b`. A new exact-head Rust 1.96 run is required before qualification.
+
+## Continuous-time / hybrid dynamics transfer protocol
+
+Added `CONTINUOUS_DYNAMICS_TRANSFER_V0_2_PROTOCOL.md` as the next research extension. It specifies:
+- explicit state, action, clock/time and hybrid-mode correspondences;
+- trajectory-level approximation rather than frame-index matching;
+- measurement-time versus arrival-time separation, clock uncertainty, irregular sampling and delayed/missing observations;
+- hybrid event guards, resets, impacts and contact discontinuities;
+- separation of initial-state, parameter, structural, process, measurement, clock and model-discrepancy uncertainty;
+- local dynamics, long-horizon trajectory, event-time, intervention and downstream action-utility metrics;
+- system-identification, discrete recurrent, Neural ODE / continuous-time, CfC-only, LTC-only, graph-only, HDC/CfC hybrid and action-conditioned transformer baselines;
+- negative controls for false clock alignment, wrong vector fields, wrong reset maps and out-of-support action/state pairs.
+
+The protocol explicitly does not claim a continuous-time learner or a continuous CfC/LTC equivalence result. The executable #7173 module remains a deterministic finite-transition correspondence witness.
+
+## Exact-head Rust verification
+
+The focused workflow run [#45268504387](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45268504387) passed on code head `bb11dc83015f63afbcddba6c00ee92fdce5fc23e` using Rust 1.96.0:
+- `cargo fmt --check`: passed;
+- `cargo test --locked`: passed, including 50 unit tests and the dynamics module doctest;
+- strict `cargo clippy --all-targets -- -D warnings`: passed.
+
+After this code head, the only branch change is the documentation-only continuous dynamics protocol at `579c93217cac34196e25a78d190417948d4e3528`. This verification applies to all executable source on the current branch. It is not an OS-sandbox, full blind evaluator, multi-family benchmark, or learner-performance result.
