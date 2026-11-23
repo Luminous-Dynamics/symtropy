@@ -5,11 +5,11 @@
     "system_id": "synthetic-robot-a",
     "implementation_revision": "symtropy-runtime-projection-v0.1-synthetic-recovery",
     "model_revision": "RestartSafeEffectContinuity.tla@908ddc1d",
-    "model_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "model_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "tla_tool_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "model_source_sha256": "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81",
+    "model_config_sha256": "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168",
+    "tla_tool_sha256": "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f",
     "fault_profile_revision": "synthetic-init-profile-v0.1",
-    "max_epoch": 4,
+    "max_epoch": 3,
     "naive_retry_enabled": false
   },
   "snapshots": [
@@ -82,7 +82,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -100,7 +101,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -118,7 +120,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "mission_resolution",
@@ -136,7 +139,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -154,7 +158,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -172,7 +177,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -190,7 +196,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -208,7 +215,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -226,7 +234,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -244,7 +253,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-0",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -326,7 +336,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -344,7 +355,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -362,7 +374,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "mission_resolution",
@@ -380,7 +393,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -398,7 +412,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -416,7 +431,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -434,7 +450,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -452,7 +469,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -470,7 +488,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -488,7 +507,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-1",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -570,7 +590,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -588,7 +609,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -606,7 +628,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "mission_resolution",
@@ -624,7 +647,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -642,7 +666,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -660,7 +685,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -678,7 +704,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -696,7 +723,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -714,7 +742,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -732,7 +761,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-2",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -814,7 +844,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -832,7 +863,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -850,7 +882,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "mission_resolution",
@@ -868,7 +901,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -886,7 +920,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -904,7 +939,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -922,7 +958,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -940,7 +977,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -958,7 +996,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -976,7 +1015,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-3",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -1058,7 +1098,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -1076,7 +1117,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -1094,7 +1136,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -1112,7 +1155,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -1130,7 +1174,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -1148,7 +1193,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -1166,7 +1212,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -1184,7 +1231,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -1202,7 +1250,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -1220,7 +1269,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-4",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -1302,7 +1352,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -1320,7 +1371,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "in_flight"
         },
         {
           "domain": "physical_outcome",
@@ -1338,7 +1390,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -1356,7 +1409,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -1374,7 +1428,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -1392,7 +1447,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -1410,7 +1466,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -1428,7 +1485,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -1446,7 +1504,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -1464,7 +1523,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-5",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -1546,7 +1606,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -1564,7 +1625,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "in_flight"
         },
         {
           "domain": "physical_outcome",
@@ -1582,7 +1644,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -1600,7 +1663,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -1618,7 +1682,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -1636,7 +1701,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -1654,7 +1720,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -1672,7 +1739,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -1690,7 +1758,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -1708,7 +1777,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-6",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -1790,7 +1860,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -1808,7 +1879,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -1826,7 +1898,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -1844,7 +1917,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -1862,7 +1936,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -1880,7 +1955,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -1898,7 +1974,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -1916,7 +1993,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -1934,7 +2012,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -1952,7 +2031,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-7",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -2034,7 +2114,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "crashed"
         },
         {
           "domain": "persistence",
@@ -2052,7 +2133,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -2070,7 +2152,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -2088,7 +2171,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -2106,7 +2190,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -2124,7 +2209,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -2142,7 +2228,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -2160,7 +2247,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -2178,7 +2266,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -2196,7 +2285,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-8",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -2278,7 +2368,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -2296,7 +2387,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -2314,7 +2406,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -2332,7 +2425,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -2350,7 +2444,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -2368,7 +2463,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -2386,7 +2482,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -2404,7 +2501,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -2422,7 +2520,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -2440,7 +2539,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-9",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -2522,7 +2622,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -2540,7 +2641,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -2558,7 +2660,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -2576,7 +2679,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -2594,7 +2698,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -2612,7 +2717,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_fenced"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -2630,7 +2736,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -2648,7 +2755,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -2666,7 +2774,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -2684,7 +2793,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-10",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -2766,7 +2876,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -2784,7 +2895,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -2802,7 +2914,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -2820,7 +2933,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -2838,7 +2952,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -2856,7 +2971,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -2874,7 +2990,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -2892,7 +3009,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "not_applicable"
         },
         {
           "domain": "action_applicability",
@@ -2910,7 +3028,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -2928,7 +3047,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-11",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -3010,7 +3130,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -3028,7 +3149,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -3046,7 +3168,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -3064,7 +3187,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "none"
         },
         {
           "domain": "controller_queue",
@@ -3082,7 +3206,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -3100,7 +3225,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -3112,7 +3238,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-physical-outcome",
-          "claim_scope_sha256": "23ab43e9bb14c5ae224953f05c13c742f6bdd7e2ac83e841e77cc5dc1e8d18c9",
+          "claim_scope_sha256": "4aba272b772bd034badde8d6e8173419f0d20a646ed1134f55fec1c7fdfaaa9e",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3147,7 +3273,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "physical_outcome_observer_quorum-evidence-12",
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -3159,7 +3286,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-downstream-quiescence",
-          "claim_scope_sha256": "84aec8babd2451355e225e2f5269f8d113b0d07a02724d3b694f57fed84684f7",
+          "claim_scope_sha256": "50824c97a6c6f396dfb3b101880744b17760963baa504c81a483c81ff480ffa0",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3194,7 +3321,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "downstream_observer_quorum-evidence-12",
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "action_applicability",
@@ -3212,7 +3340,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -3230,7 +3359,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-12",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -3312,7 +3442,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -3330,7 +3461,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -3348,7 +3480,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -3366,7 +3499,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "controller_queue",
@@ -3384,7 +3518,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -3402,7 +3537,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -3414,7 +3550,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-physical-outcome",
-          "claim_scope_sha256": "23ab43e9bb14c5ae224953f05c13c742f6bdd7e2ac83e841e77cc5dc1e8d18c9",
+          "claim_scope_sha256": "4aba272b772bd034badde8d6e8173419f0d20a646ed1134f55fec1c7fdfaaa9e",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3449,7 +3585,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "physical_outcome_observer_quorum-evidence-13",
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -3461,7 +3598,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-downstream-quiescence",
-          "claim_scope_sha256": "84aec8babd2451355e225e2f5269f8d113b0d07a02724d3b694f57fed84684f7",
+          "claim_scope_sha256": "50824c97a6c6f396dfb3b101880744b17760963baa504c81a483c81ff480ffa0",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3496,7 +3633,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "downstream_observer_quorum-evidence-13",
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "action_applicability",
@@ -3514,7 +3652,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -3532,7 +3671,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-13",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "absent"
         }
       ]
     },
@@ -3614,7 +3754,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -3632,7 +3773,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -3650,7 +3792,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -3668,7 +3811,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "controller_queue",
@@ -3686,7 +3830,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -3704,7 +3849,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -3716,7 +3862,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-physical-outcome",
-          "claim_scope_sha256": "23ab43e9bb14c5ae224953f05c13c742f6bdd7e2ac83e841e77cc5dc1e8d18c9",
+          "claim_scope_sha256": "4aba272b772bd034badde8d6e8173419f0d20a646ed1134f55fec1c7fdfaaa9e",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3751,7 +3897,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "physical_outcome_observer_quorum-evidence-14",
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -3763,7 +3910,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-downstream-quiescence",
-          "claim_scope_sha256": "84aec8babd2451355e225e2f5269f8d113b0d07a02724d3b694f57fed84684f7",
+          "claim_scope_sha256": "50824c97a6c6f396dfb3b101880744b17760963baa504c81a483c81ff480ffa0",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -3798,7 +3945,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "downstream_observer_quorum-evidence-14",
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "action_applicability",
@@ -3816,7 +3964,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -3834,7 +3983,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-14",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "issued"
         }
       ]
     },
@@ -3916,7 +4066,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -3934,7 +4085,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -3952,7 +4104,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -3970,7 +4123,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "controller_queue",
@@ -3988,7 +4142,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -4006,7 +4161,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -4018,7 +4174,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-physical-outcome",
-          "claim_scope_sha256": "23ab43e9bb14c5ae224953f05c13c742f6bdd7e2ac83e841e77cc5dc1e8d18c9",
+          "claim_scope_sha256": "4aba272b772bd034badde8d6e8173419f0d20a646ed1134f55fec1c7fdfaaa9e",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -4053,7 +4209,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "physical_outcome_observer_quorum-evidence-15",
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -4065,7 +4222,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-downstream-quiescence",
-          "claim_scope_sha256": "84aec8babd2451355e225e2f5269f8d113b0d07a02724d3b694f57fed84684f7",
+          "claim_scope_sha256": "50824c97a6c6f396dfb3b101880744b17760963baa504c81a483c81ff480ffa0",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -4100,7 +4257,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "downstream_observer_quorum-evidence-15",
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "action_applicability",
@@ -4118,7 +4276,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -4136,7 +4295,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-15",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "issued"
         }
       ]
     },
@@ -4218,7 +4378,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "process_epoch-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "running"
         },
         {
           "domain": "persistence",
@@ -4236,7 +4397,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "persistence-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "definitely_not_committed"
         },
         {
           "domain": "physical_outcome",
@@ -4254,7 +4416,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "physical_outcome-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "mission_resolution",
@@ -4272,7 +4435,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "mission_resolution-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "controller_queue",
@@ -4290,7 +4454,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "controller_queue-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "fenced"
         },
         {
           "domain": "downstream_execution_graph",
@@ -4308,7 +4473,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "downstream_execution_graph-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "physical_outcome_observer_quorum",
@@ -4320,7 +4486,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-physical-outcome",
-          "claim_scope_sha256": "23ab43e9bb14c5ae224953f05c13c742f6bdd7e2ac83e841e77cc5dc1e8d18c9",
+          "claim_scope_sha256": "4aba272b772bd034badde8d6e8173419f0d20a646ed1134f55fec1c7fdfaaa9e",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -4355,7 +4521,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "physical_outcome_observer_quorum-evidence-16",
           "raw_artifact_id": "physical_outcome_observer_quorum-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "no_effect"
         },
         {
           "domain": "downstream_observer_quorum",
@@ -4367,7 +4534,7 @@
             "subject_controller_epoch": 1
           },
           "claim_id": "effect-1-attempt-1-downstream-quiescence",
-          "claim_scope_sha256": "84aec8babd2451355e225e2f5269f8d113b0d07a02724d3b694f57fed84684f7",
+          "claim_scope_sha256": "50824c97a6c6f396dfb3b101880744b17760963baa504c81a483c81ff480ffa0",
           "observer_quorum": {
             "fault_model_revision": "rrvr-common-cause-model-v0.1",
             "required_independent_members": 2,
@@ -4402,7 +4569,8 @@
           "owner_revision": "synthetic-owner-contract-v0.1",
           "evidence_id": "downstream_observer_quorum-evidence-16",
           "raw_artifact_id": "downstream_observer_quorum-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "quiescent"
         },
         {
           "domain": "action_applicability",
@@ -4420,7 +4588,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "action_applicability-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "current"
         },
         {
           "domain": "recovery_authority",
@@ -4438,7 +4607,8 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "recovery_authority-owner-raw-16",
-          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "asserted_value": "consumed"
         }
       ]
     }
