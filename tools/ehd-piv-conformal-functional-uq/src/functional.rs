@@ -141,6 +141,10 @@ pub enum FunctionalUqError {
     NonFiniteSharedSensitivity { mode_id: String, sample_index: usize },
     NonFiniteDerivedValue,
     NegativePropagatedVariance { functional_index: usize },
+    FunctionalCovarianceNotSymmetric,
+    FunctionalCovarianceNotPositiveSemidefinite,
+    FunctionalCovarianceEigenSolverDidNotConverge,
+    ZeroVarianceWithNonzeroCovariance { functional_index: usize, other_index: usize },
 }
 
 impl fmt::Display for FunctionalUqError {
@@ -159,6 +163,13 @@ impl fmt::Display for FunctionalUqError {
             Self::NonFiniteSharedSensitivity { mode_id, sample_index } => write!(f, "shared mode {mode_id} has non-finite sensitivity at sample {sample_index}"),
             Self::NonFiniteDerivedValue => write!(f, "field-functional propagation produced a non-finite result"),
             Self::NegativePropagatedVariance { functional_index } => write!(f, "propagated variance is negative for functional {functional_index}"),
+            Self::FunctionalCovarianceNotSymmetric => write!(f, "integrated functional covariance is not symmetric within tolerance"),
+            Self::FunctionalCovarianceNotPositiveSemidefinite => write!(f, "integrated functional covariance has a materially negative eigenvalue"),
+            Self::FunctionalCovarianceEigenSolverDidNotConverge => write!(f, "integrated functional covariance PSD check did not converge"),
+            Self::ZeroVarianceWithNonzeroCovariance { functional_index, other_index } => write!(
+                f,
+                "zero variance for functional {functional_index} has nonzero covariance with functional {other_index}"
+            ),
         }
     }
 }
@@ -167,6 +178,141 @@ impl Error for FunctionalUqError {}
 
 fn dot(left: [f64; 3], right: [f64; 3]) -> f64 {
     left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
+}
+
+/// Validate a 4x4 covariance after all local, shared-mode and spatial terms
+/// have been assembled. Scaling to a correlation matrix makes the eigenvalue
+/// tolerance dimensionless despite the mixed units of mass and momentum flux.
+pub(crate) fn validate_functional_covariance(
+    covariance: &[[f64; 4]; 4],
+) -> Result<(), FunctionalUqError> {
+    if !covariance.iter().flatten().all(|value| value.is_finite()) {
+        return Err(FunctionalUqError::NonFiniteDerivedValue);
+    }
+
+    let mut correlation = [[0.0_f64; 4]; 4];
+    let mut standard_deviations = [0.0_f64; 4];
+    for index in 0..4 {
+        let variance = covariance[index][index];
+        if variance < 0.0 {
+            return Err(FunctionalUqError::NegativePropagatedVariance {
+                functional_index: index,
+            });
+        }
+        standard_deviations[index] = variance.sqrt();
+        if variance > 0.0 {
+            correlation[index][index] = 1.0;
+        }
+    }
+
+    for left in 0..4 {
+        for right in (left + 1)..4 {
+            let upper = covariance[left][right];
+            let lower = covariance[right][left];
+            let scale = (standard_deviations[left] * standard_deviations[right])
+                .max(upper.abs())
+                .max(lower.abs())
+                .max(f64::MIN_POSITIVE);
+            if (upper - lower).abs() > 1.0e-10 * scale {
+                return Err(FunctionalUqError::FunctionalCovarianceNotSymmetric);
+            }
+
+            if standard_deviations[left] == 0.0 || standard_deviations[right] == 0.0 {
+                if upper != 0.0 || lower != 0.0 {
+                    return Err(FunctionalUqError::ZeroVarianceWithNonzeroCovariance {
+                        functional_index: if standard_deviations[left] == 0.0 { left } else { right },
+                        other_index: if standard_deviations[left] == 0.0 { right } else { left },
+                    });
+                }
+                continue;
+            }
+
+            let denominator = standard_deviations[left] * standard_deviations[right];
+            let normalized = (upper * 0.5 + lower * 0.5) / denominator;
+            if !normalized.is_finite() {
+                return Err(FunctionalUqError::NonFiniteDerivedValue);
+            }
+            correlation[left][right] = normalized;
+            correlation[right][left] = normalized;
+        }
+    }
+
+    let minimum_eigenvalue = minimum_eigenvalue_symmetric_4(correlation)?;
+    if minimum_eigenvalue < -1.0e-10 {
+        return Err(FunctionalUqError::FunctionalCovarianceNotPositiveSemidefinite);
+    }
+    Ok(())
+}
+
+fn minimum_eigenvalue_symmetric_4(
+    mut matrix: [[f64; 4]; 4],
+) -> Result<f64, FunctionalUqError> {
+    const MAX_ROTATIONS: usize = 128;
+    const OFF_DIAGONAL_TOLERANCE: f64 = 1.0e-14;
+
+    for _ in 0..MAX_ROTATIONS {
+        let mut p = 0;
+        let mut q = 1;
+        let mut maximum_off_diagonal = 0.0_f64;
+        for row in 0..4 {
+            for column in (row + 1)..4 {
+                let magnitude = matrix[row][column].abs();
+                if magnitude > maximum_off_diagonal {
+                    maximum_off_diagonal = magnitude;
+                    p = row;
+                    q = column;
+                }
+            }
+        }
+
+        if maximum_off_diagonal <= OFF_DIAGONAL_TOLERANCE {
+            let minimum = (0..4)
+                .map(|index| matrix[index][index])
+                .fold(f64::INFINITY, f64::min);
+            return Ok(minimum);
+        }
+
+        let app = matrix[p][p];
+        let aqq = matrix[q][q];
+        let apq = matrix[p][q];
+        let tau = (aqq - app) / (2.0 * apq);
+        let root = (1.0 + tau * tau).sqrt();
+        let tangent = if tau >= 0.0 {
+            1.0 / (tau + root)
+        } else {
+            -1.0 / (-tau + root)
+        };
+        let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
+        let sine = tangent * cosine;
+
+        for index in 0..4 {
+            if index != p && index != q {
+                let aip = matrix[index][p];
+                let aiq = matrix[index][q];
+                let new_p = cosine * aip - sine * aiq;
+                let new_q = sine * aip + cosine * aiq;
+                matrix[index][p] = new_p;
+                matrix[p][index] = new_p;
+                matrix[index][q] = new_q;
+                matrix[q][index] = new_q;
+            }
+        }
+
+        matrix[p][p] = app - tangent * apq;
+        matrix[q][q] = aqq + tangent * apq;
+        matrix[p][q] = 0.0;
+        matrix[q][p] = 0.0;
+    }
+
+    let residual = (0..4)
+        .flat_map(|row| ((row + 1)..4).map(move |column| matrix[row][column].abs()))
+        .fold(0.0_f64, f64::max);
+    if residual > 1.0e-12 {
+        return Err(FunctionalUqError::FunctionalCovarianceEigenSolverDidNotConverge);
+    }
+    Ok((0..4)
+        .map(|index| matrix[index][index])
+        .fold(f64::INFINITY, f64::min))
 }
 
 /// Propagate a field covariance model into integrated mass and advective
@@ -340,13 +486,13 @@ pub fn propagate_field_functional_uncertainty(
         }
     }
 
+    // Validate the complete joint object, not only its four marginal variances.
+    validate_functional_covariance(&functional_covariance)?;
+
     let mut standard_uncertainties = [0.0_f64; 4];
     for functional_index in 0..4 {
         let variance = functional_covariance[functional_index][functional_index];
-        if variance < -1.0e-12 {
-            return Err(FunctionalUqError::NegativePropagatedVariance { functional_index });
-        }
-        standard_uncertainties[functional_index] = variance.max(0.0).sqrt();
+        standard_uncertainties[functional_index] = variance.sqrt();
     }
     if !functional_values.iter().all(|value| value.is_finite()) {
         return Err(FunctionalUqError::NonFiniteDerivedValue);
@@ -390,6 +536,89 @@ mod tests {
             samples,
             shared_modes: Vec::new(),
         }
+    }
+
+    #[test]
+    fn integrated_covariance_accepts_rank_deficient_psd_matrix() {
+        let covariance = [
+            [1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 4.0, 2.0],
+            [0.0, 0.0, 2.0, 1.0],
+        ];
+        assert!(validate_functional_covariance(&covariance).is_ok());
+    }
+
+    #[test]
+    fn integrated_covariance_accepts_roundoff_scale_negative_eigenvalue() {
+        let covariance = [
+            [1.0, 1.0 + 1.0e-12, 0.0, 0.0],
+            [1.0 + 1.0e-12, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        assert!(validate_functional_covariance(&covariance).is_ok());
+    }
+
+    #[test]
+    fn integrated_covariance_psd_gate_is_invariant_to_independent_unit_rescaling() {
+        let correlation = [
+            [1.0, 0.2, 0.0, 0.0],
+            [0.2, 1.0, 0.25, 0.0],
+            [0.0, 0.25, 1.0, 0.1],
+            [0.0, 0.0, 0.1, 1.0],
+        ];
+        let standard_deviations = [1.0e6, 1.0e-4, 1.0e9, 1.0e-8];
+        let mut covariance = [[0.0; 4]; 4];
+        for row in 0..4 {
+            for column in 0..4 {
+                covariance[row][column] =
+                    standard_deviations[row] * correlation[row][column] * standard_deviations[column];
+            }
+        }
+        assert!(validate_functional_covariance(&covariance).is_ok());
+    }
+
+    #[test]
+    fn integrated_covariance_rejects_indefinite_matrix_with_positive_diagonal() {
+        let covariance = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 2.0],
+            [0.0, 0.0, 2.0, 1.0],
+        ];
+        assert!(matches!(
+            validate_functional_covariance(&covariance),
+            Err(FunctionalUqError::FunctionalCovarianceNotPositiveSemidefinite)
+        ));
+    }
+
+    #[test]
+    fn integrated_covariance_rejects_material_asymmetry() {
+        let covariance = [
+            [1.0, 0.1, 0.0, 0.0],
+            [0.2, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        assert!(matches!(
+            validate_functional_covariance(&covariance),
+            Err(FunctionalUqError::FunctionalCovarianceNotSymmetric)
+        ));
+    }
+
+    #[test]
+    fn zero_variance_functional_cannot_have_nonzero_cross_covariance() {
+        let covariance = [
+            [0.0, 1.0e-30, 0.0, 0.0],
+            [1.0e-30, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        assert!(matches!(
+            validate_functional_covariance(&covariance),
+            Err(FunctionalUqError::ZeroVarianceWithNonzeroCovariance { .. })
+        ));
     }
 
     #[test]
