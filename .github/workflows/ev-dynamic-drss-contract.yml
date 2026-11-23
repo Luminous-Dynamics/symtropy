@@ -1,0 +1,117 @@
+name: EV Dynamic DRSS Benchmark Contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-dynamic-drss-contract/**"
+      - "docs/research/EV_FACTORY_DYNAMIC_DRSS_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-dynamic-drss-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-dynamic-drss-contract/**"
+      - "docs/research/EV_FACTORY_DYNAMIC_DRSS_BENCHMARK_V0_1.md"
+      - ".github/workflows/ev-dynamic-drss-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check out pinned DRSS metadata and source archives for hashing only
+        uses: actions/checkout@v4
+        with:
+          repository: nuno-a-marques/drss
+          ref: b3db3fb98ab5215fd8612a5ea3638702a1d39728
+          path: upstream-drss
+          fetch-depth: 1
+          sparse-checkout: |
+            README.md
+            drss-prs.zip
+            drss-rtrs.zip
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Verify upstream source identity and fail if license surface changes
+        run: |
+          test "$(git -C upstream-drss rev-parse HEAD)" = "b3db3fb98ab5215fd8612a5ea3638702a1d39728"
+          test "$(git -C upstream-drss hash-object README.md)" = "c3bbb6d68b864a511cc9bce03d26d795a9b5a8ee"
+          test "$(git -C upstream-drss hash-object drss-prs.zip)" = "a64ea1ae19054d7da894320c7c7b0b9c8dda18e2"
+          test "$(git -C upstream-drss hash-object drss-rtrs.zip)" = "713c46453481e5afb0e15c58bfa94d9db6e1a435"
+          test "$(wc -c < upstream-drss/README.md | tr -d ' ')" = "16903"
+          test "$(wc -c < upstream-drss/drss-prs.zip | tr -d ' ')" = "24023748"
+          test "$(wc -c < upstream-drss/drss-rtrs.zip | tr -d ' ')" = "19575462"
+          roots="$(git -C upstream-drss ls-tree --name-only HEAD)"
+          ! printf '%s\n' "$roots" | grep -Ex 'LICENSE|LICENSE\.md|LICENSE\.txt|COPYING|COPYING\.txt'
+      - name: Rust formatting, lints and unit tests
+        run: |
+          cargo fmt --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml -- --check
+          cargo clippy --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml
+      - name: Verify full grid, source pins, reference rows and score table against pinned README
+        run: |
+          cargo run --quiet --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml -- \
+            tools/ev-dynamic-drss-contract/fixtures/drss_benchmark_contract_v0_1.json upstream-drss \
+            > drss-contract-report.json
+          jq -e '
+            .schema_version == "dynamic-drss-contract-report/0.1"
+            and .status == "source_and_score_contract_validated_not_benchmark_reproduced"
+            and .benchmark_id == "DRSS-DYNAMIC-JSP-2025"
+            and .source_revision_and_git_blob_pins_verified
+            and .no_upstream_code_archives_redistributed
+            and .machine_count == 20
+            and .jobs_per_episode == 2500
+            and .warmup_jobs_excluded_from_tardiness == 500
+            and .scored_jobs_per_episode == 2000
+            and .validation_scenario_count == 32
+            and .test_scenario_count == 75
+            and .total_scenario_count == 107
+            and .replications_per_scenario == 100
+            and .full_grid_episode_count == 10700
+            and .full_grid_generated_job_count == 26750000
+            and .full_grid_scored_job_count == 21400000
+            and .validation_reference_rows_verified == 32
+            and .test_reference_rows_verified == 75
+            and .best_published_validation_score.algorithm == "DQL"
+            and .best_published_validation_score.score == 0.981
+            and .best_published_test_score.algorithm == "SVM-Reg."
+            and .best_published_test_score.score == 0.995
+            and (.claim_ceiling | contains("No DRSS code is executed here"))
+          ' drss-contract-report.json
+      - name: Negative control - changed reference row must fail closed
+        run: |
+          jq '.simulator_protocol.validation.reference_rows[0].reference_mean_tardiness += 1' \
+            tools/ev-dynamic-drss-contract/fixtures/drss_benchmark_contract_v0_1.json > invalid-drss-reference.json
+          if cargo run --quiet --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml -- \
+            invalid-drss-reference.json upstream-drss > /dev/null 2> invalid-drss-reference.stderr; then
+            echo "changed DRSS reference value was unexpectedly accepted" >&2
+            exit 1
+          fi
+          grep -q "validation_reference_rows_do_not_match_pinned_readme" invalid-drss-reference.stderr
+      - name: Deterministic replay and artifact hashes
+        run: |
+          cargo run --quiet --manifest-path tools/ev-dynamic-drss-contract/Cargo.toml -- \
+            tools/ev-dynamic-drss-contract/fixtures/drss_benchmark_contract_v0_1.json upstream-drss \
+            > drss-contract-repeat.json
+          cmp drss-contract-report.json drss-contract-repeat.json
+          sha256sum \
+            tools/ev-dynamic-drss-contract/src/main.rs \
+            tools/ev-dynamic-drss-contract/Cargo.toml \
+            tools/ev-dynamic-drss-contract/fixtures/drss_benchmark_contract_v0_1.json \
+            docs/research/EV_FACTORY_DYNAMIC_DRSS_BENCHMARK_V0_1.md \
+            .github/workflows/ev-dynamic-drss-contract.yml \
+            upstream-drss/README.md upstream-drss/drss-prs.zip upstream-drss/drss-rtrs.zip \
+            drss-contract-report.json > drss-contract-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ev-dynamic-drss-source-and-score-contract
+          path: |
+            drss-contract-report.json
+            drss-contract-sha256.txt
+          if-no-files-found: error
