@@ -14,7 +14,11 @@
     "driver_revision": "driver-fixture-98ad",
     "firmware_revision": "firmware-fixture-2026.11",
     "calibration_revision": "calibration-fixture-2026.11",
-    "observer_stack_revision": "observer-fixture-v0.1"
+    "observer_stack_revision": "observer-fixture-v0.1",
+    "fault_injector_revision": "fault-injector-v0.1",
+    "fault_injector_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "native_adapter_revision": "native-adapter-6749-fixture",
+    "runtime_monitor_revision": "rrvr-runtime-monitor-v0.1"
   },
   "reset": {
     "kind": "simulator_snapshot_restore",
