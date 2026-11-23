@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_replay",
-  "status": "corrected_chi_a_over_mu_and_q_truncation; independent_local_symbolic_rederivation_passed; exact_public_blob_replay_pending",
+  "status": "exact_public_source_blob_replayed_locally",
   "local_source": {
     "path": "/tmp/verify_ma_lu_fixed_boundary_map.py",
     "sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
@@ -28,7 +28,7 @@
     "negative_control_nu_h_vs_nu_S": true,
     "negative_control_chi_factor": true
   },
-  "claim_ceiling": "Exact first-order-coupling, equal-spin, slow-rotation fixed-boundary parameter map with chi=a/mu. The public verifier is committed but exact-byte local replay is pending. No H5/H6 angular-diagonal component match, corrected ADM mass, finite-coupling branch or existence theorem is claimed.",
+  "claim_ceiling": "Exact local replay of the public fixed-boundary symbolic verifier and exact first-order-coupling, equal-spin, slow-rotation parameter map. mu/R_H^2 is the converted background MP parameter, not corrected ADM mass. No H5/H6 angular-diagonal metric match, corrected ADM mass, finite-coupling branch, interval existence or hyperbolicity result is claimed.",
   "parameter_interpretation": {
     "chi": "a/mu (Ma-Lu Eq. 10)",
     "chi_times_R_H": "2*nu_S-2*nu_S^3+(52/3)*epsilon_S*nu_S-(2344/15)*epsilon_S*nu_S^3",
@@ -37,7 +37,8 @@
   "public_verifier": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_fixed_symtropy_boundary_map.py",
     "git_blob_sha1": "e957b15d264850512c0af0799f98ad5af8afe60e",
-    "exact_local_blob_replay": "pending"
+    "sha256": "584fa6bbb2d0754f9fc842397bd8e8597f9bd0736b00da1cea8057223b2fa677",
+    "exact_bytes_match": true
   },
   "local_independent_rederivation": {
     "python": "3.13.5",
@@ -52,5 +53,26 @@
       "negative controls for H7, H2/H4, nu_h versus nu_S, and chi factor"
     ],
     "result": "all_exact_symbolic_checks_pass"
+  },
+  "exact_public_replay": {
+    "environment": {
+      "python": "3.13.5",
+      "sympy": "1.14.0"
+    },
+    "execution": "Exact committed Git blob fetched, hash-checked and executed locally",
+    "checks": {
+      "horizon_H2_H4_H7": true,
+      "nuS_and_radius_series": true,
+      "inverse_q_series": true,
+      "a_and_mu_parameter_maps": true,
+      "chi_times_RH_map": true,
+      "GR_exact_limit": true,
+      "negative_control_omit_H7": true,
+      "negative_control_omit_H2_H4": true,
+      "negative_control_nu_h_vs_nu_S": true,
+      "negative_control_sqrt2_chi": true
+    },
+    "result": "FIXED_BOUNDARY_MAP_ALL_EXACT_SYMBOLIC_CHECKS_PASS",
+    "truncation_note": "Intermediate nuS(q,eR) and RH/rh expansions are truncated consistently at q^3 (order argument 4); earlier q^5 remainder leakage is fixed."
   }
 }
