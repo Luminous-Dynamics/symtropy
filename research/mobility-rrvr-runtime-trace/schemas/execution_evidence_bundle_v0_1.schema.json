@@ -752,6 +752,134 @@
         "partial_effect",
         "permit_replay"
       ]
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "profile_sha256",
+        "environment_artifact_sha256",
+        "simulator_revision",
+        "ros_distribution",
+        "middleware_revision",
+        "controller_revision",
+        "driver_revision",
+        "firmware_revision",
+        "calibration_revision",
+        "observer_stack_revision",
+        "fault_injector_revision",
+        "fault_injector_sha256",
+        "native_adapter_revision",
+        "runtime_monitor_revision",
+        "fault_injector_fault_domain_id",
+        "fault_injector_id",
+        "native_adapter_id",
+        "simulation_interfaces_revision",
+        "scene_broadcaster_id",
+        "scene_broadcaster_revision",
+        "scene_broadcaster_sha256",
+        "observer_id",
+        "observer_fault_domain_id",
+        "observer_binary_sha256"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "simulator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ros_distribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "middleware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "driver_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_stack_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "native_adapter_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_monitor_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_adapter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simulation_interfaces_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_broadcaster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_broadcaster_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_broadcaster_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_binary_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
     }
   }
 }
