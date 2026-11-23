@@ -306,6 +306,7 @@ pub struct ContactSetReport {
     pub directions: Vec<DirectionalSetSupport>,
     pub maximum_normalized_deficit: f64,
     pub mean_normalized_deficit: f64,
+    pub contact_sets_evaluated: u64,
     pub support_evaluations: u64,
 }
 
@@ -460,6 +461,7 @@ pub fn evaluate_retained_contact_set(
         directions: reports,
         maximum_normalized_deficit,
         mean_normalized_deficit,
+        contact_sets_evaluated: 1,
         support_evaluations,
     })
 }
@@ -527,7 +529,13 @@ pub fn select_exact_contact_subset(
         )));
     }
 
+    let required_ids = contacts
+        .iter()
+        .filter(|contact| contact.min_normal_fraction > 0.0)
+        .map(|contact| contact.id.as_str())
+        .collect::<BTreeSet<_>>();
     let mut best: Option<ContactSetReport> = None;
+    let mut evaluated_sets = 0_u64;
     let mut current_ids = Vec::with_capacity(config.keep);
     visit_contact_combinations(
         &contacts,
@@ -535,17 +543,31 @@ pub fn select_exact_contact_subset(
         0,
         &mut current_ids,
         &mut |ids| {
-            let candidate =
+            if required_ids.iter().any(|required| !ids.iter().any(|id| id == required)) {
+                return Ok(());
+            }
+            let mut candidate =
                 evaluate_retained_contact_set(model, ids, directions, support_floor)?;
+            evaluated_sets = evaluated_sets
+                .checked_add(1)
+                .ok_or_else(|| OracleError::new("contact-set evaluation counter overflow"))?;
             if best.as_ref().is_none_or(|incumbent| {
                 compare_contact_set_reports(&candidate, incumbent).is_lt()
             }) {
+                candidate.contact_sets_evaluated = evaluated_sets;
                 best = Some(candidate);
             }
             Ok(())
         },
     )?;
-    best.ok_or_else(|| OracleError::new("exact contact selector produced no candidate"))
+    let mut result =
+        best.ok_or_else(|| OracleError::new("exact contact selector produced no feasible candidate set"))?;
+    result.contact_sets_evaluated = evaluated_sets;
+    result.support_evaluations = evaluated_sets
+        .checked_mul(directions.len() as u64)
+        .and_then(|count| count.checked_mul(2))
+        .ok_or_else(|| OracleError::new("exact support evaluation counter overflow"))?;
+    Ok(result)
 }
 
 /// Deterministic greedy contact selector. This is a baseline, not a general
@@ -577,6 +599,7 @@ pub fn select_greedy_contact_subset(
 
     let mut selected = required_ids;
     let mut evaluations = 0_u64;
+    let mut selected_report = None;
     while selected.len() < config.keep {
         let mut best: Option<(ContactSetReport, Vec<String>)> = None;
         for contact in &contacts {
@@ -591,25 +614,27 @@ pub fn select_greedy_contact_subset(
             let mut trial = selected.clone();
             trial.push(contact.id.clone());
             let report = evaluate_retained_contact_set(model, &trial, directions, support_floor)?;
-            evaluations += 1;
+            evaluations = evaluations
+                .checked_add(1)
+                .ok_or_else(|| OracleError::new("greedy contact evaluation counter overflow"))?;
             if best.as_ref().is_none_or(|(incumbent, _)| {
                 compare_contact_set_reports(&report, incumbent).is_lt()
             }) {
                 best = Some((report, trial));
             }
         }
-        let (_, ids) = best
+        let (report, ids) = best
             .ok_or_else(|| OracleError::new("greedy contact selector found no candidate"))?;
         selected = ids;
+        selected_report = Some(report);
     }
 
-    let mut result =
-        evaluate_retained_contact_set(model, &selected, directions, support_floor)?;
-    result.support_evaluations = result
-        .support_evaluations
-        .checked_add(evaluations.checked_mul(directions.len() as u64 * 2).ok_or_else(|| {
-            OracleError::new("greedy support evaluation counter overflow")
-        })?)
+    let mut result = selected_report
+        .ok_or_else(|| OracleError::new("greedy contact selector produced no retained set"))?;
+    result.contact_sets_evaluated = evaluations;
+    result.support_evaluations = evaluations
+        .checked_mul(directions.len() as u64)
+        .and_then(|count| count.checked_mul(2))
         .ok_or_else(|| OracleError::new("greedy support evaluation counter overflow"))?;
     Ok(result)
 }
