@@ -344,7 +344,10 @@ mod tests {
         let world = TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::RelabelledReverse);
         let report = world.run_unique_incidence_baseline().unwrap();
 
-        assert_eq!(report.disposition, TransferAtlasDispositionV0::TransferAccepted);
+        assert_eq!(
+            report.disposition,
+            TransferAtlasDispositionV0::TransferAccepted
+        );
         assert_eq!(report.witness.unwrap().mapped_nodes, 3);
     }
 
@@ -357,7 +360,10 @@ mod tests {
         assert_eq!(result, Err(GraphMatchErrorV0::AmbiguousNodeSignature));
 
         let report = world.evaluate(None);
-        assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
+        assert_eq!(
+            report.disposition,
+            TransferAtlasDispositionV0::CorrectAbstention
+        );
     }
 
     fn degree_sequence(structure: &StructureV0) -> Vec<usize> {
