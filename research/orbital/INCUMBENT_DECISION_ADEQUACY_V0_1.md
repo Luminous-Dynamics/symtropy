@@ -56,7 +56,7 @@ A distribution can change while the incumbent remains within the finite-world re
 
 ## 4. Frozen v0.1 corpus
 
-The 14 cases cover:
+The 15 cases cover:
 1. Stable incumbent retention with non-zero exact regret.
 2. Decision-irrelevant world changes that leave the incumbent optimal.
 3. Different world-specific optimal actions while incumbent regret remains within the retention margin.
