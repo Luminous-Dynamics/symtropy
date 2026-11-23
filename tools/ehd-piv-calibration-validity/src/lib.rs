@@ -205,9 +205,7 @@ pub struct LiveEvidence {
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
-    AbstainOutOfEnvelope {
-        feature: String,
-    },
+    AbstainOutOfEnvelope { feature: String },
     AbstainInsufficientEvidence,
 }
 
@@ -266,21 +264,13 @@ pub enum Disposition {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CertificateError {
-    EmptyIdentity {
-        field: &'static str,
-    },
+    EmptyIdentity { field: &'static str },
     InvalidAge,
     EmptyScope,
-    InvalidFeatureBound {
-        feature: String,
-    },
-    DuplicateFeature {
-        feature: String,
-    },
+    InvalidFeatureBound { feature: String },
+    DuplicateFeature { feature: String },
     EmptyCalibrationCohort,
-    DuplicateCalibrationCluster {
-        cluster_id: String,
-    },
+    DuplicateCalibrationCluster { cluster_id: String },
     UnexpectedWeightedPolicy,
     MissingWeightedPolicy,
     InvalidWeightedSupportPolicy,
@@ -387,15 +377,13 @@ impl CalibrationSupervisor {
             );
         }
 
-        self.seen_evidence_ids
-            .insert(evidence.evidence_id.clone());
+        self.seen_evidence_ids.insert(evidence.evidence_id.clone());
         self.last_tick = Some(evidence.tick);
         self.seen_dependence_clusters
             .insert(evidence.dependence_cluster_id.clone());
 
         if evidence.tick < self.certificate.issued_at_tick
-            || evidence.tick - self.certificate.issued_at_tick
-                > self.certificate.maximum_age_ticks
+            || evidence.tick - self.certificate.issued_at_tick > self.certificate.maximum_age_ticks
         {
             return self.suspend(
                 FailureAction::RecalibrationRequired,
@@ -489,25 +477,37 @@ impl CalibrationSupervisor {
             }
         }
 
-        if evidence.signals.contains(&ShiftSignal::FeatureSupportUnknown) {
+        if evidence
+            .signals
+            .contains(&ShiftSignal::FeatureSupportUnknown)
+        {
             return self.suspend(
                 FailureAction::AbstainInsufficientEvidence,
                 Reason::FeatureSupportUnknown,
             );
         }
-        if evidence.signals.contains(&ShiftSignal::ReferenceUnqualified) {
+        if evidence
+            .signals
+            .contains(&ShiftSignal::ReferenceUnqualified)
+        {
             return self.suspend(
                 FailureAction::IndependentDiagnosticRequired,
                 Reason::ReferenceUnqualified,
             );
         }
-        if evidence.signals.contains(&ShiftSignal::SharedCauseUnresolved) {
+        if evidence
+            .signals
+            .contains(&ShiftSignal::SharedCauseUnresolved)
+        {
             return self.suspend(
                 FailureAction::IndependentDiagnosticRequired,
                 Reason::SharedCauseUnresolved,
             );
         }
-        if evidence.signals.contains(&ShiftSignal::ObserverIntervention) {
+        if evidence
+            .signals
+            .contains(&ShiftSignal::ObserverIntervention)
+        {
             return self.suspend(
                 FailureAction::IndependentDiagnosticRequired,
                 Reason::ObserverIntervention,
@@ -538,7 +538,10 @@ impl CalibrationSupervisor {
             );
         }
 
-        if evidence.signals.contains(&ShiftSignal::CovariateShiftDetected) {
+        if evidence
+            .signals
+            .contains(&ShiftSignal::CovariateShiftDetected)
+        {
             if self.certificate.method != CalibrationMethod::WeightedCovariateShift {
                 return self.suspend(
                     FailureAction::RecalibrationRequired,
@@ -558,7 +561,10 @@ impl CalibrationSupervisor {
                 );
             };
             let adequate = !support.estimator_id.trim().is_empty()
-                && !support.conditional_law_stability_evidence_id.trim().is_empty()
+                && !support
+                    .conditional_law_stability_evidence_id
+                    .trim()
+                    .is_empty()
                 && support.finite_ratio_evidence
                 && support.effective_sample_size.is_finite()
                 && support.effective_sample_size >= policy.minimum_effective_sample_size
@@ -611,11 +617,8 @@ impl CalibrationSupervisor {
             return Err(RequalificationError::ReceiptIncomplete);
         }
 
-        let declared_calibration: BTreeSet<String> = next
-            .calibration_cluster_ids
-            .iter()
-            .cloned()
-            .collect();
+        let declared_calibration: BTreeSet<String> =
+            next.calibration_cluster_ids.iter().cloned().collect();
         if declared_calibration != receipt.calibration_cluster_ids {
             return Err(RequalificationError::CalibrationCohortMismatch);
         }
@@ -634,10 +637,7 @@ impl CalibrationSupervisor {
         if !declared_calibration.is_disjoint(&prior_clusters) {
             return Err(RequalificationError::CalibrationClustersOverlap);
         }
-        if !receipt
-            .sealed_test_cluster_ids
-            .is_disjoint(&prior_clusters)
-        {
+        if !receipt.sealed_test_cluster_ids.is_disjoint(&prior_clusters) {
             return Err(RequalificationError::SealedTestClustersOverlap);
         }
 
@@ -652,9 +652,7 @@ impl CalibrationSupervisor {
             reason: reason.clone(),
         });
         match action {
-            FailureAction::RecalibrationRequired => {
-                Disposition::RecalibrationRequired { reason }
-            }
+            FailureAction::RecalibrationRequired => Disposition::RecalibrationRequired { reason },
             FailureAction::IndependentDiagnosticRequired => {
                 Disposition::IndependentDiagnosticRequired { reason }
             }
@@ -715,10 +713,7 @@ mod tests {
             dependence_cluster_id: format!("session-{id}"),
             tick,
             fingerprints: fingerprints(),
-            features: BTreeMap::from([
-                ("velocity".into(), 3.0),
-                ("reynolds".into(), 1_000.0),
-            ]),
+            features: BTreeMap::from([("velocity".into(), 3.0), ("reynolds".into(), 1_000.0)]),
             signals: BTreeSet::new(),
             weighted_support: None,
         }
@@ -818,8 +813,7 @@ mod tests {
         ];
 
         for (index, (_name, mutate, reason)) in cases.into_iter().enumerate() {
-            let mut supervisor =
-                CalibrationSupervisor::new(certificate()).expect("valid fixture");
+            let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
             let mut sample = evidence(&format!("identity-{index}"), 11);
             mutate(&mut sample.fingerprints);
             assert_eq!(
@@ -970,7 +964,9 @@ mod tests {
     fn fresh_samples_cannot_self_restore_a_suspended_certificate() {
         let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
         let mut changed = evidence("e-1", 11);
-        changed.signals.insert(ShiftSignal::ConditionalResidualDriftDetected);
+        changed
+            .signals
+            .insert(ShiftSignal::ConditionalResidualDriftDetected);
         assert!(matches!(
             supervisor.observe(&changed),
             Disposition::RecalibrationRequired { .. }
