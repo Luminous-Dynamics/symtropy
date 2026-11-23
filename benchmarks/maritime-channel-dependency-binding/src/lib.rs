@@ -709,12 +709,6 @@ fn assess_obligation(
         finding
             .notes
             .push("a required canonical dependency is shared".to_owned());
-    } else if any_not_applicable {
-        finding.disposition = SeparationDisposition::NotApplicable;
-        finding.notes.push(
-            "a role excludes this dimension; known dependencies on the other role remain visible"
-                .to_owned(),
-        );
     } else if path_has_unknown_relation {
         finding.disposition = SeparationDisposition::Indeterminate;
         finding.notes.push(
@@ -725,6 +719,12 @@ fn assess_obligation(
         finding
             .notes
             .push("dependency closure or currentness is unresolved".to_owned());
+    } else if any_not_applicable {
+        finding.disposition = SeparationDisposition::NotApplicable;
+        finding.notes.push(
+            "a role excludes this dimension; known dependencies on the other role remain visible"
+                .to_owned(),
+        );
     } else if left_partial || right_partial {
         finding.disposition = SeparationDisposition::Incomplete;
         finding
@@ -1783,6 +1783,38 @@ mod tests {
         assert_eq!(
             result.findings[0].disposition,
             SeparationDisposition::NotApplicable
+        );
+        assert!(result.findings[0].left_not_applicable);
+        assert_eq!(result.findings[0].right_known_count, 1);
+    }
+
+    #[test]
+    fn stale_counterpart_is_not_hidden_by_not_applicable_role() {
+        let dimension = FaultDomainDimension::TrustRoot;
+        let mut stale = witness(
+            2,
+            MaritimeDependencyClass::SigningAuthority,
+            "witness-binding",
+            "witness-signing-root",
+            "edge-witness",
+        );
+        stale.currentness = EvidenceCurrentness::Stale;
+        let (profile, projection) = projection(
+            DimensionInventory::NotApplicable {
+                rationale: "Source channel has no declared signing authority".to_owned(),
+                owner: "source-assurance-owner".to_owned(),
+            },
+            DimensionInventory::Complete(vec![stale]),
+            dimension,
+        );
+        let result = assess(&profile, &projection);
+        assert_eq!(
+            result.findings[0].disposition,
+            SeparationDisposition::Indeterminate
+        );
+        assert_eq!(
+            result.disposition,
+            ProfileDisposition::ProfileIndeterminate
         );
         assert!(result.findings[0].left_not_applicable);
         assert_eq!(result.findings[0].right_known_count, 1);
