@@ -13,6 +13,10 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+use av_action_argument_replay_v0::{
+    ActionParameterForecastV1, ActionParametersV1, ActionResultStatusV1, RequestAcceptanceV1,
+    ActionResultV1, validate_action_lifecycle,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -164,6 +168,64 @@ pub struct ParentAcquisitionEvidenceV1 {
     pub status: ParentAcquisitionStatusV1,
     /// Logical tick when the parent result entered the evidence ledger.
     pub result_tick: u64,
+}
+
+/// Derive audio parent evidence from the canonical #6897 acquisition lifecycle.
+///
+/// This prevents callers from manufacturing a second request/result identity
+/// graph: forecast, acceptance and result are first validated by the owning
+/// acquisition protocol, then converted into the source-span facts consumed
+/// by derived-representation validation.
+pub fn parent_audio_evidence_from_action_lifecycle(
+    forecast: &ActionParameterForecastV1,
+    acceptance: &RequestAcceptanceV1,
+    result: &ActionResultV1,
+) -> Result<ParentAcquisitionEvidenceV1, DerivedReceiptError> {
+    validate_action_lifecycle(forecast, acceptance, result).map_err(|error| {
+        DerivedReceiptError::new(format!("parent acquisition lifecycle invalid: {error}"))
+    })?;
+
+    let action = forecast
+        .actions
+        .iter()
+        .find(|entry| entry.action_id == forecast.selected_action_id)
+        .ok_or_else(|| DerivedReceiptError::new("selected acquisition manifest is missing"))?;
+    let ActionParametersV1::AudioWindow(_) = &action.manifest.parameters else {
+        return Err(DerivedReceiptError::new(
+            "audio parent evidence requires an audio-window acquisition action",
+        ));
+    };
+    let delivered = result.delivered_audio.ok_or_else(|| {
+        DerivedReceiptError::new("audio acquisition result has no delivered sample-range receipt")
+    })?;
+
+    let status = match result.status {
+        ActionResultStatusV1::Delivered => ParentAcquisitionStatusV1::Delivered,
+        ActionResultStatusV1::Partial => ParentAcquisitionStatusV1::Partial,
+        ActionResultStatusV1::Late => ParentAcquisitionStatusV1::Late,
+        ActionResultStatusV1::Unavailable => ParentAcquisitionStatusV1::Unavailable,
+        ActionResultStatusV1::Failed => ParentAcquisitionStatusV1::Failed,
+        ActionResultStatusV1::Cancelled => ParentAcquisitionStatusV1::Cancelled,
+    };
+
+    Ok(ParentAcquisitionEvidenceV1 {
+        request_id: result.request_id.clone(),
+        result_event_sha256: result.result_event_sha256.clone(),
+        source: SourceIdentityV1 {
+            source_id: action.manifest.source.source_id.clone(),
+            source_content_sha256: action.manifest.source.source_content_sha256.clone(),
+            clock_domain_id: action.manifest.source.clock_domain_id.clone(),
+            clock_generation: action.manifest.source.clock_generation,
+        },
+        delivered_spans: vec![SourceSpanV1::AudioSamples(AudioSampleSpanV1 {
+            start_sample: delivered.start_sample,
+            end_sample: delivered.end_sample,
+            sample_rate_hz: delivered.sample_rate_hz,
+            channels: delivered.channels,
+        })],
+        status,
+        result_tick: result.result_tick,
+    })
 }
 
 /// Executable identity of the encoder or transformation.
