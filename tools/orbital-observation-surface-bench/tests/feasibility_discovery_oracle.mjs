@@ -500,11 +500,12 @@ try{
     x.query_id==="redundant-query" && x.branch_actions.same==="safe");
   if(alternatePolicy?.worst_case_wait_and_see_regret?.numerator!==1 ||
      alternatePolicy?.worst_case_wait_and_see_regret?.denominator!==2 ||
-     alternatePolicy?.worst_case_outcome_class_regret?.numerator!==0) {
+     alternatePolicy?.worst_case_outcome_class_regret?.numerator!==1 ||
+     alternatePolicy?.worst_case_outcome_class_regret?.denominator!==5) {
     fail("clairvoyant and non-anticipative regret controls collapsed or were miscomputed");
   }
-  if(safePolicy?.worst_case_outcome_class_regret?.numerator!==3 ||
-     safePolicy?.worst_case_outcome_class_regret?.denominator!==10) {
+  if(safePolicy?.worst_case_outcome_class_regret?.numerator!==0 ||
+     safePolicy?.worst_case_outcome_class_regret?.denominator!==1) {
     fail("outcome-class robust comparator failed to identify the best common action");
   }
   const reversed=structuredClone(input);
