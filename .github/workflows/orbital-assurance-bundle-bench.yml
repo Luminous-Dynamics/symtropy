@@ -164,7 +164,7 @@ jobs:
             and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .result == "pass"
-            and .evaluation.summary.case_count == 14
+            and .evaluation.summary.case_count == 15
             and .evaluation.summary.retain_incumbent_cases >= 1
             and .evaluation.summary.reoptimization_warranted_cases >= 1
             and .evaluation.summary.abstain_cases >= 1
