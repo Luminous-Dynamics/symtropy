@@ -18,7 +18,7 @@
 
 use crate::continuous_dependence_envelope::{
     validate_pairwise_interval_set, validate_witness_within_intervals,
-    CorrelationCoefficientBounds, PairwiseCorrelationIntervalSet,
+    PairwiseCorrelationIntervalSet,
 };
 use crate::multisource_dependence_design::{
     canonicalize_and_validate_correlation_matrix, minimum_symmetric_eigenvalue, validate_candidate,
@@ -373,7 +373,6 @@ fn build_observation_covariance(
     correlation: &[Vec<f64>],
 ) -> Result<Vec<Vec<f64>>, ModelError> {
     let observation_count = candidate.observation_sensitivities.len();
-    let source_count = candidate.source_standard_deviations.len();
     let mut covariance = vec![vec![0.0; observation_count]; observation_count];
     for (row, covariance_row) in covariance.iter_mut().enumerate() {
         for (column, covariance_value) in covariance_row.iter_mut().enumerate() {
@@ -490,6 +489,7 @@ fn bilinear_form(left: &[f64], matrix: &[Vec<f64>], right: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::CorrelationCoefficientBounds;
 
     const RECEIPT: &str = "receipt:exact-two-source-sdp-example";
 
