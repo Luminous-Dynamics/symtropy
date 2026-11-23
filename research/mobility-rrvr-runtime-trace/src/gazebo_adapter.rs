@@ -159,9 +159,7 @@ impl GazeboCapabilityProfile {
         if self.ros_distribution != plan.platform.ros_distribution {
             return Err(GazeboAdapterError::RosDistributionMismatch);
         }
-        if self.simulation_interfaces_revision
-            != plan.platform.simulation_interfaces_revision
-        {
+        if self.simulation_interfaces_revision != plan.platform.simulation_interfaces_revision {
             return Err(GazeboAdapterError::PlatformRevisionMismatch);
         }
         if self.world_profile_sha256 != plan.platform.environment_artifact_sha256 {
@@ -191,7 +189,10 @@ impl GazeboCapabilityProfile {
             }
         }
 
-        if self.capabilities.contains(&GazeboCapability::StepSimulation) {
+        if self
+            .capabilities
+            .contains(&GazeboCapability::StepSimulation)
+        {
             Ok(SteppingMethod::StepSimulationService)
         } else if self.capabilities.contains(&GazeboCapability::SimulateSteps) {
             Ok(SteppingMethod::SimulateStepsAction)
@@ -367,11 +368,7 @@ pub fn advance_to_fault_cut<T: GazeboSimulationTransport>(
     let steps = before.steps_to(fault.scheduled_simulation_step)?;
     if steps > 0 {
         transport
-            .step_simulation(
-                &session.profile.world_name,
-                steps,
-                session.stepping_method,
-            )
+            .step_simulation(&session.profile.world_name, steps, session.stepping_method)
             .map_err(|_| GazeboAdapterError::TransportFailure)?;
     }
     let after = transport
@@ -469,9 +466,16 @@ pub struct GazeboDispatchRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GazeboDispatchOutcome {
-    Accepted { dispatch_id: String },
-    Rejected { dispatch_id: String, reason_code: String },
-    Unknown { dispatch_id: Option<String> },
+    Accepted {
+        dispatch_id: String,
+    },
+    Rejected {
+        dispatch_id: String,
+        reason_code: String,
+    },
+    Unknown {
+        dispatch_id: Option<String>,
+    },
     DuplicateSuppressed,
 }
 
@@ -575,9 +579,7 @@ pub enum ReconciliationDecision {
 }
 
 /// A lost dispatch response maps to Unknown. It never invokes dispatch again.
-pub fn reconcile_dispatch_lookup(
-    lookup: DispatchLedgerResult,
-) -> ReconciliationDecision {
+pub fn reconcile_dispatch_lookup(lookup: DispatchLedgerResult) -> ReconciliationDecision {
     match lookup {
         DispatchLedgerResult::Accepted => ReconciliationDecision::ExistingDispatchAccepted,
         DispatchLedgerResult::Rejected => ReconciliationDecision::ExistingDispatchRejected,
@@ -605,11 +607,7 @@ pub fn dispatch_idempotency_key(
     }
     Ok(format!(
         "rrvr/{}/{}/{}/{}/{}",
-        plan.plan_sha256,
-        scenario.pair_id,
-        scenario.scenario_id,
-        fault.fault_id,
-        run_epoch
+        plan.plan_sha256, scenario.pair_id, scenario.scenario_id, fault.fault_id, run_epoch
     ))
 }
 
@@ -654,10 +652,9 @@ mod tests {
     use crate::fault_campaign::FaultCampaignManifest;
 
     fn plan() -> CompiledCampaignPlan {
-        let manifest: FaultCampaignManifest = serde_json::from_str(include_str!(
-            "../fixtures/fault_campaign_paired_v0_1.json"
-        ))
-        .expect("campaign fixture deserializes");
+        let manifest: FaultCampaignManifest =
+            serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+                .expect("campaign fixture deserializes");
         let bytes = include_bytes!("../fixtures/fault_campaign_paired_v0_1.json");
         let digest = {
             use sha2::{Digest, Sha256};
@@ -826,7 +823,9 @@ mod tests {
     fn accepts_action_based_stepping_when_step_service_is_unavailable() {
         let plan = plan();
         let mut profile = profile(&plan);
-        profile.capabilities.remove(&GazeboCapability::StepSimulation);
+        profile
+            .capabilities
+            .remove(&GazeboCapability::StepSimulation);
         profile.capabilities.insert(GazeboCapability::SimulateSteps);
         assert_eq!(
             profile.validate_for_plan(&plan),
@@ -1119,14 +1118,8 @@ mod tests {
             fault_domain_id: fault.fault_domain_id.clone(),
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
-            idempotency_key: dispatch_idempotency_key(
-                &plan,
-                scenario,
-                fault,
-                "run-1",
-                "epoch-1",
-            )
-            .unwrap(),
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1")
+                .unwrap(),
         };
         let mut registry = DispatchAttemptRegistry::default();
         let mut injector = MockInjector {
