@@ -86,7 +86,7 @@ V0 requires all of the following before returning a warning that weighted covari
 - maximum normalized weight between 1 and the configured maximum (weights are normalized to mean one over the calibration cohort);
 - overlap fraction in [0, 1] and above the configured minimum.
 
-The evidence IDs and boolean are caller-supplied claims. The crate does not verify their provenance, estimate density ratios, or prove conditional-law stability. A production integration must resolve them to authenticated, independently reviewable evidence receipts.
+The evidence IDs and boolean are caller-supplied claims. The crate does not verify their provenance, estimate density ratios, or prove conditional-law stability. A production integration must resolve them to authenticated, independently reviewable evidence receipts. The replay and ordering ledger is process-local in V0; a production adapter must persist and restore an append-only ledger before processing observations after restart.
 
 ### Requalification
 
