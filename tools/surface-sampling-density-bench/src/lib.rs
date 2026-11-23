@@ -194,7 +194,7 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
     Ok(())
 }
 
-fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
+pub(crate) fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
     validate_case(case)?;
     let selected_ids: BTreeSet<&str> = case.selected_view_ids.iter().map(String::as_str).collect();
 

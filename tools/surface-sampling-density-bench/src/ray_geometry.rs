@@ -482,6 +482,252 @@ fn evaluate_case(c: &GeometryCase) -> Result<GeometryCaseReceipt, String> {
     })
 }
 
+
+
+pub const DENSITY_BRIDGE_SCHEMA: &str =
+    "luminous.orbital-sampling-density.geometry-density-bridge.v0.1";
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DensityRequirement {
+    pub element_id: String,
+    pub minimum_density_micro_rays_per_mm2: u64,
+    pub minimum_contributing_views: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GeometryDensityBridgeReceipt {
+    pub schema: String,
+    pub geometry_case_id: String,
+    pub geometry_case_sha256: String,
+    pub sampling_case_sha256: String,
+    pub ray_model: String,
+    pub area_provenance: String,
+    pub geometry: GeometryCaseReceipt,
+    pub sampling_case: crate::SamplingCase,
+    pub density: crate::CaseReceipt,
+}
+
+/// Derive a sampling-density case from mesh-generated pixel-centre ray counts.
+/// The result is exact only relative to the declared synthetic pinhole/triangle model.
+pub fn bridge_geometry_to_density(
+    case: &GeometryCase,
+    selected_view_ids: &[String],
+    max_selected_views: usize,
+    requirements: &[DensityRequirement],
+) -> Result<GeometryDensityBridgeReceipt, String> {
+    let geometry = evaluate_case(case)?;
+    if geometry.expected_mismatches != 0 {
+        return Err("GEOMETRY_EXPECTED_HIT_MATRIX_MISMATCH".to_owned());
+    }
+
+    let mut requirement_by_id = BTreeMap::new();
+    for requirement in requirements {
+        if requirement.element_id.trim().is_empty()
+            || requirement.minimum_density_micro_rays_per_mm2 == 0
+            || requirement.minimum_contributing_views == 0
+            || requirement_by_id
+                .insert(requirement.element_id.as_str(), requirement)
+                .is_some()
+        {
+            return Err("DENSITY_REQUIREMENT_INVALID_OR_DUPLICATE".to_owned());
+        }
+    }
+    if requirement_by_id.len() != case.elements.len()
+        || case
+            .elements
+            .iter()
+            .any(|element| !requirement_by_id.contains_key(element.element_id.as_str()))
+    {
+        return Err("DENSITY_REQUIREMENTS_MUST_MATCH_GEOMETRY_ELEMENTS_EXACTLY".to_owned());
+    }
+
+    let mut candidate_views = case
+        .cameras
+        .iter()
+        .map(|camera| camera.view_id.clone())
+        .collect::<Vec<_>>();
+    candidate_views.sort();
+    let mut selected = selected_view_ids.to_vec();
+    selected.sort();
+    if selected.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err("SELECTED_VIEW_IDS_DUPLICATE".to_owned());
+    }
+    if selected
+        .iter()
+        .any(|view_id| !candidate_views.contains(view_id))
+    {
+        return Err("SELECTED_VIEW_ID_UNKNOWN".to_owned());
+    }
+
+    let mut hits_by_element: BTreeMap<&str, Vec<crate::ViewRayCount>> = case
+        .elements
+        .iter()
+        .map(|element| {
+            (
+                element.element_id.as_str(),
+                Vec::with_capacity(candidate_views.len()),
+            )
+        })
+        .collect();
+    for hit in &geometry.element_view_hits {
+        let counts = hits_by_element
+            .get_mut(hit.element_id.as_str())
+            .ok_or_else(|| "GEOMETRY_ELEMENT_HIT_ID_UNKNOWN".to_owned())?;
+        counts.push(crate::ViewRayCount {
+            view_id: hit.view_id.clone(),
+            intersection_count: hit.hit_pixel_count,
+            provenance: crate::Provenance::ExactSyntheticOracle,
+        });
+    }
+
+    let mut ordered_elements = case.elements.iter().collect::<Vec<_>>();
+    ordered_elements.sort_by(|left, right| left.element_id.cmp(&right.element_id));
+    let mut elements = Vec::with_capacity(ordered_elements.len());
+    for element in ordered_elements {
+        let requirement = requirement_by_id
+            .get(element.element_id.as_str())
+            .expect("validated exact requirement map");
+        let ray_counts = hits_by_element
+            .remove(element.element_id.as_str())
+            .ok_or_else(|| "GEOMETRY_ELEMENT_RAY_COUNTS_MISSING".to_owned())?;
+        if ray_counts.len() != candidate_views.len() {
+            return Err("GEOMETRY_ELEMENT_RAY_COUNT_MATRIX_INCOMPLETE".to_owned());
+        }
+        elements.push(crate::SurfaceElement {
+            element_id: element.element_id.clone(),
+            mesh_revision_id: element.mesh_revision_id.clone(),
+            area_um2: element.area_um2,
+            minimum_density_micro_rays_per_mm2: requirement.minimum_density_micro_rays_per_mm2,
+            minimum_contributing_views: requirement.minimum_contributing_views,
+            ray_counts,
+        });
+    }
+
+    let mut sampling_case = crate::SamplingCase {
+        case_id: format!("{}-DENSITY", case.case_id),
+        coordinate_frame_id: case.coordinate_frame_id.clone(),
+        area_unit: "SQUARE_MICROMETRE".to_owned(),
+        density_unit: "RAYS_PER_SQUARE_MILLIMETRE".to_owned(),
+        candidate_views,
+        selected_view_ids: selected,
+        max_selected_views,
+        elements,
+        expected_status: crate::DensityStatus::Feasible,
+    };
+    let density = crate::evaluate_case(&sampling_case)?;
+    sampling_case.expected_status = density.status;
+
+    let geometry_bytes = serde_json::to_vec(case)
+        .map_err(|error| format!("GEOMETRY_CASE_SERIALIZATION_FAILED:{error}"))?;
+    let sampling_bytes = serde_json::to_vec(&sampling_case)
+        .map_err(|error| format!("SAMPLING_CASE_SERIALIZATION_FAILED:{error}"))?;
+    Ok(GeometryDensityBridgeReceipt {
+        schema: DENSITY_BRIDGE_SCHEMA.to_owned(),
+        geometry_case_id: case.case_id.clone(),
+        geometry_case_sha256: sha256_hex(&geometry_bytes),
+        sampling_case_sha256: sha256_hex(&sampling_bytes),
+        ray_model: geometry.ray_model.clone(),
+        area_provenance: geometry.area_provenance.clone(),
+        geometry,
+        sampling_case,
+        density,
+    })
+}
+
+#[cfg(test)]
+mod density_bridge_tests {
+    use super::*;
+
+    const FIXTURE: &str =
+        include_str!("../../../docs/research/orbital-truss/fixtures/ray-geometry-v0_1.json");
+
+    fn requirement(element_id: &str, density: u64, views: usize) -> DensityRequirement {
+        DensityRequirement {
+            element_id: element_id.to_owned(),
+            minimum_density_micro_rays_per_mm2: density,
+            minimum_contributing_views: views,
+        }
+    }
+
+    #[test]
+    fn generated_triangle_hits_feed_exact_density_accounting() {
+        let corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let case = &corpus.cases[0];
+        let bridge = bridge_geometry_to_density(
+            case,
+            &["VIEW-A".to_owned()],
+            1,
+            &[requirement("TRIANGLE-FRONT", 2, 1)],
+        )
+        .unwrap();
+
+        assert_eq!(bridge.geometry.expected_matches, 1);
+        assert_eq!(bridge.geometry.element_view_hits[0].hit_pixel_count, 5);
+        assert_eq!(bridge.sampling_case.elements[0].area_um2, 2_000_000_000_000);
+        assert_eq!(
+            bridge.sampling_case.elements[0].ray_counts[0].provenance,
+            crate::Provenance::ExactSyntheticOracle
+        );
+        assert_eq!(bridge.density.status, crate::DensityStatus::Feasible);
+        assert_eq!(
+            bridge.density.elements[0].selected_density_rational_numerator_micro_mm2,
+            "5000000000000"
+        );
+    }
+
+    #[test]
+    fn candidate_pool_with_enough_density_but_insufficient_selected_views_is_budget_infeasible() {
+        let corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let case = &corpus.cases[2];
+        let bridge = bridge_geometry_to_density(
+            case,
+            &["VIEW-A".to_owned()],
+            1,
+            &[requirement("TRIANGLE-FRONT", 2, 2)],
+        )
+        .unwrap();
+
+        assert_eq!(bridge.density.status, crate::DensityStatus::BudgetInfeasible);
+        assert!(bridge.density.candidate_pool_sufficient);
+        assert!(!bridge.density.selected_plan_sufficient);
+        assert_eq!(bridge.density.elements[0].candidate_contributing_views, 2);
+        assert_eq!(bridge.density.elements[0].selected_contributing_views, 1);
+    }
+
+    #[test]
+    fn requested_contributing_views_above_actual_mesh_visibility_is_infeasible() {
+        let corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let bridge = bridge_geometry_to_density(
+            &corpus.cases[0],
+            &["VIEW-A".to_owned()],
+            1,
+            &[requirement("TRIANGLE-FRONT", 1, 2)],
+        )
+        .unwrap();
+
+        assert_eq!(bridge.density.status, crate::DensityStatus::Infeasible);
+        assert!(!bridge.density.candidate_pool_sufficient);
+        assert_eq!(bridge.density.elements[0].candidate_contributing_views, 1);
+        assert_eq!(bridge.density.elements[0].minimum_contributing_views, 2);
+    }
+
+    #[test]
+    fn expected_geometry_hit_mismatch_is_rejected_before_density_accounting() {
+        let mut corpus: GeometryCorpus = serde_json::from_str(FIXTURE).unwrap();
+        corpus.cases[0].expected_hit_counts[0].hit_pixel_count = 4;
+        assert_eq!(
+            bridge_geometry_to_density(
+                &corpus.cases[0],
+                &["VIEW-A".to_owned()],
+                1,
+                &[requirement("TRIANGLE-FRONT", 2, 1)],
+            ),
+            Err("GEOMETRY_EXPECTED_HIT_MATRIX_MISMATCH".to_owned())
+        );
+    }
+}
+
 pub fn audit_geometry_corpus(
     bytes: &[u8],
     source_commit: &str,
