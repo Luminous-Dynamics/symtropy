@@ -1,0 +1,46 @@
+{
+  "artifact_kind": "ma_lu_equal_spin_parameter_map",
+  "checks": {
+    "angular_velocity_relation_exact": true,
+    "coupling_coefficient_identity": true,
+    "horizon_relation_exact": true,
+    "inverse_series_exact_through_nu11": true,
+    "printed_chi_relation_exact": true
+  },
+  "claim_ceiling": "Exact kinematic parameter relations and a symbolic series inversion only. No corrected metric/gauge map, field-equation coefficient comparison, thermodynamic match, or finite-coupling EGB result is claimed.",
+  "coupling_map": {
+    "candidate_first_coupling_map": "Eq(alpha_R,alpha_GB/4)",
+    "ma_lu_action": "R + alpha_R*Riemann^2",
+    "scope": "First-order correction about a Ricci-flat Myers-Perry background only",
+    "symtropy_action": "R + alpha_GB*L_GB/4"
+  },
+  "definitions": {
+    "chi": "a/mu (paper's printed convention; do not silently replace)",
+    "nu": "Omega_H*r_h",
+    "q": "a/r_h",
+    "symtropy_spin": "a_S/r_H=Omega_H*r_H=nu"
+  },
+  "environment": {"python":"3.13.5","sympy":"1.14.0"},
+  "exact_equal_spin_relations": {
+    "chi_times_rh_of_q": "2*q/(q**2 + 1)**2",
+    "mu_over_rh2": "(q**2 + 1)**2/2",
+    "nu_of_q": "q/(q**2 + 1)",
+    "q_of_nu_exact_small_root": "(1-sqrt(1-4*nu^2))/(2*nu)",
+    "valid_real_subextremal_branch": "0<=nu<1/2, 0<=q<1"
+  },
+  "schema_version": 1,
+  "series_about_zero_spin": {
+    "chi_rh_minus_2nu_order": "O(nu^3)",
+    "chi_times_rh_of_nu_through_nu11": "-28*nu**11 - 10*nu**9 - 4*nu**7 - 2*nu**5 - 2*nu**3 + 2*nu",
+    "q_minus_nu_order": "O(nu^3)",
+    "q_of_nu_through_nu11": "42*nu**11 + 14*nu**9 + 5*nu**7 + 2*nu**5 + nu**3 + nu"
+  },
+  "source_equations": {
+    "ma_lu_eq_16_printed": "chi=a/mu",
+    "ma_lu_eq_4": "Delta_r=((r^2+a^2)(r^2+b^2))/r^2-2*mu",
+    "ma_lu_eq_50_crosscheck": "mu=r_h^2/2+r_h^4*chi^2/4+9*r_h^6*chi^4/32+O(chi^6) for a=b",
+    "ma_lu_eq_6_equal_spin": "Omega_H=a/(r_h^2+a^2)"
+  },
+  "source_sha256": "278a692110f02886c62db25319c1c84310e03bc0d08cb682f9a30a4e6c17f512",
+  "status": "exact_symbolic_parameter_relations_derived"
+}
