@@ -22,6 +22,7 @@ pub use decision_value::{
 };
 
 mod robust_decision_design;
+pub(crate) use robust_decision_design::solve_finite_zero_sum_game;
 pub use robust_decision_design::{
     rank_designs_by_randomized_robust_decision_value, rank_designs_by_robust_decision_value,
     LeastFavourableScenarioWeight, RandomizedDecisionPolicyComponent,
@@ -30,13 +31,12 @@ pub use robust_decision_design::{
     RobustDecisionDesignRanking, RobustDecisionDesignScore, RobustDecisionLikelihoodScenario,
     RobustDecisionProblem,
 };
-pub(crate) use robust_decision_design::solve_finite_zero_sum_game;
 
 mod robust_campaign_planning;
 pub use robust_campaign_planning::{
-    plan_non_anticipative_robust_campaign, RobustCampaignAcquisition, RobustCampaignContinuation,
-    plan_randomized_non_anticipative_robust_campaign, RandomizedRobustCampaignPlanningPolicy,
-    RandomizedRobustCampaignPlanningResult, RandomizedRobustCampaignTreeComponent,
+    plan_non_anticipative_robust_campaign, plan_randomized_non_anticipative_robust_campaign,
+    RandomizedRobustCampaignPlanningPolicy, RandomizedRobustCampaignPlanningResult,
+    RandomizedRobustCampaignTreeComponent, RobustCampaignAcquisition, RobustCampaignContinuation,
     RobustCampaignOutcomeBranch, RobustCampaignPlanNode, RobustCampaignPlanningPolicy,
     RobustCampaignPlanningResult, RobustCampaignScenarioLikelihood, RobustCampaignScenarioScore,
     RobustCampaignStop,
