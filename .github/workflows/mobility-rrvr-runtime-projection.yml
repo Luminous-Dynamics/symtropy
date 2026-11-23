@@ -162,6 +162,24 @@ jobs:
             and .attempts[0].physical_outcome.outcome == "no_effect"
             and .attempts[1].physical_outcome.outcome == "no_effect"
             and .attempts[2].physical_outcome.outcome == "applied"
+            and .attempts[0].persistence.receipt.domain == "persistence"
+            and .attempts[0].persistence.receipt.asserted_value == .attempts[0].persistence.outcome
+            and .attempts[0].persistence.receipt.status == "confirmed"
+            and .attempts[0].physical_outcome.receipt.domain == "physical_outcome"
+            and .attempts[0].physical_outcome.receipt.asserted_value == .attempts[0].physical_outcome.outcome
+            and .attempts[0].physical_outcome.receipt.status == "confirmed"
+            and .attempts[0].mission_resolution.receipt.domain == "mission_resolution"
+            and .attempts[0].mission_resolution.receipt.asserted_value == .attempts[0].mission_resolution.outcome
+            and .attempts[0].mission_resolution.receipt.status == "confirmed"
+            and .attempts[0].controller_queue_fence.receipt.domain == "controller_queue"
+            and .attempts[0].controller_queue_fence.receipt.asserted_value == "quiescent;target_boot_epoch=2;target_controller_epoch=2"
+            and .attempts[0].controller_queue_fence.receipt.status == "confirmed"
+            and .attempts[0].downstream_quiescence.receipt.domain == "downstream_execution_graph"
+            and .attempts[0].downstream_quiescence.receipt.asserted_value == "quiescent;target_boot_epoch=2;target_controller_epoch=2"
+            and .attempts[0].downstream_quiescence.receipt.status == "confirmed"
+            and .attempts[1].controller_queue_fence.receipt.asserted_value == "quiescent;target_boot_epoch=3;target_controller_epoch=3"
+            and .attempts[1].downstream_quiescence.receipt.asserted_value == "quiescent;target_boot_epoch=3;target_controller_epoch=3"
+            and .attempts[2].physical_outcome.receipt.asserted_value == "applied"
             and .attempts[0].controller_queue_fence.target_epoch == .attempts[1].authorized_epoch
             and .attempts[0].downstream_quiescence.target_epoch == .attempts[1].authorized_epoch
             and .attempts[1].controller_queue_fence.target_epoch == .attempts[2].authorized_epoch
