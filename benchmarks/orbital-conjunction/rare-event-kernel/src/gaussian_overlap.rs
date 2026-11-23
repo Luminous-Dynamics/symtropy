@@ -13,9 +13,10 @@
 //! used for its relative-Mahalanobis convergence metric. This remediated metric
 //! is distinct from the raw product-Gaussian covariance.
 //!
-//! This module implements strict SPD validation only. It does not eigenvalue
-//! clip or add covariance jitter. NASA's HBR-dependent eigenvalue-floor policy
-//! is intentionally a separate future compatibility mode.
+//! The strict API never eigenvalue-clips or adds covariance jitter. A separately
+//! named fixed-time NASA compatibility API implements the pinned HBR-dependent
+//! eigenvalue-floor sequence and retains its raw/remediated spectral evidence.
+ //! Neither API is a replacement for the iterative PeakOverlapPos state machine.
 
 use crate::KernelError;
 use crate::conditional_velocity::Matrix3;
