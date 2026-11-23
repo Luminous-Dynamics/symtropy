@@ -1265,7 +1265,6 @@ fn exact_score_is_better(
     candidate_key < current_key
 }
 
-
 fn exact_policy_gap(
     policy_result: &ServicePolicyResult,
     oracle: &ExactOracleScore,
