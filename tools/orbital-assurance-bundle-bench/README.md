@@ -137,30 +137,23 @@ The Rust unit tests include input-permutation invariance and an always-false aut
 
 ## Finite-world incumbent decision adequacy v0.1
 
-The crate now includes a separate incumbent-retention gate consuming a finite surviving-world set, a closed action universe, per-world feasible-action sets and exact loss rows. It computes regret per world against the best feasible action in that same world and takes the worst-case regret.
+The crate includes a finite-world incumbent-retention gate. It consumes the current surviving-world set, a closed action universe, world-specific feasible sets, and exact loss rows. It does **not** compare against a different optimum in each hidden world. Instead, it intersects feasible sets and compares the incumbent's worst-case loss with the best single action feasible in every surviving world.
 
-The rule retains an incumbent only when it is feasible in every surviving world and worst-case regret is no greater than the explicit materiality margin plus explicit switching cost. Equality at the threshold retains. Infeasibility in any surviving world or regret strictly above the threshold yields a re-optimization review trigger; the evaluator never chooses or executes a replacement.
+For the common feasible set (F_{common}=\cap_wF(w)), define (M(a)=\max_wL(a,w)). The reference comparator minimizes (M(a)) over (F_{common}), with deterministic action-ID tie-breaking. The common-action improvement is the incumbent worst-case loss minus the reference common-action worst-case loss. The reference action is a benchmark comparator, not an action recommendation.
 
-An empty surviving-world set, open/stale domain closure, inadequate model family, stale/contradictory evidence, scope mismatch, or incomplete loss matrix abstains. This is important: lack of evidence cannot be interpreted as proof that the incumbent remains adequate.
+The gate retains only when the incumbent is feasible in every world and common-action improvement is no greater than the explicit materiality margin plus switching cost. Equality retains. Infeasibility in any surviving world or improvement strictly above threshold yields a review trigger. An empty/stale world set, open/stale domain, inadequate/stale/indeterminate dependency graph, inadequate model, stale/contradicted evidence, scope/loss-unit mismatch or incomplete matrix abstains.
 
-The 13 frozen synthetic cases cover:
-- stable incumbent and decision-irrelevant shift (retain);
-- different world-optimal actions but incumbent regret within the retention margin;
-- regret above the threshold and exact equality at the threshold;
-- incumbent infeasible in one surviving world;
-- no surviving worlds, open domain, inadequate model family, stale evidence and scope mismatch;
-- incomplete loss matrix and duplicate loss rows;
-- threshold-overflow arithmetic (tested through a typed Rust mutation so exact i64 boundary semantics are preserved across languages).
+This is a static non-anticipative comparator: the same reference action must be feasible across all current worlds. It avoids clairvoyant hidden-world switching. Adaptive observation-contingent policies are a separate extension owned by #6997 and must branch only on admissible observables.
 
-The independent JS oracle is compared field-by-field against the Rust receipt. No probabilities are assigned to worlds. RADAR-style stochastic monitoring is a separate comparator and remains distinct from #6887's anytime-valid sequential evidence guarantees.
+The 16 frozen controls cover:
+- stable incumbent with a common reference action that improves worst-case loss by five units;
+- a decision-irrelevant world change;
+- opposite world-specific optima where a per-world hindsight comparator would report a four-unit gain and trigger at margin three, but the best common action yields zero improvement and correctly retains;
+- threshold crossing/equality and incumbent infeasibility;
+- empty/open/stale/inadequate world, action-domain, dependency-graph and evidence states;
+- incomplete loss matrix, duplicate loss rows, scope mismatch and loss-unit mismatch.
 
-**Claim ceiling:** synthetic finite-world incumbent adequacy only. It does not prove that the world set is complete, that real loss models are valid, or that a re-optimization is safe/authorized.
-
-## Finite-world incumbent decision adequacy v0.1
-
-Consumes the current finite surviving-world set, closed action universe, world-specific feasible actions and exact integer loss matrix. Retains an incumbent only if it is feasible in every surviving world and worst-case regret is no greater than the separately reported materiality margin plus switching cost. Equality retains. Any open/stale domain, stale evidence, inadequate model family, empty world set, scope mismatch, loss-unit mismatch or incomplete matrix abstains.
-
-Sixteen frozen controls cover decision-irrelevant shifts, different world optima within the regret margin, threshold crossing/equality, incumbent infeasibility, empty/open/stale/ambiguous states, loss-unit/scope mismatch and malformed loss matrices. The Rust suite includes an exact typed i64 overflow mutation. A separate JS oracle is compared against the complete Rust receipt. No world probabilities are inferred and no replacement action is selected/executed.
+The Rust suite includes an exact typed i64 overflow mutation. A separately authored JS oracle is compared field-by-field against the Rust receipt. No world probabilities are assigned, no replacement action is selected or executed, and authority remains false.
 
 ~~~bash
 cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin incumbent-decision-adequacy -- \
@@ -169,6 +162,7 @@ cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin 
 node tools/orbital-assurance-bundle-bench/tests/incumbent_adequacy_oracle.mjs \
   tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-adequacy-cases.json
 ~~~
+
 
 ## Commands
 
