@@ -397,6 +397,7 @@ impl ExecutionEvidenceBundle {
         let mut delivery_unknown_count = 0usize;
         let mut delivery_not_observed_count = 0usize;
         let mut reconcile_required = false;
+        let mut previous_event_end: Option<(u64, u64)> = None;
 
         let reset_receipt = self
             .reset
@@ -929,6 +930,16 @@ impl ExecutionEvidenceBundle {
                     return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                 }
             }
+            if let (Some(previous), Some(first)) = (previous_event_end, phase_receipts.first()) {
+                if first.simulation_step < previous.0
+                    || first.simulation_time_ns < previous.1
+                {
+                    return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                }
+            }
+            if let Some(last) = phase_receipts.last() {
+                previous_event_end = Some((last.simulation_step, last.simulation_time_ns));
+            }
 
             if event.target_resolution.status == TargetResolutionStatus::Unknown {
                 reconcile_required = true;
@@ -1060,6 +1071,28 @@ mod tests {
             .as_mut()
             .unwrap()
             .simulation_step += 1;
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_receipt_chronology_that_moves_backwards_between_fault_events() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0]
+            .delivery_observation
+            .receipt
+            .as_mut()
+            .unwrap()
+            .simulation_step = 250;
+        evidence.events[0]
+            .delivery_observation
+            .receipt
+            .as_mut()
+            .unwrap()
+            .simulation_time_ns = 2_500_000_000;
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
