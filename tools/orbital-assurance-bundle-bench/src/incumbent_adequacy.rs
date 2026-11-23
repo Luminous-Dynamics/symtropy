@@ -25,6 +25,7 @@ pub struct WorldLoss {
 #[serde(deny_unknown_fields)]
 pub struct World {
     pub world_id: String,
+    pub loss_unit: String,
     pub scope_sha256: String,
     pub feasible_action_ids: Vec<String>,
     pub losses: Vec<WorldLoss>,
@@ -252,9 +253,13 @@ fn evaluate_case(case: &Case) -> CaseResult {
     for world in &case.worlds {
         if !valid_id(&world.world_id)
             || !world_ids.insert(world.world_id.as_str())
+            || !valid_id(&world.loss_unit)
             || !valid_sha256(&world.scope_sha256)
         {
             return invalid_input(case, "world identity is duplicate, empty or malformed");
+        }
+        if world.loss_unit != case.loss_unit {
+            return abstain(case, "LOSS_UNIT_MISMATCH", Some(retention_threshold));
         }
         if world.scope_sha256 != case.scope_sha256 {
             return abstain(case, "SCOPE_MISMATCH", Some(retention_threshold));
