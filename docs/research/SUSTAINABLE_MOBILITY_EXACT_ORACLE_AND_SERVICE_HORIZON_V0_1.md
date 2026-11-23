@@ -3,7 +3,7 @@
 **Parent:** [SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 #6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921)  
 **Capacity source:** [SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 #6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909)  
 **Branch:** research/mobility-service-quality-exact-oracle-v0-1  
-**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and offline upper-bound gaps implemented; exact DP verified; the additional information-model metadata revision is pending its own exact-head run.
+**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and explicit offline-information boundary implemented; exact-head Actions verified.
 
 ## 1. Why this increment matters
 
@@ -150,4 +150,4 @@ The full matched tournament should add nonanticipative rolling-horizon MPC, scen
 
 ## 7. Claim boundary
 
-A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45210669154](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45210669154) at `d70c8a0536bf0ae8219a2c664403126f84865e40` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact assertions and artifact upload for the 12×16 DP implementation. Test binaries reported 223 passed, 0 failed; the service-quality module had 30 focused Rust test definitions at that head. The later information-model metadata and explicit no-online-policy assertions are additional changes pending their own exact-head run. Clippy is not included, and physical/field evidence remains a separate qualification.
+A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45211825272](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45211825272) at `dc69e4e28a62cda46ca0198ecdf2e11d5d6e0756` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact assertions, offline information-model assertions and artifact upload. Test binaries reported 224 passed, 0 failed; the service-quality module contains 31 focused Rust test definitions. Clippy is not included, and physical/field evidence remains a separate qualification.
