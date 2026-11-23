@@ -121,3 +121,71 @@ Keep three sensor-privilege tracks distinct: UWB-only; UWB+IMU; UWB+vision. Repo
 - MILUV Figshare dataset record and CC BY 4.0 rights: https://datasetcatalog.nlm.nih.gov/dataset?q=0002392468
 - MILUV devkit source and MIT license: https://github.com/decargroup/miluv
 - MILUV dataset access DOI: https://doi.org/10.25452/figshare.plus.28386041.v1
+
+
+## Extension: risk-aware goal-oriented sensing — 24 November 2026
+
+A highly relevant external comparator is Jakeman et al., **Risk-Aware Goal-Oriented Bayesian Optimal Experimental Design** (arXiv:2609.08023, 7 September 2026; https://arxiv.org/abs/2609.08023).
+
+The paper separates three design-risk levels:
+1. posterior push-forward deviation for each quantity of interest (QoI);
+2. risk aggregation across components of a vector/field QoI;
+3. risk aggregation over the as-yet-unobserved dataset.
+
+It uses a risk-quadrangle construction to connect regret, deviation and risk, and studies safety-margin, average value-at-risk (AVaR/CVaR) and entropic risk. In its advection–diffusion sensor-placement experiment it used 50 candidate sites, 20 downstream QoIs, 4,000 inner and 4,000 outer samples, and 30 bootstrap resamples. Its risk-aware goal-oriented designs differed materially from parameter-focused KL placement; the KL design was comparable to random under the goal-oriented objectives in that specific test problem. Some objective-mismatch losses reached 20–25% between the tested goal-oriented designs. The result is a strong design-method comparator, not a localization benchmark or evidence that one risk measure is universally best.
+
+The paper is especially relevant because it identifies three distinct objectives that navigation research should not collapse:
+
+- **Level 1 — conditional prediction / outcome uncertainty:** how much residual navigation-decision ambiguity remains for each hypothetical observation result. In this project, these per-scenario residual upper bounds must come from an explicit scenario/posterior audit; the current kernel consumes them rather than fabricating them.
+- **Level 2 — decision consequence:** how residual ambiguity across different decision classes is aggregated. PR #7187 adds a committed relative-impact model; PR #7211 adds interval-robust weights and retains the worst class pair.
+- **Level 3 — future observation/data risk:** whether the action will deliver useful evidence, produce an uninformative or invalid result, fail, or remain unreconciled. The new `navigation_outcome_risk` kernel computes mean residual, VaR and upper-tail AVaR over a supplied finite scenario law, while checking that the total qualified-observation probability lies in the exact #7165 admitted acquisition interval.
+
+This is a *structural alignment*, not a claim of reproducing the paper. The paper's estimator assumes Gaussian observation likelihoods for its main optimized design parameterization and notes poor scaling beyond roughly 100 candidate sensors under very large sensor noise; it identifies sequential OED and non-Gaussian likelihoods as future work. UWB NLOS/CIR and delayed asynchronous sensor outcomes are not Gaussian by default, so the Symtropy/Symtropy research path must not assume that the paper's estimator transfers unchanged.
+
+### Outcome-risk contract
+
+For one frozen action, the caller supplies a finite mutually exclusive scenario set. Each scenario carries an exact probability mass in parts per billion, an outcome category and an upper residual-impact score derived from the exact impact/decision model. The masses must sum exactly to (10^9).
+
+The qualified-observation mass must lie inside the action's #7165 acquisition probability interval and must be bound to the same action, domain, protocol, decision partition, impact model and impact-uncertainty model. Failed, timed-out, acquired-but-invalid and unknown/unreconciled branches retain the pre-action residual score. An unknown event remains a runtime stop-and-reconcile condition under #7138; assigning a scenario mass does not authorize another attempt.
+
+For upper-tail residual impact (L), the kernel reports:
+- conservative mean residual impact;
+- upper (mathrm{VaR}_{\alpha}(L));
+- upper (mathrm{AVaR}_{\alpha}(L)), calculated by consuming exactly the worst (1-\alpha) probability mass, including a fractional boundary scenario;
+- worst scenario residual impact;
+- separate qualified, failed/timed-out, invalid and unknown probability masses.
+
+The scenario probabilities and per-scenario residuals remain externally supplied. The kernel checks probability arithmetic, action/reliability interval compatibility, digest equality and no-improvement-on-nonqualified-outcome invariants. It does not estimate the distribution, authenticate its source, update a posterior, execute a sensing request or authorize a navigation transition.
+
+### Benchmark implications
+
+Add matched baselines:
+1. expected information gain (parameter-focused);
+2. goal-oriented mean posterior-predictive deviation;
+3. goal-oriented upper-tail AVaR over decision-relevant QoIs;
+4. point impact-weighted decision ambiguity;
+5. interval-robust impact-weighted ambiguity;
+6. outcome-law expected residual;
+7. outcome-law AVaR / entropic residual;
+8. worst-class-pair and minimax residual;
+9. exhaustive exact outcome-tree oracle on tiny finite models.
+
+Report the risk preference explicitly. For each profile compare action rankings, regret against the exact oracle, the change in high-impact tail ambiguity, AVaR/mean ratio, sensitivity to scenario-law bootstrap resampling, sensitivity to impact-weight intervals, abstention, false-safe exposure, calibration, availability, cost and compute. Do not cherry-pick alpha: preregister a profile-relevant range such as 0.90, 0.95, 0.99 and publish the full risk-preference frontier.
+
+For sequential sensing, the next step is a non-anticipative decision tree in which only controller-visible, qualified outcomes select the next observation. A fixed scenario law can test one-step outcome-risk assessment; it cannot alone establish sequential policy superiority. The tiny exhaustive oracle must compare passive, random, EIG, goal-oriented mean, risk-aware goal-oriented, current decision-aware and interval-robust AVaR policies under identical action/resource budgets.
+
+### New kernel status
+
+`src/navigation_outcome_risk.rs` adds:
+- action-bound finite outcome scenarios;
+- exact sum-to-one probability masses;
+- #7165 reliability interval cross-check for qualified-result mass;
+- baseline retention for failed/invalid/unknown branches;
+- mean, VaR, AVaR and maximum residual outputs;
+- tests for a rare high-residual outcome hidden by a low mean, exact fractional tail mass, alpha monotonicity, unknown outcome retention, reliability/mass mismatch, commitment mismatch, permutation invariance and malformed scenarios.
+
+These tests are authored; exact-head Rust CI is the qualification gate.
+
+## Research references
+
+- Jakeman, J. D., White, R., van Bloemen Waanders, B., Kouri, D. P., and Alexanderian, A. (2026), *Risk-Aware Goal-Oriented Bayesian Optimal Experimental Design*, arXiv:2609.08023: https://arxiv.org/abs/2609.08023
