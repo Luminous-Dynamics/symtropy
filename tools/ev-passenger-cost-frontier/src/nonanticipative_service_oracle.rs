@@ -607,8 +607,7 @@ fn derive_service_inputs(
             opportunity_digest,
             architecture_digest,
             opportunity_count: selected.service_opportunities.len(),
-            qualified_count: linked_report.capacity_opportunities_qualified
-                + input.linked_service_input.fallback_opportunities.len(),
+            qualified_count: linked_report.capacity_opportunities_qualified,
         },
     })
 }
@@ -618,6 +617,7 @@ fn scenario_score(
     requests: &[ScenarioRequest],
     opportunities: &[ScenarioOpportunity],
     horizon_seconds: u64,
+    final_available_mask: u16,
 ) -> ScenarioScore {
     let mut score = ScenarioScore::default();
     for (index, request) in requests.iter().enumerate() {
@@ -628,6 +628,10 @@ fn scenario_score(
             score.unserved += 1;
             continue;
         };
+        if final_available_mask & (1_u16 << opportunity_index) == 0 {
+            score.unserved += 1;
+            continue;
+        }
         let opportunity = &opportunities[opportunity_index];
         let completion = opportunity
             .start_seconds
@@ -833,7 +837,13 @@ fn solve_information_set(
         if let Some(terminal) = terminal_scenarios.get(digest) {
             for scenario_index in terminal {
                 let scenario = &scenarios[*scenario_index];
-                let result = scenario_score(&next_state, requests, opportunities, horizon_seconds);
+                let result = scenario_score(
+                    &next_state,
+                    requests,
+                    opportunities,
+                    horizon_seconds,
+                    node.available_mask,
+                );
                 score.add_scenario(&result, scenario.probability_units);
             }
         }
@@ -904,6 +914,16 @@ fn clairvoyant_scenario_score(
 ) -> Result<ScenarioScore, ()> {
     let mut revealed_mask = 0_u16;
     let mut candidates_by_request = vec![Vec::new(); requests.len()];
+    let terminal_node = scenario
+        .node_path
+        .last()
+        .and_then(|node_id| node_by_id.get(node_id))
+        .ok_or(())?;
+    let final_available_ids: BTreeSet<&str> = terminal_node
+        .available_opportunity_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     for node_id in &scenario.node_path {
         let node = node_by_id.get(node_id).ok_or(())?;
         for request_id in &node.revealed_request_ids {
@@ -963,7 +983,20 @@ fn clairvoyant_scenario_score(
             state.assigned_opportunity_by_request[request_index] = Some(opportunity_index);
             state.used_opportunity_mask |= 1_u16 << opportunity_index;
         }
-        let score = scenario_score(&state, requests, opportunities, horizon_seconds);
+        let final_available_mask = opportunities
+            .iter()
+            .enumerate()
+            .filter(|(_, opportunity)| {
+                final_available_ids.contains(opportunity.opportunity_id.as_str())
+            })
+            .fold(0_u16, |mask, (index, _)| mask | (1_u16 << index));
+        let score = scenario_score(
+            &state,
+            requests,
+            opportunities,
+            horizon_seconds,
+            final_available_mask,
+        );
         let key = serde_json::to_string(&state.assigned_opportunity_by_request).map_err(|_| ())?;
         let replace = best.as_ref().is_none_or(|(current, current_key)| {
             score.completed_on_time > current.completed_on_time
@@ -1422,7 +1455,16 @@ pub fn evaluate_nonanticipative_oracle(
                 state.used_opportunity_mask |= 1_u16 << opportunity_index;
             }
         }
-        let score = scenario_score(&state, &requests, &opportunities, input.horizon_seconds);
+        let final_group = groups
+            .get(scenario_digests[scenario_index].last().expect("validated path is nonempty"))
+            .expect("validated scenario terminal information set");
+        let score = scenario_score(
+            &state,
+            &requests,
+            &opportunities,
+            input.horizon_seconds,
+            final_group.available_mask,
+        );
         scenario_results.push(ScenarioResult {
             scenario_id: scenario.scenario_id.clone(),
             probability_units: scenario.probability_units,
