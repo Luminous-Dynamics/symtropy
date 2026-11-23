@@ -1,0 +1,39 @@
+name: Manufacturing Multi-period Policy Reference
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_multiperiod_policy_cases_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_multiperiod_policy_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.json"
+      - "tools/mfg-multiperiod-policy-reference/**"
+      - ".github/workflows/mfg-multiperiod-policy-reference.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-multiperiod-policy-reference-v0-1
+    paths:
+      - "schemas/manufacturing/mfg_multiperiod_policy_cases_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_multiperiod_policy_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.json"
+      - "tools/mfg-multiperiod-policy-reference/**"
+      - ".github/workflows/mfg-multiperiod-policy-reference.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-multiperiod-policy-reference/Cargo.toml -- --check
+      - name: Run schema, exact-answer and adversarial tests
+        run: cargo test --manifest-path tools/mfg-multiperiod-policy-reference/Cargo.toml
+      - name: Run exact multi-period policy reference
+        run: cargo run --manifest-path tools/mfg-multiperiod-policy-reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-multiperiod-policy-reference/Cargo.toml -- -D warnings
