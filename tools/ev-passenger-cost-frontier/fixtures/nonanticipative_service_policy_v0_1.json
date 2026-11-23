@@ -1,0 +1,159 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "NONANTICIPATIVE-SERVICE-POLICY-001",
+  "site_id": "depot-policy-01",
+  "root_node_id": "root",
+  "probability_denominator": 2,
+  "nodes": [
+    {
+      "node_id": "root",
+      "parent_node_id": null,
+      "decision_time_seconds": 0,
+      "information_set_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "available_requests": [
+        {
+          "request_id": "request-early",
+          "released_at_seconds": 0,
+          "accept_by_seconds": 50,
+          "required_service_seconds": 100,
+          "payload_units": 1
+        }
+      ],
+      "available_opportunities": [
+        {
+          "opportunity_id": "opportunity-0",
+          "start_seconds": 0,
+          "end_seconds": 110,
+          "max_service_duration_seconds": 110,
+          "max_payload_units": 10
+        },
+        {
+          "opportunity_id": "opportunity-1",
+          "start_seconds": 120,
+          "end_seconds": 240,
+          "max_service_duration_seconds": 120,
+          "max_payload_units": 10
+        }
+      ],
+      "action": {
+        "kind": "assign",
+        "request_id": "request-early",
+        "opportunity_id": "opportunity-0"
+      }
+    },
+    {
+      "node_id": "blind-a",
+      "parent_node_id": "root",
+      "decision_time_seconds": 60,
+      "information_set_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "observation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "available_requests": [],
+      "available_opportunities": [
+        {
+          "opportunity_id": "opportunity-1",
+          "start_seconds": 120,
+          "end_seconds": 240,
+          "max_service_duration_seconds": 120,
+          "max_payload_units": 10
+        }
+      ],
+      "action": {
+        "kind": "hold"
+      }
+    },
+    {
+      "node_id": "blind-b",
+      "parent_node_id": "root",
+      "decision_time_seconds": 60,
+      "information_set_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "observation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "available_requests": [],
+      "available_opportunities": [
+        {
+          "opportunity_id": "opportunity-1",
+          "start_seconds": 120,
+          "end_seconds": 240,
+          "max_service_duration_seconds": 120,
+          "max_payload_units": 10
+        }
+      ],
+      "action": {
+        "kind": "hold"
+      }
+    },
+    {
+      "node_id": "revealed-a",
+      "parent_node_id": "blind-a",
+      "decision_time_seconds": 100,
+      "information_set_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "observation_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "available_requests": [
+        {
+          "request_id": "request-a",
+          "released_at_seconds": 100,
+          "accept_by_seconds": 150,
+          "required_service_seconds": 100,
+          "payload_units": 1
+        }
+      ],
+      "available_opportunities": [
+        {
+          "opportunity_id": "opportunity-1",
+          "start_seconds": 120,
+          "end_seconds": 240,
+          "max_service_duration_seconds": 120,
+          "max_payload_units": 10
+        }
+      ],
+      "action": {
+        "kind": "assign",
+        "request_id": "request-a",
+        "opportunity_id": "opportunity-1"
+      }
+    },
+    {
+      "node_id": "revealed-b",
+      "parent_node_id": "blind-b",
+      "decision_time_seconds": 100,
+      "information_set_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "observation_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "available_requests": [
+        {
+          "request_id": "request-b",
+          "released_at_seconds": 100,
+          "accept_by_seconds": 150,
+          "required_service_seconds": 100,
+          "payload_units": 1
+        }
+      ],
+      "available_opportunities": [
+        {
+          "opportunity_id": "opportunity-1",
+          "start_seconds": 120,
+          "end_seconds": 240,
+          "max_service_duration_seconds": 120,
+          "max_payload_units": 10
+        }
+      ],
+      "action": {
+        "kind": "assign",
+        "request_id": "request-b",
+        "opportunity_id": "opportunity-1"
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "scenario-a",
+      "terminal_node_id": "revealed-a",
+      "weight_numerator": 1
+    },
+    {
+      "scenario_id": "scenario-b",
+      "terminal_node_id": "revealed-b",
+      "weight_numerator": 1
+    }
+  ],
+  "claim_ceiling": "Finite scenario-tree nonanticipativity and information-eligibility checks only; no stochastic calibration, optimization, online policy execution, route planning, flight authorization, dispatch, physical mutation or market authority."
+}
