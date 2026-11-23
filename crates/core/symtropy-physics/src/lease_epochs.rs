@@ -91,11 +91,7 @@ impl RevisionCounter {
 
     /// Current revision, or None after exhaustion.
     pub const fn current(&self) -> Option<Epoch> {
-        if self.valid {
-            Some(self.current)
-        } else {
-            None
-        }
+        if self.valid { Some(self.current) } else { None }
     }
 
     /// Advance exactly once without wrapping.
@@ -348,8 +344,8 @@ impl LeaseReadSet {
             reasons.insert(RevocationReason::MotionBoundChanged);
         }
 
-        let certificate_profile_current = captured.profiles.geometry_certificate
-            == current.profiles.geometry_certificate;
+        let certificate_profile_current =
+            captured.profiles.geometry_certificate == current.profiles.geometry_certificate;
 
         if !certificate_profile_current {
             reasons.insert(RevocationReason::CertificateProfileChanged);
@@ -498,14 +494,8 @@ mod tests {
     use super::*;
 
     fn snapshot() -> LeaseRevisionSnapshot {
-        let body_a = BodyRevisionSnapshot::new(
-            BodyIdentity::new(10, 1),
-            BodyRevisions::default(),
-        );
-        let body_b = BodyRevisionSnapshot::new(
-            BodyIdentity::new(20, 4),
-            BodyRevisions::default(),
-        );
+        let body_a = BodyRevisionSnapshot::new(BodyIdentity::new(10, 1), BodyRevisions::default());
+        let body_b = BodyRevisionSnapshot::new(BodyIdentity::new(20, 4), BodyRevisions::default());
 
         LeaseRevisionSnapshot::new(
             body_a,
@@ -588,11 +578,7 @@ mod tests {
                 .reasons
                 .contains(RevocationReason::CallbackPolicyChanged)
         );
-        assert!(
-            result
-                .reasons
-                .contains(RevocationReason::SceneReceiptStale)
-        );
+        assert!(result.reasons.contains(RevocationReason::SceneReceiptStale));
     }
 
     #[test]
@@ -713,7 +699,11 @@ mod tests {
         assert!(result.geometry_lease_eligible);
         assert!(!result.horizon_eligible);
         assert!(!result.scene_discovery_current);
-        assert!(result.reasons.contains(RevocationReason::MotionBoundChanged));
+        assert!(
+            result
+                .reasons
+                .contains(RevocationReason::MotionBoundChanged)
+        );
     }
 
     #[test]
@@ -751,7 +741,6 @@ mod tests {
                 .contains(RevocationReason::BodyIdentityChanged)
         );
     }
-
 
     #[test]
     fn world_generation_change_revokes_all_old_pair_evidence() {
