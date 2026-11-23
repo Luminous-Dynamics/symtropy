@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod conditional_velocity;
 pub mod coverage;
+pub mod gaussian_overlap;
 pub mod lebedev;
 pub mod ncdot_sphere;
 pub mod normal_positive_part;
@@ -41,6 +42,11 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use gaussian_overlap::{
+    CovarianceConditionDiagnostics, GaussianOverlapConfig, GaussianOverlapCovariancePolicy,
+    GaussianOverlapReport, GaussianPositionDistribution3, gaussian_position_overlap,
+    overlap_step_mahalanobis_squared,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
@@ -143,6 +149,10 @@ pub enum KernelError {
     InvalidCovarianceTolerance,
     /// A vector supplied as a sphere direction is not unit length.
     InvalidUnitDirection,
+    /// Gaussian-overlap symmetry tolerance or condition threshold is invalid.
+    InvalidGaussianOverlapConfig,
+    /// Gaussian covariance exceeds the configured condition estimate.
+    IllConditionedCovariance,
 }
 
 impl fmt::Display for KernelError {
@@ -198,6 +208,12 @@ impl fmt::Display for KernelError {
                 "covariance and direction tolerances must be nonnegative and finite"
             }
             Self::InvalidUnitDirection => "sphere direction must have unit norm",
+            Self::InvalidGaussianOverlapConfig => {
+                "Gaussian-overlap configuration contains an invalid tolerance or condition threshold"
+            }
+            Self::IllConditionedCovariance => {
+                "Gaussian covariance exceeds the configured condition estimate"
+            }
         };
         f.write_str(message)
     }
