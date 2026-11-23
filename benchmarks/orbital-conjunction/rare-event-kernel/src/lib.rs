@@ -37,6 +37,7 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
+pub mod refinement_scheduler;
 pub mod residual;
 pub mod sequential;
 pub mod space_time_partition;
@@ -80,6 +81,10 @@ pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
+};
+pub use refinement_scheduler::{
+    RefinementCandidate, RefinementCandidateId, RankedRefinementCandidate,
+    RefinementScheduleError, RefinementScheduleReport, schedule_refinements,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
