@@ -399,7 +399,7 @@
               "G1": { "properties": { "status": { "const": "PASS" }, "evidence_refs": { "minItems": 1 } } },
               "G2": { "properties": { "status": { "const": "PASS" }, "evidence_refs": { "minItems": 1 } } },
               "G3": { "properties": { "status": { "const": "PASS" }, "evidence_refs": { "minItems": 1 } } },
-              "G4": { "properties": { "status": { "const": "PASS" }, "evidence_refs": { "minItems": 1 }, "reviewer_id": { "$ref": "#/$defs/nonempty_string" }, "decision_ref": { "$ref": "#/$defs/evidence_ref" }, "recorded_at": { "$ref": "#/$defs/nonempty_string" } }
+              "G4": { "properties": { "status": { "const": "PASS" }, "evidence_refs": { "minItems": 1 }, "reviewer_id": { "$ref": "#/$defs/nonempty_string" }, "decision_ref": { "$ref": "#/$defs/evidence_ref" }, "recorded_at": { "$ref": "#/$defs/nonempty_string" } } }
             }
           },
           "acceptance": {
