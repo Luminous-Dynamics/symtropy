@@ -875,6 +875,7 @@ pub fn evaluate_nonanticipative_oracle(
             || node.information_set_digest.trim().is_empty()
             || !is_sha256_digest(&node.weather_evidence_digest)
             || !is_sha256_digest(&node.permission_evidence_digest)
+            || node.parent_information_set_digest.as_ref().is_some_and(|digest| !is_sha256_digest(digest))
             || node_by_id.insert(node.node_id.clone(), node.clone()).is_some()
         {
             add_error(&mut errors, format!("observation_node_identity_or_evidence_invalid:{}", node.node_id));
@@ -1006,13 +1007,21 @@ pub fn evaluate_nonanticipative_oracle(
     let mut children: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for group in groups.values() {
         if let Some(parent) = &group.parent_digest {
-            if !groups.contains_key(parent) {
-                add_error(&mut errors, format!("information_set_parent_missing:{}", group.digest));
-            } else {
+            if let Some(parent_group) = groups.get(parent) {
+                if parent_group.decision_time_seconds >= group.decision_time_seconds
+                    || group.revealed_mask & parent_group.revealed_mask != parent_group.revealed_mask
+                {
+                    add_error(
+                        &mut errors,
+                        format!("information_set_history_not_monotonic:{}", group.digest),
+                    );
+                }
                 children
                     .entry(parent.clone())
                     .or_default()
                     .push(group.digest.clone());
+            } else {
+                add_error(&mut errors, format!("information_set_parent_missing:{}", group.digest));
             }
         }
     }
@@ -1261,6 +1270,35 @@ mod tests {
         assert!(report.policy.iter().all(|decision| {
             decision.assignments.iter().all(|assignment| assignment.request_id != "request-later")
         }));
+    }
+
+    #[test]
+    fn permission_denied_blocks_aerial_assignment_after_revelation() {
+        let mut input = fixture();
+        input.requests[0].allowed_mode = AllowedMode::FallbackOnly;
+        input.requests[1].allowed_mode = AllowedMode::AerialOnly;
+        input.opportunities[0].mode = OpportunityMode::Aerial;
+        input.observation_nodes[2].permission_state = PermissionState::Denied;
+        finish_hashes(&mut input);
+        let report = evaluate_nonanticipative_oracle(&input)
+            .expect("permission denial is a valid revealed observation");
+        assert!(report.policy.iter().all(|decision| {
+            decision.assignments.iter().all(|assignment| assignment.request_id != "request-later")
+        }));
+    }
+
+    #[test]
+    fn one_root_information_set_emits_one_shared_policy_decision() {
+        let report = evaluate_nonanticipative_oracle(&fixture()).expect("tree");
+        let root = report.policy.iter()
+            .filter(|decision| decision.decision_time_seconds == 0)
+            .collect::<Vec<_>>();
+        assert_eq!(root.len(), 1);
+        assert_eq!(
+            report.policy.iter().map(|decision| decision.information_set_digest.clone())
+                .collect::<BTreeSet<_>>().len(),
+            report.policy.len()
+        );
     }
 
     #[test]
