@@ -932,6 +932,150 @@ mod tests {
         }
     }
 
+    fn accepted_audio_action_lifecycle() -> (
+        ActionParameterForecastV1,
+        RequestAcceptanceV1,
+        ActionResultV1,
+    ) {
+        use av_action_argument_replay_v0 as acquisition;
+
+        let source = source();
+        let transform_sha256 = digest(b"audio-transform");
+        let manifest = acquisition::ActionParameterManifestV1 {
+            schema_version: acquisition::ACTION_ARGUMENT_SCHEMA_V1,
+            action_id: "listen-audio".to_string(),
+            source: acquisition::SourceIdentityV1 {
+                source_id: source.source_id,
+                source_content_sha256: source.source_content_sha256,
+                clock_domain_id: source.clock_domain_id,
+                clock_generation: source.clock_generation,
+            },
+            requested_interval: acquisition::SourceIntervalV1 {
+                start_ns: 0,
+                end_ns: 1_000_000_000,
+            },
+            timestamp_tolerance_ns: 0,
+            parameters: acquisition::ActionParametersV1::AudioWindow(
+                acquisition::AudioWindowParametersV1 {
+                    start_sample: 0,
+                    end_sample: 16_000,
+                    sample_rate_hz: 16_000,
+                    channels: 1,
+                    sample_format: acquisition::AudioSampleFormatV1::S16Le,
+                    chunk_frames: 1_600,
+                    overlap_frames: 200,
+                    transform_sha256: transform_sha256.clone(),
+                },
+            ),
+        };
+        let manifest_digest = acquisition::validate_manifest(&manifest).unwrap();
+        let transcript_head = digest(b"transcript-head");
+        let forecast = ActionParameterForecastV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: "turn-1".to_string(),
+            transcript_head_sha256: transcript_head.clone(),
+            eligible_action_ids: vec!["listen-audio".to_string()],
+            actions: vec![acquisition::ForecastActionManifestV1 {
+                action_id: "listen-audio".to_string(),
+                manifest,
+                manifest_sha256: manifest_digest.clone(),
+            }],
+            evsi_forecasts: vec![
+                acquisition::ActionEvsiForecastV1 {
+                    action_id: "listen-audio".to_string(),
+                    estimated_gross_evsi: 0.4,
+                    lower_gross_evsi: 0.2,
+                    upper_gross_evsi: 0.6,
+                },
+                acquisition::ActionEvsiForecastV1 {
+                    action_id: acquisition::STOP_ACTION_ID_V1.to_string(),
+                    estimated_gross_evsi: 0.0,
+                    lower_gross_evsi: 0.0,
+                    upper_gross_evsi: 0.0,
+                },
+            ],
+            selected_action_id: "listen-audio".to_string(),
+            selected_manifest_sha256: Some(manifest_digest.clone()),
+        };
+        let acceptance = RequestAcceptanceV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: "turn-1".to_string(),
+            request_id: "request-a1".to_string(),
+            action_id: "listen-audio".to_string(),
+            parameter_manifest_sha256: manifest_digest.clone(),
+            parent_transcript_head_sha256: transcript_head.clone(),
+            accepted_tick: 1,
+            expected_arrival_tick: 10,
+            decision_deadline_tick: 20,
+        };
+        let result = ActionResultV1 {
+            episode_id: "episode-1".to_string(),
+            turn_id: "turn-1".to_string(),
+            request_id: "request-a1".to_string(),
+            action_id: "listen-audio".to_string(),
+            parameter_manifest_sha256: manifest_digest,
+            parent_transcript_head_sha256: transcript_head,
+            status: acquisition::ActionResultStatusV1::Delivered,
+            result_tick: 10,
+            delivered_frames: Vec::new(),
+            delivered_roi: None,
+            delivered_output_resolution: None,
+            delivered_crop_policy_sha256: None,
+            delivered_preprocessing_sha256: None,
+            delivered_audio: Some(acquisition::DeliveredAudioRangeV1 {
+                start_sample: 0,
+                end_sample: 16_000,
+                sample_rate_hz: 16_000,
+                channels: 1,
+                sample_format: acquisition::AudioSampleFormatV1::S16Le,
+            }),
+            delivered_audio_transform_sha256: Some(transform_sha256),
+            delivered_feedback: None,
+            actual_resource_digest_sha256: digest(b"actual-resources"),
+            result_event_sha256: digest(b"action-result-event"),
+        };
+        (forecast, acceptance, result)
+    }
+
+    #[test]
+    fn audio_parent_evidence_is_derived_from_validated_acquisition_lifecycle() {
+        let (forecast, acceptance, result) = accepted_audio_action_lifecycle();
+        let parent = parent_audio_evidence_from_action_lifecycle(
+            &forecast,
+            &acceptance,
+            &result,
+        )
+        .unwrap();
+        assert_eq!(parent.request_id, "request-a1");
+        assert_eq!(parent.result_event_sha256, result.result_event_sha256);
+        assert_eq!(
+            parent.delivered_spans,
+            vec![SourceSpanV1::AudioSamples(AudioSampleSpanV1 {
+                start_sample: 0,
+                end_sample: 16_000,
+                sample_rate_hz: 16_000,
+                channels: 1,
+            })]
+        );
+        let payload = vec![0xA5; 256];
+        let derived = receipt(&payload);
+        assert!(validate_derived_receipt(&derived, &parent, &payload, 20).is_ok());
+    }
+
+    #[test]
+    fn mutated_acquisition_request_cannot_mint_parent_evidence() {
+        let (forecast, acceptance, mut result) = accepted_audio_action_lifecycle();
+        result.request_id = "mutated-request".to_string();
+        assert!(
+            parent_audio_evidence_from_action_lifecycle(
+                &forecast,
+                &acceptance,
+                &result,
+            )
+            .is_err()
+        );
+    }
+
     #[test]
     fn valid_derived_receipt_replays_against_exact_parent_and_payload() {
         let payload = vec![0xA5; 256];
