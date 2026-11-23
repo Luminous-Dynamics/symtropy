@@ -86,3 +86,17 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # EHD-PIV calibration validity is a standalone metrology crate, not a
+    # member of the launcher workspace. Keep its exact-source checks explicit.
+    - name: Format EHD-PIV Calibration Validity
+      if: ${{ hashFiles('tools/ehd-piv-calibration-validity/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml -- --check
+
+    - name: Test EHD-PIV Calibration Validity
+      if: ${{ hashFiles('tools/ehd-piv-calibration-validity/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml
+
+    - name: Clippy EHD-PIV Calibration Validity
+      if: ${{ hashFiles('tools/ehd-piv-calibration-validity/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml --all-targets -- -D warnings
