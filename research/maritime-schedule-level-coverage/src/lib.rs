@@ -191,10 +191,6 @@ fn generate_calibration_with_count(seed: u64, count: usize) -> Vec<Schedule> {
         .collect()
 }
 
-fn generate_calibration(seed: u64) -> Vec<Schedule> {
-    generate_calibration_with_count(seed, CALIBRATION_SCHEDULES)
-}
-
 fn generate_test_windows(seed: u64) -> [(Window, Vec<Schedule>); 3] {
     let mut rng = SplitMix64::new(seed);
     std::array::from_fn(|index| {
@@ -528,14 +524,14 @@ mod tests {
 
     #[test]
     fn schedule_maximum_quantile_is_finite_with_120_calibration_schedules() {
-        let calibration = generate_calibration(42);
+        let calibration = generate_calibration_with_count(42, CALIBRATION_SCHEDULES);
         let bands = calibrate(Method::ScheduleMaximumJoint90, &calibration);
         assert!(bands.is_some());
     }
 
     #[test]
     fn schedule_maximum_quantile_is_never_smaller_than_any_per_call_quantile() {
-        let calibration = generate_calibration(7);
+        let calibration = generate_calibration_with_count(7, CALIBRATION_SCHEDULES);
         let per_call =
             calibrate(Method::PerVesselJoint90, &calibration).expect("per-call quantiles");
         let schedule = calibrate(Method::ScheduleMaximumJoint90, &calibration)
@@ -552,7 +548,7 @@ mod tests {
 
     #[test]
     fn schedule_level_method_evaluates_all_calls_as_one_joint_event() {
-        let calibration = generate_calibration(123);
+        let calibration = generate_calibration_with_count(123, CALIBRATION_SCHEDULES);
         let schedules = generate_test_windows(456);
         let bands =
             calibrate(Method::ScheduleMaximumJoint90, &calibration).expect("schedule-level bands");
