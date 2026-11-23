@@ -397,6 +397,55 @@ mod tests {
     }
 
     #[test]
+    fn affine_aabb_seeded_four_dimensional_corner_corpus_is_contained() {
+        let mut state = 0x8d26_4f31_7a90_c5e1_u64;
+        let mut sample = || {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let unit = (state >> 11) as f64 * (1.0 / ((1_u64 << 53) as f64));
+            (unit * 2.0) - 1.0
+        };
+
+        for case in 0..96 {
+            let matrix = SMatrix::<f64, 4, 4>::from_fn(|_, _| sample() * 3.0);
+            let translation = SVector::<f64, 4>::from_fn(|_, _| sample() * 100.0);
+            let local_min = SVector::<f64, 4>::from_fn(|_, _| sample() * 5.0 - 5.0);
+            let widths = SVector::<f64, 4>::from_fn(|_, _| sample().abs() * 4.0);
+            let local_max = local_min + widths;
+
+            let (world_min, world_max) =
+                transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
+                    .unwrap_or_else(|error| panic!("case {case} unexpectedly failed: {error:?}"));
+
+            for corner in 0..16 {
+                let point = SVector::<f64, 4>::from_fn(|axis, _| {
+                    if corner & (1 << axis) == 0 {
+                        local_min[axis]
+                    } else {
+                        local_max[axis]
+                    }
+                });
+                let transformed = matrix * point + translation;
+                for axis in 0..4 {
+                    assert!(
+                        world_min[axis] <= transformed[axis],
+                        "case {case}, corner {corner}, axis {axis}: lower {} > {}",
+                        world_min[axis],
+                        transformed[axis]
+                    );
+                    assert!(
+                        transformed[axis] <= world_max[axis],
+                        "case {case}, corner {corner}, axis {axis}: {} > upper {}",
+                        transformed[axis],
+                        world_max[axis]
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn affine_aabb_fails_open_on_invalid_inputs_and_overflow() {
         let identity = SMatrix::<f64, 2, 2>::identity();
         let zero = SVector::<f64, 2>::zeros();
