@@ -368,6 +368,7 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
         platform.native_adapter_revision.as_str(),
         platform.runtime_monitor_revision.as_str(),
         platform.ros_distribution.as_str(),
+        platform.simulation_interfaces_revision.as_str(),
         platform.middleware_revision.as_str(),
         platform.controller_revision.as_str(),
         platform.driver_revision.as_str(),
