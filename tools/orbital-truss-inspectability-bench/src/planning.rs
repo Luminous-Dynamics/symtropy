@@ -1554,12 +1554,43 @@ mod tests {
         assert_eq!(baseline.selected_view_ids, vec!["VIEW-A", "VIEW-B"]);
         assert!(!baseline.requested_k_covered);
         assert!(baseline.attainable_capped_target_covered);
-        assert!(baseline.failure_domain_requirements_met);
+        assert!(baseline.robust_failure_domain_requirements_met);
         assert!(!baseline.within_declared_budgets);
         assert_eq!(baseline.feature_coverage[0].requested_k, 3);
         assert_eq!(baseline.feature_coverage[0].available_candidate_views, 2);
         assert_eq!(baseline.feature_coverage[0].attainable_capped_target, 2);
         assert_eq!(baseline.feature_coverage[0].selected_robust_views, 2);
+    }
+
+    #[test]
+    fn nominal_k_exact_oracle_is_separate_from_failure_domain_optimum() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 2, 2)],
+            vec![
+                view("VIEW-A", "SHARED-DOMAIN", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "SHARED-DOMAIN", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        assert!(receipt.exact_optimum.is_none());
+        assert_eq!(
+            receipt.nominal_k_exact.selected_view_ids,
+            vec!["VIEW-A", "VIEW-B"]
+        );
+        assert_eq!(receipt.nominal_k_exact.selected_view_count, 2);
+        assert!(receipt.nominal_k_exact.minimum_cardinality_certified);
+        assert!(receipt.nominal_k_exact.requested_k_covered);
+        assert!(receipt.published_k_coverage_greedy.attainable_capped_target_covered);
+        assert_eq!(
+            receipt.published_k_coverage_greedy.view_count_gap_vs_exact,
+            Some(0)
+        );
+        assert!(
+            !receipt.published_k_coverage_greedy.robust_failure_domain_requirements_met
+        );
     }
 
     #[test]
@@ -1579,7 +1610,7 @@ mod tests {
         assert!(baseline.requested_k_covered);
         assert!(baseline.attainable_capped_target_covered);
         assert!(!baseline.failure_domain_requirements_met);
-        assert_eq!(baseline.feature_coverage[0].selected_failure_domains, 1);
+        assert_eq!(baseline.feature_coverage[0].selected_robust_failure_domains, 1);
     }
 
     #[test]
