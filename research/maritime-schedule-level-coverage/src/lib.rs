@@ -6,8 +6,7 @@ const CALIBRATION_SCHEDULES: usize = 120;
 const TEST_SCHEDULES_PER_WINDOW: usize = 120;
 const MIN_CALIBRATION_SCHEDULES: usize = 40;
 const TARGET_ALPHA_MILLI: u16 = 100;
-const BONFERRONI_ALPHA_PER_CALL_MILLI: u16 =
-    TARGET_ALPHA_MILLI / SCHEDULE_SIZE as u16;
+const BONFERRONI_ALPHA_PER_CALL_MILLI: u16 = TARGET_ALPHA_MILLI / SCHEDULE_SIZE as u16;
 const ARRIVAL_SCALE_HOURS: u32 = 5;
 const HANDLING_SCALE_HOURS: u32 = 20;
 
@@ -97,10 +96,7 @@ impl Method {
 }
 
 fn split_conformal_quantile(scores: &[u32], alpha_milli: u16) -> Option<u32> {
-    if scores.len() < MIN_CALIBRATION_SCHEDULES
-        || alpha_milli == 0
-        || alpha_milli >= 1_000
-    {
+    if scores.len() < MIN_CALIBRATION_SCHEDULES || alpha_milli == 0 || alpha_milli >= 1_000 {
         return None;
     }
 
@@ -142,11 +138,7 @@ impl SplitMix64 {
     }
 }
 
-fn generate_schedule(
-    rng: &mut SplitMix64,
-    window: Window,
-    schedule_index: usize,
-) -> Schedule {
+fn generate_schedule(rng: &mut SplitMix64, window: Window, schedule_index: usize) -> Schedule {
     Schedule {
         calls: std::array::from_fn(|call_index| {
             let heterogeneity = (call_index % 5) as u32;
@@ -162,9 +154,7 @@ fn generate_schedule(
                 Window::Burst => {
                     arrival += 8;
                     handling += 30;
-                    if schedule_index % 10 == 0
-                        && call_index == schedule_index % SCHEDULE_SIZE
-                    {
+                    if schedule_index % 10 == 0 && call_index == schedule_index % SCHEDULE_SIZE {
                         arrival += 60;
                         handling += 240;
                     }
@@ -202,10 +192,7 @@ struct CallBands {
     quantiles: [u32; SCHEDULE_SIZE],
 }
 
-fn calibrate(
-    method: Method,
-    calibration: &[Schedule],
-) -> Option<CallBands> {
+fn calibrate(method: Method, calibration: &[Schedule]) -> Option<CallBands> {
     match method {
         Method::PerVesselJoint90 | Method::BonferroniSchedule90 => {
             let alpha = method.alpha_per_call_milli();
@@ -279,10 +266,7 @@ fn mean(numerator: u64, denominator: usize) -> f64 {
     }
 }
 
-fn evaluate(
-    bands: Option<CallBands>,
-    schedules: &[Schedule],
-) -> ScheduleMetrics {
+fn evaluate(bands: Option<CallBands>, schedules: &[Schedule]) -> ScheduleMetrics {
     let mut metrics = ScheduleMetrics::default();
 
     for schedule in schedules {
@@ -300,10 +284,16 @@ fn evaluate(
             metrics.covered_calls += usize::from(covered);
             all_calls_covered &= covered;
 
-            metrics.arrival_width_sum_hours +=
-                u64::from(quantile.saturating_mul(ARRIVAL_SCALE_HOURS).saturating_mul(2));
-            metrics.handling_width_sum_hours +=
-                u64::from(quantile.saturating_mul(HANDLING_SCALE_HOURS).saturating_mul(2));
+            metrics.arrival_width_sum_hours += u64::from(
+                quantile
+                    .saturating_mul(ARRIVAL_SCALE_HOURS)
+                    .saturating_mul(2),
+            );
+            metrics.handling_width_sum_hours += u64::from(
+                quantile
+                    .saturating_mul(HANDLING_SCALE_HOURS)
+                    .saturating_mul(2),
+            );
         }
 
         metrics.covered_schedules += usize::from(all_calls_covered);
@@ -369,8 +359,16 @@ pub fn render_csv() -> String {
         for (index, window) in Window::ALL.iter().copied().enumerate() {
             let metrics = report.windows[index];
             let calibrated = report.bands.is_some();
-            let (covered_schedules, whole_schedule_coverage, covered_calls, per_call_coverage,
-                arrival_width, handling_width, quantile_min, quantile_max) = if calibrated {
+            let (
+                covered_schedules,
+                whole_schedule_coverage,
+                covered_calls,
+                per_call_coverage,
+                arrival_width,
+                handling_width,
+                quantile_min,
+                quantile_max,
+            ) = if calibrated {
                 (
                     metrics.covered_schedules.to_string(),
                     format!("{:.1}", metrics.whole_schedule_coverage_pct()),
@@ -378,8 +376,12 @@ pub fn render_csv() -> String {
                     format!("{:.1}", metrics.per_call_coverage_pct()),
                     format!("{:.1}", metrics.mean_arrival_width_hours()),
                     format!("{:.1}", metrics.mean_handling_width_hours()),
-                    report.quantile_min().map_or_else(|| "NA".to_owned(), |value| value.to_string()),
-                    report.quantile_max().map_or_else(|| "NA".to_owned(), |value| value.to_string()),
+                    report
+                        .quantile_min()
+                        .map_or_else(|| "NA".to_owned(), |value| value.to_string()),
+                    report
+                        .quantile_max()
+                        .map_or_else(|| "NA".to_owned(), |value| value.to_string()),
                 )
             } else {
                 (
@@ -450,10 +452,7 @@ mod tests {
     #[test]
     fn bonferroni_alpha_has_no_finite_quantile_with_120_calibration_schedules() {
         let scores = (0..CALIBRATION_SCHEDULES as u32).collect::<Vec<_>>();
-        assert_eq!(
-            BONFERRONI_ALPHA_PER_CALL_MILLI,
-            4
-        );
+        assert_eq!(BONFERRONI_ALPHA_PER_CALL_MILLI, 4);
         assert!(split_conformal_quantile(&scores, BONFERRONI_ALPHA_PER_CALL_MILLI).is_none());
     }
 
@@ -476,8 +475,8 @@ mod tests {
     #[test]
     fn schedule_maximum_quantile_is_never_smaller_than_any_per_call_quantile() {
         let calibration = generate_calibration(7);
-        let per_call = calibrate(Method::PerVesselJoint90, &calibration)
-            .expect("per-call quantiles");
+        let per_call =
+            calibrate(Method::PerVesselJoint90, &calibration).expect("per-call quantiles");
         let schedule = calibrate(Method::ScheduleMaximumJoint90, &calibration)
             .expect("schedule-level quantile");
 
@@ -494,12 +493,15 @@ mod tests {
     fn schedule_level_method_evaluates_all_calls_as_one_joint_event() {
         let calibration = generate_calibration(123);
         let schedules = generate_test_windows(456);
-        let bands = calibrate(Method::ScheduleMaximumJoint90, &calibration)
-            .expect("schedule-level bands");
+        let bands =
+            calibrate(Method::ScheduleMaximumJoint90, &calibration).expect("schedule-level bands");
         let metrics = evaluate(bands.into(), &schedules[0].1);
 
         assert_eq!(metrics.total_schedules, TEST_SCHEDULES_PER_WINDOW);
-        assert_eq!(metrics.total_calls, TEST_SCHEDULES_PER_WINDOW * SCHEDULE_SIZE);
+        assert_eq!(
+            metrics.total_calls,
+            TEST_SCHEDULES_PER_WINDOW * SCHEDULE_SIZE
+        );
         assert!(metrics.covered_schedules <= metrics.covered_calls);
     }
 
@@ -510,7 +512,11 @@ mod tests {
         for report in reports {
             assert_eq!(report.windows.len(), Window::ALL.len());
             assert_eq!(
-                report.windows.iter().map(|window| window.total_schedules).sum::<usize>(),
+                report
+                    .windows
+                    .iter()
+                    .map(|window| window.total_schedules)
+                    .sum::<usize>(),
                 TEST_SCHEDULES_PER_WINDOW * Window::ALL.len()
             );
         }
