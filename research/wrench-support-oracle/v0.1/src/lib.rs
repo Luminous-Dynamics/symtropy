@@ -14,6 +14,7 @@ use std::fmt::{self, Display, Formatter};
 pub const SCHEMA_VERSION: &str = "wrench-support-oracle-v0.1";
 
 pub mod general;
+pub mod generator_lineage;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OracleError {
