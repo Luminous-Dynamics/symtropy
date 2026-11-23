@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
+pub mod capacity;
+
 pub const SCHEMA_VERSION: &str = "solver-coverage-v0.1";
 const SHA256_HEX_LEN: usize = 64;
 
@@ -147,16 +149,17 @@ pub struct ObservableSpec {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
 pub enum ObservableDisposition {
-    Produced,
-    NotRequested,
-    Unsupported,
-    CapacityDropped,
-    SleepingSkipped,
-    NotConverged,
-    Invalid,
+    Produced = 1,
+    NotRequested = 2,
+    Unsupported = 3,
+    CapacityDropped = 4,
+    SleepingSkipped = 5,
+    NotConverged = 6,
+    Invalid = 7,
     /// Explicit evidence gap. A receipt containing this status is rejected.
-    Missing,
+    Missing = 8,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -344,6 +347,8 @@ pub struct CoverageReceipt {
     pub request: CoverageRequest,
     pub observable_results: Vec<ObservableResult>,
     pub row_coverage: Vec<ConstraintRowCoverage>,
+    /// Geometric manifold lineage and temporally scoped capacity diagnostics.
+    pub capacity_evidence: capacity::CapacityEvidence,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -368,6 +373,7 @@ pub struct CoverageReport {
     pub row_attribution_complete: bool,
     /// True only when every required observable and required row was produced/solved.
     pub complete_for_declared_required_work: bool,
+    pub capacity_evidence: capacity::CapacityEvidenceReport,
 }
 
 /// Validate protocol completeness and return a quality-neutral coverage report.
@@ -408,6 +414,7 @@ pub fn validate_receipt_with_computed_request_digest(
 pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, ValidationError> {
     let request = &receipt.request;
     request.identity.validate()?;
+    let capacity_evidence = receipt.capacity_evidence.validate()?;
 
     let mut specs = BTreeMap::new();
     for (index, spec) in request.observables.iter().enumerate() {
@@ -611,6 +618,7 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
         required_rows_solved,
         row_attribution_complete,
         complete_for_declared_required_work,
+        capacity_evidence,
     })
 }
 
@@ -714,6 +722,7 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
     push_string(&mut out, SCHEMA_VERSION);
     receipt.request.identity.append_all(&mut out);
     out.extend_from_slice(&receipt.request.canonical_request_preimage());
+    out.extend_from_slice(&receipt.capacity_evidence.canonical_preimage());
 
     let mut results = receipt.observable_results.clone();
     results.sort_by(|a, b| a.key.cmp(&b.key));
@@ -865,6 +874,7 @@ mod tests {
             },
             observable_results: vec![produced_zero()],
             row_coverage: vec![contact_rows()],
+            capacity_evidence: capacity::CapacityEvidence::default(),
         }
     }
 
