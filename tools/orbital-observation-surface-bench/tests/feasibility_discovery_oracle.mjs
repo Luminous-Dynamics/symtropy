@@ -143,7 +143,11 @@ function validateQueryUniverse(item,baseInfo){
     validateCost(query.cost,"query cost");
   }
   if(JSON.stringify([...observed].sort(strCmp))!==JSON.stringify(planned)) fail("observed queries differ from planned inventory");
-  if(u.queries_sha256!==sha(canonical([...u.queries].sort((a,b)=>strCmp(a.query_id,b.query_id))))) fail("full query manifest digest mismatch");
+  const canonicalQueries=u.queries.map(query=>({
+    ...query,
+    expected_world_ids:[...query.expected_world_ids].sort(strCmp)
+  })).sort((a,b)=>strCmp(a.query_id,b.query_id));
+  if(u.queries_sha256!==sha(canonical(canonicalQueries))) fail("full query manifest digest mismatch");
 }
 function classMap(worldObservations){
   const classes=new Map();
