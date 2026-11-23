@@ -1,0 +1,11 @@
+[package]
+name = "maritime-dgt-intervention-effect"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+description = "Evidence-stage and replay qualification for maritime recovery interventions"
+
+[dependencies]
+
+[workspace]

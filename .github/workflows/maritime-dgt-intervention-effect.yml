@@ -1,0 +1,52 @@
+name: Maritime DGT Intervention Effect
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/maritime-dgt-intervention-effect/**"
+      - ".github/workflows/maritime-dgt-intervention-effect.yml"
+  push:
+    paths:
+      - "benchmarks/maritime-dgt-intervention-effect/**"
+      - ".github/workflows/maritime-dgt-intervention-effect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Verify exact source revision
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master at 2026-11-14
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+
+      - name: Verify fixture digest
+        working-directory: benchmarks/maritime-dgt-intervention-effect/data
+        run: sha256sum --check SHA256SUMS
+
+      - name: Check formatting
+        working-directory: benchmarks/maritime-dgt-intervention-effect
+        run: cargo fmt --all --check
+
+      - name: Run offline tests
+        working-directory: benchmarks/maritime-dgt-intervention-effect
+        run: cargo test --offline --locked
+
+      - name: Run strict Clippy
+        working-directory: benchmarks/maritime-dgt-intervention-effect
+        run: cargo clippy --offline --locked --all-targets -- -D warnings
+
+      - name: Execute read-only evidence lifecycle fixture
+        working-directory: benchmarks/maritime-dgt-intervention-effect
+        run: cargo run --offline --locked
