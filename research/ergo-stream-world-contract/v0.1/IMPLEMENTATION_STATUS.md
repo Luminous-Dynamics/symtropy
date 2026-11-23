@@ -82,3 +82,17 @@ The branch also adds `src/matching.rs`, exposed as `matching`:
 This is a conservative degree/incidence-signature baseline, not a complete graph-isomorphism or graph-edit solver. A strong VF2-style / graph-edit comparator remains required before making claims against classical graph matching.
 
 **Verification for the combined transfer, passive extractor and graph-matching branch:** pending on the exact latest head.
+
+## Paired-world Transfer Atlas v0.1 extension
+
+The branch now adds `src/atlas.rs`, exposed as `atlas`, and `TRANSFER_ATLAS_V0_1.md`:
+
+- Positive family: a three-node structure under node/relation/kind relabeling and directed participant reversal.
+- Negative family: K3,3 versus the triangular prism. Both are six-node, nine-edge, undirected 3-regular graphs with identical local degree signatures, but they are non-isomorphic (bipartite / triangle-free versus containing triangles).
+- The owner-side fixture stores the expected transfer disposition outside the learner-facing pair view.
+- The unique-incidence baseline must transfer the positive pair and abstain on the degree-matched negative pair.
+- A local evaluator distinguishes accepted transfer, correct abstention, missed transfer and false unification.
+
+This is still an in-process reference and **not a sealed hidden-world service or OS security boundary**. The two families do not yet cover matched higher-order marginals, intervention-divergent pairs, non-identifiable map sets, active probes, multiscale structure or stream-to-graph learning.
+
+**Verification for the latest stacked branch, including the paired-world atlas:** pending exact-head Rust 1.96 format, tests and strict Clippy. The previous run on head `187c9621c5a5a947629628ab1994bcbcc4a1db40` passed formatting but had 32/33 tests pass; the sole failure was an ambiguous graph-matcher test fixture, now corrected with uniquely identifiable unary relation incidence. The combined atlas extension is newer and has not yet been qualified.
