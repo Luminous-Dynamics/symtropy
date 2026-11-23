@@ -112,6 +112,7 @@ pub struct RobustSelectionCompanion {
     pub candidate_pool_requested_k_fully_available: bool,
     pub selected_requested_k_fully_covered: bool,
     pub selected_attainable_targets_fully_covered: bool,
+    pub full_requested_k_comparable_with_nominal: bool,
     pub feature_coverage: Vec<MultiCoverFeatureCoverage>,
     pub dual_bound: DualBoundCertificate,
     pub selected_minus_dual_lower_bound: u64,
@@ -844,6 +845,10 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         candidate_pool_requested_k_fully_available: robust_candidate_pool_requested_k_fully_available,
         selected_requested_k_fully_covered: robust_selected_requested_k_fully_covered,
         selected_attainable_targets_fully_covered: robust_selected_attainable_targets_fully_covered,
+        full_requested_k_comparable_with_nominal: candidate_pool_requested_k_fully_available
+            && selected_requested_k_fully_covered
+            && robust_candidate_pool_requested_k_fully_available
+            && robust_selected_requested_k_fully_covered,
         feature_coverage: robust_feature_coverage,
         selected_minus_dual_lower_bound: robust_excess,
         relative_excess_over_dual_lower_bound_basis_points: robust_relative_excess_basis_points,
@@ -997,7 +1002,20 @@ mod tests {
                 <= FIXED_SCALE
         );
         assert!(receipt.dual_bound.lower_bound_ceiling <= receipt.selected_view_count as u64);
-        assert!(!receipt.dual_bound.minimum_cardinality_optimum_certified);
+        assert_eq!(
+            receipt.dual_bound.minimum_cardinality_optimum_certified,
+            receipt.dual_bound.dual_constraints_verified
+                && receipt.dual_bound.lower_bound_ceiling == receipt.selected_view_count as u64
+        );
+        let robust = &receipt.robust_selection_companion;
+        assert!(robust.dual_bound.dual_constraints_verified);
+        assert!(robust.selected_attainable_targets_fully_covered);
+        assert_eq!(
+            robust.dual_bound.minimum_cardinality_optimum_certified,
+            robust.dual_bound.dual_constraints_verified
+                && robust.dual_bound.lower_bound_ceiling
+                    == robust.robust_selected_view_count as u64
+        );
         assert!(!receipt.authority_granted);
     }
 
@@ -1114,6 +1132,14 @@ mod tests {
         assert!(!feature.requested_k_met);
         assert!(!feature.robust_requested_k_met);
         assert!(!receipt.candidate_pool_requested_k_fully_available);
+        let robust = &receipt.robust_selection_companion;
+        assert!(!robust.candidate_pool_requested_k_fully_available);
+        assert!(!robust.selected_requested_k_fully_covered);
+        assert!(robust.selected_attainable_targets_fully_covered);
+        assert!(!robust.full_requested_k_comparable_with_nominal);
+        assert_eq!(robust.robust_selected_view_count, 1);
+        assert_eq!(robust.view_count_delta_vs_nominal, -1);
+        assert!(robust.dual_bound.dual_constraints_verified);
     }
 
     #[test]
