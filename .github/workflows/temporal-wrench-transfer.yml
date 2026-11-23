@@ -29,5 +29,7 @@ jobs:
         run: cargo fmt --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml -- --check
       - name: Run tests
         run: cargo test --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --locked
+      - name: Run temporal transfer tournament
+        run: cargo run --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --example temporal_transfer_tournament --locked
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/temporal-wrench-transfer/v0.1/Cargo.toml --locked --all-targets -- -D warnings
