@@ -1003,7 +1003,7 @@ pub fn render_csv() -> String {
 
         if result.world_decisions.is_empty() {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{},NA\n",
+                "{},{},{},{},{},{},{},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,{},NA\n",
                 result.id,
                 result.status,
                 result.mode.id(),
