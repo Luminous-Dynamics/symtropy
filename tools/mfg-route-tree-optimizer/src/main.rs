@@ -679,7 +679,18 @@ fn validate_known_answers(corpus: &Corpus) -> Result<(), String> {
             || answer.exact_expected_cost_numerator != exact_value
             || answer.clairvoyant_lower_bound_numerator != clairvoyant
         {
-            return Err(fail("scenario_tree_known_answer_mismatch"));
+            return Err(fail(format!(
+                "scenario_tree_known_answer_mismatch:{} greedy_plan_match={} exact_plan_match={} greedy_cost={}/{} exact_cost={}/{} clairvoyant={}/{}",
+                case.case_id,
+                answer.greedy_plan == greedy,
+                answer.exact_policy_plan == exact,
+                greedy_value,
+                answer.greedy_expected_cost_numerator,
+                exact_value,
+                answer.exact_expected_cost_numerator,
+                clairvoyant,
+                answer.clairvoyant_lower_bound_numerator
+            )));
         }
     }
     Ok(())
