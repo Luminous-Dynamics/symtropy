@@ -1,0 +1,92 @@
+{
+  "schema_version": "cmni.two_source_dependence_robust_design.v1",
+  "benchmark_id": "nominal-vs-minimax-source-correlation-rank-reversal-v1",
+  "status": "synthetic_analytic_fixture",
+  "dependence_scope_receipt_id": "receipt:shared-calibration-correlation-range-v1",
+  "common_parameters": {
+    "prior_parameter_variance": 1,
+    "source_standard_deviations": [
+      1,
+      1
+    ],
+    "correlation_bounds": [
+      -0.75,
+      0.75
+    ],
+    "independent_observation_noise_variances": [
+      1,
+      1
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "nominal-winner",
+      "observation_sensitivities": [
+        -2,
+        -2
+      ],
+      "source_jacobians": [
+        [
+          -1,
+          1
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "nominal_independence_parameter_information": 1.4545454545454546,
+      "nominal_independence_eig_nats": 0.4489707966029793,
+      "worst_case_correlation": -0.75,
+      "worst_case_parameter_information": 0.975609756097561,
+      "worst_case_eig_nats": 0.3404385439840655,
+      "best_case_correlation": 0.75,
+      "best_case_parameter_information": 3.0344827586206895,
+      "best_case_eig_nats": 0.6974390524056411,
+      "robust_rank": 2,
+      "nominal_independence_rank": 1
+    },
+    {
+      "candidate_id": "robust-winner",
+      "observation_sensitivities": [
+        2,
+        0.5
+      ],
+      "source_jacobians": [
+        [
+          -2,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "nominal_independence_parameter_information": 1.05,
+      "nominal_independence_eig_nats": 0.3589198965751584,
+      "worst_case_correlation": -0.75,
+      "worst_case_parameter_information": 1.05,
+      "worst_case_eig_nats": 0.3589198965751584,
+      "best_case_correlation": -0.75,
+      "best_case_parameter_information": 1.05,
+      "best_case_eig_nats": 0.3589198965751584,
+      "robust_rank": 1,
+      "nominal_independence_rank": 2
+    }
+  ],
+  "expected": {
+    "nominal_independence_preferred_candidate_id": "nominal-winner",
+    "minimax_preferred_candidate_id": "robust-winner",
+    "ranking_reversed": true,
+    "worst_case_eig_regret_of_nominal_choice": 0.018481352591092903,
+    "robust_choice_worst_case_eig": 0.3589198965751584,
+    "nominal_choice_worst_case_eig": 0.3404385439840655
+  },
+  "non_claims": [
+    "Synthetic linear-Gaussian data only; no physical data or detector calibration",
+    "The correlation-bound receipt ID is a placeholder and is not authenticated",
+    "Analytic envelope uses floating-point arithmetic, not outward-rounded interval arithmetic",
+    "Two scalar observations, one scalar parameter, and two shared sources only",
+    "Minimax ranking is not a theorem-certified dominance statement"
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "schema_version": "cmni.continuous_psd_dependence_envelope.v1",
+  "benchmark_id": "two-source-continuous-worst-case-information-bracket-v1",
+  "status": "synthetic_analytic_convex_tangent_fixture",
+  "dependence_scope_receipt_id": "receipt:continuous-source-correlation-range-v1",
+  "candidate": {
+    "candidate_id": "candidate-a",
+    "prior_parameter_variance": 1,
+    "observation_sensitivities": [
+      1
+    ],
+    "independent_observation_noise_variances": [
+      1
+    ],
+    "source_standard_deviations": [
+      1,
+      1
+    ],
+    "source_jacobians": [
+      [
+        1,
+        1
+      ]
+    ]
+  },
+  "pairwise_correlation_bounds": [
+    [
+      {
+        "lower": 1,
+        "upper": 1
+      },
+      {
+        "lower": -0.5,
+        "upper": 0.5
+      }
+    ],
+    [
+      {
+        "lower": -0.5,
+        "upper": 0.5
+      },
+      {
+        "lower": 1,
+        "upper": 1
+      }
+    ]
+  ],
+  "feasible_psd_witnesses": [
+    {
+      "scenario_id": "worst-correlation",
+      "correlation_matrix": [
+        [
+          1,
+          0.5
+        ],
+        [
+          0.5,
+          1
+        ]
+      ]
+    },
+    {
+      "scenario_id": "best-correlation",
+      "correlation_matrix": [
+        [
+          1,
+          -0.5
+        ],
+        [
+          -0.5,
+          1
+        ]
+      ]
+    }
+  ],
+  "analytic_model": {
+    "observation_variance_as_function_of_rho": "3 + 2*rho",
+    "parameter_information_as_function_of_rho": "1 / (3 + 2*rho)",
+    "minimum_parameter_information": 0.25,
+    "minimum_at_rho": 0.5,
+    "maximum_parameter_information": 0.5,
+    "maximum_at_rho": -0.5
+  },
+  "expected_envelope": {
+    "worst_case_parameter_information_bounds": [
+      0.25,
+      0.25
+    ],
+    "worst_case_eig_nats_bounds": [
+      0.11157177565710488,
+      0.11157177565710488
+    ],
+    "worst_case_posterior_parameter_variance_bounds": [
+      0.8,
+      0.8
+    ],
+    "best_feasible_witness_scenario_id": "worst-correlation",
+    "tangent_anchor_scenario_ids": [
+      "worst-correlation",
+      "best-correlation"
+    ],
+    "formal_interval_arithmetic": false
+  },
+  "non_claims": [
+    "A floating-point convex tangent bracket, not a formal interval-arithmetic certificate",
+    "The correlation interval and witness receipt are synthetic placeholders",
+    "No actual physical calibration or nuclear-data claim",
+    "No general continuous PSD optimizer; the lower bound relaxes PSD coupling when maximizing the tangent"
+  ]
+}

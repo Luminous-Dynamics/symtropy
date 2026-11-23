@@ -1,0 +1,161 @@
+{
+  "fixture_type": "synthetic_cmni_spike_slab_poisson_bias_inference_v1",
+  "provenance": "fully synthetic count observations and feature matrices; not AIACHNE data and not experimental CMNI evidence",
+  "prior": {
+    "feature_inclusion_probability": 0.1,
+    "gaussian_slab_standard_deviation": 1,
+    "coefficient_units": "standardized design-matrix columns",
+    "maximum_exactly_enumerated_features": 12
+  },
+  "planted_single_feature_bias": {
+    "observed_counts": [
+      20,
+      40,
+      20,
+      40
+    ],
+    "physical_expected_counts": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "design_matrix": [
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ]
+    ],
+    "expected_model_probabilities_by_mask": [
+      0.000019909044379,
+      0.999980090955621
+    ],
+    "expected_feature_inclusion_probability": [
+      0.999980090955634
+    ],
+    "expected_map_coefficients": [
+      0.684553441915179
+    ],
+    "expected_posterior_mean": [
+      0.684539813110333
+    ],
+    "expected_posterior_covariance": [
+      [
+        0.012459986634576
+      ]
+    ],
+    "expected_map_feature_mask": 1,
+    "expected_relative_log_evidence": 290.20684874889673,
+    "interpretation": "The planted multiplicative factor is exp(beta) ~= 1.98 for feature=1; the sparse model selects the feature."
+  },
+  "no_bias_negative_control": {
+    "observed_counts": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "physical_expected_counts": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "design_matrix": [
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ]
+    ],
+    "expected_model_probabilities_by_mask": [
+      0.982943337910586,
+      0.017056662089427
+    ],
+    "expected_feature_inclusion_probability": [
+      0.017056662089427
+    ],
+    "expected_map_feature_mask": 0,
+    "interpretation": "The null model remains preferred when observations match the physical baseline."
+  },
+  "collinear_feature_ambiguity": {
+    "observed_counts": [
+      20,
+      40,
+      20,
+      40
+    ],
+    "physical_expected_counts": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "design_matrix": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "expected_model_probabilities_by_mask": [
+      0.000009532864966,
+      0.47881128767164,
+      0.47881128767164,
+      0.042367891791745
+    ],
+    "expected_feature_inclusion_probability": [
+      0.521179179463384,
+      0.521179179463384
+    ],
+    "expected_posterior_mean": [
+      0.342364109274904,
+      0.342364109274904
+    ],
+    "expected_posterior_covariance": [
+      [
+        0.139467721870875,
+        -0.133239196384394
+      ],
+      [
+        -0.133239196384394,
+        0.139467721870875
+      ]
+    ],
+    "expected_map_feature_mask": 1,
+    "interpretation": "The two features are observationally indistinguishable; posterior inclusion probabilities remain equal and the MAP subset is not a causal attribution."
+  },
+  "limitations": [
+    "The subset model prior is independent Bernoulli inclusion and the coefficient slab is Gaussian, not the AIACHNE horseshoe prior.",
+    "Marginal evidence within each subset uses a Laplace approximation about the posterior mode.",
+    "The likelihood assumes conditionally independent Poisson counts, fixed physical expected counts and a fixed feature matrix.",
+    "The common Poisson log-factorial term is omitted from returned relative log evidence.",
+    "This fixture is synthetic and does not validate the method against the AIACHNE PFNS database."
+  ]
+}

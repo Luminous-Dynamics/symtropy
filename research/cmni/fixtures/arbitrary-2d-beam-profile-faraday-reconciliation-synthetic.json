@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "arbitrary-2d-beam-profile-faraday-reconciliation-synthetic-v0",
+  "provenance_kind": "synthetic",
+  "note": "Small nonuniform grid used to test current reconciliation and flux normalization. It is not a measured profile from the 2026 paper.",
+  "faraday_cup_current_a": 0.000001,
+  "ion_current_fractions": {
+    "d_plus": 0.85,
+    "d2_plus": 0.15
+  },
+  "cells": [
+    {
+      "x_cm": -0.5,
+      "y_cm": 0,
+      "area_cm2": 0.25,
+      "ion_current_density_a_cm2": 0.000002,
+      "cell_current_a": 5e-7
+    },
+    {
+      "x_cm": 0,
+      "y_cm": 0,
+      "area_cm2": 0.5,
+      "ion_current_density_a_cm2": 5e-7,
+      "cell_current_a": 2.5e-7
+    },
+    {
+      "x_cm": 0.5,
+      "y_cm": 0,
+      "area_cm2": 0.25,
+      "ion_current_density_a_cm2": 0.000001,
+      "cell_current_a": 2.5e-7
+    }
+  ],
+  "checks": {
+    "integrated_map_current_a": 0.000001,
+    "relative_current_mismatch": 0,
+    "deuterons_per_ion_charge": 1.15,
+    "normalized_deuteron_flux_fractions": [
+      0.5,
+      0.25,
+      0.25
+    ],
+    "flux_fraction_sum": 1,
+    "total_deuteron_rate_relative_to_faraday_estimate": 1
+  },
+  "guard_case": {
+    "changed_first_cell_density_a_cm2": 0.000004,
+    "integrated_current_a": 0.0000015,
+    "relative_mismatch": 0.5,
+    "accepted_at_one_percent_tolerance": false
+  },
+  "limitations": [
+    "Synthetic grid only; no spatial measurements from the publication are included.",
+    "Ion current-density map is assumed to represent combined singly charged D+ and D2+ currents.",
+    "Does not include species-resolved spatial maps, energy distributions, dissociation, implantation or stopping."
+  ]
+}
