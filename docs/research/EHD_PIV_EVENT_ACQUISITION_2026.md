@@ -2,7 +2,7 @@
 
 **Issue:** #7114  
 **Implementation:** `tools/ehd-piv-event-acquisition/`  
-**Status:** manufactured planner and 19 Rust unit tests authored; Rust execution pending exact-head CI.
+**Status:** manufactured planner and 23 Rust unit tests authored; Rust execution pending exact-head CI.
 
 ## Paradigm
 
@@ -22,10 +22,10 @@ For region x, with mean event rate `r̂_e`, relative event-rate uncertainty `c_r
 
 `r_lower = r̂_e (1-k c_r)`  
 `r_upper = r̂_e (1+k c_r)`  
-`Δt_lower = max(Δt_min, N_min/r_lower, kσ_t/ε_t)`  
+`Δt_lower = max(Δt_min, N_min/[r_lower(1-L)], kσ_t/ε_t)`  
 `Δt_upper = min(Δt_max, B α/r_upper, d_max/(|u|+kσ_u), Δt_mode_max)`
 
-where `α` is maximum buffer utilization and `ε_t` the maximum allowed clock-uncertainty fraction. A feasible plan exists only when `Δt_lower ≤ Δt_upper` and at least one calibrated illumination mode supports the conservative density/rate bounds and spatial coverage requirement. The selected interval is the geometric midpoint of the feasible interval.
+where `L` is the measured packet-loss fraction, `α` is maximum buffer utilization and `ε_t` the maximum allowed clock-uncertainty fraction. The minimum retained-event bound accounts for known packet loss; unknown packet loss forces abstention. A feasible plan exists only when `Δt_lower ≤ Δt_upper` and at least one calibrated illumination mode supports the conservative density/rate bounds and spatial coverage requirement. The selected interval is the geometric midpoint of the feasible interval.
 
 ## Implementation
 
