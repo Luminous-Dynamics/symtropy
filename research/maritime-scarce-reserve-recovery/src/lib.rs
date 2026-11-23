@@ -1309,6 +1309,10 @@ mod tests {
             inspection.world_decisions[5].action
         );
         assert_eq!(
+            inspection.world_decisions[0].outcome,
+            inspection.world_decisions[5].outcome
+        );
+        assert_eq!(
             EVALUATOR_MISSINGNESS_CAUSES[2],
             "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE"
         );
