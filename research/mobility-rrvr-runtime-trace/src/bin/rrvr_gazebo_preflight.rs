@@ -95,6 +95,7 @@ fn run() -> Result<(), String> {
         "ros_distribution": profile.ros_distribution,
         "simulation_interfaces_revision": profile.simulation_interfaces_revision,
         "world_name": profile.world_name,
+        "world_stats_topic": profile.world_stats_topic,
         "scene_broadcaster_id": profile.scene_broadcaster_id,
         "scene_broadcaster_revision": profile.scene_broadcaster_revision,
         "scene_broadcaster_sha256": profile.scene_broadcaster_sha256,
