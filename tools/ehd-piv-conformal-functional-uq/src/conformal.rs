@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Split-conformal calibration at the independent acquisition/field level.
 //!
 //! A calibration unit is a complete field/acquisition cluster. Its score is
