@@ -387,6 +387,20 @@ fn validate_robust_impact(
         {
             return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
         }
+        let numerator = u128::from(pair.guaranteed_separated_pair_count)
+            .checked_mul(u128::from(PROBABILITY_SCALE))
+            .ok_or(NavigationOutcomeRiskError::InvalidRobustImpactAssessment)?;
+        let denominator = pair.hypothesis_pair_count as u128;
+        let expected_lower = numerator / denominator;
+        let expected_upper = numerator
+            .checked_add(denominator - 1)
+            .ok_or(NavigationOutcomeRiskError::InvalidRobustImpactAssessment)?
+            / denominator;
+        if u32::try_from(expected_lower).ok() != Some(pair.resolution_lower_parts_per_billion)
+            || u32::try_from(expected_upper).ok() != Some(pair.resolution_upper_parts_per_billion)
+        {
+            return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+        }
         if !seen.insert(key) {
             return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
         }
@@ -629,10 +643,10 @@ mod tests {
             decision_partition_sha256: [0x44; 32],
             impact_model_sha256: [0x55; 32],
             impact_uncertainty_model_sha256: [0x66; 32],
-            worst_case_resolved_fraction_parts_per_billion: 500_000_000,
-            best_case_resolved_fraction_parts_per_billion: 600_000_000,
-            worst_case_unresolved_fraction_parts_per_billion: 500_000_000,
-            best_case_unresolved_fraction_parts_per_billion: 400_000_000,
+            worst_case_resolved_fraction_parts_per_billion: 250_000_000,
+            best_case_resolved_fraction_parts_per_billion: 250_000_000,
+            worst_case_unresolved_fraction_parts_per_billion: 750_000_000,
+            best_case_unresolved_fraction_parts_per_billion: 750_000_000,
             minimum_class_pair_resolution_lower_parts_per_billion: 250_000_000,
             minimum_class_pair_resolution_pair: (1, 2),
             pair_assessments: vec![RobustDecisionClassPairAssessment {
@@ -765,7 +779,7 @@ mod tests {
         let result = assess_navigation_outcome_risk(
             &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
-            &contract(950_000_000, RESIDUAL_SCALE, scenarios),
+            &contract(990_000_000, RESIDUAL_SCALE, scenarios),
         )
         .unwrap();
         assert_eq!(result.unknown_or_unreconciled_probability_mass_parts_per_billion, 10_000_000);
