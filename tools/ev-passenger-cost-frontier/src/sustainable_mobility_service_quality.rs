@@ -1366,7 +1366,6 @@ fn insert_exact_dp_state(target: &mut Option<ExactOracleBest>, candidate: ExactO
     }
 }
 
-
 fn exact_assignment_oracle(
     input: &ServiceQualityInput,
     policy_results: &[ServicePolicyResult],
