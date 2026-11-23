@@ -356,6 +356,17 @@ mod tests {
         }
     }
 
+    fn binding(action_id: u64, attempt_id: u64) -> QualifiedEvidenceBinding {
+        QualifiedEvidenceBinding {
+            action_id,
+            attempt_id,
+            result_id: 300,
+            source_manifest_sha256: [0xdd; 32],
+            payload_sha256: [0xee; 32],
+            qualification_receipt_sha256: [0xff; 32],
+        }
+    }
+
     fn qualified() -> AcquisitionAttemptOutcome {
         AcquisitionAttemptOutcome::QualifiedEvidenceAvailable {
             payload_sha256: [0xee; 32],
@@ -370,7 +381,7 @@ mod tests {
             record_selected_evidence_outcome(
                 &plan(), &mut ledger, request(1, 100),
                 AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x21; 32] },
-                PRE_STATE, None,
+                PRE_STATE, None, None,
             ),
             Err(EvidenceTransactionError::AttemptDoesNotMatchRecommendedAction)
         );
@@ -384,7 +395,7 @@ mod tests {
         let report = record_selected_evidence_outcome(
             &selected_plan, &mut ledger, request(2, 100),
             AcquisitionAttemptOutcome::UnknownOrUnreconciled { unknown_reason_sha256: [0x31; 32] },
-            PRE_STATE, None,
+            PRE_STATE, None, None,
         ).unwrap();
         assert_eq!(report.disposition, EvidenceTransactionDisposition::ReconciliationRequired);
         assert!(!report.posterior_updated);
@@ -406,7 +417,7 @@ mod tests {
         let mut ledger = ledger();
         let report = record_selected_evidence_outcome(
             &plan(), &mut ledger, request(2, 102), qualified(), PRE_STATE,
-            Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+            Some(binding(2, 102)), Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
         ).unwrap();
         assert_eq!(report.disposition, EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit);
         assert!(report.eligible_for_independent_posterior_audit);
@@ -433,7 +444,7 @@ mod tests {
         stale.target_valid_time.upper_ns = 150;
         let report = record_selected_evidence_outcome(
             &plan(), &mut ledger, request(2, 103), qualified(), PRE_STATE,
-            Some((time_policy(), stale)),
+            Some(binding(2, 103)), Some((time_policy(), stale)),
         ).unwrap();
         assert_eq!(report.disposition, EvidenceTransactionDisposition::TemporallyInapplicable(NavigationTimeDisposition::StaleObservation));
         assert!(!report.eligible_for_independent_posterior_audit);
@@ -448,7 +459,7 @@ mod tests {
         future.target_valid_time.upper_ns = 45;
         let future_report = record_selected_evidence_outcome(
             &plan(), &mut future_ledger, request(2, 105), qualified(), PRE_STATE,
-            Some((time_policy(), future)),
+            Some(binding(2, 105)), Some((time_policy(), future)),
         ).unwrap();
         assert_eq!(future_report.disposition, EvidenceTransactionDisposition::ReadyForIndependentForecastAudit);
         assert!(!future_report.eligible_for_independent_posterior_audit);
@@ -458,7 +469,7 @@ mod tests {
         historical.target_valid_time = historical.measurement_event_time;
         let historical_report = record_selected_evidence_outcome(
             &plan(), &mut historical_ledger, request(2, 106), qualified(), PRE_STATE,
-            Some((time_policy(), historical)),
+            Some(binding(2, 106)), Some((time_policy(), historical)),
         ).unwrap();
         assert_eq!(historical_report.disposition, EvidenceTransactionDisposition::HistoricalReplayOnly);
         assert!(!historical_report.eligible_for_independent_posterior_audit);
@@ -470,7 +481,7 @@ mod tests {
         let failed = record_selected_evidence_outcome(
             &plan(), &mut failed_ledger, request(2, 107),
             AcquisitionAttemptOutcome::FailedOrTimedOut { failure_reason_sha256: [0x41; 32] },
-            PRE_STATE, Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+            PRE_STATE, None, Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
         ).unwrap();
         assert_eq!(failed.disposition, EvidenceTransactionDisposition::AcquisitionFailed);
         assert!(failed.time_report.is_none());
@@ -480,7 +491,7 @@ mod tests {
         let invalid = record_selected_evidence_outcome(
             &plan(), &mut invalid_ledger, request(2, 108),
             AcquisitionAttemptOutcome::AcquiredButInvalid { payload_sha256: [0x42; 32], invalidity_receipt_sha256: [0x43; 32] },
-            PRE_STATE, None,
+            PRE_STATE, None, None,
         ).unwrap();
         assert_eq!(invalid.disposition, EvidenceTransactionDisposition::AcquiredEvidenceInvalid);
         assert!(invalid.time_report.is_none());
@@ -488,7 +499,7 @@ mod tests {
 
         let mut no_time_ledger = ledger();
         let no_time = record_selected_evidence_outcome(
-            &plan(), &mut no_time_ledger, request(2, 109), qualified(), PRE_STATE, None,
+            &plan(), &mut no_time_ledger, request(2, 109), qualified(), PRE_STATE, Some(binding(2, 109)), None,
         ).unwrap();
         assert_eq!(no_time.disposition, EvidenceTransactionDisposition::TimeAssessmentMissing);
         assert!(!no_time.eligible_for_independent_posterior_audit);
