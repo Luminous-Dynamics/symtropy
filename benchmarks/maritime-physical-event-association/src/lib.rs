@@ -1522,8 +1522,8 @@ mod tests {
             let kind = if next() % 2 == 0 { "GATE_IN" } else { "GATE_OUT" };
             let facility = format!("SITE-{}", next() % 3);
             let operation = format!("OP-{}", next() % 4);
-            let lower = (next() % 800) as i64;
-            let upper = lower + (next() % 24) as i64;
+            let lower = i64::try_from(next() % 800).unwrap();
+            let upper = lower + i64::try_from(next() % 24).unwrap();
             source.push(observation!(
                 &format!("s-{index}"),
                 &box_id,
@@ -1576,7 +1576,7 @@ mod tests {
         let mut source = Vec::new();
         let mut witness = Vec::new();
         for index in 0..128 {
-            let time = 10_000 + index * 100;
+            let time = 10_000_i64 + i64::try_from(index).unwrap() * 100;
             source.push(observation!(
                 &format!("s-{index}"),
                 "BOX-ONE",
