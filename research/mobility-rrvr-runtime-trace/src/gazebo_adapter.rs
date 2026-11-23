@@ -112,6 +112,7 @@ pub enum GazeboAdapterError {
     TargetProfileMismatch,
     TargetFaultDomainMismatch,
     InvalidIdempotencyContext,
+    TransportFailure,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -265,6 +266,147 @@ impl GazeboWorldSnapshot {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GazeboAdapterSession {
+    pub profile: GazeboCapabilityProfile,
+    pub stepping_method: SteppingMethod,
+    pub world_epoch: String,
+    pub clock_id: String,
+}
+
+/// Discover and pin the simulator before any reset, step or target mutation.
+pub fn preflight_transport<T: GazeboSimulationTransport>(
+    transport: &mut T,
+    plan: &CompiledCampaignPlan,
+) -> Result<GazeboAdapterSession, GazeboAdapterError> {
+    let profile = transport
+        .get_simulator_features()
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    let stepping_method = profile.validate_for_plan(plan)?;
+    let mut snapshot = transport
+        .get_world_state(&profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    snapshot.validate_against_profile(&profile)?;
+
+    if snapshot.pause_required()? {
+        transport
+            .pause_simulation(&profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        snapshot = transport
+            .get_world_state(&profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        snapshot.validate_against_profile(&profile)?;
+    }
+    if snapshot.state != SimulationState::Paused {
+        return Err(GazeboAdapterError::SimulatorNotPaused);
+    }
+
+    Ok(GazeboAdapterSession {
+        profile,
+        stepping_method,
+        world_epoch: snapshot.world_epoch,
+        clock_id: snapshot.clock_id,
+    })
+}
+
+/// Reset once and verify the exact initial snapshot before scheduling faults.
+pub fn reset_and_verify<T: GazeboSimulationTransport>(
+    transport: &mut T,
+    plan: &CompiledCampaignPlan,
+    session: &mut GazeboAdapterSession,
+) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
+    let before = transport
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    before.validate_against_profile(&session.profile)?;
+    if before.world_epoch != session.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if before.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    if before.state != SimulationState::Paused {
+        return Err(GazeboAdapterError::SimulatorNotPaused);
+    }
+
+    transport
+        .reset_simulation(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    let after = transport
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    after.validate_reset(&session.profile, plan, &before.world_epoch)?;
+    if after.clock_id != before.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+
+    session.world_epoch = after.world_epoch.clone();
+    session.clock_id = after.clock_id.clone();
+    Ok(after)
+}
+
+/// Advance to the exact planned iteration using a pinned discrete-step API.
+/// Any overshoot, epoch change or unexpected state is a hard failure.
+pub fn advance_to_fault_cut<T: GazeboSimulationTransport>(
+    transport: &mut T,
+    session: &GazeboAdapterSession,
+    fault: &FaultInjection,
+) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
+    let before = transport
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    before.validate_against_profile(&session.profile)?;
+    if before.world_epoch != session.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if before.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    let steps = before.steps_to(fault.scheduled_simulation_step)?;
+    if steps > 0 {
+        transport
+            .step_simulation(
+                &session.profile.world_name,
+                steps,
+                session.stepping_method,
+            )
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    }
+    let after = transport
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    after.validate_against_profile(&session.profile)?;
+    if after.world_epoch != session.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if after.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    if after.state != SimulationState::Paused {
+        return Err(GazeboAdapterError::SimulatorNotPaused);
+    }
+    if after.simulation_step > fault.scheduled_simulation_step {
+        return Err(GazeboAdapterError::SimulationStepOvershoot);
+    }
+    if after.simulation_step != fault.scheduled_simulation_step {
+        return Err(GazeboAdapterError::SimulationStepNotReached);
+    }
+    Ok(after)
+}
+
+/// Resolve a logical target only through the pinned simulator/world profile.
+pub fn resolve_fault_target<T: GazeboSimulationTransport>(
+    transport: &mut T,
+    session: &GazeboAdapterSession,
+    fault: &FaultInjection,
+) -> Result<GazeboTargetBinding, GazeboAdapterError> {
+    let binding = transport
+        .resolve_target(&session.profile.world_name, &fault.target_component_id)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    validate_target_binding(&binding, fault)?;
+    Ok(binding)
+}
+
 /// Transport for the standard Gazebo ROS 2 Simulation Interfaces.
 ///
 /// The concrete implementation must map to the exact interface package and
@@ -288,6 +430,91 @@ pub trait GazeboSimulationTransport {
         world_name: &str,
         logical_component_id: &str,
     ) -> Result<GazeboTargetBinding, Self::Error>;
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GazeboDispatchRequest {
+    pub plan_sha256: String,
+    pub campaign_id: String,
+    pub pair_id: String,
+    pub scenario_id: String,
+    pub fault_id: String,
+    pub fault_sequence: u32,
+    pub target_id: String,
+    pub fault_domain_id: String,
+    pub scheduled_simulation_step: u64,
+    pub parameters_sha256: String,
+    pub idempotency_key: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GazeboDispatchOutcome {
+    Accepted { dispatch_id: String },
+    Rejected { dispatch_id: String, reason_code: String },
+    Unknown { dispatch_id: Option<String> },
+}
+
+/// The injector transport has an exactly-once dispatch API plus a separate
+/// idempotency-ledger lookup. The adapter must call dispatch_once at most once
+/// for an idempotency key; a transport error maps to Unknown.
+pub trait GazeboFaultInjectorTransport {
+    type Error: std::fmt::Display;
+
+    fn dispatch_once(
+        &mut self,
+        request: &GazeboDispatchRequest,
+    ) -> Result<GazeboDispatchOutcome, Self::Error>;
+
+    fn lookup_dispatch(
+        &mut self,
+        idempotency_key: &str,
+    ) -> Result<DispatchLedgerResult, Self::Error>;
+}
+
+/// Issue one dispatch attempt. An error is not retried and maps to Unknown.
+pub fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
+    injector: &mut T,
+    request: &GazeboDispatchRequest,
+) -> GazeboDispatchOutcome {
+    injector
+        .dispatch_once(request)
+        .unwrap_or(GazeboDispatchOutcome::Unknown { dispatch_id: None })
+}
+
+/// Reconcile by idempotency key only. This function never calls dispatch_once.
+pub fn reconcile_fault_dispatch<T: GazeboFaultInjectorTransport>(
+    injector: &mut T,
+    idempotency_key: &str,
+) -> ReconciliationDecision {
+    match injector.lookup_dispatch(idempotency_key) {
+        Ok(lookup) => reconcile_dispatch_lookup(lookup),
+        Err(_) => ReconciliationDecision::Unresolved,
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ObservedFaultSignature {
+    pub observer_id: String,
+    pub observer_revision: String,
+    pub observer_fault_domain_id: String,
+    pub signature_sha256: String,
+    pub world_epoch: String,
+    pub simulation_step: u64,
+}
+
+/// The observer must be a separate subsystem from the injector. The concrete
+/// implementation supplies raw evidence to the execution-evidence bundle.
+pub trait GazeboIndependentObserver {
+    type Error: std::fmt::Display;
+
+    fn observe_fault(
+        &mut self,
+        target_id: &str,
+        fault_id: &str,
+        expected_signature_sha256: &str,
+        world_epoch: &str,
+        simulation_step: u64,
+    ) -> Result<ObservedFaultSignature, Self::Error>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
