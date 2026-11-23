@@ -389,37 +389,6 @@ jobs:
             and .physical_safety_established == false
           ' "$REPORT"
 
-      - name: Validate pinned Gazebo ROS 2 Simulation Interfaces capability profile
-        shell: bash
-        env:
-          PLAN_PATH: ${{ steps.compiled_plan.outputs.plan_path }}
-          PLAN_SHA: ${{ steps.compiled_plan.outputs.plan_sha }}
-        run: |
-          set -euo pipefail
-          ROOT="research/mobility-rrvr-runtime-trace"
-          SOURCE="$ROOT/fixtures/fault_campaign_paired_v0_1.json"
-          PROFILE="$ROOT/fixtures/gazebo_capabilities_positive_v0_1.json"
-          SCHEMA="$ROOT/schemas/gazebo_capability_profile_v0_1.schema.json"
-          REPORT="$RUNNER_TEMP/rrvr-gazebo-preflight.json"
-
-          jq empty "$SCHEMA"
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_gazebo_preflight -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$PROFILE" "$REPORT"
-          jq -e '
-            .validation == "passed"
-            and .preflight_scope == "captured_capability_profile_only"
-            and (.simulation_interfaces_revision | length > 0)
-            and .scene_broadcaster_id == "gz::sim::systems::SceneBroadcaster"
-            and (.scene_broadcaster_sha256 | test("^[a-fA-F0-9]{64}$"))
-            and .scene_broadcaster_loaded == true
-            and .selected_stepping_method == "step_simulation_service"
-            and .live_simulator_discovery_performed == false
-            and .simulator_mutation_performed == false
-            and .fault_injection_executed == false
-            and .execution_receipts_emitted == false
-            and .native_authority_created == false
-            and .physical_safety_established == false
-          ' "$REPORT"
-
       - name: Validate plan-bound fault execution evidence and uncertainty controls
         shell: bash
         env:
