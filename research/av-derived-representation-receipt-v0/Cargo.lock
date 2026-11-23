@@ -3,9 +3,19 @@
 version = 4
 
 [[package]]
+name = "av-action-argument-replay-v0"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "av-derived-representation-receipt-v0"
 version = "0.1.0"
 dependencies = [
+ "av-action-argument-replay-v0",
  "serde",
  "serde_json",
  "sha2",
