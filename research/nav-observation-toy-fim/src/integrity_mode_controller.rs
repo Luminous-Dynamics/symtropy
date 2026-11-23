@@ -204,14 +204,20 @@ impl IntegrityModeController {
         let previous_evidence_receipt_sequence_id = self.last_evidence_receipt_sequence_id;
         let previous_evidence_receipt_sha256 = self.last_evidence_receipt_sha256;
 
-        if frame.observation_set_sequence_id != 0 {
+        if frame.observation_set_sequence_id != 0
+            && previous_observation_set_sequence_id
+                .is_none_or(|previous| frame.observation_set_sequence_id > previous)
+        {
             self.last_observation_set_sequence_id = Some(frame.observation_set_sequence_id);
         }
-        if frame.evidence_receipt_sequence_id != 0 {
+        if frame.evidence_receipt_sequence_id != 0
+            && previous_evidence_receipt_sequence_id
+                .is_none_or(|previous| frame.evidence_receipt_sequence_id > previous)
+        {
             self.last_evidence_receipt_sequence_id = Some(frame.evidence_receipt_sequence_id);
-        }
-        if frame.evidence_receipt_sha256.iter().any(|byte| *byte != 0) {
-            self.last_evidence_receipt_sha256 = Some(frame.evidence_receipt_sha256);
+            if frame.evidence_receipt_sha256.iter().any(|byte| *byte != 0) {
+                self.last_evidence_receipt_sha256 = Some(frame.evidence_receipt_sha256);
+            }
         }
 
         if !frame.solution_available {
@@ -641,6 +647,28 @@ mod tests {
         assert_eq!(
             out_of_order.reason,
             IntegrityModeReason::EpochReplayOrReordering
+        );
+    }
+
+    #[test]
+    fn reordered_receipt_sequence_cannot_roll_back_replay_watermark() {
+        let mut controller = controller();
+        qualify_normal(&mut controller, 1);
+        let first = controller.observe(frame(4, 104, 0.1));
+        assert_eq!(first.current_mode, IntegrityMode::Normal);
+
+        let mut reordered = frame(5, 105, 0.1);
+        reordered.evidence_receipt_sequence_id = 3;
+        assert_eq!(
+            controller.observe(reordered).reason,
+            IntegrityModeReason::EvidenceReceiptReplay
+        );
+
+        let mut replay_old_watermark = frame(6, 106, 0.1);
+        replay_old_watermark.evidence_receipt_sequence_id = 4;
+        assert_eq!(
+            controller.observe(replay_old_watermark).reason,
+            IntegrityModeReason::EvidenceReceiptReplay
         );
     }
 
