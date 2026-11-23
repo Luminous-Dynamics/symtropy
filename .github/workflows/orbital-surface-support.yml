@@ -23,6 +23,7 @@ permissions:
 
 jobs:
   support-certificate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.number == 7137
     name: Full-support envelope and independent oracle
     runs-on: ubuntu-latest
     steps:

@@ -1207,7 +1207,12 @@ mod tests {
         assert!(supports.iter().any(|support| {
             support.support_kind == "PLANAR_VOXEL_FACE"
                 && support.normal_cone_half_angle_microrad <= 2
-                && support.half_extents_um.iter().filter(|extent| **extent == 1).count() == 1
+                && support
+                    .half_extents_um
+                    .iter()
+                    .filter(|extent| **extent == 1)
+                    .count()
+                    == 1
         }));
         assert!(supports.iter().any(|support| {
             support.support_kind == "EXTERIOR_FACE_UNION_BOUND"
