@@ -208,6 +208,7 @@ Standards / frameworks are interoperability targets, not competitors to defeat:
 - #6958 / #6997 own scenario regret and non-anticipative feasibility discovery.
 - #6887 owns the anytime-valid sequential evidence / decision-set bridge.
 - #7105 owns finite-world incumbent retention/re-optimization adequacy under explicit regret, materiality and switching-cost thresholds; it consumes #6887/#6958/#7001 and does not replace RADAR's stochastic guarantees.
+- The stacked #7105 loss-model bridge composes the finite compatible-world receipt (#6835) with #6939's coherent joint loss-model scenario manifest. It checks planned/observed scenario inventory and exact rational-to-integer projection; it does not claim #6887's sequential guarantee until a separate adapter exists.
 - #3588 / #6127 / #6129 remain reusable sequential-process and policy owners.
 - #6519 owns trust roots, credentials, signer roles and external authority semantics.
 
