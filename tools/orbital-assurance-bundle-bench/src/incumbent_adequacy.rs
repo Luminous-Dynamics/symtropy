@@ -229,6 +229,24 @@ fn digest_ids(ids: &[String]) -> Result<String, String> {
     Ok(sha256_hex(&bytes))
 }
 
+fn supported_projection(case: &Case) -> bool {
+    let model = &case.loss_model_set;
+    match model.projection_id.as_str() {
+        "exact-rational-to-integer-identity-v1" => {
+            model.source_loss_unit == case.loss_unit
+                && model.projection_scale_numerator == 1
+                && model.projection_scale_denominator == 1
+        }
+        "normalized-loss-times-1000-exact-v1" => {
+            model.source_loss_unit == "normalized_loss"
+                && case.loss_unit == "loss_micro_units"
+                && model.projection_scale_numerator == 1000
+                && model.projection_scale_denominator == 1
+        }
+        _ => false,
+    }
+}
+
 fn exact_projected_loss(
     source_numerator: u64,
     source_denominator: u64,
@@ -453,6 +471,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.loss_model_set.projection_scale_denominator > MAX_SAFE_INTEGER
         || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
         || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
+        || !supported_projection(case)
     {
         return invalid_input(
             case,
@@ -716,12 +735,12 @@ fn evaluate_case(case: &Case) -> CaseResult {
             };
             if !valid_id(&loss.action_id)
                 || loss.loss < 0
-                || !feasible.contains(&loss.action_id)
+                || !action_ids.contains(&loss.action_id)
                 || losses.contains_key(&loss.action_id)
             {
                 return invalid_input(
                     case,
-                    "loss row is malformed, duplicated or not feasible in its joint scenario",
+                    "loss row is malformed, duplicated or references an unknown action",
                 );
             }
             if loss.loss != projected_loss {
@@ -733,10 +752,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
             losses.insert(loss.action_id.clone(), loss.loss);
         }
 
-        if feasible
-            .iter()
-            .any(|action_id| !losses.contains_key(action_id))
-        {
+        if action_ids.iter().any(|action_id| !losses.contains_key(action_id)) {
             return abstain(case, "INCOMPLETE_LOSS_MATRIX", Some(retention_threshold));
         }
 
