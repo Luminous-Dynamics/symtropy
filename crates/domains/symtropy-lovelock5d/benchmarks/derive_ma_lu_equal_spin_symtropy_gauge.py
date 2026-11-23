@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Derive the equal-spin Ma-Lu radial/time-sector map into Symtropy gauge.
 
-Source: Ma & Lu, JHEP 05 (2026) 081, arXiv:2512.23797, Eqs. (9)-(13).
-Uses the printed chi=a/mu convention and mu*chi^2=a^2/mu. This script maps
+Source: Ma & Lu, JHEP 05 (2026) 081, DOI 10.1007/JHEP05(2026)081, version of record, Eqs. (2.8)-(2.13).
+Uses the version-of-record chi=a/sqrt(mu) convention, so chi^2=a^2/mu. This script maps
 the radial, temporal, fibre, and frame-dragging components. It intentionally
 does not claim the independent H5/H6 angular-diagonal component identities;
 those must be verified before the complete five-dimensional angular block is
@@ -25,24 +25,24 @@ def zero(label: str, expr: sp.Expr) -> None:
 
 def derive() -> dict:
     r,a,mu,alpha=sp.symbols("r a mu alpha",positive=True)
-    # Eq. (10): chi=a/mu; mu*chi^2=a^2/mu is the compact factor in Eq. (13).
-    mu_chi2=a**2/mu
+    # Eq. (2.9): chi=a/sqrt(mu); chi2=a**2/mu is the spin-squared factor.
+    chi2=a**2/mu
     A=r**2+a**2
     Delta=A**2/r**2-2*mu
 
     H1=(sp.Rational(16,3)/r**2-sp.Rational(16,3)*mu/r**4
         -sp.Rational(32,3)*mu**2/r**6
-        -sp.Rational(2,45)*mu_chi2*(282/r**2-162*mu/r**4
+        -sp.Rational(2,45)*chi2*(282/r**2-162*mu/r**4
         -356*mu**2/r**6-1076*mu**3/r**8))
     H2=(-sp.Rational(8,3)/r**2-sp.Rational(16,3)*mu/r**4
-        +sp.Rational(2,45)*mu_chi2*(141/r**2+48*mu/r**4+418*mu**2/r**6))
+        +sp.Rational(2,45)*chi2*(141/r**2+48*mu/r**4+418*mu**2/r**6))
     H3=H2
     H4_0=-sp.Rational(22,3)/mu-12/r**2-sp.Rational(16,3)*mu/r**4
-    H4=(H4_0+mu_chi2*(sp.Rational(71,10)/mu
+    H4=(H4_0+chi2*(sp.Rational(71,10)/mu
         +sp.Rational(119,15)/r**2+sp.Rational(217,15)*mu/r**4
         +sp.Rational(836,45)*mu**2/r**6))
     H7_0=sp.Rational(8,3)/r**2+sp.Rational(4,3)*mu/r**4
-    H7=(H7_0-sp.Rational(2,45)*mu_chi2*(141/r**2+48*mu/r**4
+    H7=(H7_0-sp.Rational(2,45)*chi2*(141/r**2+48*mu/r**4
         -22*mu**2/r**6))
 
     # Eq. (9) radial conformal factor and radial gauge R^2=G.
@@ -68,7 +68,7 @@ def derive() -> dict:
     # Negative controls: wrong normalization in the compact chi^2 factor,
     # and omission of H7 from the radial coordinate.
     wrong_chi_H2=-sp.Rational(8,3)/r**2-sp.Rational(16,3)*mu/r**4 \
-        +sp.Rational(2,45)*(2*mu_chi2)*(141/r**2+48*mu/r**4+418*mu**2/r**6)
+        +sp.Rational(2,45)*(2*chi2)*(141/r**2+48*mu/r**4+418*mu**2/r**6)
     assert sp.factor(wrong_chi_H2-H2)!=0
     omitted_H7=sp.factor(f_first-Delta*r**2/A**2)
     assert omitted_H7!=0
@@ -80,8 +80,8 @@ def derive() -> dict:
       "source":{
         "paper":"Ma and Lu, JHEP 05 (2026) 081, arXiv:2512.23797",
         "equations":["(9)","(10)","(13)"],
-        "chi_definition":"chi=a/mu",
-        "compact_rotation_combination":"mu*chi^2=a^2/mu"
+        "chi_definition":"chi=a/sqrt(mu)",
+        "compact_rotation_combination":"chi^2=a^2/mu"
       },
       "definitions":{"A":"r^2+a^2","Delta":"A^2/r^2-2*mu",
         "D":"2*mu*a^2/A","G":"A*(1+alpha_R*H7)"},
@@ -111,7 +111,7 @@ def derive() -> dict:
         "wrong_chi_squared_normalization_rejected":True,
         "omitting_H7_radial_redefinition_rejected":True,
         "H5_H6_angular_diagonal_components":"not certified by this script"},
-      "claim_ceiling":"Exact first-order radial, temporal, fibre-cross-term, and frame-dragging map from Ma-Lu into Symtropy radial gauge. Does not certify the independent H5/H6 angular-diagonal metric components, fixed-boundary substitution, ADM mass, finite-coupling branch, or hyperbolicity."
+      "claim_ceiling":"Exact first-order radial, temporal, fibre-cross-term, and frame-dragging map from the JHEP version-of-record Ma-Lu metric into Symtropy radial gauge. The companion version-of-record verifier independently checks H5/H6 angular components and the ADM mass through chi^2; this script itself does not perform those checks. No finite-coupling branch or hyperbolicity result is claimed."
     }
 
 
