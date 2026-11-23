@@ -16,7 +16,13 @@ function validId(value) {
     });
 }
 function validSha(value) { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
-function result(item, disposition, triggerReason, threshold, worstRegret, worldAssessments = []) {
+function result(item, disposition, triggerReason, threshold, metrics = {}, worldAssessments = []) {
+  const comparison = {
+    reference_common_action_id: metrics.reference_common_action_id ?? null,
+    current_worst_case_loss: metrics.current_worst_case_loss ?? null,
+    reference_common_worst_case_loss: metrics.reference_common_worst_case_loss ?? null,
+    worst_case_improvement: metrics.worst_case_improvement ?? null
+  };
   return {
     case_id: item.case_id,
     disposition,
@@ -25,12 +31,12 @@ function result(item, disposition, triggerReason, threshold, worstRegret, worldA
     materiality_margin: item.materiality_margin,
     switching_cost: item.switching_cost,
     retention_threshold: threshold,
-    worst_case_regret: worstRegret,
+    ...comparison,
     world_assessments: worldAssessments,
     authority_granted: false,
     expected_result_matched: item.expected.disposition === disposition
       && item.expected.trigger_reason === triggerReason
-      && item.expected.worst_case_regret === worstRegret
+      && item.expected.worst_case_improvement === comparison.worst_case_improvement
   };
 }
 function invalidInput(item, reason) {
@@ -105,8 +111,7 @@ function evaluateCase(item) {
   const worldIds = new Set();
   let totalRows = 0;
   let incumbentInfeasible = false;
-  let worstRegret = 0;
-  const assessments = [];
+  const validatedWorlds = [];
 
   for (const world of item.worlds) {
     if (!validId(world.world_id) || worldIds.has(world.world_id)
@@ -143,34 +148,90 @@ function evaluateCase(item) {
       if (!losses.has(actionId)) return abstain(item, "INCOMPLETE_LOSS_MATRIX", threshold);
     }
 
-    const feasibleLosses = [...losses.values()];
-    const bestLoss = Math.min(...feasibleLosses);
     const incumbentFeasible = feasible.has(item.incumbent_action_id);
-    const incumbentLoss = losses.has(item.incumbent_action_id) ? losses.get(item.incumbent_action_id) : null;
-    const regret = incumbentLoss === null ? null : incumbentLoss - bestLoss;
-    if (!incumbentFeasible) incumbentInfeasible = true;
-    else if (regret !== null) worstRegret = Math.max(worstRegret, regret);
-
-    assessments.push({
+    incumbentInfeasible ||= !incumbentFeasible;
+    validatedWorlds.push({
       world_id: world.world_id,
+      feasible_action_ids: feasible,
+      losses,
       incumbent_feasible: incumbentFeasible,
-      incumbent_loss: incumbentLoss,
-      best_feasible_loss: bestLoss,
-      regret
+      incumbent_loss: losses.has(item.incumbent_action_id) ? losses.get(item.incumbent_action_id) : null
     });
   }
 
-  assessments.sort((a, b) => cmp(a.world_id, b.world_id));
+  // An infeasible incumbent is a review trigger, not permission to select a replacement.
   if (incumbentInfeasible) {
-    return result(item, "REOPTIMIZATION_WARRANTED", "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
-      threshold, null, assessments);
+    const assessments = validatedWorlds.map(world => ({
+      world_id: world.world_id,
+      incumbent_feasible: world.incumbent_feasible,
+      incumbent_loss: world.incumbent_loss,
+      reference_common_action_loss: null,
+      incumbent_minus_reference_loss: null
+    })).sort((a, b) => cmp(a.world_id, b.world_id));
+    return result(item, "REOPTIMIZATION_WARRANTED",
+      "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD", threshold, {}, assessments);
   }
-  if (worstRegret > threshold) {
-    return result(item, "REOPTIMIZATION_WARRANTED", "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD",
-      threshold, worstRegret, assessments);
+
+  // Static non-anticipative comparator: choose one action feasible in every surviving world.
+  let commonActions = [...validatedWorlds[0].feasible_action_ids];
+  for (const world of validatedWorlds.slice(1)) {
+    commonActions = commonActions.filter(actionId => world.feasible_action_ids.has(actionId));
   }
-  return result(item, "RETAIN_INCUMBENT", "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
-    threshold, worstRegret, assessments);
+  commonActions.sort(cmp);
+  if (!commonActions.length || !commonActions.includes(item.incumbent_action_id)) {
+    return invalidInput(item, "common feasible action set is empty despite incumbent feasibility");
+  }
+
+  let currentWorstCaseLoss = 0;
+  for (const world of validatedWorlds) {
+    currentWorstCaseLoss = Math.max(currentWorstCaseLoss, world.losses.get(item.incumbent_action_id));
+  }
+
+  // This common action is a benchmark comparator only, not a recommendation.
+  let referenceCommonActionId = null;
+  let referenceCommonWorstCaseLoss = null;
+  for (const actionId of commonActions) {
+    let worstLoss = 0;
+    for (const world of validatedWorlds) {
+      const loss = world.losses.get(actionId);
+      if (loss === undefined) return abstain(item, "INCOMPLETE_LOSS_MATRIX", threshold);
+      worstLoss = Math.max(worstLoss, loss);
+    }
+    if (referenceCommonWorstCaseLoss === null || worstLoss < referenceCommonWorstCaseLoss
+      || (worstLoss === referenceCommonWorstCaseLoss && cmp(actionId, referenceCommonActionId) < 0)) {
+      referenceCommonActionId = actionId;
+      referenceCommonWorstCaseLoss = worstLoss;
+    }
+  }
+  const worstCaseImprovement = currentWorstCaseLoss - referenceCommonWorstCaseLoss;
+  if (!Number.isSafeInteger(worstCaseImprovement) || worstCaseImprovement < 0) {
+    return invalidInput(item, "reference common action is worse than incumbent in worst-case loss");
+  }
+
+  const assessments = validatedWorlds.map(world => {
+    const incumbentLoss = world.losses.get(item.incumbent_action_id);
+    const referenceLoss = world.losses.get(referenceCommonActionId);
+    return {
+      world_id: world.world_id,
+      incumbent_feasible: true,
+      incumbent_loss: incumbentLoss,
+      reference_common_action_loss: referenceLoss,
+      incumbent_minus_reference_loss: incumbentLoss - referenceLoss
+    };
+  }).sort((a, b) => cmp(a.world_id, b.world_id));
+
+  const metrics = {
+    reference_common_action_id: referenceCommonActionId,
+    current_worst_case_loss: currentWorstCaseLoss,
+    reference_common_worst_case_loss: referenceCommonWorstCaseLoss,
+    worst_case_improvement: worstCaseImprovement
+  };
+  if (worstCaseImprovement > threshold) {
+    return result(item, "REOPTIMIZATION_WARRANTED",
+      "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD", threshold, metrics, assessments);
+  }
+  return result(item, "RETAIN_INCUMBENT",
+    "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE", threshold, metrics, assessments);
 }
 function evaluate(corpus) {
   if (corpus.schema !== SCHEMA || corpus.evidence_class !== "synthetic"
@@ -194,7 +255,7 @@ function evaluate(corpus) {
     incumbent_infeasible_cases: cases.filter(item =>
       item.trigger_reason === "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD").length,
     threshold_exceeded_cases: cases.filter(item =>
-      item.trigger_reason === "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD").length,
+      item.trigger_reason === "COMMON_ACTION_IMPROVEMENT_EXCEEDS_RETENTION_THRESHOLD").length,
     expected_result_mismatches: cases.filter(item => !item.expected_result_matched).length,
     authority_grants: cases.filter(item => item.authority_granted).length
   };
