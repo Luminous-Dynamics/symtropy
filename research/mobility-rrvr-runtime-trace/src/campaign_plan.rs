@@ -226,7 +226,7 @@ impl CompiledCampaignPlan {
             let mut scenario_ids: Vec<String> =
                 members.iter().map(|scenario| scenario.scenario_id.clone()).collect();
             scenario_ids.sort();
-            let mut arms: BTreeSet<BenchmarkArm> =
+            let arms: BTreeSet<BenchmarkArm> =
                 members.iter().map(|scenario| scenario.arm).collect();
             let compiled_pair = CompiledPair {
                 pair_id: (*pair_id).to_owned(),
@@ -236,7 +236,6 @@ impl CompiledCampaignPlan {
             };
             pair_commitments.insert((*pair_id).to_owned(), pair_digest);
             pairs.push(compiled_pair);
-            arms.clear();
         }
 
         pairs.sort_by(|left, right| left.pair_id.cmp(&right.pair_id));
