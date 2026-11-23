@@ -189,6 +189,14 @@ pub fn rank_designs_by_robust_decision_value(
         let robust_evsi = best_robust_utility - prior_best.expected_utility;
         let non_anticipativity_gap =
             (clairvoyant_post_information_utility_upper_bound - best_robust_utility).max(0.0);
+        if !robust_evsi.is_finite()
+            || !non_anticipativity_gap.is_finite()
+            || !clairvoyant_post_information_utility_upper_bound.is_finite()
+        {
+            return Err(ModelError::NonFiniteValue(
+                "robust_decision_value_or_non_anticipativity_gap",
+            ));
+        }
 
         let eig_by_scenario = candidate
             .scenarios
@@ -217,8 +225,17 @@ pub fn rank_designs_by_robust_decision_value(
                 "robust_decision_cost_in_utility_units",
             ));
         }
-        let net_robust_decision_value =
-            budget_feasible.then_some(robust_evsi - cost_in_utility_units);
+        let net_robust_decision_value = if budget_feasible {
+            let net_value = robust_evsi - cost_in_utility_units;
+            if !net_value.is_finite() {
+                return Err(ModelError::NonFiniteValue(
+                    "robust_decision_net_value",
+                ));
+            }
+            Some(net_value)
+        } else {
+            None
+        };
 
         scores.push(RobustDecisionDesignScore {
             candidate_id: candidate.candidate_id.clone(),
@@ -708,6 +725,59 @@ mod tests {
             stable.worst_case_expected_information_gain_nats
                 < ambiguous.worst_case_expected_information_gain_nats
         );
+    }
+
+    #[test]
+    fn nuisance_information_has_no_decision_value() {
+        let nuisance_problem = RobustDecisionProblem {
+            state_ids: vec![
+                "decision-0-nuisance-0".to_owned(),
+                "decision-0-nuisance-1".to_owned(),
+                "decision-1-nuisance-0".to_owned(),
+                "decision-1-nuisance-1".to_owned(),
+            ],
+            action_ids: vec!["choose-0".to_owned(), "choose-1".to_owned()],
+            state_probabilities: vec![0.25, 0.25, 0.25, 0.25],
+            action_utilities: vec![
+                vec![1.0, 1.0, 0.0, 0.0],
+                vec![0.0, 0.0, 1.0, 1.0],
+            ],
+        };
+        let nuisance_likelihoods = vec![
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+            vec![1.0, 0.0],
+            vec![0.0, 1.0],
+        ];
+        let candidate = RobustDecisionDesignCandidate {
+            candidate_id: "nuisance-only-calibration".to_owned(),
+            outcome_ids: vec!["nuisance-0".to_owned(), "nuisance-1".to_owned()],
+            resource_cost: 0.05,
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
+            scenarios: vec![
+                RobustDecisionLikelihoodScenario {
+                    scenario_id: "calibration-forward".to_owned(),
+                    outcome_likelihoods: nuisance_likelihoods.clone(),
+                },
+                RobustDecisionLikelihoodScenario {
+                    scenario_id: "calibration-reversed".to_owned(),
+                    outcome_likelihoods: nuisance_likelihoods,
+                },
+            ],
+        };
+        let result = rank_designs_by_robust_decision_value(
+            &nuisance_problem,
+            &[candidate],
+            policy(),
+        )
+        .expect("nuisance-only signal");
+        let score = &result.scores[0];
+
+        assert!((score.worst_case_expected_information_gain_nats - 2.0_f64.ln()).abs() < 1.0e-12);
+        assert!((score.robust_post_information_utility - 0.5).abs() < 1.0e-12);
+        assert!(score.robust_expected_value_of_sample_information.abs() < 1.0e-12);
+        assert!(score.net_robust_decision_value.unwrap() < 0.0);
+        assert_eq!(result.recommended_candidate_id, None);
     }
 
     #[test]
