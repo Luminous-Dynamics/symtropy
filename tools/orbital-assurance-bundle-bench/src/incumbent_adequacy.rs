@@ -544,6 +544,15 @@ mod tests {
     }
 
     #[test]
+    fn stale_dependency_graph_blocks_retention() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        assert_eq!(
+            case(&report, "dependency_graph_stale").trigger_reason,
+            "STALE_DEPENDENCY_GRAPH"
+        );
+    }
+
+    #[test]
     fn open_domain_and_stale_evidence_block_retention() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         assert_eq!(
