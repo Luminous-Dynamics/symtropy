@@ -78,6 +78,7 @@ pub struct DecisionRelevantDiscriminationReport {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DecisionProjectionError {
+    ActionIdentityMismatch,
     InvalidUpstreamReport,
     MissingExpectedInventoryCommitment,
     InventoryCommitmentMismatch,
@@ -99,6 +100,7 @@ pub enum DecisionProjectionError {
 impl fmt::Display for DecisionProjectionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ActionIdentityMismatch => write!(f, "upstream report action identity does not match the requested action"),
             Self::InvalidUpstreamReport => write!(
                 f,
                 "upstream hypothesis-discrimination report is incomplete or internally inconsistent"
@@ -166,13 +168,16 @@ impl std::error::Error for DecisionProjectionError {}
 /// predeclared profile input; this function does not infer it from outcomes.
 pub fn project_decision_relevant_discrimination(
     upstream: &UwbHypothesisDiscriminationReport,
+    expected_action_id: u64,
     expected_hypothesis_ids: &[u64],
     expected_inventory_sha256: [u8; 32],
     assignments: &[HypothesisDecisionAssignment],
     decision_partition_sha256: [u8; 32],
 ) -> Result<DecisionRelevantDiscriminationReport, DecisionProjectionError> {
-    if upstream.action_id == 0
-        || upstream.hypothesis_inventory_sha256.iter().all(|byte| *byte == 0)
+    if expected_action_id == 0 || upstream.action_id != expected_action_id {
+        return Err(DecisionProjectionError::ActionIdentityMismatch);
+    }
+    if upstream.hypothesis_inventory_sha256.iter().all(|byte| *byte == 0)
         || upstream.outcome_model_sha256.iter().all(|byte| *byte == 0)
         || upstream.normalization_sha256.iter().all(|byte| *byte == 0)
         || !upstream.conditional_on_successful_valid_observation
@@ -451,6 +456,7 @@ mod tests {
     ) -> Result<DecisionRelevantDiscriminationReport, DecisionProjectionError> {
         project_decision_relevant_discrimination(
             report,
+            77,
             hypothesis_ids,
             [0x11; 32],
             decision_assignments,
@@ -652,6 +658,7 @@ mod tests {
         assert_eq!(
             project_decision_relevant_discrimination(
                 &valid,
+                77,
                 &[1, 2],
                 [0x55; 32],
                 &assignments(&[(1, 10), (2, 20)]),
@@ -662,6 +669,18 @@ mod tests {
         assert_eq!(
             project_decision_relevant_discrimination(
                 &valid,
+                78,
+                &[1, 2],
+                [0x11; 32],
+                &assignments(&[(1, 10), (2, 20)]),
+                [0x44; 32],
+            ),
+            Err(DecisionProjectionError::ActionIdentityMismatch)
+        );
+        assert_eq!(
+            project_decision_relevant_discrimination(
+                &valid,
+                77,
                 &[1, 2],
                 [0x11; 32],
                 &assignments(&[(1, 10), (2, 20)]),
