@@ -1629,11 +1629,8 @@ where
         .iter()
         .map(|node| integrand(node.x, node.y, node.z))
         .collect::<Vec<_>>();
-    let production_report = integrate_sphere_samples(
-        &production_rule,
-        &production_values,
-        config.diagnostics,
-    )?;
+    let production_report =
+        integrate_sphere_samples(&production_rule, &production_values, config.diagnostics)?;
 
     let absolute_difference = (production_report.integral - low_order_integral).abs();
     if !absolute_difference.is_finite() {
@@ -1645,8 +1642,7 @@ where
         return Err(KernelError::NumericalOverflow);
     }
     let numerical_convergence_achieved = absolute_difference
-        <= config.absolute_tolerance
-            + config.relative_tolerance * production_report.integral.abs();
+        <= config.absolute_tolerance + config.relative_tolerance * production_report.integral.abs();
     let adequacy_satisfied = production_report.adequacy_satisfied;
 
     Ok(ProductionSphereQuadratureReport {
