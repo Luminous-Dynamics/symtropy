@@ -213,7 +213,12 @@ pub struct ArmSummary {
     pub recovery_success_count: usize,
     pub recovery_success_rate_ppm: Option<u32>,
     pub delivery_assessed_count: usize,
+    pub delivery_truth_delivered_count: usize,
+    pub delivery_truth_not_delivered_count: usize,
+    pub delivery_classified_count: usize,
     pub delivery_correct_count: usize,
+    pub delivery_decision_coverage_ppm: Option<u32>,
+    pub delivery_classification_accuracy_ppm: Option<u32>,
     pub false_confirmed_count: usize,
     pub false_refuted_count: usize,
     pub false_confirm_rate_ppm: Option<u32>,
@@ -424,6 +429,23 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
             )
         })
         .count();
+    let delivery_truth_delivered_count = assessed_records
+        .iter()
+        .filter(|record| record.adjudicated_delivery == DeliveryGroundTruth::Delivered)
+        .count();
+    let delivery_truth_not_delivered_count = assessed_records
+        .iter()
+        .filter(|record| record.adjudicated_delivery == DeliveryGroundTruth::NotDelivered)
+        .count();
+    let delivery_classified_count = assessed_records
+        .iter()
+        .filter(|record| {
+            matches!(
+                record.assessed_delivery,
+                DeliveryAssessment::Confirmed | DeliveryAssessment::Refuted
+            )
+        })
+        .count();
     let delivery_unknown_count = records
         .iter()
         .filter(|record| record.assessed_delivery == DeliveryAssessment::Unknown)
@@ -510,11 +532,22 @@ fn summarize_arm(arm: BenchmarkArm, records: &[&BenchmarkEpisode]) -> ArmSummary
         recovery_success_count,
         recovery_success_rate_ppm: rate_ppm(recovery_success_count, recovery_records.len()),
         delivery_assessed_count: delivery_truth_scored,
+        delivery_truth_delivered_count,
+        delivery_truth_not_delivered_count,
+        delivery_classified_count,
         delivery_correct_count,
+        delivery_decision_coverage_ppm: rate_ppm(delivery_classified_count, delivery_truth_scored),
+        delivery_classification_accuracy_ppm: rate_ppm(
+            delivery_correct_count,
+            delivery_classified_count,
+        ),
         false_confirmed_count,
         false_refuted_count,
-        false_confirm_rate_ppm: rate_ppm(false_confirmed_count, delivery_truth_scored),
-        false_refute_rate_ppm: rate_ppm(false_refuted_count, delivery_truth_scored),
+        false_confirm_rate_ppm: rate_ppm(
+            false_confirmed_count,
+            delivery_truth_not_delivered_count,
+        ),
+        false_refute_rate_ppm: rate_ppm(false_refuted_count, delivery_truth_delivered_count),
         delivery_unknown_count,
         planned_fault_event_count,
         independently_observed_delivery_count,
@@ -1270,7 +1303,34 @@ mod tests {
             .find(|summary| summary.arm == BenchmarkArm::FullRrvr)
             .unwrap();
         assert_eq!(summary.false_confirmed_count, 1);
-        assert_eq!(summary.false_confirm_rate_ppm, Some(RATE_SCALE / 2));
+        assert_eq!(summary.delivery_truth_not_delivered_count, 1);
+        assert_eq!(summary.delivery_truth_delivered_count, 1);
+        assert_eq!(summary.false_confirm_rate_ppm, Some(RATE_SCALE));
+        assert_eq!(summary.delivery_decision_coverage_ppm, Some(RATE_SCALE));
+        assert_eq!(summary.delivery_classification_accuracy_ppm, Some(RATE_SCALE / 2));
+    }
+
+    #[test]
+    fn distinguishes_abstention_coverage_from_classification_accuracy() {
+        let mut corpus = corpus();
+        let full = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| {
+                episode.matched_pair_id == "pair-1" && episode.arm == BenchmarkArm::FullRrvr
+            })
+            .unwrap();
+        full.assessed_delivery = DeliveryAssessment::Unknown;
+        let report = corpus.validate_and_score(&"a".repeat(64)).unwrap();
+        let summary = report
+            .arm_summaries
+            .iter()
+            .find(|summary| summary.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
+        assert_eq!(summary.delivery_assessed_count, 2);
+        assert_eq!(summary.delivery_classified_count, 1);
+        assert_eq!(summary.delivery_decision_coverage_ppm, Some(RATE_SCALE / 2));
+        assert_eq!(summary.delivery_classification_accuracy_ppm, Some(RATE_SCALE));
     }
 
     #[test]
