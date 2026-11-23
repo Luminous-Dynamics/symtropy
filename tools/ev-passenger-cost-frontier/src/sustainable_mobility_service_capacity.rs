@@ -12,7 +12,6 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sha2::{Digest, Sha256};
 
 const MAX_SCENARIOS: usize = 16;
 const MAX_AIRCRAFT: u8 = 8;
@@ -64,17 +63,6 @@ pub struct CapacityServiceOpportunity {
     pub opportunity_id: String,
     pub aircraft_id: String,
     /// Zero-based mission sequence for this aircraft within the report horizon.
-    pub mission_sequence: u32,
-    pub start_seconds: u64,
-    pub mission_duration_seconds: u32,
-    pub turnaround_seconds: u32,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct CapacityServiceOpportunity {
-    pub opportunity_id: String,
-    pub aircraft_id: String,
-    /// Zero-based mission sequence for this aircraft in the report horizon.
     pub mission_sequence: u32,
     pub start_seconds: u64,
     pub mission_duration_seconds: u32,
@@ -144,7 +132,7 @@ impl ScheduledEvent {
     fn order_key(self) -> (u8, u8) {
         match self {
             Self::ChargeComplete { channel_id } => (0, channel_id),
-            Self::MissionComplete { aircraft_id } => (1, aircraft_id),
+            Self::MissionComplete { aircraft_id, .. } => (1, aircraft_id),
         }
     }
 }
@@ -238,88 +226,6 @@ fn record_service_opportunity(
         return Err("service_opportunity_limit_exceeded".to_owned());
     }
 
-    opportunities.push(CapacityServiceOpportunity {
-        opportunity_id: service_opportunity_id(aircraft_id, mission_sequence),
-        aircraft_id: format!("aircraft-{aircraft_id:02}"),
-        mission_sequence,
-        start_seconds,
-        mission_duration_seconds: scenario.mission_duration_seconds,
-        turnaround_seconds: scenario.operational_turnaround_seconds,
-    });
-    Ok(())
-}
-
-fn schedule_next_mission(
-    scenario: &ServiceArchitecture,
-    horizon_seconds: u64,
-    now: u64,
-    aircraft_id: u8,
-    completed_mission_sequence: u32,
-    timeline: &mut BTreeMap<u64, Vec<ScheduledEvent>>,
-    opportunities: &mut Vec<CapacityServiceOpportunity>,
-) -> Result<(), String> {
-    let mission_sequence = completed_mission_sequence
-        .checked_add(1)
-        .ok_or_else(|| "aircraft_mission_sequence_overflow".to_owned())?;
-    let start_seconds = now
-        .checked_add(u64::from(scenario.operational_turnaround_seconds))
-        .ok_or_else(|| "next_mission_start_overflow".to_owned())?;
-    record_service_opportunity(
-        scenario,
-        horizon_seconds,
-        aircraft_id,
-        mission_sequence,
-        start_seconds,
-        opportunities,
-    )?;
-    let completion_seconds = start_seconds
-        .checked_add(u64::from(scenario.mission_duration_seconds))
-        .ok_or_else(|| "next_mission_completion_time_overflow".to_owned())?;
-    timeline
-        .entry(completion_seconds)
-        .or_default()
-        .push(ScheduledEvent::MissionComplete {
-            aircraft_id,
-            mission_sequence,
-        });
-    Ok(())
-}
-
-fn canonical_service_opportunity_digest(
-    opportunities: &[CapacityServiceOpportunity],
-) -> Result<String, String> {
-    let bytes = serde_json::to_vec(opportunities)
-        .map_err(|error| format!("service_opportunity_serialization_failed:{error}"))?;
-    let digest = Sha256::digest(bytes);
-    let mut hex = String::with_capacity(64);
-    for byte in digest {
-        use std::fmt::Write as _;
-        write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    Ok(format!("sha256:{hex}"))
-}
-
-fn service_opportunity_id(aircraft_id: u8, mission_sequence: u32) -> String {
-    format!("aircraft-{aircraft_id:02}-mission-{mission_sequence:06}")
-}
-
-fn record_service_opportunity(
-    scenario: &ServiceArchitecture,
-    horizon_seconds: u64,
-    aircraft_id: u8,
-    mission_sequence: u32,
-    start_seconds: u64,
-    opportunities: &mut Vec<CapacityServiceOpportunity>,
-) -> Result<(), String> {
-    let mission_end = start_seconds
-        .checked_add(u64::from(scenario.mission_duration_seconds))
-        .ok_or_else(|| "service_opportunity_mission_end_overflow".to_owned())?;
-    if mission_end > horizon_seconds {
-        return Ok(());
-    }
-    if opportunities.len() >= MAX_EVENTS {
-        return Err("service_opportunity_limit_exceeded".to_owned());
-    }
     opportunities.push(CapacityServiceOpportunity {
         opportunity_id: service_opportunity_id(aircraft_id, mission_sequence),
         aircraft_id: format!("aircraft-{aircraft_id:02}"),
