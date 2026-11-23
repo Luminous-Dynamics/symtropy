@@ -159,7 +159,10 @@
         "fault_injector_fault_domain_id",
         "fault_injector_id",
         "native_adapter_id",
-        "simulation_interfaces_revision"
+        "simulation_interfaces_revision",
+        "scene_broadcaster_id",
+        "scene_broadcaster_revision",
+        "scene_broadcaster_sha256"
       ],
       "properties": {
         "platform_id": {
@@ -234,6 +237,17 @@
         "simulation_interfaces_revision": {
           "type": "string",
           "minLength": 1
+        },
+        "scene_broadcaster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_broadcaster_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_broadcaster_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
