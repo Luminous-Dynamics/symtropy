@@ -102,7 +102,7 @@ pub struct DomainCase {
     pub external_challenges: Vec<ExternalChallenge>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EnumeratorReport {
     pub enumerator_id: String,
     pub method_id: String,
@@ -111,7 +111,7 @@ pub struct EnumeratorReport {
     pub matched_generated_domain: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CaseResult {
     pub case_id: String,
     pub status: String,
