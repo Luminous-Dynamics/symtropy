@@ -477,6 +477,35 @@ try{
   if(!path)fail("usage: feasibility_discovery_oracle.mjs <corpus.json>");
   const input=JSON.parse(fs.readFileSync(path,"utf8"));
   const output=evaluate(input);
+
+  // Negative control: a scenario-wise oracle wants different actions in each
+  // hidden world, while one shared public observation forces one branch action.
+  const nonAnticipative=structuredClone(input);
+  const conflictCase=nonAnticipative.cases.find(x=>x.case_id==="no_query_dominates_paid_query");
+  const north=conflictCase.base_decision.scenario_manifest.scenarios.find(x=>x.scenario_id==="v0-s");
+  const south=conflictCase.base_decision.scenario_manifest.scenarios.find(x=>x.scenario_id==="v1-s");
+  north.action_outcomes.safe.loss={numerator:1,denominator:10};
+  north.action_outcomes.alternate.loss={numerator:6,denominator:10};
+  south.action_outcomes.safe.loss={numerator:9,denominator:10};
+  south.action_outcomes.alternate.loss={numerator:6,denominator:10};
+  conflictCase.base_decision.scenario_manifest.scenarios_sha256=sha(
+    canonical([...conflictCase.base_decision.scenario_manifest.scenarios]
+      .sort((a,b)=>cmpS(a.scenario_id,b.scenario_id)))
+  );
+  const conflictResult=evaluate(nonAnticipative).cases.find(x=>x.case_id==="no_query_dominates_paid_query");
+  const alternatePolicy=conflictResult.policy_metrics.find(x=>
+    x.query_id==="redundant-query" && x.branch_actions.same==="alternate");
+  const safePolicy=conflictResult.policy_metrics.find(x=>
+    x.query_id==="redundant-query" && x.branch_actions.same==="safe");
+  if(alternatePolicy?.worst_case_wait_and_see_regret?.numerator!==1 ||
+     alternatePolicy?.worst_case_wait_and_see_regret?.denominator!==2 ||
+     alternatePolicy?.worst_case_outcome_class_regret?.numerator!==0) {
+    fail("clairvoyant and non-anticipative regret controls collapsed or were miscomputed");
+  }
+  if(safePolicy?.worst_case_outcome_class_regret?.numerator!==3 ||
+     safePolicy?.worst_case_outcome_class_regret?.denominator!==10) {
+    fail("outcome-class robust comparator failed to identify the best common action");
+  }
   const reversed=structuredClone(input);
   reversed.cases.reverse();
   for(const item of reversed.cases){
