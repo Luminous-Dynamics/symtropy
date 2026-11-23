@@ -507,6 +507,7 @@ jobs:
           jq -e '
             .version == "0.1"
             and .matched_pair_count == 2
+            and .scenario_cluster_count == 1
             and (.arm_summaries | length == 5)
             and (.paired_comparisons | length == 4)
             and ([.arm_summaries[].arm] | sort == ["full_rrvr","logging_only","restart_only","task_only","trace_only"])
