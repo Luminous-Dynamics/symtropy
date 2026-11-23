@@ -79,8 +79,11 @@ pub struct StructureScorecard {
     /// Retained cells have a present prediction, correct vorticity sign and
     /// at least the configured fraction of reference magnitude.
     pub weak_structure_retained_cells: usize,
+    pub predicted_weak_support_cells: usize,
+    pub false_positive_weak_support_cells: usize,
     pub weak_structure_recall: Option<f64>,
-    /// Precision counts false support only in truth-defined background cells.
+    /// Precision counts incorrect predicted support both in weak-reference cells
+    /// (wrong sign or inadequate amplitude) and in reference-defined background.
     pub weak_structure_precision: Option<f64>,
     pub weak_structure_dice: Option<f64>,
     pub weak_structure_sign_agreement: Option<f64>,
@@ -90,6 +93,7 @@ pub struct StructureScorecard {
     pub weak_structure_signed_amplitude_ratio: Option<f64>,
     pub weak_structure_signed_amplitude_bias: Option<f64>,
     pub background_cells: usize,
+    pub background_prediction_available_cells: usize,
     pub false_support_cells: usize,
     pub false_support_rate_in_background: Option<f64>,
     pub disposition: Result<(), InsufficientSupport>,
@@ -215,10 +219,13 @@ pub fn evaluate_structure_preservation(
     let mut reference_vorticity_squared = 0.0;
     let mut weak_structure_cells = 0usize;
     let mut weak_structure_retained_cells = 0usize;
+    let mut predicted_weak_support_cells = 0usize;
+    let mut false_positive_weak_support_cells = 0usize;
     let mut weak_structure_sign_agreement_cells = 0usize;
     let mut weak_reference_magnitude_sum = 0.0;
     let mut weak_signed_prediction_sum = 0.0;
     let mut background_cells = 0usize;
+    let mut background_prediction_available_cells = 0usize;
     let mut false_support_cells = 0usize;
 
     for y in 1..(reference.height - 1) {
@@ -266,21 +273,32 @@ pub fn evaluate_structure_preservation(
                     let signed_prediction =
                         omega * if omega_reference.is_sign_negative() { -1.0 } else { 1.0 };
                     weak_signed_prediction_sum += signed_prediction;
+                    let predicts_structure = omega.abs() >= config.weak_vorticity_min;
+                    if predicts_structure {
+                        predicted_weak_support_cells += 1;
+                    }
                     if omega.signum() == omega_reference.signum() {
                         weak_structure_sign_agreement_cells += 1;
                         if omega.abs()
                             >= config.minimum_retained_amplitude_fraction * reference_magnitude
                         {
                             weak_structure_retained_cells += 1;
+                        } else if predicts_structure {
+                            false_positive_weak_support_cells += 1;
                         }
+                    } else if predicts_structure {
+                        false_positive_weak_support_cells += 1;
                     }
                 }
             } else if reference_magnitude < config.weak_vorticity_min {
                 background_cells += 1;
-                if omega_reconstruction
-                    .is_some_and(|omega| omega.abs() >= config.weak_vorticity_min)
-                {
-                    false_support_cells += 1;
+                if let Some(omega) = omega_reconstruction {
+                    background_prediction_available_cells += 1;
+                    if omega.abs() >= config.weak_vorticity_min {
+                        false_support_cells += 1;
+                        predicted_weak_support_cells += 1;
+                        false_positive_weak_support_cells += 1;
+                    }
                 }
             }
         }
@@ -300,13 +318,13 @@ pub fn evaluate_structure_preservation(
         ratio(weak_structure_sign_agreement_cells, weak_structure_cells);
     let weak_structure_precision = safe_ratio(
         weak_structure_retained_cells as f64,
-        (weak_structure_retained_cells + false_support_cells) as f64,
+        predicted_weak_support_cells as f64,
     );
     let weak_structure_dice = safe_ratio(
         2.0 * weak_structure_retained_cells as f64,
         (2 * weak_structure_retained_cells
             + (weak_structure_cells - weak_structure_retained_cells)
-            + false_support_cells) as f64,
+            + false_positive_weak_support_cells) as f64,
     );
     let weak_structure_signed_amplitude_ratio = safe_ratio(
         weak_signed_prediction_sum,
@@ -314,7 +332,8 @@ pub fn evaluate_structure_preservation(
     );
     let weak_structure_signed_amplitude_bias =
         weak_structure_signed_amplitude_ratio.map(|ratio| ratio - 1.0);
-    let false_support_rate_in_background = ratio(false_support_cells, background_cells);
+    let false_support_rate_in_background =
+        ratio(false_support_cells, background_prediction_available_cells);
     let relative_vorticity_l2_on_available_cells = safe_ratio(
         vorticity_error_squared.sqrt(),
         reference_vorticity_squared.sqrt(),
@@ -342,6 +361,8 @@ pub fn evaluate_structure_preservation(
         relative_vorticity_l2_on_available_cells,
         weak_structure_cells,
         weak_structure_retained_cells,
+        predicted_weak_support_cells,
+        false_positive_weak_support_cells,
         weak_structure_recall,
         weak_structure_precision,
         weak_structure_dice,
@@ -349,6 +370,7 @@ pub fn evaluate_structure_preservation(
         weak_structure_signed_amplitude_ratio,
         weak_structure_signed_amplitude_bias,
         background_cells,
+        background_prediction_available_cells,
         false_support_cells,
         false_support_rate_in_background,
         disposition,
