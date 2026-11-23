@@ -1583,13 +1583,19 @@ mod tests {
         assert_eq!(receipt.nominal_k_exact.selected_view_count, 2);
         assert!(receipt.nominal_k_exact.minimum_cardinality_certified);
         assert!(receipt.nominal_k_exact.requested_k_covered);
-        assert!(receipt.published_k_coverage_greedy.attainable_capped_target_covered);
+        assert!(
+            receipt
+                .published_k_coverage_greedy
+                .attainable_capped_target_covered
+        );
         assert_eq!(
             receipt.published_k_coverage_greedy.view_count_gap_vs_exact,
             Some(0)
         );
         assert!(
-            !receipt.published_k_coverage_greedy.robust_failure_domain_requirements_met
+            !receipt
+                .published_k_coverage_greedy
+                .robust_failure_domain_requirements_met
         );
     }
 
@@ -1609,8 +1615,11 @@ mod tests {
         let baseline = receipt.published_k_coverage_greedy;
         assert!(baseline.requested_k_covered);
         assert!(baseline.attainable_capped_target_covered);
-        assert!(!baseline.failure_domain_requirements_met);
-        assert_eq!(baseline.feature_coverage[0].selected_robust_failure_domains, 1);
+        assert!(!baseline.robust_failure_domain_requirements_met);
+        assert_eq!(
+            baseline.feature_coverage[0].selected_robust_failure_domains,
+            1
+        );
     }
 
     #[test]
