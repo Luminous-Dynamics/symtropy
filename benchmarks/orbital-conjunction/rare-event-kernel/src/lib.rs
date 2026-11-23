@@ -32,6 +32,7 @@ pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
+pub mod ncdot_refinement;
 pub mod normal_positive_part;
 pub mod residual;
 pub mod sequential;
@@ -56,6 +57,10 @@ pub use ncdot_temporal::{
     NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon, NcdotTemporalIdentity,
     NcdotTemporalReport, NcdotTemporalSample, TemporalHorizonCoverageClaim,
     integrate_ncdot_time_series,
+};
+pub use ncdot_refinement::{
+    NcdotRefinementDecision, NcdotRefinementDisposition, NcdotRefinementPolicy,
+    NcdotRefinementReason, NcdotRefinementSnapshot, decide_ncdot_refinement,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
@@ -169,6 +174,12 @@ pub enum KernelError {
     TemporalHorizonEndpointMismatch,
     /// Temporal epochs are duplicate or not strictly increasing.
     NonIncreasingTemporalEpochs,
+    /// NASA-style Ncdot refinement thresholds or iteration policy are invalid.
+    InvalidNcdotRefinementPolicy,
+    /// A sampled Ncdot refinement snapshot is incomplete or internally inconsistent.
+    InvalidNcdotRefinementSnapshot,
+    /// A required temporal midpoint is not representable as a distinct f64 epoch.
+    NcdotRefinementResolutionLimit,
 }
 
 impl fmt::Display for KernelError {
@@ -241,6 +252,15 @@ impl fmt::Display for KernelError {
             }
             Self::NonIncreasingTemporalEpochs => {
                 "temporal sample epochs must be strictly increasing"
+            }
+            Self::InvalidNcdotRefinementPolicy => {
+                "NASA-style Ncdot refinement policy contains invalid thresholds"
+            }
+            Self::InvalidNcdotRefinementSnapshot => {
+                "Ncdot refinement snapshot is incomplete or internally inconsistent"
+            }
+            Self::NcdotRefinementResolutionLimit => {
+                "Ncdot refinement midpoint is not representable as a distinct epoch"
             }
         };
         f.write_str(message)
