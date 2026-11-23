@@ -88,7 +88,7 @@ impl Method {
         }
     }
 
-    fn alpha_per_call_milli(self) -> u16 {
+    fn target_alpha_milli(self) -> u16 {
         match self {
             Self::PerVesselJoint90 | Self::ScheduleMaximumJoint90 => TARGET_ALPHA_MILLI,
             Self::BonferroniSchedule90 => BONFERRONI_ALPHA_PER_CALL_MILLI,
