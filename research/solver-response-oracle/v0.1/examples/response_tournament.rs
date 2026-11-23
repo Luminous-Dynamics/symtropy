@@ -2,7 +2,8 @@
 //! Deterministic synthetic smoke tournament for the response comparator.
 
 use solver_response_oracle::{
-    BodyResponse, ContactProbe, ResponseScales, SolverResponseSnapshot, compare_responses,
+    BodyResponse, ContactProbe, ResponseScales, SolverResponseSnapshot, SolverTermination,
+    compare_responses,
 };
 
 fn body(
@@ -33,7 +34,12 @@ fn snapshot(candidate: &str, reduced: bool) -> SolverResponseSnapshot {
         initial_state_digest: "initial-state-001".to_owned(),
         physics_model_digest: "frictionless-contact-smoke-model-001".to_owned(),
         solver_config_digest: "solver-config-equal-budget-001".to_owned(),
+        work_unit_schema_digest: "constraint-row-visits-v1".to_owned(),
         work_budget_units: 256,
+        work_consumed_units: if reduced { 240 } else { 220 },
+        solver_iterations: if reduced { 9 } else { 7 },
+        solver_rows_submitted: if reduced { 3 } else { 4 },
+        solver_termination: SolverTermination::Converged,
         candidate_set_digest: candidate.to_owned(),
         warm_start_digest: if reduced {
             "warm-start-reduced-001"
@@ -87,13 +93,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!(
-        "schema,scenario,budget,probe_count,max_generalized_velocity_error,max_generalized_impulse_error,max_contact_normal_velocity_error,max_contact_tangent_velocity_error,rms_contact_velocity_error,velocity_witness_body,normal_witness_contact"
+        "schema,scenario,budget,full_work,reduced_work,full_iterations,reduced_iterations,full_rows,reduced_rows,both_converged,probe_count,max_generalized_velocity_error,max_generalized_impulse_error,max_contact_normal_velocity_error,max_contact_tangent_velocity_error,rms_contact_velocity_error,velocity_witness_body,normal_witness_contact"
     );
     println!(
-        "{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{}",
         solver_response_oracle::SCHEMA_VERSION,
         report.scenario_digest,
         report.work_budget_units,
+        report.full_work_consumed_units,
+        report.reduced_work_consumed_units,
+        report.full_solver_iterations,
+        report.reduced_solver_iterations,
+        report.full_solver_rows_submitted,
+        report.reduced_solver_rows_submitted,
+        report.both_solvers_converged,
         report.contact_probe_count,
         report.maximum_generalized_velocity_error,
         report.maximum_generalized_impulse_error,
