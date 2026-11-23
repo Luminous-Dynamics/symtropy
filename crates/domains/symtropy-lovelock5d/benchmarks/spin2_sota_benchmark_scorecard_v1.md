@@ -250,3 +250,8 @@ The matched pair of numerical oracles is now:
 - composite Gauss--Legendre after analytic subtraction/restoration of thirteen endpoint-log terms.
 
 They share the mathematical integral but use distinct quadrature algorithms. Both are numerical checks, not interval enclosures.
+
+
+## Ma--Lü map correction and replay (23 November 2026)
+
+The paper's Eq. (16) prints chi=a/mu, not a/sqrt(mu), and it is not chi=Omega_H*r_H. For equal spins, its Eqs. (4), (6), (16) imply mu/r_h^2=(1+q^2)^2/2, nu=q/(1+q^2), and chi*r_h=2q/(1+q^2)^2, with q=a/r_h, nu=Omega_H*r_h. Exact inversion gives q=nu+nu^3+2nu^5+... and chi*r_h=2nu-2nu^3-2nu^5+.... The parameter-map script was replayed locally from its exact public blob; all symbolic checks pass. Do not use the earlier shorthand conversion for higher-spin comparisons.
