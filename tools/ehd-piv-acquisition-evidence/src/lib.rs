@@ -517,11 +517,18 @@ impl AcquisitionManifest {
 }
 
 fn find_root(parent: &mut [usize], index: usize) -> usize {
-    if parent[index] != index {
-        let root = find_root(parent, parent[index]);
-        parent[index] = root;
+    let mut root = index;
+    while parent[root] != root {
+        root = parent[root];
     }
-    parent[index]
+
+    let mut current = index;
+    while parent[current] != current {
+        let next = parent[current];
+        parent[current] = root;
+        current = next;
+    }
+    root
 }
 
 fn union(parent: &mut [usize], left: usize, right: usize) {
@@ -562,12 +569,38 @@ impl fmt::Display for CohortRole {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CohortPartition {
-    pub cohort_id: String,
-    pub role: CohortRole,
-    pub acquisition_ids: BTreeSet<String>,
-    pub dependence_component_ids: BTreeSet<String>,
-    pub asset_ids: BTreeSet<String>,
-    pub reference_evidence_ids: BTreeSet<String>,
+    cohort_id: String,
+    role: CohortRole,
+    acquisition_ids: BTreeSet<String>,
+    dependence_component_ids: BTreeSet<String>,
+    asset_ids: BTreeSet<String>,
+    reference_evidence_ids: BTreeSet<String>,
+}
+
+impl CohortPartition {
+    pub fn cohort_id(&self) -> &str {
+        &self.cohort_id
+    }
+
+    pub fn role(&self) -> CohortRole {
+        self.role
+    }
+
+    pub fn acquisition_ids(&self) -> &BTreeSet<String> {
+        &self.acquisition_ids
+    }
+
+    pub fn dependence_component_ids(&self) -> &BTreeSet<String> {
+        &self.dependence_component_ids
+    }
+
+    pub fn asset_ids(&self) -> &BTreeSet<String> {
+        &self.asset_ids
+    }
+
+    pub fn reference_evidence_ids(&self) -> &BTreeSet<String> {
+        &self.reference_evidence_ids
+    }
 }
 
 pub fn validate_disjoint_cohorts(cohorts: &[CohortPartition]) -> Result<(), EvidenceError> {
@@ -600,10 +633,8 @@ pub fn validate_disjoint_cohorts(cohorts: &[CohortPartition]) -> Result<(), Evid
         }
     }
 
-    for left_index in 0..cohorts.len() {
-        for right_index in (left_index + 1)..cohorts.len() {
-            let left = &cohorts[left_index];
-            let right = &cohorts[right_index];
+    for (left_index, left) in cohorts.iter().enumerate() {
+        for right in cohorts.iter().skip(left_index + 1) {
             check_overlap(
                 left,
                 right,
@@ -715,15 +746,39 @@ impl ReferenceAssessment {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifiedAsset {
-    pub asset_id: String,
-    pub byte_length: u64,
-    pub sha256: String,
+    asset_id: String,
+    byte_length: u64,
+    sha256: String,
+}
+
+impl VerifiedAsset {
+    pub fn asset_id(&self) -> &str {
+        &self.asset_id
+    }
+
+    pub fn byte_length(&self) -> u64 {
+        self.byte_length
+    }
+
+    pub fn sha256(&self) -> &str {
+        &self.sha256
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VerifiedManifest {
-    pub manifest_sha256: String,
-    pub verified_assets: Vec<VerifiedAsset>,
+    manifest_sha256: String,
+    verified_assets: Vec<VerifiedAsset>,
+}
+
+impl VerifiedManifest {
+    pub fn manifest_sha256(&self) -> &str {
+        &self.manifest_sha256
+    }
+
+    pub fn verified_assets(&self) -> &[VerifiedAsset] {
+        &self.verified_assets
+    }
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
