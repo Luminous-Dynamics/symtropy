@@ -334,7 +334,7 @@ fn expected_cost_units_micros(route: Option<&Route>, request: &Request) -> u64 {
     }
 }
 
-fn eligible_routes<'a>(case: &'a Case) -> Vec<&'a Route> {
+fn eligible_routes(case: &Case) -> Vec<&Route> {
     case.route_candidates
         .iter()
         .filter(|route| {
@@ -387,7 +387,7 @@ fn choose_route<'a>(case: &'a Case, policy: &str) -> Option<&'a Route> {
         .min_by(|a, b| compare_routes(a, b, &case.request, policy))
 }
 
-fn oracle_route<'a>(case: &'a Case) -> Option<&'a Route> {
+fn oracle_route(case: &Case) -> Option<&Route> {
     eligible_routes(case).into_iter().min_by(|a, b| {
         expected_cost_units_micros(Some(a), &case.request)
             .cmp(&expected_cost_units_micros(Some(b), &case.request))
@@ -424,7 +424,7 @@ fn realized_cost_units(case: &Case, route: Option<&Route>) -> u64 {
     }
 }
 
-fn clairvoyant_route<'a>(case: &'a Case) -> Option<&'a Route> {
+fn clairvoyant_route(case: &Case) -> Option<&Route> {
     eligible_routes(case).into_iter().min_by(|a, b| {
         realized_cost_units(case, Some(a))
             .cmp(&realized_cost_units(case, Some(b)))
@@ -514,6 +514,7 @@ fn summarize_family(
         .iter()
         .map(|result| result.realized_cost_units)
         .sum();
+    debug_assert_eq!(count, 20, "validated family has twenty paired cases");
     FamilySummary {
         scenario_family_id: family_id.to_string(),
         policy_id,
