@@ -97,7 +97,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 25 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 26 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
