@@ -361,6 +361,8 @@ pub struct DimensionFinding {
     pub right_known_count: usize,
     pub left_partial: bool,
     pub right_partial: bool,
+    pub left_not_applicable: bool,
+    pub right_not_applicable: bool,
     pub notes: Vec<String>,
 }
 
@@ -566,6 +568,8 @@ fn assess_obligation(
         right_known_count: 0,
         left_partial: false,
         right_partial: false,
+        left_not_applicable: false,
+        right_not_applicable: false,
         notes: Vec::new(),
     };
     let (Some(left), Some(right)) = (left, right) else {
@@ -587,18 +591,16 @@ fn assess_obligation(
     };
 
     if let DimensionInventory::NotApplicable { rationale, owner } = left_inventory {
-        finding.disposition = SeparationDisposition::NotApplicable;
+        finding.left_not_applicable = true;
         finding.notes.push(format!(
             "source role excludes dimension: {rationale}; owner: {owner}"
         ));
-        return finding;
     }
     if let DimensionInventory::NotApplicable { rationale, owner } = right_inventory {
-        finding.disposition = SeparationDisposition::NotApplicable;
+        finding.right_not_applicable = true;
         finding.notes.push(format!(
             "witness role excludes dimension: {rationale}; owner: {owner}"
         ));
-        return finding;
     }
 
     let (left_items, left_partial, left_unknown) = inventory_parts(left_inventory);
@@ -647,12 +649,19 @@ fn assess_obligation(
         .chain(right_items.iter())
         .any(|item| item.currentness != EvidenceCurrentness::Current);
     let projection_current = projection.currentness == ProjectionCurrentness::Current;
+    let any_not_applicable = finding.left_not_applicable || finding.right_not_applicable;
 
     if common_current && projection_current {
         finding.disposition = SeparationDisposition::Shared;
         finding
             .notes
             .push("a required canonical dependency is shared".to_owned());
+    } else if any_not_applicable {
+        finding.disposition = SeparationDisposition::NotApplicable;
+        finding.notes.push(
+            "a role excludes this dimension; known dependencies on the other role remain visible"
+                .to_owned(),
+        );
     } else if path_has_unknown_relation {
         finding.disposition = SeparationDisposition::Indeterminate;
         finding.notes.push(
