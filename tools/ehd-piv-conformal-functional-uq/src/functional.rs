@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Spatially correlated uncertainty propagation for PIV field functionals.
 //!
 //! Each face sample carries a local 3x3 velocity covariance. Local errors are
