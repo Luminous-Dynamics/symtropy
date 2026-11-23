@@ -256,8 +256,16 @@ pub fn plan_non_anticipative_robust_campaign(
             &mut best,
             &mut clairvoyant_best_by_scenario,
         )?;
-        complete_policy_trees_evaluated += 1;
-        scenario_policy_evaluations += scenario_ids.len();
+        complete_policy_trees_evaluated = complete_policy_trees_evaluated
+            .checked_add(1)
+            .ok_or(ModelError::InvalidParameter(
+                "robust_campaign_policy_tree_count_overflow",
+            ))?;
+        scenario_policy_evaluations = scenario_policy_evaluations
+            .checked_add(scenario_ids.len())
+            .ok_or(ModelError::InvalidParameter(
+                "robust_campaign_scenario_evaluation_count_overflow",
+            ))?;
     }
 
     for (root_index, root) in acquisitions.iter().enumerate() {
@@ -291,7 +299,11 @@ pub fn plan_non_anticipative_robust_campaign(
                 &mut best,
                 &mut clairvoyant_best_by_scenario,
             )?;
-            complete_policy_trees_evaluated += 1;
+            complete_policy_trees_evaluated = complete_policy_trees_evaluated
+                .checked_add(1)
+                .ok_or(ModelError::InvalidParameter(
+                    "robust_campaign_policy_tree_count_overflow",
+                ))?;
             scenario_policy_evaluations = scenario_policy_evaluations
                 .checked_add(scenario_ids.len())
                 .ok_or(ModelError::InvalidParameter(
