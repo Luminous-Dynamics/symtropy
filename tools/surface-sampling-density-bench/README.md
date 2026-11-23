@@ -1,0 +1,44 @@
+# Surface Sampling Density Benchmark v0.1
+
+This standalone Rust crate implements a synthetic accounting contract for ray-intersection density over non-uniform surface elements. It is deliberately separate from orbital binary/k-view coverage, support-envelope geometry, feature-measurability conditioning and metrological uncertainty.
+
+## Definition
+
+For surface element i with area A_i and candidate viewpoint set V, let P_ij be the number of admitted ray intersections contributed by view j. For selected subset S:
+
+rho_i(S) = sum(P_ij for j in S) / A_i
+
+The fixture stores area in square micrometres and target density in micro-rays per square millimetre. The threshold is checked exactly using integer arithmetic:
+
+hits * 10^12 >= target_micro_rays_per_mm2 * area_um2
+
+The receipt exposes the exact rational density numerator/denominator, selected and candidate hit totals, number of contributing views, per-view contributions, density threshold attainment, minimum-contributing-view attainment and input provenance. A high-density small element cannot compensate for an under-dense large or critical element; all elements must independently meet their declared target.
+
+## Outcome semantics
+
+- FEASIBLE: every selected element meets its density and distinct contributing-view targets, the declared view budget is respected, and all ray-count rows are exact synthetic-oracle inputs.
+- INFEASIBLE: the full candidate pool cannot supply the target density or number of contributing views for at least one element.
+- BUDGET_INFEASIBLE: the candidate pool can supply the targets, but the selected plan or declared view budget does not.
+- INDETERMINATE: at least one ray-count row has caller-supplied-unverified provenance.
+- INVALID_INPUT: element area/identity/target, view IDs, matrix completeness, units or collection shape is invalid.
+
+Candidate-pool insufficiency, selected-plan insufficiency, budget excess and unverified ray provenance remain separate receipt fields and reason codes.
+
+## Frozen corpus
+
+The twelve controls include equal-area/equal-hit equality, tenfold area scaling, additive multi-view sampling, unselected-view exclusion, candidate-pool insufficiency, selected-plan insufficiency, unverified provenance, zero-area invalid input, no averaging away a critical under-sampled element, k-view count separated from density, multi-element scaling and row-order invariance.
+
+## Reproduction
+
+    cargo test --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets
+    cargo clippy --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets -- -D warnings
+    cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json <40-hex-source-commit>
+    python3 tools/surface-sampling-density-bench/tests/sampling_density_reference_oracle.py docs/research/orbital-truss/fixtures/sampling-density-v0_1.json <40-hex-source-commit>
+
+The workflow compares the full Rust receipt with the independent standard-library Python oracle and retains exact-head artifacts. A standalone lockfile is committed.
+
+## Claim ceiling
+
+The current fixtures provide ray-intersection counts as synthetic inputs. This crate accounts for those counts; it does not generate camera rays, intersect a physical mesh, simulate a sensor, establish a real point-cloud sampling density, infer resolvable defect size, estimate covariance, compute probability of detection or qualify a measurement. EXACT_SYNTHETIC_ORACLE means exact relative to the declared synthetic fixture, not experimentally verified ray physics.
+
+The principal literature comparator is Staderini, Integrated Planning and Optimization Framework for Robotic Visual Inspection, TU Wien doctoral dissertation submitted 1 December 2025, Chapter 4's sampling-density matrix. The current crate is a small contract/oracle benchmark, not a reproduction of the thesis' full geometry, camera-ray generation, surface-sampling or robot planning pipeline.
