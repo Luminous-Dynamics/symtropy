@@ -25,10 +25,15 @@ An explicitly reported omission can be protocol-complete while the physical comp
 - Requested non-produced statuses require a reason and cannot carry a numeric value:
   `Unsupported`, `CapacityDropped`, `SleepingSkipped`, `NotConverged`, `Invalid`.
 - `Missing` is a protocol failure. Missing records, duplicate keys, unexpected keys, malformed digests, and invalid accounting are rejected.
-- Per-family row accounting is exact:
+- Per-family solver-row accounting is exact:
   - requested = admitted + sleeping-skipped + capacity-dropped + unsupported;
   - admitted = solved + not-converged + execution-aborted;
   - reserved <= configured capacity and admitted <= reserved.
+- Contact geometry has a separate lineage: every generated geometric point is Retained, ReducedByPolicy, CapacityDropped, Invalid or Unsupported; every solver contact/cluster maps to retained source-point IDs. Geometry-point counts are never substituted for solver-row counts.
+- Solver contact clustering is represented explicitly: a single solver contact may map multiple geometric points, while each retained point maps to at most one solver contact group.
+- Contact reduction requires a stable policy identity. Aggregate-only or incomplete solver lineage remains explicitly incomplete.
+- Capacity diagnostics bind backend profile, scope, row family, step, flag lifetime, reset epoch and source semantics. Sticky flags already set before the step are Unattributable without an exact per-step overflow-count delta.
+- Reset receipts bind scope and a monotonic diagnostic epoch transition. Resetting live backend state does not remove prior observations from the canonical run receipt.
 
 ## Canonical identities
 
@@ -36,7 +41,7 @@ The crate exposes deterministic, order-independent canonical preimage bytes for 
 
 ## Tests
 
-The unit suite includes:
+The unit suite contains 26 test functions across the solver and capacity contracts, including:
 - computed exact zero;
 - capacity-dropped result;
 - sleeping-island skip;
@@ -48,7 +53,13 @@ The unit suite includes:
 - canonical order invariance;
 - malformed digest and caller-computed request-digest mismatch;
 - canonical signed-zero normalization for observable values and interval bounds;
-- invalid uncertainty interval.
+- invalid uncertainty interval;
+- geometric point reduction vs solver contact clustering lineage;
+- solver contacts cannot reference reduced geometry;
+- missing reduction policy and contact-capacity overrun;
+- sticky flag transition, sticky flag already set, per-step overflow deltas and missing reset epochs;
+- reset epoch monotonicity;
+- capacity lineage included in the canonical whole-run receipt.
 
 Run:
 
