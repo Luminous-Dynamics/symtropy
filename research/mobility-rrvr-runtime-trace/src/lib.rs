@@ -1989,3 +1989,4 @@ mod tests {
         assert_eq!(sidecar["model_source_sha256"], sha('a'));
     }
 }
+pub mod dispatch_journal;
