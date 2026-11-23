@@ -13,11 +13,13 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::sustainable_mobility_service_capacity::{
-    SustainableServiceCapacityInput, evaluate_sustainable_service_capacity,
+    CapacityServiceOpportunity, SustainableServiceCapacityInput,
+    evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
-    FallbackMode, FlightWindow, LinkedServiceQualityInput, ServiceMode,
-    evaluate_linked_service_quality,
+    FallbackMode, FlightWindow, LinkedServiceQualityInput,
+    PermissionState as SourcePermissionState, ServiceMode,
+    WeatherState as SourceWeatherState, evaluate_linked_service_quality,
 };
 
 const MAX_REQUESTS: usize = 4;
@@ -63,9 +65,8 @@ pub enum PermissionState {
     Unknown,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ScenarioRequest {
+#[derive(Debug, Clone)]
+struct ScenarioRequest {
     pub request_id: String,
     pub arrival_seconds: u64,
     pub accept_by_seconds: u64,
@@ -75,9 +76,8 @@ pub struct ScenarioRequest {
     pub allowed_mode: AllowedMode,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ScenarioOpportunity {
+#[derive(Debug, Clone)]
+struct ScenarioOpportunity {
     pub opportunity_id: String,
     pub resource_id: String,
     pub mode: OpportunityMode,
