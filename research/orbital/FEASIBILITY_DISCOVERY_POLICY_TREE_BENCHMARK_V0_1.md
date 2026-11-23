@@ -9,7 +9,7 @@
 
 The previous feasibility layer computes the intersection of actions feasible in every compatible world. That is the correct baseline for one fixed action when the true world is unknown. But if a safe measurement can reveal which world is present, a policy may choose different actions *after observing the measurement*.
 
-This must not be confused with a clairvoyant policy. The branch must depend only on a public observation, not on a hidden world/scenario identifier. This benchmark therefore treats a query as a first-stage decision and the subsequent action as a non-anticipative recourse decision.
+This must not be confused with a clairvoyant policy. The branch must depend only on a public observation, not on a hidden world/scenario identifier. This benchmark therefore treats a query as a first-stage decision and the subsequent action as a non-anticipative recourse decision. The outcome-class regret comparator must obey the same information restriction: it chooses one common action per observable class, not a different comparator action for every latent scenario.
 
 ## 2. External research comparators
 
@@ -74,9 +74,24 @@ The value-of-information field is the exact loss reduction relative to the best 
 
 The query cost is paid once. Action execution cost is represented by the componentwise maximum across the policy's branches, because only one branch executes but the world is unknown at planning time. Total resource cost is the query cost plus this branch-action upper bound.
 
+For each observable outcome class y, let S_y be its linked joint scenarios and F_y the actions feasible throughout that class. For a fixed action a in F_y, define its classwise worst-case regret against the scenario-feasible oracle:
+
+\[
+\rho_y(a)=\max_{s\in S_y}\left[L_s(a)-\min_{b\in F_s}L_s(b)\right].
+\]
+
+The non-anticipative comparator is the best *single* common action for that whole observation class:
+
+\[
+\rho_y^*=\min_{a\in F_y}\rho_y(a).
+\]
+
+The selected branch's outcome-class regret gap is \(\rho_y(a_y)-\rho_y^*\). It is nonnegative and does not let the comparator inspect the hidden world. The wait-and-see regret is still reported separately as the clairvoyant information-relaxation quantity. This is a minimax-regret gap under the actual information partition, not a per-scenario oracle disguised as a deployable comparator.
+
 The policy frontier is computed over:
 - worst-case loss;
-- worst outcome-class regret;
+- worst-case wait-and-see regret;
+- worst outcome-class minimax-regret gap;
 - reference trials;
 - exposure;
 - elapsed time.
