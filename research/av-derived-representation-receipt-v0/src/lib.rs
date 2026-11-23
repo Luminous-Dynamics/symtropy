@@ -386,7 +386,7 @@ pub fn validate_source_span(
 pub fn validate_feature_descriptor(
     features: &FeatureDescriptorV1,
 ) -> Result<(), DerivedReceiptError> {
-    if features.shape.is_empty() || features.shape.iter().any(|dimension| *dimension == 0) {
+    if features.shape.is_empty() || features.shape.contains(&0) {
         return Err(DerivedReceiptError::new(
             "feature shape must contain only nonzero dimensions",
         ));
@@ -501,14 +501,13 @@ pub fn validate_derived_receipt(
     validate_feature_descriptor(&receipt.features)?;
     validate_reproducibility(receipt.reproducibility, receipt.features.element_type)?;
 
-    if receipt.representation_kind == RepresentationKindV1::TranscriptAlignment
-        || receipt.representation_kind == RepresentationKindV1::AsrHypothesis
+    if (receipt.representation_kind == RepresentationKindV1::TranscriptAlignment
+        || receipt.representation_kind == RepresentationKindV1::AsrHypothesis)
+        && receipt.modality != ModalityV1::Audio
     {
-        if receipt.modality != ModalityV1::Audio {
-            return Err(DerivedReceiptError::new(
-                "transcript alignment and ASR hypotheses require audio modality",
-            ));
-        }
+        return Err(DerivedReceiptError::new(
+            "transcript alignment and ASR hypotheses require audio modality",
+        ));
     }
     if receipt.representation_kind == RepresentationKindV1::VisualFeatures
         && receipt.modality == ModalityV1::Audio
