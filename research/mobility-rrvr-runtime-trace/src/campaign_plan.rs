@@ -156,8 +156,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
 /// object map is key-sorted in this crate's pinned serde_json configuration.
 /// No timestamps, machine paths or runtime-generated IDs are included.
 fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, PlanCompileError> {
-    let value =
-        serde_json::to_value(value).map_err(|_| PlanCompileError::SerializationFailure)?;
+    let value = serde_json::to_value(value).map_err(|_| PlanCompileError::SerializationFailure)?;
     serde_json::to_vec(&value).map_err(|_| PlanCompileError::SerializationFailure)
 }
 
@@ -241,8 +240,10 @@ impl CompiledCampaignPlan {
             let reference = members
                 .first()
                 .ok_or(PlanCompileError::CommitmentMismatch)?;
-            let mut expected_ids: Vec<String> =
-                members.iter().map(|scenario| scenario.scenario_id.clone()).collect();
+            let mut expected_ids: Vec<String> = members
+                .iter()
+                .map(|scenario| scenario.scenario_id.clone())
+                .collect();
             expected_ids.sort();
             let expected_arms: BTreeSet<BenchmarkArm> =
                 members.iter().map(|scenario| scenario.arm).collect();
@@ -286,21 +287,18 @@ impl CompiledCampaignPlan {
             };
             let expected_pair_digest = digest_serializable(&commitment)?;
             if pair.pair_commitment_sha256 != expected_pair_digest
-                || members.iter().any(|scenario| {
-                    scenario.pair_commitment_sha256 != expected_pair_digest
-                })
+                || members
+                    .iter()
+                    .any(|scenario| scenario.pair_commitment_sha256 != expected_pair_digest)
             {
                 return Err(PlanCompileError::CommitmentMismatch);
             }
         }
 
-        let required_layers: BTreeSet<FaultLayer> =
-            self.required_layers.iter().copied().collect();
+        let required_layers: BTreeSet<FaultLayer> = self.required_layers.iter().copied().collect();
         let required_cuts: BTreeSet<FaultCutPoint> =
             self.required_cut_points.iter().copied().collect();
-        if !required_layers.is_subset(&covered_layers)
-            || !required_cuts.is_subset(&covered_cuts)
-        {
+        if !required_layers.is_subset(&covered_layers) || !required_cuts.is_subset(&covered_cuts) {
             return Err(PlanCompileError::CommitmentMismatch);
         }
 
@@ -380,8 +378,10 @@ impl CompiledCampaignPlan {
                 faults: &reference.faults,
             };
             let pair_digest = digest_serializable(&commitment)?;
-            let mut scenario_ids: Vec<String> =
-                members.iter().map(|scenario| scenario.scenario_id.clone()).collect();
+            let mut scenario_ids: Vec<String> = members
+                .iter()
+                .map(|scenario| scenario.scenario_id.clone())
+                .collect();
             scenario_ids.sort();
             let arms: BTreeSet<BenchmarkArm> =
                 members.iter().map(|scenario| scenario.arm).collect();
@@ -485,7 +485,10 @@ mod tests {
         let first = CompiledCampaignPlan::compile(&manifest, &source).unwrap();
         let second = CompiledCampaignPlan::compile(&manifest, &source).unwrap();
         assert_eq!(first, second);
-        assert_eq!(first.canonical_bytes().unwrap(), second.canonical_bytes().unwrap());
+        assert_eq!(
+            first.canonical_bytes().unwrap(),
+            second.canonical_bytes().unwrap()
+        );
         assert!(valid_sha256(&first.plan_sha256));
         assert_eq!(first.verify_integrity(), Ok(()));
     }
@@ -559,8 +562,7 @@ mod tests {
                 scenario.policy_sha256 = "c".repeat(64);
             }
         }
-        let policy_plan =
-            CompiledCampaignPlan::compile(&changed_policy, &"a".repeat(64)).unwrap();
+        let policy_plan = CompiledCampaignPlan::compile(&changed_policy, &"a".repeat(64)).unwrap();
         let original_policy_pair = original_plan
             .pairs
             .iter()
@@ -582,8 +584,7 @@ mod tests {
                 scenario.faults[0].parameters_sha256 = "d".repeat(64);
             }
         }
-        let fault_plan =
-            CompiledCampaignPlan::compile(&changed_fault, &"a".repeat(64)).unwrap();
+        let fault_plan = CompiledCampaignPlan::compile(&changed_fault, &"a".repeat(64)).unwrap();
         let original_negative = original_plan
             .pairs
             .iter()
@@ -637,25 +638,52 @@ mod tests {
             .iter()
             .find(|scenario| scenario.scenario_id == "negative-full-rrvr")
             .unwrap();
-        assert_ne!(original_scenario.schedule_sha256, changed_scenario.schedule_sha256);
+        assert_ne!(
+            original_scenario.schedule_sha256,
+            changed_scenario.schedule_sha256
+        );
     }
 
     #[test]
     fn plan_binding_retains_every_platform_component_revision() {
         let manifest = manifest();
         let plan = CompiledCampaignPlan::compile(&manifest, &"a".repeat(64)).unwrap();
-        assert_eq!(plan.platform.simulator_revision, manifest.platform.simulator_revision);
-        assert_eq!(plan.platform.ros_distribution, manifest.platform.ros_distribution);
-        assert_eq!(plan.platform.middleware_revision, manifest.platform.middleware_revision);
-        assert_eq!(plan.platform.controller_revision, manifest.platform.controller_revision);
-        assert_eq!(plan.platform.driver_revision, manifest.platform.driver_revision);
-        assert_eq!(plan.platform.firmware_revision, manifest.platform.firmware_revision);
-        assert_eq!(plan.platform.calibration_revision, manifest.platform.calibration_revision);
+        assert_eq!(
+            plan.platform.simulator_revision,
+            manifest.platform.simulator_revision
+        );
+        assert_eq!(
+            plan.platform.ros_distribution,
+            manifest.platform.ros_distribution
+        );
+        assert_eq!(
+            plan.platform.middleware_revision,
+            manifest.platform.middleware_revision
+        );
+        assert_eq!(
+            plan.platform.controller_revision,
+            manifest.platform.controller_revision
+        );
+        assert_eq!(
+            plan.platform.driver_revision,
+            manifest.platform.driver_revision
+        );
+        assert_eq!(
+            plan.platform.firmware_revision,
+            manifest.platform.firmware_revision
+        );
+        assert_eq!(
+            plan.platform.calibration_revision,
+            manifest.platform.calibration_revision
+        );
         assert_eq!(
             plan.platform.observer_stack_revision,
             manifest.platform.observer_stack_revision
         );
-        assert_eq!(plan.platform.fault_injector_sha256, manifest.platform.fault_injector_sha256);
+        assert_eq!(
+            plan.platform.fault_injector_sha256,
+            manifest.platform.fault_injector_sha256
+        );
     }
 
     #[test]
