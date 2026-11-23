@@ -58,6 +58,7 @@ pub enum Disposition {
     UniquelyAssociated,
     Ambiguous,
     Unmatched,
+    TimeOrderUnresolved,
     NotEvaluable,
     Unknown,
 }
@@ -68,6 +69,7 @@ impl Disposition {
             Self::UniquelyAssociated => "UNIQUELY_ASSOCIATED",
             Self::Ambiguous => "AMBIGUOUS",
             Self::Unmatched => "UNMATCHED",
+            Self::TimeOrderUnresolved => "TIME_ORDER_UNRESOLVED",
             Self::NotEvaluable => "NOT_EVALUABLE",
             Self::Unknown => "UNKNOWN",
         }
@@ -201,15 +203,28 @@ fn interval_gap(left: &TimeEnclosure, right: &TimeEnclosure) -> i128 {
     }
 }
 
-fn temporal_role_order_valid(
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum TemporalCompatibility {
+    Proven,
+    Unresolved,
+    Rejected,
+}
+
+fn temporal_compatibility(
     source: &PhysicalObservation,
     witness: &PhysicalObservation,
-) -> bool {
+) -> TemporalCompatibility {
     match (source.event_time.role, witness.event_time.role) {
         (TimeRole::BusinessEventTime, TimeRole::SensorObservationTime) => {
-            witness.event_time.upper <= source.event_time.lower
+            if witness.event_time.upper <= source.event_time.lower {
+                TemporalCompatibility::Proven
+            } else if source.event_time.upper < witness.event_time.lower {
+                TemporalCompatibility::Rejected
+            } else {
+                TemporalCompatibility::Unresolved
+            }
         }
-        _ => true,
+        _ => TemporalCompatibility::Proven,
     }
 }
 
@@ -222,7 +237,7 @@ fn admissible_edge(
         && source.event_kind == witness.event_kind
         && source.facility_id == witness.facility_id
         && source.operation_ref == witness.operation_ref
-        && temporal_role_order_valid(source, witness)
+        && temporal_compatibility(source, witness) != TemporalCompatibility::Rejected
         && interval_gap(&source.event_time, &witness.event_time)
             <= i128::from(profile.max_interval_gap)
 }
@@ -427,6 +442,21 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
             candidate_edge_count,
         ),
         MatchingResult::Unique(left_to_right) => {
+            let has_unresolved_time_order = left_to_right.iter().enumerate().any(
+                |(source_index, witness_index)| {
+                    temporal_compatibility(&source[source_index], &witness[*witness_index])
+                        == TemporalCompatibility::Unresolved
+                },
+            );
+            if has_unresolved_time_order {
+                return AssociationReport::new(
+                    Disposition::TimeOrderUnresolved,
+                    source_keys,
+                    witness_keys,
+                    candidate_edge_count,
+                );
+            }
+
             let mut report = AssociationReport::new(
                 Disposition::UniquelyAssociated,
                 Vec::new(),
@@ -676,6 +706,28 @@ mod tests {
                     12,
                     12,
                     13,
+                )],
+            ),
+            "sensor_time_overlaps_business_event" => case(
+                vec![observation!(
+                    "src-A",
+                    "BOX-1",
+                    "GATE_OUT",
+                    "DGT-GATE-1",
+                    "OP-17",
+                    10,
+                    12,
+                    13,
+                )],
+                vec![observation!(
+                    "wit-Z",
+                    "BOX-1",
+                    "GATE_OUT",
+                    "DGT-GATE-1",
+                    "OP-17",
+                    11,
+                    13,
+                    14,
                 )],
             ),
             "ambiguous_perfect" => case(
@@ -1003,7 +1055,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 29);
+        assert_eq!(count, 30);
     }
 
     #[test]
@@ -1117,6 +1169,14 @@ mod tests {
         let report = evaluate(&known_case("sensor_time_after_business_event"));
         assert_eq!(report.disposition, Disposition::Unmatched);
         assert_eq!(report.candidate_edge_count, 0);
+    }
+
+    #[test]
+    fn overlapping_sensor_and_business_time_enclosures_remain_unresolved() {
+        let report = evaluate(&known_case("sensor_time_overlaps_business_event"));
+        assert_eq!(report.disposition, Disposition::TimeOrderUnresolved);
+        assert_eq!(report.candidate_edge_count, 1);
+        assert!(report.receipts.is_empty());
     }
 
     #[test]
