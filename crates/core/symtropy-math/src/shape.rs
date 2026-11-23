@@ -246,7 +246,7 @@ mod tests {
         assert!(bounds.max()[0] > 1.5);
         assert!(bounds.min()[1] < -2.5);
         assert!(bounds.max()[1] > -1.5);
-        assert!(LocalAabb::from_center_radius(&Point::origin(), f64::INFINITY).is_none());
+        assert!(LocalAabb::from_center_radius(&Point::<2>::origin(), f64::INFINITY).is_none());
         assert!(LocalAabb::from_center_radius(&Point::new([f64::MAX]), f64::MAX).is_none());
     }
 
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn invalid_mutable_builtin_shape_data_has_no_local_bound() {
-        let mut sphere = Sphere::unit();
+        let mut sphere = Sphere::<3>::unit();
         sphere.radius = -1.0;
         assert!(sphere.local_aabb().is_none());
 
