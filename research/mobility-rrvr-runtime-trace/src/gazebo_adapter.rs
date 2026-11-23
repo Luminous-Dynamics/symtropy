@@ -75,7 +75,9 @@ pub struct GazeboWorldStatisticsReceipt {
     pub producer_revision: String,
     pub raw_artifact_id: String,
     pub raw_artifact_sha256: String,
+    pub world_epoch: String,
     pub clock_id: String,
+    pub received_monotonic_ns: u64,
     pub iterations: u64,
     pub simulation_time_ns: u64,
 }
@@ -124,6 +126,7 @@ pub enum GazeboAdapterError {
     InvalidClock,
     WorldStateDigestMismatch,
     WorldStatisticsMismatch,
+    WorldStatisticsStale,
     ResetProfileMismatch,
     UnsupportedResetKind,
     ResetDidNotAdvanceEpoch,
@@ -262,6 +265,8 @@ impl GazeboWorldSnapshot {
             || stats.producer_revision != profile.simulator_revision
             || !nonempty(&stats.raw_artifact_id)
             || !valid_sha256(&stats.raw_artifact_sha256)
+            || stats.world_epoch != self.world_epoch
+            || stats.received_monotonic_ns == 0
             || stats.clock_id != self.clock_id
             || stats.iterations != self.simulation_step
             || stats.simulation_time_ns != self.simulation_time_ns
@@ -385,6 +390,13 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
         .get_world_state(&session.profile.world_name)
         .map_err(|_| GazeboAdapterError::TransportFailure)?;
     after.validate_reset(&session.profile, plan, &before.world_epoch)?;
+    if after.world_statistics.received_monotonic_ns
+        <= before.world_statistics.received_monotonic_ns
+        || after.world_statistics.raw_artifact_id
+            == before.world_statistics.raw_artifact_id
+    {
+        return Err(GazeboAdapterError::WorldStatisticsStale);
+    }
     if after.clock_id != before.clock_id {
         return Err(GazeboAdapterError::InvalidClock);
     }
@@ -435,6 +447,13 @@ pub fn advance_to_fault_cut<T: GazeboSimulationTransport>(
     }
     if after.simulation_step != fault.scheduled_simulation_step {
         return Err(GazeboAdapterError::SimulationStepNotReached);
+    }
+    if steps > 0
+        && (after.world_statistics.received_monotonic_ns
+            <= before.world_statistics.received_monotonic_ns
+            || after.world_statistics.raw_artifact_id == before.world_statistics.raw_artifact_id)
+    {
+        return Err(GazeboAdapterError::WorldStatisticsStale);
     }
     Ok(after)
 }
@@ -823,18 +842,22 @@ mod tests {
 
     fn world_stats(
         profile: &GazeboCapabilityProfile,
+        world_epoch: &str,
         clock_id: &str,
         iterations: u64,
         simulation_time_ns: u64,
+        received_monotonic_ns: u64,
     ) -> GazeboWorldStatisticsReceipt {
         GazeboWorldStatisticsReceipt {
             topic: profile.world_stats_topic.clone(),
             message_type: "gz.msgs.WorldStatistics".into(),
             producer_id: profile.simulator_id.clone(),
             producer_revision: profile.simulator_revision.clone(),
-            raw_artifact_id: format!("world-stats-{iterations}"),
+            raw_artifact_id: format!("world-stats-{world_epoch}-{iterations}-{received_monotonic_ns}"),
             raw_artifact_sha256: "c".repeat(64),
+            world_epoch: world_epoch.into(),
             clock_id: clock_id.into(),
+            received_monotonic_ns,
             iterations,
             simulation_time_ns,
         }
@@ -877,6 +900,7 @@ mod tests {
         pause_calls: usize,
         reset_calls: usize,
         step_calls: Vec<(u64, SteppingMethod)>,
+        world_stats_received_monotonic_ns: u64,
         target: GazeboTargetBinding,
     }
 
@@ -907,11 +931,14 @@ mod tests {
             self.world.simulation_time_ns = 0;
             self.world.state = SimulationState::Paused;
             self.world.state_sha256 = self.initial_state_sha256.clone();
+            self.world_stats_received_monotonic_ns += 100;
             self.world.world_statistics = world_stats(
                 &self.profile,
+                &self.world.world_epoch,
                 &self.world.clock_id,
                 0,
                 0,
+                self.world_stats_received_monotonic_ns,
             );
             Ok(())
         }
@@ -925,11 +952,14 @@ mod tests {
             self.step_calls.push((steps, method));
             self.world.simulation_step += steps;
             self.world.simulation_time_ns += steps * 10_000_000;
+            self.world_stats_received_monotonic_ns += 100;
             self.world.world_statistics = world_stats(
                 &self.profile,
+                &self.world.world_epoch,
                 &self.world.clock_id,
                 self.world.simulation_step,
                 self.world.simulation_time_ns,
+                self.world_stats_received_monotonic_ns,
             );
             Ok(())
         }
@@ -960,15 +990,18 @@ mod tests {
                 state_sha256: "a".repeat(64),
                 world_statistics: world_stats(
                     &profile,
+                    "world-epoch-1",
                     "sim-clock",
                     50,
                     500_000_000,
+                    500,
                 ),
             },
             initial_state_sha256: plan.reset.expected_initial_state_sha256.clone(),
             pause_calls: 0,
             reset_calls: 0,
             step_calls: Vec::new(),
+            world_stats_received_monotonic_ns: 500,
             target: GazeboTargetBinding {
                 world_name: profile.world_name.clone(),
                 world_epoch: "world-epoch-1".into(),
@@ -1106,7 +1139,14 @@ mod tests {
             simulation_time_ns: 100,
             state: SimulationState::Paused,
             state_sha256: "a".repeat(64),
-            world_statistics: world_stats(&profile, "sim-clock", 10, 100),
+            world_statistics: world_stats(
+                &profile,
+                "world-epoch-1",
+                "sim-clock",
+                10,
+                100,
+                100,
+            ),
         };
         world.world_name = "another-world".into();
         assert_eq!(
@@ -1135,7 +1175,14 @@ mod tests {
             simulation_time_ns: 900,
             state: SimulationState::Paused,
             state_sha256: "a".repeat(64),
-            world_statistics: world_stats(&profile, "sim-clock", 90, 900),
+            world_statistics: world_stats(
+                &profile,
+                "world-epoch-1",
+                "sim-clock",
+                90,
+                900,
+                200,
+            ),
         };
         assert_eq!(world.steps_to(100), Ok(10));
         assert_eq!(
@@ -1163,7 +1210,14 @@ mod tests {
             simulation_time_ns: 0,
             state: SimulationState::Paused,
             state_sha256: plan.reset.expected_initial_state_sha256.clone(),
-            world_statistics: world_stats(&profile, "sim-clock", 0, 0),
+            world_statistics: world_stats(
+                &profile,
+                "world-epoch-2",
+                "sim-clock",
+                0,
+                0,
+                200,
+            ),
         };
         assert_eq!(
             world.validate_reset(&profile, &plan, "world-epoch-1"),
@@ -1185,7 +1239,14 @@ mod tests {
             simulation_time_ns: 0,
             state: SimulationState::Paused,
             state_sha256: plan.reset.expected_initial_state_sha256.clone(),
-            world_statistics: world_stats(&profile, "sim-clock", 0, 0),
+            world_statistics: world_stats(
+                &profile,
+                "world-epoch-1",
+                "sim-clock",
+                0,
+                0,
+                100,
+            ),
         };
         assert_eq!(
             world.validate_reset(&profile, &plan, "world-epoch-1"),
