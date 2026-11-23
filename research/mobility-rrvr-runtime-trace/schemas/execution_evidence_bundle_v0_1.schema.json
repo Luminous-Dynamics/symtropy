@@ -282,7 +282,8 @@
         "reset_profile_sha256",
         "expected_initial_state_sha256",
         "observed_initial_state_sha256",
-        "simulation_step"
+        "simulation_step",
+        "clock_id"
       ],
       "properties": {
         "evidence_id": {
@@ -328,6 +329,10 @@
         "simulation_step": {
           "type": "integer",
           "minimum": 0
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
