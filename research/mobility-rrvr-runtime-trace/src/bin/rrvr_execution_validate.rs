@@ -82,6 +82,7 @@ fn run() -> Result<(), String> {
         "run_id": bundle.run_id,
         "run_epoch": bundle.run_epoch,
         "world_epoch": bundle.world_epoch,
+        "reset_status": summary.reset_status.as_str(),
         "planned_fault_count": summary.planned_fault_count,
         "dispatch_accepted_count": summary.dispatch_accepted_count,
         "dispatch_rejected_count": summary.dispatch_rejected_count,
