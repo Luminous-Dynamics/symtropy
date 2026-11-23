@@ -141,9 +141,11 @@ NativeAcceptCurrentAttempt ==
                     !.recoveryPermit = IF i = 1 THEN "absent" ELSE "consumed",
                     !.permitUseCount = @ + (IF i = 1 THEN 0 ELSE 1),
                     !.ticketStatus = IF i = 1 THEN "absent" ELSE "consumed",
-                    !.crashCut = IF i = 2
+                    !.crashCut = IF i = 1
+                                    THEN "attempt_1_native_accept_before_effect"
+                                    ELSE IF i = 2
                                     THEN "attempt_2_permit_consumed_before_effect"
-                                    ELSE "permit_consumed_before_effect"]
+                                    ELSE "attempt_3_permit_consumed_before_effect"]
 
 DeviceApplies ==
     LET i == s.activeAttempt IN
@@ -312,6 +314,7 @@ InjectObserverCommonCauseFailure ==
         /\ s.processStatus = "running"
         /\ s.attempts[i].status = "accepted"
         /\ ~s.attempts[i].physicalObserverQualified
+        /\ ~s.attempts[i].downstreamObserverQualified
         /\ s' = [s EXCEPT !.attempts[i].observerCommonCause = TRUE]
 
 InjectSubjectSelfReport ==
@@ -319,6 +322,7 @@ InjectSubjectSelfReport ==
         /\ s.processStatus = "running"
         /\ s.attempts[i].status = "accepted"
         /\ ~s.attempts[i].physicalObserverQualified
+        /\ ~s.attempts[i].downstreamObserverQualified
         /\ s' = [s EXCEPT !.attempts[i].observerSelfReport = TRUE]
 
 InjectDownstreamRetention ==
@@ -556,8 +560,8 @@ TypeOK ==
     /\ s.unsafeRetryCount \in 0..1
     /\ s.crashCut \in
         {"none", "after_attempt_1_reservation", "after_dispatch_start",
-         "attempt_2_after_dispatch_start", "permit_consumed_before_effect",
-         "attempt_2_permit_consumed_before_effect", "after_possible_effect",
+         "attempt_2_after_dispatch_start", "attempt_1_native_accept_before_effect",
+         "attempt_2_permit_consumed_before_effect", "attempt_3_permit_consumed_before_effect", "after_possible_effect",
          "attempt_2_after_possible_effect", "crash_after_accept_before_effect",
          "attempt_2_crash_after_accept_before_effect", "crash_after_possible_effect",
          "attempt_2_crash_after_possible_effect", "after_restart_before_fence",
@@ -635,9 +639,11 @@ OneShotPermitUseBound ==
 
 PermitTargetsOnlyNextAttempt ==
     s.recoveryPermit = "issued" =>
-        /\ s.permitForAttempt = s.activeAttempt + 1
         /\ s.permitForAttempt \in 2..MaxAttempts
-        /\ s.attempts[s.permitForAttempt].status = "unreserved"
+        /\ s.activeAttempt \in {s.permitForAttempt - 1, s.permitForAttempt}
+        /\ s.attempts[s.permitForAttempt].status \in
+            {"unreserved", "reserved", "dispatch_started"}
+        /\ s.attempts[s.permitForAttempt].parent = s.permitForAttempt - 1
 
 OldQueueFenceClosesPendingCommand ==
     \A i \in Attempts:
