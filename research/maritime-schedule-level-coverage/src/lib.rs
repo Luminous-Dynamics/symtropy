@@ -462,6 +462,8 @@ pub fn render_csv() -> String {
                 metrics.total_schedules,
                 covered_schedules,
                 whole_schedule_coverage,
+                whole_schedule_wilson_low,
+                whole_schedule_wilson_high,
                 covered_calls,
                 metrics.total_calls,
                 per_call_coverage,
