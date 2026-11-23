@@ -116,7 +116,7 @@ pub struct InterventionTransferWitnessV0 {
     pub compared_actions: usize,
     /// False when no intervention mapping/evidence was supplied. Structural
     /// correspondence alone must not be presented as causal qualification.
-    pub behaviorally_supported: bool,
+    pub all_declared_effects_match: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,7 +146,6 @@ pub enum TransferErrorV0 {
     InvalidParticipantTransform,
     IncidenceMismatch,
     ActionMapNotInjective,
-    InterventionEvidenceCountMismatch,
     MissingInterventionEvidence,
     DuplicateInterventionEvidence,
     UnmappedInterventionEvidence,
@@ -199,9 +198,6 @@ impl fmt::Display for TransferErrorV0 {
                 "mapped relation participants do not preserve the declared structure"
             }
             Self::ActionMapNotInjective => "action correspondence must be one-to-one",
-            Self::InterventionEvidenceCountMismatch => {
-                "intervention evidence count does not match the action map"
-            }
             Self::MissingInterventionEvidence => "a mapped action has no intervention evidence",
             Self::DuplicateInterventionEvidence => {
                 "intervention evidence contains a duplicate action pair"
@@ -427,7 +423,7 @@ pub fn validate_intervention_correspondence(
 
     Ok(InterventionTransferWitnessV0 {
         compared_actions: action_map.len(),
-        behaviorally_supported: !action_map.is_empty(),
+        all_declared_effects_match: !action_map.is_empty(),
     })
 }
 
@@ -681,7 +677,7 @@ mod tests {
         let witness = validate_intervention_correspondence(&action_map, &observations).unwrap();
 
         assert_eq!(witness.compared_actions, 2);
-        assert!(witness.behaviorally_supported);
+        assert!(witness.all_declared_effects_match);
     }
 
     #[test]
@@ -711,6 +707,6 @@ mod tests {
         let witness = validate_intervention_correspondence(&[], &[]).unwrap();
 
         assert_eq!(witness.compared_actions, 0);
-        assert!(!witness.behaviorally_supported);
+        assert!(!witness.all_declared_effects_match);
     }
 }
