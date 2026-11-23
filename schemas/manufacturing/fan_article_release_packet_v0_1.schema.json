@@ -1362,6 +1362,46 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "RELEASED_FOR_FABRICATION"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "disposition": {
+                "const": "RELEASED_FOR_FABRICATION"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ACCEPTED_FOR_USE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "owner_disposition": {
+            "properties": {
+              "disposition": {
+                "const": "ACCEPTED_FOR_USE"
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
