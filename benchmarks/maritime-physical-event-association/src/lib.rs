@@ -1679,6 +1679,7 @@ mod tests {
         assert_eq!(indexed.edges, baseline.edges);
         assert_eq!(indexed.pair_evaluations, 128);
         assert_eq!(baseline.pair_evaluations, 128 * 128);
+        assert!(indexed.index_nodes_visited < baseline.pair_evaluations);
     }
 
     #[test]
