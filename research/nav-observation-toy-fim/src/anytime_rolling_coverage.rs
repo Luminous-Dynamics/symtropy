@@ -566,7 +566,7 @@ impl AnytimeRollingCoveragePolicy {
                 };
 
                 for candidate_miss in [false, true] {
-                    let z = u64::from(candidate_miss);
+                    let z = if candidate_miss { 1_u64 } else { 0_u64 };
                     let candidate_misses = previous
                         .miss_count
                         .checked_add(z)
@@ -822,10 +822,10 @@ impl AnytimeRollingCoveragePolicy {
                 self.config.window_rule,
                 self.config.target_miscoverage,
             ) {
-                Ok(Some((r_interval, q_interval))) => self
-                    .rolling_range_index
-                    .as_mut()
-                    .is_none_or(|index| index.append(r_interval, q_interval).is_err()),
+                Ok(Some((r_interval, q_interval))) => match self.rolling_range_index.as_mut() {
+                    Some(index) => index.append(r_interval, q_interval).is_err(),
+                    None => true,
+                },
                 Ok(None) if is_full_history_only(self.config.window_rule) => false,
                 Ok(None) | Err(_) => true,
             };
@@ -957,7 +957,7 @@ fn evaluate_start_candidates(
 
     let mut witnesses = Vec::with_capacity(2);
     for candidate_miss in [false, true] {
-        let z = u64::from(candidate_miss);
+        let z = if candidate_miss { 1_u64 } else { 0_u64 };
         let bounded_count_with_candidate = previous
             .bounded_count
             .checked_add(1)
