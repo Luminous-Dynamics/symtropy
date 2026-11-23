@@ -52,7 +52,7 @@ jobs:
           MULTI_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.cfg"
           MULTI_UNSAFE_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttemptUnsafe.cfg"
           printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
-          printf '%s  %s\n' "147a54cc19dd699830d09ba7120a8d65dacd3b1883392cb3d2babb1c08f633d7" "$MULTI_MODEL" | sha256sum --check
+          printf '%s  %s\n' "9b595fd9d4858c1be1df01a140526579c7815fdfee95e09d844a1f4fc6d096d5" "$MULTI_MODEL" | sha256sum --check
           printf '%s  %s\n' "2c2f6af9ef9c3e81554b15b640c8e35a5e5d53c3d43a7c62b834194b975efefa" "$MULTI_CFG" | sha256sum --check
           printf '%s  %s\n' "fca4178d9590ccbf3a2aee179361e3032dde6c38c2cd789177b7478032c90341" "$MULTI_UNSAFE_CFG" | sha256sum --check
           printf '%s  %s\n' "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81" "$MODEL" | sha256sum --check
