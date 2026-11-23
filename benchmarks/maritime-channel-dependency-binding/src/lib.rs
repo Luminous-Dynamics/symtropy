@@ -1543,7 +1543,10 @@ mod tests {
             dimension,
         );
         projection.as_of_epoch_seconds += 1;
-        assert_eq!(assess(&profile, &projection).disposition, ProfileDisposition::ProfileInvalid);
+        assert_eq!(
+            assess(&profile, &projection).disposition,
+            ProfileDisposition::ProfileInvalid
+        );
     }
 
     #[test]
