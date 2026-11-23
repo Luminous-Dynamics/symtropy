@@ -105,7 +105,13 @@ pub struct RobustCampaignPlanningResult {
     pub prior_best_terminal_action_id: Option<String>,
     pub prior_best_terminal_utility: f64,
     pub worst_case_net_utility: f64,
-    pub robust_expected_value_of_campaign: f64,
+    /// Maximum acquisition cost over any reachable root-to-leaf path.
+    pub maximum_path_resource_cost: f64,
+    /// Declared hard limit used to reject over-budget campaign trees.
+    pub pathwise_resource_budget: f64,
+    /// True only when the selected tree respects the hard limit on every path.
+    pub pathwise_budget_satisfied: bool,
+    pub robust_expected_value_of_campaign: f64;
     /// Best scenario-specific tree value, minimized over scenarios. Clairvoyant
     /// because a different tree may be selected after revealing the scenario.
     pub clairvoyant_campaign_upper_bound: f64,
@@ -340,6 +346,16 @@ pub fn plan_non_anticipative_robust_campaign(
         ));
     }
 
+    let maximum_path_resource_cost =
+        maximum_path_resource_cost(&best.plan, acquisitions)?;
+    let pathwise_budget_satisfied =
+        maximum_path_resource_cost <= policy.remaining_resource_budget;
+    if !pathwise_budget_satisfied {
+        return Err(ModelError::InvalidParameter(
+            "robust_campaign_selected_tree_violates_pathwise_budget",
+        ));
+    }
+
     let prior_best_terminal_action_id = terminal_action_id(action_ids, prior_best_index);
     let scenario_scores = scenario_ids
         .iter()
@@ -362,6 +378,9 @@ pub fn plan_non_anticipative_robust_campaign(
         prior_best_terminal_action_id,
         prior_best_terminal_utility: prior_best_utility,
         worst_case_net_utility: best.robust_net_utility,
+        maximum_path_resource_cost,
+        pathwise_resource_budget: policy.remaining_resource_budget,
+        pathwise_budget_satisfied,
         robust_expected_value_of_campaign,
         clairvoyant_campaign_upper_bound,
         non_anticipativity_gap,
@@ -683,6 +702,48 @@ fn materialize_campaign_plan(
     RobustCampaignPlanNode::Acquire {
         option_id: root.option_id.clone(),
         outcome_branches,
+    }
+}
+
+fn maximum_path_resource_cost(
+    plan: &RobustCampaignPlanNode,
+    acquisitions: &[RobustCampaignAcquisition],
+) -> Result<f64, ModelError> {
+    match plan {
+        RobustCampaignPlanNode::Stop(_) => Ok(0.0),
+        RobustCampaignPlanNode::Acquire {
+            option_id,
+            outcome_branches,
+        } => {
+            let root = acquisitions
+                .iter()
+                .find(|acquisition| &acquisition.option_id == option_id)
+                .ok_or(ModelError::InvalidParameter(
+                    "robust_campaign_selected_root_option_missing",
+                ))?;
+            let mut maximum_continuation_cost = 0.0_f64;
+            for branch in outcome_branches {
+                let continuation_cost = match &branch.continuation {
+                    RobustCampaignContinuation::Stop(_) => 0.0,
+                    RobustCampaignContinuation::AcquireSecond { option_id, .. } => acquisitions
+                        .iter()
+                        .find(|acquisition| &acquisition.option_id == option_id)
+                        .map(|acquisition| acquisition.cost)
+                        .ok_or(ModelError::InvalidParameter(
+                            "robust_campaign_selected_second_option_missing",
+                        ))?,
+                };
+                maximum_continuation_cost =
+                    maximum_continuation_cost.max(continuation_cost);
+            }
+            let maximum_path_cost = root.cost + maximum_continuation_cost;
+            if !maximum_path_cost.is_finite() {
+                return Err(ModelError::NonFiniteValue(
+                    "robust_campaign_maximum_path_cost",
+                ));
+            }
+            Ok(maximum_path_cost)
+        }
     }
 }
 
@@ -1044,6 +1105,9 @@ mod tests {
 
         assert!((one_stage.worst_case_net_utility - 0.45).abs() < 1.0e-12);
         assert!((two_stage.worst_case_net_utility - 0.90).abs() < 1.0e-12);
+        assert!((two_stage.maximum_path_resource_cost - 0.10).abs() < 1.0e-12);
+        assert!((two_stage.pathwise_resource_budget - 0.10).abs() < 1.0e-12);
+        assert!(two_stage.pathwise_budget_satisfied);
         assert!((two_stage.robust_expected_value_of_campaign - 0.65).abs() < 1.0e-12);
         assert!(two_stage.non_anticipativity_gap.abs() < 1.0e-12);
         assert_eq!(two_stage.complete_policy_trees_evaluated, 9_080);
@@ -1202,6 +1266,8 @@ mod tests {
             &limited,
         )
         .expect("pathwise budget-limited campaign");
+        assert!(result.pathwise_budget_satisfied);
+        assert!(result.maximum_path_resource_cost <= limited.remaining_resource_budget);
         if let RobustCampaignPlanNode::Acquire {
             outcome_branches, ..
         } = result.selected_plan
