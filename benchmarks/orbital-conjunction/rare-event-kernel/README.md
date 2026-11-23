@@ -44,7 +44,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 114 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`. This exact 114-test head passed exact-head workflow [#217](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45065462384) on `5113a353a4555e74aab6cacadadd2f530d62a984`; formatting, all 114 tests, strict Clippy, checkout verification and artifact upload passed.
+The current authored test corpus contains 126 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, and 12 in `ncdot_integrand.rs`. Exact-head workflow [#258](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45133669358) passed on `1a05cbb5817e4d7d3f2166b672c9d0bd09707f6a`: all 126 tests, formatting, strict Clippy, checkout verification and artifact upload passed. Artifact SHA-256: `1c889bf9bcfb1683b749466ea0ae474bc586df2f012efb4277c674c771e8d4d5`.
 
 ## Important limitations
 
@@ -58,5 +58,5 @@ The current authored test corpus contains 114 authored `#[test]` cases: 30 in `l
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
 - The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
-- The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. It does not reproduce the 3D-Nc collision-rate integrand, PeakOverlapPos solver or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
+- The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. The Ncdot module implements only the pointwise rate and sphere integral; it does not reproduce PeakOverlapPos, the time-varying covariance/Jacobian chain, cross-object density-correlation construction, or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds.
 - The proposal density must be the complete mixture density, including all defensive components.

@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
 pub mod lebedev;
+pub mod ncdot_integrand;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -38,6 +39,10 @@ pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use ncdot_integrand::{
+    NcdotPointReport, NcdotRateInput, NcdotSphereReport, evaluate_ncdot_direction,
+    gaussian_flux_shape_log, integrate_ncdot_sphere,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
@@ -120,6 +125,12 @@ pub enum KernelError {
     InvalidSphereIntegrand,
     /// A sphere integrand is identically zero at all quadrature nodes.
     ZeroSphereIntegrand,
+    /// A direction supplied to the 3D-Nc integrand is not unit length.
+    InvalidNcdotDirection,
+    /// A projected or full conditional velocity covariance is not positive semidefinite.
+    NegativeConditionalVelocityVariance,
+    /// A positive-definite quadratic form evaluated to a negative value.
+    NegativeQuadraticForm,
     /// Sphere quadrature absolute and relative tolerances are invalid.
     InvalidSphereQuadratureTolerance,
 }
@@ -169,6 +180,13 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidSphereIntegrand => "sphere integrand samples must be nonnegative",
             Self::ZeroSphereIntegrand => "sphere integrand is zero at every quadrature node",
+            Self::InvalidNcdotDirection => "3D-Nc direction must be a finite unit vector",
+            Self::NegativeConditionalVelocityVariance => {
+                "conditional velocity covariance has a negative variance direction"
+            }
+            Self::NegativeQuadraticForm => {
+                "positive-definite Mahalanobis quadratic form evaluated negative"
+            }
             Self::InvalidSphereQuadratureTolerance => {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
             }
