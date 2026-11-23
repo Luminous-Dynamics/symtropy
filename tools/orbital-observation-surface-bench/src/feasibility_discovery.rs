@@ -491,6 +491,73 @@ fn build_policy(
         action_cost_upper_bound = max_cost(&action_cost_upper_bound, &action.cost);
     }
     let total_cost_upper_bound = checked_add_cost(query_cost, &action_cost_upper_bound)?;
+
+    // Compare each branch against the best *single* action robust across its
+    // observable class. Do not let the comparator see the hidden scenario.
+    let mut outcome_class_regret_by_observation = BTreeMap::new();
+    for (outcome_id, class_worlds) in classes {
+        let class_rows =
+            class_scenarios(&base.scenario_manifest.scenarios, class_worlds);
+        let options = class_options
+            .get(outcome_id)
+            .ok_or_else(|| format!("missing common action set for {outcome_id}"))?;
+        let mut best_worst_class_loss: Option<Rational> = None;
+        let branch_action_id = branches
+            .get(outcome_id)
+            .ok_or_else(|| format!("policy omitted observable outcome {outcome_id}"))?;
+        let mut selected_worst_class_loss: Option<Rational> = None;
+
+        for action_id in options {
+            let mut worst_for_action: Option<Rational> = None;
+            for row in &class_rows {
+                let loss = row
+                    .action_outcomes
+                    .get(action_id)
+                    .and_then(|outcome| outcome.loss.as_ref())
+                    .filter(|_| {
+                        row.action_outcomes
+                            .get(action_id)
+                            .is_some_and(|outcome| outcome.feasibility_status == "feasible")
+                    })
+                    .ok_or_else(|| {
+                        format!(
+                            "class action {action_id} is not feasible throughout observation {outcome_id}"
+                        )
+                    })?
+                    .canonicalized();
+                if worst_for_action
+                    .as_ref()
+                    .is_none_or(|current| loss.compare_exact(current) == Ordering::Greater)
+                {
+                    worst_for_action = Some(loss);
+                }
+            }
+            let worst_for_action = worst_for_action.ok_or_else(|| {
+                format!("observation class {outcome_id} has no linked scenarios")
+            })?;
+            if action_id == branch_action_id {
+                selected_worst_class_loss = Some(worst_for_action.clone());
+            }
+            if best_worst_class_loss
+                .as_ref()
+                .is_none_or(|current| worst_for_action.compare_exact(current) == Ordering::Less)
+            {
+                best_worst_class_loss = Some(worst_for_action);
+            }
+        }
+
+        let selected_worst_class_loss = selected_worst_class_loss.ok_or_else(|| {
+            format!("selected action {branch_action_id} is absent from class {outcome_id}")
+        })?;
+        let best_worst_class_loss = best_worst_class_loss.ok_or_else(|| {
+            format!("observation class {outcome_id} has no robust comparator action")
+        })?;
+        let class_regret = selected_worst_class_loss
+            .checked_sub(&best_worst_class_loss)
+            .map_err(|error| format!("outcome-class regret underflow: {error}"))?;
+        outcome_class_regret_by_observation.insert(outcome_id.clone(), class_regret);
+    }
+
     let mut per_scenario = Vec::with_capacity(scenarios.len());
 
     for scenario in &scenarios {
@@ -516,23 +583,10 @@ fn build_policy(
             .ok_or_else(|| format!("policy action {} has no loss", action_id))?
             .canonicalized();
         let wait_and_see_best = scenario_best_loss(scenario)?;
-        let class_worlds = classes
+        let outcome_class_regret = outcome_class_regret_by_observation
             .get(outcome_id)
-            .ok_or_else(|| format!("missing observation class {outcome_id}"))?;
-        let class_rows = class_scenarios(scenarios, class_worlds);
-        let options = class_options
-            .get(outcome_id)
-            .ok_or_else(|| format!("missing common action set for {outcome_id}"))?;
-        let outcome_class_best = options
-            .iter()
-            .filter_map(|candidate_id| scenario.action_outcomes.get(candidate_id))
-            .filter_map(|candidate| candidate.loss.as_ref())
-            .min_by(|left, right| left.compare_exact(right))
-            .map(Rational::canonicalized)
-            .ok_or_else(|| format!("no outcome-class comparator loss for {}", scenario.scenario_id))?;
-        if !class_rows.iter().any(|row| row.scenario_id == scenario.scenario_id) {
-            return Err("scenario is not part of its observable outcome class".to_owned());
-        }
+            .ok_or_else(|| format!("missing outcome-class regret for {outcome_id}"))?
+            .canonicalized();
 
         per_scenario.push(PolicyScenarioResult {
             scenario_id: scenario.scenario_id.clone(),
@@ -630,6 +684,8 @@ fn enumerate_policy_branches(
 fn dominates(left: &PolicyMetric, right: &PolicyMetric) -> bool {
     let dimensions = [
         left.worst_case_loss.compare_exact(&right.worst_case_loss),
+        left.worst_case_wait_and_see_regret
+            .compare_exact(&right.worst_case_wait_and_see_regret),
         left.worst_case_outcome_class_regret
             .compare_exact(&right.worst_case_outcome_class_regret),
         left.total_cost_upper_bound
