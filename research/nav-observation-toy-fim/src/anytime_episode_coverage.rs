@@ -577,7 +577,7 @@ mod tests {
         );
 
         let mut digest_replay = event(2, 6, true, Some(false));
-        digest_replay.decision_receipt_sha256 = [0xA1; SHA256_BYTES];
+        digest_replay.decision_receipt_sha256 = digest(5, 0xA1);
         assert_eq!(
             audit.observe_completed_episode(digest_replay),
             Err(AnytimeEpisodeCoverageError::DecisionReceiptReplay)
