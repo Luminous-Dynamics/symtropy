@@ -279,7 +279,10 @@ fn validate_domain(domain: &DomainManifest) -> Result<(), String> {
         || domain.operations.len() > MAX_ROWS
         || domain.actors.len() > MAX_ROWS
     {
-        return Err(format!("domain {} has invalid bounded manifest", domain.domain_id));
+        return Err(format!(
+            "domain {} has invalid bounded manifest",
+            domain.domain_id
+        ));
     }
 
     let mut component_ids = BTreeSet::new();
@@ -301,7 +304,9 @@ fn validate_domain(domain: &DomainManifest) -> Result<(), String> {
             || !operation_ids.insert(operation.operation_id.clone())
             || operation.active_start_ms >= operation.active_end_ms
         {
-            return Err("operation IDs, requirements and active intervals must be valid".to_owned());
+            return Err(
+                "operation IDs, requirements and active intervals must be valid".to_owned(),
+            );
         }
     }
 
@@ -467,7 +472,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
         .iter()
         .all(|case| case.status == "CLOSED_WITHIN_GENERATED_DOMAIN");
     Ok(Evaluation {
-        result: if all_closed { "pass" } else { "adversarial-controls-detected" }.to_owned(),
+        result: if all_closed {
+            "pass"
+        } else {
+            "adversarial-controls-detected"
+        }
+        .to_owned(),
         evidence_class: "synthetic".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
         summary: Summary {
@@ -490,8 +500,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> Corpus {
-        serde_json::from_str(include_str!("../fixtures/v0.1/open-world-domain-cases.json"))
-            .expect("open-world domain corpus parses")
+        serde_json::from_str(include_str!(
+            "../fixtures/v0.1/open-world-domain-cases.json"
+        ))
+        .expect("open-world domain corpus parses")
     }
 
     fn case<'a>(evaluation: &'a Evaluation, id: &str) -> &'a CaseResult {
@@ -505,7 +517,10 @@ mod tests {
     #[test]
     fn bounded_domain_closes_only_when_both_enumerators_match() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(case(&result, "bounded_closed").status, "CLOSED_WITHIN_GENERATED_DOMAIN");
+        assert_eq!(
+            case(&result, "bounded_closed").status,
+            "CLOSED_WITHIN_GENERATED_DOMAIN"
+        );
         assert_eq!(case(&result, "bounded_closed").generated_action_count, 2);
     }
 
@@ -523,7 +538,10 @@ mod tests {
     #[test]
     fn independent_generator_detects_enumerator_disagreement() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(case(&result, "enumerator_disagreement").status, "ENUMERATOR_DISAGREEMENT");
+        assert_eq!(
+            case(&result, "enumerator_disagreement").status,
+            "ENUMERATOR_DISAGREEMENT"
+        );
     }
 
     #[test]
@@ -540,14 +558,23 @@ mod tests {
     #[test]
     fn stale_domain_and_enumerator_snapshots_block_closure() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(case(&result, "domain_snapshot_drift").status, "DOMAIN_SNAPSHOT_DRIFT");
-        assert_eq!(case(&result, "stale_enumerator").status, "STALE_ENUMERATION");
+        assert_eq!(
+            case(&result, "domain_snapshot_drift").status,
+            "DOMAIN_SNAPSHOT_DRIFT"
+        );
+        assert_eq!(
+            case(&result, "stale_enumerator").status,
+            "STALE_ENUMERATION"
+        );
     }
 
     #[test]
     fn source_enumerators_cannot_add_actions_outside_the_generated_domain() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(case(&result, "outside_domain_action").status, "ENUMERATOR_OUTSIDE_DOMAIN");
+        assert_eq!(
+            case(&result, "outside_domain_action").status,
+            "ENUMERATOR_OUTSIDE_DOMAIN"
+        );
     }
 
     #[test]
