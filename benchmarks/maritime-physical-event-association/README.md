@@ -25,6 +25,8 @@ Source-local event IDs are never compared across channels. Their only role is to
 
 Both channel-qualification flags must already be true under the upstream capture owner. This evaluator does not authenticate independence or discover shared failure domains.
 
+Each record also retains its source-local revision token and upstream-supplied payload SHA-256 string; the correlation profile carries its own SHA-256 string. The evaluator checks that these digest strings have 64 hexadecimal characters and preserves them in every correspondence receipt. It does **not** fetch bytes, recompute hashes, verify signatures or authenticate issuers; the upstream byte-verification and rights owners remain authoritative.
+
 Disposition:
 - UNIQUELY_ASSOCIATED — exactly one complete perfect matching exists; receipts are emitted.
 - AMBIGUOUS — more than one complete perfect matching exists; no receipts are emitted.
@@ -38,13 +40,14 @@ This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose
 
 ## Frozen corpus and tests
 
-The file at fixtures/association-v0.1.tsv contains 22 independently declared expected dispositions. Unit tests cover:
+The file at fixtures/association-v0.1.tsv contains 26 independently declared expected dispositions. Unit tests cover:
 - exact and tolerance-bounded associations;
 - physical context mismatches;
 - globally unique matching despite local candidate ambiguity;
 - multiple perfect matchings and refusal to tie-break;
 - unmatched/cardinality mismatch;
-- duplicate local keys;
+- duplicate local keys and missing revision tokens;
+- malformed profile/source/witness digest strings;
 - unqualified and incomparable time evidence;
 - historical as-of publication cutoff;
 - input permutation invariance;
