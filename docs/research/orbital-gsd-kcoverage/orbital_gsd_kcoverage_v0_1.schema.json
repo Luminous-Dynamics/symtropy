@@ -11,7 +11,8 @@
     "case_id",
     "coordinate_frame_id",
     "grid",
-    "camera"
+    "camera",
+    "augmentation"
   ],
   "properties": {
     "schema": {
@@ -108,6 +109,42 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMaximum": 1.5707963267948966
+        }
+      }
+    },
+    "augmentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_k",
+        "tilt_angles_deg",
+        "azimuth_angles_deg"
+      ],
+      "properties": {
+        "requested_k": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "tilt_angles_deg": {
+          "type": "array",
+          "maxItems": 90,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 90
+          }
+        },
+        "azimuth_angles_deg": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 360
+          }
         }
       }
     }

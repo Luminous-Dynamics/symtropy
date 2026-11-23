@@ -200,5 +200,19 @@
     "horizontal_pixel_count": 1108,
     "gsd_max_m_per_pixel": 0.0005,
     "max_oblique_angle_rad": 0.7853981633974483
+  },
+  "augmentation": {
+    "requested_k": 2,
+    "tilt_angles_deg": [
+      30,
+      45,
+      60
+    ],
+    "azimuth_angles_deg": [
+      0,
+      90,
+      180,
+      270
+    ]
   }
 }
