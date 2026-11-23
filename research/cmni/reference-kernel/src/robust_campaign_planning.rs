@@ -972,6 +972,14 @@ mod tests {
 
     const RECEIPT: &str = "receipt:robust-two-stage-campaign-v1";
 
+    type AdaptiveFixture = (
+        Vec<String>,
+        Vec<f64>,
+        Vec<String>,
+        Vec<Vec<f64>>,
+        Vec<RobustCampaignAcquisition>,
+    );
+
     fn actions() -> Vec<String> {
         vec![
             "state-0".to_owned(),
@@ -1002,13 +1010,7 @@ mod tests {
         }
     }
 
-    fn adaptive_fixture() -> (
-        Vec<String>,
-        Vec<f64>,
-        Vec<String>,
-        Vec<Vec<f64>>,
-        Vec<RobustCampaignAcquisition>,
-    ) {
+    fn adaptive_fixture() -> AdaptiveFixture {
         let ids = vec![
             "state-0".to_owned(),
             "state-1".to_owned(),
