@@ -42,6 +42,7 @@ pub enum TransferAtlasDispositionV0 {
     TransferAccepted,
     CorrectAbstention,
     MissedTransfer,
+    RejectedFalseProposal,
     FalseUnification,
 }
 
@@ -127,8 +128,8 @@ impl TransferAtlasWorldV0 {
     /// Evaluate an optional frozen learner-proposed mapping.
     ///
     /// None is an explicit abstention. An invalid mapping is a missed transfer
-    /// for positive pairs and a correct rejection for negative pairs. A
-    /// structurally valid mapping on a negative pair is a false unification.
+    /// for positive pairs and a rejected false proposal for negative pairs.
+    /// A structurally valid mapping on a negative pair is a false unification.
     pub fn evaluate(
         &self,
         candidate: Option<&StructuralCorrespondenceV0>,
@@ -163,7 +164,7 @@ impl TransferAtlasWorldV0 {
                 disposition: if self.transfer_expected {
                     TransferAtlasDispositionV0::MissedTransfer
                 } else {
-                    TransferAtlasDispositionV0::CorrectAbstention
+                    TransferAtlasDispositionV0::RejectedFalseProposal
                 },
                 witness: None,
                 validation_error: Some(error),
@@ -337,7 +338,10 @@ fn intervention_divergent_pair() -> TransferAtlasPolicyViewV0 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transfer::EffectTransformV0;
+    use crate::transfer::{
+        EffectTransformV0, NodeCorrespondenceV0, ParticipantTransformV0,
+        RelationCorrespondenceV0, RelationKindCorrespondenceV0,
+    };
 
     #[test]
     fn unique_incidence_baseline_transfers_relabelled_reverse_pair() {
@@ -508,6 +512,41 @@ mod tests {
     }
 
     #[test]
+    fn complete_degree_signature_map_is_rejected_on_false_analogy() {
+        let world =
+            TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic);
+        let candidate = StructuralCorrespondenceV0 {
+            nodes: (1_u32..=6)
+                .map(|source_node_id| NodeCorrespondenceV0 {
+                    source_node_id,
+                    target_node_id: source_node_id + 10,
+                })
+                .collect(),
+            relation_kinds: vec![RelationKindCorrespondenceV0 {
+                source_kind: 1,
+                target_kind: 100,
+                participant_transform: ParticipantTransformV0::Unordered,
+            }],
+            relations: (0_u32..9)
+                .map(|index| RelationCorrespondenceV0 {
+                    source_relation_id: 10 + index,
+                    target_relation_id: 110 + index,
+                })
+                .collect(),
+        };
+
+        let report = world.evaluate(Some(&candidate));
+        assert_eq!(
+            report.disposition,
+            TransferAtlasDispositionV0::RejectedFalseProposal
+        );
+        assert_eq!(
+            report.validation_error,
+            Some(TransferErrorV0::IncidenceMismatch)
+        );
+    }
+
+    #[test]
     fn incomplete_candidate_is_not_accepted_on_non_isomorphic_pair() {
         let world =
             TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic);
@@ -517,7 +556,7 @@ mod tests {
         let report = world.evaluate(Some(&incomplete));
         assert_eq!(
             report.disposition,
-            TransferAtlasDispositionV0::CorrectAbstention
+            TransferAtlasDispositionV0::RejectedFalseProposal
         );
         assert_eq!(
             report.validation_error,
