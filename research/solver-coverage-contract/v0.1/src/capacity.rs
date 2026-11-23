@@ -163,7 +163,7 @@ impl AggregateManifoldCounts {
         if generated_partition != self.generated_points {
             return Err(ValidationError::new(
                 "manifold.aggregate_counts",
-                "generated_points must equal retained + reduced + capacity_dropped + invalid + unsupported",
+                "generated_points must equal retained + reduced + candidate-buffer-dropped + manifold-capacity-dropped + invalid + unsupported",
             ));
         }
 
@@ -1007,6 +1007,55 @@ mod tests {
             solver_mapping_complete: false,
         };
         assert!(receipt.validate().is_err());
+    }
+
+    #[test]
+    fn candidate_buffer_and_final_manifold_capacity_are_distinct() {
+        let lineage = ContactManifoldLineage {
+            pair_id: "two-stage-capacity".into(),
+            identity_mode: PointIdentityMode::StablePointIds,
+            reduction_policy_id: Some("best-n-v1".into()),
+            candidate_buffer_capacity: Some(3),
+            manifold_point_capacity: Some(1),
+            generated_points: vec![
+                retained("p0"),
+                GeometricPointRecord {
+                    point_id: "p1".into(),
+                    disposition: GeometricPointDisposition::ReducedByPolicy,
+                    reason: Some("selected set already preserves declared wrench support".into()),
+                },
+                GeometricPointRecord {
+                    point_id: "p2".into(),
+                    disposition: GeometricPointDisposition::CandidateBufferCapacityDropped,
+                    reason: Some("candidate buffer reached its declared capacity".into()),
+                },
+                GeometricPointRecord {
+                    point_id: "p3".into(),
+                    disposition: GeometricPointDisposition::ManifoldCapacityDropped,
+                    reason: Some("final manifold storage reached its declared capacity".into()),
+                },
+            ],
+            solver_contacts: vec![SolverContactGroup {
+                solver_contact_id: "solver-0".into(),
+                source_point_ids: vec!["p0".into()],
+                disposition: SolverContactDisposition::Solved,
+                reason: None,
+            }],
+            aggregate_counts: None,
+            solver_mapping_complete: true,
+        };
+        let report = lineage.validate().expect("both capacity stages accounted");
+        assert_eq!(report.generated_points, 4);
+        assert_eq!(report.retained_points, 1);
+        assert_eq!(report.reduced_by_policy, 1);
+        assert_eq!(report.candidate_buffer_capacity_dropped, 1);
+        assert_eq!(report.manifold_capacity_dropped, 1);
+        assert!(report.candidate_buffer_capacity_respected);
+        assert!(report.manifold_point_capacity_respected);
+
+        let mut undersized = lineage;
+        undersized.candidate_buffer_capacity = Some(2);
+        assert!(undersized.validate().is_err());
     }
 
     #[test]
