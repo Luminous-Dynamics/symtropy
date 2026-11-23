@@ -13,6 +13,11 @@
 
 use std::fmt;
 
+use crate::rolling_feasibility_range_index::{
+    ConservativeRollingRangeIndex, OutwardInterval, RollingRangeDecision,
+    RollingRangeProofWitness,
+};
+
 const SHA256_BYTES: usize = 32;
 const LOG_LOG_COEFFICIENT: f64 = 0.72;
 const SQRT_MARGIN_COEFFICIENT: f64 = 1.7;
@@ -96,8 +101,9 @@ pub struct RollingWindowPolicyConfig {
     /// lower bound on this buffer replaces the rolling feasibility check.
     pub buffer: f64,
     pub window_rule: RollingWindowRule,
-    /// Hard compute budget. Exceeding it forces abstention; it never truncates
-    /// the prospective feasibility check and then issues a bounded set.
+    /// Maximum starts for the exact reference scan. The optional range proof
+    /// may certify a pass without enumerating these starts; if it cannot, this
+    /// budget still forces abstention rather than truncating the reference check.
     pub maximum_feasibility_starts: usize,
 }
 
@@ -132,7 +138,12 @@ pub struct RollingWindowDecision {
     pub window_start: u64,
     pub requested_miscoverage_level: f64,
     pub disposition: RollingWindowDisposition,
+    /// Per-start witnesses from the exact enumerated reference path. On the
+    /// accelerated path this includes the exact current-start checks only.
     pub feasibility_witnesses: Vec<RollingFeasibilityWitness>,
+    /// Compact range proof witnesses for strictly future starts. Empty when
+    /// the reference path was used or no future starts existed.
+    pub range_proof_witnesses: Vec<RollingRangeProofWitness>,
 }
 
 impl RollingWindowDecision {
@@ -257,6 +268,9 @@ pub struct AnytimeRollingCoveragePolicy {
     last_outcome_receipt_sequence_id: Option<u64>,
     last_outcome_receipt_sha256: Option<[u8; SHA256_BYTES]>,
     pending_decision: Option<RollingWindowDecision>,
+    /// Optional acceleration cache. Any interval/index uncertainty disables
+    /// this cache and leaves the exact reference policy fully operational.
+    rolling_range_index: Option<ConservativeRollingRangeIndex>,
 }
 
 impl AnytimeRollingCoveragePolicy {
@@ -277,6 +291,21 @@ impl AnytimeRollingCoveragePolicy {
         }
         config.window_rule.validate()?;
 
+        let mut range_index = ConservativeRollingRangeIndex::new();
+        let initial_prefix = PrefixSnapshot::zero();
+        let rolling_range_index = match prefix_range_intervals(
+            initial_prefix,
+            0,
+            config.window_rule,
+            config.target_miscoverage,
+        ) {
+            Ok(Some((r_interval, q_interval))) => range_index
+                .append(r_interval, q_interval)
+                .ok()
+                .map(|_| range_index),
+            _ => None,
+        };
+
         Ok(Self {
             config,
             monitoring_horizon: 0,
@@ -294,6 +323,7 @@ impl AnytimeRollingCoveragePolicy {
             last_outcome_receipt_sequence_id: None,
             last_outcome_receipt_sha256: None,
             pending_decision: None,
+            rolling_range_index,
         })
     }
 
@@ -319,10 +349,30 @@ impl AnytimeRollingCoveragePolicy {
 
     /// Decide for the next episode before any truth outcome is available.
     ///
-    /// The feasibility loop examines every observed first-seen window start in
-    /// [s_t, t), and both possible outcomes z=0 and z=1. If the work budget would
-    /// be exceeded, this method abstains rather than skipping checks.
+    /// This remains the enumerated reference implementation. It checks every
+    /// prospective start and both possible outcomes, or abstains if the exact
+    /// scan would exceed the configured budget.
     pub fn decide_next_episode(&mut self) -> Result<RollingWindowDecision, RollingWindowError> {
+        self.decide_next_episode_internal(false)
+    }
+
+    /// Opt-in acceleration using a conservative append-only range-min proof.
+    ///
+    /// The currently active start is checked by the exact reference equations.
+    /// Only strictly later starts are compressed by the R/Q range proof. Any
+    /// unavailable index, ambiguous interval, failed proof, or numerical issue
+    /// falls back to the complete reference scan. The default method above is
+    /// unchanged and remains the reference oracle.
+    pub fn decide_next_episode_accelerated(
+        &mut self,
+    ) -> Result<RollingWindowDecision, RollingWindowError> {
+        self.decide_next_episode_internal(true)
+    }
+
+    fn decide_next_episode_internal(
+        &mut self,
+        allow_acceleration: bool,
+    ) -> Result<RollingWindowDecision, RollingWindowError> {
         if self.pending_decision.is_some() {
             return Err(RollingWindowError::PendingDecisionOutstanding);
         }
@@ -341,6 +391,7 @@ impl AnytimeRollingCoveragePolicy {
         }
 
         let mut witnesses = Vec::new();
+        let mut range_proof_witnesses = Vec::new();
         let mut disposition = if eta <= 0.0 {
             RollingWindowDisposition::Abstain(
                 RollingAbstentionReason::NonPositiveMiscoverageLevel,
@@ -350,117 +401,69 @@ impl AnytimeRollingCoveragePolicy {
         };
 
         if eta > 0.0 {
-            // The feasibility check covers all future rolling windows
-            // that may contain episode t. For a predeclared monotone window
-            // rule, every integer start in [s_t,t) occurs eventually, except
-            // the full-history proportional rule (theta=1), which always starts
-            // at zero. The number of starts is therefore known without scanning
-            // an unbounded future horizon.
-            let full_history_only = matches!(
-                self.config.window_rule,
-                RollingWindowRule::Proportional {
-                    numerator,
-                    denominator
-                } if numerator == denominator
-            );
-            let candidate_count = if full_history_only {
-                1_usize
+            let accelerated = if allow_acceleration {
+                self.try_accelerated_range_pass(t, window_start)?
             } else {
-                usize::try_from(window_length).unwrap_or(usize::MAX)
+                None
             };
 
-            if candidate_count > self.config.maximum_feasibility_starts {
-                disposition = RollingWindowDisposition::Abstain(
-                    RollingAbstentionReason::FeasibilityBudgetExceeded,
-                );
+            if let Some((current_witnesses, range_witnesses)) = accelerated {
+                witnesses = current_witnesses;
+                range_proof_witnesses = range_witnesses;
             } else {
-                let previous = *self
-                    .prefixes
-                    .get(usize::try_from(self.monitoring_horizon)
-                        .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?)
-                    .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
-
-                let prior_mean = if previous.bounded_count == 0 {
-                    0.0
+                // Exact reference path. Never truncate the prospective window
+                // set: an exhausted budget means abstention.
+                let full_history_only = is_full_history_only(self.config.window_rule);
+                let candidate_count = if full_history_only {
+                    1_usize
                 } else {
-                    previous.miss_count as f64 / previous.bounded_count as f64
-                };
-                let candidate_starts = if full_history_only {
-                    vec![0_u64]
-                } else {
-                    (window_start..t).collect::<Vec<_>>()
+                    usize::try_from(window_length).unwrap_or(usize::MAX)
                 };
 
-                for start in candidate_starts {
-                    let Some(first_occurrence_at) =
-                        first_time_with_window_start(self.config.window_rule, start)?
-                    else {
-                        continue;
-                    };
-                    let prefix_index = usize::try_from(start)
-                        .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
-                    let prefix = *self
-                        .prefixes
-                        .get(prefix_index)
-                        .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
-                    let smallest_window_length = t.max(first_occurrence_at) - start;
-                    let allowed_miss_sum =
-                        self.config.target_miscoverage * smallest_window_length as f64;
-
-                    for candidate_miss in [false, true] {
-                        let z = if candidate_miss { 1_u64 } else { 0_u64 };
-                        let bounded_count_with_candidate = previous
-                            .bounded_count
-                            .checked_add(1)
-                            .ok_or(RollingWindowError::CounterOverflow)?;
-                        let window_bounded_count = bounded_count_with_candidate
-                            .checked_sub(prefix.bounded_count)
-                            .ok_or(RollingWindowError::CertifiedCountUnderflow)?;
-
-                        let candidate_misses = previous
-                            .miss_count
-                            .checked_add(z)
-                            .ok_or(RollingWindowError::CounterOverflow)?;
-                        let window_misses = candidate_misses
-                            .checked_sub(prefix.miss_count)
-                            .ok_or(RollingWindowError::CertifiedCountUnderflow)?;
-
-                        let candidate_variation = previous.predictable_variation
-                            + (z as f64 - prior_mean).powi(2);
-                        if !candidate_variation.is_finite() {
-                            return Err(RollingWindowError::ArithmeticOverflow);
-                        }
-                        let candidate_scaled_margin = stitched_two_sided_scaled_margin(
-                            t,
-                            candidate_variation,
-                            self.config.confidence_error_probability,
-                        )?;
-
-                        let stochastic_upper = window_misses as f64
-                            + candidate_scaled_margin
-                            + prefix.scaled_margin;
-                        if !stochastic_upper.is_finite() {
-                            return Err(RollingWindowError::ArithmeticOverflow);
-                        }
-                        let certified_miss_sum =
-                            (window_bounded_count as f64).min(stochastic_upper);
-                        let passed = certified_miss_sum <= allowed_miss_sum;
-
-                        witnesses.push(RollingFeasibilityWitness {
-                            window_start: start,
-                            first_occurrence_at,
-                            candidate_miss,
-                            certified_miss_sum,
-                            allowed_miss_sum,
-                            passed,
-                        });
-                    }
-                }
-
-                if witnesses.iter().any(|witness| !witness.passed) {
+                if candidate_count > self.config.maximum_feasibility_starts {
                     disposition = RollingWindowDisposition::Abstain(
-                        RollingAbstentionReason::ProspectiveFeasibilityFailed,
+                        RollingAbstentionReason::FeasibilityBudgetExceeded,
                     );
+                } else {
+                    let previous = *self
+                        .prefixes
+                        .get(usize::try_from(self.monitoring_horizon)
+                            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?)
+                        .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
+
+                    let candidate_starts = if full_history_only {
+                        vec![0_u64]
+                    } else {
+                        (window_start..t).collect::<Vec<_>>()
+                    };
+
+                    for start in candidate_starts {
+                        let Some(first_occurrence_at) =
+                            first_time_with_window_start(self.config.window_rule, start)?
+                        else {
+                            continue;
+                        };
+                        let prefix_index = usize::try_from(start)
+                            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
+                        let prefix = *self
+                            .prefixes
+                            .get(prefix_index)
+                            .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
+                        witnesses.extend(evaluate_start_candidates(
+                            self.config,
+                            t,
+                            previous,
+                            start,
+                            first_occurrence_at,
+                            prefix,
+                        )?);
+                    }
+
+                    if witnesses.iter().any(|witness| !witness.passed) {
+                        disposition = RollingWindowDisposition::Abstain(
+                            RollingAbstentionReason::ProspectiveFeasibilityFailed,
+                        );
+                    }
                 }
             }
         }
@@ -473,10 +476,145 @@ impl AnytimeRollingCoveragePolicy {
             requested_miscoverage_level: eta,
             disposition,
             feasibility_witnesses: witnesses,
+            range_proof_witnesses,
         };
 
         self.pending_decision = Some(decision.clone());
         Ok(decision)
+    }
+
+    /// Returns Some only when the current start passes the exact reference
+    /// check and the compact interval index proves both candidate outcomes for
+    /// every strictly future start. None always means "run the reference path".
+    fn try_accelerated_range_pass(
+        &self,
+        t: u64,
+        window_start: u64,
+    ) -> Result<Option<(Vec<RollingFeasibilityWitness>, Vec<RollingRangeProofWitness>)>, RollingWindowError> {
+        let previous_index = usize::try_from(self.monitoring_horizon)
+            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
+        let Some(previous) = self.prefixes.get(previous_index).copied() else {
+            return Ok(None);
+        };
+
+        let Some(current_first_occurrence) =
+            first_time_with_window_start(self.config.window_rule, window_start)?
+        else {
+            return Ok(None);
+        };
+        if current_first_occurrence > t {
+            return Ok(None);
+        }
+
+        let current_prefix_index = usize::try_from(window_start)
+            .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
+        let Some(current_prefix) = self.prefixes.get(current_prefix_index).copied() else {
+            return Ok(None);
+        };
+        let current_witnesses = evaluate_start_candidates(
+            self.config,
+            t,
+            previous,
+            window_start,
+            current_first_occurrence,
+            current_prefix,
+        )?;
+        if current_witnesses.iter().any(|witness| !witness.passed) {
+            return Ok(None);
+        }
+
+        let mut range_witnesses = Vec::new();
+        if !is_full_history_only(self.config.window_rule) {
+            let future_start = window_start
+                .checked_add(1)
+                .ok_or(RollingWindowError::ArithmeticOverflow)?;
+            if future_start < t {
+                // Monotonicity of the supported start schedules implies that
+                // all starts after the active start are first seen after t.
+                // Check the first such start explicitly before using the index.
+                let Some(first_future_occurrence) =
+                    first_time_with_window_start(self.config.window_rule, future_start)?
+                else {
+                    return Ok(None);
+                };
+                if first_future_occurrence <= t {
+                    return Ok(None);
+                }
+
+                let Some(index) = self.rolling_range_index.as_ref() else {
+                    return Ok(None);
+                };
+                let end = usize::try_from(t)
+                    .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
+                let start = usize::try_from(future_start)
+                    .map_err(|_| RollingWindowError::HistoryIndexUnavailable)?;
+                if index.len() != self.prefixes.len() || index.len() < end {
+                    return Ok(None);
+                }
+
+                let bounded_total = previous
+                    .bounded_count
+                    .checked_add(1)
+                    .ok_or(RollingWindowError::CounterOverflow)?;
+                let bounded_value = bounded_total as f64;
+                let r_threshold = match guarded_interval(
+                    bounded_value,
+                    bounded_value.abs() + 1.0,
+                ) {
+                    Ok(interval) => interval,
+                    Err(_) => return Ok(None),
+                };
+
+                for candidate_miss in [false, true] {
+                    let z = u64::from(candidate_miss);
+                    let candidate_misses = previous
+                        .miss_count
+                        .checked_add(z)
+                        .ok_or(RollingWindowError::CounterOverflow)?;
+                    let prior_mean = if previous.bounded_count == 0 {
+                        0.0
+                    } else {
+                        previous.miss_count as f64 / previous.bounded_count as f64
+                    };
+                    let candidate_variation = previous.predictable_variation
+                        + (z as f64 - prior_mean).powi(2);
+                    if !candidate_variation.is_finite() {
+                        return Err(RollingWindowError::ArithmeticOverflow);
+                    }
+                    let candidate_margin = match stitched_two_sided_scaled_margin(
+                        t,
+                        candidate_variation,
+                        self.config.confidence_error_probability,
+                    ) {
+                        Ok(margin) => margin,
+                        Err(_) => return Ok(None),
+                    };
+                    let q_value = candidate_misses as f64 + candidate_margin;
+                    let q_scale =
+                        (candidate_misses as f64).abs() + candidate_margin.abs() + 1.0;
+                    let q_threshold = match guarded_interval(q_value, q_scale) {
+                        Ok(interval) => interval,
+                        Err(_) => return Ok(None),
+                    };
+
+                    match index.prove_future_prefix(
+                        start,
+                        end,
+                        r_threshold,
+                        q_threshold,
+                    ) {
+                        Ok(RollingRangeDecision::ProvenPass(witness)) => {
+                            range_witnesses.push(witness);
+                        }
+                        Ok(RollingRangeDecision::RequiresReference(_)) | Err(_) => {
+                            return Ok(None);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(Some((current_witnesses, range_witnesses)))
     }
 
     /// Complete the pending episode only after the whole trajectory has been
@@ -674,6 +812,30 @@ impl AnytimeRollingCoveragePolicy {
             return Err(RollingWindowError::ArithmeticOverflow);
         }
 
+        // Maintain the optional range proof cache only after every episode
+        // receipt and numerical check has passed. Cache failure disables the
+        // optimization; it never blocks or changes the authoritative history.
+        if self.rolling_range_index.is_some() {
+            let index_update = match prefix_range_intervals(
+                next_prefix,
+                next_horizon,
+                self.config.window_rule,
+                self.config.target_miscoverage,
+            ) {
+                Ok(Some((r_interval, q_interval))) => self
+                    .rolling_range_index
+                    .as_mut()
+                    .expect("checked above")
+                    .append(r_interval, q_interval)
+                    .map(|_| ()),
+                Ok(None) if is_full_history_only(self.config.window_rule) => Ok(()),
+                Ok(None) | Err(_) => Err(()),
+            };
+            if index_update.is_err() {
+                self.rolling_range_index = None;
+            }
+        }
+
         // Commit only after all event, receipt and numerical checks have passed.
         self.monitoring_horizon = next_horizon;
         self.bounded_episode_count = next_bounded_count;
@@ -709,6 +871,142 @@ impl AnytimeRollingCoveragePolicy {
             next_requested_miscoverage_level: next_level,
         })
     }
+}
+
+/// The only rule whose start sequence never advances beyond zero.
+fn is_full_history_only(rule: RollingWindowRule) -> bool {
+    matches!(
+        rule,
+        RollingWindowRule::Proportional { numerator, denominator }
+            if numerator == denominator
+    )
+}
+
+/// Construct the stored R_s and Q_s intervals for one prefix start. The
+/// absolute guard covers conversion/evaluation-order differences between the
+/// factored range expressions and the direct reference comparisons. Any
+/// overflow or non-finite input disables acceleration and triggers fallback.
+fn prefix_range_intervals(
+    prefix: PrefixSnapshot,
+    start: u64,
+    rule: RollingWindowRule,
+    alpha: f64,
+) -> Result<Option<(OutwardInterval, OutwardInterval)>, RollingWindowError> {
+    let Some(first_occurrence) = first_time_with_window_start(rule, start)? else {
+        return Ok(None);
+    };
+    let future_length = first_occurrence
+        .checked_sub(start)
+        .ok_or(RollingWindowError::ArithmeticOverflow)?;
+    let alpha_future_length = alpha * future_length as f64;
+    let bounded = prefix.bounded_count as f64;
+    let misses = prefix.miss_count as f64;
+    let r_value = bounded + alpha_future_length;
+    let q_value = misses - prefix.scaled_margin + alpha_future_length;
+    if !alpha_future_length.is_finite() || !r_value.is_finite() || !q_value.is_finite() {
+        return Err(RollingWindowError::ArithmeticOverflow);
+    }
+    let r_scale = bounded.abs() + alpha_future_length.abs() + 1.0;
+    let q_scale = misses.abs() + prefix.scaled_margin.abs()
+        + alpha_future_length.abs() + 1.0;
+    Ok(Some((
+        guarded_interval(r_value, r_scale)?,
+        guarded_interval(q_value, q_scale)?,
+    )))
+}
+
+/// Outward interval around a computed value, enlarged by a conservative
+/// absolute floating-point evaluation guard. The range proof is used only when
+/// the resulting intervals separate strictly; boundary/ambiguous cases fall
+/// back to the original per-start arithmetic.
+fn guarded_interval(
+    value: f64,
+    magnitude_scale: f64,
+) -> Result<OutwardInterval, RollingWindowError> {
+    if !value.is_finite() || !magnitude_scale.is_finite() || magnitude_scale < 0.0 {
+        return Err(RollingWindowError::ArithmeticOverflow);
+    }
+    // Covers the short sequences of count conversion, multiplication,
+    // addition/subtraction and threshold comparison used by the reference
+    // feasibility expression. Subnormal floor protects near-zero quantities.
+    let guard = 64.0 * f64::EPSILON * magnitude_scale.max(1.0)
+        + 64.0 * f64::from_bits(1);
+    if !guard.is_finite() {
+        return Err(RollingWindowError::ArithmeticOverflow);
+    }
+    OutwardInterval::around(value)
+        .and_then(|interval| interval.expanded_by_absolute_error(guard))
+        .map_err(|_| RollingWindowError::ArithmeticOverflow)
+}
+
+/// Evaluate both possible next outcomes for one start using the exact
+/// reference expression and operation order.
+fn evaluate_start_candidates(
+    config: RollingWindowPolicyConfig,
+    t: u64,
+    previous: PrefixSnapshot,
+    start: u64,
+    first_occurrence_at: u64,
+    prefix: PrefixSnapshot,
+) -> Result<Vec<RollingFeasibilityWitness>, RollingWindowError> {
+    let smallest_window_length = t.max(first_occurrence_at) - start;
+    let allowed_miss_sum = config.target_miscoverage * smallest_window_length as f64;
+    let prior_mean = if previous.bounded_count == 0 {
+        0.0
+    } else {
+        previous.miss_count as f64 / previous.bounded_count as f64
+    };
+
+    let mut witnesses = Vec::with_capacity(2);
+    for candidate_miss in [false, true] {
+        let z = u64::from(candidate_miss);
+        let bounded_count_with_candidate = previous
+            .bounded_count
+            .checked_add(1)
+            .ok_or(RollingWindowError::CounterOverflow)?;
+        let window_bounded_count = bounded_count_with_candidate
+            .checked_sub(prefix.bounded_count)
+            .ok_or(RollingWindowError::CertifiedCountUnderflow)?;
+
+        let candidate_misses = previous
+            .miss_count
+            .checked_add(z)
+            .ok_or(RollingWindowError::CounterOverflow)?;
+        let window_misses = candidate_misses
+            .checked_sub(prefix.miss_count)
+            .ok_or(RollingWindowError::CertifiedCountUnderflow)?;
+
+        let candidate_variation = previous.predictable_variation
+            + (z as f64 - prior_mean).powi(2);
+        if !candidate_variation.is_finite() {
+            return Err(RollingWindowError::ArithmeticOverflow);
+        }
+        let candidate_scaled_margin = stitched_two_sided_scaled_margin(
+            t,
+            candidate_variation,
+            config.confidence_error_probability,
+        )?;
+
+        let stochastic_upper = window_misses as f64
+            + candidate_scaled_margin
+            + prefix.scaled_margin;
+        if !stochastic_upper.is_finite() {
+            return Err(RollingWindowError::ArithmeticOverflow);
+        }
+        let certified_miss_sum =
+            (window_bounded_count as f64).min(stochastic_upper);
+        let passed = certified_miss_sum <= allowed_miss_sum;
+
+        witnesses.push(RollingFeasibilityWitness {
+            window_start: start,
+            first_occurrence_at,
+            candidate_miss,
+            certified_miss_sum,
+            allowed_miss_sum,
+            passed,
+        });
+    }
+    Ok(witnesses)
 }
 
 /// First episode index u for which the predeclared window rule starts at s.
