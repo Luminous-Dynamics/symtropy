@@ -1,10 +1,17 @@
 use std::collections::BTreeSet;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TimeRole {
+    BusinessEventTime,
+    SensorObservationTime,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TimeEnclosure {
     pub lower: i64,
     pub upper: i64,
     pub basis_id: String,
+    pub role: TimeRole,
     pub qualified: bool,
 }
 
@@ -36,6 +43,8 @@ pub struct CorrelationProfile {
     pub source_channel_id: String,
     pub witness_channel_id: String,
     pub time_basis_id: String,
+    pub source_time_role: TimeRole,
+    pub witness_time_role: TimeRole,
     pub max_interval_gap: i64,
     pub as_of: i64,
     /// These booleans are upstream qualifications from the capture owner.
@@ -85,6 +94,8 @@ pub struct AssociationReceipt {
     pub operation_ref: String,
     pub source_event_time: TimeEnclosure,
     pub witness_event_time: TimeEnclosure,
+    pub source_time_role: TimeRole,
+    pub witness_time_role: TimeRole,
     pub interval_gap: i128,
     pub max_interval_gap: i64,
 }
@@ -147,6 +158,7 @@ fn valid_profile(profile: &CorrelationProfile) -> bool {
 fn visible_observations(
     observations: &[PhysicalObservation],
     profile: &CorrelationProfile,
+    expected_time_role: TimeRole,
 ) -> Result<Vec<PhysicalObservation>, ()> {
     let mut visible: Vec<PhysicalObservation> = observations
         .iter()
@@ -168,6 +180,7 @@ fn visible_observations(
             || observation.operation_ref.trim().is_empty()
             || observation.event_time.lower > observation.event_time.upper
             || !observation.event_time.qualified
+            || observation.event_time.role != expected_time_role
             || observation.event_time.basis_id != profile.time_basis_id
             || observation.published_at < observation.event_time.lower
         {
@@ -360,13 +373,21 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
         return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
     }
 
-    let source = match visible_observations(&case.source_events, profile) {
+    let source = match visible_observations(
+        &case.source_events,
+        profile,
+        profile.source_time_role,
+    ) {
         Ok(events) => events,
         Err(()) => {
             return AssociationReport::new(Disposition::NotEvaluable, Vec::new(), Vec::new(), 0);
         }
     };
-    let witness = match visible_observations(&case.witness_events, profile) {
+    let witness = match visible_observations(
+        &case.witness_events,
+        profile,
+        profile.witness_time_role,
+    ) {
         Ok(events) => events,
         Err(()) => {
             return AssociationReport::new(
@@ -428,6 +449,8 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
                     operation_ref: source_event.operation_ref.clone(),
                     source_event_time: source_event.event_time.clone(),
                     witness_event_time: witness_event.event_time.clone(),
+                    source_time_role: source_event.event_time.role,
+                    witness_time_role: witness_event.event_time.role,
                     interval_gap: interval_gap(&source_event.event_time, &witness_event.event_time),
                     max_interval_gap: profile.max_interval_gap,
                 });
@@ -454,6 +477,8 @@ mod tests {
             source_channel_id: "terminal-epcis".to_owned(),
             witness_channel_id: "independent-gate-sensor".to_owned(),
             time_basis_id: "UTC-REF-A".to_owned(),
+            source_time_role: TimeRole::BusinessEventTime,
+            witness_time_role: TimeRole::SensorObservationTime,
             max_interval_gap: 5,
             as_of: 100,
             source_channel_qualified: true,
@@ -485,6 +510,7 @@ mod tests {
                     lower: $lower,
                     upper: $upper,
                     basis_id: "UTC-REF-A".to_owned(),
+                    role: TimeRole::BusinessEventTime,
                     qualified: true,
                 },
                 published_at: $published_at,
@@ -521,6 +547,10 @@ mod tests {
         source_events: Vec<PhysicalObservation>,
         witness_events: Vec<PhysicalObservation>,
     ) -> AssociationCase {
+        let mut witness_events = witness_events;
+        for event in &mut witness_events {
+            event.event_time.role = TimeRole::SensorObservationTime;
+        }
         AssociationCase {
             profile: Some(profile()),
             source_events,
