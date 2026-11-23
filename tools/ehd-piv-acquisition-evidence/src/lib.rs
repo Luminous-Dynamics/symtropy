@@ -73,6 +73,7 @@ pub enum EvidenceError {
     DuplicateAssetId(String),
     DuplicateRelativePath(String),
     DuplicateDependencyEdge(String),
+    InconsistentSharedCauseKind { shared_cause_id: String, first: String, second: String },
     UnknownDependencyAcquisition(String),
     IncompleteDependenceComponent {
         component_id: String,
@@ -113,6 +114,7 @@ impl fmt::Display for EvidenceError {
             Self::DuplicateAssetId(id) => write!(f, "duplicate asset ID: {id}"),
             Self::DuplicateRelativePath(path) => write!(f, "duplicate asset path: {path}"),
             Self::DuplicateDependencyEdge(edge) => write!(f, "duplicate dependency edge: {edge}"),
+            Self::InconsistentSharedCauseKind { shared_cause_id, first, second } => write!(f, "shared cause {shared_cause_id} has conflicting kinds: {first} and {second}"),
             Self::UnknownDependencyAcquisition(id) => write!(f, "dependency edge refers to unknown acquisition: {id}"),
             Self::IncompleteDependenceComponent { component_id, missing_acquisition_id } => write!(
                 f,
@@ -265,6 +267,7 @@ impl AcquisitionManifest {
         }
 
         let mut edge_ids = HashSet::new();
+        let mut cause_kinds: BTreeMap<&str, &str> = BTreeMap::new();
         for edge in &self.dependency_edges {
             non_empty(&edge.acquisition_id, "dependency_edge.acquisition_id")?;
             non_empty(&edge.shared_cause_id, "dependency_edge.shared_cause_id")?;
@@ -272,9 +275,20 @@ impl AcquisitionManifest {
             if !acquisition_ids.contains(edge.acquisition_id.as_str()) {
                 return Err(EvidenceError::UnknownDependencyAcquisition(edge.acquisition_id.clone()));
             }
+            if let Some(previous_kind) = cause_kinds.get(edge.shared_cause_id.as_str()) {
+                if *previous_kind != edge.shared_cause_kind {
+                    return Err(EvidenceError::InconsistentSharedCauseKind {
+                        shared_cause_id: edge.shared_cause_id.clone(),
+                        first: (*previous_kind).to_owned(),
+                        second: edge.shared_cause_kind.clone(),
+                    });
+                }
+            } else {
+                cause_kinds.insert(edge.shared_cause_id.as_str(), edge.shared_cause_kind.as_str());
+            }
             let key = format!(
-                "{}\0{}\0{}",
-                edge.acquisition_id, edge.shared_cause_id, edge.shared_cause_kind
+                "{}{}{}{}{}",
+                edge.acquisition_id, 0 as char, edge.shared_cause_id, 0 as char, edge.shared_cause_kind
             );
             if !edge_ids.insert(key.clone()) {
                 return Err(EvidenceError::DuplicateDependencyEdge(key));
@@ -311,7 +325,18 @@ impl AcquisitionManifest {
                     right.shared_cause_kind.as_str(),
                 ))
         });
-        let bytes = serde_json::to_vec(&edges)
+        let mut groups_by_acquisition: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for asset in &self.assets {
+            groups_by_acquisition
+                .entry(asset.acquisition_id.clone())
+                .or_default()
+                .extend(asset.dependence_group_ids.iter().cloned());
+        }
+        let canonical_groups: Vec<(String, Vec<String>)> = groups_by_acquisition
+            .into_iter()
+            .map(|(acquisition_id, groups)| (acquisition_id, groups.into_iter().collect()))
+            .collect();
+        let bytes = serde_json::to_vec(&(canonical_groups, edges))
             .map_err(|error| EvidenceError::Serialization(error.to_string()))?;
         Ok(sha256_hex(&bytes))
     }
@@ -359,6 +384,14 @@ impl AcquisitionManifest {
 
         let mut parent: Vec<usize> = (0..acquisition_ids.len()).collect();
         let mut by_cause: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+        for asset in &self.assets {
+            let index = *indexes
+                .get(asset.acquisition_id.as_str())
+                .ok_or_else(|| EvidenceError::UnknownDependencyAcquisition(asset.acquisition_id.clone()))?;
+            for group_id in &asset.dependence_group_ids {
+                by_cause.entry(group_id.as_str()).or_default().push(index);
+            }
+        }
         for edge in &self.dependency_edges {
             let index = *indexes
                 .get(edge.acquisition_id.as_str())
@@ -1016,6 +1049,7 @@ mod tests {
         value.assets[0].relative_path = "linked.bin".to_owned();
         value.assets[0].byte_length = 7;
         value.assets[0].sha256 = sha256_hex(b"outside");
+        value.dependency_edges.retain(|edge| edge.acquisition_id == "acq-a");
         value.set_dependency_graph_digest().unwrap();
 
         let result = verify_manifest_directory(&root, &value, &value.manifest_sha256().unwrap());
@@ -1049,6 +1083,24 @@ mod tests {
                 shared_cause_kind: "tracer_batch".to_owned(),
             },
         ]);
+        value.set_dependency_graph_digest().unwrap();
+
+        let result = value.cohort_partition(
+            "train",
+            CohortRole::Training,
+            &["acq-a".to_owned()],
+        );
+        assert!(matches!(
+            result,
+            Err(EvidenceError::IncompleteDependenceComponent { .. })
+        ));
+    }
+
+    #[test]
+    fn shared_asset_dependence_group_prevents_acquisition_split_without_edge_rows() {
+        let mut value = manifest();
+        value.assets[0].dependence_group_ids.push("shared-camera-calibration".to_owned());
+        value.assets[1].dependence_group_ids.push("shared-camera-calibration".to_owned());
         value.set_dependency_graph_digest().unwrap();
 
         let result = value.cohort_partition(
