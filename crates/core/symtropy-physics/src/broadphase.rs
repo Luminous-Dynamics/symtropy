@@ -783,15 +783,17 @@ mod tests {
             ),
             RigidBody::<3>::dynamic_sphere(
                 BodyHandle(3),
-                Point::new([20.0, 0.0, 0.0]),
+                Point::new([3.0, 0.0, 0.0]),
                 1.0,
                 1.0,
             ),
         ];
-        // The third body uses a non-matching group/mask pair against the
-        // defaults, exercising the filter-rejection diagnostic.
+        // Body 2 is filtered from the default-group statics, while bodies 2
+        // and 3 share a matching group/mask pair and still overlap.
         bodies[2].collision_group = 2;
         bodies[2].collision_mask = 2;
+        bodies[3].collision_group = 2;
+        bodies[3].collision_mask = 2;
 
         let tree = Lbvh::build(&bodies);
         let expected = tree.query_pairs(&bodies);
