@@ -164,10 +164,13 @@ jobs:
             and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .result == "pass"
-            and .evaluation.summary.case_count == 16
+            and .evaluation.summary.case_count == 29
             and .evaluation.summary.retain_incumbent_cases >= 1
             and .evaluation.summary.reoptimization_warranted_cases >= 1
             and .evaluation.summary.abstain_cases >= 1
+            and .evaluation.summary.loss_model_set_blocked_cases >= 1
+            and .evaluation.summary.loss_scenario_evidence_blocked_cases >= 1
+            and .evaluation.summary.joint_scenario_inventory_blocked_cases >= 1
             and .evaluation.summary.expected_result_mismatches == 0
             and .evaluation.summary.authority_grants == 0
             and .evaluation.authority_granted == false
