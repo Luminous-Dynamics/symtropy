@@ -966,6 +966,520 @@ fn validate_unique_ids(ids: &[String], error_name: &'static str) -> Result<(), M
     Ok(())
 }
 
+/// Limits for randomization over complete non-anticipative campaign trees.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RandomizedRobustCampaignPolicy {
+    pub campaign: RobustCampaignPlanningPolicy,
+    pub max_basis_evaluations: usize,
+    pub feasibility_tolerance: f64,
+    pub duality_gap_tolerance: f64,
+}
+
+/// One complete contingent campaign tree in the ex-ante randomized policy.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RandomizedRobustCampaignTreeComponent {
+    pub plan: RobustCampaignPlanNode,
+    pub probability: f64,
+    pub maximum_path_resource_cost: f64,
+    pub scenario_scores: Vec<RobustCampaignScenarioScore>,
+}
+
+/// Randomized non-anticipative campaign-game solution and dual scenario witness.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RandomizedRobustCampaignPlanningResult {
+    pub dependence_scope_receipt_id: String,
+    pub scenario_ids: Vec<String>,
+    /// Mixture is selected before the hidden dependence scenario is revealed.
+    pub campaign_policy_mixture: Vec<RandomizedRobustCampaignTreeComponent>,
+    pub least_favourable_scenario_mixture: Vec<crate::LeastFavourableScenarioWeight>,
+    pub randomized_net_utility_by_scenario: Vec<f64>,
+    pub deterministic_maximin_net_utility: f64,
+    pub randomized_worst_case_net_utility: f64,
+    pub deterministic_to_randomized_value_gain: f64,
+    pub prior_best_terminal_action_id: Option<String>,
+    pub prior_best_terminal_utility: f64,
+    pub robust_expected_value_of_campaign: f64,
+    pub clairvoyant_campaign_upper_bound: f64,
+    pub non_anticipativity_gap: f64,
+    pub primal_game_value: f64,
+    pub dual_game_value: f64,
+    pub primal_dual_gap: f64,
+    pub maximum_primal_feasibility_residual: f64,
+    pub maximum_dual_feasibility_residual: f64,
+    pub maximum_complementarity_residual: f64,
+    pub complete_policy_trees_evaluated: usize,
+    pub nondominated_policy_trees: usize,
+    pub scenario_policy_evaluations: usize,
+    pub basis_evaluations: usize,
+    pub maximum_path_resource_cost_in_mixture: f64,
+    pub pathwise_resource_budget: f64,
+    pub all_mixture_components_pathwise_feasible: bool,
+    pub max_campaign_policy_trees: usize,
+    pub max_basis_evaluations: usize,
+    pub finite_game_exact: bool,
+    /// Floating-point primal/dual verification is not a formal certificate.
+    pub formal_certificate: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct CampaignGameCandidate {
+    plan: RobustCampaignPlanNode,
+    scenario_evaluations: Vec<ScenarioEvaluation>,
+    maximum_path_resource_cost: f64,
+}
+
+/// Randomize over complete contingent campaign trees, never over a policy that
+/// can see the hidden dependence scenario.
+///
+/// Primal:
+/// max_q min_s sum_tree q[tree] V(tree,s)
+///
+/// Dual:
+/// min_w max_tree sum_s w[s] V(tree,s)
+///
+/// The tree set is enumerated exactly under the supplied finite scenario set,
+/// two-stage tree semantics and hard pathwise resource limit. Strictly
+/// dominated payoff vectors and exact duplicate vectors are removed before
+/// solving the finite game; this is safe because a policy dominated in every
+/// admitted scenario cannot improve a maximin mixture. The shared primal/dual
+/// solver checks simplex feasibility, the game gap and complementary slackness.
+///
+/// The result remains a finite f64 reference. It is not a continuous ambiguity
+/// solver, a receipt authenticator or a formal numerical certificate.
+pub fn plan_randomized_non_anticipative_robust_campaign(
+    state_ids: &[String],
+    state_probabilities: &[f64],
+    action_ids: &[String],
+    action_utilities: &[Vec<f64>],
+    abstention_utility: f64,
+    acquisitions: &[RobustCampaignAcquisition],
+    policy: RandomizedRobustCampaignPolicy,
+) -> Result<RandomizedRobustCampaignPlanningResult, ModelError> {
+    validate_problem(
+        state_ids,
+        state_probabilities,
+        action_ids,
+        action_utilities,
+        abstention_utility,
+    )?;
+    validate_policy(policy.campaign)?;
+    validate_randomized_campaign_policy(policy)?;
+
+    let (scenario_ids, dependence_scope_receipt_id) =
+        validate_acquisition_family(acquisitions, state_ids.len())?;
+    let action_count = action_ids.len();
+    let terminal_choice_count = action_count
+        .checked_add(1)
+        .ok_or(ModelError::InvalidParameter(
+            "randomized_campaign_terminal_choice_count_overflow",
+        ))?;
+    let prior_best_index =
+        best_prior_action(state_probabilities, action_utilities, abstention_utility);
+    let prior_best_utility = expected_terminal_utility(
+        prior_best_index,
+        state_probabilities,
+        action_utilities,
+        abstention_utility,
+    );
+    if !prior_best_utility.is_finite() {
+        return Err(ModelError::NonFiniteValue(
+            "randomized_campaign_prior_terminal_utility",
+        ));
+    }
+
+    // Preflight the complete tree count before constructing policy combinations.
+    let mut total_tree_count = terminal_choice_count;
+    if total_tree_count > policy.campaign.max_campaign_policy_trees {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_tree_cap_exceeded",
+        ));
+    }
+    let mut branch_choices_by_root = Vec::with_capacity(acquisitions.len());
+    for (root_index, root) in acquisitions.iter().enumerate() {
+        if root.cost > policy.campaign.remaining_resource_budget {
+            branch_choices_by_root.push(Vec::new());
+            continue;
+        }
+        let branch_choices = if policy.campaign.max_steps == 1 {
+            build_stop_only_branch_choices(terminal_choice_count)
+        } else {
+            build_branch_choices(
+                root_index,
+                acquisitions,
+                terminal_choice_count,
+                policy.campaign,
+            )?
+        };
+        let branch_count = checked_power(branch_choices.len(), root.outcome_ids.len())?;
+        total_tree_count = total_tree_count.checked_add(branch_count).ok_or(
+            ModelError::InvalidParameter("randomized_campaign_tree_count_overflow"),
+        )?;
+        if total_tree_count > policy.campaign.max_campaign_policy_trees {
+            return Err(ModelError::InvalidParameter(
+                "randomized_campaign_tree_cap_exceeded",
+            ));
+        }
+        branch_choices_by_root.push(branch_choices);
+    }
+
+    let mut all_candidates = Vec::with_capacity(total_tree_count);
+    let mut clairvoyant_best_by_scenario = vec![f64::NEG_INFINITY; scenario_ids.len()];
+    let mut complete_policy_trees_evaluated = 0usize;
+    let mut scenario_policy_evaluations = 0usize;
+    let mut deterministic_maximin_net_utility = f64::NEG_INFINITY;
+
+    // Stopping trees are part of the same policy family as acquisition trees.
+    for terminal_action_index in 0..terminal_choice_count {
+        let plan = RobustCampaignPlanNode::Stop(RobustCampaignStop {
+            terminal_action_id: terminal_action_id(action_ids, terminal_action_index),
+        });
+        let evaluations = evaluate_stop_policy(
+            state_probabilities,
+            action_utilities,
+            abstention_utility,
+            terminal_action_index,
+            scenario_ids.len(),
+        );
+        add_campaign_game_candidate(
+            plan,
+            evaluations,
+            acquisitions,
+            &mut all_candidates,
+            &mut clairvoyant_best_by_scenario,
+            &mut deterministic_maximin_net_utility,
+        )?;
+        complete_policy_trees_evaluated = complete_policy_trees_evaluated
+            .checked_add(1)
+            .ok_or(ModelError::InvalidParameter(
+                "randomized_campaign_tree_count_overflow",
+            ))?;
+        scenario_policy_evaluations = scenario_policy_evaluations
+            .checked_add(scenario_ids.len())
+            .ok_or(ModelError::InvalidParameter(
+                "randomized_campaign_scenario_evaluation_count_overflow",
+            ))?;
+    }
+
+    for (root_index, root) in acquisitions.iter().enumerate() {
+        let branch_choices = &branch_choices_by_root[root_index];
+        if branch_choices.is_empty() {
+            continue;
+        }
+        let combinations =
+            branch_choice_combinations(branch_choices, root.outcome_ids.len());
+        for combination in combinations {
+            let plan = materialize_campaign_plan(root, &combination, acquisitions, action_ids);
+            let evaluations = evaluate_acquisition_tree(
+                state_probabilities,
+                action_utilities,
+                abstention_utility,
+                acquisitions,
+                root_index,
+                &combination,
+                policy.campaign.cost_to_utility_rate,
+            )?;
+            add_campaign_game_candidate(
+                plan,
+                evaluations,
+                acquisitions,
+                &mut all_candidates,
+                &mut clairvoyant_best_by_scenario,
+                &mut deterministic_maximin_net_utility,
+            )?;
+            complete_policy_trees_evaluated = complete_policy_trees_evaluated
+                .checked_add(1)
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_campaign_tree_count_overflow",
+                ))?;
+            scenario_policy_evaluations = scenario_policy_evaluations
+                .checked_add(scenario_ids.len())
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_campaign_scenario_evaluation_count_overflow",
+                ))?;
+        }
+    }
+
+    if complete_policy_trees_evaluated != total_tree_count
+        || all_candidates.len() != total_tree_count
+    {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_tree_count_mismatch",
+        ));
+    }
+
+    let frontier = campaign_game_pareto_frontier(all_candidates);
+    if frontier.is_empty() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let payoff_matrix = frontier
+        .iter()
+        .map(|candidate| {
+            candidate
+                .scenario_evaluations
+                .iter()
+                .map(|evaluation| evaluation.net_expected_utility)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let game = crate::solve_finite_zero_sum_game(
+        &payoff_matrix,
+        policy.feasibility_tolerance,
+        policy.duality_gap_tolerance,
+        policy.max_basis_evaluations,
+    )?;
+
+    let scenario_count = scenario_ids.len();
+    let mut randomized_net_utility_by_scenario = vec![0.0; scenario_count];
+    let mut campaign_policy_mixture = Vec::new();
+    let mut mixture_probability_sum = 0.0;
+    let mut maximum_path_resource_cost_in_mixture = 0.0_f64;
+
+    for (frontier_index, probability) in game
+        .maximizing_policy_mixture
+        .support
+        .iter()
+        .zip(game.maximizing_policy_mixture.probabilities.iter())
+    {
+        if *probability <= 0.0 {
+            continue;
+        }
+        if !probability.is_finite() {
+            return Err(ModelError::NonFiniteValue(
+                "randomized_campaign_policy_probability",
+            ));
+        }
+        let candidate = &frontier[*frontier_index];
+        for (scenario_index, evaluation) in
+            candidate.scenario_evaluations.iter().enumerate()
+        {
+            randomized_net_utility_by_scenario[scenario_index] +=
+                probability * evaluation.net_expected_utility;
+        }
+        let scenario_scores = scenario_ids
+            .iter()
+            .zip(candidate.scenario_evaluations.iter())
+            .map(|(scenario_id, evaluation)| RobustCampaignScenarioScore {
+                scenario_id: scenario_id.clone(),
+                expected_terminal_utility: evaluation.expected_terminal_utility,
+                expected_resource_cost: evaluation.expected_resource_cost,
+                cost_in_utility_units: evaluation.expected_resource_cost
+                    * policy.campaign.cost_to_utility_rate,
+                net_expected_utility: evaluation.net_expected_utility,
+            })
+            .collect::<Vec<_>>();
+        maximum_path_resource_cost_in_mixture =
+            maximum_path_resource_cost_in_mixture.max(candidate.maximum_path_resource_cost);
+        mixture_probability_sum += probability;
+        campaign_policy_mixture.push(RandomizedRobustCampaignTreeComponent {
+            plan: candidate.plan.clone(),
+            probability: *probability,
+            maximum_path_resource_cost: candidate.maximum_path_resource_cost,
+            scenario_scores,
+        });
+    }
+
+    if (mixture_probability_sum - 1.0).abs() > policy.feasibility_tolerance * 10.0 {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_policy_mixture_not_normalized",
+        ));
+    }
+    let all_mixture_components_pathwise_feasible = campaign_policy_mixture.iter().all(
+        |component| component.maximum_path_resource_cost
+            <= policy.campaign.remaining_resource_budget,
+    );
+    if !all_mixture_components_pathwise_feasible {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_mixture_contains_pathwise_infeasible_tree",
+        ));
+    }
+
+    let least_favourable_scenario_mixture = game
+        .minimizing_scenario_mixture
+        .support
+        .iter()
+        .zip(game.minimizing_scenario_mixture.probabilities.iter())
+        .filter(|(_, probability)| **probability > 0.0)
+        .map(|(scenario_index, probability)| crate::LeastFavourableScenarioWeight {
+            scenario_id: scenario_ids[*scenario_index].clone(),
+            probability: *probability,
+        })
+        .collect::<Vec<_>>();
+
+    let randomized_worst_case_net_utility = randomized_net_utility_by_scenario
+        .iter()
+        .copied()
+        .fold(f64::INFINITY, f64::min);
+    let clairvoyant_campaign_upper_bound = clairvoyant_best_by_scenario
+        .iter()
+        .copied()
+        .fold(f64::INFINITY, f64::min);
+    let non_anticipativity_gap =
+        (clairvoyant_campaign_upper_bound - randomized_worst_case_net_utility).max(0.0);
+    let robust_expected_value_of_campaign =
+        randomized_worst_case_net_utility - prior_best_utility;
+    let deterministic_to_randomized_value_gain =
+        randomized_worst_case_net_utility - deterministic_maximin_net_utility;
+    let scale = randomized_worst_case_net_utility
+        .abs()
+        .max(deterministic_maximin_net_utility.abs())
+        .max(1.0);
+    if deterministic_to_randomized_value_gain < -policy.feasibility_tolerance * scale {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_value_below_deterministic_baseline",
+        ));
+    }
+    if !randomized_worst_case_net_utility.is_finite()
+        || !clairvoyant_campaign_upper_bound.is_finite()
+        || !non_anticipativity_gap.is_finite()
+        || !robust_expected_value_of_campaign.is_finite()
+        || !deterministic_to_randomized_value_gain.is_finite()
+        || !maximum_path_resource_cost_in_mixture.is_finite()
+    {
+        return Err(ModelError::NonFiniteValue(
+            "randomized_campaign_qualification_metrics",
+        ));
+    }
+
+    Ok(RandomizedRobustCampaignPlanningResult {
+        dependence_scope_receipt_id,
+        scenario_ids,
+        campaign_policy_mixture,
+        least_favourable_scenario_mixture,
+        randomized_net_utility_by_scenario,
+        deterministic_maximin_net_utility,
+        randomized_worst_case_net_utility,
+        deterministic_to_randomized_value_gain,
+        prior_best_terminal_action_id: terminal_action_id(action_ids, prior_best_index),
+        prior_best_terminal_utility: prior_best_utility,
+        robust_expected_value_of_campaign,
+        clairvoyant_campaign_upper_bound,
+        non_anticipativity_gap,
+        primal_game_value: game.maximizing_policy_mixture.value,
+        dual_game_value: game.minimizing_scenario_mixture.value,
+        primal_dual_gap: game.primal_dual_gap,
+        maximum_primal_feasibility_residual: game
+            .maximizing_policy_mixture
+            .feasibility_residual,
+        maximum_dual_feasibility_residual: game
+            .minimizing_scenario_mixture
+            .feasibility_residual,
+        maximum_complementarity_residual: game.maximum_complementarity_residual,
+        complete_policy_trees_evaluated,
+        nondominated_policy_trees: frontier.len(),
+        scenario_policy_evaluations,
+        basis_evaluations: game.basis_evaluations,
+        maximum_path_resource_cost_in_mixture,
+        pathwise_resource_budget: policy.campaign.remaining_resource_budget,
+        all_mixture_components_pathwise_feasible,
+        max_campaign_policy_trees: policy.campaign.max_campaign_policy_trees,
+        max_basis_evaluations: policy.max_basis_evaluations,
+        finite_game_exact: true,
+        formal_certificate: false,
+    })
+}
+
+fn validate_randomized_campaign_policy(
+    policy: RandomizedRobustCampaignPolicy,
+) -> Result<(), ModelError> {
+    if !policy.feasibility_tolerance.is_finite() || !policy.duality_gap_tolerance.is_finite() {
+        return Err(ModelError::NonFiniteValue(
+            "randomized_campaign_solver_tolerance",
+        ));
+    }
+    if policy.feasibility_tolerance <= 0.0 || policy.duality_gap_tolerance <= 0.0 {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_solver_tolerance_must_be_positive",
+        ));
+    }
+    if policy.max_basis_evaluations == 0 {
+        return Err(ModelError::InvalidParameter(
+            "randomized_campaign_basis_cap_must_be_positive",
+        ));
+    }
+    Ok(())
+}
+
+fn add_campaign_game_candidate(
+    plan: RobustCampaignPlanNode,
+    scenario_evaluations: Vec<ScenarioEvaluation>,
+    acquisitions: &[RobustCampaignAcquisition],
+    candidates: &mut Vec<CampaignGameCandidate>,
+    clairvoyant_best_by_scenario: &mut [f64],
+    deterministic_maximin_net_utility: &mut f64,
+) -> Result<(), ModelError> {
+    if scenario_evaluations.len() != clairvoyant_best_by_scenario.len() {
+        return Err(ModelError::MismatchedDataLengths);
+    }
+    let maximum_path_resource_cost = maximum_path_resource_cost(&plan, acquisitions)?;
+    let mut worst_case_value = f64::INFINITY;
+    for (scenario_index, evaluation) in scenario_evaluations.iter().enumerate() {
+        if !evaluation.net_expected_utility.is_finite() {
+            return Err(ModelError::NonFiniteValue(
+                "randomized_campaign_scenario_payoff",
+            ));
+        }
+        worst_case_value = worst_case_value.min(evaluation.net_expected_utility);
+        clairvoyant_best_by_scenario[scenario_index] = clairvoyant_best_by_scenario
+            [scenario_index]
+            .max(evaluation.net_expected_utility);
+    }
+    if !worst_case_value.is_finite() {
+        return Err(ModelError::NonFiniteValue(
+            "randomized_campaign_worst_case_payoff",
+        ));
+    }
+    *deterministic_maximin_net_utility =
+        deterministic_maximin_net_utility.max(worst_case_value);
+    candidates.push(CampaignGameCandidate {
+        plan,
+        scenario_evaluations,
+        maximum_path_resource_cost,
+    });
+    Ok(())
+}
+
+fn campaign_game_pareto_frontier(
+    candidates: Vec<CampaignGameCandidate>,
+) -> Vec<CampaignGameCandidate> {
+    let mut frontier: Vec<CampaignGameCandidate> = Vec::new();
+    'candidate: for candidate in candidates {
+        for existing in &frontier {
+            if campaign_game_candidate_dominates(existing, &candidate) {
+                continue 'candidate;
+            }
+        }
+        frontier.retain(|existing| {
+            !campaign_game_candidate_dominates(&candidate, existing)
+        });
+        frontier.push(candidate);
+    }
+    frontier
+}
+
+fn campaign_game_candidate_dominates(
+    left: &CampaignGameCandidate,
+    right: &CampaignGameCandidate,
+) -> bool {
+    if left.scenario_evaluations.len() != right.scenario_evaluations.len() {
+        return false;
+    }
+    let all_at_least = left
+        .scenario_evaluations
+        .iter()
+        .zip(right.scenario_evaluations.iter())
+        .all(|(left, right)| left.net_expected_utility >= right.net_expected_utility);
+    if !all_at_least {
+        return false;
+    }
+    let strictly_better = left
+        .scenario_evaluations
+        .iter()
+        .zip(right.scenario_evaluations.iter())
+        .any(|(left, right)| left.net_expected_utility > right.net_expected_utility);
+    strictly_better
+        || left.maximum_path_resource_cost <= right.maximum_path_resource_cost
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
