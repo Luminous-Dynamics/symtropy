@@ -231,7 +231,9 @@ pub fn evaluate_portfolio_problem(
         .observation_covariance_by_scenario
         .iter()
         .enumerate()
-        .map(|(scenario, covariance)| normalize_and_validate_covariance(covariance, scenario))
+        .map(|(scenario, covariance)| {
+            normalize_and_validate_covariance(covariance, scenario, candidate_count)
+        })
         .collect::<Result<Vec<_>, _>>()?;
 
     let mut report = PortfolioReport {
@@ -447,13 +449,14 @@ fn validate_problem(problem: &PortfolioProblem) -> Result<(), PortfolioError> {
 fn normalize_and_validate_covariance(
     covariance: &[Vec<f64>],
     scenario: usize,
+    expected_candidates: usize,
 ) -> Result<NormalizedCovariance, PortfolioError> {
     let n = covariance.len();
-    if n == 0 {
+    if n != expected_candidates {
         return Err(PortfolioError::CovarianceShapeMismatch {
             scenario,
-            expected: 1,
-            actual: 0,
+            expected: expected_candidates,
+            actual: n,
         });
     }
     for (row, values) in covariance.iter().enumerate() {
@@ -1242,6 +1245,21 @@ mod tests {
         assert!(matches!(
             evaluate_portfolio_problem(&problem),
             Err(PortfolioError::NonPositiveDefiniteCovariance { .. })
+        ));
+    }
+
+    #[test]
+    fn covariance_dimension_must_match_candidate_inventory() {
+        let mut problem = fixture_problem();
+        for covariance in &mut problem.observation_covariance_by_scenario {
+            covariance.pop();
+            for row in covariance.iter_mut() {
+                row.pop();
+            }
+        }
+        assert!(matches!(
+            evaluate_portfolio_problem(&problem),
+            Err(PortfolioError::CovarianceShapeMismatch { .. })
         ));
     }
 
