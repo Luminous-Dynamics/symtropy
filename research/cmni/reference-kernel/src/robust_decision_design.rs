@@ -1710,6 +1710,92 @@ mod tests {
             .probability;
         assert!((scenario_a_weight - 1.0 / 3.0).abs() < 1.0e-9);
         assert!((scenario_b_weight - 2.0 / 3.0).abs() < 1.0e-9);
+
+        // Independently replay the reported primal policy mixture and verify
+        // the dual scenario mixture bounds every one of the 3^3 pure policies.
+        let policy_a = score
+            .randomized_policy_mixture
+            .iter()
+            .find(|component| {
+                component.action_ids_by_outcome
+                    == vec![
+                        "action-0".to_owned(),
+                        "action-0".to_owned(),
+                        "action-2".to_owned(),
+                    ]
+            })
+            .expect("first primal policy");
+        let policy_b = score
+            .randomized_policy_mixture
+            .iter()
+            .find(|component| {
+                component.action_ids_by_outcome
+                    == vec![
+                        "action-2".to_owned(),
+                        "action-0".to_owned(),
+                        "action-2".to_owned(),
+                    ]
+            })
+            .expect("second primal policy");
+        assert!((policy_a.probability - 2.0 / 3.0).abs() < 1.0e-9);
+        assert!((policy_b.probability - 1.0 / 3.0).abs() < 1.0e-9);
+
+        let mut independently_replayed_primal = vec![0.0; candidate.scenarios.len()];
+        for component in &score.randomized_policy_mixture {
+            for (scenario_index, scenario) in candidate.scenarios.iter().enumerate() {
+                let mut expected_utility = 0.0;
+                for (state_index, state_probability) in
+                    problem.state_probabilities.iter().enumerate()
+                {
+                    for (outcome_index, likelihood) in
+                        scenario.outcome_likelihoods[state_index].iter().enumerate()
+                    {
+                        let action_index = problem
+                            .action_ids
+                            .iter()
+                            .position(|action_id| {
+                                action_id == &component.action_ids_by_outcome[outcome_index]
+                            })
+                            .expect("primal action ID belongs to the action set");
+                        expected_utility += state_probability
+                            * likelihood
+                            * problem.action_utilities[action_index][state_index];
+                    }
+                }
+                independently_replayed_primal[scenario_index] +=
+                    component.probability * expected_utility;
+            }
+        }
+        for utility in independently_replayed_primal {
+            assert!((utility - 34.0 / 75.0).abs() < 1.0e-9);
+        }
+
+        for policy_code in 0..27 {
+            let mut remaining_code = policy_code;
+            let mut action_indices = vec![0usize; candidate.outcome_ids.len()];
+            for action_index in &mut action_indices {
+                *action_index = remaining_code % problem.action_ids.len();
+                remaining_code /= problem.action_ids.len();
+            }
+            let mut scenario_utilities = vec![0.0; candidate.scenarios.len()];
+            for (scenario_index, scenario) in candidate.scenarios.iter().enumerate() {
+                for (state_index, state_probability) in
+                    problem.state_probabilities.iter().enumerate()
+                {
+                    for (outcome_index, likelihood) in
+                        scenario.outcome_likelihoods[state_index].iter().enumerate()
+                    {
+                        scenario_utilities[scenario_index] += state_probability
+                            * likelihood
+                            * problem.action_utilities[action_indices[outcome_index]][state_index];
+                    }
+                }
+            }
+            let dual_expected_utility =
+                scenario_a_weight * scenario_utilities[0]
+                    + scenario_b_weight * scenario_utilities[1];
+            assert!(dual_expected_utility <= score.dual_game_value + 1.0e-9);
+        }
         assert!(!score.formal_certificate);
         assert!(score.primal_dual_verified_within_tolerance);
     }
