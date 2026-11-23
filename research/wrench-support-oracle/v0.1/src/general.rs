@@ -391,11 +391,8 @@ mod tests {
             cone_sides: 4,
             characteristic_length: 1.0,
         };
-        let result = evaluate_support(
-            &model,
-            &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-        )
-        .expect("friction along tangent-u");
+        let result = evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+            .expect("friction along tangent-u");
         assert!((result.support_value - 0.2).abs() < 1.0e-12);
     }
 
@@ -517,8 +514,7 @@ mod tests {
             characteristic_length: 1.0,
         };
         assert!(
-            evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
-                .is_err()
+            evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])).is_err()
         );
     }
 
