@@ -78,7 +78,6 @@ enum EvidenceDisposition {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 struct CaseScore {
     case_id: String,
     scenario_family_id: String,
@@ -94,7 +93,6 @@ struct CaseScore {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 struct FamilyScore {
     scenario_family_id: String,
     case_count: usize,
@@ -112,7 +110,6 @@ struct FamilyScore {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 struct Report {
     benchmark_id: String,
     evaluator_version: &'static str,
@@ -185,7 +182,10 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
         || case.recovery_target_units == 0
         || case.recovery_target_units > case.demand_units
     {
-        return Err(fail(format!("case_{}_identity_or_episode_invalid", case.case_id)));
+        return Err(fail(format!(
+            "case_{}_identity_or_episode_invalid",
+            case.case_id
+        )));
     }
 
     let mut output_ids = BTreeSet::new();
@@ -213,8 +213,7 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
             )));
         }
         if let Some(disposition_at_ms) = output.disposition_at_ms {
-            if disposition_at_ms < output.produced_at_ms
-                || disposition_at_ms > case.horizon_end_ms
+            if disposition_at_ms < output.produced_at_ms || disposition_at_ms > case.horizon_end_ms
             {
                 return Err(fail(format!(
                     "case_{}_output_{}_disposition_time_outside_episode",
@@ -270,22 +269,16 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
         let qualified = independently_qualified(output);
         match (output.disposition, qualified) {
             (Disposition::Accepted, true) => {
-                independently_accepted_units = checked_add(
-                    independently_accepted_units,
-                    output.units,
-                    "accepted_units",
-                )?;
+                independently_accepted_units =
+                    checked_add(independently_accepted_units, output.units, "accepted_units")?;
                 let accepted_at = output.disposition_at_ms.ok_or_else(|| {
                     fail("accepted_output_missing_disposition_time_after_validation")
                 })?;
                 accepted_events.push((accepted_at, output.output_id.clone(), output.units));
             }
             (Disposition::Rejected, true) => {
-                independently_rejected_units = checked_add(
-                    independently_rejected_units,
-                    output.units,
-                    "rejected_units",
-                )?;
+                independently_rejected_units =
+                    checked_add(independently_rejected_units, output.units, "rejected_units")?;
             }
             (Disposition::Accepted, false) => {
                 unqualified_acceptance_claim_units = checked_add(
@@ -305,24 +298,16 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
         .checked_sub(accounted_units)
         .ok_or_else(|| fail("qualified_disposition_exceeds_produced_units"))?;
 
-    accepted_events.sort_by(|left, right| {
-        left.0
-            .cmp(&right.0)
-            .then_with(|| left.1.cmp(&right.1))
-    });
+    accepted_events.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
 
     let first_accepted_at = accepted_events.first().map(|event| event.0);
-    let time_to_first_accepted_output_ms =
-        first_accepted_at.map(|at| at - case.disturbance_at_ms);
+    let time_to_first_accepted_output_ms = first_accepted_at.map(|at| at - case.disturbance_at_ms);
 
     let mut cumulative_accepted = 0_u64;
     let mut recovery_at = None;
     for (accepted_at, _, units) in &accepted_events {
-        cumulative_accepted = checked_add(
-            cumulative_accepted,
-            *units,
-            "cumulative_accepted_units",
-        )?;
+        cumulative_accepted =
+            checked_add(cumulative_accepted, *units, "cumulative_accepted_units")?;
         if cumulative_accepted >= case.recovery_target_units {
             recovery_at = Some(*accepted_at);
             break;
@@ -330,10 +315,12 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
     }
     let time_to_recovery_target_ms = recovery_at.map(|at| at - case.disturbance_at_ms);
 
-    let accepted_demand_fill_ppm =
-        ratio_ppm(independently_accepted_units.min(case.demand_units), case.demand_units);
-    let accepted_quality_yield_ppm = (produced_units > 0)
-        .then(|| ratio_ppm(independently_accepted_units, produced_units));
+    let accepted_demand_fill_ppm = ratio_ppm(
+        independently_accepted_units.min(case.demand_units),
+        case.demand_units,
+    );
+    let accepted_quality_yield_ppm =
+        (produced_units > 0).then(|| ratio_ppm(independently_accepted_units, produced_units));
 
     Ok(CaseScore {
         case_id: case.case_id.clone(),
@@ -392,7 +379,11 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
             cases_without_first_accepted_output: group.len() - cases_with_first,
             cases_reaching_recovery_target: cases_reaching_target,
             cases_not_reaching_recovery_target: group.len() - cases_reaching_target,
-            produced_units_total: checked_sum(&group, |score| score.produced_units, "family_produced")?,
+            produced_units_total: checked_sum(
+                &group,
+                |score| score.produced_units,
+                "family_produced",
+            )?,
             independently_accepted_units_total: checked_sum(
                 &group,
                 |score| score.independently_accepted_units,
@@ -587,23 +578,27 @@ mod tests {
     #[test]
     fn duplicate_case_ids_fail_closed() {
         let mut corpus = sample_corpus();
-        corpus.cases[1].case_id = corpus.cases[0].case_id.clone();
-        assert_eq!(validate_corpus(&corpus), Err("duplicate_case_id".to_owned()));
+        let duplicate_id = corpus.cases[0].case_id.clone();
+        corpus.cases[1].case_id = duplicate_id;
+        assert_eq!(
+            validate_corpus(&corpus),
+            Err("duplicate_case_id".to_owned())
+        );
     }
 
     #[test]
     fn duplicate_output_ids_fail_closed() {
         let mut corpus = sample_corpus();
-        corpus.cases[0].outputs[1].output_id =
-            corpus.cases[0].outputs[0].output_id.clone();
+        let duplicate_id = corpus.cases[0].outputs[0].output_id.clone();
+        corpus.cases[0].outputs[1].output_id = duplicate_id;
         assert!(validate_case(&corpus.cases[0]).is_err());
     }
 
     #[test]
     fn disposition_before_production_fails_closed() {
         let mut corpus = sample_corpus();
-        corpus.cases[0].outputs[0].disposition_at_ms =
-            Some(corpus.cases[0].outputs[0].produced_at_ms - 1);
+        let invalid_disposition_at_ms = corpus.cases[0].outputs[0].produced_at_ms - 1;
+        corpus.cases[0].outputs[0].disposition_at_ms = Some(invalid_disposition_at_ms);
         assert!(validate_case(&corpus.cases[0]).is_err());
     }
 
@@ -617,8 +612,8 @@ mod tests {
     #[test]
     fn outputs_outside_the_disruption_horizon_fail_closed() {
         let mut corpus = sample_corpus();
-        corpus.cases[0].outputs[0].produced_at_ms =
-            corpus.cases[0].disturbance_at_ms - 1;
+        let invalid_produced_at_ms = corpus.cases[0].disturbance_at_ms - 1;
+        corpus.cases[0].outputs[0].produced_at_ms = invalid_produced_at_ms;
         assert!(validate_case(&corpus.cases[0]).is_err());
     }
 
