@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PLANNING_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-receipt.v0.2";
+    "luminous.orbital-truss-inspectability.planning-receipt.v0.3";
 pub const MAX_EXACT_VIEWS: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -1032,6 +1032,7 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         .exact_optimum
         .as_ref()
         .map(|plan| plan.total_cost_units);
+    let published_k_coverage_greedy = published_style_k_coverage_greedy(problem)?;
     let greedy_next_best_view = greedy_solution(problem, true);
     let cheapest_first = greedy_solution(problem, false);
     let greedy_cost_gap_units = match (exact_cost, greedy_next_best_view.robustly_covered) {
@@ -1066,6 +1067,7 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         pareto_frontier,
         greedy_next_best_view,
         cheapest_first,
+        published_k_coverage_greedy,
         greedy_cost_gap_units,
         cheapest_first_cost_gap_units,
         authority_granted: false,
@@ -1346,6 +1348,52 @@ mod tests {
     }
 
     #[test]
+    fn paper_style_greedy_reports_requested_and_capped_k_separately() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 3, 1)],
+            vec![
+                view("VIEW-A", "DOMAIN-A", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "DOMAIN-B", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            1,
+            1,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        let baseline = receipt.published_k_coverage_greedy;
+        assert_eq!(baseline.selected_view_count, 2);
+        assert_eq!(baseline.selected_view_ids, vec!["VIEW-A", "VIEW-B"]);
+        assert!(!baseline.requested_k_covered);
+        assert!(baseline.attainable_capped_target_covered);
+        assert!(baseline.failure_domain_requirements_met);
+        assert!(!baseline.within_declared_budgets);
+        assert_eq!(baseline.feature_coverage[0].requested_k, 3);
+        assert_eq!(baseline.feature_coverage[0].available_candidate_views, 2);
+        assert_eq!(baseline.feature_coverage[0].attainable_capped_target, 2);
+        assert_eq!(baseline.feature_coverage[0].selected_robust_views, 2);
+    }
+
+    #[test]
+    fn paper_style_greedy_does_not_claim_domain_diversity_from_k_views() {
+        let problem = problem(
+            vec![feature("SURFACE-1", 2, 2)],
+            vec![
+                view("VIEW-A", "SHARED-DOMAIN", 1, &["SURFACE-1"], &["SURFACE-1"]),
+                view("VIEW-B", "SHARED-DOMAIN", 1, &["SURFACE-1"], &["SURFACE-1"]),
+            ],
+            2,
+            2,
+        );
+
+        let receipt = solve(&problem).unwrap();
+        let baseline = receipt.published_k_coverage_greedy;
+        assert!(baseline.requested_k_covered);
+        assert!(baseline.attainable_capped_target_covered);
+        assert!(!baseline.failure_domain_requirements_met);
+        assert_eq!(baseline.feature_coverage[0].selected_failure_domains, 1);
+    }
+
+    #[test]
     fn exact_search_covers_the_full_twenty_view_boundary() {
         let views = (0..MAX_EXACT_VIEWS)
             .map(|index| {
@@ -1415,7 +1463,7 @@ pub const PLANNING_CORPUS_SCHEMA: &str =
     "luminous.orbital-truss-inspectability.planning-corpus.v0.2";
 pub const PLANNING_CORPUS_BENCHMARK_ID: &str = "ORBITAL-TRUSS-PLANNING-002";
 pub const PLANNING_CORPUS_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.2";
+    "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.3";
 pub const PLANNING_CASE_COUNT: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
