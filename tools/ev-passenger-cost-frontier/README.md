@@ -324,3 +324,34 @@ Important: all modeled sorties are assumed to complete. v0.1 omits demand arriva
 Source: `src/sustainable_mobility_service_capacity.rs`; CLI: `src/bin/sustainable_mobility_service_capacity_screen.rs`; schema: `schemas/sustainable_mobility_service_capacity_v0_1.schema.json`; fixture: `fixtures/sustainable_mobility_service_capacity_v0_1.json`.
 
 Exact-head Actions run [#45068027684](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45068027684) at `28b353addd2c4da8b9896516a145f82a78af7595` passed strict schema/fixture parsing, workspace formatting, Rust tests, deterministic report assertions and artifact upload. Test binaries reported 156 + 16 + 8 + 9 = **189 passed, 0 failed**; all 18 service-capacity tests passed, including an independent second-by-second tick oracle across 20 bounded cases, pack-conservation controls and the finite-horizon stock-drawdown bound. All profiles use the same synthetic five-minute mission and 45-second turnaround. Eight-hour outputs: direct single-pack 15 sorties (1.875 per aircraft-hour); Dock-shaped two-channel 38 (4.75); grid-limited one-channel 21 (2.625); two-aircraft shared pool 59 (7.375 fleet cycles/hour, 3.6875 per aircraft-hour). Steady-state ceilings: 2.222, 4.444, 2.222 and 6.667 cycles/hour. These are model outputs, not field/customer service claims; every launched sortie is assumed to complete. Clippy remains unverified.
+
+
+## SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 — request deadlines and fallback service
+
+The request-quality extension of [#6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909) is tracked in [#6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921).
+
+Run the frozen request stream:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
+```
+
+This is a deterministic single-site request-to-service-opportunity evaluator. It consumes a declared #6909 capacity envelope and prequalified time-bounded aerial/fallback service opportunities. It does not run routes or charging simulation, and it does not select strategic operating modes.
+
+Both FCFS and EDF are evaluated over the same arrivals, deadlines, service opportunities, permission/weather windows and blocked intervals. Requests arriving after their acceptance cutoff are rejected. Starts after a request deadline are not admitted; service that starts by the deadline but finishes after it is counted late. On-time, late, unserved and rejected requests remain separate.
+
+Aerial opportunities require:
+- the request's allowed mode, service duration and payload to fit;
+- unique capacity references and non-overlapping aircraft occupancy;
+- a flight window with current evidence, weather `go`, permission `approved`;
+- no maintenance/site-closed/no-go interval overlapping the mission and turnaround occupancy;
+- aerial opportunity count no greater than the supplied upstream steady-state plus initial-inventory capacity envelope.
+
+Unknown/denied/stale weather or permission blocks aerial service. A request may use fallback only if its declared mode permits it. The fixture includes unknown permission and weather no-go cases, a maintenance window, a late arrival, a late completion and a request with no available opportunity.
+
+The frozen fixture contains 11 requests, six aerial opportunities, six fallback opportunities and five evidence-bound flight windows. The module includes 14 focused Rust test definitions for FCFS/EDF priority, fallback under unknown permission, stale/future evidence, maintenance, acceptance cutoffs, overlap, source-capacity budgets, deadline expiry, deterministic input permutations, mode constraints, payload capacity and late completion. Exact-head Actions run [#45134172381](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45134172381) passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload (203 tests passed, 0 failed across test binaries). Clippy remains unverified.
+
+The research dossier is `docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md`. It compares the request-admission work to Zhao et al. (dynamic arrivals and changing weather, TR-E 2026, DOI 10.1016/j.tre.2026.105074), Lu et al. (real-options mode switching, TR-C 2026, DOI 10.1016/j.trc.2026.105807), Liang et al. (multi-visit pickup/delivery and drone resupply, EJOR 2026, DOI 10.1016/j.ejor.2026.10.020), and Xu et al. (mobile swapping/charging under uncertainty, TR-D 2026, DOI 10.1016/j.trd.2026.105458).
+
+This remains a synthetic online admission model. Weather/permission envelopes are declarative; they are not authenticated. Service opportunities and capacity report digests are inputs, not independently verified physical receipts. No route, flight, dispatch, market, regulatory or customer-delivery authority is granted.
