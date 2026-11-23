@@ -392,14 +392,18 @@ impl core::fmt::Display for SpaceTimePartitionError {
             Self::DuplicateTimeSlabId => "time slab identifiers must be unique",
             Self::InvalidSpherePatchCount => "the prototype requires exactly two sphere patches",
             Self::DuplicateSpherePatch => "sphere patch identifiers must be unique",
-            Self::InvalidSpherePatchMeasure => "each hemisphere must have exactly half the sphere area",
+            Self::InvalidSpherePatchMeasure => {
+                "each hemisphere must have exactly half the sphere area"
+            }
             Self::UnknownTimeSlab => "product cell references an unknown time slab",
             Self::UnknownSpherePatch => "product cell references an unknown sphere patch",
             Self::MissingProductCell => "a required time-slab × hemisphere cell is missing",
             Self::DuplicateProductCell => "a time-slab × hemisphere cell is duplicated",
             Self::ScopeMismatch => "cell event/model/target identity differs from its partition",
             Self::InvalidIntegrandInterval => "integrand bounds must be ordered and nonnegative",
-            Self::InvalidClaimedContribution => "claimed cell contribution does not match exact recomputation",
+            Self::InvalidClaimedContribution => {
+                "claimed cell contribution does not match exact recomputation"
+            }
         };
         formatter.write_str(message)
     }
@@ -435,7 +439,8 @@ pub fn verify_space_time_partition(
         if slab.end_seconds <= slab.start_seconds {
             return Err(SpaceTimePartitionError::InvalidTimeSlab);
         }
-        if slab.start_seconds != expected_start || slab.end_seconds > partition.horizon.end_seconds {
+        if slab.start_seconds != expected_start || slab.end_seconds > partition.horizon.end_seconds
+        {
             return Err(SpaceTimePartitionError::TemporalGapOrOverlap);
         }
         if slab_by_id.insert(slab.id, *slab).is_some() {
@@ -509,7 +514,10 @@ pub fn verify_space_time_partition(
         .collect::<BTreeMap<_, _>>();
     ledger.sort_by_key(|item| {
         (
-            slab_order.get(&item.time_slab_id).copied().unwrap_or(usize::MAX),
+            slab_order
+                .get(&item.time_slab_id)
+                .copied()
+                .unwrap_or(usize::MAX),
             item.sphere_patch_id,
         )
     });
