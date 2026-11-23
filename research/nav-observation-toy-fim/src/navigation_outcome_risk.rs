@@ -364,6 +364,8 @@ fn validate_robust_impact(
             != RESIDUAL_SCALE - assessment.worst_case_resolved_fraction_parts_per_billion
         || assessment.best_case_unresolved_fraction_parts_per_billion
             != RESIDUAL_SCALE - assessment.best_case_resolved_fraction_parts_per_billion
+        || assessment.worst_case_resolved_fraction_parts_per_billion
+            < assessment.minimum_class_pair_resolution_lower_parts_per_billion
     {
         return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
     }
