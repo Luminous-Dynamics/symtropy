@@ -840,14 +840,11 @@ fn evaluate_no_query(base: &DecisionCase) -> Result<Vec<PolicyMetric>, String> {
         .iter()
         .map(|world| (world.clone(), NO_QUERY_OUTCOME.to_owned()))
         .collect::<BTreeMap<_, _>>();
-    let classes = BTreeMap::from([(
-        NO_QUERY_OUTCOME.to_owned(),
-        {
-            let mut worlds = base.compatible_world_set.world_ids.clone();
-            worlds.sort();
-            worlds
-        },
-    )]);
+    let classes = BTreeMap::from([(NO_QUERY_OUTCOME.to_owned(), {
+        let mut worlds = base.compatible_world_set.world_ids.clone();
+        worlds.sort();
+        worlds
+    })]);
     let rows = class_scenarios(
         &base.scenario_manifest.scenarios,
         &base.compatible_world_set.world_ids,
