@@ -161,8 +161,26 @@ pub struct FaultDeliveryObservation {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct WorldStatisticsObservation {
+    pub topic: String,
+    pub message_type: String,
+    pub producer_id: String,
+    pub producer_revision: String,
+    pub raw_artifact_id: String,
+    pub raw_artifact_sha256: String,
+    pub run_id: String,
+    pub run_epoch: String,
+    pub world_epoch: String,
+    pub clock_id: String,
+    pub iterations: u64,
+    pub simulation_time_ns: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FaultExecutionEvent {
     pub planned_fault: FaultInjection,
+    pub world_statistics: WorldStatisticsObservation,
     pub target_resolution: TargetResolution,
     pub dispatch: InjectionDispatch,
     pub execution: InjectorExecution,
@@ -215,6 +233,7 @@ pub struct ExecutionSummary {
     pub scenario_id: String,
     pub reset_status: ResetStatus,
     pub planned_fault_count: usize,
+    pub world_statistics_verified_count: usize,
     pub dispatch_accepted_count: usize,
     pub dispatch_rejected_count: usize,
     pub dispatch_unknown_count: usize,
@@ -362,6 +381,7 @@ impl ExecutionEvidenceBundle {
                 scenario_id: self.scenario_id.clone(),
                 reset_status: self.reset.status,
                 planned_fault_count: scenario.fault_events.len(),
+                world_statistics_verified_count: 0,
                 dispatch_accepted_count: 0,
                 dispatch_rejected_count: 0,
                 dispatch_unknown_count: 0,
@@ -418,6 +438,27 @@ impl ExecutionEvidenceBundle {
                 .ok_or(ExecutionEvidenceError::EventCountMismatch)?;
             if event.planned_fault != *expected {
                 return Err(ExecutionEvidenceError::PlannedFaultMismatch);
+            }
+
+            let statistics = &event.world_statistics;
+            if statistics.topic != plan.platform.world_stats_topic
+                || statistics.message_type != "gz.msgs.WorldStatistics"
+                || statistics.producer_id != plan.platform.platform_id
+                || statistics.producer_revision != plan.platform.simulator_revision
+                || !nonempty(&statistics.raw_artifact_id)
+                || !valid_sha256(&statistics.raw_artifact_sha256)
+                || statistics.run_id != self.run_id
+                || statistics.run_epoch != self.run_epoch
+                || statistics.world_epoch != self.world_epoch
+                || statistics.clock_id != reset_receipt.clock_id
+                || statistics.iterations != expected.scheduled_simulation_step
+            {
+                return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+            }
+            if !artifact_ids.insert(statistics.raw_artifact_id.clone())
+                || !artifact_hashes.insert(statistics.raw_artifact_sha256.clone())
+            {
+                return Err(ExecutionEvidenceError::DuplicateEvidenceIdentity);
             }
 
             if !nonempty(&event.target_resolution.logical_component_id)
@@ -636,7 +677,9 @@ impl ExecutionEvidenceBundle {
                     let target_id =
                         resolved_target.ok_or(ExecutionEvidenceError::InvalidExecution)?;
                     validate_receipt(receipt, EvidencePhase::Execution, self, expected, target_id)?;
-                    if receipt.simulation_step != expected.scheduled_simulation_step {
+                    if receipt.simulation_step != expected.scheduled_simulation_step
+                        || receipt.simulation_time_ns != statistics.simulation_time_ns
+                    {
                         return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                     }
                     if receipt.producer_id != self.platform.fault_injector_id
@@ -916,6 +959,17 @@ impl ExecutionEvidenceBundle {
                 }
             }
 
+            if event.execution.status == ExecutionStatus::Executed
+                && (statistics.iterations != expected.scheduled_simulation_step
+                    || event
+                        .execution
+                        .receipt
+                        .as_ref()
+                        .is_none_or(|receipt| receipt.simulation_time_ns != statistics.simulation_time_ns))
+            {
+                return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+            }
+
             let phase_receipts: Vec<&FaultEvidenceReceipt> = [
                 event.target_resolution.receipt.as_ref(),
                 event.dispatch.receipt.as_ref(),
@@ -957,6 +1011,7 @@ impl ExecutionEvidenceBundle {
             scenario_id: self.scenario_id.clone(),
             reset_status: self.reset.status,
             planned_fault_count: scenario.fault_events.len(),
+            world_statistics_verified_count: scenario.fault_events.len(),
             dispatch_accepted_count,
             dispatch_rejected_count,
             dispatch_unknown_count,
