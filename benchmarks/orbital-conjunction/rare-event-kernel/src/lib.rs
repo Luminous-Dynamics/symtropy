@@ -34,6 +34,7 @@ pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
 pub mod normal_positive_part;
+pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod residual;
 pub mod sequential;
@@ -65,6 +66,10 @@ pub use ncdot_temporal::{
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
+};
+pub use pop_col_adjustment::{
+    PopColAdjustmentConfig, PopColAdjustmentInput, PopColAdjustmentReport, PopColAdjustmentStatus,
+    PopColFractionSearchReport, adjust_pop_col_energy_limited_center,
 };
 pub use pop_col_energy::{
     PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy, conditional_velocity_at_col,
@@ -186,6 +191,12 @@ pub enum KernelError {
     NcdotRefinementResolutionLimit,
     /// Central-body gravitational parameter must be finite and strictly positive.
     InvalidGravitationalParameter,
+    /// CoL energy-change policy contains a negative or NaN tolerance.
+    InvalidPopColAdjustmentPolicy,
+    /// CoL energy-adjustment fraction or objective input is invalid.
+    InvalidPopColAdjustmentInput,
+    /// A CoL fraction midpoint cannot be represented distinctly in floating point.
+    PopColAdjustmentResolutionLimit,
 }
 
 impl fmt::Display for KernelError {
@@ -270,6 +281,15 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidGravitationalParameter => {
                 "gravitational parameter must be finite and strictly positive"
+            }
+            Self::InvalidPopColAdjustmentPolicy => {
+                "CoL energy-change policy must be nonnegative and not NaN"
+            }
+            Self::InvalidPopColAdjustmentInput => {
+                "CoL energy-adjustment input or objective is invalid"
+            }
+            Self::PopColAdjustmentResolutionLimit => {
+                "CoL fraction midpoint is not representable as a distinct value"
             }
         };
         f.write_str(message)
