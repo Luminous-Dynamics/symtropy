@@ -23,3 +23,4 @@ pub mod hbr_bctr_objective;
 pub mod hbr_window_fusion;
 pub mod episode_conformal_tube;
 pub mod integrity_mode_controller;
+pub mod integrity_mode_evaluator;
