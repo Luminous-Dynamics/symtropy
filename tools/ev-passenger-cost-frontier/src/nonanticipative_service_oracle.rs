@@ -870,7 +870,7 @@ pub fn evaluate_nonanticipative_oracle(
         }
     }
 
-    let mut node_by_id = BTreeMap::new();
+    let mut node_by_id: BTreeMap<String, ObservationNode> = BTreeMap::new();
     let mut groups: BTreeMap<String, InformationSet> = BTreeMap::new();
     for node in &input.observation_nodes {
         if node.node_id.trim().is_empty()
@@ -879,7 +879,7 @@ pub fn evaluate_nonanticipative_oracle(
             || node.information_set_digest.trim().is_empty()
             || !is_sha256_digest(&node.weather_evidence_digest)
             || !is_sha256_digest(&node.permission_evidence_digest)
-            || node_by_id.insert(node.node_id.as_str(), node).is_some()
+            || node_by_id.insert(node.node_id.clone(), node.clone()).is_some()
         {
             add_error(&mut errors, format!("observation_node_identity_or_evidence_invalid:{}", node.node_id));
             continue;
@@ -967,7 +967,7 @@ pub fn evaluate_nonanticipative_oracle(
         let mut seen_path_nodes = BTreeSet::new();
         let mut path_digests = Vec::new();
         for node_id in &scenario.node_path {
-            let Some(node) = node_by_id.get(node_id.as_str()).copied() else {
+            let Some(node) = node_by_id.get(node_id) else {
                 add_error(&mut errors, format!("scenario_references_unknown_node:{}:{node_id}", scenario.scenario_id));
                 continue;
             };
@@ -1185,12 +1185,6 @@ mod tests {
     }
 
     fn finish_hashes(input: &mut NonanticipativeOracleInput) {
-        let node_by_id: BTreeMap<_, _> = input
-            .observation_nodes
-            .iter()
-            .map(|node| (node.node_id.clone(), node))
-            .collect();
-        let mut by_id: BTreeMap<String, (Option<String>, u64, Vec<String>, Vec<String>, WeatherState, PermissionState, String, String)> = BTreeMap::new();
         for node in &mut input.observation_nodes {
             let mut revealed = node.revealed_request_ids.clone();
             revealed.sort();
@@ -1215,7 +1209,6 @@ mod tests {
             .expect("information set JSON");
             node.information_set_digest = sha256_hex(&info);
         }
-        let _ = (node_by_id, &mut by_id);
     }
 
     #[test]
