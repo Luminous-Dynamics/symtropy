@@ -7,6 +7,7 @@ on:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
+      - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -14,6 +15,7 @@ on:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
+      - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   workflow_dispatch:
 
