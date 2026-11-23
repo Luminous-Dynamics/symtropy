@@ -931,9 +931,7 @@ impl ExecutionEvidenceBundle {
                 }
             }
             if let (Some(previous), Some(first)) = (previous_event_end, phase_receipts.first()) {
-                if first.simulation_step < previous.0
-                    || first.simulation_time_ns < previous.1
-                {
+                if first.simulation_step < previous.0 || first.simulation_time_ns < previous.1 {
                     return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                 }
             }
