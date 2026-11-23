@@ -1,0 +1,159 @@
+name: Orbital Surface Support Certificate
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-surface-support-bench/**"
+      - "tools/orbital-gsd-kcoverage-bench/**"
+      - "docs/research/orbital-surface-support/**"
+      - "docs/research/orbital-gsd-kcoverage/**"
+      - ".github/workflows/orbital-surface-support.yml"
+  push:
+    branches:
+      - "research/orbital-surface-support-v0-1"
+    paths:
+      - "tools/orbital-surface-support-bench/**"
+      - "tools/orbital-gsd-kcoverage-bench/**"
+      - "docs/research/orbital-surface-support/**"
+      - "docs/research/orbital-gsd-kcoverage/**"
+      - ".github/workflows/orbital-surface-support.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  support-certificate:
+    name: Full-support envelope and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen support controls
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          positive = json.loads(Path("docs/research/orbital-surface-support/fixtures/support-isolated-voxel-v0_1.json").read_text())
+          abstain = json.loads(Path("docs/research/orbital-surface-support/fixtures/support-centre-pass-abstain-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-surface-support/orbital_surface_support_receipt_v0_1.schema.json").read_text())
+          assert positive["grid"]["occupied_cells"] == [[1, 1, 1]]
+          assert abstain["grid"] == positive["grid"]
+          assert positive["camera"]["horizontal_pixel_count"] == 1108
+          assert abstain["camera"]["horizontal_pixel_count"] == 100
+          assert schema["properties"]["schema"]["const"] == "luminous.orbital-surface-support.receipt.v0.1"
+          assert schema["properties"]["physical_validation"]["const"] == "NOT_ASSESSED"
+          print("isolated support-pass and centre-pass/support-abstain fixtures validated")
+          PY
+      - name: Format
+        run: |
+          cargo fmt --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/orbital-surface-support-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: |
+          cargo test --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml
+          cargo test --locked --manifest-path tools/orbital-surface-support-bench/Cargo.toml
+      - name: Strict Clippy
+        run: |
+          cargo clippy --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --locked --manifest-path tools/orbital-surface-support-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic support receipts
+        run: |
+          for name in support-isolated-voxel-v0_1 support-centre-pass-abstain-v0_1; do
+            cargo run --quiet --locked --manifest-path tools/orbital-gsd-kcoverage-bench/Cargo.toml --bin orbital-gsd-kcoverage-bench -- "docs/research/orbital-surface-support/fixtures/$name.json" "$GITHUB_SHA" > "/tmp/$name-gsd.json"
+            cargo run --quiet --locked --manifest-path tools/orbital-surface-support-bench/Cargo.toml --bin orbital-surface-support-bench -- "docs/research/orbital-surface-support/fixtures/$name.json" "$GITHUB_SHA" > "/tmp/$name-support-a.json"
+            cargo run --quiet --locked --manifest-path tools/orbital-surface-support-bench/Cargo.toml --bin orbital-surface-support-bench -- "docs/research/orbital-surface-support/fixtures/$name.json" "$GITHUB_SHA" > "/tmp/$name-support-b.json"
+            cmp "/tmp/$name-support-a.json" "/tmp/$name-support-b.json"
+          done
+      - name: Independent support oracle
+        run: |
+          for name in support-isolated-voxel-v0_1 support-centre-pass-abstain-v0_1; do
+            python3 tools/orbital-surface-support-bench/tests/support_reference_oracle.py "docs/research/orbital-surface-support/fixtures/$name.json" "$GITHUB_SHA" > "/tmp/$name-support-python.json"
+          done
+      - name: Compare full Rust and Python certificates
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ("support-isolated-voxel-v0_1", "support-centre-pass-abstain-v0_1"):
+              rust = json.loads(Path(f"/tmp/{name}-support-a.json").read_text())
+              oracle = json.loads(Path(f"/tmp/{name}-support-python.json").read_text())
+              assert rust == oracle
+              assert rust["candidate_support_pair_count"] == rust["centre_visible_pair_count"] + rust["centre_not_visible_pair_count"]
+              assert rust["centre_visible_pair_count"] == rust["certified_visible_pair_count"] + rust["indeterminate_pair_count"]
+              assert rust["authority_granted"] is False
+              assert rust["structural_acceptance_authorized"] is False
+              assert rust["flight_authorized"] is False
+              assert rust["physical_validation"] == "NOT_ASSESSED"
+              assert all(
+                  row["disposition"] != "CERTIFIED_VISIBLE"
+                  or (row["centre_visible_in_upstream_model"]
+                      and row["reason_codes"] == []
+                      and row["occlusion_candidate_cells"] == []
+                      and row["occlusion_disposition"] == "CLEAR_CERTIFIED_BY_RAY_ENCLOSURE_AABB_DISJOINTNESS")
+                  for row in rust["certificates"]
+              )
+              if name == "support-isolated-voxel-v0_1":
+                  assert rust["certified_visible_pair_count"] > 0
+              if name == "support-centre-pass-abstain-v0_1":
+                  assert rust["centre_visible_pair_count"] > 0
+                  assert rust["certified_visible_pair_count"] == 0
+                  assert any(
+                      row["centre_visible_in_upstream_model"]
+                      and "SENSOR_NOT_OUTSIDE_SUPPORT_BOUND" in row["reason_codes"]
+                      for row in rust["certificates"]
+                  )
+              print(name, "exact Rust/Python receipt equality",
+                    rust["certified_visible_pair_count"], "certified",
+                    rust["indeterminate_pair_count"], "indeterminate")
+          PY
+      - name: Create exact-head evidence manifest
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          fixtures = {}
+          for name in ("support-isolated-voxel-v0_1", "support-centre-pass-abstain-v0_1"):
+              source = Path(f"docs/research/orbital-surface-support/fixtures/{name}.json").read_bytes()
+              support_rust = Path(f"/tmp/{name}-support-a.json").read_bytes()
+              support_python = Path(f"/tmp/{name}-support-python.json").read_bytes()
+              gsd = Path(f"/tmp/{name}-gsd.json").read_bytes()
+              fixtures[name] = {
+                  "fixture_sha256": hashlib.sha256(source).hexdigest(),
+                  "gsd_receipt_sha256": hashlib.sha256(gsd).hexdigest(),
+                  "support_rust_receipt_sha256": hashlib.sha256(support_rust).hexdigest(),
+                  "support_python_receipt_sha256": hashlib.sha256(support_python).hexdigest()
+              }
+          manifest = {
+              "source_commit": os.environ["GITHUB_SHA"],
+              "workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "benchmark_id": "ORBITAL-SURFACE-SUPPORT-VOXEL-001",
+              "schema_sha256": hashlib.sha256(Path("docs/research/orbital-surface-support/orbital_surface_support_receipt_v0_1.schema.json").read_bytes()).hexdigest(),
+              "fixtures": fixtures,
+              "claim_ceiling": "synthetic_3d_voxel_surface_support_envelope_and_conservative_occlusion_only",
+              "physical_validation": "NOT_ASSESSED"
+          }
+          Path("/tmp/orbital-surface-support-evidence.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-surface-support-evidence
+          path: |
+            /tmp/*-gsd.json
+            /tmp/*-support-a.json
+            /tmp/*-support-python.json
+            /tmp/orbital-surface-support-evidence.json
+            docs/research/orbital-surface-support/fixtures/*.json
+            docs/research/orbital-surface-support/orbital_surface_support_receipt_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
