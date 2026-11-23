@@ -271,16 +271,12 @@ fn validate_input(case: &SupportEnvelopeCase) -> Result<(), &'static str> {
     Ok(())
 }
 
-pub fn evaluate_support_envelope(
-    case: &SupportEnvelopeCase,
-) -> SupportEnvelopeCertificate {
+pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeCertificate {
     if let Err(reason) = validate_input(case) {
         return invalid_certificate(case, reason);
     }
     if !case.support.enclosing_ball_proven {
-        return indeterminate_certificate(case, vec![
-            "SUPPORT_ENCLOSING_BALL_UNPROVEN".to_owned(),
-        ]);
+        return indeterminate_certificate(case, vec!["SUPPORT_ENCLOSING_BALL_UNPROVEN".to_owned()]);
     }
 
     let support = &case.support;
@@ -288,9 +284,10 @@ pub fn evaluate_support_envelope(
     let sensor_to_center = subtract3(support.center_m, sensor.position_m);
     let center_distance = norm3(sensor_to_center);
     if !center_distance.is_finite() || center_distance <= support.enclosing_ball_radius_m {
-        return indeterminate_certificate(case, vec![
-            "SENSOR_NOT_OUTSIDE_SUPPORT_BOUND".to_owned(),
-        ]);
+        return indeterminate_certificate(
+            case,
+            vec!["SENSOR_NOT_OUTSIDE_SUPPORT_BOUND".to_owned()],
+        );
     }
 
     let radius = support.enclosing_ball_radius_m;
@@ -324,8 +321,8 @@ pub fn evaluate_support_envelope(
         incidence_lower = Some(low);
         incidence_upper = Some(high);
 
-        let gsd_factor = 2.0 * (sensor.horizontal_fov_rad / 2.0).tan()
-            / sensor.image_width_px as f64;
+        let gsd_factor =
+            2.0 * (sensor.horizontal_fov_rad / 2.0).tan() / sensor.image_width_px as f64;
         if low < PI / 2.0 {
             gsd_lower = Some(gsd_factor * minimum_distance / low.cos());
         }
@@ -365,8 +362,8 @@ pub fn evaluate_support_envelope(
             && incidence_upper.is_some_and(|angle| {
                 angle <= sensor.maximum_obliquity_rad + GEOMETRY_EPS && angle < PI / 2.0
             });
-        let gsd_passes = gsd_upper
-            .is_some_and(|gsd| gsd <= sensor.maximum_gsd_m_per_px + GEOMETRY_EPS);
+        let gsd_passes =
+            gsd_upper.is_some_and(|gsd| gsd <= sensor.maximum_gsd_m_per_px + GEOMETRY_EPS);
         if distance_passes && fov_passes && incidence_passes && gsd_passes {
             SupportStatus::CertifiedWithinSensingEnvelope
         } else {
@@ -424,10 +421,8 @@ pub fn evaluate_support_envelope(
             .and_then(|value| fixed_nonnegative(value, ANGLE_SCALE)),
         incidence_angle_upper_bound_nrad: incidence_upper
             .and_then(|value| fixed_nonnegative(value, ANGLE_SCALE)),
-        gsd_lower_bound_pm_per_px: gsd_lower
-            .and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
-        gsd_upper_bound_pm_per_px: gsd_upper
-            .and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
+        gsd_lower_bound_pm_per_px: gsd_lower.and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
+        gsd_upper_bound_pm_per_px: gsd_upper.and_then(|value| fixed_nonnegative(value, GSD_SCALE)),
         support_bound_proven: support.enclosing_ball_proven,
         normal_cone_proven: support.normal_cone_proven,
         occlusion_status: OcclusionStatus::NotAssessed,
@@ -505,8 +500,18 @@ mod tests {
         assert_eq!(receipt.expected_outcome_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.occlusion_assessed);
-        assert!(receipt.cases.iter().all(|case| !case.full_support_visibility_certified));
-        assert!(receipt.cases.iter().all(|case| !case.may_count_toward_full_support_coverage));
+        assert!(
+            receipt
+                .cases
+                .iter()
+                .all(|case| !case.full_support_visibility_certified)
+        );
+        assert!(
+            receipt
+                .cases
+                .iter()
+                .all(|case| !case.may_count_toward_full_support_coverage)
+        );
     }
 
     #[test]
@@ -524,13 +529,8 @@ mod tests {
                 v[2] + translation[2],
             ]
         };
-        let rotate_direction = |v: [f64; 3]| {
-            [
-                cos * v[0] - sin * v[1],
-                sin * v[0] + cos * v[1],
-                v[2],
-            ]
-        };
+        let rotate_direction =
+            |v: [f64; 3]| [cos * v[0] - sin * v[1], sin * v[0] + cos * v[1], v[2]];
         transformed.support.center_m = rotate(transformed.support.center_m);
         transformed.sensor.position_m = rotate(transformed.sensor.position_m);
         transformed.support.outward_normal_unit =
@@ -552,12 +552,18 @@ mod tests {
             actual.maximum_distance_upper_bound_nm,
             original.maximum_distance_upper_bound_nm
         );
-        assert_eq!(actual.fov_angle_upper_bound_nrad, original.fov_angle_upper_bound_nrad);
+        assert_eq!(
+            actual.fov_angle_upper_bound_nrad,
+            original.fov_angle_upper_bound_nrad
+        );
         assert_eq!(
             actual.incidence_angle_upper_bound_nrad,
             original.incidence_angle_upper_bound_nrad
         );
-        assert_eq!(actual.gsd_upper_bound_pm_per_px, original.gsd_upper_bound_pm_per_px);
+        assert_eq!(
+            actual.gsd_upper_bound_pm_per_px,
+            original.gsd_upper_bound_pm_per_px
+        );
     }
 
     #[test]
@@ -587,7 +593,10 @@ mod tests {
     fn envelope_pass_never_claims_full_visibility_without_occlusion_evidence() {
         let corpus: SupportEnvelopeCorpus = serde_json::from_str(FIXTURE).unwrap();
         let certificate = evaluate_support_envelope(&corpus.cases[0]);
-        assert_eq!(certificate.status, SupportStatus::CertifiedWithinSensingEnvelope);
+        assert_eq!(
+            certificate.status,
+            SupportStatus::CertifiedWithinSensingEnvelope
+        );
         assert_eq!(certificate.occlusion_status, OcclusionStatus::NotAssessed);
         assert!(!certificate.full_support_visibility_certified);
         assert!(!certificate.may_count_toward_full_support_coverage);
