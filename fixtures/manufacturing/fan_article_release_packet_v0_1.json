@@ -49,7 +49,8 @@
       "powered_rotating_impeller_support",
       "uncalibrated_measurement_standard",
       "final_product_component"
-    ]
+    ],
+    "fixture_operation_risk_review_ref": null
   },
   "geometry": {
     "controlled_drawing_ref": null,
