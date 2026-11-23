@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_equal_spin_symtropy_radial_gauge_map_replay",
+  "status": "local_derivation_executed; exact_published_source_replay_pending",
+  "local_executed_source": {
+    "path": "/tmp/derive_ma_lu_equal_spin_symtropy_gauge.py",
+    "git_blob_sha1": "287e16dadd113350ade8eacd240f2a012f4459ca",
+    "sha256": "ac07be432a1450e9deeb4368b71a05957122dc85b486238d4ba51757cfbbb4db"
+  },
+  "published_source": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_symtropy_gauge.py",
+    "git_blob_sha1": "b67500c6552b5f3764dd5b85cbd755e70cc7a11c",
+    "exact_bytes_match_to_local_executed_source": false,
+    "exact_blob_execution": "pending"
+  },
+  "local_result_fixture": {
+    "path": "/tmp/ma_lu_equal_spin_symtropy_gauge_map_v1.json",
+    "git_blob_sha1": "88ee52c65719b862846676c591b9acdb67898c7c011e43f9edf9e87845d95c69"
+  },
+  "environment": {"python":"3.13.5","sympy":"1.14.0"},
+  "checks": {
+    "H5_angular_cohomogeneity_identity_through_a2": true,
+    "H6_angular_cohomogeneity_identity_through_a2": true,
+    "equal_spin_H2_equals_H3": true,
+    "radial_f_chain_rule_identity_through_alpha": true,
+    "wrong_chi_squared_factor_of_two_rejected": true,
+    "omitting_H7_radial_redefinition_changes_f": true
+  },
+  "claim_ceiling": "Local exact-symbolic derivation of angular reduction and radial-gauge map. Exact execution of the currently published script remains pending. No fixed-horizon/physical-Omega parameter renormalization, Symtropy coefficient comparison, original-EOM residual, or finite-coupling result is claimed."
+}
