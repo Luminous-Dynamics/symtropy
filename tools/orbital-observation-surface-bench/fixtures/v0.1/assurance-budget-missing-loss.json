@@ -31,7 +31,7 @@
         "numerator": 1,
         "denominator": 100
       },
-      "source_contract_sha256": "a2a39b2e80d3e1fc9a3dcae7bdf6a0e9b45f2a6a202c9d421ce4d7d2e73a4f11"
+      "source_contract_sha256": "64159d57551d4b472f615da1e6eeb53fef0dde19cadf0f0c363f4055dd7f06a6"
     },
     {
       "claim_id": "regret",
@@ -48,7 +48,7 @@
         "numerator": 2,
         "denominator": 100
       },
-      "source_contract_sha256": "c4c0a87f86e7f6a1b94ca0b6d92f7e4dcb6b19e70230a4c7e1b6c99d4c0f7a21"
+      "source_contract_sha256": "88c4587caccaf4db2a7e696c34bfef03cf3017ba3897be729f58c61962a2becc"
     }
   ]
 }
