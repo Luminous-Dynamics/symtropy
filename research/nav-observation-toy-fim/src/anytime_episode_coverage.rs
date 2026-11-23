@@ -29,6 +29,7 @@ pub struct AnytimeEpisodeCoverageConfig {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EpisodeCoverageAuditEvent {
+    /// Strictly increasing source-ledger mission/trajectory identity.
     pub episode_id: u64,
     /// Strictly increasing source-ledger sequence for completed episodes.
     pub episode_sequence_id: u64,
@@ -40,7 +41,9 @@ pub struct EpisodeCoverageAuditEvent {
     pub bounded_set_issued: bool,
     /// Some(true) means the sealed full-episode tube missed.
     pub missed: Option<bool>,
-    /// Digest of the sealed truth/evaluation result for bounded predictions.
+    /// Strictly increasing sequence of the sealed truth/evaluation result.
+    pub outcome_receipt_sequence_id: Option<u64>,
+    /// Digest binds the outcome to the episode and outcome receipt sequence.
     pub outcome_receipt_sha256: Option<[u8; SHA256_BYTES]>,
 }
 
@@ -72,8 +75,10 @@ pub struct AnytimeEpisodeCoverageReport {
 pub enum AnytimeEpisodeCoverageError {
     InvalidConfiguration,
     InvalidEpisodeIdentity,
+    EpisodeIdentityReplayOrReordering,
     EpisodeSequenceReplayOrReordering,
     DecisionReceiptSequenceReplayOrReordering,
+    OutcomeReceiptSequenceReplayOrReordering,
     MissingDecisionReceipt,
     DecisionReceiptReplay,
     MissingOutcomeForBoundedEpisode,
@@ -90,8 +95,10 @@ impl fmt::Display for AnytimeEpisodeCoverageError {
         match self {
             Self::InvalidConfiguration => write!(f, "target miscoverage and confidence error must be in (0, 1), and availability target in [0, 1]"),
             Self::InvalidEpisodeIdentity => write!(f, "episode and sequence identities must be nonzero"),
+            Self::EpisodeIdentityReplayOrReordering => write!(f, "episode identity is not strictly increasing"),
             Self::EpisodeSequenceReplayOrReordering => write!(f, "episode sequence is not strictly increasing"),
             Self::DecisionReceiptSequenceReplayOrReordering => write!(f, "decision receipt sequence is not strictly increasing"),
+            Self::OutcomeReceiptSequenceReplayOrReordering => write!(f, "outcome receipt sequence is not strictly increasing"),
             Self::MissingDecisionReceipt => write!(f, "decision receipt digest is missing"),
             Self::DecisionReceiptReplay => write!(f, "decision receipt digest was replayed"),
             Self::MissingOutcomeForBoundedEpisode => write!(f, "a bounded episode requires a sealed miss/hit outcome"),
@@ -115,9 +122,11 @@ pub struct AnytimeEpisodeCoverageAudit {
     abstention_count: u64,
     missed_episode_count: u64,
     predictable_variation: f64,
+    last_episode_id: Option<u64>,
     last_episode_sequence_id: Option<u64>,
     last_decision_receipt_sequence_id: Option<u64>,
     last_decision_receipt_sha256: Option<[u8; SHA256_BYTES]>,
+    last_outcome_receipt_sequence_id: Option<u64>,
     last_outcome_receipt_sha256: Option<[u8; SHA256_BYTES]>,
 }
 
@@ -149,9 +158,11 @@ impl AnytimeEpisodeCoverageAudit {
             abstention_count: 0,
             missed_episode_count: 0,
             predictable_variation: 0.0,
+            last_episode_id: None,
             last_episode_sequence_id: None,
             last_decision_receipt_sequence_id: None,
             last_decision_receipt_sha256: None,
+            last_outcome_receipt_sequence_id: None,
             last_outcome_receipt_sha256: None,
         })
     }
@@ -243,6 +254,9 @@ impl AnytimeEpisodeCoverageAudit {
         {
             return Err(AnytimeEpisodeCoverageError::InvalidEpisodeIdentity);
         }
+        if self.last_episode_id.is_some_and(|last| event.episode_id <= last) {
+            return Err(AnytimeEpisodeCoverageError::EpisodeIdentityReplayOrReordering);
+        }
         if self
             .last_episode_sequence_id
             .is_some_and(|last| event.episode_sequence_id <= last)
@@ -266,6 +280,18 @@ impl AnytimeEpisodeCoverageAudit {
             let missed = event
                 .missed
                 .ok_or(AnytimeEpisodeCoverageError::MissingOutcomeForBoundedEpisode)?;
+            let outcome_sequence = event
+                .outcome_receipt_sequence_id
+                .ok_or(AnytimeEpisodeCoverageError::MissingOutcomeReceipt)?;
+            if outcome_sequence == 0 {
+                return Err(AnytimeEpisodeCoverageError::MissingOutcomeReceipt);
+            }
+            if self
+                .last_outcome_receipt_sequence_id
+                .is_some_and(|last| outcome_sequence <= last)
+            {
+                return Err(AnytimeEpisodeCoverageError::OutcomeReceiptSequenceReplayOrReordering);
+            }
             let outcome_receipt = event
                 .outcome_receipt_sha256
                 .ok_or(AnytimeEpisodeCoverageError::MissingOutcomeReceipt)?;
@@ -275,8 +301,11 @@ impl AnytimeEpisodeCoverageAudit {
             if self.last_outcome_receipt_sha256 == Some(outcome_receipt) {
                 return Err(AnytimeEpisodeCoverageError::OutcomeReceiptReplay);
             }
-            Some((missed, outcome_receipt))
+            Some((missed, outcome_sequence, outcome_receipt))
         } else {
+            if event.outcome_receipt_sequence_id.is_some() {
+                return Err(AnytimeEpisodeCoverageError::UnexpectedOutcomeReceiptForAbstention);
+            }
             if event.missed.is_some() {
                 return Err(AnytimeEpisodeCoverageError::UnexpectedOutcomeForAbstention);
             }
@@ -295,9 +324,10 @@ impl AnytimeEpisodeCoverageAudit {
         let mut next_abstentions = self.abstention_count;
         let mut next_misses = self.missed_episode_count;
         let mut next_variation = self.predictable_variation;
+        let mut next_last_outcome_sequence = self.last_outcome_receipt_sequence_id;
         let mut next_last_outcome = self.last_outcome_receipt_sha256;
 
-        if let Some((missed, outcome_receipt)) = miss_indicator {
+        if let Some((missed, outcome_sequence, outcome_receipt)) = miss_indicator {
             let previous_bounded_mean = if self.bounded_episode_count == 0 {
                 0.0
             } else {
@@ -314,6 +344,7 @@ impl AnytimeEpisodeCoverageAudit {
                     .checked_add(1)
                     .ok_or(AnytimeEpisodeCoverageError::CounterOverflow)?;
             }
+            next_last_outcome_sequence = Some(outcome_sequence);
             next_last_outcome = Some(outcome_receipt);
         } else {
             next_abstentions = next_abstentions
@@ -330,9 +361,11 @@ impl AnytimeEpisodeCoverageAudit {
         self.abstention_count = next_abstentions;
         self.missed_episode_count = next_misses;
         self.predictable_variation = next_variation;
+        self.last_episode_id = Some(event.episode_id);
         self.last_episode_sequence_id = Some(event.episode_sequence_id);
         self.last_decision_receipt_sequence_id = Some(event.decision_receipt_sequence_id);
         self.last_decision_receipt_sha256 = Some(event.decision_receipt_sha256);
+        self.last_outcome_receipt_sequence_id = next_last_outcome_sequence;
         self.last_outcome_receipt_sha256 = next_last_outcome;
 
         self.report()
@@ -400,6 +433,7 @@ mod tests {
             decision_receipt_sha256: digest(sequence, 0xA1),
             bounded_set_issued: bounded,
             missed,
+            outcome_receipt_sequence_id: if bounded { Some(sequence) } else { None },
             outcome_receipt_sha256: if bounded {
                 Some(digest(sequence, 0xB2))
             } else {
