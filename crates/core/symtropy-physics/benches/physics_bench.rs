@@ -402,10 +402,10 @@ impl PcaSap {
         axis /= norm;
 
         // Fix the sign ambiguity of eigenvectors for deterministic ordering.
-        if let Some(pivot) = axis.iter().position(|component| component.abs() > 1e-12) {
-            if axis[pivot] < 0.0 {
-                axis = -axis;
-            }
+        if let Some(pivot) = axis.iter().position(|component| component.abs() > 1e-12)
+            && axis[pivot] < 0.0
+        {
+            axis = -axis;
         }
         axis
     }
