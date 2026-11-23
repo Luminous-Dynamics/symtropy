@@ -1,0 +1,74 @@
+{
+  "contract_id": "ehd_piv_structure_preservation_v0_1",
+  "version": "0.1.0",
+  "status": "manufactured_2d_metric_kernel_not_physical_validation",
+  "issue": 7209,
+  "derivative": {
+    "quantity": "omega=dv_dx-du_dy",
+    "stencil": "centered_five_point",
+    "boundary": "only evaluate where center and four cardinal neighbours lie inside the declared evaluation domain",
+    "grid_spacing": "explicit positive finite dx and dy"
+  },
+  "weak_structure_estimand": {
+    "definition": "reference-defined band weak_vorticity_min <= abs(omega_ref) <= weak_vorticity_max",
+    "retention": "prediction exists, sign agrees and abs(omega_pred) >= minimum_retained_amplitude_fraction * abs(omega_ref)",
+    "background": "abs(omega_ref) < weak_vorticity_min",
+    "strong_reference_regions": "excluded from weak-positive and background false-support denominators"
+  },
+  "metrics": [
+    "relative_l2_on_available_vectors",
+    "normalized_rmse_on_available_vectors",
+    "vector_coverage_fraction",
+    "relative_vorticity_l2_on_available_cells",
+    "derivative_coverage_fraction",
+    "weak_structure_recall",
+    "weak_structure_precision",
+    "weak_structure_dice",
+    "weak_structure_sign_agreement",
+    "weak_structure_signed_amplitude_ratio",
+    "weak_structure_signed_amplitude_bias",
+    "false_support_rate_in_background"
+  ],
+  "prospective_targets": {
+    "weak_structure_recall": 0.95,
+    "false_support_rate_in_background": 0.05,
+    "amplitude_bias_abs_max": 0.05,
+    "require_cluster_bootstrap_for_empirical_data": true,
+    "compare_at_matched_relative_l2": true,
+    "compare_at_matched_vector_retention": true
+  },
+  "baselines": [
+    "no_removal",
+    "local_median",
+    "universal_outlier_detection",
+    "adaptive_gaussian_window",
+    "PIVPostProcess",
+    "vector_imputation",
+    "POD",
+    "LSE",
+    "SAMM_RR",
+    "SVGP_KAN",
+    "covariance_aware_GP",
+    "HDC_CfC_experimental_challenger"
+  ],
+  "manufactured_cases": [
+    "exact_field",
+    "weak_vortex_erasure",
+    "weak_vortex_attenuation",
+    "vorticity_sign_reversal",
+    "invented_vortex_false_support",
+    "missing_vectors_on_weak_structure",
+    "irregular_domain_mask",
+    "reference_holes",
+    "nonfinite_values",
+    "insufficient_coverage"
+  ],
+  "explicit_nonclaims": [
+    "no_PIV_image_processing",
+    "no_real_flow_vortex_classifier",
+    "no_3D_validation",
+    "no_empirical_uncertainty_calibration",
+    "no_physical_EHD_experiment",
+    "no_SOTA_superiority_claim"
+  ]
+}
