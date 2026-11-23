@@ -127,8 +127,12 @@ fn validate_patch(
         if direction.id.trim().is_empty() || !direction_ids.insert(direction.id.as_str()) {
             return Err(OracleError::new("direction IDs must be non-empty and unique"));
         }
-        if !is_finite_vector(&direction.components) || stable_norm(&direction.components) == 0.0 {
-            return Err(OracleError::new("wrench directions must be finite and non-zero"));
+        let direction_norm = stable_norm(&direction.components);
+        if !is_finite_vector(&direction.components)
+            || direction_norm == 0.0
+            || !direction_norm.is_finite()
+        {
+            return Err(OracleError::new("wrench directions must have finite non-zero norm"));
         }
     }
 
@@ -267,20 +271,20 @@ pub fn evaluate_retained_set(
     build_report(patch, &points, &directions, &indices, 1)
 }
 
-fn combination_count(n: usize, k: usize) -> u64 {
+fn combination_count(n: usize, k: usize) -> Result<u64, OracleError> {
     let reduced_k = k.min(n - k);
     let mut value = 1_u128;
     for index in 1..=reduced_k {
         let numerator = (n - reduced_k + index) as u128;
-        let Some(product) = value.checked_mul(numerator) else {
-            return u64::MAX;
-        };
+        let product = value
+            .checked_mul(numerator)
+            .ok_or_else(|| OracleError::new("combination count exceeds u128"))?;
         value = product / index as u128;
         if value > u64::MAX as u128 {
-            return u64::MAX;
+            return Err(OracleError::new("combination count exceeds u64"));
         }
     }
-    value as u64
+    Ok(value as u64)
 }
 
 fn compare_reports(left: &WrenchSupportReport, right: &WrenchSupportReport) -> Ordering {
@@ -327,7 +331,7 @@ pub fn select_exact_subset(
     if config.maximum_subsets == 0 {
         return Err(OracleError::new("maximum_subsets must be positive"));
     }
-    let total = combination_count(points.len(), config.keep);
+    let total = combination_count(points.len(), config.keep)?;
     if total > config.maximum_subsets {
         return Err(OracleError::new(format!(
             "exact search requires {total} subsets, exceeding configured maximum {}",
