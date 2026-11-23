@@ -485,6 +485,7 @@ fn validate_attempt_observer_assurance(
                 artifact_ids,
                 artifact_hashes,
                 observation_ids,
+                &operational_owner_ids,
             )?;
             if !observer_proofs_are_independent(physical, downstream) {
                 return Err(LineageError::ObserverQuorumUnqualified);
@@ -527,7 +528,6 @@ fn validate_recovery_handoff(
         artifact_ids,
         artifact_hashes,
         observation_ids,
-        &operational_owner_ids,
     )?;
 
     if !matches!(
