@@ -1,5 +1,6 @@
-use surface_sampling_density_bench::audit_corpus;
 use std::{env, fs, process};
+
+use surface_sampling_density_bench::audit_corpus;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
