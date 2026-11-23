@@ -1054,7 +1054,8 @@ mod tests {
             })]
         );
         let payload = vec![0xA5; 256];
-        let derived = receipt(&payload);
+        let mut derived = receipt(&payload);
+        derived.parent_acquisition_result_sha256 = parent.result_event_sha256.clone();
         assert!(validate_derived_receipt(&derived, &parent, &payload, 20).is_ok());
     }
 
