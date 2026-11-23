@@ -116,6 +116,116 @@ fn leaf_index(idx: u32) -> usize {
     (idx & !LEAF_BIT) as usize
 }
 
+/// Work counters for one LBVH pair-query traversal.
+///
+/// These counters describe traversal work, not physical-contact work. In
+/// particular, a candidate pair is only an AABB-overlap result; narrowphase
+/// and solver acceptance are separate stages. Counters are collected only
+/// when callers opt in through `query_pairs_with_stats`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct BroadphaseQueryStats {
+    /// Internal BVH nodes popped from the traversal stack.
+    pub internal_nodes_visited: usize,
+    /// Leaf nodes popped from the traversal stack.
+    pub leaf_nodes_visited: usize,
+    /// Tests of an outer leaf AABB against an internal node AABB.
+    pub internal_aabb_tests: usize,
+    /// Internal-node AABB tests that rejected the entire subtree.
+    pub internal_aabb_rejects: usize,
+    /// Ordered leaf pairs encountered (`other_index > leaf_index`).
+    pub ordered_leaf_pair_encounters: usize,
+    /// Leaf-pair combinations rejected because both bodies are static.
+    pub static_static_pair_rejects: usize,
+    /// Leaf-pair combinations rejected by bilateral collision filters.
+    pub collision_filter_rejects: usize,
+    /// Leaf-pair AABB overlap tests after static and filter checks.
+    pub leaf_pair_aabb_tests: usize,
+    /// Leaf-pair AABB tests that rejected the pair.
+    pub leaf_pair_aabb_rejects: usize,
+    /// Pairs emitted after leaf AABB overlap, before final sort/dedup.
+    pub pairs_emitted: usize,
+    /// Unique canonical pairs returned to the caller.
+    pub unique_pairs: usize,
+}
+
+trait BroadphaseQueryObserver {
+    #[inline(always)]
+    fn internal_node_visited(&mut self) {}
+    #[inline(always)]
+    fn leaf_node_visited(&mut self) {}
+    #[inline(always)]
+    fn internal_aabb_test(&mut self, _overlaps: bool) {}
+    #[inline(always)]
+    fn ordered_leaf_pair_encountered(&mut self) {}
+    #[inline(always)]
+    fn static_static_pair_rejected(&mut self) {}
+    #[inline(always)]
+    fn collision_filter_rejected(&mut self) {}
+    #[inline(always)]
+    fn leaf_pair_aabb_test(&mut self, _overlaps: bool) {}
+    #[inline(always)]
+    fn pair_emitted(&mut self) {}
+    #[inline(always)]
+    fn set_unique_pairs(&mut self, _count: usize) {}
+}
+
+struct NoopBroadphaseQueryObserver;
+
+impl BroadphaseQueryObserver for NoopBroadphaseQueryObserver {}
+
+impl BroadphaseQueryObserver for BroadphaseQueryStats {
+    #[inline(always)]
+    fn internal_node_visited(&mut self) {
+        self.internal_nodes_visited += 1;
+    }
+
+    #[inline(always)]
+    fn leaf_node_visited(&mut self) {
+        self.leaf_nodes_visited += 1;
+    }
+
+    #[inline(always)]
+    fn internal_aabb_test(&mut self, overlaps: bool) {
+        self.internal_aabb_tests += 1;
+        if !overlaps {
+            self.internal_aabb_rejects += 1;
+        }
+    }
+
+    #[inline(always)]
+    fn ordered_leaf_pair_encountered(&mut self) {
+        self.ordered_leaf_pair_encounters += 1;
+    }
+
+    #[inline(always)]
+    fn static_static_pair_rejected(&mut self) {
+        self.static_static_pair_rejects += 1;
+    }
+
+    #[inline(always)]
+    fn collision_filter_rejected(&mut self) {
+        self.collision_filter_rejects += 1;
+    }
+
+    #[inline(always)]
+    fn leaf_pair_aabb_test(&mut self, overlaps: bool) {
+        self.leaf_pair_aabb_tests += 1;
+        if !overlaps {
+            self.leaf_pair_aabb_rejects += 1;
+        }
+    }
+
+    #[inline(always)]
+    fn pair_emitted(&mut self) {
+        self.pairs_emitted += 1;
+    }
+
+    #[inline(always)]
+    fn set_unique_pairs(&mut self, count: usize) {
+        self.unique_pairs = count;
+    }
+}
+
 #[derive(Clone, Debug)]
 struct BvhNode<const D: usize> {
     aabb: Aabb<D>,
@@ -240,11 +350,40 @@ impl<const D: usize> Lbvh<D> {
         idx
     }
 
+    /// Query candidate pairs without collecting traversal diagnostics.
+    ///
+    /// The no-op observer is a zero-sized generic so its recording methods
+    /// can be eliminated by monomorphization/inlining. Use
+    /// `query_pairs_with_stats` when an experiment explicitly needs counters.
     pub fn query_pairs(&self, bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+        self.query_pairs_impl(bodies, &mut NoopBroadphaseQueryObserver)
+    }
+
+    /// Query candidate pairs and return an opt-in traversal-work receipt.
+    ///
+    /// The receipt describes only this LBVH traversal. It does not include
+    /// tree construction, static-cache work, narrowphase, contact generation,
+    /// or solver work; benchmark campaigns should measure those separately.
+    pub fn query_pairs_with_stats(
+        &self,
+        bodies: &[RigidBody<D>],
+    ) -> (Vec<BroadphasePair>, BroadphaseQueryStats) {
+        let mut stats = BroadphaseQueryStats::default();
+        let pairs = self.query_pairs_impl(bodies, &mut stats);
+        (pairs, stats)
+    }
+
+    fn query_pairs_impl<O: BroadphaseQueryObserver>(
+        &self,
+        bodies: &[RigidBody<D>],
+        observer: &mut O,
+    ) -> Vec<BroadphasePair> {
         let n = self.sorted_indices.len();
         if n <= 1 {
+            observer.set_unique_pairs(0);
             return Vec::new();
         }
+
         let mut pairs = Vec::new();
         let root = (self.nodes.len() - 1) as u32;
         for li in 0..n {
@@ -254,19 +393,26 @@ impl<const D: usize> Lbvh<D> {
             stack.push(root);
             while let Some(ni) = stack.pop() {
                 if is_leaf(ni) {
+                    observer.leaf_node_visited();
                     let oi = leaf_index(ni);
                     if oi > li {
+                        observer.ordered_leaf_pair_encountered();
                         let ot = bodies[self.sorted_indices[oi]].body_type;
                         if lt == BodyType::Static && ot == BodyType::Static {
+                            observer.static_static_pair_rejected();
                             continue;
                         }
                         if !should_collide(
                             &bodies[self.sorted_indices[li]],
                             &bodies[self.sorted_indices[oi]],
                         ) {
+                            observer.collision_filter_rejected();
                             continue;
                         }
-                        if la.overlaps(&self.leaf_aabbs[oi]) {
+
+                        let overlaps = la.overlaps(&self.leaf_aabbs[oi]);
+                        observer.leaf_pair_aabb_test(overlaps);
+                        if overlaps {
                             let (ha, hb) = (
                                 bodies[self.sorted_indices[li]].handle,
                                 bodies[self.sorted_indices[oi]].handle,
@@ -276,19 +422,26 @@ impl<const D: usize> Lbvh<D> {
                             } else {
                                 pairs.push(BroadphasePair(hb, ha));
                             }
+                            observer.pair_emitted();
                         }
                     }
                     continue;
                 }
+
+                observer.internal_node_visited();
                 let node = &self.nodes[ni as usize];
-                if la.overlaps(&node.aabb) {
+                let overlaps = la.overlaps(&node.aabb);
+                observer.internal_aabb_test(overlaps);
+                if overlaps {
                     stack.push(node.left);
                     stack.push(node.right);
                 }
             }
         }
+
         pairs.sort_unstable_by_key(|p| (p.0, p.1));
         pairs.dedup();
+        observer.set_unique_pairs(pairs.len());
         pairs
     }
 }
@@ -607,6 +760,67 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([0.5, 0.5, 0.5]), 0.8, 1.0),
         ];
         assert_eq!(find_pairs(&bodies), find_pairs(&bodies));
+    }
+
+    #[test]
+    fn lbvh_query_stats_match_uninstrumented_pairs_and_explain_traversal_work() {
+        let mut bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::new([0.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(2),
+                Point::new([1.25, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(3),
+                Point::new([20.0, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ),
+        ];
+        // The third body uses a non-matching group/mask pair against the
+        // defaults, exercising the filter-rejection diagnostic.
+        bodies[2].collision_group = 2;
+        bodies[2].collision_mask = 2;
+
+        let tree = Lbvh::build(&bodies);
+        let expected = tree.query_pairs(&bodies);
+        let (instrumented, stats) = tree.query_pairs_with_stats(&bodies);
+
+        assert_eq!(instrumented, expected);
+        assert_eq!(stats.unique_pairs, instrumented.len());
+        assert_eq!(stats.pairs_emitted, instrumented.len());
+        assert!(stats.internal_nodes_visited > 0);
+        assert!(stats.leaf_nodes_visited > 0);
+        assert_eq!(stats.internal_aabb_tests, stats.internal_nodes_visited);
+        assert!(stats.ordered_leaf_pair_encounters > 0);
+        assert!(stats.static_static_pair_rejects > 0);
+        assert!(stats.collision_filter_rejects > 0);
+        assert!(stats.leaf_pair_aabb_tests > 0);
+    }
+
+    #[test]
+    fn lbvh_query_stats_are_zero_for_single_leaf_tree() {
+        let bodies = vec![RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            1.0,
+            1.0,
+        )];
+        let tree = Lbvh::build(&bodies);
+        let (pairs, stats) = tree.query_pairs_with_stats(&bodies);
+        assert!(pairs.is_empty());
+        assert_eq!(stats, BroadphaseQueryStats::default());
     }
 
     #[test]
