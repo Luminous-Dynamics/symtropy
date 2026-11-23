@@ -4,7 +4,7 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere, Transform};
-use symtropy_physics::broadphase::{self, StaticBroadphase};
+use symtropy_physics::broadphase::{self, Aabb, BroadphasePair, StaticBroadphase};
 use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
@@ -220,8 +220,6 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
-
-
 // ═══ Static-heavy broadphase baselines ═══
 
 fn static_heavy_broadphase_scene(
@@ -257,6 +255,39 @@ fn static_heavy_broadphase_scene(
     bodies
 }
 
+fn exhaustive_aabb_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
+    let aabbs: Vec<_> = bodies.iter().map(Aabb::from_body).collect();
+    let mut pairs = Vec::new();
+
+    for i in 0..bodies.len() {
+        for j in (i + 1)..bodies.len() {
+            let a = &bodies[i];
+            let b = &bodies[j];
+
+            if a.body_type == BodyType::Static && b.body_type == BodyType::Static {
+                continue;
+            }
+
+            let filters_allow_pair = (a.collision_group & b.collision_mask != 0)
+                && (b.collision_group & a.collision_mask != 0);
+            if !filters_allow_pair || !aabbs[i].overlaps(&aabbs[j]) {
+                continue;
+            }
+
+            let (handle_a, handle_b) = if a.handle < b.handle {
+                (a.handle, b.handle)
+            } else {
+                (b.handle, a.handle)
+            };
+            pairs.push(BroadphasePair(handle_a, handle_b));
+        }
+    }
+
+    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+    pairs.dedup();
+    pairs
+}
+
 fn bench_broadphase_static_heavy(c: &mut Criterion) {
     let mut group = c.benchmark_group("broadphase_static_heavy_3d");
 
@@ -269,19 +300,25 @@ fn bench_broadphase_static_heavy(c: &mut Criterion) {
             let mut static_cache = StaticBroadphase::new();
             static_cache.rebuild(&bodies);
 
-            // Verify exact candidate-set parity before timing. The full path
-            // is the current LBVH implementation for these scene sizes.
-            let reference_pairs = broadphase::find_pairs(&bodies);
+            // Exhaustively enumerate all AABB pairs, independently of the
+            // LBVH traversal and incremental-cache traversal. Then require
+            // both optimized paths to match this one-sided completeness oracle.
+            let oracle_pairs = exhaustive_aabb_pair_oracle(&bodies);
+            let full_pairs = broadphase::find_pairs(&bodies);
             let incremental_pairs =
                 broadphase::find_pairs_incremental(&bodies, &static_cache);
             assert_eq!(
-                incremental_pairs, reference_pairs,
-                "incremental/full candidate mismatch for static={static_count}, moving={moving_count}"
+                full_pairs, oracle_pairs,
+                "LBVH candidate mismatch for static={static_count}, moving={moving_count}"
+            );
+            assert_eq!(
+                incremental_pairs, oracle_pairs,
+                "incremental candidate mismatch for static={static_count}, moving={moving_count}"
             );
 
             let case = format!(
                 "static_{static_count}_moving_{moving_count}_pairs_{}",
-                reference_pairs.len()
+                oracle_pairs.len()
             );
 
             group.bench_function(
