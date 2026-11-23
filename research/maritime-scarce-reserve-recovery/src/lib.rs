@@ -713,13 +713,20 @@ fn evaluate_sensor(sensor: &SensorSpec) -> CandidateResult {
     let mut world_decisions = Vec::with_capacity(WORLD_COUNT);
     for (world_index, world) in WORLDS.iter().enumerate() {
         let partition = sensor.outcome_partitions[world_index];
-        let action = solution
+        let Some(action) = solution
             .actions_by_partition
             .iter()
             .find(|(candidate_partition, _)| *candidate_partition == partition)
-            .map(|(_, action)| *action)?;
-        let outcome = outcome_for(action, world)?;
-        let best = best_world_outcome(world)?;
+            .map(|(_, action)| *action)
+        else {
+            return blocked("BLOCKED_MISSING_POLICY_PARTITION");
+        };
+        let Some(outcome) = outcome_for(action, world) else {
+            return blocked("BLOCKED_INFEASIBLE_POLICY_ACTION");
+        };
+        let Some(best) = best_world_outcome(world) else {
+            return blocked("BLOCKED_NO_FEASIBLE_REFERENCE_ACTION");
+        };
         world_decisions.push(WorldDecision {
             world_index,
             action,
@@ -729,7 +736,7 @@ fn evaluate_sensor(sensor: &SensorSpec) -> CandidateResult {
         });
     }
 
-    Some(CandidateResult {
+    CandidateResult {
         id: sensor.id,
         mode: sensor.mode,
         status: "EVALUATED",
@@ -738,8 +745,7 @@ fn evaluate_sensor(sensor: &SensorSpec) -> CandidateResult {
         world_decisions,
         evidence_receipts: receipts,
         recommended: false,
-    })
-    .unwrap_or_else(|| unreachable!())
+    }
 }
 
 fn choose_recommendation(results: &[CandidateResult]) -> Option<&'static str> {
