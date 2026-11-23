@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Deterministic synthetic demonstration of omitted-contact KKT refinement.
 
-use unilateral_contact_kkt_oracle::{
-    AdaptiveConfig, UnilateralContactQp, adaptive_refine,
-};
+use unilateral_contact_kkt_oracle::{AdaptiveConfig, UnilateralContactQp, adaptive_refine};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let problem = UnilateralContactQp {
