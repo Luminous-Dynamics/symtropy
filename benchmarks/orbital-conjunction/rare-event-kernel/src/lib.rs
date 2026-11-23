@@ -68,8 +68,8 @@ pub use trajectory::{
 };
 
 pub use col_energy_guard::{
-    ColEnergyGuardConfig, ColEnergyGuardDisposition, ColEnergyGuardInputs,
-    ColEnergyGuardReport, certify_col_energy_path,
+    ColEnergyGuardConfig, ColEnergyGuardDisposition, ColEnergyGuardInputs, ColEnergyGuardReport,
+    certify_col_energy_path,
 };
 pub use coverage::{
     CellSide, CoverageCell, CoverageMassUpperBound, CoverageSplit, Interval,
