@@ -40,6 +40,8 @@ Selected and excluded relation IDs must satisfy the same rules for the complete 
 
 The candidate correspondence must be total and one-to-one over exactly the selected source and target substructures. The witness reports how many source and target nodes/relations were excluded, so the output carries an explicit boundary.
 
+A machine-readable example is provided at [`examples/scoped_transfer_induced_embedding.example.json`](examples/scoped_transfer_induced_embedding.example.json). It illustrates a source substructure embedded into a target while retaining excluded source and target context and binding both sides to evidence-prefix digests.
+
 ## What remains unsupported
 
 This module does not implement:
