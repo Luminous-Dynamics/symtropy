@@ -30,6 +30,7 @@ use core::fmt;
 pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_integrand;
+pub mod orbital_energy;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -39,6 +40,11 @@ pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use orbital_energy::{
+    OrbitalEnergyPathInput, OrbitalEnergyPathReport, OrbitalEnergyPoint,
+    evaluate_orbital_energy_path, evaluate_orbital_energy_path_point,
+    specific_orbital_energy_m2_s2,
 };
 pub use ncdot_integrand::{
     NcdotPointReport, NcdotRateInput, NcdotSphereReport, evaluate_ncdot_direction,
@@ -183,6 +189,12 @@ impl fmt::Display for KernelError {
             Self::InvalidNcdotDirection => "3D-Nc direction must be a finite unit vector",
             Self::NegativeConditionalVelocityVariance => {
                 "conditional velocity covariance has a negative variance direction"
+            }
+            Self::InvalidOrbitalEnergyParameter => {
+                "orbital energy parameters must be finite and physically valid"
+            }
+            Self::InvalidOrbitalEnergyState => {
+                "orbital energy state must have a finite nonzero central-body radius"
             }
             Self::NegativeQuadraticForm => {
                 "positive-definite Mahalanobis quadratic form evaluated negative"
