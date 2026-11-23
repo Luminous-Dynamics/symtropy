@@ -7,7 +7,7 @@ pub const RECEIPT_SCHEMA: &str = "luminous.orbital-sampling-density.receipt.v0.1
 pub const BENCHMARK_ID: &str = "ORBITAL-SAMPLING-DENSITY-001";
 pub const CLAIM_CEILING: &str =
     "synthetic_ray_intersection_density_accounting_on_declared_surface_elements_only";
-pub const CASE_COUNT: usize = 12;
+pub const CASE_COUNT: usize = 13;
 const DENSITY_SCALE: u128 = 1_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -179,7 +179,6 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
             || element.area_um2 == 0
             || element.minimum_density_micro_rays_per_mm2 == 0
             || element.minimum_contributing_views == 0
-            || element.minimum_contributing_views > case.candidate_views.len()
         {
             return Err("SURFACE_ELEMENT_ID_AREA_OR_TARGET_INVALID".to_owned());
         }
@@ -191,9 +190,6 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
         if ray_view_ids.len() != element.ray_counts.len() || ray_view_ids != candidate_ids {
             return Err("RAY_COUNT_MATRIX_MUST_MATCH_CANDIDATE_VIEWS_EXACTLY".to_owned());
         }
-    }
-    if case.max_selected_views > case.candidate_views.len() {
-        return Err("MAX_SELECTED_VIEWS_EXCEEDS_CANDIDATE_POOL".to_owned());
     }
     Ok(())
 }
@@ -264,7 +260,7 @@ fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
         provenance_complete &= element_provenance_complete;
 
         let selected_density_numerator = u128::from(selected_total)
-            .checked_mul(DENSITY_SCALE)
+            .checked_mul(DENSITY_SCALE * DENSITY_SCALE)
             .ok_or_else(|| "DENSITY_RATIONAL_NUMERATOR_OVERFLOW".to_owned())?;
         elements.push(ElementDensityReport {
             element_id: element.element_id.clone(),
@@ -434,6 +430,32 @@ mod tests {
             b.selected_total_intersections
         );
         assert_eq!(b.area_um2, a.area_um2 * 10);
+    }
+
+    #[test]
+    fn density_rational_numerator_uses_micro_rays_per_square_millimetre_units() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
+        let report = evaluate_case(&corpus.cases[0]).unwrap().elements[0].clone();
+        assert_eq!(report.selected_total_intersections, 1);
+        assert_eq!(
+            report.selected_density_rational_numerator_micro_mm2,
+            "1000000000000"
+        );
+        assert_eq!(report.density_rational_denominator_area_um2, 1_000_000);
+    }
+
+    #[test]
+    fn requested_contributing_views_above_candidate_pool_is_infeasible_not_invalid() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
+        let case = &corpus.cases[12];
+        let receipt = evaluate_case(case).unwrap();
+        assert_eq!(receipt.status, DensityStatus::Infeasible);
+        assert!(!receipt.candidate_pool_sufficient);
+        assert!(receipt.selected_view_budget_met);
+        assert_eq!(receipt.candidate_view_count, 3);
+        assert_eq!(receipt.max_selected_views, 9);
+        assert_eq!(receipt.elements[0].candidate_contributing_views, 1);
+        assert_eq!(receipt.elements[0].minimum_contributing_views, 4);
     }
 
     #[test]

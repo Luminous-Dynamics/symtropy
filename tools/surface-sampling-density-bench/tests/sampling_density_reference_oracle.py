@@ -10,7 +10,7 @@ CORPUS_SCHEMA = "luminous.orbital-sampling-density.corpus.v0.1"
 RECEIPT_SCHEMA = "luminous.orbital-sampling-density.receipt.v0.1"
 BENCHMARK_ID = "ORBITAL-SAMPLING-DENSITY-001"
 CLAIM_CEILING = "synthetic_ray_intersection_density_accounting_on_declared_surface_elements_only"
-CASE_COUNT = 12
+CASE_COUNT = 13
 SCALE = 1_000_000
 
 
@@ -58,16 +58,13 @@ def validation_reason(case):
                 or element["element_id"] in seen_elements
                 or element["area_um2"] == 0
                 or element["minimum_density_micro_rays_per_mm2"] == 0
-                or element["minimum_contributing_views"] == 0
-                or element["minimum_contributing_views"] > len(case["candidate_views"])):
+                or element["minimum_contributing_views"] == 0):
             return "SURFACE_ELEMENT_ID_AREA_OR_TARGET_INVALID"
         seen_elements.add(element["element_id"])
         row_ids = [row["view_id"] for row in element["ray_counts"]]
         if len(row_ids) != len(set(row_ids)) or set(row_ids) != candidates:
             return "RAY_COUNT_MATRIX_MUST_MATCH_CANDIDATE_VIEWS_EXACTLY"
 
-    if case["max_selected_views"] > len(case["candidate_views"]):
-        return "MAX_SELECTED_VIEWS_EXCEEDS_CANDIDATE_POOL"
     return None
 
 
@@ -87,8 +84,7 @@ def evaluate(case):
         if (not element["element_id"].strip() or not element["mesh_revision_id"].strip()
                 or element["element_id"] in element_ids or element["area_um2"] <= 0
                 or element["minimum_density_micro_rays_per_mm2"] <= 0
-                or element["minimum_contributing_views"] <= 0
-                or element["minimum_contributing_views"] > len(candidates)):
+                or element["minimum_contributing_views"] <= 0):
             return invalid_case(case)
         element_ids.add(element["element_id"])
         rows = element["ray_counts"]
@@ -135,7 +131,7 @@ def evaluate(case):
             "candidate_view_count_meets_target": candidate_view_target,
             "selected_view_count_meets_target": selected_view_target,
             "provenance_complete": element_provenance,
-            "selected_density_rational_numerator_micro_mm2": str(selected_hits * SCALE),
+            "selected_density_rational_numerator_micro_mm2": str(selected_hits * SCALE * SCALE),
             "density_rational_denominator_area_um2": element["area_um2"],
             "view_contributions": contributions,
         })

@@ -561,6 +561,48 @@
         }
       ],
       "expected_status": "FEASIBLE"
+    },
+    {
+      "case_id": "SD-013-REQUESTED-K-EXCEEDS-AVAILABLE-VIEWS",
+      "coordinate_frame_id": "SAMPLING-FRAME",
+      "area_unit": "SQUARE_MICROMETRE",
+      "density_unit": "RAYS_PER_SQUARE_MILLIMETRE",
+      "candidate_views": [
+        "V1",
+        "V2",
+        "V3"
+      ],
+      "selected_view_ids": [
+        "V1"
+      ],
+      "max_selected_views": 9,
+      "elements": [
+        {
+          "element_id": "E1",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 1000000,
+          "minimum_density_micro_rays_per_mm2": 1000000,
+          "minimum_contributing_views": 4,
+          "ray_counts": [
+            {
+              "view_id": "V1",
+              "intersection_count": 1,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V2",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            },
+            {
+              "view_id": "V3",
+              "intersection_count": 0,
+              "provenance": "EXACT_SYNTHETIC_ORACLE"
+            }
+          ]
+        }
+      ],
+      "expected_status": "INFEASIBLE"
     }
   ]
 }

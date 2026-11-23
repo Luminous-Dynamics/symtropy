@@ -38,11 +38,11 @@ jobs:
           fixture = json.loads(Path("docs/research/orbital-truss/fixtures/sampling-density-v0_1.json").read_text())
           schema = json.loads(Path("docs/research/orbital-truss/sampling_density_v0_1.schema.json").read_text())
           assert fixture["benchmark_id"] == "ORBITAL-SAMPLING-DENSITY-001"
-          assert len(fixture["cases"]) == 12
-          assert len({case["case_id"] for case in fixture["cases"]}) == 12
-          assert schema["properties"]["cases"]["minItems"] == 12
-          assert schema["properties"]["cases"]["maxItems"] == 12
-          print("frozen sampling-density corpus/schema: 12 cases")
+          assert len(fixture["cases"]) == 13
+          assert len({case["case_id"] for case in fixture["cases"]}) == 13
+          assert schema["properties"]["cases"]["minItems"] == 13
+          assert schema["properties"]["cases"]["maxItems"] == 13
+          print("frozen sampling-density corpus/schema: 13 cases")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all -- --check
@@ -55,7 +55,7 @@ jobs:
           cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-a.json
           cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-b.json
           cmp /tmp/sampling-a.json /tmp/sampling-b.json
-          jq -e '.case_count == 12 and .expected_outcome_matches == 12 and .expected_outcome_mismatches == 0 and .authority_granted == false and .physical_validation == "NOT_ASSESSED"' /tmp/sampling-a.json
+          jq -e '.case_count == 13 and .expected_outcome_matches == 13 and .expected_outcome_mismatches == 0 and .authority_granted == false and .physical_validation == "NOT_ASSESSED"' /tmp/sampling-a.json
       - name: Independent oracle and full receipt comparison
         run: |
           python3 tools/surface-sampling-density-bench/tests/sampling_density_reference_oracle.py docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-oracle.json
@@ -66,14 +66,17 @@ jobs:
           oracle = json.loads(Path("/tmp/sampling-oracle.json").read_text())
           assert rust == oracle
           cases = {case["case_id"]: case for case in rust["cases"]}
-          assert rust["expected_outcome_matches"] == 12
+          assert rust["expected_outcome_matches"] == 13
           assert cases["SD-001-EQUAL-AREA-EQUAL-HITS"]["status"] == "FEASIBLE"
           assert cases["SD-002-TENFOLD-AREA-LOWER-DENSITY"]["status"] == "INFEASIBLE"
           assert cases["SD-005-CANDIDATE-POOL-INSUFFICIENT"]["status"] == "INFEASIBLE"
           assert cases["SD-007-UNVERIFIED-RAY-PROVENANCE"]["status"] == "INDETERMINATE"
           assert cases["SD-009-CRITICAL-ELEMENT-NOT-AVERAGED"]["candidate_pool_sufficient"] is False
           assert cases["SD-010-K-VIEWS-AND-DENSITY-ARE-SEPARATE"]["status"] == "BUDGET_INFEASIBLE"
-          print("Rust sampling-density receipt matches independent Python oracle on 12 frozen cases")
+          assert cases["SD-013-REQUESTED-K-EXCEEDS-AVAILABLE-VIEWS"]["status"] == "INFEASIBLE"
+          assert cases["SD-013-REQUESTED-K-EXCEEDS-AVAILABLE-VIEWS"]["candidate_pool_sufficient"] is False
+          assert cases["SD-013-REQUESTED-K-EXCEEDS-AVAILABLE-VIEWS"]["selected_view_budget_met"] is True
+          print("Rust sampling-density receipt matches independent Python oracle on 13 frozen cases")
           PY
       - name: Retain exact-head evidence
         if: success()
