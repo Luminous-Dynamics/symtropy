@@ -384,7 +384,7 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     }
 
     let action_partition_ids = case.actions.iter().map(|action| action.partition_id.as_str()).collect::<BTreeSet<_>>();
-    if action_partition_ids.iter().any(|partition_id| !observed_partitions.contains(**partition_id)) {
+    if action_partition_ids.iter().any(|partition_id| !observed_partitions.contains(*partition_id)) {
         partition_semantics_valid = false;
     }
 
