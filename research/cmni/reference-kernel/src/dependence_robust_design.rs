@@ -251,6 +251,74 @@ mod tests {
         assert!(!ranking.machine_certified_enclosure);
     }
 
+    fn independent_two_observation_eig(
+        problem: &TwoSourceDependenceProblem,
+        correlation: f64,
+    ) -> f64 {
+        let [sigma_1, sigma_2] = problem.source_standard_deviations;
+        let source_covariance = [
+            [sigma_1 * sigma_1, correlation * sigma_1 * sigma_2],
+            [correlation * sigma_1 * sigma_2, sigma_2 * sigma_2],
+        ];
+        let mut observation_covariance = [
+            [
+                problem.independent_observation_noise_variances[0],
+                0.0,
+            ],
+            [
+                0.0,
+                problem.independent_observation_noise_variances[1],
+            ],
+        ];
+        for source_left in 0..2 {
+            for source_right in 0..2 {
+                let covariance = source_covariance[source_left][source_right];
+                observation_covariance[0][0] += problem.source_jacobians[0][source_left]
+                    * covariance
+                    * problem.source_jacobians[0][source_right];
+                observation_covariance[0][1] += problem.source_jacobians[0][source_left]
+                    * covariance
+                    * problem.source_jacobians[1][source_right];
+                observation_covariance[1][1] += problem.source_jacobians[1][source_left]
+                    * covariance
+                    * problem.source_jacobians[1][source_right];
+            }
+        }
+        observation_covariance[1][0] = observation_covariance[0][1];
+
+        let [h_1, h_2] = problem.observation_sensitivities;
+        let r_11 = observation_covariance[0][0];
+        let r_12 = observation_covariance[0][1];
+        let r_22 = observation_covariance[1][1];
+        let determinant = r_11 * r_22 - r_12 * r_12;
+        let information =
+            (h_1 * h_1 * r_22 - 2.0 * h_1 * h_2 * r_12 + h_2 * h_2 * r_11)
+                / determinant;
+        0.5 * (1.0 + problem.prior_parameter_variance * information).ln()
+    }
+
+    #[test]
+    fn analytic_dependence_envelopes_contain_an_independent_dense_grid() {
+        for candidate in [candidate_a(), candidate_b()] {
+            let envelope =
+                bound_two_source_dependence(&candidate.problem).expect("analytic envelope");
+            let [lower, upper] = candidate.problem.correlation_bounds;
+            for step in 0..=1000 {
+                let fraction = step as f64 / 1000.0;
+                let correlation = lower + (upper - lower) * fraction;
+                let direct = independent_two_observation_eig(&candidate.problem, correlation);
+                assert!(
+                    direct >= envelope.expected_information_gain_nats_bounds[0] - 1.0e-10,
+                    "direct EIG {direct} below envelope at rho={correlation}"
+                );
+                assert!(
+                    direct <= envelope.expected_information_gain_nats_bounds[1] + 1.0e-10,
+                    "direct EIG {direct} above envelope at rho={correlation}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn source_receipt_interval_and_source_order_must_match() {
         let mut mismatched_receipt = candidate_b();
