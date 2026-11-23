@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_version_record_equal_spin_replay",
+  "status": "exact_public_source_blob_replayed_locally",
+  "source": {
+    "paper": "Ma and Lu, JHEP 05 (2026) 081",
+    "doi": "10.1007/JHEP05(2026)081",
+    "version": "JHEP version of record, published 2026-05-08",
+    "equations": [
+      "(2.8)",
+      "(2.9)",
+      "(2.12)",
+      "(3.3)",
+      "(3.4)"
+    ]
+  },
+  "verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
+    "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
+    "sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+    "exact_bytes_match": true
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "execution": {
+    "method": "Fetched exact committed public file bytes, verified Git blob SHA-1, decoded without edits, and executed locally.",
+    "command": "python3 verify_ma_lu_version_record_equal_spin.py --output ma_lu_version_record_equal_spin_v1.json",
+    "checks": {
+      "H5_H6_direct_Eq2_12": true,
+      "dpsi2_component": true,
+      "dphi2_component": true,
+      "dphi_dpsi_component": true,
+      "axis_regular": true,
+      "negative_control_missing_x2_factor": true,
+      "negative_control_wrong_H6_sign": true,
+      "fixed_boundary_all_coefficients": true,
+      "GR_limit": true,
+      "ADM_mass_match_through_chi2": true
+    },
+    "result": "ALL_EXACT_SYMBOLIC_CHECKS_PASS"
+  },
+  "supporting_exact_replays": {
+    "equal_spin_parameter_map": {
+      "git_blob_sha1": "30616c178a051f0a2fd120aba8a9d03dfc8c865e",
+      "sha256": "a015c8572071d109d14995f0743453412bfd90100b49dcf53c8e6e9bd0907efd",
+      "result": "pass"
+    },
+    "fixed_boundary_map": {
+      "git_blob_sha1": "f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9",
+      "sha256": "b4ee4ad64b9dbc87893260b4a804216462871a638e4bc592d2498250a41ece67",
+      "result": "pass"
+    },
+    "adm_mass": {
+      "git_blob_sha1": "32d91014925518358ad92395ca6aec020d383d6d",
+      "sha256": "1217a123bacc48643fe3e91b7420e6ec5699dd92c1ec9e936d4963748712f245",
+      "result": "pass"
+    }
+  },
+  "original_symtropy_rows": {
+    "source": "spin2_boundary_map_lambda1_action_rows_v1.json",
+    "local_exact_rational_results": {
+      "Eb": "0",
+      "Ef": "0",
+      "Eg": "0",
+      "Eh": "0"
+    },
+    "Ef_algebraic_reconstruction": "0",
+    "cB": "0",
+    "cH": "0",
+    "B21_prime_at_horizon": "106/9",
+    "H21_at_horizon": "-14/3",
+    "fixture_driven_verifier_exact_public_blob_replay": "pending"
+  },
+  "claim_ceiling": "Exact first-coupling equal-spin slow-rotation overlap through chi^2 for the full angular metric components, fixed boundary map, and asymptotic ADM/Komar mass. The four original Symtropy rows have separate exact local rational results; their latest fixture-driven verifier source replay is pending. No finite-coupling branch, interval existence or hyperbolicity result."
+}
