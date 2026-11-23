@@ -100,6 +100,8 @@ fn run() -> Result<(), String> {
         "delivery_refuted_count": summary.delivery_refuted_count,
         "delivery_unknown_count": summary.delivery_unknown_count,
         "delivery_not_observed_count": summary.delivery_not_observed_count,
+        "delivery_observer_receipt_count": summary.delivery_observer_receipt_count,
+        "required_delivery_observer_quorum": plan.platform.required_delivery_observer_quorum,
         "reconcile_required": summary.reconcile_required,
         "retry_permitted": summary.retry_permitted,
         "native_authority_created": false,
