@@ -296,10 +296,7 @@ fn nearest_rank(values: &mut [u64], percentile: usize) -> Option<u64> {
         return None;
     }
     values.sort_unstable();
-    let rank = percentile
-        .saturating_mul(values.len())
-        .div_ceil(100)
-        .max(1);
+    let rank = percentile.saturating_mul(values.len()).div_ceil(100).max(1);
     values.get(rank - 1).copied()
 }
 
@@ -347,13 +344,15 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         add_error(&mut errors, "capacity_source_identity_or_bounds_invalid");
     } else {
         let hours = input.horizon_seconds as f64 / 3_600.0;
-        let allowed = (capacity.steady_state_cycle_capacity_upper_bound_per_hour
-            * hours
+        let allowed = (capacity.steady_state_cycle_capacity_upper_bound_per_hour * hours
             + capacity.initial_inventory_capacity_allowance_per_hour * hours
             + 1e-9)
             .floor() as u64;
         if u64::from(capacity.max_aerial_opportunities) > allowed {
-            add_error(&mut errors, "aerial_opportunity_budget_exceeds_upstream_capacity_envelope");
+            add_error(
+                &mut errors,
+                "aerial_opportunity_budget_exceeds_upstream_capacity_envelope",
+            );
         }
     }
 
@@ -404,7 +403,10 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         {
             add_error(
                 &mut errors,
-                format!("aerial_opportunity_identity_or_bounds_invalid:{}", opportunity.opportunity_id),
+                format!(
+                    "aerial_opportunity_identity_or_bounds_invalid:{}",
+                    opportunity.opportunity_id
+                ),
             );
         }
         by_aircraft
@@ -428,10 +430,14 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         }
     }
     if input.aerial_opportunities.len() > capacity.max_aerial_opportunities as usize {
-        add_error(&mut errors, "aerial_opportunity_count_exceeds_capacity_source_budget");
+        add_error(
+            &mut errors,
+            "aerial_opportunity_count_exceeds_capacity_source_budget",
+        );
     }
 
-    let mut by_fallback_resource: BTreeMap<&str, Vec<&FallbackServiceOpportunity>> = BTreeMap::new();
+    let mut by_fallback_resource: BTreeMap<&str, Vec<&FallbackServiceOpportunity>> =
+        BTreeMap::new();
     for opportunity in &input.fallback_opportunities {
         let end = opportunity
             .start_seconds
@@ -448,7 +454,10 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         {
             add_error(
                 &mut errors,
-                format!("fallback_opportunity_identity_or_bounds_invalid:{}", opportunity.opportunity_id),
+                format!(
+                    "fallback_opportunity_identity_or_bounds_invalid:{}",
+                    opportunity.opportunity_id
+                ),
             );
         }
         by_fallback_resource
@@ -473,7 +482,13 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
 
     let mut flight_window_ids = BTreeSet::new();
     let mut sorted_windows: Vec<_> = input.flight_windows.iter().collect();
-    sorted_windows.sort_by_key(|window| (window.start_seconds, window.end_seconds, window.window_id.as_str()));
+    sorted_windows.sort_by_key(|window| {
+        (
+            window.start_seconds,
+            window.end_seconds,
+            window.window_id.as_str(),
+        )
+    });
     for window in &sorted_windows {
         if window.window_id.trim().is_empty()
             || !flight_window_ids.insert(window.window_id.as_str())
@@ -491,7 +506,10 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         {
             add_error(
                 &mut errors,
-                format!("flight_window_identity_or_evidence_invalid:{}", window.window_id),
+                format!(
+                    "flight_window_identity_or_evidence_invalid:{}",
+                    window.window_id
+                ),
             );
         }
     }
@@ -510,7 +528,10 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
         {
             add_error(
                 &mut errors,
-                format!("blocked_interval_identity_or_bounds_invalid:{}", interval.interval_id),
+                format!(
+                    "blocked_interval_identity_or_bounds_invalid:{}",
+                    interval.interval_id
+                ),
             );
         }
     }
@@ -600,10 +621,7 @@ fn aerial_block_reason(
     Ok(None)
 }
 
-fn request_priority(
-    request: &ServiceRequest,
-    policy: AdmissionPolicy,
-) -> (u64, u64, String) {
+fn request_priority(request: &ServiceRequest, policy: AdmissionPolicy) -> (u64, u64, String) {
     match policy {
         AdmissionPolicy::FirstComeFirstServed => (
             request.arrival_seconds,
@@ -745,7 +763,11 @@ fn evaluate_policy(
             let mut any_qualified = false;
             let mut reasons = BTreeSet::new();
             for index in &candidates {
-                match aerial_block_reason(input, aerial, input.requests[*index].required_service_seconds) {
+                match aerial_block_reason(
+                    input,
+                    aerial,
+                    input.requests[*index].required_service_seconds,
+                ) {
                     Ok(None) => any_qualified = true,
                     Ok(Some(reason)) => {
                         reasons.insert(reason);
@@ -804,7 +826,9 @@ fn evaluate_policy(
             .checked_add(u64::from(duration))
             .ok_or_else(|| vec!["service_completion_time_overflow".to_owned()])?;
         let latency = completion.saturating_sub(request.arrival_seconds);
-        let wait = opportunity.start_seconds.saturating_sub(request.arrival_seconds);
+        let wait = opportunity
+            .start_seconds
+            .saturating_sub(request.arrival_seconds);
         assignments.insert(
             request.request_id.clone(),
             Assignment {
@@ -916,9 +940,7 @@ fn evaluate_policy(
         .filter(|outcome| {
             matches!(
                 outcome.fulfilment_mode,
-                Some(
-                    FulfilmentMode::GroundCourier | FulfilmentMode::Locker | FulfilmentMode::Amr
-                )
+                Some(FulfilmentMode::GroundCourier | FulfilmentMode::Locker | FulfilmentMode::Amr)
             )
         })
         .count();
@@ -972,8 +994,14 @@ fn evaluate_policy(
         fallback_opportunities_unused,
         max_waiting_requests_peak,
         completed_requests_per_hour: total_completed as f64 / horizon_hours,
-        aerial_opportunity_utilization_percent: percent(served_by_aerial, input.aerial_opportunities.len()),
-        fallback_opportunity_utilization_percent: percent(served_by_fallback, input.fallback_opportunities.len()),
+        aerial_opportunity_utilization_percent: percent(
+            served_by_aerial,
+            input.aerial_opportunities.len(),
+        ),
+        fallback_opportunity_utilization_percent: percent(
+            served_by_fallback,
+            input.fallback_opportunities.len(),
+        ),
         fallback_share_of_completed_percent: percent(served_by_fallback, total_completed),
         on_time_rate_of_offered_percent: percent(completed_on_time, offered_requests),
         on_time_rate_of_accepted_percent: percent(completed_on_time, accepted_requests),
@@ -1023,8 +1051,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> ServiceQualityInput {
-        serde_json::from_str(include_str!("../fixtures/sustainable_mobility_service_quality_v0_1.json"))
-            .expect("frozen request stream fixture must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/sustainable_mobility_service_quality_v0_1.json"
+        ))
+        .expect("frozen request stream fixture must parse")
     }
 
     fn evaluate(policy: AdmissionPolicy) -> ServicePolicyResult {
@@ -1040,8 +1070,14 @@ mod tests {
     fn fixture_reports_both_online_admission_policies() {
         let report = evaluate_service_quality(&fixture()).expect("frozen fixture");
         assert_eq!(report.policy_results.len(), 2);
-        assert_eq!(report.policy_results[0].policy, AdmissionPolicy::FirstComeFirstServed);
-        assert_eq!(report.policy_results[1].policy, AdmissionPolicy::EarliestDeadlineFirst);
+        assert_eq!(
+            report.policy_results[0].policy,
+            AdmissionPolicy::FirstComeFirstServed
+        );
+        assert_eq!(
+            report.policy_results[1].policy,
+            AdmissionPolicy::EarliestDeadlineFirst
+        );
         for result in report.policy_results {
             assert_eq!(
                 result.completed_on_time + result.completed_late + result.unserved_requests,
@@ -1103,14 +1139,28 @@ mod tests {
 
         let fcfs = {
             input.policies = vec![AdmissionPolicy::FirstComeFirstServed];
-            evaluate_service_quality(&input).expect("FCFS").policy_results.remove(0)
+            evaluate_service_quality(&input)
+                .expect("FCFS")
+                .policy_results
+                .remove(0)
         };
         let edf = {
             input.policies = vec![AdmissionPolicy::EarliestDeadlineFirst];
-            evaluate_service_quality(&input).expect("EDF").policy_results.remove(0)
+            evaluate_service_quality(&input)
+                .expect("EDF")
+                .policy_results
+                .remove(0)
         };
-        let first_fcfs = fcfs.outcomes.iter().find(|o| o.service_start_seconds == Some(100)).unwrap();
-        let first_edf = edf.outcomes.iter().find(|o| o.service_start_seconds == Some(100)).unwrap();
+        let first_fcfs = fcfs
+            .outcomes
+            .iter()
+            .find(|o| o.service_start_seconds == Some(100))
+            .unwrap();
+        let first_edf = edf
+            .outcomes
+            .iter()
+            .find(|o| o.service_start_seconds == Some(100))
+            .unwrap();
         assert_eq!(first_fcfs.request_id, "long");
         assert_eq!(first_edf.request_id, "urgent");
     }
@@ -1142,15 +1192,25 @@ mod tests {
         let mut input = fixture();
         input.flight_windows[0].evidence.valid_until_seconds = 1;
         let errors = evaluate_service_quality(&input).expect_err("window evidence expires early");
-        assert!(errors.iter().any(|error| error.starts_with("flight_window_identity_or_evidence_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("flight_window_identity_or_evidence_invalid"))
+        );
     }
 
     #[test]
     fn future_weather_observation_is_rejected_as_information_leakage() {
         let mut input = fixture();
-        input.flight_windows[0].evidence.observed_at_seconds = input.flight_windows[0].start_seconds + 1;
-        let errors = evaluate_service_quality(&input).expect_err("future observation cannot be known");
-        assert!(errors.iter().any(|error| error.starts_with("flight_window_identity_or_evidence_invalid")));
+        input.flight_windows[0].evidence.observed_at_seconds =
+            input.flight_windows[0].start_seconds + 1;
+        let errors =
+            evaluate_service_quality(&input).expect_err("future observation cannot be known");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("flight_window_identity_or_evidence_invalid"))
+        );
     }
 
     #[test]
@@ -1249,9 +1309,14 @@ mod tests {
     #[test]
     fn overlapping_aerial_opportunities_on_one_aircraft_are_rejected() {
         let mut input = fixture();
-        input.aerial_opportunities[1].start_seconds = input.aerial_opportunities[0].start_seconds + 1;
+        input.aerial_opportunities[1].start_seconds =
+            input.aerial_opportunities[0].start_seconds + 1;
         let errors = evaluate_service_quality(&input).expect_err("overlapping aircraft use");
-        assert!(errors.iter().any(|error| error.starts_with("aerial_opportunities_overlap_on_aircraft")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("aerial_opportunities_overlap_on_aircraft"))
+        );
     }
 
     #[test]
@@ -1277,7 +1342,9 @@ mod tests {
             service_class: "standard".to_owned(),
             allowed_mode: ServiceMode::AerialOnly,
         }];
-        input.aerial_opportunities.retain(|op| op.start_seconds > 500);
+        input
+            .aerial_opportunities
+            .retain(|op| op.start_seconds > 500);
         input.fallback_opportunities.clear();
         let result = evaluate_service_quality(&input).expect("unserved request");
         assert_eq!(result.policy_results[0].unserved_requests, 1);
@@ -1328,7 +1395,9 @@ mod tests {
         for outcome in &result.policy_results[0].outcomes {
             match outcome.request_id.as_str() {
                 "aerial-only" => assert_eq!(outcome.fulfilment_mode, Some(FulfilmentMode::Aerial)),
-                "fallback-only" => assert_ne!(outcome.fulfilment_mode, Some(FulfilmentMode::Aerial)),
+                "fallback-only" => {
+                    assert_ne!(outcome.fulfilment_mode, Some(FulfilmentMode::Aerial))
+                }
                 _ => panic!("unknown request"),
             }
         }
