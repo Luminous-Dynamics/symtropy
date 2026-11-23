@@ -111,3 +111,19 @@ See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md). The current implementation
 ## Cross-event chronology
 
 The validator now checks chronology across the ordered fault schedule, not only within each event. After target/dispatch/execution/observation receipts for event N, the first available receipt for event N+1 may not move backwards in simulation step or simulation time. All events retain the reset receipt's clock identity and run/world epochs. A locally ordered event cannot be replayed out of sequence in the larger campaign trace.
+
+## Multi-observer delivery quorum
+
+A single distinct observer ID is not enough to confirm fault delivery. The campaign platform profile pins a delivery-observer quorum of at least two members. Each member has an observer ID, software revision, binary SHA-256 and a complete declared common-cause dependency set.
+
+For a Confirmed or Refuted delivery:
+- the number of observation members must meet the pinned quorum;
+- every member must match a pinned observer profile exactly;
+- observer IDs, evidence IDs, raw artifact IDs and artifact digests must be unique;
+- dependency sets must be pairwise disjoint and must not overlap the injector's declared failure domain;
+- every observation receipt must bind the same planned fault, target, run/world epoch, cut point and simulation clock;
+- all Confirmed members must report the exact plan-committed signature; all Refuted members must report a valid different signature.
+
+A missing member, shared host/power/clock/network/firmware dependency, or unpinned observer build rejects the quorum. Unknown and NotObserved states carry no quorum members and cannot become a Confirmed claim.
+
+This is independence relative to the pinned dependency graph, not proof of universal physical independence. HIL and physical campaigns must still test whether the declared common-cause graph is complete.
