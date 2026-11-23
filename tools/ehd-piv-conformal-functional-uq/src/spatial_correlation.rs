@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Compact-support spatial covariance for PIV interrogation-window errors.
 //!
 //! Adds Cov(delta_u_i, delta_u_j) = K(x_i,x_j) C_component to the local
