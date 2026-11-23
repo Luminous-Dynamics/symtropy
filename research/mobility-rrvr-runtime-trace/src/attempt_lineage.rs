@@ -366,6 +366,7 @@ fn validate_observer_claim<'a>(
     artifact_ids: &mut BTreeSet<String>,
     artifact_hashes: &mut BTreeSet<String>,
     observation_ids: &mut BTreeSet<String>,
+    operational_owner_ids: &BTreeSet<String>,
 ) -> Result<&'a ObserverQuorumProof, LineageError> {
     let claim_id = evidence
         .claim_id
@@ -396,6 +397,11 @@ fn validate_observer_claim<'a>(
         || !nonempty(&evidence.evidence_id)
         || !nonempty(&evidence.raw_artifact_id)
         || !valid_sha256(&evidence.raw_artifact_sha256)
+        || operational_owner_ids.contains(&evidence.owner_id)
+        || quorum
+            .members
+            .iter()
+            .any(|member| operational_owner_ids.contains(&member.observer_id))
         || quorum.fault_model_revision != fault_profile_revision
         || claim_scope_sha256 != expected_claim_scope_sha256.as_str()
     {
@@ -441,6 +447,16 @@ fn validate_attempt_observer_assurance(
         .as_ref()
         .ok_or(LineageError::MissingObserverAssurance)?;
     let scope = evidence_scope(logical_effect_id, attempt);
+    let operational_owner_ids: BTreeSet<String> = [
+        &attempt.persistence.receipt.owner_id,
+        &attempt.physical_outcome.receipt.owner_id,
+        &attempt.mission_resolution.receipt.owner_id,
+        &attempt.controller_queue_fence.receipt.owner_id,
+        &attempt.downstream_quiescence.receipt.owner_id,
+    ]
+    .iter()
+    .map(|owner_id| (*owner_id).clone())
+    .collect();
 
     let physical = validate_observer_claim(
         &assurance.physical_outcome,
@@ -453,6 +469,7 @@ fn validate_attempt_observer_assurance(
         artifact_ids,
         artifact_hashes,
         observation_ids,
+        &operational_owner_ids,
     )?;
 
     match &assurance.downstream_quiescence {
@@ -510,6 +527,7 @@ fn validate_recovery_handoff(
         artifact_ids,
         artifact_hashes,
         observation_ids,
+        &operational_owner_ids,
     )?;
 
     if !matches!(
@@ -570,6 +588,20 @@ impl AttemptLineageRecording {
         let mut observer_artifact_ids = BTreeSet::new();
         let mut observer_artifact_hashes = BTreeSet::new();
         let mut observer_observation_ids = BTreeSet::new();
+        // Observer artifacts must be different from all owner-supplied operational
+        // receipts, not merely from one another.
+        for attempt in &self.attempts {
+            for receipt in [
+                &attempt.persistence.receipt,
+                &attempt.physical_outcome.receipt,
+                &attempt.mission_resolution.receipt,
+                &attempt.controller_queue_fence.receipt,
+                &attempt.downstream_quiescence.receipt,
+            ] {
+                observer_artifact_ids.insert(receipt.raw_artifact_id.clone());
+                observer_artifact_hashes.insert(receipt.raw_artifact_sha256.clone());
+            }
+        }
         let mut applied_attempt_count = 0usize;
 
         for (index, attempt) in self.attempts.iter().enumerate() {
@@ -799,6 +831,71 @@ mod tests {
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
+    fn refuses_subject_owner_as_observer_or_observer_envelope_owner() {
+        let mut member_self_report = valid_recording();
+        let subject_owner = member_self_report.attempts[0]
+            .physical_outcome
+            .receipt
+            .owner_id
+            .clone();
+        member_self_report.attempts[0]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
+            .observer_id = subject_owner.clone();
+        assert_eq!(
+            member_self_report.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+
+        let mut envelope_self_report = valid_recording();
+        let subject_owner = envelope_self_report.attempts[0]
+            .physical_outcome
+            .receipt
+            .owner_id
+            .clone();
+        envelope_self_report.attempts[0]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .owner_id = subject_owner;
+        assert_eq!(
+            envelope_self_report.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
+    fn refuses_observer_artifact_reused_from_operational_owner_receipt() {
+        let mut recording = valid_recording();
+        let owner_artifact = recording.attempts[0]
+            .physical_outcome
+            .receipt
+            .raw_artifact_id
+            .clone();
+        recording.attempts[0]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
+            .raw_artifact_id = owner_artifact;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverQuorumUnqualified)
         );
     }
 
