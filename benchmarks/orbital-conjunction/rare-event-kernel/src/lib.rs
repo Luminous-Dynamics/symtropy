@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod conditional_velocity;
 pub mod coverage;
+pub mod latent_mission_risk;
 pub mod lebedev;
 pub mod ncdot_refinement;
 pub mod ncdot_sphere;
@@ -49,6 +50,10 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use latent_mission_risk::{
+    ConditionalDependenceMode, LatentConjunctionRiskCell, LatentMissionRiskError,
+    LatentMissionRiskReport, SharedLatentState, aggregate_latent_mission_collision_risk,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
