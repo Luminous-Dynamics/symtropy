@@ -28,7 +28,7 @@ The paper's Lemma 4.1 provides a time-uniform confidence sequence of the form
 
 For the stitched empirical-Bernstein margin (paper Equation 29):
 
-`omega_t = (7/t) * sqrt(Vhat_t * ((log(log(2*Vhat_t)))_+ + 0.72*log(5.19/delta)))`
+`omega_t = [1.7*sqrt((Vhat_t vee 1)*((log(log(2*(Vhat_t vee 1))))_+ + 0.72*log(5.19/delta))) + 3.4*(log(log(2*(Vhat_t vee 1))))_+ + 2.45*log(5.19/delta)] / t`
 
 where
 
@@ -37,6 +37,8 @@ where
 `S_(s-1)` is the prior count of bounded-episode misses, and `N_(s-1)` is the prior number of bounded prediction sets; the prior mean is zero when N=0. The implementation uses `Vhat_t vee 1` in the margin, as specified in the paper.
 
 The monitor reports `min(1, bar_Z_t + omega_t)` as the upper confidence sequence for true running-average miscoverage. It reports the confidence level `1-delta` and the frozen target alpha separately.
+
+The implementation also preserves the paper's abstention rule: before the first bounded set, the scaled margin is zero; an abstention keeps `t*omega_t` unchanged by carrying forward the previous scaled margin.
 
 The confidence sequence can be inspected at any stopping time. It does not require the episode outcomes to be IID, nor does it require a stationary miscoverage probability. The martingale-difference argument relies on the sequential filtration and on decisions being made before the corresponding outcome is revealed.
 
