@@ -269,3 +269,30 @@ The newly opened #6955 adds a perturbative validity envelope because Wu--Lü (20
 ## Ma-Lu convention correction (23 November 2026)
 
 The Eq. (2.9) square root was previously misread in extracted PDF text. The published definition is chi_a=a/sqrt(mu), chi_b=b/sqrt(mu). For equal spins, chi=sqrt(2)*nu exactly, where nu=Omega_H*r_h; q=a/r_h instead obeys nu=q/(1+q^2). The corrected verifier checks the Eq. (3.9) equal-spin mass expansion as well as the exact inverse q(nu) series. Public source Git blob SHA-1 3b14fe1ba1062cc840da07267c89275b1096b7f7 and SHA-256 2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a; exact local replay passes.
+
+
+## Fixed Symtropy horizon and physical angular velocity: Ma--Lü parameter conversion (23 November 2026)
+
+The benchmark now distinguishes the Ma--Lü Boyer--Lindquist horizon \(r_h\), \(\nu_h=\Omega_Hr_h\), from the Symtropy areal horizon \(R_H\), \(\nu_S=\Omega_HR_H\). At zero coupling, \(R_H^2=r_h^2+a^2\) and \(\nu_S=q/\sqrt{1+q^2}\); they are not the same spin variable.
+
+A local exact-symbolic first-coupling derivation gives, with \(\epsilon_S=\alpha_R/R_H^2\):
+\[
+R_H/r_h=1+5\epsilon_S/3+\nu_S^2/2+(277/90)\epsilon_S\nu_S^2+\cdots,
+\]
+\[
+q=\nu_S+\nu_S^3/2+\epsilon_S(7\nu_S-(3619/90)\nu_S^3)+\cdots,
+\]
+\[
+a/R_H=\nu_S+(16/3)\epsilon_S\nu_S-(2068/45)\epsilon_S\nu_S^3+\cdots,
+\]
+\[
+\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+(454/45)\epsilon_S\nu_S^2+\cdots.
+\]
+The last quantity is the converted background MP mass parameter, **not** the corrected ADM mass; ADM mass needs an independent asymptotic extraction including \(H_1\).
+
+Artifacts:
+- ma_lu_fixed_symtropy_boundary_map_v1.json
+- ma_lu_fixed_symtropy_boundary_map_v1.md
+- ma_lu_fixed_symtropy_boundary_map_replay_v1.json
+
+Issue [#6965](https://github.com/Luminous-Dynamics/symtropy/issues/6965) owns the parameter map and its independent verification. The exact transformed metric coefficient comparison remains open in #6915.
