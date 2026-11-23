@@ -651,7 +651,7 @@ mod tests {
         assert!(
             case.common_dependency_ids
                 .iter()
-                .any(|item| item == "registry:catalogue-main")
+                .any(|item| item == "registry:catalogue-alpha")
         );
     }
 
