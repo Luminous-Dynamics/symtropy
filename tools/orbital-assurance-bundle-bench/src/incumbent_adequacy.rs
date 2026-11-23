@@ -22,6 +22,10 @@ const JOINT_LOSS_CLAIM_CEILING: &str = "finite-joint-loss-scenario-regret-algebr
 #[serde(deny_unknown_fields)]
 pub struct WorldLoss {
     pub action_id: String,
+    /// Exact source rational from the upstream joint loss-scenario receipt.
+    pub source_numerator: u64,
+    pub source_denominator: u64,
+    /// Exact integer projection into the declared case loss unit.
     pub loss: i64,
 }
 
@@ -53,6 +57,10 @@ pub struct LossModelSetEvidence {
     pub source_manifest_id: String,
     /// Digest of the canonical loss-scenario records in the upstream #6939 receipt.
     pub source_scenarios_sha256: String,
+    pub source_loss_unit: String,
+    pub projection_id: String,
+    pub projection_scale_numerator: u64,
+    pub projection_scale_denominator: u64,
     /// Exact joint scenario IDs planned by the loss-model manifest.
     pub expected_scenario_ids: Vec<String>,
     pub expected_scenario_ids_sha256: String,
@@ -204,6 +212,24 @@ fn digest_ids(ids: &[String]) -> Result<String, String> {
     let bytes = serde_json::to_vec(&sorted)
         .map_err(|error| format!("cannot encode canonical ID inventory: {error}"))?;
     Ok(sha256_hex(&bytes))
+}
+
+fn exact_projected_loss(
+    source_numerator: u64,
+    source_denominator: u64,
+    scale_numerator: u64,
+    scale_denominator: u64,
+) -> Option<i64> {
+    if source_denominator == 0 || scale_denominator == 0 {
+        return None;
+    }
+    let numerator = u128::from(source_numerator) * u128::from(scale_numerator);
+    let denominator = u128::from(source_denominator) * u128::from(scale_denominator);
+    if numerator % denominator != 0 {
+        return None;
+    }
+    let projected = numerator / denominator;
+    (projected <= i64::MAX as u128).then_some(projected as i64)
 }
 
 fn projected_scenarios_digest(scenarios: &[World]) -> Result<String, String> {
@@ -387,6 +413,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || !valid_sha256(&case.loss_model_set.source_scenarios_sha256)
         || !valid_sha256(&case.loss_model_set.expected_scenario_ids_sha256)
         || !valid_sha256(&case.loss_model_set.projected_scenarios_sha256)
+        || !valid_id(&case.loss_model_set.source_loss_unit)
+        || !valid_id(&case.loss_model_set.projection_id)
+        || case.loss_model_set.projection_scale_numerator == 0
+        || case.loss_model_set.projection_scale_denominator == 0
         || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
         || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
     {
@@ -605,8 +635,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
         let mut losses = BTreeMap::new();
         for loss in &world.losses {
+            let Some(projected_loss) = exact_projected_loss(
+                loss.source_numerator,
+                loss.source_denominator,
+                case.loss_model_set.projection_scale_numerator,
+                case.loss_model_set.projection_scale_denominator,
+            ) else {
+                return invalid_input(
+                    case,
+                    "source rational loss cannot be projected exactly into the declared loss unit",
+                );
+            };
             if !valid_id(&loss.action_id)
                 || loss.loss < 0
+                || loss.loss != projected_loss
                 || !feasible.contains(&loss.action_id)
                 || losses.insert(loss.action_id.clone(), loss.loss).is_some()
             {
