@@ -155,3 +155,50 @@ Do not download the entire archive simply to reproduce one range baseline. First
 ## 11. Claim boundary
 
 This document is a literature review and reproduction plan. Published numbers are study-specific and are not directly comparable. No new physical benchmark result, reproduced SOTA result, cryptographic certification or navigation safety guarantee is claimed.
+
+
+## 10. Updated research directions — 23 November 2026
+
+### 10.1 Active sensing: observability surrogates are not task guarantees
+
+A November 2026 paper, **Dual-path active configuration control for observability-aware UWB localization**, Internet of Things 40, DOI 10.1016/j.iot.2026.102143, compares centered/non-coincident fixed anchors, mobile heuristic configurations and mobile MPC. Its MPC maximizes a regularized Fisher-information geometry objective and reports p99 computation below the 100 ms sampling interval. The paper's own conclusion reports that stronger information scores did not consistently improve position/orientation errors over fixed configurations. Treat this as an important negative result, not an argument against geometry planning: it shows that a better surrogate observability metric is not enough to claim better navigation decisions.
+
+Symtropy's active-sensing tournament must therefore measure separately:
+- geometry rank/conditioning and Fisher scores;
+- predicted versus realized observation utility;
+- realized position/trajectory error at matched epochs;
+- decision-incompatible fault pairs resolved after valid acquisition;
+- false-safe exposure, coverage, availability and resource cost;
+- a negative control where Fisher information improves but task error/decision does not.
+
+### 10.2 Active perception evaluation: close the full observation loop
+
+Li et al., **Active Visual Perception: Opportunities and Challenges**, Sensors 26(20), 6544 (15 October 2026), DOI 10.3390/s26206544, frames active perception as a loop from missing task evidence, through feasible sensing action and value estimation, to action execution and subsequent state update. It specifically argues that predicted value does not guarantee useful evidence can be physically acquired, and final task success alone cannot attribute improvement to active sensing. Its benchmark guidance includes passive/fixed, random, uniform, greedy and privileged oracle baselines; same initial belief/backbone/action space/budgets; before/after evidence metrics; execution delay/noise/packet loss; resource costs; and premature vs unnecessary stopping.
+
+Apply that to navigation: static recorded data can test the perception/ranging model, but cannot establish an active policy's benefit unless the chosen action changes the next observation in a controlled closed-loop simulator or physical experiment.
+
+### 10.3 Latency compensation is a different result type from an observation
+
+Modaberi and Far, **Real-time delay-compensated UWB localization for dynamic agents via deep trajectory prediction**, Expert Systems with Applications 322, 132248 (1 August 2026), DOI 10.1016/j.eswa.2026.132248, combines CIR and recent motion history to predict a future position aligned to inference delay. It reports 0.26 m mean error and 85% within 0.5 m across four evaluated environments. This is a paper-reported tracking result; it is not a protection-level or mission integrity guarantee.
+
+Benchmark with identical target epochs and sensor privileges against stale last position, constant velocity, kinematic/constant-acceleration, fixed-lag/out-of-sequence filtering, learned delay compensation and Symtropy time-validity + independent predictor-tube paths. Score error at the **declared target epoch**, not at the original capture epoch. Keep forecast error, clock/age envelope, statistical residual and deterministic fault offsets separate until a reviewed composition justifies their combination.
+
+### 10.4 Standards and industry framing
+
+ISO/IEC 21134:2026 is published (Edition 1, January 2026) and defines master sets/test environments, benchmark metrics, benchmarking process and conformance for integrated indoor localization/tracking using dead reckoning. Align its compatible process and metrics, then add application-level integrity, source/dependency and authority-state scoreboards. Do not call the standard a UWB integrity certification.
+
+FiRa Core 4.1 and hardware-level product specifications should remain separate protocol/product-reference scoreboards. Interoperability, STS security-test scope and typical hardware accuracy do not establish application-level trajectory coverage or false-safe probability.
+
+### 10.5 Symtropy implementation links and current evidence ceiling
+
+- [#7098 — decision-equivalence projection](https://github.com/Luminous-Dynamics/symtropy/pull/7098), exact-head workflow #314: 293 navigation research tests, 31 transition-validator tests, 12 MILUV-ingest tests passed.
+- [#7138 — consume-once acquisition attempt ledger](https://github.com/Luminous-Dynamics/symtropy/pull/7138), exact-head workflow #315: 307 navigation research tests, 31 validator tests, 12 MILUV-ingest tests passed.
+- [#7140 — time-of-validity gate](https://github.com/Luminous-Dynamics/symtropy/pull/7140), exact-head workflow #322: 312 navigation research tests, 31 validator tests, 12 MILUV-ingest tests passed.
+- [#7145 — decision-aware acquisition planner](https://github.com/Luminous-Dynamics/symtropy/pull/7145), corrected proof-carrying head, exact-head workflow #331: 302 navigation research tests, 31 validator tests, 12 MILUV-ingest tests passed.
+- [#7151 — reliability-gated decision planning](https://github.com/Luminous-Dynamics/symtropy/pull/7151), exact-head workflow #332: 309 navigation research tests, 31 validator tests, 12 MILUV-ingest tests passed.
+
+These are deterministic software tests on synthetic contracts. Bregar and MILUV payloads remain unadmitted/unscored; no physical accuracy, temporal prediction error, whole-episode coverage, acquisition yield, HMI/PHMI or safety-certification result is claimed. All listed PRs remain draft and unmerged.
+
+### 10.6 Next confirmatory experiment
+
+The next highest-value step is one frozen chronological synthetic episode composed across the current owners: decision-relevant action selection → #7082 reliability admission → #7138 attempt start/unknown/reconciliation/qualified receipt → #7140 time-validity → independent posterior/fault-envelope re-audit → profile-governed state result. Include same-decision nuisance ambiguity, cross-decision ambiguity, shared clock/calibration common cause, stale payload, future-data leakage, invalid acquisition and valid recovery positive controls. This is still a software-composition challenge; only after it passes should the benchmark progress to source-admitted Bregar/MILUV payload scoring and then real physical acquisition.
