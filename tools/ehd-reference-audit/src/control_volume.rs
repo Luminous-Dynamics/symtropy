@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Auditable control-volume momentum reducer for EHD thrust qualification.
 //!
 //! Frozen sign convention:
@@ -75,11 +77,21 @@ pub enum ControlVolumeError {
     EmptyControlVolumeId,
     EmptySignConventionId,
     MissingTerm(&'static str),
-    EmptyEvidenceId { term: &'static str },
+    EmptyEvidenceId {
+        term: &'static str,
+    },
     DuplicateEvidenceId(String),
-    NonFiniteValue { term: &'static str, component: usize },
-    InvalidUncertainty { term: &'static str, component: usize },
-    NonFiniteDerivedValue { component: usize },
+    NonFiniteValue {
+        term: &'static str,
+        component: usize,
+    },
+    InvalidUncertainty {
+        term: &'static str,
+        component: usize,
+    },
+    NonFiniteDerivedValue {
+        component: usize,
+    },
 }
 
 impl fmt::Display for ControlVolumeError {
@@ -87,18 +99,27 @@ impl fmt::Display for ControlVolumeError {
         match self {
             Self::EmptyRunId => write!(f, "control-volume run ID is empty"),
             Self::EmptyControlVolumeId => write!(f, "control-volume geometry identity is empty"),
-            Self::EmptySignConventionId => write!(f, "control-volume sign-convention identity is empty"),
+            Self::EmptySignConventionId => {
+                write!(f, "control-volume sign-convention identity is empty")
+            }
             Self::MissingTerm(term) => write!(f, "required control-volume term is missing: {term}"),
-            Self::EmptyEvidenceId { term } => write!(f, "control-volume term {term} has no evidence identity"),
-            Self::DuplicateEvidenceId(id) => write!(f, "control-volume evidence identity is duplicated: {id}"),
+            Self::EmptyEvidenceId { term } => {
+                write!(f, "control-volume term {term} has no evidence identity")
+            }
+            Self::DuplicateEvidenceId(id) => {
+                write!(f, "control-volume evidence identity is duplicated: {id}")
+            }
             Self::NonFiniteValue { term, component } => write!(
-                f, "control-volume term {term} component {component} is non-finite"
+                f,
+                "control-volume term {term} component {component} is non-finite"
             ),
             Self::InvalidUncertainty { term, component } => write!(
-                f, "control-volume term {term} component {component} has invalid uncertainty"
+                f,
+                "control-volume term {term} component {component} has invalid uncertainty"
             ),
             Self::NonFiniteDerivedValue { component } => write!(
-                f, "control-volume derived force or uncertainty is non-finite in component {component}"
+                f,
+                "control-volume derived force or uncertainty is non-finite in component {component}"
             ),
         }
     }
@@ -205,8 +226,7 @@ pub fn reconcile_control_volume(
 
     for component in 0..3 {
         // F_solid->fluid = storage + advective - pressure - viscous - body.
-        let solid_force = storage.value_n[component]
-            + advective.value_n[component]
+        let solid_force = storage.value_n[component] + advective.value_n[component]
             - pressure.value_n[component]
             - viscous.value_n[component]
             - body.value_n[component];
@@ -273,8 +293,14 @@ pub fn reference_self_check() -> Result<(), ControlVolumeError> {
     };
     let receipt = reconcile_control_volume(&input)?;
     if receipt.fluid_on_solid_from_cv_n != [-2.0, -1.0, -1.0]
-        || receipt.cv_uncertainty_bound_n.iter().any(|value| (*value - 0.05).abs() > 1.0e-12)
-        || receipt.combined_uncertainty_bound_n.iter().any(|value| (*value - 0.07).abs() > 1.0e-12)
+        || receipt
+            .cv_uncertainty_bound_n
+            .iter()
+            .any(|value| (*value - 0.05).abs() > 1.0e-12)
+        || receipt
+            .combined_uncertainty_bound_n
+            .iter()
+            .any(|value| (*value - 0.07).abs() > 1.0e-12)
         || !receipt.overall_within_combined_bound
     {
         return Err(ControlVolumeError::NonFiniteDerivedValue { component: 0 });
@@ -439,7 +465,12 @@ mod tests {
             ControlVolumeError::EmptySignConventionId
         );
         let mut value = input();
-        value.balance_fluid_on_solid.as_mut().unwrap().evidence_id.clear();
+        value
+            .balance_fluid_on_solid
+            .as_mut()
+            .unwrap()
+            .evidence_id
+            .clear();
         assert_eq!(
             reconcile_control_volume(&value).unwrap_err(),
             ControlVolumeError::EmptyEvidenceId {
