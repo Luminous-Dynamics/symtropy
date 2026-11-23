@@ -52,8 +52,77 @@ pub enum DynamicEpisodeSetAbstention {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DynamicEpisodeSetOutcome {
+    /// Finite-radius split-conformal tube.
     Bounded(DynamicEpisodeTube2d),
+    /// Empty, bounded set for eta >= 1. Its whole-episode miss indicator is one.
+    EmptyBounded(DynamicEpisodeEmptySet2d),
+    /// Unbounded/unsupported request; caller must record an abstention (Z=0).
     Abstain(DynamicEpisodeSetAbstention),
+}
+
+/// A degenerate empty prediction set for a requested miscoverage level >= 1.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DynamicEpisodeEmptySet2d {
+    episode_id: u64,
+    independence_group_id: u64,
+    position_count: usize,
+    requested_miscoverage: f64,
+    calibration_cohort_sha256: [u8; SHA256_BYTES],
+    predictor_sha256: [u8; SHA256_BYTES],
+    score_definition_sha256: [u8; SHA256_BYTES],
+    decision_sequence_id: u64,
+    decision_receipt_sha256: [u8; SHA256_BYTES],
+}
+
+impl DynamicEpisodeEmptySet2d {
+    pub fn episode_id(&self) -> u64 {
+        self.episode_id
+    }
+
+    pub fn independence_group_id(&self) -> u64 {
+        self.independence_group_id
+    }
+
+    pub fn position_count(&self) -> usize {
+        self.position_count
+    }
+
+    pub fn requested_miscoverage(&self) -> f64 {
+        self.requested_miscoverage
+    }
+
+    pub fn decision_sequence_id(&self) -> u64 {
+        self.decision_sequence_id
+    }
+
+    pub fn decision_receipt_sha256(&self) -> [u8; SHA256_BYTES] {
+        self.decision_receipt_sha256
+    }
+
+    /// An empty set contains no finite position.
+    pub fn contains_position(&self, _time_index: usize, _truth_position_m: [f64; DIM]) -> bool {
+        false
+    }
+
+    /// Validate full truth completeness, then report the miss (false).
+    pub fn contains_complete_trajectory(
+        &self,
+        truth_positions_m: &[[f64; DIM]],
+    ) -> Result<bool, DynamicEpisodeSetError> {
+        if truth_positions_m.len() != self.position_count {
+            return Err(DynamicEpisodeSetError::TruthPositionCountMismatch {
+                expected: self.position_count,
+                observed: truth_positions_m.len(),
+            });
+        }
+        if let Some(index) = truth_positions_m
+            .iter()
+            .position(|position| !position.iter().all(|value| value.is_finite()))
+        {
+            return Err(DynamicEpisodeSetError::InvalidTruthPosition(index));
+        }
+        Ok(false)
+    }
 }
 
 /// A constant-radius disk around every predicted position in one episode.
@@ -358,10 +427,10 @@ impl DynamicEpisodeConformalFamily2d {
         requested_miscoverage: f64,
     ) -> Result<Result<SelectedEpisodeRadius, DynamicEpisodeSetAbstention>, DynamicEpisodeSetError>
     {
-        if !requested_miscoverage.is_finite()
-            || requested_miscoverage <= 0.0
-            || requested_miscoverage >= 1.0
-        {
+        if !requested_miscoverage.is_finite() || requested_miscoverage <= 0.0 {
+            return Ok(Err(DynamicEpisodeSetAbstention::UnsupportedMiscoverageLevel));
+        }
+        if requested_miscoverage >= 1.0 {
             return Ok(Err(DynamicEpisodeSetAbstention::UnsupportedMiscoverageLevel));
         }
         let n = self.ordered_scores.len();
@@ -449,6 +518,28 @@ impl DynamicEpisodeConformalFamily2d {
         }
         if decision_receipt_sha256.iter().all(|byte| *byte == 0) {
             return Err(DynamicEpisodeSetError::MissingDecisionReceipt);
+        }
+
+        if !requested_miscoverage.is_finite() || requested_miscoverage <= 0.0 {
+            return Ok(DynamicEpisodeSetOutcome::Abstain(
+                DynamicEpisodeSetAbstention::UnsupportedMiscoverageLevel,
+            ));
+        }
+
+        if requested_miscoverage >= 1.0 {
+            return Ok(DynamicEpisodeSetOutcome::EmptyBounded(
+                DynamicEpisodeEmptySet2d {
+                    episode_id,
+                    independence_group_id,
+                    position_count: predicted_positions_m.len(),
+                    requested_miscoverage,
+                    calibration_cohort_sha256: self.config.calibration_cohort_sha256,
+                    predictor_sha256: self.config.predictor_sha256,
+                    score_definition_sha256: self.config.score_definition_sha256,
+                    decision_sequence_id,
+                    decision_receipt_sha256,
+                },
+            ));
         }
 
         let selected = match self.select_radius(requested_miscoverage)? {
@@ -617,6 +708,57 @@ mod tests {
             assert!(selected.radius_m <= previous);
             previous = selected.radius_m;
         }
+    }
+
+    #[test]
+    fn eta_at_or_above_one_emits_empty_bounded_set_not_abstention() {
+        let family = family(19);
+        for eta in [1.0, 1.25, 10.0] {
+            let outcome = family
+                .build_episode_tube(
+                    500,
+                    20_500,
+                    &[[0.0, 0.0], [1.0, 1.0]],
+                    eta,
+                    [0xB2; SHA256_BYTES],
+                    [0xC3; SHA256_BYTES],
+                    501,
+                    [0xD4; SHA256_BYTES],
+                )
+                .unwrap();
+            let DynamicEpisodeSetOutcome::EmptyBounded(empty) = outcome else {
+                panic!("eta >= 1 must be an explicit empty bounded set");
+            };
+            assert_eq!(empty.requested_miscoverage(), eta);
+            assert_eq!(empty.position_count(), 2);
+            assert!(!empty.contains_position(0, [0.0, 0.0]));
+            assert!(!empty.contains_complete_trajectory(&[[0.0, 0.0], [1.0, 1.0]]).unwrap());
+            assert_eq!(
+                empty.contains_complete_trajectory(&[[0.0, 0.0]]),
+                Err(DynamicEpisodeSetError::TruthPositionCountMismatch {
+                    expected: 2,
+                    observed: 1
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn eta_at_or_above_one_does_not_consume_calibration_rank() {
+        let family = family(1);
+        let outcome = family
+            .build_episode_tube(
+                500,
+                20_500,
+                &[[0.0, 0.0]],
+                1.0,
+                [0xB2; SHA256_BYTES],
+                [0xC3; SHA256_BYTES],
+                501,
+                [0xD4; SHA256_BYTES],
+            )
+            .unwrap();
+        assert!(matches!(outcome, DynamicEpisodeSetOutcome::EmptyBounded(_)));
     }
 
     #[test]
