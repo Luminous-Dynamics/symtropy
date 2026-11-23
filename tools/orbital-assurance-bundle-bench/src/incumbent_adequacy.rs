@@ -387,10 +387,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || !valid_sha256(&case.scope_sha256)
         || case.action_ids.is_empty()
         || case.action_ids.len() > MAX_ACTIONS
-        || case.expected_world_ids.is_empty()
         || case.expected_world_ids.len() > MAX_WORLDS
         || case.worlds.len() > MAX_SCENARIOS
-        || case.loss_model_set.expected_scenario_ids.is_empty()
         || case.loss_model_set.expected_scenario_ids.len() > MAX_SCENARIOS
         || case.materiality_margin < 0
         || case.switching_cost < 0
