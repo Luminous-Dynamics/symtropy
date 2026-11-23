@@ -238,7 +238,7 @@ pub struct LinkedServiceQualityInput {
 pub enum ExactOracleStatus {
     Evaluated,
     NotRunBoundsExceeded,
-    NodeLimitReached,
+    TransitionLimitReached,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -276,17 +276,17 @@ pub struct ExactOracleReport {
     pub status: ExactOracleStatus,
     pub request_bound: usize,
     pub opportunity_bound: usize,
-    pub search_node_limit: usize,
-    pub search_nodes: usize,
+    pub dp_transition_limit: usize,
+    pub dp_transitions: usize,
     pub best_score: Option<ExactOracleScore>,
     pub best_assignments: Vec<ExactOracleAssignment>,
     pub policy_gaps: Vec<ExactOraclePolicyGap>,
     pub objective: &'static str,
 }
 
-const MAX_EXACT_ORACLE_REQUESTS: usize = 8;
-const MAX_EXACT_ORACLE_OPPORTUNITIES: usize = 8;
-const MAX_EXACT_ORACLE_NODES: usize = 1_000_000;
+const MAX_EXACT_ORACLE_REQUESTS: usize = 12;
+const MAX_EXACT_ORACLE_OPPORTUNITIES: usize = 16;
+const MAX_EXACT_ORACLE_TRANSITIONS: usize = 1_000_000;
 
 #[derive(Debug, Clone)]
 struct ExactOracleCandidate {
@@ -1326,79 +1326,49 @@ fn exact_policy_gap(
     }
 }
 
-struct ExactOracleSearch<'a> {
-    input: &'a ServiceQualityInput,
-    opportunities: &'a [ScheduledOpportunity],
-    candidates_by_opportunity: &'a [Vec<ExactOracleCandidate>],
-    nodes: usize,
-    limit_reached: bool,
-    current: Vec<Option<ExactOracleAssignment>>,
-    used_requests: BTreeSet<usize>,
-    best: Option<ExactOracleBest>,
+fn extend_exact_score(
+    current: &ExactOracleScore,
+    request: &ServiceRequest,
+    completion_seconds: u64,
+    horizon_seconds: u64,
+) -> ExactOracleScore {
+    let mut score = current.clone();
+    if completion_seconds > horizon_seconds {
+        score.in_progress_at_horizon += 1;
+        return score;
+    }
+
+    let latency = completion_seconds.saturating_sub(request.arrival_seconds);
+    score.total_latency_seconds = score.total_latency_seconds.saturating_add(latency);
+    if completion_seconds <= request.deadline_seconds {
+        score.completed_on_time += 1;
+    } else {
+        score.completed_late += 1;
+        score.total_lateness_seconds = score
+            .total_lateness_seconds
+            .saturating_add(completion_seconds.saturating_sub(request.deadline_seconds));
+    }
+    score.completed_by_horizon = score.completed_on_time + score.completed_late;
+    score
 }
 
-impl ExactOracleSearch<'_> {
-    fn visit(&mut self, opportunity_index: usize) {
-        if self.limit_reached {
-            return;
-        }
-        self.nodes = self.nodes.saturating_add(1);
-        if self.nodes > MAX_EXACT_ORACLE_NODES {
-            self.limit_reached = true;
-            return;
-        }
-
-        if opportunity_index == self.opportunities.len() {
-            let score = exact_score(&self.current, self.input);
-            let key = exact_assignment_key(&self.current);
-            let replace = self.best.as_ref().is_none_or(|current| {
-                exact_score_is_better(&score, &key, &current.score, &current.canonical_key)
-            });
-            if replace {
-                self.best = Some(ExactOracleBest {
-                    score,
-                    assignments: self.current.clone(),
-                    canonical_key: key,
-                });
-            }
-            return;
-        }
-
-        // Leaving a capacity opportunity unused is always a valid choice.
-        self.current.push(None);
-        self.visit(opportunity_index + 1);
-        self.current.pop();
-
-        let candidates = self.candidates_by_opportunity[opportunity_index].clone();
-        let opportunity = self.opportunities[opportunity_index].clone();
-        for candidate in candidates {
-            if !self.used_requests.insert(candidate.request_index) {
-                continue;
-            }
-            let request = &self.input.requests[candidate.request_index];
-            self.current.push(Some(ExactOracleAssignment {
-                request_id: request.request_id.clone(),
-                opportunity_id: opportunity.opportunity_id.clone(),
-                fulfilment_mode: candidate.mode,
-                service_start_seconds: opportunity.start_seconds,
-                projected_completion_seconds: candidate.completion_seconds,
-                disposition: if candidate.completion_seconds > self.input.horizon_seconds {
-                    RequestDisposition::InProgressAtHorizon
-                } else if candidate.completion_seconds <= request.deadline_seconds {
-                    RequestDisposition::CompletedOnTime
-                } else {
-                    RequestDisposition::CompletedLate
-                },
-            }));
-            self.visit(opportunity_index + 1);
-            self.current.pop();
-            self.used_requests.remove(&candidate.request_index);
-            if self.limit_reached {
-                return;
-            }
-        }
+fn insert_exact_dp_state(
+    target: &mut Option<ExactOracleBest>,
+    candidate: ExactOracleBest,
+) {
+    let replace = target.as_ref().is_none_or(|current| {
+        exact_score_is_better(
+            &candidate.score,
+            &candidate.canonical_key,
+            &current.score,
+            &current.canonical_key,
+        )
+    });
+    if replace {
+        *target = Some(candidate);
     }
 }
+
 
 fn exact_assignment_oracle(
     input: &ServiceQualityInput,
