@@ -1,0 +1,109 @@
+name: Orbital Conditional PLP Goodness-of-Fit Benchmark
+
+on:
+  push:
+    branches: ["research/orbital-plp-conditional-gof-v0-1"]
+    paths:
+      - "tools/orbital-reliability-plp-gof-bench/**"
+      - ".github/workflows/orbital-reliability-plp-gof-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-reliability-plp-gof-bench/**"
+      - ".github/workflows/orbital-reliability-plp-gof-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-plp-conditional-gof-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conditional-plp-gof:
+    if: github.event_name != 'pull_request' || github.head_ref != 'research/orbital-plp-multistat-gof-v0-2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen conditional GOF corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-reliability-plp-gof-bench/Cargo.toml -- \
+            tools/orbital-reliability-plp-gof-bench/fixtures/v0.1/plp-gof-cases.json \
+            --source-commit "$actual_commit" > orbital-plp-conditional-gof-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-plp-conditional-gof.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-conditional-plp-goodness-of-fit-only"
+            and .report.summary.case_count == 23
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.fit_acceptances == 0
+            and .report.summary.reliability_claims == 0
+            and .report.summary.physical_qualifications == 0
+            and .report.summary.authority_grants == 0
+            and .report.authority_granted == false
+            and .report.fit_acceptance_granted == false
+          ' orbital-plp-conditional-gof-receipt.json
+
+      - name: Run independent JavaScript conditional GOF oracle
+        run: node tools/orbital-reliability-plp-gof-bench/tests/reference_oracle.mjs tools/orbital-reliability-plp-gof-bench/fixtures/v0.1/plp-gof-cases.json
+
+      - name: Run outer null-calibration smoke study
+        run: node tools/orbital-reliability-plp-gof-bench/tests/outer_null_calibration.mjs > orbital-plp-outer-null-calibration.json
+
+      - name: Validate outer calibration receipt boundaries
+        run: |
+          jq -e '
+            .schema == "luminous.orbital-plp-outer-null-calibration.v0.1"
+            and .evidence_class == "synthetic"
+            and .study_kind == "deterministic_outer_null_calibration_smoke_study"
+            and .outer_replicates_per_beta == 250
+            and .inner_conditional_replicates == 999
+            and (.scenarios | length) == 3
+            and (.scenarios | all(.rejection_rates["0.01"].trials == 250 and .rejection_rates["0.05"].trials == 250 and .rejection_rates["0.1"].trials == 250))
+            and .calibrated_for_all_sample_sizes_or_alternatives == false
+            and .physical_reliability_claim_granted == false
+            and .qualification_granted == false
+            and .authority_granted == false
+          ' orbital-plp-outer-null-calibration.json
+
+      - name: Upload generated lockfile and conditional GOF receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-plp-conditional-gof-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/orbital-reliability-plp-gof-bench/Cargo.lock
+            orbital-plp-conditional-gof-receipt.json
+            orbital-plp-outer-null-calibration.json
+          if-no-files-found: error
+          retention-days: 30

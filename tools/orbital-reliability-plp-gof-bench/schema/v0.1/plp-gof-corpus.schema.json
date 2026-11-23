@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-plp-conditional-gof-corpus-v0.1.json",
+  "title": "Orbital conditional PLP GOF corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-plp-conditional-gof.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-conditional-plp-goodness-of-fit-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "model_profile",
+        "termination_profile",
+        "subject_group_id",
+        "configuration_sha256",
+        "environment_id",
+        "exposure_clock_id",
+        "observation_start_seconds",
+        "exposure_end_seconds",
+        "event_times_seconds",
+        "complete_event_history",
+        "repair_policy",
+        "admissibility_receipt_sha256",
+        "admissibility_source_commit",
+        "capture_receipt_sha256",
+        "capture_source_commit",
+        "analysis_protocol_id",
+        "multiplicity_policy_id",
+        "significance_level",
+        "monte_carlo_replicates",
+        "random_seed",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_profile": {
+          "type": "string"
+        },
+        "termination_profile": {
+          "type": "string"
+        },
+        "subject_group_id": {
+          "type": "string"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_id": {
+          "type": "string"
+        },
+        "exposure_clock_id": {
+          "type": "string"
+        },
+        "observation_start_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event_times_seconds": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "complete_event_history": {
+          "type": "boolean"
+        },
+        "repair_policy": {
+          "type": "string"
+        },
+        "admissibility_receipt_sha256": {
+          "type": "string"
+        },
+        "admissibility_source_commit": {
+          "type": "string"
+        },
+        "capture_receipt_sha256": {
+          "type": "string"
+        },
+        "capture_source_commit": {
+          "type": "string"
+        },
+        "analysis_protocol_id": {
+          "type": "string"
+        },
+        "multiplicity_policy_id": {
+          "type": "string"
+        },
+        "significance_level": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 0.1
+        },
+        "monte_carlo_replicates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "event_count",
+        "beta_hat",
+        "observed_cvm",
+        "tail_exceedances",
+        "monte_carlo_p_value",
+        "blockers"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "fit_rejected",
+            "fit_not_rejected_at_declared_level",
+            "indeterminate",
+            "model_not_supported",
+            "rejected"
+          ]
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beta_hat": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "observed_cvm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "tail_exceedances": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "monte_carlo_p_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
