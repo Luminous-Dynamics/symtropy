@@ -77,6 +77,7 @@ pub struct GazeboWorldStatisticsReceipt {
     pub raw_artifact_sha256: String,
     pub world_epoch: String,
     pub clock_id: String,
+    pub capture_clock_id: String,
     pub received_monotonic_ns: u64,
     pub iterations: u64,
     pub simulation_time_ns: u64,
@@ -266,6 +267,7 @@ impl GazeboWorldSnapshot {
             || !nonempty(&stats.raw_artifact_id)
             || !valid_sha256(&stats.raw_artifact_sha256)
             || stats.world_epoch != self.world_epoch
+            || !nonempty(&stats.capture_clock_id)
             || stats.received_monotonic_ns == 0
             || stats.clock_id != self.clock_id
             || stats.iterations != self.simulation_step
@@ -390,8 +392,9 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
         .get_world_state(&session.profile.world_name)
         .map_err(|_| GazeboAdapterError::TransportFailure)?;
     after.validate_reset(&session.profile, plan, &before.world_epoch)?;
-    if after.world_statistics.received_monotonic_ns
-        <= before.world_statistics.received_monotonic_ns
+    if after.world_statistics.capture_clock_id != before.world_statistics.capture_clock_id
+        || after.world_statistics.received_monotonic_ns
+            <= before.world_statistics.received_monotonic_ns
         || after.world_statistics.raw_artifact_id
             == before.world_statistics.raw_artifact_id
     {
@@ -449,8 +452,10 @@ pub fn advance_to_fault_cut<T: GazeboSimulationTransport>(
         return Err(GazeboAdapterError::SimulationStepNotReached);
     }
     if steps > 0
-        && (after.world_statistics.received_monotonic_ns
-            <= before.world_statistics.received_monotonic_ns
+        && (after.world_statistics.capture_clock_id
+            != before.world_statistics.capture_clock_id
+            || after.world_statistics.received_monotonic_ns
+                <= before.world_statistics.received_monotonic_ns
             || after.world_statistics.raw_artifact_id == before.world_statistics.raw_artifact_id)
     {
         return Err(GazeboAdapterError::WorldStatisticsStale);
@@ -857,6 +862,7 @@ mod tests {
             raw_artifact_sha256: "c".repeat(64),
             world_epoch: world_epoch.into(),
             clock_id: clock_id.into(),
+            capture_clock_id: "adapter-monotonic".into(),
             received_monotonic_ns,
             iterations,
             simulation_time_ns,
