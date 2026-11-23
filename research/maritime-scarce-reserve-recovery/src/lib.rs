@@ -236,7 +236,10 @@ const SENSORS: [SensorSpec; 10] = [
             capture_receipt: "synthetic:complete-independent-inspection",
             authorization_snapshot_receipt: "synthetic:mycelix-auth-snapshot-r10",
         }),
-        outcome_partitions: [0, 1, 2, 3, 4, 5],
+        // The reserve inspection resolves operational state but cannot identify
+        // why a different TOS sensor failed. Physically identical worlds 0/5
+        // therefore produce the same independent observation.
+        outcome_partitions: [0, 1, 2, 3, 4, 0],
         energy_kwh: 3,
         service_units_per_kwh: 1,
         latency_ticks: 2,
@@ -1212,7 +1215,6 @@ mod tests {
                 (2, Action::Hold),
                 (3, Action::ReserveToB),
                 (4, Action::ReserveToA),
-                (5, Action::ReserveToA),
             ]
         );
 
