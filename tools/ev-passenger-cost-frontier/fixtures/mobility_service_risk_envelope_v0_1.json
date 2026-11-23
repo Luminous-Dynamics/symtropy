@@ -30,7 +30,8 @@
     "sample_count": null,
     "effective_sample_size_milli": null,
     "expert_panel_count": null,
-    "elicitation_protocol_reference": null
+    "elicitation_protocol_reference": null,
+    "scenario_tree_digest": "sha256:9583d2cdc6ffa456ec448b39dd79fc23de400257586561dbcf881cdf8c62d2d0"
   },
   "claim_ceiling": "Exact synthetic finite-scenario tail-risk and total-variation sensitivity arithmetic only; no calibrated probability, field reliability, distributionally robust guarantee, flight, dispatch or market authority."
 }
