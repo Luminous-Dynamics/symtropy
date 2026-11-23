@@ -21,6 +21,10 @@ The crate is a standalone Cargo workspace with no third-party dependencies.
 - Bounded exhaustive subset enumeration with a 16-candidate ceiling.
 - A Pareto frontier across worst-case E-like information, D-like log determinant, model separation and cost.
 
+## CI and reproducibility
+
+The repository pull-request matrix runs format, tests and strict Clippy for this standalone crate on Ubuntu, Windows and macOS. A successful result must be tied to the exact branch head; queued or skipped steps do not qualify a result.
+
 ## Interpretation rules
 
 - No ridge regularization or pseudoinverse is used to rescue a singular nuisance block.
