@@ -102,7 +102,9 @@ fn is_sha256_hex(value: &str) -> bool {
 
 fn has_pinned_profile(profile: &ProfileEvidence<'_>) -> bool {
     profile.artifact_sha256.is_some_and(is_sha256_hex)
-        && profile.scope_ref.is_some_and(|scope| !scope.trim().is_empty())
+        && profile
+            .scope_ref
+            .is_some_and(|scope| !scope.trim().is_empty())
 }
 
 pub fn evaluate_profile(profile: &ProfileEvidence<'_>, family: EventFamily) -> Admission {
@@ -258,7 +260,10 @@ mod tests {
         let digest_v2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         let digest_v3 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
-        for line in cases.lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
+        for line in cases
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        {
             let fields: Vec<&str> = line.split('|').collect();
             assert_eq!(fields.len(), 7, "bad fixture line: {line}");
 
@@ -273,7 +278,11 @@ mod tests {
                 fields[1],
                 fields[3],
                 digest,
-                if fields[5].is_empty() { None } else { Some(fields[5]) },
+                if fields[5].is_empty() {
+                    None
+                } else {
+                    Some(fields[5])
+                },
             );
 
             let result = evaluate_profile(&candidate, EventFamily::parse(fields[2]));
@@ -283,26 +292,28 @@ mod tests {
 
     #[test]
     fn actual_is_only_a_source_assertion_not_physical_realization() {
-        let result = classify_source_claim(
-            Some("message-1"),
-            Some("2026-11-23T08:30:00Z"),
-            Some("ACT"),
-        );
+        let result =
+            classify_source_claim(Some("message-1"), Some("2026-11-23T08:30:00Z"), Some("ACT"));
         assert_eq!(
             result.disposition,
             SourceClaimDisposition::ActualSourceAssertionOnly
         );
-        assert_eq!(result.physical_realization, PhysicalRealization::NotAdjudicated);
+        assert_eq!(
+            result.physical_realization,
+            PhysicalRealization::NotAdjudicated
+        );
     }
 
     #[test]
     fn planned_and_estimated_are_never_promoted_to_actual() {
         assert_eq!(
-            classify_source_claim(Some("message-2"), Some("2026-11-24T08:30:00Z"), Some("PLN")).disposition,
+            classify_source_claim(Some("message-2"), Some("2026-11-24T08:30:00Z"), Some("PLN"))
+                .disposition,
             SourceClaimDisposition::PlannedNotPhysicalRealization
         );
         assert_eq!(
-            classify_source_claim(Some("message-3"), Some("2026-11-24T08:30:00Z"), Some("EST")).disposition,
+            classify_source_claim(Some("message-3"), Some("2026-11-24T08:30:00Z"), Some("EST"))
+                .disposition,
             SourceClaimDisposition::EstimatedNotPhysicalRealization
         );
     }
@@ -319,11 +330,13 @@ mod tests {
     #[test]
     fn missing_or_unknown_source_classifier_does_not_become_actual() {
         assert_eq!(
-            classify_source_claim(Some("message-5"), Some("2026-11-23T08:30:00Z"), None).disposition,
+            classify_source_claim(Some("message-5"), Some("2026-11-23T08:30:00Z"), None)
+                .disposition,
             SourceClaimDisposition::IndeterminateMissingClassifier
         );
         assert_eq!(
-            classify_source_claim(Some("message-6"), Some("2026-11-23T08:30:00Z"), Some("FUT")).disposition,
+            classify_source_claim(Some("message-6"), Some("2026-11-23T08:30:00Z"), Some("FUT"))
+                .disposition,
             SourceClaimDisposition::UnsupportedClassifier
         );
     }
