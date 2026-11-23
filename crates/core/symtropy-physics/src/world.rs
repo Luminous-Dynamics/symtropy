@@ -318,8 +318,11 @@ impl<const D: usize> PhysicsWorld<D> {
         radius: f64,
         mass: f64,
     ) -> Result<BodyHandle, String> {
+        // Construct first so any constructor assertion happens before the
+        // allocator advances; the placeholder is replaced before publication.
+        let mut body = RigidBody::dynamic_sphere(BodyHandle(0), position, radius, mass);
         let handle = self.try_allocate_handle()?;
-        let body = RigidBody::dynamic_sphere(handle, position, radius, mass);
+        body.handle = handle;
         let idx = self.bodies.len();
         self.bodies.push(body);
         self.handle_to_index.insert(handle, idx);
