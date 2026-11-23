@@ -134,7 +134,7 @@ impl OwnerEvidenceStatus {
 pub struct EvidenceScope {
     /// Stable identity of the logical physical operation, independent of retries.
     pub logical_effect_id: String,
-    /// Exact attempt to which this evidence applies (for this model: attempt-1 or attempt-2).
+    /// Exact attempt to which this evidence applies; retry lineage may contain multiple attempts.
     pub attempt_id: String,
     /// Epoch in which the subject attempt was originally authorized.
     pub subject_boot_epoch: u64,
@@ -175,7 +175,7 @@ pub struct OwnerEvidenceRef {
     pub scope: EvidenceScope,
     /// Populated for claim-specific observer-quorum records.
     pub claim_id: Option<String>,
-    /// SHA-256 of domain + claim ID + typed evidence scope.
+    /// SHA-256 of domain + claim ID + asserted value + typed evidence scope.
     pub claim_scope_sha256: Option<String>,
     pub observer_quorum: Option<ObserverQuorumProof>,
     pub raw_artifact_id: String,
