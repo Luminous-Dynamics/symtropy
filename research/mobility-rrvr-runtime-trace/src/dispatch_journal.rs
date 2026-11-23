@@ -8,8 +8,8 @@
 //! This journal never claims that a local record proves remote execution.
 
 use crate::gazebo_adapter::{
-    DispatchLedgerResult, DispatchReconciliationDecisionPlaceholder, GazeboDispatchOutcome,
-    GazeboDispatchRequest, GazeboFaultInjectorTransport, ReconciliationDecision,
+    DispatchLedgerResult, GazeboDispatchOutcome, GazeboDispatchRequest,
+    GazeboFaultInjectorTransport, ReconciliationDecision,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -475,14 +475,6 @@ impl DispatchJournal {
         }
         Ok(())
     }
-}
-
-pub trait DispatchJournalStore {
-    fn load_validated(&mut self) -> Result<DispatchJournal, DispatchJournalError>;
-    fn append_and_sync(
-        &mut self,
-        record: &DispatchJournalRecord,
-    ) -> Result<(), DispatchJournalError>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
