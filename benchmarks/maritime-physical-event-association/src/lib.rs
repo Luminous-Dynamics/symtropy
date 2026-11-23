@@ -269,6 +269,12 @@ fn event_context(observation: &PhysicalObservation) -> EventContext<'_> {
 struct CandidateGraph {
     edges: Vec<Vec<usize>>,
     pair_evaluations: usize,
+}
+
+#[cfg(test)]
+struct IndexedCandidateGraph {
+    edges: Vec<Vec<usize>>,
+    pair_evaluations: usize,
     index_nodes_visited: usize,
 }
 
@@ -310,7 +316,6 @@ fn candidate_graph(
     CandidateGraph {
         edges,
         pair_evaluations,
-        index_nodes_visited: 0,
     }
 }
 
@@ -408,7 +413,7 @@ fn candidate_graph_interval_indexed(
     source: &[PhysicalObservation],
     witness: &[PhysicalObservation],
     profile: &CorrelationProfile,
-) -> CandidateGraph {
+) -> IndexedCandidateGraph {
     let mut indexes = BTreeMap::<EventContext<'_>, IntervalContextIndex>::new();
     for (index, event) in witness.iter().enumerate() {
         indexes
@@ -450,7 +455,7 @@ fn candidate_graph_interval_indexed(
         edges.push(source_edges);
     }
 
-    CandidateGraph {
+    IndexedCandidateGraph {
         edges,
         pair_evaluations,
         index_nodes_visited,
