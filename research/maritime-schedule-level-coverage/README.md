@@ -40,11 +40,13 @@ k = ceil(121 * 0.996) = 121 > 120
 
 There is **no finite distribution-free split-conformal quantile** at that sample size. The benchmark reports `NO_FINITE_SAMPLE_QUANTILE` instead of inventing a bound.
 
-The minimum calibration sample count for alpha 0.004 is 249. The benchmark now evaluates this second sample-size arm as well as the 120-schedule no-finite-quantile arm:
+The minimum calibration sample count for alpha 0.004 is 249. The benchmark evaluates both sample-size arms:
+- `BONFERRONI_SCHEDULE_90_N120`: no finite quantile, explicitly not evaluated;
+- `BONFERRONI_SCHEDULE_90_N249`: finite per-call quantiles and measured whole-schedule coverage/interval width.
 - n=248 gives k=249 > n;
 - n=249 gives k=249, which is finite.
 
-The schedule-maximum method calibrates one score per whole schedule at alpha 0.10; with 120 calibration schedules, its rank is 109 and a finite quantile exists. Its intervals may be wider, but its calibration unit matches the schedule-level claim.
+The schedule-maximum method calibrates one score per whole schedule at alpha 0.10; with 120 calibration schedules, its rank is 109 and a finite quantile exists. Its intervals may be wider, but its calibration unit matches the schedule-level claim. The distribution-free guarantee applies only when calibration and future schedules are exchangeable at the whole-schedule unit. The temporal-drift and burst windows deliberately violate that condition; those results are stress diagnostics, not conformal guarantees.
 
 ## Methods
 
@@ -68,7 +70,7 @@ The vessel joint score is the maximum of the two normalized absolute residuals. 
 - Deterministic SplitMix64 seeds.
 - Heterogeneous call positions with different residual scales.
 - Burst regime injects a large residual in one call in selected schedules.
-- The test reports both per-call coverage and whole-schedule simultaneous coverage, with a 95% Wilson interval calculated over the 120 whole-schedule test units (not 3,000 clustered call outcomes).
+- The test reports both per-call coverage and whole-schedule simultaneous coverage, with a descriptive 95% Wilson interval over the 120 whole-schedule test units (not 3,000 clustered call outcomes). The Wilson interval assumes independent schedule-level test units and is not robust to serial dependence.
 - Bonferroni at n=120 intentionally has no finite quantile; Bonferroni at n=249 is evaluated with a finite quantile. Both appear separately in the 12-row receipt.
 
 These are synthetic structural results, not DCT performance estimates or calibrated operational probabilities.
