@@ -13,6 +13,62 @@ pub const PROFILE_SCHEMA: &str = "maritime-channel-dependency-binding-v0.1";
 pub const CLOSURE_SCHEMA: &str = "mycelix-closure-projection-consumer-contract-v0.1";
 pub const MYCELIX_RECEIVER_PR: u32 = 6121;
 pub const MYCELIX_RECEIVER_HEAD: &str = "92948ecc24392a25cec77dd646130f9d98e8c790";
+pub const PROFILE_ID_V0_1: &str = "maritime-two-channel-v0.1";
+pub const PROFILE_VERSION_V0_1: &str = "0.1.0";
+
+fn frozen_v0_1_obligations() -> BTreeSet<StageDimension> {
+    let mut obligations = BTreeSet::new();
+    for (stage, dimensions) in [
+        (
+            MaritimeStage::Detection,
+            vec![
+                FaultDomainDimension::InputAcquisition,
+                FaultDomainDimension::SourceEvidenceLineage,
+                FaultDomainDimension::OperatorControl,
+            ],
+        ),
+        (
+            MaritimeStage::Transport,
+            vec![
+                FaultDomainDimension::ExecutionProvider,
+                FaultDomainDimension::Runtime,
+                FaultDomainDimension::TrustRoot,
+            ],
+        ),
+        (
+            MaritimeStage::PersistenceRetrieval,
+            vec![
+                FaultDomainDimension::SourceEvidenceLineage,
+                FaultDomainDimension::ExecutionProvider,
+                FaultDomainDimension::Runtime,
+                FaultDomainDimension::RepositoryControl,
+            ],
+        ),
+        (
+            MaritimeStage::Interpretation,
+            vec![
+                FaultDomainDimension::ImplementationLineage,
+                FaultDomainDimension::SpecificationLineage,
+                FaultDomainDimension::SourceEvidenceLineage,
+                FaultDomainDimension::TrustRoot,
+            ],
+        ),
+        (
+            MaritimeStage::GovernanceControl,
+            vec![
+                FaultDomainDimension::OperatorControl,
+                FaultDomainDimension::RepositoryControl,
+                FaultDomainDimension::TrustRoot,
+                FaultDomainDimension::ExecutionProvider,
+            ],
+        ),
+    ] {
+        for dimension in dimensions {
+            obligations.insert(StageDimension { stage, dimension });
+        }
+    }
+    obligations
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Digest(pub [u8; 32]);
@@ -302,60 +358,11 @@ impl MaritimeProfile {
         profile_digest: Digest,
         as_of_epoch_seconds: u64,
     ) -> Self {
-        let mut obligations = BTreeSet::new();
-        for (stage, dimensions) in [
-            (
-                MaritimeStage::Detection,
-                vec![
-                    FaultDomainDimension::InputAcquisition,
-                    FaultDomainDimension::SourceEvidenceLineage,
-                    FaultDomainDimension::OperatorControl,
-                ],
-            ),
-            (
-                MaritimeStage::Transport,
-                vec![
-                    FaultDomainDimension::ExecutionProvider,
-                    FaultDomainDimension::Runtime,
-                    FaultDomainDimension::TrustRoot,
-                ],
-            ),
-            (
-                MaritimeStage::PersistenceRetrieval,
-                vec![
-                    FaultDomainDimension::SourceEvidenceLineage,
-                    FaultDomainDimension::ExecutionProvider,
-                    FaultDomainDimension::Runtime,
-                    FaultDomainDimension::RepositoryControl,
-                ],
-            ),
-            (
-                MaritimeStage::Interpretation,
-                vec![
-                    FaultDomainDimension::ImplementationLineage,
-                    FaultDomainDimension::SpecificationLineage,
-                    FaultDomainDimension::SourceEvidenceLineage,
-                    FaultDomainDimension::TrustRoot,
-                ],
-            ),
-            (
-                MaritimeStage::GovernanceControl,
-                vec![
-                    FaultDomainDimension::OperatorControl,
-                    FaultDomainDimension::RepositoryControl,
-                    FaultDomainDimension::TrustRoot,
-                    FaultDomainDimension::ExecutionProvider,
-                ],
-            ),
-        ] {
-            for dimension in dimensions {
-                obligations.insert(StageDimension { stage, dimension });
-            }
-        }
+        let obligations = frozen_v0_1_obligations();
         Self {
             schema: PROFILE_SCHEMA.to_owned(),
-            profile_id: "maritime-two-channel-v0.1".to_owned(),
-            profile_version: "0.1.0".to_owned(),
+            profile_id: PROFILE_ID_V0_1.to_owned(),
+            profile_version: PROFILE_VERSION_V0_1.to_owned(),
             claim_id: claim_id.into(),
             subject_digest,
             profile_digest,
@@ -421,6 +428,8 @@ pub struct DimensionFinding {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ValidationError {
     EmptyProfileBinding,
+    UnsupportedProfileBinding,
+    MissingFrozenObligations,
     InvalidProfileSchema,
     InvalidClosureSchema,
     ProfileProjectionMismatch,
@@ -502,6 +511,19 @@ fn validate_profile_and_projection(
     let mut errors = BTreeSet::new();
     if profile.schema != PROFILE_SCHEMA {
         errors.insert(ValidationError::InvalidProfileSchema);
+    }
+    let is_frozen_v0_1 = profile.profile_id == PROFILE_ID_V0_1
+        && profile.profile_version == PROFILE_VERSION_V0_1;
+    if is_frozen_v0_1 {
+        if !profile
+            .obligations
+            .is_superset(&frozen_v0_1_obligations())
+        {
+            errors.insert(ValidationError::MissingFrozenObligations);
+        }
+    } else {
+        #[cfg(not(test))]
+        errors.insert(ValidationError::UnsupportedProfileBinding);
     }
     if projection.schema != CLOSURE_SCHEMA {
         errors.insert(ValidationError::InvalidClosureSchema);
@@ -882,6 +904,9 @@ mod tests {
         let profile_digest = Digest::from_byte(2);
         let mut profile =
             MaritimeProfile::v0_1("claim-gate-crossing-42", subject, profile_digest, 500);
+        // Unit tests isolate one role × stage × dimension. The release build
+        // accepts only the named frozen v0.1 profile and requires its full set.
+        profile.profile_id = "maritime-two-channel-test-subset".to_owned();
         profile.obligations = BTreeSet::from([StageDimension {
             stage: MaritimeStage::Detection,
             dimension,
@@ -998,6 +1023,39 @@ mod tests {
             }
         }
         assert_eq!(checked_cases, 900);
+    }
+
+    #[test]
+    fn named_frozen_v0_1_profile_cannot_remove_mandatory_stage_obligations() {
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let (mut profile, projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                1,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "source-binding",
+                "source-reader",
+                "edge-source",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                2,
+                MaritimeDependencyClass::PhysicalSensorOrReader,
+                "witness-binding",
+                "witness-reader",
+                "edge-witness",
+            )]),
+            dimension,
+        );
+        profile.profile_id = PROFILE_ID_V0_1.to_owned();
+        profile.profile_version = PROFILE_VERSION_V0_1.to_owned();
+
+        let result = assess(&profile, &projection);
+        assert_eq!(result.disposition, ProfileDisposition::ProfileInvalid);
+        assert!(
+            result
+                .validation_errors
+                .contains(&ValidationError::MissingFrozenObligations)
+        );
+        assert!(result.findings.is_empty());
     }
 
     #[test]
