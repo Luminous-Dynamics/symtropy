@@ -165,8 +165,8 @@
         "expected_status": {
           "type": "string",
           "enum": [
-            "CERTIFIED_WITHIN_SENSING_ENVELOPE",
-            "PROVEN_OUTSIDE_SENSING_ENVELOPE",
+            "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+            "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
             "INDETERMINATE",
             "INVALID_INPUT"
           ]
