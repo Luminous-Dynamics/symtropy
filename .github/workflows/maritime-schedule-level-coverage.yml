@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo run --quiet --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --bin schedule-coverage-audit > /tmp/schedule-coverage.csv
-          cargo run --quiet --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --bin schedule-coverage-replay.csv
+          cargo run --quiet --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --bin schedule-coverage-audit > /tmp/schedule-coverage-replay.csv
           cmp /tmp/schedule-coverage.csv /tmp/schedule-coverage-replay.csv
           test "$(wc -l < /tmp/schedule-coverage.csv)" -eq 10
           head -n 1 /tmp/schedule-coverage.csv | awk -F, '{ if (NF != 16) exit 1 }'
