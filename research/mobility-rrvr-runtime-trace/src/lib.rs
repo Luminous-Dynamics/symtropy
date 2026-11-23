@@ -882,13 +882,12 @@ impl RuntimeProjectionRecording {
                             .as_deref()
                             .filter(|v| nonempty(v))
                             .ok_or(ProjectionError::InvalidOwnerEvidence)?;
-                        let expected =
-                            claim_scope_digest(
-                                evidence.domain,
-                                claim_id,
-                                &evidence.asserted_value,
-                                &evidence.scope,
-                            );
+                        let expected = claim_scope_digest(
+                            evidence.domain,
+                            claim_id,
+                            &evidence.asserted_value,
+                            &evidence.scope,
+                        );
                         if evidence.claim_scope_sha256.as_deref() != Some(expected.as_str()) {
                             return Err(ProjectionError::InvalidOwnerEvidence);
                         }
@@ -997,28 +996,28 @@ impl RuntimeProjectionRecording {
             };
             for evidence in &s.owner_evidence {
                 let expected = match evidence.domain {
-                    OwnerEvidenceDomain::ProcessEpoch => {
-                        str_field(&s.state_s, "processStatus")?
-                    }
+                    OwnerEvidenceDomain::ProcessEpoch => str_field(&s.state_s, "processStatus")?,
                     OwnerEvidenceDomain::Persistence => state_persist,
                     OwnerEvidenceDomain::PhysicalOutcome => state_old_outcome,
                     OwnerEvidenceDomain::MissionResolution => state_mission,
                     OwnerEvidenceDomain::ControllerQueue => expected_controller_assertion,
                     OwnerEvidenceDomain::DownstreamExecutionGraph => expected_graph_assertion,
                     OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum => state_effect_evidence,
-                    OwnerEvidenceDomain::DownstreamObserverQuorum => {
-                        match evidence.status {
-                            OwnerEvidenceStatus::NotApplicable => "not_applicable",
-                            OwnerEvidenceStatus::QuorumQualified => "quiescent",
-                            OwnerEvidenceStatus::QuorumNotQualified => "not_quiescent",
-                            OwnerEvidenceStatus::Unknown
-                            | OwnerEvidenceStatus::InsufficientEvidence => "unknown",
-                            OwnerEvidenceStatus::Disputed => "disputed",
-                            _ => return Err(ProjectionError::OwnerAssertedValueMismatch),
-                        }
-                    }
+                    OwnerEvidenceDomain::DownstreamObserverQuorum => match evidence.status {
+                        OwnerEvidenceStatus::NotApplicable => "not_applicable",
+                        OwnerEvidenceStatus::QuorumQualified => "quiescent",
+                        OwnerEvidenceStatus::QuorumNotQualified => "not_quiescent",
+                        OwnerEvidenceStatus::Unknown
+                        | OwnerEvidenceStatus::InsufficientEvidence => "unknown",
+                        OwnerEvidenceStatus::Disputed => "disputed",
+                        _ => return Err(ProjectionError::OwnerAssertedValueMismatch),
+                    },
                     OwnerEvidenceDomain::ActionApplicability => {
-                        if state_m1 && state_m2 { "current" } else { "revoked" }
+                        if state_m1 && state_m2 {
+                            "current"
+                        } else {
+                            "revoked"
+                        }
                     }
                     OwnerEvidenceDomain::RecoveryAuthority => state_permit,
                 };
