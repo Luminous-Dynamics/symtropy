@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! EHD PIV cluster-conformal calibration and field-functional uncertainty.
 //!
 //! This crate composes five typed paths:
