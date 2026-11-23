@@ -764,9 +764,12 @@ fn nonempty(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::campaign_plan::CompiledCampaignPlan;
+    use crate::fault_campaign::FaultCampaignManifest;
     use crate::gazebo_adapter::{
-        DispatchLedgerResult, GazeboDispatchOutcome, GazeboDispatchRequest,
-        GazeboFaultInjectorTransport,
+        DispatchLedgerResult, GazeboAdapterSession, GazeboCapability, GazeboCapabilityProfile,
+        GazeboDispatchOutcome, GazeboDispatchRequest, GazeboFaultInjectorTransport,
+        GazeboTargetBinding, SteppingMethod, dispatch_fault_with_write_ahead,
     };
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -828,6 +831,50 @@ mod tests {
         ))
     }
 
+    fn compiled_plan() -> CompiledCampaignPlan {
+        let bytes = include_bytes!("../fixtures/fault_campaign_paired_v0_1.json");
+        let manifest: FaultCampaignManifest =
+            serde_json::from_slice(bytes).expect("campaign fixture deserializes");
+        let digest = sha256_hex(bytes);
+        CompiledCampaignPlan::compile(&manifest, &digest).unwrap()
+    }
+
+    fn gazebo_session(plan: &CompiledCampaignPlan) -> GazeboAdapterSession {
+        let profile = GazeboCapabilityProfile {
+            version: "0.1".into(),
+            simulator_id: plan.platform.platform_id.clone(),
+            simulator_revision: plan.platform.simulator_revision.clone(),
+            gazebo_release: plan.platform.gazebo_release.clone(),
+            ros_distribution: plan.platform.ros_distribution.clone(),
+            simulation_interfaces_revision: plan.platform.simulation_interfaces_revision.clone(),
+            world_name: "rrvr-reference-world".into(),
+            world_stats_topic: plan.platform.world_stats_topic.clone(),
+            world_profile_sha256: plan.platform.environment_artifact_sha256.clone(),
+            reset_profile_sha256: plan.reset.profile_sha256.clone(),
+            scene_broadcaster_id: plan.platform.scene_broadcaster_id.clone(),
+            scene_broadcaster_revision: plan.platform.scene_broadcaster_revision.clone(),
+            scene_broadcaster_sha256: plan.platform.scene_broadcaster_sha256.clone(),
+            scene_broadcaster_loaded: true,
+            capabilities: [
+                GazeboCapability::GetSimulatorFeatures,
+                GazeboCapability::ResetSimulation,
+                GazeboCapability::StepSimulation,
+                GazeboCapability::GetSimulationState,
+                GazeboCapability::SetSimulationState,
+                GazeboCapability::GetEntities,
+                GazeboCapability::GetEntityState,
+            ]
+            .into_iter()
+            .collect(),
+        };
+        GazeboAdapterSession {
+            profile,
+            stepping_method: SteppingMethod::StepSimulationService,
+            world_epoch: "world-epoch-1".into(),
+            clock_id: "sim-clock".into(),
+        }
+    }
+
     fn request() -> GazeboDispatchRequest {
         GazeboDispatchRequest {
             plan_sha256: "a".repeat(64),
@@ -842,6 +889,131 @@ mod tests {
             parameters_sha256: "b".repeat(64),
             idempotency_key: "rrvr/plan/pair/scenario/fault/run-epoch".into(),
         }
+    }
+
+    #[test]
+    fn gazebo_adapter_dispatch_is_bound_to_plan_target_and_write_ahead_intent() {
+        let path = path();
+        let plan = compiled_plan();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "negative-full-rrvr")
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let session = gazebo_session(&plan);
+        let target = GazeboTargetBinding {
+            world_name: session.profile.world_name.clone(),
+            world_epoch: session.world_epoch.clone(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-target-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+        let mut store = FileDispatchJournalStore::open(&path).unwrap();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Accepted,
+            dispatch_result: GazeboDispatchOutcome::Accepted {
+                dispatch_id: "dispatch-plan-bound-001".into(),
+            },
+        };
+
+        assert!(matches!(
+            dispatch_fault_with_write_ahead(
+                &mut store,
+                &mut injector,
+                &plan,
+                scenario,
+                fault,
+                &target,
+                &session,
+                "run-001",
+                "run-epoch-001",
+            ),
+            Ok(JournaledDispatchOutcome::AttemptRecorded(
+                GazeboDispatchOutcome::Accepted { .. }
+            ))
+        ));
+        assert_eq!(injector.dispatch_calls, 1);
+        let journal = store.load_validated().unwrap();
+        assert_eq!(journal.records().len(), 2);
+        assert_eq!(
+            journal.records()[0].phase,
+            DispatchJournalPhase::IntentPersisted
+        );
+        assert_eq!(
+            journal.records()[1].phase,
+            DispatchJournalPhase::ResponseRecorded
+        );
+        drop(store);
+
+        let mut reopened = FileDispatchJournalStore::open(&path).unwrap();
+        assert_eq!(
+            dispatch_fault_with_write_ahead(
+                &mut reopened,
+                &mut injector,
+                &plan,
+                scenario,
+                fault,
+                &target,
+                &session,
+                "run-001",
+                "run-epoch-001",
+            ),
+            Ok(JournaledDispatchOutcome::DuplicateSuppressed)
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+        drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn gazebo_adapter_rejects_wrong_world_epoch_before_writing_or_dispatching() {
+        let path = path();
+        let plan = compiled_plan();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "negative-full-rrvr")
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let session = gazebo_session(&plan);
+        let target = GazeboTargetBinding {
+            world_name: session.profile.world_name.clone(),
+            world_epoch: "stale-world-epoch".into(),
+            logical_component_id: fault.target_component_id.clone(),
+            target_id: "gazebo-target-001".into(),
+            target_revision: fault.target_revision.clone(),
+            target_profile_sha256: fault.target_profile_sha256.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+        };
+        let mut store = FileDispatchJournalStore::open(&path).unwrap();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Unknown,
+            dispatch_result: GazeboDispatchOutcome::Unknown { dispatch_id: None },
+        };
+
+        assert!(matches!(
+            dispatch_fault_with_write_ahead(
+                &mut store,
+                &mut injector,
+                &plan,
+                scenario,
+                fault,
+                &target,
+                &session,
+                "run-001",
+                "run-epoch-001",
+            ),
+            Err(crate::gazebo_adapter::GazeboAdapterError::WrongWorldEpoch)
+        ));
+        assert_eq!(injector.dispatch_calls, 0);
+        assert!(store.load_validated().unwrap().records().is_empty());
+        drop(store);
+        let _ = fs::remove_file(path);
     }
 
     #[test]
