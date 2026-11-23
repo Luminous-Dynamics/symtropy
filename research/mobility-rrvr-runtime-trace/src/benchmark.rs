@@ -931,7 +931,11 @@ mod tests {
     #[test]
     fn rejects_assessed_confirmation_without_execution_and_observation() {
         let mut corpus = corpus();
-        let full = corpus.episodes.iter_mut().find(|episode| episode.arm == BenchmarkArm::FullRrvr).unwrap();
+        let full = corpus
+            .episodes
+            .iter_mut()
+            .find(|episode| episode.arm == BenchmarkArm::FullRrvr)
+            .unwrap();
         full.independently_observed_delivery_count = 0;
         assert_eq!(
             corpus.validate_and_score(&"a".repeat(64)),
