@@ -104,6 +104,7 @@ function evaluateCase(item) {
   }
 
   const consumersByNode = new Map();
+  const findings = [];
   for (const consumer of item.consumers) {
     if (!validId(consumer.node_id) || !validId(consumer.output_artifact_id)
       || !validId(consumer.operation) || !validSha(consumer.scope_sha256)
@@ -115,6 +116,10 @@ function evaluateCase(item) {
     if (!output) return invalidGraph(item, "consumer output has no producer record");
     if (output.artifact_id !== consumer.output_artifact_id) {
       return invalidGraph(item, "consumer output artifact differs from producer manifest");
+    }
+    if (output.scope_sha256 !== consumer.scope_sha256) {
+      addFinding(findings, "DEPENDENCY_SCOPE_MISMATCH", "output:" + consumer.node_id,
+        "consumer-produced artifact scope differs from its transformation scope");
     }
     const inputs = new Set();
     for (const id of consumer.input_artifact_ids) {
@@ -143,7 +148,6 @@ function evaluateCase(item) {
   }
 
   const expected = new Map();
-  const findings = [];
   const missing = new Set();
   const extra = new Set();
   for (const consumer of item.consumers) {
