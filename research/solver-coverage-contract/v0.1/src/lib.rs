@@ -725,7 +725,7 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
         match result.value {
             Some(value) => {
                 out.push(1);
-                out.extend_from_slice(&value.to_bits().to_be_bytes());
+                push_f64(&mut out, value);
             }
             None => out.push(0),
         }
@@ -742,8 +742,8 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
                 method_id,
             }) => {
                 out.push(2);
-                out.extend_from_slice(&lower.to_bits().to_be_bytes());
-                out.extend_from_slice(&upper.to_bits().to_be_bytes());
+                push_f64(&mut out, lower);
+                push_f64(&mut out, upper);
                 push_string(&mut out, &method_id);
             }
             None => out.push(0),
@@ -775,6 +775,12 @@ pub fn canonical_receipt_preimage(receipt: &CoverageReceipt) -> Vec<u8> {
 
 fn push_u64(out: &mut Vec<u8>, value: u64) {
     out.extend_from_slice(&value.to_be_bytes());
+}
+
+/// Canonicalize signed zero because +0.0 and -0.0 denote the same real value.
+fn push_f64(out: &mut Vec<u8>, value: f64) {
+    let canonical = if value == 0.0 { 0.0 } else { value };
+    out.extend_from_slice(&canonical.to_bits().to_be_bytes());
 }
 
 fn push_string(out: &mut Vec<u8>, value: &str) {
@@ -1014,6 +1020,33 @@ mod tests {
         assert_eq!(
             canonical_receipt_preimage(&first),
             canonical_receipt_preimage(&second)
+        );
+    }
+
+    #[test]
+    fn canonical_receipt_preimage_normalizes_signed_zero() {
+        let first = receipt();
+        let mut second = first.clone();
+        second.observable_results[0].value = Some(-0.0);
+        assert_eq!(
+            canonical_receipt_preimage(&first),
+            canonical_receipt_preimage(&second)
+        );
+
+        second.observable_results[0].uncertainty = Some(UncertaintySemantics::Interval {
+            lower: -0.0,
+            upper: 1.0,
+            method_id: "interval-v1".into(),
+        });
+        let mut positive_zero = second.clone();
+        positive_zero.observable_results[0].uncertainty = Some(UncertaintySemantics::Interval {
+            lower: 0.0,
+            upper: 1.0,
+            method_id: "interval-v1".into(),
+        });
+        assert_eq!(
+            canonical_receipt_preimage(&second),
+            canonical_receipt_preimage(&positive_zero)
         );
     }
 
