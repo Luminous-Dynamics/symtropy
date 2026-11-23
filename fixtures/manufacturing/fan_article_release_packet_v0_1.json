@@ -106,11 +106,46 @@
     "first_article_results_ref": null
   },
   "gates": {
-    "G0": { "status": "NOT_ASSESSED", "evidence_refs": [], "reviewer_id": null, "decision_ref": null, "recorded_at": null },
-    "G1": { "status": "NOT_ASSESSED", "evidence_refs": [], "reviewer_id": null, "decision_ref": null, "recorded_at": null },
-    "G2": { "status": "NOT_ASSESSED", "evidence_refs": [], "reviewer_id": null, "decision_ref": null, "recorded_at": null },
-    "G3": { "status": "NOT_ASSESSED", "evidence_refs": [], "reviewer_id": null, "decision_ref": null, "recorded_at": null },
-    "G4": { "status": "NOT_ASSESSED", "evidence_refs": [], "reviewer_id": null, "decision_ref": null, "recorded_at": null }
+    "G0": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G1": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G2": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G3": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    },
+    "G4": {
+      "status": "NOT_ASSESSED",
+      "evidence_refs": [],
+      "reviewer_id": null,
+      "decision_ref": null,
+      "recorded_at": null,
+      "disposition_reason": null
+    }
   },
   "owner_disposition": {
     "owner_id": null,
