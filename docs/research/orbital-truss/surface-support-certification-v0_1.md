@@ -32,8 +32,8 @@ A whole-support failure is reported only when a conservative bound proves every 
 
 ## 3. Outcome semantics
 
-- CERTIFIED_WITHIN_SENSING_ENVELOPE: the entire declared support is bounded inside range, FOV, incidence and GSD constraints.
-- PROVEN_OUTSIDE_SENSING_ENVELOPE: a conservative bound proves the whole support violates a constraint.
+- CONDITIONAL_WITHIN_SENSING_ENVELOPE: the entire declared support is bounded inside range, FOV, incidence and GSD constraints.
+- CONDITIONAL_OUTSIDE_SENSING_ENVELOPE: a conservative bound proves the whole support violates a constraint.
 - INDETERMINATE: support-bound assertion, normal-cone assertion or interval margins are insufficient to certify either side.
 - INVALID_INPUT: malformed identifiers, frame, units, vectors, camera model or limits.
 
