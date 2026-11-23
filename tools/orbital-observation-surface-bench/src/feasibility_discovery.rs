@@ -193,6 +193,9 @@ fn digest_ids(ids: &[String]) -> Result<String, String> {
 
 fn canonical_queries(queries: &[Query]) -> Result<Value, String> {
     let mut sorted = queries.to_vec();
+    for query in &mut sorted {
+        query.expected_world_ids.sort();
+    }
     sorted.sort_by(|left, right| left.query_id.cmp(&right.query_id));
     serde_json::to_value(sorted)
         .map_err(|error| format!("failed to encode canonical query records: {error}"))
@@ -1152,7 +1155,7 @@ mod tests {
     #[test]
     fn query_that_merges_incompatible_worlds_has_no_safe_policy() {
         let evaluation = evaluate(&fixture()).expect("discovery corpus evaluates");
-        let result = case(&evaluation, "query-merges-incompatible-worlds");
+        let result = case(&evaluation, "query-resolves-disjoint-worlds");
         let query = result
             .query_reports
             .iter()
