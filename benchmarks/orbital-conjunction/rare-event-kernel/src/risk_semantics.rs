@@ -611,11 +611,7 @@ mod tests {
             ConditionalCollisionProbability::new(rational(1, 10), [99; 32], [4; 32]).unwrap();
 
         assert_eq!(
-            aggregate_mission_collision_risk(
-                scope(),
-                &[input],
-                EventDependenceMode::Unknown,
-            ),
+            aggregate_mission_collision_risk(scope(), &[input], EventDependenceMode::Unknown,),
             Err(RiskSemanticsError::ProbabilityMeasureMismatch)
         );
     }
@@ -627,11 +623,7 @@ mod tests {
             ConditionalCollisionProbability::new(rational(1, 10), [3; 32], [99; 32]).unwrap();
 
         assert_eq!(
-            aggregate_mission_collision_risk(
-                scope(),
-                &[input],
-                EventDependenceMode::Unknown,
-            ),
+            aggregate_mission_collision_risk(scope(), &[input], EventDependenceMode::Unknown,),
             Err(RiskSemanticsError::ConditioningSetMismatch)
         );
     }
