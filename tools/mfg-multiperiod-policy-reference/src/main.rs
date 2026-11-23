@@ -480,9 +480,7 @@ impl ActionEnumerator<'_> {
             });
             self.visit(index + 1, used, current, out);
             current.pop();
-            let remaining = used
-                .get_mut(resource_id)
-                .expect("used capacity inserted");
+            let remaining = used.get_mut(resource_id).expect("used capacity inserted");
             *remaining -= 1;
             if *remaining == 0 {
                 used.remove(resource_id);
@@ -514,12 +512,7 @@ fn enumerate_actions(
     };
 
     let mut out = Vec::new();
-    enumerator.visit(
-        0,
-        &mut BTreeMap::new(),
-        &mut Vec::new(),
-        &mut out,
-    );
+    enumerator.visit(0, &mut BTreeMap::new(), &mut Vec::new(), &mut out);
     out.sort();
     out.dedup();
     if out.is_empty() {
