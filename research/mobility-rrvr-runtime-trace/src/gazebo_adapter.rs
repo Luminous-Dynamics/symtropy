@@ -712,7 +712,10 @@ mod tests {
             Ok(self.profile.clone())
         }
 
-        fn get_world_state(&mut self, _world_name: &str) -> Result<GazeboWorldSnapshot, Self::Error> {
+        fn get_world_state(
+            &mut self,
+            _world_name: &str,
+        ) -> Result<GazeboWorldSnapshot, Self::Error> {
             Ok(self.world.clone())
         }
 
