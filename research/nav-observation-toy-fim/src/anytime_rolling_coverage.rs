@@ -816,7 +816,7 @@ impl AnytimeRollingCoveragePolicy {
         // receipt and numerical check has passed. Cache failure disables the
         // optimization; it never blocks or changes the authoritative history.
         if self.rolling_range_index.is_some() {
-            let index_update = match prefix_range_intervals(
+            let disable_range_index = match prefix_range_intervals(
                 next_prefix,
                 next_horizon,
                 self.config.window_rule,
@@ -825,13 +825,11 @@ impl AnytimeRollingCoveragePolicy {
                 Ok(Some((r_interval, q_interval))) => self
                     .rolling_range_index
                     .as_mut()
-                    .expect("checked above")
-                    .append(r_interval, q_interval)
-                    .map(|_| ()),
-                Ok(None) if is_full_history_only(self.config.window_rule) => Ok(()),
-                Ok(None) | Err(_) => Err(()),
+                    .is_none_or(|index| index.append(r_interval, q_interval).is_err()),
+                Ok(None) if is_full_history_only(self.config.window_rule) => false,
+                Ok(None) | Err(_) => true,
             };
-            if index_update.is_err() {
+            if disable_range_index {
                 self.rolling_range_index = None;
             }
         }
