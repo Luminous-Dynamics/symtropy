@@ -198,3 +198,23 @@ Mk0 is credible when all of the following are true:
 - `mk0-vector` should become the first logistics autonomy substrate for indoor civic movement
 
 The point of Mk0 is simple: prove that a tiny metabolism can make useful things, move them, and sustain its own operation before claiming a city.
+
+
+## Synthetic event-contract verification
+
+The `symtropy-sim-bridge` exposes `verify_mk0_bootstrapper_report` as an
+independent check of the Mk0 synthetic event stream. It checks event identity,
+monotonic event time, payload/station consistency, material totals, energy-window
+consistency, process prerequisites, delivery/handoff order, and agreement
+between event-derived counts and report summary fields.
+
+The verifier implementation lives in the dependency-light
+`crates/core/symtropy-mk0-contract` package, which is a member of the public
+workspace and has a dedicated CI test step. The private-dependency bridge
+re-exports the same types and verifier rather than maintaining a second copy.
+
+This verifier establishes only that the synthetic scenario is internally
+coherent. It does **not** prove that a physical printer, recycler, manipulator,
+or mobile robot performed the corresponding operation; it does not qualify
+materials, parts, machine safety, or productive closure. Those remain separate
+simulation, HIL, metrology, and physical-acceptance obligations.

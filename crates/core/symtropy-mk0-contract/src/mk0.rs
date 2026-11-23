@@ -410,7 +410,8 @@ pub fn run_mk0_bootstrapper_scenario(config: Mk0ScenarioConfig) -> Mk0ScenarioRe
         });
     }
 
-    if energy_window_open {
+    if energy_window_open && recycled_feedstock_grams >= config.subassembly.required_material_grams
+    {
         let print_claim = Mk0PrintClaim {
             id: format!("print-{}", config.work_order_id),
             work_order_id: config.work_order_id.clone(),
@@ -478,7 +479,7 @@ pub fn run_mk0_bootstrapper_scenario(config: Mk0ScenarioConfig) -> Mk0ScenarioRe
                 payload: Mk0RecordPayload::MaintenanceFlag(maintenance),
             });
         }
-    } else {
+    } else if !energy_window_open {
         let maintenance = Mk0MaintenanceFlag {
             id: format!("maint-{}", config.work_order_id),
             station: Mk0Station::Helios,
@@ -487,6 +488,20 @@ pub fn run_mk0_bootstrapper_scenario(config: Mk0ScenarioConfig) -> Mk0ScenarioRe
         events.push(Mk0ScenarioEvent {
             tick: 2,
             station: Mk0Station::Helios,
+            record_kind: Mk0RecordKind::MaintenanceFlag,
+            record_id: maintenance.id.clone(),
+            detail: maintenance.reason.clone(),
+            payload: Mk0RecordPayload::MaintenanceFlag(maintenance),
+        });
+    } else if recycled_feedstock_grams > 0 {
+        let maintenance = Mk0MaintenanceFlag {
+            id: format!("maint-material-{}", config.work_order_id),
+            station: Mk0Station::Detritivore,
+            reason: "recycled feedstock batch is below the required material mass".to_string(),
+        };
+        events.push(Mk0ScenarioEvent {
+            tick: 2,
+            station: Mk0Station::Detritivore,
             record_kind: Mk0RecordKind::MaintenanceFlag,
             record_id: maintenance.id.clone(),
             detail: maintenance.reason.clone(),

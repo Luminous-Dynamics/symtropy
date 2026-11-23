@@ -143,6 +143,7 @@ members = [
     "crates/core/symtropy-core",
     "crates/domains/symtropy-devconsole",
     "crates/core/symtropy-math",
+    "crates/core/symtropy-mk0-contract",
     "crates/core/symtropy-physics",
     "crates/core/symtropy-core-stable",
     "crates/core/symtropy-hdc-core",
