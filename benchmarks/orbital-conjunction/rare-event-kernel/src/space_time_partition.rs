@@ -77,6 +77,54 @@ impl Rational {
         Self::new(numerator, denominator)
     }
 
+    /// Subtract two rationals exactly when the result is nonnegative.
+    pub fn checked_sub(self, other: Self) -> Result<Self, SpaceTimePartitionError> {
+        if self < other {
+            return Err(SpaceTimePartitionError::InvalidRationalSubtraction);
+        }
+        let common = gcd(self.denominator, other.denominator);
+        let left_factor = other.denominator / common;
+        let right_factor = self.denominator / common;
+        let left = self
+            .numerator
+            .checked_mul(left_factor)
+            .ok_or(SpaceTimePartitionError::ArithmeticOverflow)?;
+        let right = other
+            .numerator
+            .checked_mul(right_factor)
+            .ok_or(SpaceTimePartitionError::ArithmeticOverflow)?;
+        let numerator = left
+            .checked_sub(right)
+            .ok_or(SpaceTimePartitionError::InvalidRationalSubtraction)?;
+        let denominator = self
+            .denominator
+            .checked_mul(left_factor)
+            .ok_or(SpaceTimePartitionError::ArithmeticOverflow)?;
+        Self::new(numerator, denominator)
+    }
+
+    /// Divide two rationals exactly, cross-cancelling before multiplication.
+    ///
+    /// Division by zero and an unrepresentable result are reported explicitly.
+    pub fn checked_div(self, other: Self) -> Result<Self, SpaceTimePartitionError> {
+        if other.numerator == 0 {
+            return Err(SpaceTimePartitionError::InvalidRationalDivision);
+        }
+        let cancel_numerators = gcd(self.numerator, other.numerator);
+        let cancel_denominators = gcd(other.denominator, self.denominator);
+        let numerator_left = self.numerator / cancel_numerators;
+        let numerator_right = other.numerator / cancel_numerators;
+        let denominator_left = self.denominator / cancel_denominators;
+        let denominator_right = other.denominator / cancel_denominators;
+        let numerator = numerator_left
+            .checked_mul(denominator_right)
+            .ok_or(SpaceTimePartitionError::ArithmeticOverflow)?;
+        let denominator = denominator_left
+            .checked_mul(numerator_right)
+            .ok_or(SpaceTimePartitionError::ArithmeticOverflow)?;
+        Self::new(numerator, denominator)
+    }
+
     /// Multiply two rationals exactly, cross-cancelling before multiplication.
     pub fn checked_mul(self, other: Self) -> Result<Self, SpaceTimePartitionError> {
         let cancel_left = gcd(self.numerator, other.denominator);
@@ -351,6 +399,10 @@ pub enum SpaceTimePartitionError {
     InvalidRationalDenominator,
     /// Exact rational arithmetic exceeded u128.
     ArithmeticOverflow,
+    /// Rational subtraction would produce a negative result.
+    InvalidRationalSubtraction,
+    /// Rational division used a zero divisor.
+    InvalidRationalDivision,
     /// The declared horizon has invalid or reversed endpoints.
     InvalidHorizon,
     /// A temporal slab has an empty or reversed interval.
@@ -386,6 +438,8 @@ impl core::fmt::Display for SpaceTimePartitionError {
         let message = match self {
             Self::InvalidRationalDenominator => "rational denominator must be positive",
             Self::ArithmeticOverflow => "exact rational arithmetic overflowed u128",
+            Self::InvalidRationalSubtraction => "rational subtraction would be negative",
+            Self::InvalidRationalDivision => "rational division requires a nonzero divisor",
             Self::InvalidHorizon => "space-time horizon must have increasing endpoints",
             Self::InvalidTimeSlab => "time slab must have increasing endpoints",
             Self::TemporalGapOrOverlap => "time slabs do not tile the horizon exactly once",
