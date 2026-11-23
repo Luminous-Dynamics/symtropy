@@ -333,6 +333,322 @@ fn exhaustive_aabb_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
     pairs
 }
 
+
+#[derive(Clone, Copy)]
+struct BenchStaticEntry {
+    body_index: usize,
+    aabb: OracleAabb,
+}
+
+#[derive(Clone, Copy)]
+struct BenchStaticBvhNode {
+    aabb: OracleAabb,
+    left: Option<usize>,
+    right: Option<usize>,
+    leaf_start: usize,
+    leaf_end: usize,
+}
+
+/// Benchmark-only static hierarchy prototype. It is intentionally separate
+/// from production broadphase code so its build/query tradeoffs can be
+/// measured before any production algorithm is selected.
+struct BenchStaticBvh {
+    nodes: Vec<BenchStaticBvhNode>,
+    ordered_body_indices: Vec<usize>,
+    ordered_aabbs: Vec<OracleAabb>,
+    root: Option<usize>,
+}
+
+impl BenchStaticBvh {
+    const LEAF_SIZE: usize = 8;
+
+    fn build(bodies: &[RigidBody<3>]) -> Self {
+        let entries: Vec<_> = bodies
+            .iter()
+            .enumerate()
+            .filter(|(_, body)| body.body_type == BodyType::Static)
+            .map(|(body_index, body)| BenchStaticEntry {
+                body_index,
+                aabb: oracle_hyperbox_aabb(body),
+            })
+            .collect();
+
+        let mut tree = Self {
+            nodes: Vec::with_capacity(entries.len().saturating_mul(2)),
+            ordered_body_indices: Vec::with_capacity(entries.len()),
+            ordered_aabbs: Vec::with_capacity(entries.len()),
+            root: None,
+        };
+
+        if !entries.is_empty() {
+            let mut entries = entries;
+            tree.root = Some(tree.build_node(&mut entries, bodies));
+        }
+
+        tree
+    }
+
+    fn build_node(
+        &mut self,
+        entries: &mut [BenchStaticEntry],
+        bodies: &[RigidBody<3>],
+    ) -> usize {
+        let mut bounds = entries[0].aabb;
+        for entry in &entries[1..] {
+            bounds = oracle_aabb_union(&bounds, &entry.aabb);
+        }
+
+        let node_index = self.nodes.len();
+        self.nodes.push(BenchStaticBvhNode {
+            aabb: bounds,
+            left: None,
+            right: None,
+            leaf_start: 0,
+            leaf_end: 0,
+        });
+
+        if entries.len() <= Self::LEAF_SIZE {
+            let start = self.ordered_body_indices.len();
+            for entry in entries.iter() {
+                self.ordered_body_indices.push(entry.body_index);
+                self.ordered_aabbs.push(entry.aabb);
+            }
+            self.nodes[node_index].leaf_start = start;
+            self.nodes[node_index].leaf_end = self.ordered_body_indices.len();
+            return node_index;
+        }
+
+        let axis = (0..3)
+            .max_by(|a, b| {
+                let extent_a = bounds.max[*a] - bounds.min[*a];
+                let extent_b = bounds.max[*b] - bounds.min[*b];
+                extent_a.total_cmp(&extent_b)
+            })
+            .unwrap_or(0);
+
+        entries.sort_by(|a, b| {
+            let center_a = (a.aabb.min[axis] + a.aabb.max[axis]) * 0.5;
+            let center_b = (b.aabb.min[axis] + b.aabb.max[axis]) * 0.5;
+            center_a
+                .total_cmp(&center_b)
+                .then_with(|| bodies[a.body_index].handle.cmp(&bodies[b.body_index].handle))
+        });
+
+        let middle = entries.len() / 2;
+        let (left_entries, right_entries) = entries.split_at_mut(middle);
+        let left = self.build_node(left_entries, bodies);
+        let right = self.build_node(right_entries, bodies);
+        self.nodes[node_index].left = Some(left);
+        self.nodes[node_index].right = Some(right);
+        node_index
+    }
+
+    fn query_pairs(&self, bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
+        let dynamic: Vec<_> = bodies
+            .iter()
+            .enumerate()
+            .filter(|(_, body)| body.body_type == BodyType::Dynamic)
+            .map(|(index, body)| (index, oracle_hyperbox_aabb(body)))
+            .collect();
+        let mut pairs = Vec::new();
+
+        // Dynamic-dynamic candidates remain a direct pair loop in this
+        // prototype, matching the current incremental path's partition.
+        for i in 0..dynamic.len() {
+            for j in (i + 1)..dynamic.len() {
+                let (body_a, aabb_a) = dynamic[i];
+                let (body_b, aabb_b) = dynamic[j];
+                if should_collide_bench(&bodies[body_a], &bodies[body_b])
+                    && oracle_aabbs_overlap(&aabb_a, &aabb_b)
+                {
+                    pairs.push(canonical_broadphase_pair(
+                        bodies[body_a].handle,
+                        bodies[body_b].handle,
+                    ));
+                }
+            }
+        }
+
+        if let Some(root) = self.root {
+            for (dynamic_index, dynamic_aabb) in &dynamic {
+                let mut stack = vec![root];
+                while let Some(node_index) = stack.pop() {
+                    let node = &self.nodes[node_index];
+                    if !oracle_aabbs_overlap(dynamic_aabb, &node.aabb) {
+                        continue;
+                    }
+
+                    match (node.left, node.right) {
+                        (Some(left), Some(right)) => {
+                            stack.push(left);
+                            stack.push(right);
+                        }
+                        (None, None) => {
+                            for leaf_index in node.leaf_start..node.leaf_end {
+                                let static_index = self.ordered_body_indices[leaf_index];
+                                let static_body = &bodies[static_index];
+                                if should_collide_bench(&bodies[*dynamic_index], static_body)
+                                    && oracle_aabbs_overlap(
+                                        dynamic_aabb,
+                                        &self.ordered_aabbs[leaf_index],
+                                    )
+                                {
+                                    pairs.push(canonical_broadphase_pair(
+                                        bodies[*dynamic_index].handle,
+                                        static_body.handle,
+                                    ));
+                                }
+                            }
+                        }
+                        _ => panic!("static BVH node has exactly one child"),
+                    }
+                }
+            }
+        }
+
+        pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        pairs.dedup();
+        pairs
+    }
+}
+
+fn oracle_aabb_union(a: &OracleAabb, b: &OracleAabb) -> OracleAabb {
+    let mut min = a.min;
+    let mut max = a.max;
+    for axis in 0..3 {
+        min[axis] = min[axis].min(b.min[axis]);
+        max[axis] = max[axis].max(b.max[axis]);
+    }
+    OracleAabb { min, max }
+}
+
+fn should_collide_bench(a: &RigidBody<3>, b: &RigidBody<3>) -> bool {
+    (a.collision_group & b.collision_mask != 0)
+        && (b.collision_group & a.collision_mask != 0)
+}
+
+fn canonical_broadphase_pair(a: BodyHandle, b: BodyHandle) -> BroadphasePair {
+    if a < b {
+        BroadphasePair(a, b)
+    } else {
+        BroadphasePair(b, a)
+    }
+}
+
+fn bench_broadphase_static_bvh_tournament(c: &mut Criterion) {
+    let mut group = c.benchmark_group("broadphase_static_bvh_tournament_3d");
+
+    // The benchmark-only BVH is tested in both sparse and clustered scenes.
+    // Every candidate implementation must match the independent pair oracle
+    // before any timed iteration begins.
+    let mut scenarios = Vec::new();
+    for static_count in [256usize, 1024, 4096] {
+        for moving_count in [1usize, 8, 32] {
+            scenarios.push((
+                format!("sparse_static_{static_count}_moving_{moving_count}"),
+                static_heavy_broadphase_scene(static_count, moving_count),
+            ));
+        }
+    }
+    for static_count in [128usize, 512] {
+        for moving_count in [1usize, 8, 32] {
+            scenarios.push((
+                format!("clustered_static_{static_count}_moving_{moving_count}"),
+                clustered_static_heavy_broadphase_scene(static_count, moving_count),
+            ));
+        }
+    }
+
+    for (scenario, bodies) in scenarios {
+        let expected = exhaustive_aabb_pair_oracle(&bodies);
+        let static_tree = BenchStaticBvh::build(&bodies);
+        let tree_pairs = static_tree.query_pairs(&bodies);
+        assert_eq!(
+            tree_pairs, expected,
+            "benchmark static BVH mismatch in {scenario}"
+        );
+
+        let mut flat_cache = StaticBroadphase::new();
+        flat_cache.rebuild(&bodies);
+        let flat_pairs = broadphase::find_pairs_incremental(&bodies, &flat_cache);
+        assert_eq!(
+            flat_pairs, expected,
+            "flat-cache mismatch in {scenario}"
+        );
+
+        let full_pairs = broadphase::find_pairs(&bodies);
+        assert_eq!(
+            full_pairs, expected,
+            "full LBVH mismatch in {scenario}"
+        );
+
+        group.bench_function(
+            BenchmarkId::new("static_bvh_query_only", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(static_tree.query_pairs(black_box(&bodies)));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("static_bvh_build_only", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(BenchStaticBvh::build(black_box(&bodies)));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("static_bvh_build_plus_query", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    let tree = BenchStaticBvh::build(black_box(&bodies));
+                    black_box(tree.query_pairs(black_box(&bodies)));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("flat_static_cache_query_only", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(broadphase::find_pairs_incremental(
+                        black_box(&bodies),
+                        black_box(&flat_cache),
+                    ));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("flat_static_cache_build_plus_query", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    let mut cache = StaticBroadphase::new();
+                    cache.rebuild(black_box(&bodies));
+                    black_box(broadphase::find_pairs_incremental(
+                        black_box(&bodies),
+                        black_box(&cache),
+                    ));
+                });
+            },
+        );
+
+        group.bench_function(
+            BenchmarkId::new("full_lbvh_rebuild_plus_query", &scenario),
+            |bench| {
+                bench.iter(|| {
+                    black_box(broadphase::find_pairs(black_box(&bodies)));
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
 fn bench_broadphase_static_heavy(c: &mut Criterion) {
     let mut group = c.benchmark_group("broadphase_static_heavy_3d");
 
@@ -798,5 +1114,7 @@ criterion_group!(
     bench_broadphase_temporal_static_reuse,
     // Static cache invalidation under persistent geometry churn
     bench_broadphase_static_churn,
+    // Benchmark-only static BVH vs flat-cache/LBVH portfolio
+    bench_broadphase_static_bvh_tournament,
 );
 criterion_main!(benches);
