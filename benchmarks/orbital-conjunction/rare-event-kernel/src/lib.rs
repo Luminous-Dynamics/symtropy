@@ -37,14 +37,14 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
-pub use ncdot_sphere::{
-    NcdotSphereIntegrationConfig, NcdotSphereIntegrationReport, integrate_ncdot_sphere,
-};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
+};
+pub use ncdot_pointwise::{NcdotPointwiseInputs, NcdotPointwiseReport, evaluate_ncdot_pointwise};
+pub use ncdot_sphere::{
+    NcdotSphereIntegrationConfig, NcdotSphereIntegrationReport, integrate_ncdot_sphere,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
