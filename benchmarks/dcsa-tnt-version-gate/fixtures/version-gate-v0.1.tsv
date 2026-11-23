@@ -1,7 +1,7 @@
 # case_id|version|family|access|artifact_sha256|scope_ref|expected
-v22-shipment|2.2.0|SHIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2
-v22-transport|2.2.0|TRANSPORT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2
-v22-equipment|2.2.0|EQUIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2
+v22-shipment|2.2.0|SHIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
+v22-transport|2.2.0|TRANSPORT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
+v22-equipment|2.2.0|EQUIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
 v22-iot-not-in-profile|2.2.0|IOT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|UNSUPPORTED_FOR_VERSION
 v22-reefer-not-in-profile|2.2.0|REEFER|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|UNSUPPORTED_FOR_VERSION
 v30-public-not-authorized|3.0.0|IOT|PUBLIC|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|DCSA-TNT-3.0.0-MEMBER|ACCESS_REQUIRED
