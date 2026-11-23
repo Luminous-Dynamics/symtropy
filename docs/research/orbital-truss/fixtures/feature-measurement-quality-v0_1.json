@@ -1,0 +1,252 @@
+{
+  "schema": "luminous.orbital-feature-measurability.corpus.v0.1",
+  "benchmark_id": "ORBITAL-FMQ-ANALYTIC-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_2d_circle_geometric_identifiability_only",
+  "cases": [
+    {
+      "case_id": "FMQ-001-CARDINAL-FOUR",
+      "feature_id": "HOLE-1",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-9,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 90,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 180,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 270,
+          "nominally_observed": true,
+          "robustly_observed": true
+        }
+      ],
+      "expected_nominal_status": "MEASURABLE",
+      "expected_robust_status": "MEASURABLE",
+      "expected_disposition": "FEASIBLE"
+    },
+    {
+      "case_id": "FMQ-002-CLUSTERED-ARC",
+      "feature_id": "HOLE-2",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-9,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 315,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 330,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 345,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O4",
+          "view_id": "VIEW-4",
+          "failure_domain_id": "DOMAIN-4",
+          "contour_angle_deg": 15,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O5",
+          "view_id": "VIEW-5",
+          "failure_domain_id": "DOMAIN-5",
+          "contour_angle_deg": 30,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O6",
+          "view_id": "VIEW-6",
+          "failure_domain_id": "DOMAIN-6",
+          "contour_angle_deg": 45,
+          "nominally_observed": true,
+          "robustly_observed": true
+        }
+      ],
+      "expected_nominal_status": "ILL_CONDITIONED",
+      "expected_robust_status": "ILL_CONDITIONED",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "case_id": "FMQ-003-REPEATED-DIRECTION",
+      "feature_id": "HOLE-3",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-9,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        }
+      ],
+      "expected_nominal_status": "NOT_MEASURABLE",
+      "expected_robust_status": "NOT_MEASURABLE",
+      "expected_disposition": "INFEASIBLE"
+    },
+    {
+      "case_id": "FMQ-004-ROBUSTNESS-LOSS",
+      "feature_id": "HOLE-4",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-9,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 90,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 180,
+          "nominally_observed": true,
+          "robustly_observed": false
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 270,
+          "nominally_observed": true,
+          "robustly_observed": false
+        }
+      ],
+      "expected_nominal_status": "MEASURABLE",
+      "expected_robust_status": "NOT_MEASURABLE",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "case_id": "FMQ-005-ROTATED-CARDINAL",
+      "feature_id": "HOLE-5",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-9,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 37,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 127,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 217,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 307,
+          "nominally_observed": true,
+          "robustly_observed": true
+        }
+      ],
+      "expected_nominal_status": "MEASURABLE",
+      "expected_robust_status": "MEASURABLE",
+      "expected_disposition": "FEASIBLE"
+    }
+  ]
+}

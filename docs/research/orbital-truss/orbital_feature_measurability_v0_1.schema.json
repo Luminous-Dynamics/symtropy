@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital Feature Measurability Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-feature-measurability.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-FMQ-ANALYTIC-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_2d_circle_geometric_identifiability_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "QualityStatus": {
+      "type": "string",
+      "enum": [
+        "MEASURABLE",
+        "ILL_CONDITIONED",
+        "NOT_MEASURABLE"
+      ]
+    },
+    "Disposition": {
+      "type": "string",
+      "enum": [
+        "FEASIBLE",
+        "INFEASIBLE",
+        "INDETERMINATE"
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "view_id",
+        "failure_domain_id",
+        "contour_angle_deg",
+        "nominally_observed",
+        "robustly_observed"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "view_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contour_angle_deg": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "nominally_observed": {
+          "type": "boolean"
+        },
+        "robustly_observed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "feature_id",
+        "feature_model",
+        "max_condition_number",
+        "relative_rank_tolerance",
+        "observations",
+        "expected_nominal_status",
+        "expected_robust_status",
+        "expected_disposition"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_model": {
+          "const": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS"
+        },
+        "max_condition_number": {
+          "type": "number",
+          "exclusiveMinimum": 1
+        },
+        "relative_rank_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/Observation"
+          }
+        },
+        "expected_nominal_status": {
+          "$ref": "#/$defs/QualityStatus"
+        },
+        "expected_robust_status": {
+          "$ref": "#/$defs/QualityStatus"
+        },
+        "expected_disposition": {
+          "$ref": "#/$defs/Disposition"
+        }
+      }
+    }
+  }
+}
