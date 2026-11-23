@@ -472,7 +472,8 @@ impl DispatchJournal {
                     }
                 }
                 DispatchJournalPhase::ReconciliationRecorded => {
-                    if !matches!(
+                    if record.dispatch_id.is_some()
+                        || !matches!(
                         states.get(&record.idempotency_key),
                         Some(
                             KeyJournalState::IntentPersisted
@@ -538,7 +539,13 @@ where
     if !nonempty(&request.idempotency_key)
         || !valid_sha256(&request.plan_sha256)
         || !valid_sha256(&request.parameters_sha256)
+        || !nonempty(&request.campaign_id)
+        || !nonempty(&request.pair_id)
+        || !nonempty(&request.scenario_id)
+        || !nonempty(&request.fault_id)
+        || request.fault_sequence == 0
         || !nonempty(&request.target_id)
+        || !nonempty(&request.fault_domain_id)
     {
         return JournaledDispatchOutcome::JournalRejected(DispatchJournalError::InvalidRequest);
     }
@@ -1084,6 +1091,27 @@ mod tests {
         assert_eq!(injector.dispatch_calls, 0);
         assert_eq!(reopened.load_validated().unwrap().records().len(), 2);
         drop(reopened);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn invalid_dispatch_request_is_rejected_before_journal_or_injector_mutation() {
+        let path = path();
+        let mut store = FileDispatchJournalStore::open(&path).unwrap();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup_result: DispatchLedgerResult::Unknown,
+            dispatch_result: GazeboDispatchOutcome::Unknown { dispatch_id: None },
+        };
+        let mut invalid = request();
+        invalid.fault_sequence = 0;
+        assert_eq!(
+            dispatch_once_with_journal(&mut store, &mut injector, &invalid),
+            JournaledDispatchOutcome::JournalRejected(DispatchJournalError::InvalidRequest)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+        assert!(store.load_validated().unwrap().records().is_empty());
+        drop(store);
         let _ = fs::remove_file(path);
     }
 
