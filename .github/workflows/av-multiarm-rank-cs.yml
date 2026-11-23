@@ -1,0 +1,24 @@
+name: AV multi-arm rank confidence sequences
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-multiarm-rank-cs.yml"
+      - "tools/av-anytime-valid-evaluator/rank_confidence_sequences.py"
+      - "tools/av-anytime-valid-evaluator/test_rank_confidence_sequences.py"
+      - "research/av-multiarm-rank-cs-v0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head rank-CS contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run rank confidence sequence tests
+        run: python3 -m unittest discover -s tools/av-anytime-valid-evaluator -p "test_rank_confidence_sequences.py" -v
