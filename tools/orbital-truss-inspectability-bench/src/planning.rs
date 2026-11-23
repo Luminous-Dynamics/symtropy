@@ -15,13 +15,15 @@ pub enum PlanningDisposition {
     BudgetInfeasible,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanningFeature {
     pub feature_id: String,
     pub required_failure_domains: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlanningView {
     pub view_id: String,
     pub failure_domain_id: String,
