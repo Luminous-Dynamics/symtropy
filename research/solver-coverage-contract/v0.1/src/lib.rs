@@ -738,6 +738,7 @@ mod tests {
         assert_eq!(report.capacity_dropped_rows, 1);
         assert!(!report.required_observables_produced);
         assert!(!report.complete_for_declared_required_work);
+        assert!(report.row_attribution_complete);
     }
 
     #[test]
@@ -748,6 +749,18 @@ mod tests {
         value.row_coverage[0].solved_rows = 0;
         value.row_coverage[0].capacity_dropped_rows = 1;
         assert!(validate_receipt(&value).is_err());
+    }
+
+    #[test]
+    fn aggregate_partial_omission_marks_row_attribution_incomplete() {
+        let mut value = receipt();
+        value.row_coverage[0].requested_rows = 2;
+        value.row_coverage[0].capacity_dropped_rows = 1;
+        let report = validate_receipt(&value).expect("aggregate omission is explicit");
+        assert!(report.protocol_complete);
+        assert!(!report.row_attribution_complete);
+        assert!(!report.required_rows_solved);
+        assert!(!report.complete_for_declared_required_work);
     }
 
     #[test]
