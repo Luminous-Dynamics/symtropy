@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn high_conditional_value_but_low_success_probability_loses_on_expected_useful_yield() {
-        let candidates = [candidate(1, 2.5, 40, 200), candidate(2, 2.6, 40, 200)];
+        let candidates = [candidate(1, 1.2, 40, 200), candidate(2, 2.6, 40, 200)];
         // Action 1 separates both cross-decision pairs, action 2 separates one.
         let reports = [report(1, [0.0, 2.0, 2.0]), report(2, [0.0, 1.0, 0.0])];
         let contracts = [contract(1, 0.2, 0.6, 4), contract(2, 0.8, 0.95, 9)];
