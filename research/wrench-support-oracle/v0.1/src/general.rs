@@ -366,7 +366,9 @@ fn subset_model(
         .map(|contact| contact.id.as_str())
         .collect::<BTreeSet<_>>();
     if requested.iter().any(|id| !all_ids.contains(id)) {
-        return Err(OracleError::new("retained set contains an unknown contact ID"));
+        return Err(OracleError::new(
+            "retained set contains an unknown contact ID",
+        ));
     }
     for contact in &model.contacts {
         if !requested.contains(contact.id.as_str()) && contact.min_normal_fraction > 0.0 {
@@ -402,10 +404,14 @@ pub fn evaluate_retained_contact_set(
 ) -> Result<ContactSetReport, OracleError> {
     validate_model(model)?;
     if directions.is_empty() {
-        return Err(OracleError::new("at least one wrench direction is required"));
+        return Err(OracleError::new(
+            "at least one wrench direction is required",
+        ));
     }
     if !support_floor.is_finite() || support_floor <= 0.0 {
-        return Err(OracleError::new("support floor must be finite and positive"));
+        return Err(OracleError::new(
+            "support floor must be finite and positive",
+        ));
     }
 
     let full_model = ContactWrenchModel {
@@ -430,7 +436,9 @@ pub fn evaluate_retained_contact_set(
     ordered_directions.sort_by(|left, right| left.id.cmp(&right.id));
     for direction in &ordered_directions {
         if direction.id.trim().is_empty() || !direction_ids.insert(direction.id.as_str()) {
-            return Err(OracleError::new("direction IDs must be non-empty and unique"));
+            return Err(OracleError::new(
+                "direction IDs must be non-empty and unique",
+            ));
         }
         let full_support = evaluate_support(&full_model, direction)?.support_value;
         let retained_support = evaluate_support(&reduced_model, direction)?.support_value;
@@ -440,7 +448,9 @@ pub fn evaluate_retained_contact_set(
         let raw_deficit = (full_support - retained_support).max(0.0);
         let normalized_deficit = raw_deficit / full_support.abs().max(support_floor);
         if !normalized_deficit.is_finite() {
-            return Err(OracleError::new("normalized contact-set deficit is non-finite"));
+            return Err(OracleError::new(
+                "normalized contact-set deficit is non-finite",
+            ));
         }
         maximum_normalized_deficit = maximum_normalized_deficit.max(normalized_deficit);
         deficit_sum += normalized_deficit;
@@ -466,10 +476,16 @@ pub fn evaluate_retained_contact_set(
     })
 }
 
-fn compare_contact_set_reports(left: &ContactSetReport, right: &ContactSetReport) -> std::cmp::Ordering {
+fn compare_contact_set_reports(
+    left: &ContactSetReport,
+    right: &ContactSetReport,
+) -> std::cmp::Ordering {
     left.maximum_normalized_deficit
         .total_cmp(&right.maximum_normalized_deficit)
-        .then_with(|| left.mean_normalized_deficit.total_cmp(&right.mean_normalized_deficit))
+        .then_with(|| {
+            left.mean_normalized_deficit
+                .total_cmp(&right.mean_normalized_deficit)
+        })
         .then_with(|| left.retained_contact_ids.cmp(&right.retained_contact_ids))
 }
 
@@ -507,7 +523,9 @@ pub fn select_exact_contact_subset(
     validate_model(model)?;
     let contacts = sorted_contacts_by_id(&model.contacts);
     if config.keep == 0 || config.keep > contacts.len() {
-        return Err(OracleError::new("keep must be in 1..=candidate contact count"));
+        return Err(OracleError::new(
+            "keep must be in 1..=candidate contact count",
+        ));
     }
     let required_contacts = contacts
         .iter()
@@ -537,34 +555,29 @@ pub fn select_exact_contact_subset(
     let mut best: Option<ContactSetReport> = None;
     let mut evaluated_sets = 0_u64;
     let mut current_ids = Vec::with_capacity(config.keep);
-    visit_contact_combinations(
-        &contacts,
-        config.keep,
-        0,
-        &mut current_ids,
-        &mut |ids| {
-            if required_ids
-                .iter()
-                .any(|required| !ids.iter().any(|id| id.as_str() == *required))
-            {
-                return Ok(());
-            }
-            let mut candidate =
-                evaluate_retained_contact_set(model, ids, directions, support_floor)?;
-            evaluated_sets = evaluated_sets
-                .checked_add(1)
-                .ok_or_else(|| OracleError::new("contact-set evaluation counter overflow"))?;
-            if best.as_ref().is_none_or(|incumbent| {
-                compare_contact_set_reports(&candidate, incumbent).is_lt()
-            }) {
-                candidate.contact_sets_evaluated = evaluated_sets;
-                best = Some(candidate);
-            }
-            Ok(())
-        },
-    )?;
-    let mut result =
-        best.ok_or_else(|| OracleError::new("exact contact selector produced no feasible candidate set"))?;
+    visit_contact_combinations(&contacts, config.keep, 0, &mut current_ids, &mut |ids| {
+        if required_ids
+            .iter()
+            .any(|required| !ids.iter().any(|id| id.as_str() == *required))
+        {
+            return Ok(());
+        }
+        let mut candidate = evaluate_retained_contact_set(model, ids, directions, support_floor)?;
+        evaluated_sets = evaluated_sets
+            .checked_add(1)
+            .ok_or_else(|| OracleError::new("contact-set evaluation counter overflow"))?;
+        if best
+            .as_ref()
+            .is_none_or(|incumbent| compare_contact_set_reports(&candidate, incumbent).is_lt())
+        {
+            candidate.contact_sets_evaluated = evaluated_sets;
+            best = Some(candidate);
+        }
+        Ok(())
+    })?;
+    let mut result = best.ok_or_else(|| {
+        OracleError::new("exact contact selector produced no feasible candidate set")
+    })?;
     result.contact_sets_evaluated = evaluated_sets;
     result.support_evaluations = evaluated_sets
         .checked_mul(directions.len() as u64)
@@ -584,7 +597,9 @@ pub fn select_greedy_contact_subset(
     validate_model(model)?;
     let contacts = sorted_contacts_by_id(&model.contacts);
     if config.keep == 0 || config.keep > contacts.len() {
-        return Err(OracleError::new("keep must be in 1..=candidate contact count"));
+        return Err(OracleError::new(
+            "keep must be in 1..=candidate contact count",
+        ));
     }
     if config.maximum_evaluations == 0 {
         return Err(OracleError::new("maximum_evaluations must be positive"));
@@ -632,8 +647,8 @@ pub fn select_greedy_contact_subset(
                 best = Some((report, trial));
             }
         }
-        let (report, ids) = best
-            .ok_or_else(|| OracleError::new("greedy contact selector found no candidate"))?;
+        let (report, ids) =
+            best.ok_or_else(|| OracleError::new("greedy contact selector found no candidate"))?;
         selected = ids;
         selected_report = Some(report);
     }
@@ -877,10 +892,42 @@ mod tests {
     fn wrench_patch() -> ContactWrenchModel {
         ContactWrenchModel {
             contacts: vec![
-                contact("bottom-left", [-1.0, -1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
-                contact("bottom-right", [1.0, -1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
-                contact("top-left", [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
-                contact("top-right", [1.0, 1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+                contact(
+                    "bottom-left",
+                    [-1.0, -1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ),
+                contact(
+                    "bottom-right",
+                    [1.0, -1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ),
+                contact(
+                    "top-left",
+                    [-1.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ),
+                contact(
+                    "top-right",
+                    [1.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ),
             ],
             cone_sides: 8,
             characteristic_length: 1.0,
@@ -907,8 +954,18 @@ mod tests {
         )
         .expect("exact two-contact subset");
         assert_eq!(report.maximum_normalized_deficit, 0.0);
-        assert!(report.retained_contact_ids.iter().any(|id| id.starts_with("top-")));
-        assert!(report.retained_contact_ids.iter().any(|id| id.starts_with("bottom-")));
+        assert!(
+            report
+                .retained_contact_ids
+                .iter()
+                .any(|id| id.starts_with("top-"))
+        );
+        assert!(
+            report
+                .retained_contact_ids
+                .iter()
+                .any(|id| id.starts_with("bottom-"))
+        );
         assert_eq!(report.contact_sets_evaluated, 6);
         assert_eq!(report.support_evaluations, 24);
     }
@@ -935,18 +992,28 @@ mod tests {
         let model = ContactWrenchModel {
             contacts: vec![
                 contact("mandatory", [0.0; 3], [0.0, 0.0, 1.0], 0.0, 0.0, 0.2, 1.0),
-                contact("optional", [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+                contact(
+                    "optional",
+                    [1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                ),
             ],
             cone_sides: 8,
             characteristic_length: 1.0,
         };
-        assert!(evaluate_retained_contact_set(
-            &model,
-            &["optional".into()],
-            &moment_directions(),
-            1.0e-9,
-        )
-        .is_err());
+        assert!(
+            evaluate_retained_contact_set(
+                &model,
+                &["optional".into()],
+                &moment_directions(),
+                1.0e-9,
+            )
+            .is_err()
+        );
         let report = select_exact_contact_subset(
             &model,
             &moment_directions(),
