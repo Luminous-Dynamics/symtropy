@@ -1,0 +1,33 @@
+name: Solver Coverage Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/solver-coverage-contract/v0.1/**"
+      - ".github/workflows/solver-coverage-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/solver-coverage-contract/v0.1/**"
+      - ".github/workflows/solver-coverage-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 contract checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/solver-coverage-contract/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/solver-coverage-contract/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/solver-coverage-contract/v0.1/Cargo.toml --locked --all-targets -- -D warnings
