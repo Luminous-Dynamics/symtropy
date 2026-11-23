@@ -201,11 +201,13 @@ pub struct LiveEvidence {
     pub weighted_support: Option<WeightedSupportEvidence>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
-    AbstainOutOfEnvelope,
+    AbstainOutOfEnvelope {
+        feature: String,
+    },
     AbstainInsufficientEvidence,
 }
 
@@ -361,7 +363,7 @@ impl CalibrationSupervisor {
     pub fn observe(&mut self, evidence: &LiveEvidence) -> Disposition {
         if let Some(suspension) = &self.suspension {
             return Disposition::AlreadySuspended {
-                action: suspension.action,
+                action: suspension.action.clone(),
                 reason: suspension.reason.clone(),
             };
         }
@@ -478,12 +480,12 @@ impl CalibrationSupervisor {
                 );
             }
             if *value < bound.minimum || *value > bound.maximum {
-                let feature = bound.name.clone();
-                self.suspension = Some(Suspension {
-                    action: FailureAction::AbstainOutOfEnvelope,
-                    reason: Reason::FeatureOutsideScope,
-                });
-                return Disposition::AbstainOutOfEnvelope { feature };
+                return self.suspend(
+                    FailureAction::AbstainOutOfEnvelope {
+                        feature: bound.name.clone(),
+                    },
+                    Reason::FeatureOutsideScope,
+                );
             }
         }
 
@@ -646,7 +648,7 @@ impl CalibrationSupervisor {
 
     fn suspend(&mut self, action: FailureAction, reason: Reason) -> Disposition {
         self.suspension = Some(Suspension {
-            action,
+            action: action.clone(),
             reason: reason.clone(),
         });
         match action {
@@ -656,10 +658,8 @@ impl CalibrationSupervisor {
             FailureAction::IndependentDiagnosticRequired => {
                 Disposition::IndependentDiagnosticRequired { reason }
             }
-            FailureAction::AbstainOutOfEnvelope => {
-                Disposition::AbstainOutOfEnvelope {
-                    feature: String::new(),
-                }
+            FailureAction::AbstainOutOfEnvelope { feature } => {
+                Disposition::AbstainOutOfEnvelope { feature }
             }
             FailureAction::AbstainInsufficientEvidence => {
                 Disposition::AbstainInsufficientEvidence { reason }
