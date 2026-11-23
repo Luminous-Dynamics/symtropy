@@ -428,8 +428,7 @@ fn validate_path(role_binding_node_id: &str, witness: &DependencyWitness) -> boo
     }
     !path
         .relations
-        .iter()
-        .any(|relation| *relation == DependencyRelation::IndependenceEstablishedForProfile)
+        .contains(&DependencyRelation::IndependenceEstablishedForProfile)
 }
 
 fn path_has_unresolved_dependency(path: &PathWitness) -> bool {
@@ -539,10 +538,10 @@ fn validate_profile_and_projection(
     errors.into_iter().collect()
 }
 
-fn witnesses_for<'a>(
-    role: &'a RoleClosure,
+fn witnesses_for(
+    role: &RoleClosure,
     dimension: FaultDomainDimension,
-) -> Option<&'a DimensionInventory> {
+) -> Option<&DimensionInventory> {
     role.dimensions.get(&dimension)
 }
 
@@ -1262,37 +1261,53 @@ mod tests {
     #[test]
     fn cyclic_or_dangling_path_shape_is_invalid() {
         let dimension = FaultDomainDimension::InputAcquisition;
-        let mut bad = witness(
-            1,
-            MaritimeDependencyClass::PhysicalAcquisition,
-            "source-binding",
-            "source-reader",
-            "edge-a",
-        );
-        bad.path.node_ids = vec![
-            "source-binding".to_owned(),
-            "middle".to_owned(),
-            "source-binding".to_owned(),
-            "source-reader".to_owned(),
-        ];
-        bad.path.edge_ids = vec!["a".to_owned(), "b".to_owned(), "c".to_owned()];
-        bad.path.relations = vec![
-            DependencyRelation::DerivedFrom,
-            DependencyRelation::DerivedFrom,
-            DependencyRelation::DerivedFrom,
-        ];
-        let (profile, projection) = projection(
-            DimensionInventory::Complete(vec![bad]),
-            DimensionInventory::Complete(vec![witness(
-                2,
+        for cyclic in [true, false] {
+            let mut bad = witness(
+                1,
                 MaritimeDependencyClass::PhysicalAcquisition,
-                "witness-binding",
-                "witness-reader",
-                "edge-b",
-            )]),
-            dimension,
-        );
-        assert_eq!(assess(&profile, &projection).disposition, ProfileDisposition::ProfileInvalid);
+                "source-binding",
+                "source-reader",
+                "edge-a",
+            );
+            if cyclic {
+                bad.path.node_ids = vec![
+                    "source-binding".to_owned(),
+                    "middle".to_owned(),
+                    "source-binding".to_owned(),
+                    "source-reader".to_owned(),
+                ];
+                bad.path.edge_ids = vec!["a".to_owned(), "b".to_owned(), "c".to_owned()];
+                bad.path.relations = vec![
+                    DependencyRelation::DerivedFrom,
+                    DependencyRelation::DerivedFrom,
+                    DependencyRelation::DerivedFrom,
+                ];
+            } else {
+                // One dependency edge is missing for this declared path.
+                bad.path.node_ids = vec![
+                    "source-binding".to_owned(),
+                    "intermediate".to_owned(),
+                    "source-reader".to_owned(),
+                ];
+                bad.path.edge_ids = vec!["a".to_owned()];
+                bad.path.relations = vec![DependencyRelation::DerivedFrom];
+            }
+            let (profile, projection) = projection(
+                DimensionInventory::Complete(vec![bad]),
+                DimensionInventory::Complete(vec![witness(
+                    2,
+                    MaritimeDependencyClass::PhysicalAcquisition,
+                    "witness-binding",
+                    "witness-reader",
+                    "edge-b",
+                )]),
+                dimension,
+            );
+            assert_eq!(
+                assess(&profile, &projection).disposition,
+                ProfileDisposition::ProfileInvalid
+            );
+        }
     }
 
     #[test]
