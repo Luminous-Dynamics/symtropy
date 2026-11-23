@@ -6,8 +6,8 @@ on:
       - "tools/orbital-truss-inspectability-bench/**"
       - "docs/research/orbital-truss/fixtures/inspectability-v0_1.json"
       - "docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json"
-      - "docs/research/orbital-truss/fixtures/planning-v0_1.json"
-      - "docs/research/orbital-truss/orbital_truss_planning_v0_1.schema.json"
+      - "docs/research/orbital-truss/fixtures/planning-v0_2.json"
+      - "docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
   push:
     branches:
@@ -16,8 +16,8 @@ on:
       - "tools/orbital-truss-inspectability-bench/**"
       - "docs/research/orbital-truss/fixtures/inspectability-v0_1.json"
       - "docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json"
-      - "docs/research/orbital-truss/fixtures/planning-v0_1.json"
-      - "docs/research/orbital-truss/orbital_truss_planning_v0_1.schema.json"
+      - "docs/research/orbital-truss/fixtures/planning-v0_2.json"
+      - "docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
 
 permissions:
@@ -42,8 +42,9 @@ jobs:
           from pathlib import Path
           fixture = json.loads(Path("docs/research/orbital-truss/fixtures/inspectability-v0_1.json").read_text())
           schema = json.loads(Path("docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json").read_text())
-          planning = json.loads(Path("docs/research/orbital-truss/fixtures/planning-v0_1.json").read_text())
-          planning_schema = json.loads(Path("docs/research/orbital-truss/orbital_truss_planning_v0_1.schema.json").read_text())
+          planning = json.loads(Path("docs/research/orbital-truss/fixtures/planning-v0_2.json").read_text())
+          assert planning["schema"] == "luminous.orbital-truss-inspectability.planning-corpus.v0.2"
+          planning_schema = json.loads(Path("docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json").read_text())
           assert fixture["benchmark_id"] == "ORBITAL-TRUSS-INSPECTABILITY-001"
           assert fixture["evidence_class"] == "synthetic"
           assert fixture["claim_ceiling"] == "synthetic_2d_geometric_observability_only"
@@ -58,13 +59,14 @@ jobs:
               all(1 <= len(view["pose_perturbations"]) <= 256 for view in case["views"])
               for case in fixture["cases"]
           )
-          assert planning["benchmark_id"] == "ORBITAL-TRUSS-PLANNING-001"
+          assert planning["benchmark_id"] == "ORBITAL-TRUSS-PLANNING-002"
           assert planning["evidence_class"] == "synthetic"
           assert planning["claim_ceiling"] == "synthetic_2d_geometric_observability_and_view_selection_only"
-          assert len(planning["cases"]) == 5
-          assert len({case["case_id"] for case in planning["cases"]}) == 5
-          assert planning_schema["properties"]["cases"]["minItems"] == 5
-          assert planning_schema["properties"]["cases"]["maxItems"] == 5
+          assert all(feature["required_view_count"] >= 1 and feature["required_failure_domains"] >= 1 for case in planning["cases"] for feature in case["problem"]["features"])
+          assert len(planning["cases"]) == 8
+          assert len({case["case_id"] for case in planning["cases"]}) == 8
+          assert planning_schema["properties"]["cases"]["minItems"] == 8
+          assert planning_schema["properties"]["cases"]["maxItems"] == 8
           assert all(1 <= len(case["problem"]["views"]) <= 20 for case in planning["cases"])
           assert all(case["problem"]["features"] for case in planning["cases"])
           print("frozen geometry corpus: 12 unique cases; frozen planning corpus: 5 unique cases")
@@ -109,18 +111,18 @@ jobs:
           PY
       - name: Deterministic Rust planning receipt replay
         run: |
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_1.json "$GITHUB_SHA" > /tmp/planning-a.json
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_1.json "$GITHUB_SHA" > /tmp/planning-b.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json "$GITHUB_SHA" > /tmp/planning-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json "$GITHUB_SHA" > /tmp/planning-b.json
           cmp /tmp/planning-a.json /tmp/planning-b.json
           jq -e '
-            .schema == "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.1" and
-            .case_count == 5 and .expected_outcome_matches == 5 and
+            .schema == "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.2" and
+            .case_count == 8 and .expected_outcome_matches == 8 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .physical_validation == "NOT_ASSESSED"
           ' /tmp/planning-a.json
       - name: Independent planning oracle
         run: |
-          python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle.py docs/research/orbital-truss/fixtures/planning-v0_1.json "$GITHUB_SHA" > /tmp/planning-oracle.json
+          python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle_v0_2.py docs/research/orbital-truss/fixtures/planning-v0_2.json "$GITHUB_SHA" > /tmp/planning-oracle.json
       - name: Compare Rust planning receipt with independent oracle
         run: |
           python3 - <<'PY'
@@ -138,6 +140,17 @@ jobs:
           assert cases["OP-002-BUDGET-HOLD"]["planning"]["planning_disposition"] == "BUDGET_INFEASIBLE"
           assert cases["OP-003-DOMAIN-COLLAPSE"]["planning"]["planning_disposition"] == "INFEASIBLE"
           assert cases["OP-004-ROBUSTNESS-ABSTAIN"]["planning"]["planning_disposition"] == "INDETERMINATE"
+          k_cover = cases["OP-006-K-COVER-SAME-DOMAIN"]["planning"]
+          assert k_cover["exact_optimum"]["feature_coverage"][0]["robust_view_count"] == 2
+          assert k_cover["exact_optimum"]["feature_coverage"][0]["robust_failure_domain_count"] == 1
+          domain_cover = cases["OP-007-DOMAIN-DIVERSITY-ONE-VIEW-DEMAND"]["planning"]
+          assert domain_cover["exact_optimum"]["feature_coverage"][0]["required_view_count"] == 1
+          assert domain_cover["exact_optimum"]["feature_coverage"][0]["robust_failure_domain_count"] == 2
+          shortfall = cases["OP-008-UNCAPPED-K-SHORTFALL"]["planning"]
+          assert shortfall["candidate_geometry_disposition"] == "INFEASIBLE"
+          assert shortfall["exact_optimum"] is None
+          assert shortfall["candidate_pool_coverage"][0]["required_view_count"] == 3
+          assert shortfall["candidate_pool_coverage"][0]["robust_view_count"] == 2
           pareto = cases["OP-005-COST-COUNT-PARETO"]["planning"]["pareto_frontier"]
           assert [(item["total_cost_units"], item["selected_view_count"]) for item in pareto] == [(2, 2), (3, 1)]
           print("Rust exact planner and independent Python oracle agree on five frozen cases and expected adversarial properties")
@@ -172,8 +185,8 @@ jobs:
               "authority_granted": rust["authority_granted"],
               "physical_validation": rust["physical_validation"],
               "planning_benchmark_id": planning_rust["benchmark_id"],
-              "planning_fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/planning-v0_1.json").read_bytes()).hexdigest(),
-              "planning_schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/orbital_truss_planning_v0_1.schema.json").read_bytes()).hexdigest(),
+              "planning_fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/planning-v0_2.json").read_bytes()).hexdigest(),
+              "planning_schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json").read_bytes()).hexdigest(),
               "planning_rust_receipt_sha256": hashlib.sha256(planning_rust_bytes).hexdigest(),
               "planning_oracle_receipt_sha256": hashlib.sha256(planning_oracle_bytes).hexdigest(),
               "planning_case_count": planning_rust["case_count"],
@@ -195,7 +208,7 @@ jobs:
             docs/research/orbital-truss/orbital_truss_inspectability_v0_1.schema.json
             /tmp/planning-a.json
             /tmp/planning-oracle.json
-            docs/research/orbital-truss/fixtures/planning-v0_1.json
-            docs/research/orbital-truss/orbital_truss_planning_v0_1.schema.json
+            docs/research/orbital-truss/fixtures/planning-v0_2.json
+            docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json
           if-no-files-found: error
           retention-days: 30

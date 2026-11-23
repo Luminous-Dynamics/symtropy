@@ -128,11 +128,30 @@ All receipts remain synthetic-only and hard-code no authority, no structural acc
 
 ## Frozen planning corpus v0.1
 
-The planner has a second, independent corpus: ORBITAL-TRUSS-PLANNING-001 with five synthetic coverage-matrix cases. The Rust CLI writes a deterministic planning receipt; a separate Python standard-library oracle independently enumerates the same subsets and reconstructs the exact optimum, Pareto frontier, greedy and cheapest-first baselines, budgets, dispositions and cost gaps.
+The planner has a second, independent corpus: ORBITAL-TRUSS-PLANNING-002 with five synthetic coverage-matrix cases. The Rust CLI writes a deterministic planning receipt; a separate Python standard-library oracle independently enumerates the same subsets and reconstructs the exact optimum, Pareto frontier, greedy and cheapest-first baselines, budgets, dispositions and cost gaps.
 
 Run:
 
-    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_1.json <40-hex-source-commit>
-    python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle.py docs/research/orbital-truss/fixtures/planning-v0_1.json <40-hex-source-commit>
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle_v0_2.py docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
 
 The corpus covers a greedy trap, budget infeasibility despite sufficient candidate geometry, duplicate declared failure-domain collapse, robust-coverage abstention, and a cost-versus-view-count Pareto frontier. These are small, synthetic algorithm controls, not realistic inspection tasks or physical evidence. The workflow replays the Rust CLI, compares the complete Rust and Python receipts, asserts the intended counterexamples, and retains both receipts with the fixture, schema and exact-head manifest.
+
+
+## v0.2: keep k-view coverage and failure-domain diversity orthogonal
+
+Planning corpus v0.2 adds two independent requirements per feature:
+
+- \`required_view_count\`: the number of distinct candidate viewpoint IDs that must robustly observe the feature;
+- \`required_failure_domains\`: the number of distinct declared failure-domain IDs represented among those observing views.
+
+These constraints are not interchangeable. Two camera poses can satisfy k-view coverage while sharing a sensor/calibration dependency. Conversely, a feature may require multiple declared domains even when its view-count demand is one. The v0.2 receipt reports nominal and robust counts for both axes, for each selected plan and for the full candidate pool.
+
+Most importantly, a requested k is never silently capped to the number of available candidates. If a feature requests three views but only two candidate views observe it, the full candidate pool is reported INFEASIBLE with an explicit 2/3 coverage record. Candidate generation/augmentation must address the deficit; the evaluator does not redefine the requirement.
+
+The frozen v0.2 corpus has eight cases: the v0.1 five adversarial cases, k-view coverage within one declared domain, domain diversity with a one-view demand, and an under-provisioned candidate pool. The old v0.1 fixture/oracle remains as a historical contract snapshot. The new Rust receipt is compared in full with a separate standard-library Python oracle.
+
+Run the new contract:
+
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspection-planning-bench -- docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
+    python3 tools/orbital-truss-inspectability-bench/tests/planning_reference_oracle_v0_2.py docs/research/orbital-truss/fixtures/planning-v0_2.json <40-hex-source-commit>
