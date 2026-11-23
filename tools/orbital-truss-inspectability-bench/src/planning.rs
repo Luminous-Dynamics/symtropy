@@ -684,17 +684,14 @@ fn k_coverage_feature_reports(
                 nominal_failure_domain_requirement_met: selected_feature
                     .nominal_failure_domain_count
                     >= selected_feature.required_failure_domains,
-                robust_failure_domain_requirement_met: selected_feature
-                    .robust_failure_domain_count
+                robust_failure_domain_requirement_met: selected_feature.robust_failure_domain_count
                     >= selected_feature.required_failure_domains,
             }
         })
         .collect()
 }
 
-fn exact_nominal_k_coverage(
-    problem: &PlanningProblem,
-) -> Result<NominalKCoverageExact, String> {
+fn exact_nominal_k_coverage(problem: &PlanningProblem) -> Result<NominalKCoverageExact, String> {
     let candidate_coverage = coverage_records(problem, &vec![true; problem.views.len()]);
     let targets = candidate_coverage
         .iter()
@@ -742,8 +739,7 @@ fn exact_nominal_k_coverage(
     selected_view_ids.sort();
     let selected_view_count = selected_view_ids.len();
     let selected_coverage = coverage_records(problem, &selected);
-    let feature_coverage =
-        k_coverage_feature_reports(&candidate_coverage, &selected_coverage);
+    let feature_coverage = k_coverage_feature_reports(&candidate_coverage, &selected_coverage);
     let requested_k_covered = feature_coverage
         .iter()
         .all(|feature| feature.requested_k_met);
@@ -929,8 +925,7 @@ fn published_style_k_coverage_greedy(
         .ok_or_else(|| "PUBLISHED_GREEDY_TOTAL_COST_OVERFLOW".to_owned())?;
     let selected_coverage = coverage_records(problem, &selected);
 
-    let feature_coverage =
-        k_coverage_feature_reports(&candidate_counts, &selected_coverage);
+    let feature_coverage = k_coverage_feature_reports(&candidate_counts, &selected_coverage);
     let requested_k_covered = feature_coverage
         .iter()
         .all(|feature| feature.requested_k_met);
@@ -947,12 +942,15 @@ fn published_style_k_coverage_greedy(
         .iter()
         .all(|feature| feature.robust_failure_domain_requirement_met);
     let view_count_gap_vs_exact = attainable_capped_target_covered
-        .then(|| selected_view_ids.len().checked_sub(exact_reference_minimum_view_count))
+        .then(|| {
+            selected_view_ids
+                .len()
+                .checked_sub(exact_reference_minimum_view_count)
+        })
         .flatten();
     let relative_gap_basis_points_vs_exact = view_count_gap_vs_exact.and_then(|gap| {
-        (exact_reference_minimum_view_count > 0).then(|| {
-            ((gap as u128) * 10_000 / exact_reference_minimum_view_count as u128) as u64
-        })
+        (exact_reference_minimum_view_count > 0)
+            .then(|| ((gap as u128) * 10_000 / exact_reference_minimum_view_count as u128) as u64)
     });
     Ok(PublishedKCoverageGreedy {
         algorithm: "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_2".to_owned(),
@@ -1221,10 +1219,8 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
         .as_ref()
         .map(|plan| plan.total_cost_units);
     let nominal_k_exact = exact_nominal_k_coverage(problem)?;
-    let published_k_coverage_greedy = published_style_k_coverage_greedy(
-        problem,
-        nominal_k_exact.selected_view_count,
-    )?;
+    let published_k_coverage_greedy =
+        published_style_k_coverage_greedy(problem, nominal_k_exact.selected_view_count)?;
     let greedy_next_best_view = greedy_solution(problem, true);
     let cheapest_first = greedy_solution(problem, false);
     let greedy_cost_gap_units = match (exact_cost, greedy_next_best_view.robustly_covered) {
