@@ -59,6 +59,8 @@ pub struct EvidenceTransactionReport {
     pub qualified_evidence_binding: Option<QualifiedEvidenceBinding>,
     /// Preserves the exact admitted acquisition-reliability interval and cohort/method lineage.
     pub selected_acquisition_reliability: Option<AdmittedAcquisitionReliability>,
+    pub selected_reliability_domain_fingerprint_sha256: Option<[u8; 32]>,
+    pub selected_reliability_acquisition_protocol_sha256: Option<[u8; 32]>,
     pub time_report: Option<NavigationTimeValidityReport>,
     pub eligible_for_independent_posterior_audit: bool,
     /// Always false. The posterior/fault-envelope owner must perform the update.
@@ -77,6 +79,8 @@ pub enum EvidenceTransactionError {
     EvidenceBindingMismatch,
     ReliablePlanHasNoRecommendedAction,
     SelectedReliabilityMissing(u64),
+    ReliabilityDomainMismatch,
+    ReliabilityProtocolMismatch,
     AttemptLedger(ActiveEvidenceAttemptError),
     TimeValidity(NavigationTimeValidityError),
 }
@@ -92,6 +96,8 @@ impl fmt::Display for EvidenceTransactionError {
             Self::EvidenceBindingMismatch => write!(f, "payload, receipt, result, attempt, action or source-manifest bindings do not match"),
             Self::ReliablePlanHasNoRecommendedAction => write!(f, "reliability-aware plan has no recommended action"),
             Self::SelectedReliabilityMissing(id) => write!(f, "selected action {id} has no admitted reliability evidence in the plan frontier"),
+            Self::ReliabilityDomainMismatch => write!(f, "attempt domain does not match the reliability interval's admitted domain"),
+            Self::ReliabilityProtocolMismatch => write!(f, "attempt acquisition protocol does not match the reliability interval's admitted protocol"),
             Self::AttemptLedger(error) => write!(f, "attempt ledger rejected transition: {error}"),
             Self::TimeValidity(error) => write!(f, "time-validity assessment failed: {error}"),
         }
@@ -216,6 +222,8 @@ pub fn record_selected_evidence_outcome(
         disposition,
         qualified_evidence_binding,
         selected_acquisition_reliability: None,
+        selected_reliability_domain_fingerprint_sha256: None,
+        selected_reliability_acquisition_protocol_sha256: None,
         time_report,
         eligible_for_independent_posterior_audit: audit_eligible,
         posterior_updated: false,
@@ -231,7 +239,7 @@ pub fn record_selected_evidence_outcome(
 /// report and is not reduced to a scalar confidence field.
 fn reliable_plan_transaction_view(
     plan: &ReliableActiveEvidencePlan,
-) -> Result<(ActiveEvidenceDecisionPlan, AdmittedAcquisitionReliability), EvidenceTransactionError> {
+) -> Result<(ActiveEvidenceDecisionPlan, AdmittedAcquisitionReliability, [u8; 32], [u8; 32]), EvidenceTransactionError> {
     let action_id = plan
         .recommended_action_id
         .ok_or(EvidenceTransactionError::ReliablePlanHasNoRecommendedAction)?;
@@ -265,7 +273,12 @@ fn reliable_plan_transaction_view(
         decision_assignments: plan.decision_assignments.clone(),
         authority_transition_not_authorized_by_plan: true,
     };
-    Ok((decision_plan, selected.reliability))
+    Ok((
+        decision_plan,
+        selected.reliability,
+        plan.expected_domain_fingerprint_sha256,
+        plan.expected_acquisition_protocol_sha256,
+    ))
 }
 
 /// Consume an outcome for an action selected by the reliability-aware planner.
@@ -283,7 +296,14 @@ pub fn record_reliably_selected_evidence_outcome(
     evidence_binding: Option<QualifiedEvidenceBinding>,
     time_assessment: Option<(NavigationTimeValidityPolicy, NavigationTimeValidityInput)>,
 ) -> Result<EvidenceTransactionReport, EvidenceTransactionError> {
-    let (decision_plan, reliability) = reliable_plan_transaction_view(plan)?;
+    let (decision_plan, reliability, expected_domain, expected_protocol) =
+        reliable_plan_transaction_view(plan)?;
+    if request.domain_fingerprint_sha256 != expected_domain {
+        return Err(EvidenceTransactionError::ReliabilityDomainMismatch);
+    }
+    if request.acquisition_protocol_sha256 != expected_protocol {
+        return Err(EvidenceTransactionError::ReliabilityProtocolMismatch);
+    }
     let mut report = record_selected_evidence_outcome(
         &decision_plan,
         ledger,
@@ -294,6 +314,8 @@ pub fn record_reliably_selected_evidence_outcome(
         time_assessment,
     )?;
     report.selected_acquisition_reliability = Some(reliability);
+    report.selected_reliability_domain_fingerprint_sha256 = Some(expected_domain);
+    report.selected_reliability_acquisition_protocol_sha256 = Some(expected_protocol);
     Ok(report)
 }
 
