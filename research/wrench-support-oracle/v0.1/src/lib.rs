@@ -41,6 +41,8 @@ pub struct ContactPoint {
     pub id: String,
     /// Position relative to the explicitly chosen wrench reference origin.
     pub position: [f64; 3],
+    /// Penetration depth supplied by the same narrow-phase candidate set.
+    pub depth: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -137,8 +139,10 @@ fn validate_patch(
         if point.id.trim().is_empty() || !point_ids.insert(point.id.as_str()) {
             return Err(OracleError::new("point IDs must be non-empty and unique"));
         }
-        if !is_finite_vector(&point.position) {
-            return Err(OracleError::new("contact point positions must be finite"));
+        if !is_finite_vector(&point.position) || !point.depth.is_finite() || point.depth < 0.0 {
+            return Err(OracleError::new(
+                "contact point positions and non-negative penetration depths must be finite",
+            ));
         }
     }
 
@@ -281,6 +285,115 @@ fn build_report(
         mean_normalized_deficit,
         subsets_evaluated,
     })
+}
+
+fn squared_distance(left: [f64; 3], right: [f64; 3]) -> f64 {
+    (left[0] - right[0]).powi(2)
+        + (left[1] - right[1]).powi(2)
+        + (left[2] - right[2]).powi(2)
+}
+
+fn perpendicular_distance_squared(
+    point: [f64; 3],
+    origin: [f64; 3],
+    edge: [f64; 3],
+) -> f64 {
+    let vector = [
+        point[0] - origin[0],
+        point[1] - origin[1],
+        point[2] - origin[2],
+    ];
+    let edge_length_squared = edge.iter().map(|value| value * value).sum::<f64>();
+    if edge_length_squared < 1.0e-30 {
+        return vector.iter().map(|value| value * value).sum();
+    }
+    let projection = (vector[0] * edge[0] + vector[1] * edge[1] + vector[2] * edge[2])
+        / edge_length_squared;
+    (0..3)
+        .map(|axis| (vector[axis] - edge[axis] * projection).powi(2))
+        .sum()
+}
+
+/// Reproduce Symtropy's current deepest/farthest/area/centroid best-N policy
+/// on the frozen 3D candidate set, then score the result against wrench support.
+///
+/// The selection stages match the production generator: deepest point, farthest
+/// point from it, farthest from the first-two line, then farthest from the
+/// three-point centroid. The research adapter resolves score ties lexically
+/// after validate_patch sorts candidates by stable ID.
+pub fn select_deepest_area_subset(
+    patch: &ContactPatch,
+    keep: usize,
+) -> Result<WrenchSupportReport, OracleError> {
+    let (points, directions) = validate_patch(patch)?;
+    if keep == 0 || keep > points.len() || keep > 4 {
+        return Err(OracleError::new("best-N keep must be in 1..=min(4, candidate count)"));
+    }
+
+    let mut selected = Vec::with_capacity(keep);
+    let deepest = (0..points.len())
+        .max_by(|left, right| {
+            points[*left]
+                .depth
+                .total_cmp(&points[*right].depth)
+                .then_with(|| points[*right].id.cmp(&points[*left].id))
+        })
+        .ok_or_else(|| OracleError::new("non-empty candidate set expected"))?;
+    selected.push(deepest);
+
+    if keep >= 2 {
+        let origin = points[deepest].position;
+        let farthest = (0..points.len())
+            .filter(|index| *index != deepest)
+            .max_by(|left, right| {
+                squared_distance(points[*left].position, origin)
+                    .total_cmp(&squared_distance(points[*right].position, origin))
+                    .then_with(|| points[*right].id.cmp(&points[*left].id))
+            })
+            .ok_or_else(|| OracleError::new("second point selection found no candidate"))?;
+        selected.push(farthest);
+    }
+
+    if keep >= 3 {
+        let p0 = points[selected[0]].position;
+        let p1 = points[selected[1]].position;
+        let edge = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+        let third = (0..points.len())
+            .filter(|index| !selected.contains(index))
+            .max_by(|left, right| {
+                perpendicular_distance_squared(points[*left].position, p0, edge)
+                    .total_cmp(&perpendicular_distance_squared(
+                        points[*right].position,
+                        p0,
+                        edge,
+                    ))
+                    .then_with(|| points[*right].id.cmp(&points[*left].id))
+            })
+            .ok_or_else(|| OracleError::new("third point selection found no candidate"))?;
+        selected.push(third);
+    }
+
+    if keep >= 4 {
+        let p0 = points[selected[0]].position;
+        let p1 = points[selected[1]].position;
+        let p2 = points[selected[2]].position;
+        let centroid = [
+            (p0[0] + p1[0] + p2[0]) / 3.0,
+            (p0[1] + p1[1] + p2[1]) / 3.0,
+            (p0[2] + p1[2] + p2[2]) / 3.0,
+        ];
+        let fourth = (0..points.len())
+            .filter(|index| !selected.contains(index))
+            .max_by(|left, right| {
+                squared_distance(points[*left].position, centroid)
+                    .total_cmp(&squared_distance(points[*right].position, centroid))
+                    .then_with(|| points[*right].id.cmp(&points[*left].id))
+            })
+            .ok_or_else(|| OracleError::new("fourth point selection found no candidate"))?;
+        selected.push(fourth);
+    }
+
+    build_report(patch, &points, &directions, &selected, 1)
 }
 
 /// Evaluate any declared retained set against the full candidate patch.
@@ -475,18 +588,22 @@ mod tests {
                 ContactPoint {
                     id: "north-east".into(),
                     position: [1.0, 1.0, 0.0],
+                    depth: 0.1,
                 },
                 ContactPoint {
                     id: "south-west".into(),
                     position: [-1.0, -1.0, 0.0],
+                    depth: 0.1,
                 },
                 ContactPoint {
                     id: "north-west".into(),
                     position: [-1.0, 1.0, 0.0],
+                    depth: 0.1,
                 },
                 ContactPoint {
                     id: "south-east".into(),
                     position: [1.0, -1.0, 0.0],
+                    depth: 0.1,
                 },
             ],
             directions: vec![
@@ -713,22 +830,27 @@ mod tests {
                 ContactPoint {
                     id: "p0".into(),
                     position: [-0.8053331255487975, -1.0022880202777662, 0.0],
+                    depth: 0.1,
                 },
                 ContactPoint {
                     id: "p1".into(),
                     position: [-0.00663309450661842, 0.24817392184595977, 0.0],
+                    depth: 0.9,
                 },
                 ContactPoint {
                     id: "p2".into(),
                     position: [-0.9469860377145608, -1.4553152497193032, 0.0],
+                    depth: 0.2,
                 },
                 ContactPoint {
                     id: "p3".into(),
                     position: [-0.0866003133286175, 0.6847299845497847, 0.0],
+                    depth: 0.8,
                 },
                 ContactPoint {
                     id: "p4".into(),
                     position: [1.25580147532063, 0.37660201720639197, 0.0],
+                    depth: 0.3,
                 },
             ],
             directions: vec![
@@ -793,7 +915,14 @@ mod tests {
         assert_eq!(exact.maximum_normalized_deficit, 0.0);
         assert_eq!(greedy.retained_point_ids, vec!["p1", "p2", "p4"]);
         assert!(greedy.maximum_normalized_deficit > 0.4);
-        assert!(exact.maximum_normalized_deficit < greedy.maximum_normalized_deficit);
+
+        let current_best_n = select_deepest_area_subset(&source, 3)
+            .expect("current deepest/farthest/area selection");
+        assert_eq!(current_best_n.retained_point_ids, vec!["p1", "p2", "p4"]);
+        assert!(current_best_n.maximum_normalized_deficit > 0.4);
+        assert_eq!(current_best_n.subsets_evaluated, 1);
+        assert!(exact.maximum_normalized_deficit < current_best_n.maximum_normalized_deficit);
+        assert_eq!(exact.retained_point_ids, vec!["p2", "p3", "p4"]);
     }
 
     #[test]
