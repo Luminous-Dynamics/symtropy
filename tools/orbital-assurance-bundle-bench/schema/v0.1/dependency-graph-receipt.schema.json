@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital dependency graph adequacy receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "evaluation"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-dependency-graph-adequacy.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "summary",
+        "cases"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-dependency-graph-adequacy-only"
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_count",
+            "graph_complete_cases",
+            "missing_edge_cases",
+            "common_mode_omission_cases",
+            "consumer_manifest_omission_cases",
+            "extra_edge_cases",
+            "model_inadequate_cases",
+            "source_unavailable_cases",
+            "scope_mismatch_cases",
+            "invalid_graph_cases",
+            "missing_dependency_edge_count",
+            "extra_dependency_edge_count",
+            "expected_result_mismatches"
+          ],
+          "properties": {
+            "case_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "graph_complete_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_edge_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "common_mode_omission_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "consumer_manifest_omission_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "extra_edge_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "model_inadequate_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "source_unavailable_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scope_mismatch_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid_graph_cases": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_dependency_edge_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "extra_dependency_edge_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_result_mismatches": {
+              "const": 0
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "disposition",
+              "expected_disposition",
+              "missing_dependency_edges",
+              "extra_dependency_edges",
+              "findings",
+              "producer_count",
+              "consumer_count",
+              "declared_edge_count",
+              "expected_edge_count",
+              "expected_result_matched"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "disposition": {
+                "type": "string"
+              },
+              "expected_disposition": {
+                "type": "string"
+              },
+              "missing_dependency_edges": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "extra_dependency_edges": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "findings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "dependency_edge",
+                    "detail"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "dependency_edge": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "producer_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "consumer_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "declared_edge_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_edge_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_result_matched": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
