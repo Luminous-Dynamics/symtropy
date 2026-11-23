@@ -314,3 +314,38 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 ### Qualification boundary
 
 The current Rust contract is a bounded reference validator and its three-attempt fixture is synthetic. Every typed state is bound to the same OwnerEvidenceRef that supplies the owner, verdict, asserted value, exact scope and artifact digest; a mutated outcome without a matching owner assertion is rejected. It reuses the existing observer-quorum evaluator for NoEffect and downstream quiescence and verifies exact claim-scope commitments, but it does not yet refine the TLA+ state machine for nested restart/recovery or authenticate raw receipts. The next formal step is a bounded multi-attempt TLA+ model with a second recovery crash cut, followed by differential testing of Rust decisions against all reachable model traces. Only after that should the benchmark be adapted to a declared simulator and then an instrumented ROS/controller/driver stack.
+
+
+## 9. Paired campaign and evidence-debt extension
+
+The benchmark must not let an assurance arm receive an easier scene, shorter action prefix, friendlier reset, different controller build or different fault schedule. The new manifest validator enforces pair equivalence over policy/checkpoint, task, scene, action-prefix, platform/environment/reset profile, random seed, stable logical-effect ID and ordered fault schedule. Only the arm (last-attempt-only, flat-history, owner-receipts, full-RRVR) may differ within a pair.
+
+The first reference fixture contains:
+- one positive pair: full-RRVR must admit a valid fully reconciled control; the last-attempt-only comparison is measured;
+- one negative pair: full-RRVR must block an unsafe recovery schedule; the last-attempt-only comparison is measured;
+- four injected faults across process, observer, controller and firmware layers and four distinct lifecycle cut points.
+
+### Evidence debt
+
+For each logical effect, define the unresolved interval from the first point where a consequential effect might have occurred until independent evidence resolves it as Applied, NoEffect, Partial, Unknown/Disputed or otherwise terminal under the declared policy.
+
+Publish:
+- unresolved-effect count over time;
+- oldest unresolved-effect age;
+- unresolved-effect seconds per 100 physical actions;
+- p50/p95/p99 evidence-clearance time;
+- number and duration of safe holds caused by unresolved evidence;
+- false-safe admissions and false holds on valid positive controls alongside the debt measures.
+
+This avoids a common metric trap: a system that instantly retries can show low apparent recovery latency by deleting uncertainty from its accounting. Conversely, a correct fail-closed hold can increase unresolved time while preventing duplicate effects. Evidence debt is an availability/reconciliation measure, not a score to minimize by relaxing safety.
+
+### Updated external comparison (23 November 2026)
+
+- The [RoboCasa365 leaderboard](https://robocasa.ai/leaderboard), updated 22 November 2026, lists 50 tasks, 25 models and three evaluation splits; its listed top Overall result is 85.6 (HexaShell). This is task success and generalization, not recovery assurance. A fair RRVR evaluation would inject matched faults into the same 50-task subset and report policy task success, SafeVLA-style safety, and RRVR evidence-gate correctness separately.
+- [SafeVLA-Bench](https://safevla.org/leaderboard.html) evaluates 24 policies over five suites and 22,500 episodes, ranking by safety rather than native task success and separately reporting successful-but-unsafe (SBU) and violation severity. For example, Xiaomi-Robotics-1 on RoboCasa-365 Atomic-Seen reports 81.9% SR but 50.1% Safety and 37.7% SBU; VLA-Adapter on LIBERO reports 97.6% SR and 82.0% Safety. These are safety/task-success measurements, not RRVR results.
+- The 20 July 2026 ROS fuzzing survey reviews 92 selected works and identifies repeatable execution/reset and diagnosable failure analysis as comparatively weak stages. It specifically recommends reporting target layer, reset/replay policy, instrumentation overhead, artifacts and diagnosis output together. See [Yang et al., Applied Sciences 16(14), 7250](https://doi.org/10.3390/app16147250).
+- The 16 November 2026 long-horizon manipulation survey calls out partial completion, error propagation, recovery cost and horizon-dependent degradation as metrics obscured by binary success. See [Zheng et al., Vicinagearth 3, 17](https://doi.org/10.1007/s44336-026-00048-x).
+- [ROS 2 REP 2014](https://reps.openrobotics.org/rep-2014/) already recommends reproducible grey-box measurement of nodes and complete computational graphs using LTTng/ros2_tracing. [NIST's robotic performance framework](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems) composes perception, mobility, dexterity and safety metrics into task-level system assessment. RRVR should reuse these measurement disciplines, while adding typed owner/effect/attempt/epoch boundaries and physical command-holding graph evidence.
+
+These sources reinforce that RRVR is an orthogonal assurance overlay. The target is not to outperform RoboCasa on raw task success or SafeVLA on its own safety specifications. The target is to make the same recovery-policy episodes evidence-complete and fail closed under declared faults, without suppressing valid positive-control recovery.
+
