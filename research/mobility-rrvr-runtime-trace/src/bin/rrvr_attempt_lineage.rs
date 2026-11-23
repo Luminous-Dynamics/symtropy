@@ -7,9 +7,7 @@
 //! consistent under this reference contract. It does not authenticate owners,
 //! prove capture completeness, run the TLA+ model, or issue native authority.
 
-use mobility_rrvr_runtime_trace::attempt_lineage::{
-    AttemptLineageRecording, PhysicalOutcome,
-};
+use mobility_rrvr_runtime_trace::attempt_lineage::{AttemptLineageRecording, PhysicalOutcome};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::env;
@@ -41,9 +39,7 @@ fn outcome_name(outcome: PhysicalOutcome) -> &'static str {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 && args.len() != 3 {
-        return Err(
-            "usage: rrvr_attempt_lineage <recording.json> [summary.json]".to_owned(),
-        );
+        return Err("usage: rrvr_attempt_lineage <recording.json> [summary.json]".to_owned());
     }
 
     let input = fs::read(&args[1]).map_err(|error| format!("read recording: {error}"))?;
