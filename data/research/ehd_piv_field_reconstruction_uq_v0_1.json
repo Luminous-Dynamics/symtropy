@@ -56,7 +56,7 @@
     "minimum_finite_rank_clusters_at_95_percent": 19,
     "minimum_is_not_adequate_sample_recommendation": true,
     "coverage_confidence_intervals_required": true,
-    "approximate_test_clusters_for_95pct_coverage_and_2pp_half_width": 456,
+    "approximate_test_clusters_for_95pct_coverage_and_2pp_half_width": 457,
     "sample_size_note": "simple independent-binomial approximation only; final plan must account for grouping, heterogeneity and exact intervals"
   },
   "baselines": [
