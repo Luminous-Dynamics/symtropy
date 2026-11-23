@@ -194,8 +194,8 @@ fn integrated_cross_section<const N: usize>(
 
     // Integral_0^1 sum_k c_k tau^k d tau = sum_k c_k/(k+1).
     let mut integral = 0.0;
-    for power in 0..=degree {
-        integral += coefficients[power] / (power as f64 + 1.0);
+    for (power, coefficient) in coefficients.iter().copied().enumerate().take(degree + 1) {
+        integral += coefficient / (power as f64 + 1.0);
     }
     if !integral.is_finite() || integral <= 0.0 {
         return Err(GclError::NonFiniteFaceIntegral {
