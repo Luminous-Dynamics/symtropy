@@ -85,27 +85,41 @@ pub fn gaussian_product_mode(
     let primary = validate_and_factor(input.primary_covariance)?;
     let secondary = validate_and_factor(input.secondary_covariance)?;
 
-    let primary_precision = inverse_from_cholesky(&primary.lower)?;
-    let secondary_precision = inverse_from_cholesky(&secondary.lower)?;
-    let summed_precision = add_matrices(primary_precision, secondary_precision)?;
-    let summed_precision_factor = cholesky(summed_precision)?;
-
-    let primary_information = matrix_vector(primary_precision, input.primary_mean)?;
-    let secondary_information = matrix_vector(secondary_precision, input.secondary_mean)?;
-    let information_vector = add_vectors(primary_information, secondary_information)?;
-
-    let mode_position = solve_cholesky(&summed_precision_factor, information_vector)?;
-    let mode_covariance = inverse_from_cholesky(&summed_precision_factor)?;
-    let mode_covariance = symmetrize(mode_covariance);
-
-    let mode_covariance_log_determinant = -log_determinant_from_cholesky(&summed_precision_factor);
-    let mode_covariance_log_determinant = finite(mode_covariance_log_determinant)?;
-
+    // Let S = P1 + P2. The product-mode identity can be written without
+    // forming either input inverse:
+    //   mu* = mu1 + P1 S^-1 (mu2 - mu1)
+    //   Sigma* = P1 S^-1 P2.
+    // Solve against the Cholesky factor of S, rather than explicitly
+    // inverting P1 or P2.
     let covariance_sum = add_matrices(input.primary_covariance, input.secondary_covariance)?;
     let covariance_sum_factor = cholesky(covariance_sum)?;
     let covariance_sum_log_determinant = log_determinant_from_cholesky(&covariance_sum_factor);
 
-    let mean_difference = subtract_vectors(input.primary_mean, input.secondary_mean);
+    let mean_difference = subtract_vectors(input.secondary_mean, input.primary_mean);
+    let solved_mean_difference = solve_cholesky(&covariance_sum_factor, mean_difference)?;
+    let mode_offset = matrix_vector(input.primary_covariance, solved_mean_difference)?;
+    let mode_position = add_vectors(input.primary_mean, mode_offset)?;
+
+    let mut solved_secondary_covariance = [[0.0; 3]; 3];
+    for column in 0..3 {
+        let right_hand_side = [
+            input.secondary_covariance[0][column],
+            input.secondary_covariance[1][column],
+            input.secondary_covariance[2][column],
+        ];
+        let solution = solve_cholesky(&covariance_sum_factor, right_hand_side)?;
+        for row in 0..3 {
+            solved_secondary_covariance[row][column] = solution[row];
+        }
+    }
+    let mode_covariance = symmetrize(matrix_product(
+        input.primary_covariance,
+        solved_secondary_covariance,
+    ));
+    let mode_covariance_factor = cholesky(mode_covariance)?;
+    let mode_covariance_log_determinant =
+        finite(log_determinant_from_cholesky(&mode_covariance_factor))?;
+
     let weighted_difference = solve_cholesky(&covariance_sum_factor, mean_difference)?;
     let mahalanobis_squared = dot(mean_difference, weighted_difference)?;
     if mahalanobis_squared < 0.0 {
@@ -123,14 +137,15 @@ pub fn gaussian_product_mode(
     let log_peak_product_density = finite(log_peak_product_density)?;
 
     let residual_vector = subtract_vectors(
-        matrix_vector(summed_precision, mode_position)?,
-        information_vector,
+        matrix_vector(covariance_sum, solved_mean_difference)?,
+        mean_difference,
     );
     let residual_norm = infinity_norm(residual_vector);
-    let rhs_norm = infinity_norm(information_vector);
-    let solution_norm = infinity_norm(mode_position);
-    let precision_norm = matrix_infinity_norm(summed_precision);
-    let residual_scale = (rhs_norm + precision_norm * solution_norm).max(f64::MIN_POSITIVE);
+    let rhs_norm = infinity_norm(mean_difference);
+    let solution_norm = infinity_norm(solved_mean_difference);
+    let covariance_sum_norm = matrix_infinity_norm(covariance_sum);
+    let residual_scale =
+        (rhs_norm + covariance_sum_norm * solution_norm).max(f64::MIN_POSITIVE);
     let normalized_linear_solve_residual = residual_norm / residual_scale;
     if !normalized_linear_solve_residual.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -227,18 +242,6 @@ fn cholesky(matrix: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
     Ok(lower)
 }
 
-fn inverse_from_cholesky(lower: &[[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
-    let mut inverse = [[0.0_f64; 3]; 3];
-    for column in 0..3 {
-        let mut basis = [0.0; 3];
-        basis[column] = 1.0;
-        let solution = solve_cholesky(lower, basis)?;
-        for row in 0..3 {
-            inverse[row][column] = solution[row];
-        }
-    }
-    Ok(symmetrize(inverse))
-}
 
 fn solve_cholesky(
     lower: &[[f64; 3]; 3],
@@ -272,6 +275,22 @@ fn solve_cholesky(
 
 fn log_determinant_from_cholesky(lower: &[[f64; 3]; 3]) -> f64 {
     2.0 * (lower[0][0].ln() + lower[1][1].ln() + lower[2][2].ln())
+}
+
+fn matrix_product(
+    left: [[f64; 3]; 3],
+    right: [[f64; 3]; 3],
+) -> [[f64; 3]; 3] {
+    let mut result = [[0.0; 3]; 3];
+    for row in 0..3 {
+        for col in 0..3 {
+            result[row][col] = left[row][0].mul_add(
+                right[0][col],
+                left[row][1].mul_add(right[1][col], left[row][2] * right[2][col]),
+            );
+        }
+    }
+    result
 }
 
 fn matrix_vector(
@@ -550,12 +569,12 @@ mod tests {
         let report = gaussian_product_mode(input(
             [0.0, 0.0, 0.0],
             diagonal(1.0, 1.0, 1.0),
-            [10.0, 0.0, 0.0],
+            [20.0, 0.0, 0.0],
             diagonal(1.0, 1.0, 1.0),
         ))
         .expect("separated means");
-        assert!((report.mode_position[0] - 5.0).abs() < 1.0e-14);
-        assert!(report.log_overlap_integral < -40.0);
+        assert!((report.mode_position[0] - 10.0).abs() < 1.0e-14);
+        assert!(report.log_overlap_integral < -90.0);
     }
 
     #[test]
