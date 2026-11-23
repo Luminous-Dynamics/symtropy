@@ -339,11 +339,7 @@ impl AttemptLineageRecording {
                 validate_recovery_handoff(parent, attempt)?;
             }
 
-            validate_attempt_evidence(
-                &self.logical_effect_id,
-                attempt,
-                &mut evidence_ids,
-            )?;
+            validate_attempt_evidence(&self.logical_effect_id, attempt, &mut evidence_ids)?;
 
             if attempt.physical_outcome.outcome == PhysicalOutcome::Applied {
                 applied_attempt_count += 1;
@@ -400,8 +396,7 @@ mod tests {
     #[test]
     fn refuses_retry_when_no_effect_is_not_confirmed() {
         let mut recording = valid_recording();
-        recording.attempts[0].physical_outcome.verdict =
-            OwnerEvidenceStatus::InsufficientEvidence;
+        recording.attempts[0].physical_outcome.verdict = OwnerEvidenceStatus::InsufficientEvidence;
         assert_eq!(
             recording.validate(),
             Err(LineageError::ParentOutcomeNotRetryable)
@@ -453,28 +448,35 @@ mod tests {
         assert_eq!(regressed.validate(), Err(LineageError::EpochNotMonotonic));
 
         let mut wrong_fence = valid_recording();
-        wrong_fence.attempts[0]
-            .downstream_quiescence
-            .target_epoch = Some(EpochPair {
+        wrong_fence.attempts[0].downstream_quiescence.target_epoch = Some(EpochPair {
             boot_epoch: 2,
             controller_epoch: 9,
         });
-        assert_eq!(wrong_fence.validate(), Err(LineageError::FenceEpochMismatch));
+        assert_eq!(
+            wrong_fence.validate(),
+            Err(LineageError::FenceEpochMismatch)
+        );
     }
 
     #[test]
     fn refuses_replayed_receipt_identity_and_cross_attempt_scope() {
         let mut duplicate = valid_recording();
-        duplicate.attempts[1].mission_resolution.receipt.evidence_id =
-            duplicate.attempts[0].physical_outcome.receipt.evidence_id.clone();
+        duplicate.attempts[1].mission_resolution.receipt.evidence_id = duplicate.attempts[0]
+            .physical_outcome
+            .receipt
+            .evidence_id
+            .clone();
         assert_eq!(
             duplicate.validate(),
             Err(LineageError::DuplicateEvidenceIdentity)
         );
 
         let mut cross_attempt = valid_recording();
-        cross_attempt.attempts[1].physical_outcome.receipt.scope.attempt_id =
-            "attempt-1".into();
+        cross_attempt.attempts[1]
+            .physical_outcome
+            .receipt
+            .scope
+            .attempt_id = "attempt-1".into();
         assert_eq!(
             cross_attempt.validate(),
             Err(LineageError::EvidenceScopeMismatch)
