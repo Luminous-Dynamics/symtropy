@@ -114,7 +114,6 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
-
 fn invalid_graph(case: &InvalidationCase, detail: &str) -> CaseResult {
     let mut node_ids = case
         .nodes
