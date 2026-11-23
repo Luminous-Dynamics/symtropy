@@ -13,6 +13,13 @@ cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --c
 cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
 cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
 
+# Run the projection CLI, then validate its emitted trace with the pinned TLC jar:
+# copy RestartSafeEffectContinuity.tla, RestartSafeEffectContinuityTrace.tla,
+# RestartSafeEffectContinuityTrace.cfg and rrvr-trace.ndjson into one directory.
+java -XX:+UseParallelGC -cp /path/to/pinned/tla2tools.jar tlc2.TLC \
+  -workers 1 -config RestartSafeEffectContinuityTrace.cfg \
+  RestartSafeEffectContinuityTrace.tla
+
 cargo run --locked \
   --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml \
   --bin rrvr_runtime_project -- \
@@ -21,17 +28,19 @@ cargo run --locked \
   /tmp/rrvr-runtime-provenance.json
 ```
 
-The CLI reports `projection_validation=passed` and `tla_conformance=not_run`. The output is designed to be checked against the pinned specification by a separate formal trace checker.
+The CLI reports `projection_validation=passed` and `tla_conformance=not_run`. The workflow then runs the emitted NDJSON through `RestartSafeEffectContinuityTrace.tla` with the pinned TLC jar. A formal conformance PASS is reported only when every named action can produce the exact recorded successor state and the full trace is consumed. The wrong-action negative control must fail `TraceNotStuck`. The CLI's projection result and TLC's conformance result remain separate.
 
 ## Formal trace validation
 
-The JSONL shape is compatible with Reflow's documented `tla.trace` input:
+The JSONL rows use the same complete `state`, `event`, and `args` shape as Reflow's documented `tla.trace` input:
 
 - line 1 is an initial state: `{"state":{"s":{...}}}`;
 - later lines contain the resulting state and the optional TLA action name/arguments;
 - each snapshot contains the complete value of the model variable `s`.
 
-Use the actual pinned model and an appropriate TLC/Reflow trace configuration in the formal owner workflow. A projection validator PASS is not a Reflow/TLC trace-conformance PASS. Reflow documents this distinction: model checking checks the specification; `tla.trace` checks recorded implementation events against it. See [Reflow TLA+ plugin documentation](https://reflow.io/docs/plugins/tla-plus/).
+This repository's `RestartSafeEffectContinuityTrace.tla` is an explicit action-and-state constrained TLC harness. It deserializes each JSONL row, selects the named TLA action, constrains the successor `s` to the recorded `state.s`, and advances a trace cursor. `TraceNotStuck` requires every row to be consumed. A wrong action name or impossible successor blocks cursor advancement and fails the invariant. The CI negative control mutates the first action label while preserving its state and must be rejected.
+
+The harness deliberately does not infer an inner action from an outer `Next` label. The Rust projection rejects `Next` as an ambiguous specific action. Reflow's `tla.trace` is acknowledged as prior art; the explicit harness keeps our exact action/state contract and negative control reproducible in the pinned TLC workflow. See [Reflow TLA+ plugin documentation](https://reflow.io/docs/plugins/tla-plus/).
 
 ## Fail-closed evidence requirements
 
@@ -48,7 +57,7 @@ Every snapshot requires exactly one record from each of these ten evidence domai
 9. action applicability;
 10. recovery authority.
 
-Each evidence reference binds to a logical-effect ID, attempt ID and subject boot/controller epochs. The physical evidence, persistence, mission, queue, graph and observer records must refer to the same original attempt scope. Recovery authority has its own attempt scope.
+Each evidence reference binds to a logical-effect ID, attempt ID and subject boot/controller epochs. The physical evidence, persistence, mission, queue, graph and observer records must refer to the same original attempt scope. Action applicability and recovery authority bind to the current recovery attempt/boot/controller epoch, not to stale authority from the original command.
 
 The two observer claims are separate. When either is qualified, the claim is bound to a domain-specific digest. A qualified quorum requires:
 - a versioned fault-model revision;
@@ -77,10 +86,12 @@ At initialization, both observer claims are `not_applicable`. The TLA variable `
 - `fixtures/runtime_projection_reservation_acceptance_v0_1.json`: four-state `Init → ReserveAttempt → MarkDispatchStarted → NativeAcceptOld` trace, with all 43 model fields and ten owner evidence domains at each step.
 - `fixtures/runtime_projection_no_effect_recovery_v0_1.json`: 17-state lifecycle covering old-attempt NoEffect, persistence no-commit reconciliation, crash/restart, controller and downstream fencing, physical observation, mission resolution, permit issuance, fresh ticket and one-shot recovery acceptance. The final state deliberately has `downstreamFenceBootEpoch=0` with `admittedDownstreamFence=true`.
 
+All fixtures pin SHA-256 digests of the exact base TLA source, safe model configuration and TLC JAR. Every owner receipt carries an asserted value and source artifact commitment.
+
 The observer evidence in the full recovery fixture contains two separately qualified proof sets with distinct observers, observation IDs, raw artifacts and artifact digests, and disjoint declared common-cause dependencies under the same fault-model revision. This is a synthetic known-answer fixture, not a physical deployment.
 
 These fixtures are synthetic conformance inputs, not observations of a real robot.
 
 ## Claim ceiling
 
-A projection PASS establishes only that a supplied recording satisfies this crate's typed shape, scope, provenance and selected invariant checks. It does **not** authenticate owner artifacts, prove that an event inventory is complete, establish model transition conformance, prove physical causality, qualify hardware, or establish a safety case. Use independent owner authentication, a formal trace checker, ROS/simulator/HIL/physical campaigns and applicable safety standards for those claims.
+A projection PASS establishes only that a supplied recording satisfies this crate's typed shape, scope, provenance and selected invariant checks. It does **not** authenticate owner artifacts, prove that an event inventory is complete, establish model transition conformance, prove physical causality, qualify hardware, or establish a safety case. Use independent owner authentication, the pinned TLC trace harness, ROS/simulator/HIL/physical campaigns and applicable safety standards for those claims.
