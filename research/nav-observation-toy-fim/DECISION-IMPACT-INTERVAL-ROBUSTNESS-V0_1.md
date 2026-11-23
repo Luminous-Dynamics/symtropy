@@ -208,10 +208,11 @@ The module `src/navigation_outcome_risk_frontier.rs` compares the outcome-risk a
 
 It requires all compared actions to share the same:
 - deployment-domain fingerprint;
-- acquisition-protocol digest;
 - decision-partition digest;
 - impact-model digest;
 - impact-uncertainty-model digest.
+
+Acquisition protocol digests are **action-specific**. A predeclared action-ID-to-protocol-digest allowlist lets different sensing modalities be compared while rejecting unregistered or mismatched protocols. For example, a CIR acquisition and an independent-anchor request may have different protocol identities but still share the same navigation profile and impact model.
 
 It also requires comparable risk contracts: one fixed AVaR confidence level, a minimum valid-acquisition lower bound, a minimum count of independent campaign blocks and a maximum confidence error. A scenario law remains action-specific but is carried with its outcome-model and scenario-law digests.
 
@@ -223,7 +224,7 @@ The selection has three deliberately separate stages:
 
 No scalar score hides trade-offs. If no action satisfies every hard gate, the result is abstention with no recommendation. The result never restores navigation authority.
 
-Eight synthetic tests cover:
+Ten synthetic tests cover:
 1. preservation of tail-risk/latency trade-offs;
 2. removal of a strictly dominated action;
 3. hard resource and risk-ceiling rejection;
