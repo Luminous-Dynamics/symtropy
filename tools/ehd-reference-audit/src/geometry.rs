@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Axis-aligned space-time intersection weights for the EHD impulse remapper.
 //!
 //! N includes spatial axes plus time: N=2 is 1D space × time, N=3 is 2D
 //! space × time, and N=4 is 3D space × time. Only axis-aligned boxes are
 //! supported; curved, rotated and general unstructured elements are out of scope.
 
-use crate::exchange::{map_integrated_impulses, ImpulseEvent, MappingError, MappingTolerance, OverlapWeight};
+use crate::exchange::{
+    ImpulseEvent, MappingError, MappingTolerance, OverlapWeight, map_integrated_impulses,
+};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt;
@@ -55,28 +59,59 @@ impl fmt::Display for GeometryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroDimensions => write!(f, "space-time boxes must have at least one dimension"),
-            Self::InvalidTolerance => write!(f, "geometry tolerance must be finite and non-negative"),
-            Self::InvalidBox(id) => write!(f, "space-time box {id} has invalid or non-finite bounds"),
+            Self::InvalidTolerance => {
+                write!(f, "geometry tolerance must be finite and non-negative")
+            }
+            Self::InvalidBox(id) => {
+                write!(f, "space-time box {id} has invalid or non-finite bounds")
+            }
             Self::DuplicateDestinationId(id) => write!(f, "duplicate destination box id: {id}"),
-            Self::NonFiniteMeasure(id) => write!(f, "space-time measure overflow/underflow for box {id}"),
-            Self::OverlappingDestinationIntersections { first_id, second_id, overlap_measure, allowed_measure } => write!(
-                f, "destination boxes {first_id} and {second_id} overlap inside source by {overlap_measure}, allowed {allowed_measure}"
+            Self::NonFiniteMeasure(id) => {
+                write!(f, "space-time measure overflow/underflow for box {id}")
+            }
+            Self::OverlappingDestinationIntersections {
+                first_id,
+                second_id,
+                overlap_measure,
+                allowed_measure,
+            } => write!(
+                f,
+                "destination boxes {first_id} and {second_id} overlap inside source by {overlap_measure}, allowed {allowed_measure}"
             ),
-            Self::OverlapBudgetExceeded { pairwise_overlap_upper_bound, allowed_measure } => write!(
-                f, "cumulative pairwise-overlap upper bound {pairwise_overlap_upper_bound} exceeds source overlap budget {allowed_measure}"
+            Self::OverlapBudgetExceeded {
+                pairwise_overlap_upper_bound,
+                allowed_measure,
+            } => write!(
+                f,
+                "cumulative pairwise-overlap upper bound {pairwise_overlap_upper_bound} exceeds source overlap budget {allowed_measure}"
             ),
-            Self::CoverageMismatch { source_id, source_measure, covered_measure, allowed_measure } => write!(
-                f, "destination intersections cover {covered_measure} of source {source_id} measure {source_measure}; allowed measure error {allowed_measure}"
+            Self::CoverageMismatch {
+                source_id,
+                source_measure,
+                covered_measure,
+                allowed_measure,
+            } => write!(
+                f,
+                "destination intersections cover {covered_measure} of source {source_id} measure {source_measure}; allowed measure error {allowed_measure}"
             ),
-            Self::InvalidIntersectionFraction(id) => write!(f, "intersection fraction for destination {id} is outside [0, 1]"),
-            Self::ImpulseKernelRejected(reason) => write!(f, "integrated-impulse kernel rejected geometry self-check: {reason}"),
+            Self::InvalidIntersectionFraction(id) => write!(
+                f,
+                "intersection fraction for destination {id} is outside [0, 1]"
+            ),
+            Self::ImpulseKernelRejected(reason) => write!(
+                f,
+                "integrated-impulse kernel rejected geometry self-check: {reason}"
+            ),
         }
     }
 }
 impl Error for GeometryError {}
 
 #[derive(Clone, Copy, Debug, Default)]
-struct Kahan { sum: f64, correction: f64 }
+struct Kahan {
+    sum: f64,
+    correction: f64,
+}
 impl Kahan {
     fn add(&mut self, value: f64) {
         let y = value - self.correction;
@@ -87,7 +122,9 @@ impl Kahan {
 }
 
 fn validate_box<const N: usize>(cell: &SpaceTimeBox<N>) -> Result<f64, GeometryError> {
-    if N == 0 { return Err(GeometryError::ZeroDimensions); }
+    if N == 0 {
+        return Err(GeometryError::ZeroDimensions);
+    }
     let mut measure = 1.0;
     for axis in 0..N {
         let lower = cell.lower[axis];
@@ -111,9 +148,13 @@ fn pair_intersection_measure<const N: usize>(
     for axis in 0..N {
         let lower = left.lower[axis].max(right.lower[axis]);
         let upper = left.upper[axis].min(right.upper[axis]);
-        if upper <= lower { return Ok(0.0); }
+        if upper <= lower {
+            return Ok(0.0);
+        }
         measure *= upper - lower;
-        if !measure.is_finite() { return Err(GeometryError::NonFiniteMeasure(left.id)); }
+        if !measure.is_finite() {
+            return Err(GeometryError::NonFiniteMeasure(left.id));
+        }
     }
     Ok(measure)
 }
@@ -125,11 +166,19 @@ fn triple_intersection_measure<const N: usize>(
 ) -> Result<f64, GeometryError> {
     let mut measure = 1.0;
     for axis in 0..N {
-        let lower = source.lower[axis].max(left.lower[axis]).max(right.lower[axis]);
-        let upper = source.upper[axis].min(left.upper[axis]).min(right.upper[axis]);
-        if upper <= lower { return Ok(0.0); }
+        let lower = source.lower[axis]
+            .max(left.lower[axis])
+            .max(right.lower[axis]);
+        let upper = source.upper[axis]
+            .min(left.upper[axis])
+            .min(right.upper[axis]);
+        if upper <= lower {
+            return Ok(0.0);
+        }
         measure *= upper - lower;
-        if !measure.is_finite() { return Err(GeometryError::NonFiniteMeasure(source.id)); }
+        if !measure.is_finite() {
+            return Err(GeometryError::NonFiniteMeasure(source.id));
+        }
     }
     Ok(measure)
 }
@@ -142,14 +191,21 @@ pub fn build_overlap_weights<const N: usize>(
     destinations: &[SpaceTimeBox<N>],
     tolerance: MeasureTolerance,
 ) -> Result<Vec<OverlapWeight>, GeometryError> {
-    if N == 0 { return Err(GeometryError::ZeroDimensions); }
-    if !tolerance.absolute.is_finite() || !tolerance.relative.is_finite()
-        || tolerance.absolute < 0.0 || tolerance.relative < 0.0 {
+    if N == 0 {
+        return Err(GeometryError::ZeroDimensions);
+    }
+    if !tolerance.absolute.is_finite()
+        || !tolerance.relative.is_finite()
+        || tolerance.absolute < 0.0
+        || tolerance.relative < 0.0
+    {
         return Err(GeometryError::InvalidTolerance);
     }
     let source_measure = validate_box(source)?;
     let allowed = tolerance.absolute + tolerance.relative * source_measure;
-    if !allowed.is_finite() { return Err(GeometryError::InvalidTolerance); }
+    if !allowed.is_finite() {
+        return Err(GeometryError::InvalidTolerance);
+    }
 
     let mut ids = BTreeSet::new();
     let mut intersections: Vec<(SpaceTimeBox<N>, f64)> = Vec::new();
@@ -159,7 +215,9 @@ pub fn build_overlap_weights<const N: usize>(
             return Err(GeometryError::DuplicateDestinationId(destination.id));
         }
         let measure = pair_intersection_measure(source, destination)?;
-        if measure > 0.0 { intersections.push((*destination, measure)); }
+        if measure > 0.0 {
+            intersections.push((*destination, measure));
+        }
     }
     intersections.sort_by_key(|(cell, _)| cell.id);
 
@@ -174,7 +232,8 @@ pub fn build_overlap_weights<const N: usize>(
     let mut pairwise_overlap_upper_bound = Kahan::default();
     for i in 0..intersections.len() {
         for j in (i + 1)..intersections.len() {
-            let overlap = triple_intersection_measure(source, &intersections[i].0, &intersections[j].0)?;
+            let overlap =
+                triple_intersection_measure(source, &intersections[i].0, &intersections[j].0)?;
             if overlap > allowed {
                 return Err(GeometryError::OverlappingDestinationIntersections {
                     first_id: intersections[i].0.id,
@@ -194,7 +253,9 @@ pub fn build_overlap_weights<const N: usize>(
     }
 
     let mut covered = Kahan::default();
-    for (_, measure) in &intersections { covered.add(*measure); }
+    for (_, measure) in &intersections {
+        covered.add(*measure);
+    }
     if (covered.sum - source_measure).abs() > allowed {
         return Err(GeometryError::CoverageMismatch {
             source_id: source.id,
@@ -223,28 +284,50 @@ pub fn build_overlap_weights<const N: usize>(
 /// validated, then the resulting weights are consumed by the impulse remapper.
 pub fn reference_self_check() -> Result<(), GeometryError> {
     let source = SpaceTimeBox {
-        id: 1, lower: [0.0, 0.0, 0.0, 0.0], upper: [2.0, 1.0, 1.0, 2.0],
+        id: 1,
+        lower: [0.0, 0.0, 0.0, 0.0],
+        upper: [2.0, 1.0, 1.0, 2.0],
     };
     let destinations = [
-        SpaceTimeBox { id: 10, lower: [0.0, 0.0, 0.0, 0.0], upper: [1.0, 1.0, 1.0, 2.0] },
-        SpaceTimeBox { id: 20, lower: [1.0, 0.0, 0.0, 0.0], upper: [2.0, 1.0, 1.0, 2.0] },
+        SpaceTimeBox {
+            id: 10,
+            lower: [0.0, 0.0, 0.0, 0.0],
+            upper: [1.0, 1.0, 1.0, 2.0],
+        },
+        SpaceTimeBox {
+            id: 20,
+            lower: [1.0, 0.0, 0.0, 0.0],
+            upper: [2.0, 1.0, 1.0, 2.0],
+        },
     ];
-    let weights = build_overlap_weights(&source, &destinations, MeasureTolerance {
-        absolute: 1.0e-12, relative: 1.0e-12,
-    })?;
+    let weights = build_overlap_weights(
+        &source,
+        &destinations,
+        MeasureTolerance {
+            absolute: 1.0e-12,
+            relative: 1.0e-12,
+        },
+    )?;
     let report = map_integrated_impulses(
-        &[ImpulseEvent { source_event_id: 1, impulse_ns: [8.0, -4.0, 2.0] }],
+        &[ImpulseEvent {
+            source_event_id: 1,
+            impulse_ns: [8.0, -4.0, 2.0],
+        }],
         &weights,
         MappingTolerance {
-            fraction_sum_abs: 1.0e-12, impulse_abs_ns: 1.0e-12, impulse_rel: 1.0e-12,
+            fraction_sum_abs: 1.0e-12,
+            impulse_abs_ns: 1.0e-12,
+            impulse_rel: 1.0e-12,
         },
-    ).map_err(|error: MappingError| GeometryError::ImpulseKernelRejected(error.to_string()))?;
+    )
+    .map_err(|error: MappingError| GeometryError::ImpulseKernelRejected(error.to_string()))?;
 
     if report.destination_total_ns != [8.0, -4.0, 2.0]
         || report.destination_impulses_ns.get(&10) != Some(&[4.0, -2.0, 1.0])
-        || report.destination_impulses_ns.get(&20) != Some(&[4.0, -2.0, 1.0]) {
+        || report.destination_impulses_ns.get(&20) != Some(&[4.0, -2.0, 1.0])
+    {
         return Err(GeometryError::ImpulseKernelRejected(
-            "synthetic space-time partition did not preserve expected impulse".to_owned()
+            "synthetic space-time partition did not preserve expected impulse".to_owned(),
         ));
     }
     Ok(())
@@ -253,17 +336,36 @@ pub fn reference_self_check() -> Result<(), GeometryError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn tol() -> MeasureTolerance { MeasureTolerance { absolute: 1.0e-12, relative: 1.0e-12 } }
+    fn tol() -> MeasureTolerance {
+        MeasureTolerance {
+            absolute: 1.0e-12,
+            relative: 1.0e-12,
+        }
+    }
 
     #[test]
-    fn reference_space_time_backend_self_check_passes() { reference_self_check().unwrap(); }
+    fn reference_space_time_backend_self_check_passes() {
+        reference_self_check().unwrap();
+    }
 
     #[test]
     fn one_dimensional_space_by_time_partition_is_exact() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 2.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [2.0, 2.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [1.0, 2.0] },
-            SpaceTimeBox { id: 3, lower: [1.0, 0.0], upper: [2.0, 2.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [1.0, 2.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [1.0, 0.0],
+                upper: [2.0, 2.0],
+            },
         ];
         let weights = build_overlap_weights(&source, &dest, tol()).unwrap();
         assert_eq!(weights.len(), 2);
@@ -273,10 +375,22 @@ mod tests {
 
     #[test]
     fn two_dimensional_space_by_time_partition_is_exact() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0, 0.0], upper: [2.0, 2.0, 1.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0, 0.0],
+            upper: [2.0, 2.0, 1.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0, 0.0], upper: [2.0, 1.0, 1.0] },
-            SpaceTimeBox { id: 3, lower: [0.0, 1.0, 0.0], upper: [2.0, 2.0, 1.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0, 0.0],
+                upper: [2.0, 1.0, 1.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.0, 1.0, 0.0],
+                upper: [2.0, 2.0, 1.0],
+            },
         ];
         let weights = build_overlap_weights(&source, &dest, tol()).unwrap();
         assert_eq!(weights.len(), 2);
@@ -286,10 +400,22 @@ mod tests {
 
     #[test]
     fn three_dimensional_space_by_time_partition_is_exact() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0, 0.0, 0.0], upper: [2.0, 2.0, 2.0, 2.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0, 0.0, 0.0],
+            upper: [2.0, 2.0, 2.0, 2.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0, 0.0, 0.0], upper: [2.0, 2.0, 1.0, 2.0] },
-            SpaceTimeBox { id: 3, lower: [0.0, 0.0, 1.0, 0.0], upper: [2.0, 2.0, 2.0, 2.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0, 0.0, 0.0],
+                upper: [2.0, 2.0, 1.0, 2.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.0, 0.0, 1.0, 0.0],
+                upper: [2.0, 2.0, 2.0, 2.0],
+            },
         ];
         let weights = build_overlap_weights(&source, &dest, tol()).unwrap();
         assert_eq!(weights.len(), 2);
@@ -323,10 +449,22 @@ mod tests {
 
     #[test]
     fn rejects_coverage_gap() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 2.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [2.0, 2.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [0.9, 2.0] },
-            SpaceTimeBox { id: 3, lower: [1.1, 0.0], upper: [2.0, 2.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [0.9, 2.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [1.1, 0.0],
+                upper: [2.0, 2.0],
+            },
         ];
         assert!(matches!(
             build_overlap_weights(&source, &dest, tol()).unwrap_err(),
@@ -336,14 +474,30 @@ mod tests {
 
     #[test]
     fn rejects_equal_measure_overlap_and_gap_adversary() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 2.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [2.0, 2.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [1.1, 2.0] },
-            SpaceTimeBox { id: 3, lower: [0.9, 0.0], upper: [1.8, 2.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [1.1, 2.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.9, 0.0],
+                upper: [1.8, 2.0],
+            },
         ];
         assert!(matches!(
             build_overlap_weights(&source, &dest, tol()).unwrap_err(),
-            GeometryError::OverlappingDestinationIntersections { first_id: 2, second_id: 3, .. }
+            GeometryError::OverlappingDestinationIntersections {
+                first_id: 2,
+                second_id: 3,
+                ..
+            }
         ));
     }
 
@@ -359,12 +513,31 @@ mod tests {
             upper: [1.0, 1.0],
         };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.00, 0.0], upper: [0.30, 1.0] },
-            SpaceTimeBox { id: 3, lower: [0.24, 0.0], upper: [0.54, 1.0] },
-            SpaceTimeBox { id: 4, lower: [0.48, 0.0], upper: [0.78, 1.0] },
-            SpaceTimeBox { id: 5, lower: [0.90, 0.0], upper: [1.00, 1.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.00, 0.0],
+                upper: [0.30, 1.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.24, 0.0],
+                upper: [0.54, 1.0],
+            },
+            SpaceTimeBox {
+                id: 4,
+                lower: [0.48, 0.0],
+                upper: [0.78, 1.0],
+            },
+            SpaceTimeBox {
+                id: 5,
+                lower: [0.90, 0.0],
+                upper: [1.00, 1.0],
+            },
         ];
-        let budget = MeasureTolerance { absolute: 0.10, relative: 0.0 };
+        let budget = MeasureTolerance {
+            absolute: 0.10,
+            relative: 0.0,
+        };
         assert!(matches!(
             build_overlap_weights(&source, &dest, budget).unwrap_err(),
             GeometryError::OverlapBudgetExceeded {
@@ -383,47 +556,114 @@ mod tests {
             upper: [1.0, 1.0],
         };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.00, 0.0], upper: [0.50, 1.0] },
-            SpaceTimeBox { id: 3, lower: [0.49, 0.0], upper: [1.00, 1.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.00, 0.0],
+                upper: [0.50, 1.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [0.49, 0.0],
+                upper: [1.00, 1.0],
+            },
         ];
-        let budget = MeasureTolerance { absolute: 0.02, relative: 0.0 };
+        let budget = MeasureTolerance {
+            absolute: 0.02,
+            relative: 0.0,
+        };
         assert!(build_overlap_weights(&source, &dest, budget).is_ok());
     }
 
     #[test]
     fn boundary_touching_destination_boxes_are_not_overlapping() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 1.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [2.0, 1.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [1.0, 1.0] },
-            SpaceTimeBox { id: 3, lower: [1.0, 0.0], upper: [2.0, 1.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [1.0, 1.0],
+            },
+            SpaceTimeBox {
+                id: 3,
+                lower: [1.0, 0.0],
+                upper: [2.0, 1.0],
+            },
         ];
-        assert_eq!(build_overlap_weights(&source, &dest, tol()).unwrap().len(), 2);
+        assert_eq!(
+            build_overlap_weights(&source, &dest, tol()).unwrap().len(),
+            2
+        );
     }
 
     #[test]
     fn rejects_duplicate_destination_ids() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [1.0, 1.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [1.0, 1.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [0.5, 1.0] },
-            SpaceTimeBox { id: 2, lower: [0.5, 0.0], upper: [1.0, 1.0] },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [0.5, 1.0],
+            },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.5, 0.0],
+                upper: [1.0, 1.0],
+            },
         ];
-        assert_eq!(build_overlap_weights(&source, &dest, tol()).unwrap_err(), GeometryError::DuplicateDestinationId(2));
+        assert_eq!(
+            build_overlap_weights(&source, &dest, tol()).unwrap_err(),
+            GeometryError::DuplicateDestinationId(2)
+        );
     }
 
     #[test]
     fn rejects_zero_width_and_non_finite_bounds() {
-        let zero = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [0.0, 1.0] };
-        assert_eq!(build_overlap_weights(&zero, &[], tol()).unwrap_err(), GeometryError::InvalidBox(1));
-        let infinite = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [f64::INFINITY, 1.0] };
-        assert_eq!(build_overlap_weights(&infinite, &[], tol()).unwrap_err(), GeometryError::InvalidBox(1));
+        let zero = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [0.0, 1.0],
+        };
+        assert_eq!(
+            build_overlap_weights(&zero, &[], tol()).unwrap_err(),
+            GeometryError::InvalidBox(1)
+        );
+        let infinite = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [f64::INFINITY, 1.0],
+        };
+        assert_eq!(
+            build_overlap_weights(&infinite, &[], tol()).unwrap_err(),
+            GeometryError::InvalidBox(1)
+        );
     }
 
     #[test]
     fn destination_input_order_does_not_change_weights() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [2.0, 2.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [2.0, 2.0],
+        };
         let dest = [
-            SpaceTimeBox { id: 3, lower: [1.0, 0.0], upper: [2.0, 2.0] },
-            SpaceTimeBox { id: 2, lower: [0.0, 0.0], upper: [1.0, 2.0] },
+            SpaceTimeBox {
+                id: 3,
+                lower: [1.0, 0.0],
+                upper: [2.0, 2.0],
+            },
+            SpaceTimeBox {
+                id: 2,
+                lower: [0.0, 0.0],
+                upper: [1.0, 2.0],
+            },
         ];
         let a = build_overlap_weights(&source, &dest, tol()).unwrap();
         let b = build_overlap_weights(&source, &[dest[1], dest[0]], tol()).unwrap();
@@ -432,7 +672,11 @@ mod tests {
 
     #[test]
     fn rejects_missing_destination_coverage() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [1.0, 1.0] };
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [1.0, 1.0],
+        };
         assert!(matches!(
             build_overlap_weights::<2>(&source, &[], tol()).unwrap_err(),
             GeometryError::CoverageMismatch { source_id: 1, .. }
@@ -441,8 +685,18 @@ mod tests {
 
     #[test]
     fn rejects_invalid_geometry_tolerance() {
-        let source = SpaceTimeBox { id: 1, lower: [0.0, 0.0], upper: [1.0, 1.0] };
-        let invalid = MeasureTolerance { absolute: -1.0, relative: 0.0 };
-        assert_eq!(build_overlap_weights(&source, &[], invalid).unwrap_err(), GeometryError::InvalidTolerance);
+        let source = SpaceTimeBox {
+            id: 1,
+            lower: [0.0, 0.0],
+            upper: [1.0, 1.0],
+        };
+        let invalid = MeasureTolerance {
+            absolute: -1.0,
+            relative: 0.0,
+        };
+        assert_eq!(
+            build_overlap_weights(&source, &[], invalid).unwrap_err(),
+            GeometryError::InvalidTolerance
+        );
     }
 }
