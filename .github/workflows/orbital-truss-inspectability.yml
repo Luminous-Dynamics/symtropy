@@ -77,8 +77,8 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic Rust receipt replay
         run: |
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json "$GITHUB_SHA" > /tmp/inspectability-a.json
-          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json "$GITHUB_SHA" > /tmp/inspectability-b.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspectability-bench -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json "$GITHUB_SHA" > /tmp/inspectability-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspectability-bench -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json "$GITHUB_SHA" > /tmp/inspectability-b.json
           cmp /tmp/inspectability-a.json /tmp/inspectability-b.json
           jq -e '
             .schema == "luminous.orbital-truss-inspectability.receipt.v0.1" and

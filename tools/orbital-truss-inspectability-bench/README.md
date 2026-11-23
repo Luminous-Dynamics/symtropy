@@ -35,7 +35,7 @@ These are plan-screening outcomes for the declared synthetic 2D geometry only. T
     cargo test --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml
     cargo clippy --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --all-targets -- -D warnings
 
-    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json <40-hex-source-commit>
+    cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-inspectability-bench -- docs/research/orbital-truss/fixtures/inspectability-v0_1.json <40-hex-source-commit>
 
     python3 tools/orbital-truss-inspectability-bench/tests/inspectability_reference_oracle.py docs/research/orbital-truss/fixtures/inspectability-v0_1.json
 
