@@ -1,0 +1,38 @@
+name: Maritime channel dependency binding
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/maritime-channel-dependency-binding/**"
+      - ".github/workflows/maritime-channel-dependency-binding.yml"
+  push:
+    branches:
+      - "research/maritime-channel-dependency-binding-v0-1"
+    paths:
+      - "benchmarks/maritime-channel-dependency-binding/**"
+      - ".github/workflows/maritime-channel-dependency-binding.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-channel-dependency-binding-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/maritime-channel-dependency-binding/Cargo.toml -- --check
+      - name: Run locked tests
+        run: cargo test --manifest-path benchmarks/maritime-channel-dependency-binding/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path benchmarks/maritime-channel-dependency-binding/Cargo.toml --locked --all-targets -- -D warnings
