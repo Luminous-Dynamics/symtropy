@@ -446,4 +446,4 @@ try{
   }
   assert.deepStrictEqual(evaluate(reversed),output,"policy enumeration changed under case/query/world/action/scenario ordering");
   process.stdout.write(JSON.stringify(output,null,2)+"\n");
-}catch(error){process.stderr.write(String(error?.message??error)+"\n");process.exitCode=1;}
+}catch(error){process.stderr.write(String(error?.stack??error)+"\n");process.exitCode=1;}
