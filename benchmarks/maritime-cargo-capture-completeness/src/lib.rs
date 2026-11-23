@@ -127,7 +127,7 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     if !valid_profile(profile) {
         return CaptureReport::with_disposition(Disposition::NotEvaluable);
     }
-    if case.as_of < profile.window_start {
+    if case.as_of < profile.window_end {
         return CaptureReport::with_disposition(Disposition::NotEvaluable);
     }
 
@@ -243,7 +243,7 @@ mod tests {
             source_id: "terminal-gate-1".to_owned(),
             event_class: "GATE_OUT".to_owned(),
             window_start: 0,
-            window_end: 100,
+            window_end: 20,
             configuration_digest: "config-v1".to_owned(),
             expected_configuration_digest: "config-v1".to_owned(),
             sequence_semantics_qualified: true,
@@ -262,7 +262,7 @@ mod tests {
             reference_id: "independent-counter-1".to_owned(),
             event_class: "GATE_OUT".to_owned(),
             window_start: 0,
-            window_end: 100,
+            window_end: 20,
             coverage_complete: true,
             independently_qualified: true,
             failure_domains: set(&["reference-power", "reference-clock", "reference-sensor"]),
@@ -375,17 +375,38 @@ mod tests {
                 as_of: 20,
             },
             "future_event_not_yet_occurred" => {
+                let mut p = profile();
+                p.window_end = 40;
                 let mut r = reference(&["e1"]);
+                r.window_end = 40;
                 r.events[0].event_time = 30;
-                case(Some(r), vec![])
+                CaptureCase {
+                    profile: Some(p),
+                    reference: Some(r),
+                    captured_events: vec![],
+                    as_of: 20,
+                }
             }
             "future_dated_record_published_before_occurrence" => {
+                let mut p = profile();
+                p.window_end = 40;
                 let mut r = reference(&["e1"]);
+                r.window_end = 40;
                 r.events[0].event_time = 30;
                 let mut event = captured("e1");
                 event.event_time = 30;
                 event.published_at = 15;
-                case(Some(r), vec![event])
+                CaptureCase {
+                    profile: Some(p),
+                    reference: Some(r),
+                    captured_events: vec![event],
+                    as_of: 40,
+                }
+            }
+            "as_of_before_window_end" => {
+                let mut c = case(Some(reference(&[])), vec![]);
+                c.as_of = 19;
+                c
             }
             "as_of_before_window_start" => CaptureCase {
                 profile: Some(profile()),
@@ -411,7 +432,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 17);
+        assert_eq!(count, 18);
     }
 
     #[test]
@@ -520,10 +541,14 @@ mod tests {
     }
 
     #[test]
-    fn future_reference_events_are_not_missing_before_they_occur() {
+    fn open_window_cannot_be_qualified_as_complete() {
         assert_eq!(
             evaluate(&known_case("future_event_not_yet_occurred")).disposition,
-            Disposition::QualifiedWithinDeclaredEnvelope
+            Disposition::NotEvaluable
+        );
+        assert_eq!(
+            evaluate(&known_case("as_of_before_window_end")).disposition,
+            Disposition::NotEvaluable
         );
     }
 
