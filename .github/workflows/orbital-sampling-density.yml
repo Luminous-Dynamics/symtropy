@@ -30,12 +30,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Bootstrap standalone lockfile for exact Cargo resolution
-        run: |
-          cargo generate-lockfile --manifest-path tools/surface-sampling-density-bench/Cargo.toml
-          echo "SAMPLING_LOCKFILE_BEGIN"
-          cat tools/surface-sampling-density-bench/Cargo.lock
-          echo "SAMPLING_LOCKFILE_END"
       - name: Validate frozen corpus and schema
         run: |
           python3 - <<'PY'
