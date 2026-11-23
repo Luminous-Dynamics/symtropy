@@ -1,120 +1,249 @@
 {
   "schema_version": "0.1.0",
   "benchmark_id": "NONANTICIPATIVE-SERVICE-ORACLE-001",
-  "horizon_seconds": 100,
-  "requests": [
-    {
-      "request_id": "request-early",
-      "arrival_seconds": 0,
-      "accept_by_seconds": 0,
-      "deadline_seconds": 30,
-      "required_service_seconds": 5,
-      "payload_units": 1,
-      "allowed_mode": "either"
-    },
-    {
-      "request_id": "request-later",
-      "arrival_seconds": 1,
-      "accept_by_seconds": 1,
-      "deadline_seconds": 15,
-      "required_service_seconds": 5,
-      "payload_units": 1,
-      "allowed_mode": "either"
-    }
-  ],
-  "opportunities": [
-    {
-      "opportunity_id": "slot-early",
-      "resource_id": "courier-01",
-      "mode": "ground_courier",
-      "start_seconds": 3,
-      "max_service_duration_seconds": 10,
-      "turnaround_seconds": 1,
-      "max_payload_units": 5
-    },
-    {
-      "opportunity_id": "slot-late",
-      "resource_id": "courier-01",
-      "mode": "ground_courier",
-      "start_seconds": 20,
-      "max_service_duration_seconds": 10,
-      "turnaround_seconds": 1,
-      "max_payload_units": 5
-    }
-  ],
+  "horizon_seconds": 28800,
+  "linked_service_input": {
+    "schema_version": "0.1.0",
+    "benchmark_id": "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001",
+    "site_id": "single-service-site-v01",
+    "site_configuration_digest": "sha256:service-site-v01",
+    "horizon_seconds": 28800,
+    "source_architecture_id": "fixed_dock4_reference_profile",
+    "requests": [
+      {
+        "request_id": "request-early",
+        "arrival_seconds": 0,
+        "accept_by_seconds": 349,
+        "deadline_seconds": 800,
+        "required_service_seconds": 240,
+        "payload_units": 1,
+        "service_class": "standard",
+        "allowed_mode": "either"
+      },
+      {
+        "request_id": "request-later",
+        "arrival_seconds": 350,
+        "accept_by_seconds": 400,
+        "deadline_seconds": 1000,
+        "required_service_seconds": 240,
+        "payload_units": 1,
+        "service_class": "urgent",
+        "allowed_mode": "aerial_only"
+      }
+    ],
+    "aerial_opportunity_qualifications": [
+      {
+        "opportunity_id": "aircraft-00-mission-000002",
+        "max_payload_units": 100,
+        "evidence": {
+          "capacity_opportunity_id": "aircraft-00-mission-000002",
+          "aircraft_id": "aircraft-00",
+          "site_id": "single-service-site-v01",
+          "site_configuration_digest": "sha256:service-site-v01",
+          "architecture_configuration_digest": "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024",
+          "producer_id": "fixture-generator",
+          "method_id": "synthetic-payload-envelope-v0.1",
+          "evidence_reference": "synthetic://payload-qualification/aircraft-00-mission-000002",
+          "evidence_class": "synthetic",
+          "observed_at_seconds": 0,
+          "valid_from_seconds": 0,
+          "valid_until_seconds": 1035
+        }
+      }
+    ],
+    "fallback_opportunities": [],
+    "flight_windows": [
+      {
+        "window_id": "flight-window-early",
+        "start_seconds": 0,
+        "end_seconds": 3600,
+        "weather_state": "go",
+        "permission_state": "approved",
+        "evidence": {
+          "site_id": "single-service-site-v01",
+          "site_configuration_digest": "sha256:service-site-v01",
+          "producer_id": "fixture-generator",
+          "method_id": "synthetic-request-window-v0.1",
+          "evidence_reference": "synthetic://service-quality/early",
+          "evidence_class": "synthetic",
+          "observed_at_seconds": 0,
+          "valid_from_seconds": 0,
+          "valid_until_seconds": 3600
+        }
+      }
+    ],
+    "blocked_intervals": [],
+    "policies": [
+      "earliest_deadline_first"
+    ],
+    "claim_ceiling": "Linked deterministic request admission using aircraft/time opportunities re-evaluated from the capacity event simulator; synthetic payload and flight-window evidence only. No route planning, flight/dispatch, physical, market, regulatory or customer-delivery authority."
+  },
+  "capacity_input": {
+    "schema_version": "0.1.0",
+    "benchmark_id": "SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001",
+    "horizon_seconds": 28800,
+    "architectures": [
+      {
+        "architecture_id": "direct_charge_single_pack",
+        "description": "Matched five-minute mission baseline with one aircraft, one battery pack, no ready spares and one charging channel.",
+        "aircraft_count": 1,
+        "battery_pack_count": 1,
+        "initial_ready_spares": 0,
+        "max_stored_spares_per_aircraft": 0,
+        "mission_duration_seconds": 300,
+        "operational_turnaround_seconds": 45,
+        "charge_duration_seconds": 1620,
+        "parallel_charging_channels": 1,
+        "charger_input_power_w": 500,
+        "site_grid_import_limit_w": 1000,
+        "site_fixed_load_w": 250
+      },
+      {
+        "architecture_id": "fixed_dock4_reference_profile",
+        "description": "Dock 4 specification-shaped profile with one aircraft, three stored spares, two channels, and the same five-minute mission/45-second turnaround workload; charge time is 27 minutes.",
+        "aircraft_count": 1,
+        "battery_pack_count": 4,
+        "initial_ready_spares": 3,
+        "max_stored_spares_per_aircraft": 3,
+        "mission_duration_seconds": 300,
+        "operational_turnaround_seconds": 45,
+        "charge_duration_seconds": 1620,
+        "parallel_charging_channels": 2,
+        "charger_input_power_w": 500,
+        "site_grid_import_limit_w": 2000,
+        "site_fixed_load_w": 250
+      },
+      {
+        "architecture_id": "fixed_dock4_grid_constrained",
+        "description": "Same single-aircraft, four-pack, five-minute mission workload as the Dock 4-shaped profile, but only one 500 W charging channel fits after site fixed-load allowance.",
+        "aircraft_count": 1,
+        "battery_pack_count": 4,
+        "initial_ready_spares": 3,
+        "max_stored_spares_per_aircraft": 3,
+        "mission_duration_seconds": 300,
+        "operational_turnaround_seconds": 45,
+        "charge_duration_seconds": 1620,
+        "parallel_charging_channels": 2,
+        "charger_input_power_w": 500,
+        "site_grid_import_limit_w": 750,
+        "site_fixed_load_w": 250
+      },
+      {
+        "architecture_id": "two_aircraft_shared_qualified_pool",
+        "description": "Two-aircraft fleet-scaled profile with eight packs, six ready spares, four nominal charge channels and three channels admitted by site headroom; each aircraft has the same five-minute mission/45-second turnaround workload.",
+        "aircraft_count": 2,
+        "battery_pack_count": 8,
+        "initial_ready_spares": 6,
+        "max_stored_spares_per_aircraft": 3,
+        "mission_duration_seconds": 300,
+        "operational_turnaround_seconds": 45,
+        "charge_duration_seconds": 1620,
+        "parallel_charging_channels": 4,
+        "charger_input_power_w": 500,
+        "site_grid_import_limit_w": 2000,
+        "site_fixed_load_w": 200
+      }
+    ],
+    "claim_ceiling": "Bounded synthetic cyclic service-capacity simulation only; all launched sorties are assumed to complete, and supplied mission, charge, turnaround, power and inventory values are assumptions unless separately sourced. No battery safety, field availability, aviation permission, grid interconnection, dispatch, market or physical authority."
+  },
   "observation_nodes": [
     {
-      "node_id": "node-a-root",
+      "node_id": "root-no-future-request",
       "parent_information_set_digest": null,
-      "observation_digest": "sha256:3422c4d374a8e2dd5da81471321c7672ca211b59af7aabda0ed382e9e790e8a8",
-      "information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
-      "decision_time_seconds": 0,
+      "information_set_digest": "sha256:795f4326c1c29374a3b6b8419b4277eb824fe52383e91a7ba27ad20cc381633b",
+      "observation_digest": "sha256:a5710e723083d18d2b5b4dcd9e4e6a94beb625b2dfb9fabb68a81292331908bc",
+      "decision_time_seconds": 349,
       "revealed_request_ids": [
         "request-early"
       ],
       "available_opportunity_ids": [
-        "slot-early",
-        "slot-late"
+        "aircraft-00-mission-000002"
       ],
       "weather_state": "go",
       "permission_state": "approved",
-      "weather_evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "permission_evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "weather_evidence_digest": "sha256:d946e6a0eea4ce8b4c4a56703ad660a5852f4fd9f24c32219f2496a4a4100ce4",
+      "permission_evidence_digest": "sha256:ffc3e097f684af49120f54f8ab4c59213bb63f7f5e09a6af6d49cb69df0154a7",
+      "flight_window_id": "flight-window-early"
     },
     {
-      "node_id": "node-b-root",
+      "node_id": "root-future-request-branch",
       "parent_information_set_digest": null,
-      "observation_digest": "sha256:3422c4d374a8e2dd5da81471321c7672ca211b59af7aabda0ed382e9e790e8a8",
-      "information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
-      "decision_time_seconds": 0,
+      "information_set_digest": "sha256:795f4326c1c29374a3b6b8419b4277eb824fe52383e91a7ba27ad20cc381633b",
+      "observation_digest": "sha256:a5710e723083d18d2b5b4dcd9e4e6a94beb625b2dfb9fabb68a81292331908bc",
+      "decision_time_seconds": 349,
       "revealed_request_ids": [
         "request-early"
       ],
       "available_opportunity_ids": [
-        "slot-early",
-        "slot-late"
+        "aircraft-00-mission-000002"
       ],
       "weather_state": "go",
       "permission_state": "approved",
-      "weather_evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "permission_evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "weather_evidence_digest": "sha256:d946e6a0eea4ce8b4c4a56703ad660a5852f4fd9f24c32219f2496a4a4100ce4",
+      "permission_evidence_digest": "sha256:ffc3e097f684af49120f54f8ab4c59213bb63f7f5e09a6af6d49cb69df0154a7",
+      "flight_window_id": "flight-window-early"
     },
     {
-      "node_id": "node-a-child",
-      "parent_information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
-      "observation_digest": "sha256:77803b46c6ebd420f914d0cd6095d8e3f16b25c9acb0737fc87ecfc3b3a9798b",
-      "information_set_digest": "sha256:6286474de11ee274595bf6bca5aa12f62d92285a03a86a452a6e857ca99ca092",
-      "decision_time_seconds": 1,
+      "node_id": "later-request-weather-go",
+      "parent_information_set_digest": "sha256:795f4326c1c29374a3b6b8419b4277eb824fe52383e91a7ba27ad20cc381633b",
+      "information_set_digest": "sha256:78953ef5fa021f778b394a5cdde82e89a9cea353886e2221dbf6be93ace918fb",
+      "observation_digest": "sha256:36261750bd0f5bf7e90f8843b816a566e31038df16c7da915ed493d65b389076",
+      "decision_time_seconds": 350,
       "revealed_request_ids": [
         "request-early",
         "request-later"
       ],
       "available_opportunity_ids": [
-        "slot-early",
-        "slot-late"
+        "aircraft-00-mission-000002"
       ],
       "weather_state": "go",
       "permission_state": "approved",
-      "weather_evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "permission_evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "weather_evidence_digest": "sha256:d946e6a0eea4ce8b4c4a56703ad660a5852f4fd9f24c32219f2496a4a4100ce4",
+      "permission_evidence_digest": "sha256:ffc3e097f684af49120f54f8ab4c59213bb63f7f5e09a6af6d49cb69df0154a7",
+      "flight_window_id": "flight-window-early"
+    },
+    {
+      "node_id": "later-request-weather-no-go",
+      "parent_information_set_digest": "sha256:795f4326c1c29374a3b6b8419b4277eb824fe52383e91a7ba27ad20cc381633b",
+      "information_set_digest": "sha256:d48219e5d024e6445046b60d59c19dee7178874f8a84d8febe87dc8c59d72d04",
+      "observation_digest": "sha256:ae4237243222a5130c01581dccc66650bff1a5ad7411dbb07236b494422c21a6",
+      "decision_time_seconds": 350,
+      "revealed_request_ids": [
+        "request-early",
+        "request-later"
+      ],
+      "available_opportunity_ids": [],
+      "weather_state": "no_go",
+      "permission_state": "approved",
+      "weather_evidence_digest": "sha256:85232b79b4046dcb0fbe0137532de1298f648d5e1af81360f9fa70f1858342c5",
+      "permission_evidence_digest": "sha256:ffc3e097f684af49120f54f8ab4c59213bb63f7f5e09a6af6d49cb69df0154a7",
+      "flight_window_id": "flight-window-early"
     }
   ],
   "scenarios": [
     {
-      "scenario_id": "later-request-arrives",
-      "probability_units": 500000,
+      "scenario_id": "no-later-request",
+      "probability_units": 300000,
       "node_path": [
-        "node-a-root",
-        "node-a-child"
+        "root-no-future-request"
       ]
     },
     {
-      "scenario_id": "no-later-request",
-      "probability_units": 500000,
+      "scenario_id": "later-request-weather-go",
+      "probability_units": 350000,
       "node_path": [
-        "node-b-root"
+        "root-future-request-branch",
+        "later-request-weather-go"
+      ]
+    },
+    {
+      "scenario_id": "later-request-weather-no-go",
+      "probability_units": 350000,
+      "node_path": [
+        "root-future-request-branch",
+        "later-request-weather-no-go"
       ]
     }
   ],
-  "claim_ceiling": "Bounded synthetic nonanticipative assignment oracle only. Scenario probabilities, revealed observations, opportunity availability and service outcomes are supplied assumptions. No calibrated forecasting, route planning, flight authorization, physical service, market or actuation authority."
+  "claim_ceiling": "Bounded synthetic nonanticipative assignment oracle only. Aircraft identities and mission times are derived from the re-evaluated #6909 capacity event simulation; request classes are consumed from the linked #6921 input. Scenario weather/permission outcomes and probabilities are explicit synthetic assumptions. No calibrated forecasting, route planning, flight authorization, physical service, market or actuation authority."
 }
