@@ -83,7 +83,7 @@ pub enum OwnerEvidenceDomain {
 }
 
 impl OwnerEvidenceDomain {
-    fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::ProcessEpoch => "process_epoch",
             Self::Persistence => "persistence",
@@ -311,7 +311,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex(&digest)
 }
 
-fn claim_scope_digest(
+pub(crate) fn claim_scope_digest(
     domain: OwnerEvidenceDomain,
     claim_id: &str,
     asserted_value: &str,
@@ -332,7 +332,7 @@ fn claim_scope_digest(
     sha256_hex(&bytes)
 }
 
-fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
+pub(crate) fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, ProjectionError> {
     if !nonempty(&proof.fault_model_revision)
         || proof.required_independent_members < 2
         || proof.required_independent_members > 32
@@ -377,7 +377,7 @@ fn observer_quorum_is_qualified(proof: &ObserverQuorumProof) -> Result<bool, Pro
     Ok(pairwise_independent && proof.members.len() >= proof.required_independent_members)
 }
 
-fn observer_proofs_are_independent(
+pub(crate) fn observer_proofs_are_independent(
     physical_outcome: &ObserverQuorumProof,
     downstream: &ObserverQuorumProof,
 ) -> bool {
