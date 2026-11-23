@@ -1,0 +1,57 @@
+name: Maritime schedule-level coverage reference
+
+on:
+  pull_request:
+    paths:
+      - "research/maritime-schedule-level-coverage/**"
+      - ".github/workflows/maritime-schedule-level-coverage.yml"
+  push:
+    branches:
+      - "research/maritime-schedule-level-coverage-v0-1"
+    paths:
+      - "research/maritime-schedule-level-coverage/**"
+      - ".github/workflows/maritime-schedule-level-coverage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-schedule-level-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head or pushed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --all-targets
+      - name: Run tests
+        run: cargo test --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --all-targets
+      - name: Verify deterministic 9-row, 16-column receipt
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --bin schedule-coverage-audit > /tmp/schedule-coverage.csv
+          cargo run --quiet --locked --manifest-path research/maritime-schedule-level-coverage/Cargo.toml --bin schedule-coverage-replay.csv
+          cmp /tmp/schedule-coverage.csv /tmp/schedule-coverage-replay.csv
+          test "$(wc -l < /tmp/schedule-coverage.csv)" -eq 10
+          head -n 1 /tmp/schedule-coverage.csv | awk -F, '{ if (NF != 16) exit 1 }'
+          grep -q '^PER_VESSEL_JOINT_90,VESSEL_CALL,STATIONARY,' /tmp/schedule-coverage.csv
+          grep -q '^BONFERRONI_SCHEDULE_90,VESSEL_CALL,STATIONARY,' /tmp/schedule-coverage.csv
+          grep -q '^SCHEDULE_MAX_JOINT_90,WHOLE_SCHEDULE,STATIONARY,' /tmp/schedule-coverage.csv
+          grep -q ',NO_FINITE_SAMPLE_QUANTILE$' /tmp/schedule-coverage.csv
+          grep -q ',EVALUATED_SYNTHETIC$' /tmp/schedule-coverage.csv
+          echo "Schedule-level simultaneous coverage receipt contract passed."
