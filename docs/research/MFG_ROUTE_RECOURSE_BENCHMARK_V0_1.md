@@ -204,3 +204,55 @@ No local cargo/rustc verification is claimed from the working environment. A foc
 This tranche does not implement time-expanded reservations, a booking/commitment ledger, transport routing, multi-stage scenario-tree optimization, execution dispatch, real supplier data, machine control, quality acceptance or physical recovery. It does not certify safety or product conformity.
 
 The next research increment should extend the exhaustive oracle from per-decision allocation to small scenario-tree policy optimization, with explicit observation partitions and non-anticipativity constraints at every tree stage. Only after that should an offline adapter consume owner-native execution and resource evidence. Physical trials require a released low-risk product, qualified cell, independent measurement and authorized production owners.
+
+
+## 11. Fresh SOTA research and benchmark implications (23 November 2026)
+
+Three recent studies sharpen the next research step.
+
+### A. Do not assume learned routing beats simple dispatching rules
+
+Alrashdan (published 26 August 2026), *Routing under machine breakdowns: a benchmark of dispatching rules, bandits, and reinforcement learning for multi-server flow shops*, compares five dispatching rules, two online bandits and PPO across five breakdown severities and a stationary baseline. The paper reports 4,200 rule/bandit evaluation episodes and 2,750 PPO evaluation episodes. In its electronics testbed, ShortestQueue and a diagnostic Hybrid Bandit-Queue lead at mild/moderate breakdown severities; their margin collapses under the heaviest disruption. Correcting PPO's discount, checkpoint-selection and reward protocol narrows but does not close the cost-per-unit gap to ShortestQueue. The authors also report non-uniform training outcomes across seeds.
+
+Source: https://doi.org/10.1016/j.jksues.2026.08.004
+
+Implication for Luminous:
+- Keep transparent rules as serious baselines, not strawmen.
+- Compare routing methods on the same workloads, event traces, cost definitions and seed sets.
+- Report per-seed and per-regime outcomes; do not select the best checkpoint on the test set.
+- Do not add RL to the route-policy stack until a matched benchmark establishes improvement over competent queue/capacity-aware heuristics.
+- Evaluate whether explicit availability, common-cause evidence and quality/inspection constraints provide value beyond queue state alone.
+
+This paper concerns multi-server flow-shop routing, not this synthetic multi-provider recourse benchmark. Its performance figures must not be transferred as Luminous results.
+
+### B. Extend from per-decision assignment to genuinely multi-stage stochastic recourse
+
+Thakur and Mukherjee (July 2026), *Managing demand uncertainty and supply disruption risks: a multi-stage stochastic optimization framework for efficient sourcing strategies*, uses a hybrid scenario tree for joint demand and supply-disruption uncertainty and a rolling-horizon optimization/simulation approach.
+
+Source: https://doi.org/10.1016/j.cie.2026.112047
+
+A separate June 2026 study, *Scheduling a flow shop with dual sources of uncertainty: a distributionally robust approach*, addresses uncertain processing and release times by minimizing worst-case expected makespan through a distributionally robust MILP.
+
+Source: https://doi.org/10.1080/0305215X.2026.2677056
+
+Implication for Luminous:
+- The v0.1 exhaustive oracle is only a per-decision job-to-route assignment oracle.
+- The next algorithmic milestone should enumerate small multi-stage scenario trees with shared information sets, non-anticipativity constraints, action costs, recourse and terminal unserved-demand penalties.
+- Compare nominal stochastic optimization, worst-case/distributionally robust optimization and rolling-horizon recourse on the same frozen instances.
+- Separate uncertainty about event outcomes from uncertainty about the model/distribution itself.
+- Use whole scenario-family holdouts; additional seeds within one family do not establish robustness to model-form uncertainty.
+
+### C. Separate embodiment, authority and assurance before any physical intervention
+
+Anindya (published 28 October 2026), *From digital shadows to assured intervention: a systematic review of embodiment, authority, and assurance in manufacturing quality digital twins*, reviews 235 manufacturing QA studies and proposes an Embodiment–Authority–Assurance (EAA) framework. The review distinguishes the path from inference to physical action, who has decision/control rights, and the evidence that makes intervention bounded, traceable, validated and recoverable. It reports that the literature still lacks a reviewed end-to-end chain bringing all three together.
+
+Source: https://doi.org/10.1186/s44147-026-01295-x
+
+Implication for Luminous:
+- The route-recourse benchmark remains recommendation-only (no embodiment/actuation).
+- A recommendation must never imply permission to reserve, dispatch or command.
+- Any later physical action must pass the existing Symthaea #7706 authority boundary, product/process safety constraints and owner-native execution records.
+- Post-action verification and recovery are required; a model-valid recommendation alone is insufficient.
+- The end-to-end chain must distinguish sensing/observation, inference, authorization, execution, independent verification and accepted-unit release.
+
+The architecture's separation of recommendation, authority, execution and acceptance should be preserved as the system grows more capable.
