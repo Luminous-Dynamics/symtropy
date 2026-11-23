@@ -436,15 +436,15 @@ pub fn evaluate_support_envelope(case: &SupportEnvelopeCase) -> SupportEnvelopeC
     if fov_lower > sensor.horizontal_fov_rad / 2.0 + GEOMETRY_EPS {
         outside_reasons.push("ALL_SUPPORT_OUTSIDE_FIELD_OF_VIEW");
     }
-    if let Some(low) = incidence_lower {
-        if low > sensor.maximum_obliquity_rad + GEOMETRY_EPS {
-            outside_reasons.push("ALL_SUPPORT_EXCEEDS_MAXIMUM_OBLIQUITY");
-        }
+    if let Some(low) = incidence_lower
+        && low > sensor.maximum_obliquity_rad + GEOMETRY_EPS
+    {
+        outside_reasons.push("ALL_SUPPORT_EXCEEDS_MAXIMUM_OBLIQUITY");
     }
-    if let Some(low) = gsd_lower {
-        if low > sensor.maximum_gsd_m_per_px + GEOMETRY_EPS {
-            outside_reasons.push("ALL_SUPPORT_EXCEEDS_MAXIMUM_GSD");
-        }
+    if let Some(low) = gsd_lower
+        && low > sensor.maximum_gsd_m_per_px + GEOMETRY_EPS
+    {
+        outside_reasons.push("ALL_SUPPORT_EXCEEDS_MAXIMUM_GSD");
     }
 
     let status = if !outside_reasons.is_empty() {
