@@ -86,7 +86,7 @@ The caller must compute the evidence receipt digest over a canonical, source-com
 - freshness/clock domain and evidence timestamps;
 - policy/configuration version.
 
-The module verifies nonzero digests and monotonic source-ledger sequence IDs. It does not hash or authenticate the source bytes itself, verify signatures, validate a clock authority, or prove that a dependency group is statistically independent. Those must be supplied by separately qualified evidence producers.
+The module requires strictly increasing evidence epoch IDs, observation-set sequence IDs and evidence-receipt sequence IDs. The canonical receipt digest must commit to the epoch and receipt sequence, preventing the same receipt from being relabeled with a new epoch. It checks nonzero digests and sequence progression, but does not hash or authenticate the source bytes itself, verify signatures, validate a clock authority, or prove that a dependency group is statistically independent. Those must be supplied by separately qualified evidence producers.
 
 ## Falsification and metamorphic test requirements
 
