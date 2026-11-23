@@ -785,6 +785,49 @@ mod tests {
     }
 
     #[test]
+    fn target_reduction_without_cross_decision_separation_is_not_called_decision_resolving() {
+        let candidates = [candidate(1, 0.8, 40, 200)];
+        let classes = default_classes();
+        let report = projected_report(1, &[1.0, 0.0, 0.0], &classes, [0x44; 32]);
+        assert_eq!(report.distinguishable_decision_pair_count, 0);
+        let plan = plan_active_evidence_with_decision_relevance(
+            &policy(),
+            &candidates,
+            &[report],
+        )
+        .unwrap();
+        assert_eq!(plan.recommended_action_id, Some(1));
+        assert_eq!(
+            plan.reason,
+            ActiveEvidenceDecisionReason::LowestLatencyTargetReachingAction
+        );
+        assert!(plan.conditional_target_reached);
+        assert!(plan.authority_transition_not_authorized_by_plan);
+    }
+
+    #[test]
+    fn protection_reduction_fallback_remains_distinct_from_decision_discrimination() {
+        let candidates = [candidate(1, 2.0, 80, 300), candidate(2, 1.5, 90, 400)];
+        let classes = default_classes();
+        let reports = [
+            projected_report(1, &[0.0, 0.0, 0.0], &classes, [0x44; 32]),
+            projected_report(2, &[0.0, 0.0, 0.0], &classes, [0x44; 32]),
+        ];
+        let plan = plan_active_evidence_with_decision_relevance(
+            &policy(),
+            &candidates,
+            &reports,
+        )
+        .unwrap();
+        assert_eq!(plan.recommended_action_id, Some(2));
+        assert_eq!(
+            plan.reason,
+            ActiveEvidenceDecisionReason::BestProtectionReductionAvailableButTargetNotReached
+        );
+        assert!(!plan.conditional_target_reached);
+    }
+
+    #[test]
     fn decision_discrimination_can_justify_an_action_without_pl_reduction() {
         let candidates = [candidate(1, 3.0, 40, 200)];
         let reports = [projected_report(
