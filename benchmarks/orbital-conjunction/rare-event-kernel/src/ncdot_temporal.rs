@@ -627,7 +627,7 @@ mod tests {
 
     #[test]
     fn two_peaks_and_a_flat_minimum_plateau_are_preserved() {
-        let rates = [1.0, 3.0, 2.0, 2.0, 4.0, 1.0];
+        let rates: [f64; 6] = [1.0, 3.0, 2.0, 2.0, 4.0, 1.0];
         let samples = rates
             .iter()
             .enumerate()
@@ -656,7 +656,7 @@ mod tests {
 
     #[test]
     fn endpoints_are_reported_as_sampled_extrema() {
-        let rates = [4.0, 2.0, 1.0];
+        let rates: [f64; 3] = [4.0, 2.0, 1.0];
         let samples = rates
             .iter()
             .enumerate()
