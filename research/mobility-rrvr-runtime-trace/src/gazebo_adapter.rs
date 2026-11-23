@@ -612,7 +612,8 @@ pub fn validate_delivery_observer_quorum(
     let mut previous_observer: Option<&str> = None;
     for observation in observations {
         if !observer_ids.insert(observation.observer_id.as_str())
-            || previous_observer.is_some_and(|previous| previous >= observation.observer_id.as_str())
+            || previous_observer
+                .is_some_and(|previous| previous >= observation.observer_id.as_str())
         {
             return Err(GazeboAdapterError::ObserverIdentityMismatch);
         }
