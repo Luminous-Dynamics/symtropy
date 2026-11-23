@@ -66,14 +66,23 @@ pub struct AcquisitionManifest {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvidenceError {
-    EmptyField { field: &'static str },
+    EmptyField {
+        field: &'static str,
+    },
     UnsupportedSchemaVersion,
-    InvalidSha256 { field: &'static str, value: String },
+    InvalidSha256 {
+        field: &'static str,
+        value: String,
+    },
     EmptyAssetInventory,
     DuplicateAssetId(String),
     DuplicateRelativePath(String),
     DuplicateDependencyEdge(String),
-    InconsistentSharedCauseKind { shared_cause_id: String, first: String, second: String },
+    InconsistentSharedCauseKind {
+        shared_cause_id: String,
+        first: String,
+        second: String,
+    },
     UnknownDependencyAcquisition(String),
     IncompleteDependenceComponent {
         component_id: String,
@@ -85,19 +94,42 @@ pub enum EvidenceError {
     ExpectedFile(String),
     ExpectedDirectory(String),
     SourceRootInvalid(String),
-    ManifestDigestMismatch { expected: String, actual: String },
-    AssetLengthMismatch { asset_id: String, expected: u64, actual: u64 },
-    AssetDigestMismatch { asset_id: String, expected: String, actual: String },
+    ManifestDigestMismatch {
+        expected: String,
+        actual: String,
+    },
+    AssetLengthMismatch {
+        asset_id: String,
+        expected: u64,
+        actual: u64,
+    },
+    AssetDigestMismatch {
+        asset_id: String,
+        expected: String,
+        actual: String,
+    },
     LengthOverflow,
-    Io { path: String, message: String },
+    Io {
+        path: String,
+        message: String,
+    },
     Serialization(String),
     TooFewCohorts,
     EmptyCohort(&'static str),
     DuplicateCohortId(String),
     DuplicateCohortRole(String),
-    CohortManifestMismatch { expected: String, actual: String },
-    CohortCoverageMismatch { missing: Vec<String>, unexpected: Vec<String> },
-    DuplicateCohortMember { cohort_id: String, identity: String },
+    CohortManifestMismatch {
+        expected: String,
+        actual: String,
+    },
+    CohortCoverageMismatch {
+        missing: Vec<String>,
+        unexpected: Vec<String>,
+    },
+    DuplicateCohortMember {
+        cohort_id: String,
+        identity: String,
+    },
     CohortOverlap {
         left_cohort: String,
         right_cohort: String,
@@ -110,20 +142,40 @@ impl fmt::Display for EvidenceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyField { field } => write!(f, "{field} must be non-empty"),
-            Self::UnsupportedSchemaVersion => write!(f, "unsupported manifest or canonicalization version"),
-            Self::InvalidSha256 { field, value } => write!(f, "{field} is not lowercase SHA-256 hex: {value}"),
+            Self::UnsupportedSchemaVersion => {
+                write!(f, "unsupported manifest or canonicalization version")
+            }
+            Self::InvalidSha256 { field, value } => {
+                write!(f, "{field} is not lowercase SHA-256 hex: {value}")
+            }
             Self::EmptyAssetInventory => write!(f, "manifest asset inventory is empty"),
             Self::DuplicateAssetId(id) => write!(f, "duplicate asset ID: {id}"),
             Self::DuplicateRelativePath(path) => write!(f, "duplicate asset path: {path}"),
             Self::DuplicateDependencyEdge(edge) => write!(f, "duplicate dependency edge: {edge}"),
-            Self::InconsistentSharedCauseKind { shared_cause_id, first, second } => write!(f, "shared cause {shared_cause_id} has conflicting kinds: {first} and {second}"),
-            Self::UnknownDependencyAcquisition(id) => write!(f, "dependency edge refers to unknown acquisition: {id}"),
-            Self::IncompleteDependenceComponent { component_id, missing_acquisition_id } => write!(
+            Self::InconsistentSharedCauseKind {
+                shared_cause_id,
+                first,
+                second,
+            } => write!(
+                f,
+                "shared cause {shared_cause_id} has conflicting kinds: {first} and {second}"
+            ),
+            Self::UnknownDependencyAcquisition(id) => {
+                write!(f, "dependency edge refers to unknown acquisition: {id}")
+            }
+            Self::IncompleteDependenceComponent {
+                component_id,
+                missing_acquisition_id,
+            } => write!(
                 f,
                 "cohort omits acquisition {missing_acquisition_id} from dependence component {component_id}"
             ),
-            Self::InvalidRelativePath(path) => write!(f, "unsafe or non-canonical relative path: {path}"),
-            Self::SymlinkNotAllowed(path) => write!(f, "symbolic link is not allowed in evidence path: {path}"),
+            Self::InvalidRelativePath(path) => {
+                write!(f, "unsafe or non-canonical relative path: {path}")
+            }
+            Self::SymlinkNotAllowed(path) => {
+                write!(f, "symbolic link is not allowed in evidence path: {path}")
+            }
             Self::PathEscapesEvidenceRoot(path) => write!(f, "path escapes evidence root: {path}"),
             Self::ExpectedFile(path) => write!(f, "expected a regular file: {path}"),
             Self::ExpectedDirectory(path) => write!(f, "expected a directory: {path}"),
@@ -132,11 +184,19 @@ impl fmt::Display for EvidenceError {
                 f,
                 "manifest digest mismatch: expected {expected}, calculated {actual}"
             ),
-            Self::AssetLengthMismatch { asset_id, expected, actual } => write!(
+            Self::AssetLengthMismatch {
+                asset_id,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "asset {asset_id} length mismatch: expected {expected}, read {actual}"
             ),
-            Self::AssetDigestMismatch { asset_id, expected, actual } => write!(
+            Self::AssetDigestMismatch {
+                asset_id,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "asset {asset_id} SHA-256 mismatch: expected {expected}, calculated {actual}"
             ),
@@ -144,23 +204,36 @@ impl fmt::Display for EvidenceError {
             Self::Io { path, message } => write!(f, "I/O failure at {path}: {message}"),
             Self::Serialization(message) => write!(f, "manifest serialization failed: {message}"),
             Self::TooFewCohorts => write!(f, "at least two cohort partitions are required"),
-            Self::EmptyCohort(cohort) => write!(f, "cohort {cohort} has an empty required identity set"),
+            Self::EmptyCohort(cohort) => {
+                write!(f, "cohort {cohort} has an empty required identity set")
+            }
             Self::DuplicateCohortId(id) => write!(f, "duplicate cohort ID: {id}"),
             Self::DuplicateCohortRole(role) => write!(f, "duplicate cohort role: {role}"),
             Self::CohortManifestMismatch { expected, actual } => write!(
                 f,
                 "cohort source manifest mismatch: expected {expected}, found {actual}"
             ),
-            Self::CohortCoverageMismatch { missing, unexpected } => write!(
+            Self::CohortCoverageMismatch {
+                missing,
+                unexpected,
+            } => write!(
                 f,
                 "cohort component coverage mismatch: {} missing, {} unexpected",
                 missing.len(),
                 unexpected.len()
             ),
-            Self::DuplicateCohortMember { cohort_id, identity } => {
+            Self::DuplicateCohortMember {
+                cohort_id,
+                identity,
+            } => {
                 write!(f, "cohort {cohort_id} repeats identity {identity}")
             }
-            Self::CohortOverlap { left_cohort, right_cohort, dimension, identity } => write!(
+            Self::CohortOverlap {
+                left_cohort,
+                right_cohort,
+                dimension,
+                identity,
+            } => write!(
                 f,
                 "cohorts {left_cohort} and {right_cohort} overlap on {dimension}: {identity}"
             ),
@@ -196,11 +269,13 @@ fn validate_sha256(value: &str, field: &'static str) -> Result<(), EvidenceError
 }
 
 fn is_reserved_windows_component(component: &str) -> bool {
-    let stem = component.split('.').next().unwrap_or_default().to_ascii_lowercase();
+    let stem = component
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
     matches!(stem.as_str(), "con" | "prn" | "aux" | "nul")
-        || (1..=9).any(|number| {
-            stem == format!("com{number}") || stem == format!("lpt{number}")
-        })
+        || (1..=9).any(|number| stem == format!("com{number}") || stem == format!("lpt{number}"))
 }
 
 fn validate_relative_path(value: &str) -> Result<PathBuf, EvidenceError> {
@@ -267,7 +342,9 @@ impl AcquisitionManifest {
             non_empty(&asset.clock_domain, "clock_domain")?;
             non_empty(&asset.captured_at_utc, "captured_at_utc")?;
             if asset.byte_length == 0 {
-                return Err(EvidenceError::EmptyField { field: "byte_length" });
+                return Err(EvidenceError::EmptyField {
+                    field: "byte_length",
+                });
             }
             validate_relative_path(&asset.relative_path)?;
             validate_sha256(&asset.sha256, "asset.sha256")?;
@@ -275,12 +352,16 @@ impl AcquisitionManifest {
                 return Err(EvidenceError::DuplicateAssetId(asset.asset_id.clone()));
             }
             if !paths.insert(asset.relative_path.to_ascii_lowercase()) {
-                return Err(EvidenceError::DuplicateRelativePath(asset.relative_path.clone()));
+                return Err(EvidenceError::DuplicateRelativePath(
+                    asset.relative_path.clone(),
+                ));
             }
             acquisition_ids.insert(asset.acquisition_id.as_str());
 
             if asset.dependence_group_ids.is_empty() {
-                return Err(EvidenceError::EmptyField { field: "dependence_group_ids" });
+                return Err(EvidenceError::EmptyField {
+                    field: "dependence_group_ids",
+                });
             }
             let mut groups = HashSet::new();
             for group in &asset.dependence_group_ids {
@@ -301,7 +382,9 @@ impl AcquisitionManifest {
             non_empty(&edge.shared_cause_id, "dependency_edge.shared_cause_id")?;
             non_empty(&edge.shared_cause_kind, "dependency_edge.shared_cause_kind")?;
             if !acquisition_ids.contains(edge.acquisition_id.as_str()) {
-                return Err(EvidenceError::UnknownDependencyAcquisition(edge.acquisition_id.clone()));
+                return Err(EvidenceError::UnknownDependencyAcquisition(
+                    edge.acquisition_id.clone(),
+                ));
             }
             if let Some(previous_kind) = cause_kinds.get(edge.shared_cause_id.as_str()) {
                 if *previous_kind != edge.shared_cause_kind {
@@ -312,7 +395,10 @@ impl AcquisitionManifest {
                     });
                 }
             } else {
-                cause_kinds.insert(edge.shared_cause_id.as_str(), edge.shared_cause_kind.as_str());
+                cause_kinds.insert(
+                    edge.shared_cause_id.as_str(),
+                    edge.shared_cause_kind.as_str(),
+                );
             }
             let key = (
                 edge.acquisition_id.clone(),
@@ -377,7 +463,9 @@ impl AcquisitionManifest {
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, EvidenceError> {
         self.validate()?;
         let mut canonical = self.clone();
-        canonical.assets.sort_by(|left, right| left.asset_id.cmp(&right.asset_id));
+        canonical
+            .assets
+            .sort_by(|left, right| left.asset_id.cmp(&right.asset_id));
         for asset in &mut canonical.assets {
             asset.dependence_group_ids.sort();
         }
@@ -402,7 +490,10 @@ impl AcquisitionManifest {
     }
 
     pub fn acquisition_ids(&self) -> BTreeSet<String> {
-        self.assets.iter().map(|asset| asset.acquisition_id.clone()).collect()
+        self.assets
+            .iter()
+            .map(|asset| asset.acquisition_id.clone())
+            .collect()
     }
 
     fn dependence_components(&self) -> Result<BTreeMap<String, String>, EvidenceError> {
@@ -417,18 +508,21 @@ impl AcquisitionManifest {
         let mut parent: Vec<usize> = (0..acquisition_ids.len()).collect();
         let mut by_cause: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
         for asset in &self.assets {
-            let index = *indexes
-                .get(asset.acquisition_id.as_str())
-                .ok_or_else(|| EvidenceError::UnknownDependencyAcquisition(asset.acquisition_id.clone()))?;
+            let index = *indexes.get(asset.acquisition_id.as_str()).ok_or_else(|| {
+                EvidenceError::UnknownDependencyAcquisition(asset.acquisition_id.clone())
+            })?;
             for group_id in &asset.dependence_group_ids {
                 by_cause.entry(group_id.as_str()).or_default().push(index);
             }
         }
         for edge in &self.dependency_edges {
-            let index = *indexes
-                .get(edge.acquisition_id.as_str())
-                .ok_or_else(|| EvidenceError::UnknownDependencyAcquisition(edge.acquisition_id.clone()))?;
-            by_cause.entry(edge.shared_cause_id.as_str()).or_default().push(index);
+            let index = *indexes.get(edge.acquisition_id.as_str()).ok_or_else(|| {
+                EvidenceError::UnknownDependencyAcquisition(edge.acquisition_id.clone())
+            })?;
+            by_cause
+                .entry(edge.shared_cause_id.as_str())
+                .or_default()
+                .push(index);
         }
 
         for members in by_cause.values() {
@@ -489,7 +583,9 @@ impl AcquisitionManifest {
         let all_acquisitions = self.acquisition_ids();
         for acquisition_id in &selected {
             if !all_acquisitions.contains(acquisition_id) {
-                return Err(EvidenceError::UnknownDependencyAcquisition(acquisition_id.clone()));
+                return Err(EvidenceError::UnknownDependencyAcquisition(
+                    acquisition_id.clone(),
+                ));
             }
         }
 
@@ -717,7 +813,10 @@ pub fn validate_complete_cohort_cover(
     let missing = expected.difference(&actual).cloned().collect::<Vec<_>>();
     let unexpected = actual.difference(&expected).cloned().collect::<Vec<_>>();
     if !missing.is_empty() || !unexpected.is_empty() {
-        return Err(EvidenceError::CohortCoverageMismatch { missing, unexpected });
+        return Err(EvidenceError::CohortCoverageMismatch {
+            missing,
+            unexpected,
+        });
     }
     Ok(())
 }
@@ -789,9 +888,9 @@ impl ReferenceAssessment {
     pub fn claim_scope(&self) -> CovarianceClaimScope {
         let reference_is_bounded = self.uncertainty_status != ReferenceUncertaintyStatus::Unknown
             && !self.uncertainty_evidence_id.trim().is_empty();
-        let cross_covariance_is_bounded =
-            self.cross_covariance_status != CrossCovarianceStatus::Unknown
-                && !self.cross_covariance_evidence_id.trim().is_empty();
+        let cross_covariance_is_bounded = self.cross_covariance_status
+            != CrossCovarianceStatus::Unknown
+            && !self.cross_covariance_evidence_id.trim().is_empty();
 
         if !self.assessment_id.trim().is_empty()
             && reference_is_bounded
@@ -862,10 +961,12 @@ pub fn verify_asset_reader<R: Read>(
     let mut byte_length = 0_u64;
 
     loop {
-        let read = reader.read(&mut buffer).map_err(|error| EvidenceError::Io {
-            path: asset.relative_path.clone(),
-            message: error.to_string(),
-        })?;
+        let read = reader
+            .read(&mut buffer)
+            .map_err(|error| EvidenceError::Io {
+                path: asset.relative_path.clone(),
+                message: error.to_string(),
+            })?;
         if read == 0 {
             break;
         }
@@ -987,7 +1088,9 @@ fn verify_no_symlink_components(
             return Err(EvidenceError::ExpectedFile(current.display().to_string()));
         }
         if !is_last && !metadata.is_dir() {
-            return Err(EvidenceError::ExpectedDirectory(current.display().to_string()));
+            return Err(EvidenceError::ExpectedDirectory(
+                current.display().to_string(),
+            ));
         }
     }
     Ok(())
@@ -1003,10 +1106,8 @@ mod tests {
 
     fn temp_root() -> PathBuf {
         let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
-        let root = std::env::temp_dir().join(format!(
-            "ehd-piv-evidence-{}-{id}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("ehd-piv-evidence-{}-{id}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }
@@ -1046,9 +1147,30 @@ mod tests {
             split_policy_digest: sha256_hex(b"split-policy-v1"),
             dependency_graph_sha256: String::new(),
             assets: vec![
-                asset("asset-a", "raw/acq-a.bin", "acq-a", "ref-a", b"image-a", &["camera-cal-1"]),
-                asset("asset-b", "raw/acq-b.bin", "acq-b", "ref-b", b"image-b", &["camera-cal-2"]),
-                asset("asset-c", "raw/acq-c.bin", "acq-c", "ref-c", b"image-c", &["camera-cal-3"]),
+                asset(
+                    "asset-a",
+                    "raw/acq-a.bin",
+                    "acq-a",
+                    "ref-a",
+                    b"image-a",
+                    &["camera-cal-1"],
+                ),
+                asset(
+                    "asset-b",
+                    "raw/acq-b.bin",
+                    "acq-b",
+                    "ref-b",
+                    b"image-b",
+                    &["camera-cal-2"],
+                ),
+                asset(
+                    "asset-c",
+                    "raw/acq-c.bin",
+                    "acq-c",
+                    "ref-c",
+                    b"image-c",
+                    &["camera-cal-3"],
+                ),
             ],
             dependency_edges: vec![
                 SharedCauseEdge {
@@ -1082,7 +1204,14 @@ mod tests {
 
     #[test]
     fn streaming_asset_verification_checks_length_and_digest_from_same_stream() {
-        let record = asset("asset", "raw.bin", "acq", "ref", b"source bytes", &["group"]);
+        let record = asset(
+            "asset",
+            "raw.bin",
+            "acq",
+            "ref",
+            b"source bytes",
+            &["group"],
+        );
         let result = verify_asset_reader(&record, &mut Cursor::new(b"source bytes")).unwrap();
         assert_eq!(result.byte_length, 12);
         assert_eq!(result.sha256, record.sha256);
@@ -1092,14 +1221,20 @@ mod tests {
     fn changed_asset_bytes_fail_even_when_filename_is_unchanged() {
         let record = asset("asset", "raw.bin", "acq", "ref", b"original", &["group"]);
         let result = verify_asset_reader(&record, &mut Cursor::new(b"mutated!"));
-        assert!(matches!(result, Err(EvidenceError::AssetDigestMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(EvidenceError::AssetDigestMismatch { .. })
+        ));
     }
 
     #[test]
     fn changed_asset_length_fails_before_acceptance() {
         let record = asset("asset", "raw.bin", "acq", "ref", b"original", &["group"]);
         let result = verify_asset_reader(&record, &mut Cursor::new(b"short"));
-        assert!(matches!(result, Err(EvidenceError::AssetLengthMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(EvidenceError::AssetLengthMismatch { .. })
+        ));
     }
 
     #[test]
@@ -1111,7 +1246,10 @@ mod tests {
         for record in &mut second.assets {
             record.dependence_group_ids.reverse();
         }
-        assert_eq!(first.manifest_sha256().unwrap(), second.manifest_sha256().unwrap());
+        assert_eq!(
+            first.manifest_sha256().unwrap(),
+            second.manifest_sha256().unwrap()
+        );
     }
 
     #[test]
@@ -1119,14 +1257,20 @@ mod tests {
         let first = manifest();
         let mut second = first.clone();
         second.assets[0].sha256 = sha256_hex(b"different payload");
-        assert_ne!(first.manifest_sha256().unwrap(), second.manifest_sha256().unwrap());
+        assert_ne!(
+            first.manifest_sha256().unwrap(),
+            second.manifest_sha256().unwrap()
+        );
     }
 
     #[test]
     fn invalid_syntax_is_not_accepted_as_a_manifest_hash() {
         let mut value = manifest();
         value.dependency_graph_sha256 = "a".repeat(63);
-        assert!(matches!(value.validate(), Err(EvidenceError::InvalidSha256 { .. })));
+        assert!(matches!(
+            value.validate(),
+            Err(EvidenceError::InvalidSha256 { .. })
+        ));
     }
 
     #[test]
@@ -1134,19 +1278,33 @@ mod tests {
         let mut duplicate_id = manifest();
         duplicate_id.assets[1].asset_id = duplicate_id.assets[0].asset_id.clone();
         duplicate_id.set_dependency_graph_digest().unwrap();
-        assert!(matches!(duplicate_id.validate(), Err(EvidenceError::DuplicateAssetId(_))));
+        assert!(matches!(
+            duplicate_id.validate(),
+            Err(EvidenceError::DuplicateAssetId(_))
+        ));
 
         let mut duplicate_path = manifest();
         duplicate_path.assets[1].relative_path = duplicate_path.assets[0].relative_path.clone();
-        assert!(matches!(duplicate_path.validate(), Err(EvidenceError::DuplicateRelativePath(_))));
+        assert!(matches!(
+            duplicate_path.validate(),
+            Err(EvidenceError::DuplicateRelativePath(_))
+        ));
     }
 
     #[test]
     fn traversal_and_absolute_paths_are_rejected() {
-        for path in ["../secret.bin", "/etc/passwd", "raw/../../secret", "raw\\secret.bin"] {
+        for path in [
+            "../secret.bin",
+            "/etc/passwd",
+            "raw/../../secret",
+            "raw\\secret.bin",
+        ] {
             let mut value = manifest();
             value.assets[0].relative_path = path.to_owned();
-            assert!(matches!(value.validate(), Err(EvidenceError::InvalidRelativePath(_))));
+            assert!(matches!(
+                value.validate(),
+                Err(EvidenceError::InvalidRelativePath(_))
+            ));
         }
     }
 
@@ -1189,7 +1347,10 @@ mod tests {
 
         fs::write(root.join("raw/acq-a.bin"), b"changed").unwrap();
         let result = verify_manifest_directory(&root, &value, &digest);
-        assert!(matches!(result, Err(EvidenceError::AssetDigestMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(EvidenceError::AssetDigestMismatch { .. })
+        ));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -1207,7 +1368,9 @@ mod tests {
         value.assets[0].relative_path = "linked.bin".to_owned();
         value.assets[0].byte_length = 7;
         value.assets[0].sha256 = sha256_hex(b"outside");
-        value.dependency_edges.retain(|edge| edge.acquisition_id == "acq-a");
+        value
+            .dependency_edges
+            .retain(|edge| edge.acquisition_id == "acq-a");
         value.set_dependency_graph_digest().unwrap();
 
         let result = verify_manifest_directory(&root, &value, &value.manifest_sha256().unwrap());
@@ -1243,11 +1406,7 @@ mod tests {
         ]);
         value.set_dependency_graph_digest().unwrap();
 
-        let result = value.cohort_partition(
-            "train",
-            CohortRole::Training,
-            &["acq-a".to_owned()],
-        );
+        let result = value.cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()]);
         assert!(matches!(
             result,
             Err(EvidenceError::IncompleteDependenceComponent { .. })
@@ -1257,15 +1416,15 @@ mod tests {
     #[test]
     fn shared_asset_dependence_group_prevents_acquisition_split_without_edge_rows() {
         let mut value = manifest();
-        value.assets[0].dependence_group_ids.push("shared-camera-calibration".to_owned());
-        value.assets[1].dependence_group_ids.push("shared-camera-calibration".to_owned());
+        value.assets[0]
+            .dependence_group_ids
+            .push("shared-camera-calibration".to_owned());
+        value.assets[1]
+            .dependence_group_ids
+            .push("shared-camera-calibration".to_owned());
         value.set_dependency_graph_digest().unwrap();
 
-        let result = value.cohort_partition(
-            "train",
-            CohortRole::Training,
-            &["acq-a".to_owned()],
-        );
+        let result = value.cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()]);
         assert!(matches!(
             result,
             Err(EvidenceError::IncompleteDependenceComponent { .. })
@@ -1286,21 +1445,15 @@ mod tests {
             )
             .unwrap();
         let evaluation = value
-            .cohort_partition(
-                "test",
-                CohortRole::SealedEvaluation,
-                &["acq-c".to_owned()],
-            )
+            .cohort_partition("test", CohortRole::SealedEvaluation, &["acq-c".to_owned()])
             .unwrap();
-        assert!(validate_disjoint_cohorts(&[
-            training.clone(),
-            calibration.clone(),
-            evaluation.clone()
-        ]).is_ok());
-        assert!(validate_complete_cohort_cover(
-            &value,
-            &[training, calibration, evaluation]
-        ).is_ok());
+        assert!(
+            validate_disjoint_cohorts(&[training.clone(), calibration.clone(), evaluation.clone()])
+                .is_ok()
+        );
+        assert!(
+            validate_complete_cohort_cover(&value, &[training, calibration, evaluation]).is_ok()
+        );
     }
 
     #[test]
@@ -1331,11 +1484,7 @@ mod tests {
             .cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()])
             .unwrap();
         let evaluation = second
-            .cohort_partition(
-                "test",
-                CohortRole::SealedEvaluation,
-                &["acq-b".to_owned()],
-            )
+            .cohort_partition("test", CohortRole::SealedEvaluation, &["acq-b".to_owned()])
             .unwrap();
         assert!(matches!(
             validate_disjoint_cohorts(&[training, evaluation]),
@@ -1350,11 +1499,7 @@ mod tests {
             .cohort_partition("train", CohortRole::Training, &["acq-a".to_owned()])
             .unwrap();
         let mut right = value
-            .cohort_partition(
-                "test",
-                CohortRole::SealedEvaluation,
-                &["acq-b".to_owned()],
-            )
+            .cohort_partition("test", CohortRole::SealedEvaluation, &["acq-b".to_owned()])
             .unwrap();
         right.reference_evidence_ids.insert("ref-a".to_owned());
         assert!(matches!(
