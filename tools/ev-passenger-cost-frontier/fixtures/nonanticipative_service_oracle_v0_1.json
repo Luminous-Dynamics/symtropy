@@ -1,0 +1,120 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "NONANTICIPATIVE-SERVICE-ORACLE-001",
+  "horizon_seconds": 100,
+  "requests": [
+    {
+      "request_id": "request-early",
+      "arrival_seconds": 0,
+      "accept_by_seconds": 0,
+      "deadline_seconds": 30,
+      "required_service_seconds": 5,
+      "payload_units": 1,
+      "allowed_mode": "either"
+    },
+    {
+      "request_id": "request-later",
+      "arrival_seconds": 1,
+      "accept_by_seconds": 1,
+      "deadline_seconds": 15,
+      "required_service_seconds": 5,
+      "payload_units": 1,
+      "allowed_mode": "either"
+    }
+  ],
+  "opportunities": [
+    {
+      "opportunity_id": "slot-early",
+      "resource_id": "courier-01",
+      "mode": "ground_courier",
+      "start_seconds": 3,
+      "max_service_duration_seconds": 10,
+      "turnaround_seconds": 1,
+      "max_payload_units": 5
+    },
+    {
+      "opportunity_id": "slot-late",
+      "resource_id": "courier-01",
+      "mode": "ground_courier",
+      "start_seconds": 20,
+      "max_service_duration_seconds": 10,
+      "turnaround_seconds": 1,
+      "max_payload_units": 5
+    }
+  ],
+  "observation_nodes": [
+    {
+      "node_id": "node-a-root",
+      "parent_information_set_digest": null,
+      "observation_digest": "sha256:3422c4d374a8e2dd5da81471321c7672ca211b59af7aabda0ed382e9e790e8a8",
+      "information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
+      "decision_time_seconds": 0,
+      "revealed_request_ids": [
+        "request-early"
+      ],
+      "available_opportunity_ids": [
+        "slot-early",
+        "slot-late"
+      ],
+      "weather_state": "go",
+      "permission_state": "approved",
+      "weather_evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "permission_evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "node_id": "node-b-root",
+      "parent_information_set_digest": null,
+      "observation_digest": "sha256:3422c4d374a8e2dd5da81471321c7672ca211b59af7aabda0ed382e9e790e8a8",
+      "information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
+      "decision_time_seconds": 0,
+      "revealed_request_ids": [
+        "request-early"
+      ],
+      "available_opportunity_ids": [
+        "slot-early",
+        "slot-late"
+      ],
+      "weather_state": "go",
+      "permission_state": "approved",
+      "weather_evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "permission_evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "node_id": "node-a-child",
+      "parent_information_set_digest": "sha256:c1a97d13b284037b7f16bf35a7a919982f7b9e2e4a8f3277ff8a6caed2e52e95",
+      "observation_digest": "sha256:77803b46c6ebd420f914d0cd6095d8e3f16b25c9acb0737fc87ecfc3b3a9798b",
+      "information_set_digest": "sha256:6286474de11ee274595bf6bca5aa12f62d92285a03a86a452a6e857ca99ca092",
+      "decision_time_seconds": 1,
+      "revealed_request_ids": [
+        "request-early",
+        "request-later"
+      ],
+      "available_opportunity_ids": [
+        "slot-early",
+        "slot-late"
+      ],
+      "weather_state": "go",
+      "permission_state": "approved",
+      "weather_evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "permission_evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "later-request-arrives",
+      "probability_units": 500000,
+      "node_path": [
+        "node-a-root",
+        "node-a-child"
+      ]
+    },
+    {
+      "scenario_id": "no-later-request",
+      "probability_units": 500000,
+      "node_path": [
+        "node-b-root"
+      ]
+    }
+  ],
+  "claim_ceiling": "Bounded synthetic nonanticipative assignment oracle only. Scenario probabilities, revealed observations, opportunity availability and service outcomes are supplied assumptions. No calibrated forecasting, route planning, flight authorization, physical service, market or actuation authority."
+}
