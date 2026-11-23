@@ -1277,20 +1277,16 @@ mod tests {
     #[test]
     fn affine_zero_point_must_fit_declared_signed_or_unsigned_width() {
         assert!(
-            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, -128)
-                .is_ok()
+            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, -128).is_ok()
         );
         assert!(
-            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, 128)
-                .is_err()
+            validate_affine_quantization(FeatureElementTypeV1::I8, 8, 1_000_000_000, 128).is_err()
         );
         assert!(
-            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, 255)
-                .is_ok()
+            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, 255).is_ok()
         );
         assert!(
-            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, -1)
-                .is_err()
+            validate_affine_quantization(FeatureElementTypeV1::U8, 8, 1_000_000_000, -1).is_err()
         );
     }
 
