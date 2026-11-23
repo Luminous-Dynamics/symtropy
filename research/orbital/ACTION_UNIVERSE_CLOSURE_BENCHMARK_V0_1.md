@@ -82,6 +82,8 @@ This is not a replacement for robust optimization, K-adaptability, conformal pre
 
 A benchmark must report false closure, missed-action rate on independently generated bounded domains, false disagreement, common-cause detection recall, partition coverage, stale-snapshot detection, witness completeness, enumeration/adjudication cost and receipt replay cost. Jaccard overlap alone is not an adequate metric: two lists can agree perfectly and both be wrong.
 
+See also the broader [Decision-Assurance Tournament v0.1](DECISION_ASSURANCE_TOURNAMENT_V0_1.md), which defines matched baselines including GARO, robust decision-focused learning, Conformal Robustness Control, multi-distribution conformal prediction, paid-query robust optimization and K-adaptability. It also specifies the independent domain oracle required to detect actions omitted by both enumerators.
+
 ## Prospective acceptance targets
 
 These are **targets**, not achieved results:
