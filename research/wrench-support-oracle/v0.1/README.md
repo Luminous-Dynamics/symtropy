@@ -83,24 +83,43 @@ Compare on frozen identical candidate sets:
 - deterministic greedy selector, directly scored against the exact result;
 - future branch-and-bound and direction-adaptive selectors.
 
-The industry descriptions are not matched performance results. Rapier documents that contact clustering can merge same-normal manifolds and solve at most four contacts per plane; when clustering applies, geometric manifold impulses are not the solver impulses. Jolt documents a four-point stable manifold and exposes reduction visualization. Bullet describes retaining the deepest point and maximizing area when reducing its persistent cache to four. These are architectural references; compare actual outputs with identical fixtures before claiming a win.
+Add NVIDIA Newton's documented contact reduction as another baseline: it groups contacts by normal direction, scores spatial distribution and penetration depth, and uses aspect-ratio-based normalized voxel grids for mesh/SDF coverage. The key commonality across engines is that reduction is not a point-count-only problem; geometry coverage, penetration/depth, normal clusters, persistence and solver correspondence matter.
+
+The industry descriptions are not matched performance results. Rapier documents that contact clustering can merge same-normal manifolds and solve at most four contacts per plane; when clustering applies, geometric manifold impulses are not the solver impulses. Jolt documents a four-point stable manifold and exposes reduction visualization. Bullet describes retaining the deepest point and maximizing area when reducing its persistent cache to four. Newton documents normal bins, spatial distribution and penetration depth. These are architectural references; compare actual outputs with identical fixtures before claiming a win.
+
+Contact-wrench cones and grasp-wrench spaces are established robotics concepts: the feasible object-wrench set can be built from contact friction-cone generators mapped through contact positions. The opportunity here is not to claim that concept as new; it is to apply a versioned, error-measured wrench-support objective to physics-engine manifold reduction, then connect its geometric decisions to actual solver rows, numerical outcomes and downstream physical tasks. A 2026 tutorial emphasizes the distinction between equivalent contact formulations and convex relaxations, which can introduce artifacts such as lift-off and creep. Each model/solver pairing must therefore be qualified independently.
 
 Sources:
 - Rapier integration parameters: https://www.rapier.rs/docs/user_guides/c/integration_parameters/
 - Rapier contact graph: https://www.rapier.rs/docs/user_guides/c/advanced_collision_detection/
 - Jolt ContactConstraintManager: https://jrouwe.github.io/JoltPhysics/class_contact_constraint_manager.html
 - Bullet PersistentManifold: https://www.apt-browse.com/browse/ubuntu/trusty/universe/amd64/libbullet-dev/2.81-rev2613%2Bdfsg2-1/file/usr/include/bullet/BulletCollision/NarrowPhaseCollision/btPersistentManifold.h
+- NVIDIA Newton contact reduction: https://newton-physics.github.io/newton/latest/concepts/collisions.html
+- Contact-patch wrench spaces: https://drdv.github.io/pdf/icra12_1.pdf
+- Patch-contact friction wrench modelling: https://doi.org/10.1177/02783649231198560
+- Complementarity-based contact models tutorial (2026): https://arxiv.org/abs/2611.26600
 
-## Required next experiments
+## Required next experiments and promotion targets
 
-1. Add candidate-buffer and final-manifold capacity receipts independently.
-2. Sweep friction coefficient, characteristic-length ratio, patch aspect ratio and point count.
-3. Add adversarial near-collinear, near-coplanar and sliver patches.
-4. Add direction-set refinement and certified angular bounds, not merely denser sampling.
-5. Extend the oracle to varying normals and per-contact friction cones.
-6. Add torsional/spin friction, rolling resistance and bounded normal-load constraints as separate model versions.
-7. Compare reduced-set solver outputs on static tipping, box stacks, frictional transport and torsional stability.
-8. Validate downstream robot decisions on held-out physical tasks before promoting any selector.
+1. Sweep candidate count 4/8/16/32/48/64 and retained count 1/2/3/4/6/8. Exact k-subset search is the oracle for workloads under a declared combination cap; use it to measure the greedy/approximate optimality gap.
+2. Sweep friction 0/0.1/0.3/0.5/1/2, anisotropy ratios 1:1 through 10:1, contact-normal separation, patch aspect ratio, reference-origin shift and characteristic-length scaling.
+3. Sweep polyhedral friction-cone ray counts 4/8/16/32/64. The exact angular worst-case relative deficit for an inscribed regular m-gon is 1 - cos(pi/m): about 1.92% at 16 rays, 0.48% at 32 and 0.12% at 64. Keep cone approximation error separate from manifold-selection error.
+4. Add adversarial near-collinear, nearly coplanar, sliver, edge, vertex and highly anisotropic patches; include stable body-swap and point-order permutations.
+5. Compare full candidate, current Symtropy best-N/area, Bullet deepest+area, Jolt bounded manifold, Rapier normal clustering, Newton normal bins + voxel/depth coverage, greedy wrench support, and exact oracle on identical raw candidate geometry and contact-law data.
+6. Add direction-set refinement and certified angular bounds, not merely denser finite sampling.
+7. Compare reduced-set solver outputs on static tipping, box stacks, frictional transport, torsional stability and contact-rich robot manipulation.
+8. Validate downstream decisions on held-out physical tasks; retain full-patch results as the reference and record decision flips, regret, uncertainty and failure modes.
+
+Targets, not achieved results:
+- 100% accounting from generated candidate through temporary buffer, reduction, final manifold and solver groups.
+- Candidate-buffer loss, deliberate reduction and final-manifold loss are always distinguished.
+- Maximum normalized deficit <= 1% on the frozen direction set for the declared admissible profile; all-directions claims require a separate certificate.
+- For the exact-oracle tractable suite, target median greedy gap <= 0.2%, p95 <= 1%, and worst <= 5%; any miss triggers beam search/branch-and-bound or explicit abstention.
+- At equal physical quality and coverage, target >= 2x throughput or >= 30% memory reduction versus the best matched baseline. Measure end-to-end time, not selector-only time.
+- Held-out physical task decision agreement >= 95%, lower 95% confidence bound >= 90%, and no new critical instability/hazard class.
+- Publish p50/p95/p99 latency, memory, candidate counts, solver rows/iterations, cone approximation error, support deficit, complementarity/friction residuals, tipping/stack outcomes and run failures.
+
+A candidate selector is not promoted merely because it reduces point count or runs faster. Promotion requires a Pareto improvement across support fidelity, physical stability, evidence completeness, memory and end-to-end latency.
 
 ## Tests
 
