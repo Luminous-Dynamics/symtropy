@@ -115,3 +115,6 @@ Environment: Python 3.13.5 / SymPy 1.14.0. Local prototype source SHA-256:
 0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651.
 
 This result is a first-order-coupling, equal-spin, slow-rotation parameter conversion. It is not a corrected metric coefficient match, full EOM validation, finite-coupling existence result, or hyperbolicity result. The next step is to compose the radial inverse \(r(R)\) with this parameter map, compare \(B_{21},F_{21},H_{21}\) at fixed \((R_H,\Omega_H)\), and evaluate the four original Symtropy equations.
+
+
+**Parameter versus charge:** the displayed \(\mu/R_H^2\) is only the converted background Myers–Perry parameter in Ma–Lü's perturbative construction. It is **not** the corrected ADM mass. The physical ADM mass must be extracted separately from the asymptotic \(1/R^2\) coefficient of the fully transformed metric, including the \(H_1\) correction and with the ensemble specified. Likewise, fixed background parameters, fixed \((R_H,\Omega_H)\), and fixed thermodynamic potentials/charges are distinct comparison ensembles.
