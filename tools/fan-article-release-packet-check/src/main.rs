@@ -51,6 +51,7 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn evidence(owner: &str, name: &str) -> Value {
     json!({
         "uri": format!("evidence://{owner}/{name}"),
@@ -60,6 +61,7 @@ fn evidence(owner: &str, name: &str) -> Value {
     })
 }
 
+#[cfg(test)]
 fn set_gate(packet: &mut Value, gate: &str) {
     packet["gates"][gate] = json!({
         "status": "PASS",
@@ -70,6 +72,7 @@ fn set_gate(packet: &mut Value, gate: &str) {
     });
 }
 
+#[cfg(test)]
 fn released_packet() -> Value {
     // Synthetic-only values for schema tests; not a product specification or release input.
     let mut packet: Value =
