@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "ma_lu_fixed_symtropy_horizon_omega_replay",
+  "status": "local_exact_symbolic_prototype_executed; public_script_replay_not_yet_committed",
+  "local_source": {
+    "path": "/tmp/verify_ma_lu_fixed_boundary_map.py",
+    "sha256": "0ec67b7a552c59497d5d9fafa3b0a330cc40b8c16f8cccba1bc89802dad2b651",
+    "git_blob_sha1": "35b6c831abfcb3185a1d51cf5eedeef8a713a60f"
+  },
+  "result_fixture": {
+    "path": "/tmp/ma_lu_fixed_symtropy_boundary_map_v1.json",
+    "sha256": "ba521444eb0eac65a57ac3370076f7da095146185a75f606cd4a9ba7548bc004",
+    "git_blob_sha1": "1ae41e4bbefcb24ffa47bff791c84126f1c8864a"
+  },
+  "environment": {"python": "3.13.5", "sympy": "1.14.0"},
+  "checks": {
+    "horizon_values": true,
+    "nuS_and_radius_expansions": true,
+    "inverse_series": true,
+    "a_and_mu_maps": true,
+    "chi_map": true,
+    "GR_exact_limit": true,
+    "negative_control_omit_H7": true,
+    "negative_control_omit_H2_H4": true,
+    "negative_control_nu_h_vs_nu_S": true,
+    "negative_control_chi_factor": true
+  },
+  "claim_ceiling": "Exact local algebraic series in the displayed first-coupling and slow-rotation truncation. No corrected metric component match, original EOM residual, finite-coupling solution or existence theorem is claimed."
+}
