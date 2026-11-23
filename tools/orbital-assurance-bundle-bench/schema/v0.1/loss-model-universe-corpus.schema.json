@@ -182,7 +182,8 @@
             "MODEL_RECEIPT_ALIAS",
             "UNEXPECTED_MODEL",
             "UNEXPECTED_WORLD_MODEL_PAIR",
-            "INVALID_CASE"
+            "INVALID_CASE",
+            "MODEL_FAMILY_MISMATCH"
           ]
         },
         "missing_model_ids": {
