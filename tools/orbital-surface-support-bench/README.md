@@ -28,3 +28,6 @@ Frozen controls:
 - SUPPORT-002-CENTRE-PASS-SUPPORT-BOUND-ABSTAIN: the same voxel with insufficient pixel count so the source centre can still pass but the sensor lies within the support bounding sphere; those pairs must be INDETERMINATE.
 
 The result remains synthetic geometric evidence. It does not establish camera calibration, real image quality, defect findability, NDE/POD, metrology accuracy, robot reachability, structural acceptance or flight readiness.
+
+
+See docs/research/orbital-surface-support/surface-support-contract-v0_1.md for the formal bounds and claim limits.
