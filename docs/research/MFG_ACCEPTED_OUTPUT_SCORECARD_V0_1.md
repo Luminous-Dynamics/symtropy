@@ -74,11 +74,31 @@ For a reconfiguration study, keep source-configuration last accepted output and 
 
 ## Relation to public benchmarks and industrial products
 
-FJSPLib is the static deterministic comparison track: its public library includes flexible-job-shop, machine-independent and flexible-assembly instances and documents a standardized 10-minute solver comparison. Do not numerically compare this synthetic recovery scorecard to those static scheduling scores.
+Keep four comparison tracks separate; there is no honest single leaderboard that combines them.
 
-Dynamic methods such as incumbent-aware selective-repair (e.g. SLR2) are valid future comparators only after compatible event traces, objectives, compute budgets and acceptance semantics are aligned. Likewise, document-driven masked scheduling is a useful comparator for precedence/capability/availability semantics, not a substitute for independent output acceptance.
+### Static deterministic scheduling
 
-SAP PP/DS already provides detailed resource scheduling and availability-aware planning. This scorecard is intended as an assurance/outcome overlay around such schedulers, not a claim to replace APS/MES products.
+[FJSPLib](https://scheduleopt.github.io/benchmarks/fjsplib) publishes 138 flexible-job-shop instances, 264 machine-independent instances and 50 flexible-assembly instances. It describes a standardized 10-minute comparison across CPLEX, CP Optimizer, CP-SAT and OptalCP, with proof status and deviations from best-known upper/lower bounds.
+
+Use #5528 as the importer/tournament owner. Match exact instance versions, objective definitions, hardware, solver versions and ten-minute budgets. Report proven-optimal count, best-known upper/lower-bound deviation and unresolved optimality gaps. This scorecard must not be numerically compared to those static scheduling scores.
+
+### Dynamic schedule repair and recourse
+
+The November 2026 SLR2 paper ([DOI 10.1016/j.cie.2026.112299](https://doi.org/10.1016/j.cie.2026.112299)) compares incumbent-aware GNN keep/release decisions plus reduced CP-SAT repair against seven methods and reports lower schedule disruption and runtime on its tested instances. Treat its reported values as author-reported until independently reproduced. It is a necessary comparator for the dynamic track, with the same incumbent plan, event stream, decision-visible evidence prefix, online compute budget and acceptance evaluator.
+
+A separate 2026 study on optimization scope and dynamic flexible-job-shop rescheduling ([DOI 10.1016/j.cie.2026.111943](https://doi.org/10.1016/j.cie.2026.111943)) explicitly investigates the trade-off between local repair, global optimization, schedule stability and recovery. Use it to motivate matched ablations of repair scope; do not assume global search is always preferable.
+
+### Evidence-aware feasibility and digital-twin integration
+
+Recent document-driven masked scheduling work ([DOI 10.1016/j.compeleceng.2026.111371](https://doi.org/10.1016/j.compeleceng.2026.111371)) uses distinct precedence, capability/compliance and availability masks with OPC UA/digital-twin feedback. That is a useful comparator for eligibility semantics. Our differentiator must be demonstrated beyond a boolean mask: prove that a route's qualification/evidence state is source-bound, scope-specific, visible at the correct decision cutoff, and independently replayable.
+
+NIST's 2026 [Super Intelligence for Manufacturing](https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing) initiative frames layered intelligence, human decision ownership, integrated data/context and digital-twin VVUQ as core test-bench objectives. Align the assurance overlay with these concerns: interoperability, provenance, cybersecurity, uncertainty, fail-closed behavior and human escalation. This is an alignment target, not NIST endorsement or conformance.
+
+### Industrial APS/MES products
+
+[SAP PP/DS](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f899ce30af9044299d573ea30b533f1c/4133c95360267614e10000000a174cb4-1590.html) already supports detailed resource scheduling and resource/component availability-aware planning. This scorecard is an assurance/outcome layer around existing schedulers, not a claim to replace SAP, DELMIA, APS or MES.
+
+A 2026 review identifies 93 factory-level resilience indicators and argues for lifecycle-aware assessment, including inherent topology/attribution, degradation, recovery, adaptability, safety and human performance ([Bushagour et al., DOI 10.1080/21693277.2026.2738298](https://doi.org/10.1080/21693277.2026.2738298)). Our future resilience report should therefore retain pre-disruption capability topology, disruption loss, recovery chronology and post-recovery stability as separate measures; first accepted output alone is necessary but not a complete resilience scorecard.
 
 ## Next versions
 
