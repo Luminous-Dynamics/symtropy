@@ -174,8 +174,7 @@ mod tests {
     #[test]
     fn equation_thirteen_known_answer_matches_direct_formula() {
         let report = small_hbr_nc_approximation(inputs()).expect("valid small-HBR regime");
-        let direct = (0.01_f64.powi(2) * 7_500.0 * 10.0 / (2.0 * 1.0e9))
-            * (-25.0_f64 / 2.0).exp();
+        let direct = (0.01_f64.powi(2) * 7_500.0 * 10.0 / (2.0 * 1.0e9)) * (-25.0_f64 / 2.0).exp();
         assert!((report.probability - direct).abs() <= direct * 1.0e-12);
         assert!((report.log_probability - direct.ln()).abs() <= 1.0e-12);
         // Independent high-precision reference value for the fixed inputs.
