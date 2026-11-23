@@ -13,6 +13,14 @@ The existing microcosm tests unit and motif recovery within one generated stream
 
 The source and target share the same small relational structure, but node IDs, relation IDs and relation-kind IDs are changed. One directed relation reverses participant order; an undirected relation preserves unordered incidence. The unique-incidence baseline should recover the complete correspondence and the independent validator checks it.
 
+### Structurally similar but intervention-divergent pair
+
+This pair uses the same structural correspondence as the positive relabeled/reversed case. Its policy view exposes two actions belonging to the same source action kind and corresponding target action kind. The evaluator retains qualitative outcomes in which one action preserves a positive sign while another maps a negative source effect to a positive target effect.
+
+A single precommitted transformation for that action kind cannot explain both observations. A candidate that declares one transform receives a counterexample; a candidate that changes the transform between examples is invalid. This demonstrates the key distinction: structural transfer may pass while the proposed behavioral/effect transfer fails.
+
+The effect-sign reference still does not authenticate interventions or prove a real causal mechanism.
+
 ### Degree-matched non-isomorphic negative pair
 
 The source is K3,3 and the target is the triangular prism graph. Both are simple undirected 3-regular graphs with six nodes and nine edges, so every node has the same local degree / incidence signature. They are not isomorphic: K3,3 is bipartite and has no triangles, while the triangular prism contains triangles.
@@ -31,10 +39,10 @@ These dispositions are finite-reference diagnostics only. The current positive/n
 
 ## Important limitations
 
-- Only two tiny graph-pair families are present.
+- Only three tiny graph-pair families are present.
 - The negative control matches degree signatures, not every possible local statistic or motif statistic.
 - The conservative baseline is not a complete VF2 / Nauty / Bliss graph-isomorphism solver.
-- The reference does not yet add active discriminating interventions, non-identifiability sets, multiscale coarse-graining, or a stream-to-graph learner.
+- The intervention-divergent pair uses evaluator-supplied qualitative effect signs, not an active intervention runner, uncertainty-aware effect estimates, or authenticated physical interventions. Non-identifiability sets, multiscale coarse-graining, and a stream-to-graph learner remain future work.
 - No claim of scientific discovery, causal transfer, broad intelligence or SOTA follows from these fixtures.
 
 ## Reproduction
