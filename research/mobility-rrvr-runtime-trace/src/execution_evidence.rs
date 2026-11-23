@@ -89,6 +89,12 @@ pub struct ResetEvidenceReceipt {
     pub expected_initial_state_sha256: String,
     pub observed_initial_state_sha256: String,
     pub clock_id: String,
+    pub world_statistics_topic: String,
+    pub world_statistics_message_type: String,
+    pub world_statistics_artifact_id: String,
+    pub world_statistics_artifact_sha256: String,
+    pub world_statistics_capture_clock_id: String,
+    pub world_statistics_received_monotonic_ns: u64,
     pub simulation_step: u64,
 }
 
@@ -172,6 +178,8 @@ pub struct WorldStatisticsObservation {
     pub run_epoch: String,
     pub world_epoch: String,
     pub clock_id: String,
+    pub capture_clock_id: String,
+    pub received_monotonic_ns: u64,
     pub iterations: u64,
     pub simulation_time_ns: u64,
 }
@@ -310,6 +318,14 @@ fn validate_reset(
         || !nonempty(&receipt.raw_artifact_id)
         || !valid_sha256(&receipt.raw_artifact_sha256)
         || !nonempty(&receipt.clock_id)
+        || receipt.world_statistics_topic != plan.platform.world_stats_topic
+        || receipt.world_statistics_message_type != "gz.msgs.WorldStatistics"
+        || !nonempty(&receipt.world_statistics_artifact_id)
+        || !valid_sha256(&receipt.world_statistics_artifact_sha256)
+        || !nonempty(&receipt.world_statistics_capture_clock_id)
+        || receipt.world_statistics_received_monotonic_ns == 0
+        || receipt.world_statistics_artifact_id == receipt.raw_artifact_id
+        || receipt.world_statistics_artifact_sha256 == receipt.raw_artifact_sha256
         || receipt.simulation_step != 0
         || receipt.run_id != bundle.run_id
         || receipt.run_epoch != bundle.run_epoch
@@ -417,6 +433,7 @@ impl ExecutionEvidenceBundle {
         let mut delivery_unknown_count = 0usize;
         let mut delivery_not_observed_count = 0usize;
         let mut reconcile_required = false;
+        let mut previous_world_stats_received_ns = 0u64;
         let mut previous_event_end: Option<(u64, u64)> = None;
 
         let reset_receipt = self
@@ -427,9 +444,13 @@ impl ExecutionEvidenceBundle {
         if !evidence_ids.insert(reset_receipt.evidence_id.clone())
             || !artifact_ids.insert(reset_receipt.raw_artifact_id.clone())
             || !artifact_hashes.insert(reset_receipt.raw_artifact_sha256.clone())
+            || !artifact_ids.insert(reset_receipt.world_statistics_artifact_id.clone())
+            || !artifact_hashes.insert(reset_receipt.world_statistics_artifact_sha256.clone())
         {
             return Err(ExecutionEvidenceError::DuplicateEvidenceIdentity);
         }
+        previous_world_stats_received_ns =
+            reset_receipt.world_statistics_received_monotonic_ns;
 
         for (index, event) in self.events.iter().enumerate() {
             let expected = scenario
@@ -451,6 +472,9 @@ impl ExecutionEvidenceBundle {
                 || statistics.run_epoch != self.run_epoch
                 || statistics.world_epoch != self.world_epoch
                 || statistics.clock_id != reset_receipt.clock_id
+                || statistics.capture_clock_id
+                    != reset_receipt.world_statistics_capture_clock_id
+                || statistics.received_monotonic_ns <= previous_world_stats_received_ns
                 || statistics.iterations != expected.scheduled_simulation_step
             {
                 return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
@@ -460,6 +484,7 @@ impl ExecutionEvidenceBundle {
             {
                 return Err(ExecutionEvidenceError::DuplicateEvidenceIdentity);
             }
+            previous_world_stats_received_ns = statistics.received_monotonic_ns;
 
             if !nonempty(&event.target_resolution.logical_component_id)
                 || event.target_resolution.logical_component_id != expected.target_component_id
