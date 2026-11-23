@@ -205,3 +205,39 @@ The goal is a reproducible, basis-aware, independently checkable response atlas 
 - [The Evans function and Fredholm determinants](https://doi.org/10.1098/rspa.2014.0597), *Proceedings of the Royal Society A* (2015).
 - Humpherys & Lytle, [Root Following in Evans Function Computation](https://doi.org/10.1137/130934030), *SIAM Journal on Numerical Analysis* 53 (2015), 2329–2346.
 - Parent branch-atlas and continuation work: [#6333](https://github.com/Luminous-Dynamics/symtropy/issues/6333), [#6805](https://github.com/Luminous-Dynamics/symtropy/issues/6805), [#6915](https://github.com/Luminous-Dynamics/symtropy/issues/6915), [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955), and [#7131](https://github.com/Luminous-Dynamics/symtropy/issues/7131).
+
+
+## 11. Exact synthetic basis-covariance replay
+
+The dependency-free control verify_spin2_response_basis_covariance.py was fetched from its current public Git blob and executed locally with exact rational arithmetic.
+
+- Public source Git blob SHA-1: 5c5a973f06da5f18a6c6b8e0e75611746bcb2161.
+- Source SHA-256: 19bc7df19f25a41b9efb00b7590ba85a81c08b9836953f5b23fca25600a964e4.
+- Receipt: spin2_response_basis_covariance_v1.json.
+- Result: all exact-fraction controls passed.
+
+For the synthetic control, the response transforms from
+
+\[
+R=\begin{pmatrix}1/2&0\\0&2\end{pmatrix}
+\]
+
+to
+
+\[
+R'=\begin{pmatrix}-1&-3/2\\2&2\end{pmatrix}
+\]
+
+under nonsingular horizon and infinity basis changes. Both determinants equal 1. With Gram matrices transported by congruence, the trace and determinant of the generalized squared-response operator are unchanged: (17/4, 1). These two invariants determine the two squared metric singular values in the 2x2 case.
+
+The raw Euclidean Frobenius-squared diagnostic changes from 17/4 to 45/4, demonstrating that untransported Euclidean singular-value diagnostics can change under basis selection even when the represented operator and its physical endpoint metrics are equivalent.
+
+A parameter-dependent basis derivative control also passes. For G_H(η)=I+ηK_H+O(η²) and G_∞(η)=I+ηK_∞+O(η²), with identity bases at η=0,
+
+\[
+\widetilde R_1=R_1-K_\infty R_0+R_0K_H.
+\]
+
+The test reproduces the same first logarithmic determinant slope before and after the basis change. A singular basis negative control is rejected.
+
+**Evidence boundary:** this is an exact synthetic 2x2 linear-algebra control. It does not execute the EGB action-derived equations, validate the physical response matrix, or prove finite-coupling invertibility. No GitHub workflow run was returned for the source/receipt commits; the local source replay is reported separately from CI.
