@@ -79,7 +79,6 @@ pub struct TemporalTransferReport {
 #[derive(Clone, Debug)]
 struct CandidateAllocation {
     weights: Vec<f64>,
-    achieved: [f64; 2],
     residual_squared: f64,
     active_ids: Vec<String>,
 }
@@ -96,18 +95,17 @@ fn distance_squared(left: [f64; 2], right: [f64; 2]) -> f64 {
     (left[0] - right[0]).powi(2) + (left[1] - right[1]).powi(2)
 }
 
+type ValidatedInputs = (
+    Vec<PreviousNormalImpulse>,
+    Vec<NewContactCandidate>,
+    f64,
+    [f64; 2],
+);
+
 fn validate_inputs(
     previous: &[PreviousNormalImpulse],
     new_contacts: &[NewContactCandidate],
-) -> Result<
-    (
-        Vec<PreviousNormalImpulse>,
-        Vec<NewContactCandidate>,
-        f64,
-        [f64; 2],
-    ),
-    TransferError,
-> {
+) -> Result<ValidatedInputs, TransferError> {
     if previous.is_empty() {
         return Err(TransferError::new(
             "previous contact impulse set must not be empty",
@@ -211,7 +209,6 @@ fn make_candidate(
     }
     Some(CandidateAllocation {
         weights,
-        achieved,
         residual_squared,
         active_ids,
     })
