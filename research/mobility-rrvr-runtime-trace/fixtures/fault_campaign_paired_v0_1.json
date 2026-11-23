@@ -25,7 +25,28 @@
     "simulation_interfaces_revision": "simulation_interfaces-fixture-v0.1",
     "scene_broadcaster_id": "gz::sim::systems::SceneBroadcaster",
     "scene_broadcaster_revision": "gazebo-build-2026.11.23",
-    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "required_delivery_observer_quorum": 2,
+    "observer_profiles": [
+      {
+        "observer_id": "gazebo-ground-truth-pose",
+        "revision": "pose-observer-v0.1",
+        "binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "common_cause_domains": [
+          "observer-host-a",
+          "observer-power-a"
+        ]
+      },
+      {
+        "observer_id": "gazebo-joint-state-verifier",
+        "revision": "joint-state-verifier-v0.1",
+        "binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "common_cause_domains": [
+          "observer-host-b",
+          "observer-clock-b"
+        ]
+      }
+    ]
   },
   "reset": {
     "kind": "simulator_snapshot_restore",
