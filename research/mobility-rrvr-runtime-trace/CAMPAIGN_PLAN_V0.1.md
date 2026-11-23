@@ -113,3 +113,7 @@ A later adapter must emit the separate execution bundle described in [EXECUTION_
 The platform digest now includes the ROS 2 Simulation Interfaces package revision and the exact SceneBroadcaster system ID, build revision and binary digest. The Gazebo capability preflight compares these values, plus simulator build, ROS distribution, environment/world profile and reset profile, against the captured capability report. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
 
 The preflight CLI is deliberately offline and labelled as a captured-profile check. A real simulator transport must discover the live feature set and verify state/reset behavior before any event can be scheduled.
+
+## Observer quorum commitment
+
+The compiled platform binding now includes the minimum delivery-observer quorum and the full observer profile set (observer ID, revision, binary SHA-256 and common-cause domains). These fields are included in the source manifest commitment, pair commitment and top-level plan digest. A consumer cannot replace the observer binary or silently change a declared shared failure domain without changing the plan identity.
