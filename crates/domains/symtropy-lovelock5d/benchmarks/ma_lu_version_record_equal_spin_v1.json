@@ -1,0 +1,56 @@
+{
+  "adm_mass_check": {
+    "metric_asymptotic_DeltaM_through_chi2": "3*pi*(16/3 - 188*chi**2/15)/8",
+    "paper_equal_spin_DeltaM_through_chi2": "-47*pi*chi**2/10 + 2*pi",
+    "status": "exact_match_through_chi_squared"
+  },
+  "angular_block": {
+    "H5": "H7-(4/45)*a^2*x^2*S",
+    "H6": "H7-(4/45)*a^2*(1-x^2)*S",
+    "S": "165/r^4+330*mu/r^6+150*mu^2/r^8",
+    "checks": {
+      "H5_H6_direct_Eq2_12": true,
+      "axis_regular": true,
+      "dphi2_component": true,
+      "dphi_dpsi_component": true,
+      "dpsi2_component": true,
+      "negative_control_missing_x2_factor": true,
+      "negative_control_wrong_H6_sign": true
+    },
+    "line_element": "G*[dtheta^2+(1-x^2)dphi^2+x^2 dpsi^2]+D*(1+alpha_R*H4)*[(1-x^2)dphi+x^2*dpsi]^2"
+  },
+  "artifact_kind": "ma_lu_version_record_equal_spin_comparison",
+  "claim_ceiling": "Exact first-coupling, equal-spin, slow-rotation comparison through O(chi^2), including full angular block, fixed (R_H,Omega_H) map and ADM mass coefficient. No finite-coupling branch, interval existence/uniqueness or hyperbolicity result.",
+  "coupling_conversion": {
+    "alpha_R": "alpha_GB/4",
+    "epsilon_R": "epsilon_S*(1+nu_S^2)+O(epsilon_S^2,nu_S^4)",
+    "epsilon_S": "lambda_GB/4"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
+  "fixed_boundary_expansions": {
+    "R_H/r_h": "277*epsS*nu**2/90 + 5*epsS/3 + nu**2/2 + 1",
+    "a/R_H": "-2068*epsS*nu**3/45 + 16*epsS*nu/3 + nu",
+    "chi": "-5509*sqrt(2)*epsS*nu**3/90 + 7*sqrt(2)*epsS*nu - sqrt(2)*nu**3/2 + sqrt(2)*nu",
+    "mu_background/R_H^2": "454*epsS*nu**2/45 - 5*epsS/3 + nu**2/2 + 1/2",
+    "q": "-3619*epsS*nu**3/90 + 7*epsS*nu + nu**3/2 + nu",
+    "r_h/R_H": "-127*epsS*nu**2/90 - 5*epsS/3 - nu**2/2 + 1"
+  },
+  "schema_version": 1,
+  "source": {
+    "chi_definition": "chi_a=a/sqrt(mu), chi_b=b/sqrt(mu)",
+    "doi": "10.1007/JHEP05(2026)081",
+    "equations": [
+      "(2.8)",
+      "(2.9)",
+      "(2.12)",
+      "(3.3)",
+      "(3.4)"
+    ],
+    "version": "JHEP version of record, published 08 May 2026"
+  },
+  "source_sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+  "status": "exact_symbolic_angular_fixed_boundary_and_mass_coefficients_pass"
+}
