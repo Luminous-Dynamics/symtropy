@@ -56,7 +56,7 @@ impl Epoch {
 /// Once exhausted, current() returns None and further advances fail. The
 /// caller must replace the owning generation or disable dependent reuse; it
 /// must never wrap the counter and make an old receipt appear current again.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RevisionCounter {
     current: Epoch,
     valid: bool,
@@ -64,13 +64,25 @@ pub struct RevisionCounter {
 
 impl Default for RevisionCounter {
     fn default() -> Self {
-        Self::new(Epoch::ZERO)
+        Self::new()
     }
 }
 
 impl RevisionCounter {
-    /// Create a counter at an explicitly supplied initial epoch.
-    pub const fn new(initial: Epoch) -> Self {
+    /// Create a new counter for a newly established dependency owner.
+    pub const fn new() -> Self {
+        Self {
+            current: Epoch::ZERO,
+            valid: true,
+        }
+    }
+
+    /// Restore a counter from its authoritative persisted revision.
+    ///
+    /// Only use this when the persisted owner generation and revision are
+    /// authenticated by the surrounding authority. Otherwise, start a new
+    /// world generation and do not reuse existing receipts.
+    pub const fn from_persisted(initial: Epoch) -> Self {
         Self {
             current: initial,
             valid: true,
@@ -78,7 +90,7 @@ impl RevisionCounter {
     }
 
     /// Current revision, or None after exhaustion.
-    pub const fn current(self) -> Option<Epoch> {
+    pub const fn current(&self) -> Option<Epoch> {
         if self.valid {
             Some(self.current)
         } else {
@@ -734,7 +746,7 @@ mod tests {
 
     #[test]
     fn revision_counter_fails_closed_on_overflow() {
-        let mut counter = RevisionCounter::new(Epoch::from_raw(u64::MAX));
+        let mut counter = RevisionCounter::from_persisted(Epoch::from_raw(u64::MAX));
 
         assert_eq!(counter.advance(), Err(EpochOverflow));
         assert_eq!(counter.current(), None);
