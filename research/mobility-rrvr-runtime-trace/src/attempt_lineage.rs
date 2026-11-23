@@ -317,7 +317,7 @@ fn validate_observer_claim<'a>(
         return Err(LineageError::ObserverClaimMismatch);
     }
 
-    if observer_quorum_is_qualified(quorum) != Ok(true) {
+    if !matches!(observer_quorum_is_qualified(quorum), Ok(true)) {
         return Err(LineageError::ObserverQuorumUnqualified);
     }
 
