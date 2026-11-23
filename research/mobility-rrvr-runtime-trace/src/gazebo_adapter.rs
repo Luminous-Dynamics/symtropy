@@ -1160,6 +1160,101 @@ mod tests {
         );
     }
 
+    fn observer_quorum(plan: &CompiledCampaignPlan) -> Vec<ObservedFaultSignature> {
+        plan.platform
+            .observer_profiles
+            .iter()
+            .take(plan.platform.required_delivery_observer_quorum)
+            .map(|profile| ObservedFaultSignature {
+                observer_id: profile.observer_id.clone(),
+                observer_revision: profile.revision.clone(),
+                observer_binary_sha256: profile.binary_sha256.clone(),
+                common_cause_domains: profile.common_cause_domains.clone(),
+                signature_sha256: plan.scenarios[0].fault_events[0]
+                    .expected_delivery_signature_sha256
+                    .clone(),
+                world_epoch: "world-epoch-2".into(),
+                simulation_step: plan.scenarios[0].fault_events[0].scheduled_simulation_step,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn qualifies_two_pinned_observers_with_disjoint_dependencies() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+        let observations = observer_quorum(&plan);
+        assert_eq!(
+            validate_delivery_observer_quorum(&observations, &plan, fault, "world-epoch-2"),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn rejects_insufficient_or_duplicate_delivery_observers() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+        let mut observations = observer_quorum(&plan);
+        observations.pop();
+        assert_eq!(
+            validate_delivery_observer_quorum(&observations, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverQuorumUnqualified)
+        );
+
+        let mut duplicate = observer_quorum(&plan);
+        duplicate[1].observer_id = duplicate[0].observer_id.clone();
+        assert_eq!(
+            validate_delivery_observer_quorum(&duplicate, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_shared_power_host_or_injector_failure_domains() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+        let mut shared = observer_quorum(&plan);
+        shared[1].common_cause_domains = shared[0].common_cause_domains.clone();
+        assert_eq!(
+            validate_delivery_observer_quorum(&shared, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverCommonCauseOverlap)
+        );
+
+        let mut injector = observer_quorum(&plan);
+        injector[0].common_cause_domains =
+            vec![plan.platform.fault_injector_fault_domain_id.clone()];
+        assert_eq!(
+            validate_delivery_observer_quorum(&injector, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverCommonCauseOverlap)
+        );
+    }
+
+    #[test]
+    fn rejects_unpinned_observer_binary_epoch_or_signature() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+        let mut binary = observer_quorum(&plan);
+        binary[0].observer_binary_sha256 = "c".repeat(64);
+        assert_eq!(
+            validate_delivery_observer_quorum(&binary, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverIdentityMismatch)
+        );
+
+        let mut epoch = observer_quorum(&plan);
+        epoch[0].world_epoch = "stale-world-epoch".into();
+        assert_eq!(
+            validate_delivery_observer_quorum(&epoch, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverEpochMismatch)
+        );
+
+        let mut signature = observer_quorum(&plan);
+        signature[0].signature_sha256 = "f".repeat(64);
+        assert_eq!(
+            validate_delivery_observer_quorum(&signature, &plan, fault, "world-epoch-2"),
+            Err(GazeboAdapterError::ObserverSignatureMismatch)
+        );
+    }
+
     #[test]
     fn idempotency_key_is_stable_and_bound_to_plan_run_and_fault() {
         let plan = plan();
