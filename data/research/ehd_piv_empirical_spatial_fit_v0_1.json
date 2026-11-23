@@ -1,0 +1,120 @@
+{
+  "contract_id": "ehd_piv_empirical_spatial_fit_v0_1",
+  "version": "0.1.0",
+  "status": "prospective_reference_implementation",
+  "estimand": "stationary_isotropic_spatial_covariance_of_velocity_residuals",
+  "units": {
+    "coordinates": "m",
+    "velocity_residuals": "m/s",
+    "covariance": "m^2/s^2",
+    "correlation_error": "dimensionless"
+  },
+  "independent_unit": {
+    "name": "complete_acquisition_dependence_cluster",
+    "minimum_calibration_clusters": 20,
+    "minimum_validation_clusters": 20,
+    "vector_count_is_not_independent_sample_count": true
+  },
+  "input_requirements": {
+    "residual_sign": "measured_piv_velocity_minus_independent_reference_velocity",
+    "unique_acquisition_cluster_id": true,
+    "unique_reference_evidence_id_per_cluster": true,
+    "frozen_protocol_fingerprint": true,
+    "identical_ordered_grid_across_all_fields": true,
+    "finite_coordinates_and_residuals": true,
+    "calibration_validation_ids_disjoint": true,
+    "calibration_validation_reference_ids_disjoint": true,
+    "immutable_manifest_sha256_shape": "64 hexadecimal characters",
+    "manifest_digest_verification": "caller_responsibility_not_implemented",
+    "reference_uncertainty_assessment_id": "required_nonempty_external_evidence_identity",
+    "reference_uncertainty_scope": "residual_covariance_contains_PIV_and_reference_uncertainty_unless_reference_contribution_is_externally_bounded_negligible_or_removed_by_an_externally_qualified_procedure"
+  },
+  "model": {
+    "family": "wendland_c2",
+    "dimension": 3,
+    "stationary": true,
+    "isotropic": true,
+    "range_selection": "predeclared_strictly_increasing_candidate_grid",
+    "correlation": "(1-r)^4*(4*r+1) for 0<=r<1, else 0",
+    "covariance": "Cov(e_i,e_j)=K(distance(i,j)/ell)*S for i!=j",
+    "zero_lag_decomposition": "C0=S+N",
+    "S": "correlated_spatial_component_covariance",
+    "N": "per_vector_local_nugget_covariance",
+    "psd_required_for_both_components": true,
+    "mean_residual_profile": "estimated on calibration cohort, reported separately, not silently subtracted from engineering outputs",
+    "uq005_model_id": "wendland_c2_anisotropic_3d_with_equal_axis_ranges_for_isotropic_fit"
+  },
+  "fit_procedure": {
+    "cluster_weighting": "equal_weight_per_complete_acquisition",
+    "range_fit": "least_squares_over_cluster_averaged_cross_covariances",
+    "candidate_selection": "minimum_relative_frobenius_cross_covariance_error_subject_to_psd(S)_and_psd(N)",
+    "validation_used_for_fit": false
+  },
+  "validation_procedure": {
+    "lag_bins": "integer multiples of median nearest_neighbour_spacing",
+    "correlation_error": "maximum absolute difference between equal-cluster mean observed and predicted component correlations over populated lag bins",
+    "negative_lobe": "same_component empirical lag correlation significantly below zero using independent-cluster standard error",
+    "negative_lobe_z_threshold_minimum": 1.96,
+    "maximum_absolute_correlation_error_initial_target": 0.05,
+    "gates_frozen_in_fit_config": true,
+    "holdout_used_to_refit_or_select_range": false,
+    "mean_bias_shift_reported_separately": true,
+    "correlation_normalization": "one_variance_scale_estimated_across_complete_holdout",
+    "cluster_inference": "one_lag_bin_statistic_per_independent_acquisition; vector_pairs_are_within_cluster_not_independent_samples"
+  },
+  "qualification": {
+    "qualified": "heldout_maximum_absolute_correlation_error_within_frozen_limit_and_no_resolved_negative_lobe",
+    "rejected_negative_lobe": "current_nonnegative_wendland_family_cannot_represent_observed_lobe",
+    "rejected_fit_error": "heldout_correlation_error_exceeds_frozen_limit"
+  },
+  "uq005_adapter": {
+    "spatial_kernel_component": "S",
+    "local_velocity_covariance_each_face_sample": "N",
+    "double_counting_rule": "do_not_supply_C0_as_local_covariance_when_S_is_added_by_spatial_cross_location_propagation",
+    "protocol_fingerprint_must_match": true,
+    "fit_report_binding": "fit_config_id_protocol_reference_assessment_calibration_manifest_selected_range_and_spatial_covariance_must_match_exactly",
+    "local_nugget_adapter": "local_nugget_covariance_for_uq005() returns N; validation receipt exports S",
+    "receipt_binding": "exact_fit_config_reference_assessment_protocol_calibration_manifest_range_and_spatial_covariance"
+  },
+  "prospective_benchmarks": [
+    {
+      "metric": "heldout_maximum_absolute_correlation_error",
+      "target": 0.05,
+      "status": "not_measured"
+    },
+    {
+      "metric": "false_qualification_on_manufactured_negative_lobe_controls",
+      "target": 0,
+      "status": "not_measured"
+    },
+    {
+      "metric": "nominal_95_percent_whole_field_coverage",
+      "target": 0.95,
+      "status": "not_measured",
+      "method": "cluster_conformal_with_observed_coverage_confidence_interval"
+    },
+    {
+      "metric": "nominal_95_percent_integrated_mass_momentum_functional_coverage",
+      "target": 0.95,
+      "status": "not_measured"
+    }
+  ],
+  "explicit_nonclaims": [
+    "no raw PIV images or correlation planes are ingested",
+    "no experimental dataset has been processed by this crate",
+    "no physical EHD force or thrust result is established",
+    "no anisotropic, nonstationary, regional, temporal or oscillatory kernel is fitted",
+    "no proof of reference independence, exchangeability or source-data integrity",
+    "no comparison claim that this fitter outperforms PIVtools or commercial PIV processors",
+    "no reference-uncertainty deconvolution or separation is implemented; residual covariance includes PIV and reference contributions unless independently assessed"
+  ],
+  "references": {
+    "spatial_uncertainty_propagation": "https://doi.org/10.1088/0957-0233/27/8/084006",
+    "wendland_c2_kernel": "https://doi.org/10.1007/BF02123482",
+    "pivtools_2026": "https://doi.org/10.1016/j.softx.2026.102967",
+    "pivpostprocess_2026": "https://doi.org/10.1007/s00348-026-04319-7",
+    "asme_vv20": "https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer",
+    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
+    "ffs_s_piv": "https://doi.org/10.5281/zenodo.21732072"
+  }
+}
