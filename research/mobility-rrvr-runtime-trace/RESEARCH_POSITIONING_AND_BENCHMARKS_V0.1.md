@@ -241,7 +241,7 @@ All arms receive the same frozen chain, epoch changes, physical outcomes, persis
 - Persistence is InFlight or IndeterminateCommit (a resolved Committed result is admissible only alongside independently confirmed physical and mission NoEffect).
 - The child names the wrong parent, skips an ordinal, or reuses an attempt ID.
 - Evidence is replayed across attempts or carries the wrong logical-effect/attempt/epoch scope.
-- Physical NoEffect or downstream-quiescence observer evidence is absent, scope-tampered, evaluated under a different fault profile, shares declared common-cause dependencies, or replays an owner receipt, claim ID, observation ID or raw artifact from another attempt. Reusing a sensor across attempts with a new observation and raw artifact is a positive control, not a replay fault.
+- Physical-outcome observer evidence is absent for a confirmed outcome; or a retryable parent lacks separate downstream-quiescence observer evidence, has scope tampering, a different fault profile, shared declared common-cause dependencies, or replayed owner receipts, claim IDs, observation IDs or raw artifacts. Reusing a sensor across attempts with a new observation and raw artifact is a positive control, not a replay fault.
 - Boot/controller epochs regress or do not advance together.
 - Controller or downstream fence is missing, non-quiescent, unconfirmed, or targeted at a different child epoch.
 - The same logical effect is split across separate identifiers.
