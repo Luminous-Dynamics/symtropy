@@ -299,11 +299,9 @@ fn validate_reset(
         || receipt.expected_initial_state_sha256 != plan.reset.expected_initial_state_sha256
         || receipt.producer_revision != plan.platform.simulator_revision
         || (bundle.reset.status == ResetStatus::Confirmed
-            && receipt.observed_initial_state_sha256
-                != plan.reset.expected_initial_state_sha256)
+            && receipt.observed_initial_state_sha256 != plan.reset.expected_initial_state_sha256)
         || (bundle.reset.status == ResetStatus::Rejected
-            && receipt.observed_initial_state_sha256
-                == plan.reset.expected_initial_state_sha256)
+            && receipt.observed_initial_state_sha256 == plan.reset.expected_initial_state_sha256)
     {
         return Err(ExecutionEvidenceError::InvalidResetReceipt);
     }
@@ -483,7 +481,10 @@ impl ExecutionEvidenceBundle {
                 TargetResolutionStatus::NotResolved => {
                     if event.target_resolution.resolved_target_id.is_some()
                         || event.target_resolution.resolved_target_revision.is_some()
-                        || event.target_resolution.resolved_target_profile_sha256.is_some()
+                        || event
+                            .target_resolution
+                            .resolved_target_profile_sha256
+                            .is_some()
                         || event.target_resolution.resolved_fault_domain_id.is_some()
                         || event.target_resolution.receipt.is_some()
                     {
@@ -577,13 +578,7 @@ impl ExecutionEvidenceBundle {
                         .as_ref()
                         .ok_or(ExecutionEvidenceError::InvalidDispatch)?;
                     let target_id = resolved_target.unwrap_or(&expected.target_component_id);
-                    validate_receipt(
-                        receipt,
-                        EvidencePhase::Dispatch,
-                        self,
-                        expected,
-                        target_id,
-                    )?;
+                    validate_receipt(receipt, EvidencePhase::Dispatch, self, expected, target_id)?;
                     if receipt.producer_id != self.platform.native_adapter_id
                         || receipt.producer_revision != self.platform.native_adapter_revision
                     {
@@ -634,14 +629,9 @@ impl ExecutionEvidenceBundle {
                         .receipt
                         .as_ref()
                         .ok_or(ExecutionEvidenceError::InvalidExecution)?;
-                    let target_id = resolved_target.ok_or(ExecutionEvidenceError::InvalidExecution)?;
-                    validate_receipt(
-                        receipt,
-                        EvidencePhase::Execution,
-                        self,
-                        expected,
-                        target_id,
-                    )?;
+                    let target_id =
+                        resolved_target.ok_or(ExecutionEvidenceError::InvalidExecution)?;
+                    validate_receipt(receipt, EvidencePhase::Execution, self, expected, target_id)?;
                     if receipt.simulation_step != expected.scheduled_simulation_step {
                         return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                     }
@@ -668,13 +658,7 @@ impl ExecutionEvidenceBundle {
                         .as_ref()
                         .ok_or(ExecutionEvidenceError::InvalidExecution)?;
                     let target_id = resolved_target.unwrap_or(&expected.target_component_id);
-                    validate_receipt(
-                        receipt,
-                        EvidencePhase::Execution,
-                        self,
-                        expected,
-                        target_id,
-                    )?;
+                    validate_receipt(receipt, EvidencePhase::Execution, self, expected, target_id)?;
                     if receipt.producer_id != self.platform.fault_injector_id
                         || receipt.producer_revision != self.platform.fault_injector_revision
                     {
@@ -739,8 +723,7 @@ impl ExecutionEvidenceBundle {
                         .filter(|value| nonempty(value))
                         .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
                     if observer_id == self.platform.fault_injector_id
-                        || observer_fault_domain_id
-                            == self.platform.fault_injector_fault_domain_id
+                        || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
                     {
                         return Err(ExecutionEvidenceError::ObserverNotDistinct);
                     }
@@ -870,7 +853,9 @@ impl ExecutionEvidenceBundle {
                         {
                             return Err(ExecutionEvidenceError::ObserverNotDistinct);
                         }
-                        if let Some(signature) = observation.observed_fault_signature_sha256.as_deref() {
+                        if let Some(signature) =
+                            observation.observed_fault_signature_sha256.as_deref()
+                        {
                             if !valid_sha256(signature) {
                                 return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
                             }
@@ -991,10 +976,9 @@ mod tests {
     use crate::fault_campaign::FaultCampaignManifest;
 
     fn plan() -> CompiledCampaignPlan {
-        let manifest: FaultCampaignManifest = serde_json::from_str(include_str!(
-            "../fixtures/fault_campaign_paired_v0_1.json"
-        ))
-        .expect("campaign fixture deserializes");
+        let manifest: FaultCampaignManifest =
+            serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+                .expect("campaign fixture deserializes");
         let source_digest = {
             use sha2::{Digest, Sha256};
             let bytes = include_bytes!("../fixtures/fault_campaign_paired_v0_1.json");
@@ -1040,8 +1024,12 @@ mod tests {
         evidence.events[0].delivery_observation.verdict = DeliveryVerdict::Unknown;
         evidence.events[0].delivery_observation.observer_id = None;
         evidence.events[0].delivery_observation.observer_revision = None;
-        evidence.events[0].delivery_observation.observer_fault_domain_id = None;
-        evidence.events[0].delivery_observation.observed_fault_signature_sha256 = None;
+        evidence.events[0]
+            .delivery_observation
+            .observer_fault_domain_id = None;
+        evidence.events[0]
+            .delivery_observation
+            .observed_fault_signature_sha256 = None;
         evidence.events[0].delivery_observation.receipt = None;
         let summary = evidence.validate_against_plan(&plan).unwrap();
         assert_eq!(summary.delivery_confirmed_count, 3);
@@ -1110,9 +1098,8 @@ mod tests {
         let mut evidence = bundle();
         evidence.events[0]
             .delivery_observation
-            .observer_fault_domain_id = Some(
-            plan.platform.fault_injector_fault_domain_id.clone(),
-        );
+            .observer_fault_domain_id =
+            Some(plan.platform.fault_injector_fault_domain_id.clone());
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ObserverNotDistinct)
