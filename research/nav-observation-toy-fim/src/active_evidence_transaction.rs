@@ -303,6 +303,8 @@ mod tests {
     use crate::active_evidence_acquisition::{ActiveEvidencePolicy, EvidenceActionCandidate, EvidenceActionKind};
     use crate::active_evidence_attempt_ledger::{ActiveEvidenceAttemptPolicy, ResolvedAcquisitionOutcome, AcquisitionAttemptDisposition};
     use crate::active_evidence_decision_planner::plan_active_evidence_with_decision_relevance;
+    use crate::active_evidence_reliability::AdmittedAcquisitionReliability;
+    use crate::active_evidence_reliability_planner::{ReliableActiveEvidencePlan, ReliableEvidenceActionAssessment, ReliableEvidencePlanReason};
     use crate::decision_relevant_discrimination::{HypothesisDecisionAssignment, project_decision_relevant_discrimination};
     use crate::navigation_time_validity::{NavigationTimeClaimKind, NavigationTimeInterval};
     use crate::uwb_hypothesis_discrimination::{UwbHypothesisDiscriminationReport, UwbHypothesisPairSeparation};
@@ -387,6 +389,54 @@ mod tests {
         result
     }
 
+    fn reliable_plan() -> ReliableActiveEvidencePlan {
+        let conditional_plan = plan();
+        let conditional = conditional_plan.pareto_frontier
+            .iter()
+            .find(|assessment| assessment.action.action_id == 2)
+            .unwrap()
+            .clone();
+        let reliability = AdmittedAcquisitionReliability {
+            action_id: 2,
+            probability_lower_bound: 0.8,
+            probability_upper_bound: 0.95,
+            confidence_error_probability: 0.05,
+            independent_campaign_block_count: 10,
+            valid_qualified_success_block_count: 9,
+            failed_or_timed_out_block_count: 1,
+            acquired_but_invalid_block_count: 0,
+            non_success_block_count: 1,
+            unresolved_block_count: 0,
+            empirical_valid_success_fraction: 0.9,
+            source_manifest_sha256: [0x81; 32],
+            calibration_cohort_sha256: [0x91; 32],
+            bound_method_sha256: [0xa1; 32],
+        };
+        let assessment = ReliableEvidenceActionAssessment {
+            expected_decision_pair_yield_lower_bound:
+                reliability.probability_lower_bound * conditional.distinguishable_decision_pair_count as f64,
+            expected_decision_pair_yield_upper_bound:
+                reliability.probability_upper_bound * conditional.distinguishable_decision_pair_count as f64,
+            expected_protection_level_reduction_lower_bound_m:
+                reliability.probability_lower_bound * conditional.conditional_protection_level_delta_m,
+            expected_protection_level_reduction_upper_bound_m:
+                reliability.probability_upper_bound * conditional.conditional_protection_level_delta_m,
+            conditional,
+            reliability,
+        };
+        ReliableActiveEvidencePlan {
+            reason: ReliableEvidencePlanReason::BestExpectedDecisionResolution,
+            recommended_action_id: Some(2),
+            pareto_frontier: vec![assessment],
+            reliability_rejections: Vec::new(),
+            hypothesis_inventory_sha256: conditional_plan.hypothesis_inventory_sha256,
+            decision_partition_sha256: conditional_plan.decision_partition_sha256,
+            decision_assignments: conditional_plan.decision_assignments,
+            conditional_target_reached: false,
+            authority_transition_not_authorized_by_plan: true,
+        }
+    }
+
     fn ledger() -> ActiveEvidenceAttemptLedger {
         ActiveEvidenceAttemptLedger::new(ActiveEvidenceAttemptPolicy {
             expected_domain_fingerprint_sha256: DOMAIN,
@@ -459,6 +509,39 @@ mod tests {
             payload_sha256: [0xee; 32],
             qualification_receipt_sha256: [0xff; 32],
         }
+    }
+
+    #[test]
+    fn reliability_interval_and_campaign_lineage_survive_into_consumed_attempt_report() {
+        let selected_plan = reliable_plan();
+        let selected = selected_plan.pareto_frontier[0].reliability;
+        let mut ledger = ledger();
+        let report = record_reliably_selected_evidence_outcome(
+            &selected_plan,
+            &mut ledger,
+            request(2, 120),
+            qualified(),
+            PRE_STATE,
+            Some(binding(2, 120)),
+            Some((time_policy(), time_input(NavigationTimeClaimKind::DecisionEpochNowcast))),
+        )
+        .unwrap();
+
+        assert_eq!(report.action_id, 2);
+        assert_eq!(report.attempt_id, 120);
+        assert_eq!(report.selected_acquisition_reliability, Some(selected));
+        let provenance = report.selected_acquisition_reliability.unwrap();
+        assert_eq!(provenance.probability_lower_bound, 0.8);
+        assert_eq!(provenance.probability_upper_bound, 0.95);
+        assert_eq!(provenance.independent_campaign_block_count, 10);
+        assert_eq!(provenance.source_manifest_sha256, [0x81; 32]);
+        assert_eq!(provenance.calibration_cohort_sha256, [0x91; 32]);
+        assert_eq!(provenance.bound_method_sha256, [0xa1; 32]);
+        assert_eq!(report.disposition, EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit);
+        assert!(report.eligible_for_independent_posterior_audit);
+        assert!(!report.posterior_updated);
+        assert!(!report.navigation_authorized);
+        assert_eq!(ledger.attempts_for_action(2), 1);
     }
 
     #[test]
