@@ -1,0 +1,57 @@
+name: Maritime conformal shift assurance reference
+
+on:
+  pull_request:
+    paths:
+      - "research/maritime-conformal-shift-assurance/**"
+      - ".github/workflows/maritime-conformal-shift-assurance.yml"
+  push:
+    branches:
+      - "research/maritime-conformal-shift-assurance-v0-1"
+    paths:
+      - "research/maritime-conformal-shift-assurance/**"
+      - ".github/workflows/maritime-conformal-shift-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-conformal-shift-assurance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head or pushed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all-targets
+      - name: Run tests
+        run: cargo test --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --all-targets
+      - name: Verify deterministic 12-row, 18-column receipt
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --bin conformal-shift-audit > /tmp/conformal-shift.csv
+          cargo run --quiet --locked --manifest-path research/maritime-conformal-shift-assurance/Cargo.toml --bin conformal-shift-audit > /tmp/conformal-shift-replay.csv
+          cmp /tmp/conformal-shift.csv /tmp/conformal-shift-replay.csv
+          test "$(wc -l < /tmp/conformal-shift.csv)" -eq 13
+          head -n 1 /tmp/conformal-shift.csv | awk -F, '{ if (NF != 18) exit 1 }'
+          grep -q '^FIXED_MARGINAL_SPLIT,STATIONARY,' /tmp/conformal-shift.csv
+          grep -q '^FIXED_JOINT_SPLIT,TEMPORAL_DRIFT,' /tmp/conformal-shift.csv
+          grep -q '^ROLLING_JOINT,BURST_TAIL,' /tmp/conformal-shift.csv
+          grep -q '^ADAPTIVE_JOINT_ACI,TEMPORAL_DRIFT,' /tmp/conformal-shift.csv
+          grep -q 'NOT_CERTIFIED_MISSINGNESS' /tmp/conformal-shift.csv
+          echo "Conformal shift, joint coverage and missingness receipt contract passed."
