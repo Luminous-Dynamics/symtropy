@@ -332,6 +332,31 @@ mod tests {
     #[test] fn exclusions_need_witness(){let e=evaluate(&fixture()).expect("evaluate");assert_eq!(case(&e,"valid_exclusion").disposition,"LOSS_MODEL_UNIVERSE_CLOSED_WITHIN_DECLARED_GRAMMAR");assert_eq!(case(&e,"unwitnessed_exclusion").disposition,"UNWITNESSED_MODEL_EXCLUSION");}
     #[test] fn unknown_mission_never_becomes_empty_model_set(){let e=evaluate(&fixture()).expect("evaluate");assert_eq!(case(&e,"unsupported_mission_class").disposition,"MODEL_FAMILY_INADEQUATE");}
     #[test] fn stale_and_out_of_profile_models_block(){let e=evaluate(&fixture()).expect("evaluate");assert_eq!(case(&e,"stale_model").disposition,"MODEL_STALE");assert_eq!(case(&e,"out_of_profile_model").disposition,"MODEL_OUT_OF_PROFILE");}
+    #[test]
+    fn model_scope_mismatch_is_explicit() {
+        let e = evaluate(&fixture()).expect("evaluate");
+        assert_eq!(case(&e, "model_scope_mismatch").disposition, "MODEL_SCOPE_MISMATCH");
+    }
+
+    #[test]
+    fn source_receipt_alias_across_models_is_blocked() {
+        let e = evaluate(&fixture()).expect("evaluate");
+        assert_eq!(case(&e, "model_receipt_alias").disposition, "MODEL_RECEIPT_ALIAS");
+    }
+
+    #[test]
+    fn applicability_manifest_is_total_over_required_world_model_pairs() {
+        let e = evaluate(&fixture()).expect("evaluate");
+        assert_eq!(
+            case(&e, "missing_required_applicability_row").disposition,
+            "MISSING_WORLD_MODEL_PAIR"
+        );
+        assert_eq!(
+            case(&e, "missing_exclusion_row").disposition,
+            "UNWITNESSED_MODEL_EXCLUSION"
+        );
+    }
+
     #[test] fn unexpected_models_and_pairs_are_visible(){let e=evaluate(&fixture()).expect("evaluate");assert_eq!(case(&e,"unexpected_model").disposition,"UNEXPECTED_MODEL");assert_eq!(case(&e,"unexpected_pair").disposition,"UNEXPECTED_WORLD_MODEL_PAIR");}
     #[test] fn permutation_invariant(){let expected=evaluate(&fixture()).expect("evaluate");let mut c=fixture();for x in &mut c.cases{x.worlds.reverse();x.producer_models.reverse();x.declared_model_ids.reverse();x.applicability.reverse();x.joint_pairs.reverse();for w in &mut x.worlds{w.profile_tags.reverse();}}let actual=evaluate(&c).expect("permuted");assert_eq!(serde_json::to_value(actual).unwrap(),serde_json::to_value(expected).unwrap());}
 }
