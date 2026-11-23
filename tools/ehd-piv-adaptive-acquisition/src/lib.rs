@@ -351,11 +351,14 @@ pub fn schedule_diagnostics(
     let (best, rejected) = select_capability_cover(&required, options, config)?;
     match best {
         Some(plan) => {
-            let selected_actions = plan
+            let mut selected_actions: Vec<DiagnosticOption> = plan
                 .option_indices
                 .iter()
                 .map(|index| options[*index].clone())
                 .collect();
+            selected_actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+            let observer_requalification_required = plan.observer_requalification_required
+                || trigger_reasons.contains(&TriggerReason::ObserverStateUnqualified);
             Ok(ScheduleReport {
                 disposition: ScheduleDisposition::AcquireDiagnostics,
                 target,
@@ -364,7 +367,7 @@ pub fn schedule_diagnostics(
                 selected_actions,
                 total_cost_units: plan.cost,
                 total_latency_seconds: plan.latency,
-                observer_requalification_required: plan.observer_requalification_required,
+                observer_requalification_required,
                 rejected_subset_counts: rejected,
                 abstention_reason: None,
                 claim_boundary: "schedules diagnostics only; claims remain blocked until required evidence receipts are reconciled",
@@ -1124,6 +1127,42 @@ mod tests {
         .unwrap();
         assert_eq!(report.total_cost_units, 2);
         assert_eq!(report.selected_actions[0].action_id, "piv-hires");
+    }
+
+    #[test]
+    fn action_catalog_permutation_preserves_selected_plan() {
+        let mut options = catalog();
+        let mut sample = snapshot();
+        sample.out_of_domain_score = Some(0.95);
+        let baseline = schedule_diagnostics(
+            EvidenceTarget::ThreeDimensionalVelocity,
+            &sample,
+            &config(),
+            &options,
+        )
+        .unwrap();
+        options.reverse();
+        let permuted = schedule_diagnostics(
+            EvidenceTarget::ThreeDimensionalVelocity,
+            &sample,
+            &config(),
+            &options,
+        )
+        .unwrap();
+        let baseline_ids: Vec<_> = baseline
+            .selected_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect();
+        let permuted_ids: Vec<_> = permuted
+            .selected_actions
+            .iter()
+            .map(|action| action.action_id.as_str())
+            .collect();
+        assert_eq!(baseline_ids, permuted_ids);
+        assert_eq!(baseline.total_cost_units, permuted.total_cost_units);
+        assert_eq!(baseline.total_latency_seconds, permuted.total_latency_seconds);
+        assert!(permuted.observer_requalification_required);
     }
 
     #[test]
