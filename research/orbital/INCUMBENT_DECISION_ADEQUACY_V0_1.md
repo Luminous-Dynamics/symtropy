@@ -17,35 +17,51 @@ This benchmark composes existing owners:
 
 The new evaluator does not reproduce their semantics. It consumes an already qualified finite contract and answers only whether the incumbent remains inside a declared retention envelope.
 
-## 2. Exact v0.1 rule
+## 2. Exact v0.1 rule: common-action worst-case improvement
 
 For every surviving world (w), let (F(w)) be its feasible action set and (L(a,w)) the declared loss of action (a).
 
-For incumbent (a_0):
+The comparator must not choose a different action for each hidden world. Such a per-world optimum is clairvoyant: it assumes knowledge the decision-maker does not possess. Instead derive the common feasible action set:
 
 [
-R(a_0,w)=L(a_0,w)-min_{ain F(w)}L(a,w)
+F_{\mathrm{common}}=\bigcap_{w\in W_{\mathrm{surv}}}F(w)
 ]
 
+Every candidate in this set is feasible in every surviving world. For each common action, compute its worst-case loss:
+
 [
-R_{max}(a_0)=max_{win W_{mathrm{surv}}}R(a_0,w)
+M(a)=\max_{w\in W_{\mathrm{surv}}}L(a,w)
+]
+
+Choose a deterministic reference comparator, minimizing (M(a)) over the common set; break ties by action ID:
+
+[
+a_{\mathrm{ref}}\in\arg\min_{a\in F_{\mathrm{common}}}M(a)
+]
+
+The incumbent’s worst-case loss and common-action improvement are:
+
+[
+M_0=M(a_0),\qquad
+\Delta_{\mathrm{common}}=M_0-M(a_{\mathrm{ref}})\geq0
 ]
 
 The retention threshold is:
 
 [
-	au=epsilon_{mathrm{materiality}}+C_{mathrm{switch}}
+\tau=\epsilon_{\mathrm{materiality}}+C_{\mathrm{switch}}
 ]
 
-where (epsilon_{mathrm{materiality}}) and (C_{mathrm{switch}}) are separately declared, non-negative values in the same exact integer loss unit.
+where materiality and switching cost are separately declared, non-negative values in the same exact integer loss unit.
 
-- **RETAIN_INCUMBENT:** only if all upstream gates are current, the action universe is closed within its declared scope, at least one surviving world exists, the incumbent is feasible in every surviving world, and (R_{max}(a_0)leq	au).
-- **REOPTIMIZATION_WARRANTED:** a valid closed finite model shows the incumbent infeasible in any surviving world or (R_{max}(a_0)>	au). This is a review trigger, not a replacement-action selection or execution command.
-- **ABSTAIN:** empty surviving set, open/stale/indeterminate upstream state, inadequate model family, stale/contradictory evidence, scope mismatch, empty feasible world, or incomplete loss matrix.
+- **RETAIN_INCUMBENT:** only if all upstream evidence gates are current, both the action domain and dependency graph are closed within their declared grammars, at least one world survives, the incumbent is feasible in every surviving world, and (\Delta_{\mathrm{common}}\leq\tau).
+- **REOPTIMIZATION_WARRANTED:** a valid closed finite model shows the incumbent infeasible in any surviving world or (\Delta_{\mathrm{common}}>\tau). This is a review trigger, not a replacement-action selection or execution command.
+- **ABSTAIN:** empty surviving set, open/stale/indeterminate upstream state, inadequate model family or dependency graph, stale/contradictory evidence, scope/loss-unit mismatch, empty feasible world or incomplete loss matrix.
 - **INVALID_INPUT:** malformed/duplicated identities, invalid costs/losses, unknown feasible actions, duplicate loss rows or arithmetic overflow.
 
-Threshold equality retains the incumbent. The evaluator never invents scenario probabilities or averages across worlds.
+The reference common action is an analytical benchmark only; it is not returned as an action recommendation. Threshold equality retains the incumbent. The evaluator never invents scenario probabilities or averages across worlds.
 
+This v0.1 comparator is a *static non-anticipative baseline*: one action must work across all current worlds without knowing the hidden world ID. More capable observation-contingent policies belong to #6997 and must branch only on admissible observable outcomes.
 ## 3. Why this differs from a generic drift alarm
 
 A KS/MMD or changepoint alarm asks whether observations changed. It does not establish that the deployed action's optimality gap changed.
@@ -59,8 +75,8 @@ A distribution can change while the incumbent remains within the finite-world re
 The 16 cases cover:
 1. Stable incumbent retention with non-zero exact regret.
 2. Decision-irrelevant world changes that leave the incumbent optimal.
-3. Different world-specific optimal actions while incumbent regret remains within the retention margin.
-4. Worst-case regret strictly above the materiality-plus-switching threshold.
+3. Opposite world-specific optima that would make a hindsight comparator appear beneficial, while no single common feasible action improves worst-case loss.
+4. Common-action worst-case improvement strictly above the materiality-plus-switching threshold.
 5. Exact equality at the threshold, which must retain.
 6. Incumbent infeasibility in one surviving world, which triggers review.
 7. Empty surviving-world set, which abstains.
@@ -80,17 +96,17 @@ Compare on identical world sets, feasible sets, objective units and compute budg
 - fixed-calendar re-optimization;
 - re-optimize on any KS/MMD or registered changepoint alert;
 - RADAR-style regret-based operational-suboptimality monitoring, under its stated preference/distribution assumptions;
-- finite-world worst-case regret retention gate;
+- finite-world common-action worst-case improvement gate;
 - expected-regret trigger only where probabilities are justified and calibrated;
 - exact exhaustive finite oracle on small cases;
-- clairvoyant selector/trigger as unattainable upper bound only.
+- per-world clairvoyant comparator as an unattainable diagnostic upper bound only; it must never drive the gate.
 
 For stochastic evaluation, preregister regime transitions, observation budgets, preference uncertainty, campaign-wise error levels, minimum worthwhile regret gap, sample size, multiplicity and stopping protocol. Never compare one method on held-out worlds against another on its training worlds.
 
 ## 6. Metrics and prospective targets
 
 Targets, not measured achievements:
-- zero false-retain outcomes when exact finite oracle regret exceeds the registered threshold;
+- zero false-retain outcomes when exact common-action improvement exceeds the registered threshold;
 - zero retention when the incumbent is infeasible in any surviving world;
 - zero retain decisions with an open action universe, stale evidence or incomplete loss matrix;
 - zero false re-optimization on controls where the incumbent remains within the retention envelope;
