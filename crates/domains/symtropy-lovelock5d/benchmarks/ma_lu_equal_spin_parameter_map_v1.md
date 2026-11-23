@@ -1,64 +1,28 @@
 # Ma–Lü equal-spin Myers–Perry parameter map
 
-**Status:** exact kinematic relations and a SymPy series-inversion check, locally executed 23 November 2026.
+**Status:** exact kinematic relations and exact-symbolic series checks.
 
-The Ma–Lü paper defines the dimensionless rotations in Eq. (2.9) as
+The published PDF Eq. (10) explicitly defines chi_a=a/mu and chi_b=b/mu. The square root inserted by an intermediate extraction was incorrect. For a scale-explicit comparison, use chi*r_h.
+
+For equal spins, set q=a/r_h and nu_h=Omega_H*r_h. The MP horizon and angular-velocity equations give
 \[
-\chi_a=\frac{a}{\sqrt{\mu}},\qquad \chi_b=\frac{b}{\sqrt{\mu}}.
+\mu/r_h^2=(1+q^2)^2/2,\qquad \nu_h=q/(1+q^2),\qquad \chi r_h=2q/(1+q^2)^2.
 \]
-The square root is explicit in the published PDF. The earlier transcription \(\chi=a/\mu\) was incorrect and is superseded.
-
-## Exact equal-spin relations
-
-The five-dimensional MP horizon function and angular velocities are
+The inverse physical-spin series is
 \[
-\Delta_r=\frac{(r^2+a^2)(r^2+b^2)}{r^2}-2\mu,\qquad
-\Omega_a=\frac{a}{r_h^2+a^2},\quad
-\Omega_b=\frac{b}{r_h^2+b^2}.
+q=\nu_h+\nu_h^3+2\nu_h^5+5\nu_h^7+14\nu_h^9+42\nu_h^{11}+O(\nu_h^{13}),
 \]
-For \(a=b\), define \(q=a/r_h\) and \(\nu=\Omega_Hr_h\). Then
+while the paper's parameter maps as
 \[
-\mu=\frac{r_h^2}{2}(1+q^2)^2,\qquad
-\nu=\frac{q}{1+q^2}.
+\chi r_h=2\nu_h-2\nu_h^3-2\nu_h^5-4\nu_h^7-10\nu_h^9-28\nu_h^{11}+O(\nu_h^{13}).
 \]
-Using Eq. (2.9),
+
+As an independent check, set y=chi*r_h. Inverting gives q=y/2+y^3/4+9y^5/32+..., and the exact horizon relation yields
 \[
-\chi=\frac{a}{\sqrt{\mu}}
-=\frac{\sqrt{2}\,q}{1+q^2}
-=\boxed{\sqrt{2}\,\nu}.
+\mu/r_h^2=1/2+y^2/4+9y^4/32+O(y^6),
 \]
-This relation is exact on the equal-spin branch. There is no dimensional ambiguity in the definition of \(\chi\).
+matching Eq. (50) specialized to equal spins.
 
-The inverse relation for the physical MP ratio \(q\) is
-\[
-q=\frac{1-\sqrt{1-4\nu^2}}{2\nu}
-=\nu+\nu^3+2\nu^5+5\nu^7+14\nu^9+42\nu^{11}+O(\nu^{13}).
-\]
-Thus \(q\) and Symtropy's \(\nu\) agree only at leading slow-spin order, while the paper's expansion parameter is exactly \(\chi=\sqrt2\nu\).
+The first-coupling source identity gives alpha_R=alpha_GB/4 for the Ricci-flat MP background, or alpha_R/r_h^2=lambda/4 at the same horizon radius. This is not a finite-coupling equivalence.
 
-## Mass-series cross-check
-
-Ma–Lü's Eq. (3.9), specialized to equal spins, gives
-\[
-\frac{\mu}{r_h^2}
-=\frac12+\frac{\chi^2}{2}
-+\frac{5\chi^4}{8}
-+\frac{7\chi^6}{8}
-+O(\chi^8).
-\]
-The exact horizon relation above reproduces this series after eliminating \(q\). The verifier checks this identity through \(\chi^6\).
-
-## Candidate first-coupling action normalization
-
-Symtropy's reduced action uses \(R+\alpha_{\rm GB}\mathcal L_{\rm GB}/4\), whereas Ma–Lü use \(R+\alpha_R R_{\mu\nu\rho\sigma}R^{\mu\nu\rho\sigma}\). On a Ricci-flat MP background, the two curvature-squared Euler tensors reduce to the same tensor, so the first-order source map is
-\[
-\alpha_R=\frac{\alpha_{\rm GB}}{4},\qquad
-\epsilon_R=\frac{\alpha_R}{r_h^2}=\frac{\lambda}{4}
-\]
-at matched horizon radius. This identity applies to the first-order coupling correction about MP, not to generic finite-coupling metrics.
-
-## Reproduction
-
-\`derive_ma_lu_equal_spin_parameter_map.py\` checks the horizon identity, angular-velocity relation, Eq. (2.9) \(\chi=a/\sqrt{\mu}\), the exact \(\chi=\sqrt2\nu\) relation, the inverse series through \(\nu^{11}\), the Eq. (3.9) mass-series cross-check, and the first-coupling normalization. The script and JSON fixture record source hashes and Python/SymPy versions.
-
-Claim ceiling: exact kinematic conversion and first-coupling coefficient normalization only. The metric/gauge transformation, component comparison, original-row checks and thermodynamic comparison remain open.
+The committed SymPy script checks the exact horizon and spin maps, inverse series through nu_h^11, Eq. (50) through y^4, and the action coefficient map. It does not claim a corrected metric comparison or finite-coupling EGB result.
