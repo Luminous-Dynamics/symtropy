@@ -18,6 +18,10 @@ use std::collections::BTreeSet;
 
 use crate::space_time_partition::Rational;
 
+fn is_empty_digest(digest: &[u8; 32]) -> bool {
+    digest.iter().all(|byte| *byte == 0)
+}
+
 /// A validated finite mission scope for event aggregation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MissionRiskScope {
@@ -49,6 +53,17 @@ impl MissionRiskScope {
     ) -> Result<Self, RiskSemanticsError> {
         if horizon_end_seconds <= horizon_start_seconds {
             return Err(RiskSemanticsError::InvalidMissionHorizon);
+        }
+        if [
+            &mission_digest,
+            &model_digest,
+            &probability_measure_digest,
+            &conditioning_set_digest,
+        ]
+        .iter()
+        .any(|digest| is_empty_digest(digest))
+        {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
         }
         Ok(Self {
             mission_digest,
@@ -82,6 +97,9 @@ impl ConditionalCollisionProbability {
     ) -> Result<Self, RiskSemanticsError> {
         if value > Rational::from_integer(1) {
             return Err(RiskSemanticsError::ProbabilityOutsideUnitInterval);
+        }
+        if is_empty_digest(&probability_measure_digest) || is_empty_digest(&conditioning_digest) {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
         }
         Ok(Self {
             value,
@@ -136,6 +154,9 @@ impl CollisionNullPValue {
     ) -> Result<Self, RiskSemanticsError> {
         if value > Rational::from_integer(1) {
             return Err(RiskSemanticsError::ProbabilityOutsideUnitInterval);
+        }
+        if is_empty_digest(&calibration_digest) {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
         }
         Ok(Self {
             value,
@@ -236,6 +257,9 @@ impl CollisionDetectionProbability {
         if value > Rational::from_integer(1) {
             return Err(RiskSemanticsError::ProbabilityOutsideUnitInterval);
         }
+        if is_empty_digest(&policy_digest) {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
+        }
         Ok(Self {
             value,
             condition,
@@ -271,16 +295,19 @@ pub struct ExpectedCollisionCount {
 
 impl ExpectedCollisionCount {
     /// Construct a nonnegative expected collision count and bind its evidence.
-    pub const fn new(
+    pub fn new(
         value: Rational,
         exposure_digest: [u8; 32],
         environment_digest: [u8; 32],
-    ) -> Self {
-        Self {
+    ) -> Result<Self, RiskSemanticsError> {
+        if is_empty_digest(&exposure_digest) || is_empty_digest(&environment_digest) {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
+        }
+        Ok(Self {
             value,
             exposure_digest,
             environment_digest,
-        }
+        })
     }
 
     /// Return the expected collision count; this is not a probability.
@@ -353,6 +380,8 @@ pub enum RiskSemanticsError {
     InvalidMissionHorizon,
     /// A probability quantity lies outside [0, 1].
     ProbabilityOutsideUnitInterval,
+    /// At least one required evidence digest is the all-zero placeholder.
+    InvalidEvidenceDigest,
     /// P-value test threshold is not in (0, 1].
     InvalidTestThreshold,
     /// Event does not belong to the mission scope being aggregated.
@@ -373,6 +402,7 @@ impl core::fmt::Display for RiskSemanticsError {
         let message = match self {
             Self::InvalidMissionHorizon => "mission risk horizon must have increasing endpoints",
             Self::ProbabilityOutsideUnitInterval => "probability quantity must lie in [0, 1]",
+            Self::InvalidEvidenceDigest => "required evidence digest must not be all zero",
             Self::InvalidTestThreshold => "p-value test threshold must lie in (0, 1]",
             Self::EventScopeMismatch => "mission event scope differs from aggregation scope",
             Self::ProbabilityMeasureMismatch => {
@@ -411,6 +441,12 @@ pub fn aggregate_mission_collision_risk(
     events: &[MissionConjunctionEvent],
     dependence_mode: EventDependenceMode,
 ) -> Result<MissionCollisionRiskReport, RiskSemanticsError> {
+    if let EventDependenceMode::MutuallyIndependent { assumption_digest } = dependence_mode
+        && is_empty_digest(&assumption_digest)
+    {
+        return Err(RiskSemanticsError::InvalidEvidenceDigest);
+    }
+
     let mut ids = BTreeSet::new();
     let mut inventory = Vec::with_capacity(events.len());
     let mut lower = Rational::from_integer(0);
@@ -423,6 +459,9 @@ pub fn aggregate_mission_collision_risk(
     for event in events {
         if event.scope != scope {
             return Err(RiskSemanticsError::EventScopeMismatch);
+        }
+        if is_empty_digest(&event.cdm_revision_digest) {
+            return Err(RiskSemanticsError::InvalidEvidenceDigest);
         }
         if !ids.insert(event.conjunction_id) {
             return Err(RiskSemanticsError::DuplicateConjunctionIdentity);
@@ -629,6 +668,74 @@ mod tests {
     }
 
     #[test]
+    fn zero_mission_provenance_digest_is_rejected() {
+        assert_eq!(
+            MissionRiskScope::new([0; 32], [2; 32], [3; 32], [4; 32], 0, 1),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+    }
+
+    #[test]
+    fn zero_probability_measure_or_conditioning_digest_is_rejected() {
+        assert_eq!(
+            ConditionalCollisionProbability::new(rational(1, 10), [0; 32], [4; 32]),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+        assert_eq!(
+            ConditionalCollisionProbability::new(rational(1, 10), [3; 32], [0; 32]),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+    }
+
+    #[test]
+    fn zero_cdm_or_independence_assumption_digest_is_rejected() {
+        let mut invalid_revision = event(1, 1, 10);
+        invalid_revision.cdm_revision_digest = [0; 32];
+        assert_eq!(
+            aggregate_mission_collision_risk(
+                scope(),
+                &[invalid_revision],
+                EventDependenceMode::Unknown,
+            ),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+        assert_eq!(
+            aggregate_mission_collision_risk(
+                scope(),
+                &[event(1, 1, 10)],
+                EventDependenceMode::MutuallyIndependent {
+                    assumption_digest: [0; 32],
+                },
+            ),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+    }
+
+    #[test]
+    fn zero_calibration_policy_and_exposure_digests_are_rejected() {
+        assert_eq!(
+            CollisionNullPValue::new(
+                rational(1, 10),
+                CollisionNullHypothesis::DirectHit,
+                [0; 32],
+            ),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+        assert_eq!(
+            CollisionDetectionProbability::new(
+                rational(1, 2),
+                CollisionDetectionCondition::DirectHit,
+                [0; 32],
+            ),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+        assert_eq!(
+            ExpectedCollisionCount::new(rational(2, 1), [0; 32], [8; 32]),
+            Err(RiskSemanticsError::InvalidEvidenceDigest)
+        );
+    }
+
+    #[test]
     fn invalid_mission_horizon_is_rejected() {
         assert_eq!(
             MissionRiskScope::new([1; 32], [2; 32], [3; 32], [4; 32], 5, 5),
@@ -715,7 +822,7 @@ mod tests {
 
     #[test]
     fn expected_collision_count_is_not_capped_at_one() {
-        let count = ExpectedCollisionCount::new(rational(7, 2), [7; 32], [8; 32]);
+        let count = ExpectedCollisionCount::new(rational(7, 2), [7; 32], [8; 32]).unwrap();
         assert_eq!(count.value(), rational(7, 2));
     }
 
