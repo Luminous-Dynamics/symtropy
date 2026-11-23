@@ -60,17 +60,18 @@ Unknown support, normal, calibration or frame information must produce NOT_CERTI
 
 ## 4. Occlusion contract
 
-A single centre ray cannot certify a whole patch. The reference implementation must reason about the set of rays from p to S. For voxel occupancy, a conservative first implementation may construct an enclosing ray cone / visibility volume and classify any occupied non-target cell intersecting that volume as an obstruction candidate. This can create false blocks; it must not create false clears.
+A single centre ray cannot certify a whole patch. The reference implementation must reason about the set of rays from p to S. For voxel occupancy, a conservative first implementation may construct an enclosing ray cone / visibility volume that encloses every segment from p to every point in S.
 
-An obstruction candidate intersecting only part of the support should not be reported as the entire support being blocked. Use a support partition or explicit partial-support result. Whole-support BLOCKED is allowed only when the model proves all relevant support points fail the visibility test. Define target-cell exclusion, edge tangency and boundary-contact semantics explicitly.
+An occupied non-target cell intersecting this conservative volume is a potential obstruction. If the intersection may be an artefact of an over-approximation rather than an actual support ray, the result is INDETERMINATE, not blocked. If an actual subset of support rays is proven blocked while another subset is proven visible, report PARTIAL. CERTIFIED_NOT_FULLY_VISIBLE requires a concrete support point or non-zero support subset proven to fail; an upper bound that merely exceeds a threshold is not proof of failure. CERTIFIED_BLOCKED is reserved for proof that the entire required support is blocked or outside the envelope. Define target-cell exclusion, edge tangency and boundary-contact semantics explicitly.
 
 For small triangle fixtures, compare the conservative volume method against independent deterministic pointwise ray casting over a dense surface sample. Dense sampling is a reference test, not a mathematical proof of full-support visibility.
 
 ## 5. Required result model
 
 - CERTIFIED_VISIBLE: all declared support passes the range, FOV, incidence, GSD and occlusion bounds.
-- CERTIFIED_NOT_FULLY_VISIBLE: a non-empty support subset is proven to fail the declared envelope or visibility requirement; report the failing support region and reason.
-- PARTIAL: covered and failed support subsets are both proven; report covered measure and total measure.
+- CERTIFIED_NOT_FULLY_VISIBLE: at least one concrete support point or non-zero support subset is proven to fail the declared envelope or visibility requirement; report the failing support region and reason.
+- PARTIAL: a visible support subset and a failed support subset are both proven; report covered measure and total measure.
+- CERTIFIED_BLOCKED is a stronger optional disposition, reserved for proof that the entire required support is blocked or outside the envelope.
 - INDETERMINATE: the support or interval/occlusion bounds are insufficient to decide.
 - INVALID_INPUT: malformed support identity, frame, units, calibration, normal cone or camera model.
 
