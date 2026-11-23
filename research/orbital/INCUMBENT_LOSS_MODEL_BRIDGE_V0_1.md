@@ -51,7 +51,7 @@ Receipt IDs and digests are structural pins only. They do not authenticate the i
 
 ## 3. Exact rational-to-integer loss projection
 
-The upstream joint-loss evaluator stores exact rational losses. The incumbent v0.1 evaluator operates on exact non-negative integer losses in one declared target unit. A silent float conversion or rounding step would break the evidentiary chain.
+The upstream joint-loss evaluator stores exact rational losses. The incumbent v0.1 evaluator operates on exact non-negative integer losses in one declared target unit. The source loss vector must contain one row for every declared action, including actions excluded from that scenario's feasible set; excluded-action losses are preserved in the evidence digest but never enter the feasible comparator. A silent float conversion or rounding step would break the evidentiary chain.
 
 For each source loss (n/d), the bridge carries:
 - source numerator (n);
@@ -67,7 +67,7 @@ The conversion is accepted only when:
 z = rac{n,p}{d,q} in mathbb{Z}_{geq 0}
 ]
 
-The evaluator computes this using integer arithmetic and rejects:
+The evaluator recognizes only two v0.1 projection contracts: `exact-rational-to-integer-identity-v1` (source and target units identical, scale 1/1) and `normalized-loss-times-1000-exact-v1` (source `normalized_loss`, target `loss_micro_units`, scale 1000/1). An unknown identifier or a mismatched unit/scale pair is rejected. The evaluator computes the admitted conversions using integer arithmetic and rejects:
 - zero denominators;
 - scale overflow or unsafe JSON integer values;
 - a non-integral quotient;
@@ -100,7 +100,7 @@ Stale/indeterminate/out-of-profile/inadequate loss-model sets abstain. Per-scena
 
 ## 5. Frozen v0.1 bridge controls
 
-The 29-case corpus now includes the prior 16 incumbent cases plus:
+The 30-case corpus now includes the prior 16 incumbent cases plus:
 - stale, inadequate and out-of-profile loss-model manifests;
 - an out-of-profile per-scenario loss receipt;
 - an indeterminate per-scenario loss receipt;
