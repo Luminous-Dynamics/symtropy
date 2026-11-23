@@ -9,7 +9,7 @@
 
 use crate::fault_campaign::{
     BenchmarkArm, CampaignError, ControlClass, ExpectedDisposition, FaultCampaignManifest,
-    FaultInjection, FaultLayer, FaultCutPoint,
+    FaultCutPoint, FaultInjection, FaultLayer,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -31,6 +31,14 @@ pub struct CompiledPlatformBinding {
     pub platform_id: String,
     pub platform_profile_sha256: String,
     pub environment_artifact_sha256: String,
+    pub simulator_revision: String,
+    pub ros_distribution: String,
+    pub middleware_revision: String,
+    pub controller_revision: String,
+    pub driver_revision: String,
+    pub firmware_revision: String,
+    pub calibration_revision: String,
+    pub observer_stack_revision: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
     pub native_adapter_revision: String,
@@ -177,6 +185,14 @@ impl CompiledCampaignPlan {
             platform_id: manifest.platform.platform_id.clone(),
             platform_profile_sha256: manifest.platform.profile_sha256.clone(),
             environment_artifact_sha256: manifest.platform.environment_artifact_sha256.clone(),
+            simulator_revision: manifest.platform.simulator_revision.clone(),
+            ros_distribution: manifest.platform.ros_distribution.clone(),
+            middleware_revision: manifest.platform.middleware_revision.clone(),
+            controller_revision: manifest.platform.controller_revision.clone(),
+            driver_revision: manifest.platform.driver_revision.clone(),
+            firmware_revision: manifest.platform.firmware_revision.clone(),
+            calibration_revision: manifest.platform.calibration_revision.clone(),
+            observer_stack_revision: manifest.platform.observer_stack_revision.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
             fault_injector_sha256: manifest.platform.fault_injector_sha256.clone(),
             native_adapter_revision: manifest.platform.native_adapter_revision.clone(),
@@ -394,6 +410,61 @@ mod tests {
             original_negative.pair_commitment_sha256,
             changed_negative.pair_commitment_sha256
         );
+    }
+
+    #[test]
+    fn reordering_fault_events_changes_schedule_and_pair_commitments() {
+        let original = CompiledCampaignPlan::compile(&manifest(), &"a".repeat(64)).unwrap();
+        let mut reordered = manifest();
+        for scenario in &mut reordered.scenarios {
+            if scenario.pair_id == "pair-negative-001" {
+                scenario.faults.swap(0, 1);
+                for (index, fault) in scenario.faults.iter_mut().enumerate() {
+                    fault.sequence = index as u32 + 1;
+                }
+            }
+        }
+        let changed = CompiledCampaignPlan::compile(&reordered, &"a".repeat(64)).unwrap();
+        let original_pair = original
+            .pairs
+            .iter()
+            .find(|pair| pair.pair_id == "pair-negative-001")
+            .unwrap();
+        let changed_pair = changed
+            .pairs
+            .iter()
+            .find(|pair| pair.pair_id == "pair-negative-001")
+            .unwrap();
+        assert_ne!(
+            original_pair.pair_commitment_sha256,
+            changed_pair.pair_commitment_sha256
+        );
+        let original_scenario = original
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "negative-full-rrvr")
+            .unwrap();
+        let changed_scenario = changed
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == "negative-full-rrvr")
+            .unwrap();
+        assert_ne!(original_scenario.schedule_sha256, changed_scenario.schedule_sha256);
+    }
+
+    #[test]
+    fn plan_binding_retains_every_platform_component_revision() {
+        let manifest = manifest();
+        let plan = CompiledCampaignPlan::compile(&manifest, &"a".repeat(64)).unwrap();
+        assert_eq!(plan.platform.simulator_revision, manifest.platform.simulator_revision);
+        assert_eq!(plan.platform.ros_distribution, manifest.platform.ros_distribution);
+        assert_eq!(plan.platform.middleware_revision, manifest.platform.middleware_revision);
+        assert_eq!(plan.platform.controller_revision, manifest.platform.controller_revision);
+        assert_eq!(plan.platform.driver_revision, manifest.platform.driver_revision);
+        assert_eq!(plan.platform.firmware_revision, manifest.platform.firmware_revision);
+        assert_eq!(plan.platform.calibration_revision, manifest.platform.calibration_revision);
+        assert_eq!(plan.platform.observer_stack_revision, manifest.platform.observer_stack_revision);
+        assert_eq!(plan.platform.fault_injector_sha256, manifest.platform.fault_injector_sha256);
     }
 
     #[test]
