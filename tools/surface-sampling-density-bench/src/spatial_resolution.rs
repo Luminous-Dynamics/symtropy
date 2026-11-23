@@ -7,7 +7,7 @@ pub const RECEIPT_SCHEMA: &str = "luminous.orbital-sampling-density.spatial-reso
 pub const BENCHMARK_ID: &str = "ORBITAL-SPATIAL-RESOLUTION-001";
 pub const CLAIM_CEILING: &str =
     "synthetic_spatial_resolution_density_matrix_with_visibility_fallback_only";
-pub const CASE_COUNT: usize = 5;
+pub const CASE_COUNT: usize = 6;
 const DENSITY_NUMERATOR_SCALE: u128 = 1_000_000_000_000_000_000;
 const NORMALIZED_RATIO_SCALE: u128 = 1_000_000;
 
@@ -30,6 +30,7 @@ pub struct SpatialResolutionCase {
     pub selected_view_ids: Vec<String>,
     pub max_selected_views: usize,
     pub elements: Vec<SpatialResolutionElement>,
+    pub expected_status: CaseStatus,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -58,7 +59,7 @@ pub enum ElementMode {
     InfeasibleNoCandidateVisibility,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CaseStatus {
     Feasible,
@@ -123,6 +124,8 @@ pub struct CaseReceipt {
     pub density_mode_element_count: usize,
     pub density_targets_guaranteed_count: usize,
     pub selected_requirements_met: bool,
+    pub expected_status: CaseStatus,
+    pub expected_status_matches: bool,
     pub input_sha256: String,
     pub elements: Vec<ElementReceipt>,
 }
@@ -456,6 +459,8 @@ fn evaluate_case(case: &SpatialResolutionCase) -> Result<CaseReceipt, String> {
         density_mode_element_count: density_mode_count,
         density_targets_guaranteed_count: guaranteed_count,
         selected_requirements_met: all_selected_requirements_met && selected_view_budget_met,
+        expected_status: case.expected_status,
+        expected_status_matches: status == case.expected_status,
         input_sha256: sha256_hex(&bytes),
         elements: element_receipts,
     })
@@ -498,6 +503,8 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<CorpusReceipt, 
                     density_mode_element_count: 0,
                     density_targets_guaranteed_count: 0,
                     selected_requirements_met: false,
+                    expected_status: case.expected_status,
+                    expected_status_matches: false,
                     input_sha256: sha256_hex(&bytes),
                     elements: Vec::new(),
                 }
@@ -551,6 +558,7 @@ mod tests {
         selected: &[&str],
         max_views: usize,
         elements: Vec<SpatialResolutionElement>,
+        expected_status: CaseStatus,
     ) -> SpatialResolutionCase {
         SpatialResolutionCase {
             case_id: id.to_owned(),
@@ -559,6 +567,7 @@ mod tests {
             selected_view_ids: selected.iter().map(|value| (*value).to_owned()).collect(),
             max_selected_views: max_views,
             elements,
+            expected_status,
         }
     }
 
@@ -570,6 +579,7 @@ mod tests {
             &["V1"],
             1,
             vec![element(1_500, vec![count("V1", 5)])],
+            CaseStatus::Feasible,
         );
         let receipt = evaluate_case(&case).unwrap();
         let element = &receipt.elements[0];
@@ -588,6 +598,7 @@ mod tests {
             &["V1"],
             1,
             vec![element(2_000, vec![count("V1", 5)])],
+            CaseStatus::FeasibleVisibilityFallback,
         );
         let receipt = evaluate_case(&case).unwrap();
         assert_eq!(receipt.elements[0].mode, ElementMode::BinaryVisibilityFallback);
@@ -604,6 +615,7 @@ mod tests {
             &["V1", "V2"],
             2,
             vec![element(3_000, vec![count("V1", 5), count("V2", 5)])],
+            CaseStatus::Feasible,
         );
         let receipt = evaluate_case(&case).unwrap();
         assert_eq!(receipt.elements[0].mode, ElementMode::SpatialResolutionDensity);
@@ -619,10 +631,27 @@ mod tests {
             &["V1", "V2"],
             2,
             vec![element(3_163, vec![count("V1", 5), count("V2", 5)])],
+            CaseStatus::Indeterminate,
         );
         let receipt = evaluate_case(&case).unwrap();
         assert_eq!(receipt.elements[0].mode, ElementMode::Indeterminate);
         assert_eq!(receipt.status, CaseStatus::Indeterminate);
+    }
+
+    #[test]
+    fn selected_subset_below_density_target_is_budget_infeasible() {
+        let case = case(
+            "KNOWN-SELECTED-BUDGET",
+            &["V1", "V2"],
+            &["V1"],
+            1,
+            vec![element(3_000, vec![count("V1", 5), count("V2", 5)])],
+            CaseStatus::BudgetInfeasible,
+        );
+        let receipt = evaluate_case(&case).unwrap();
+        assert_eq!(receipt.status, CaseStatus::BudgetInfeasible);
+        assert!(receipt.elements[0].candidate_density_guaranteed);
+        assert!(!receipt.elements[0].selected_density_guaranteed);
     }
 
     #[test]
@@ -633,6 +662,7 @@ mod tests {
             &[],
             1,
             vec![element(2_000, vec![count("V1", 0)])],
+            CaseStatus::Infeasible,
         );
         let receipt = evaluate_case(&case).unwrap();
         assert_eq!(receipt.elements[0].mode, ElementMode::InfeasibleNoCandidateVisibility);
