@@ -241,7 +241,7 @@ An independent asymptotic charge check now matches the equal-spin specialization
 =\Delta M_{\rm Ma-Lu}.
 \]
 
-**Remaining boundary:** this is a first-coupling, equal-spin, slow-spin match through \(O(\chi^2)\), not a finite-coupling nonlinear solution. The independent local angular/map checks and exact public-source replay receipts are recorded separately; the consolidated public verifier still has an exact-byte replay outstanding. See #6915 and #6965.
+**Remaining boundary:** this is a first-coupling, equal-spin, slow-spin match through \(O(\chi^2)\), not a finite-coupling nonlinear solution. The consolidated JHEP-version-of-record verifier has been replayed byte-for-byte from its public Git blob; all angular components, fixed-boundary coefficients, and the chi-squared ADM mass check pass. The original-row fixture verifier has also been replayed from its exact public source and fixture. See #6915 and #6965.
 
 ### Li--Hu--Yunes analytic Kerr reconstruction
 
@@ -263,55 +263,63 @@ The matched pair of numerical oracles is now:
 They share the mathematical integral but use distinct quadrature algorithms. Both are numerical checks, not interval enclosures.
 
 
-## Ma--Lü map correction and replay (23 November 2026)
+## Ma–Lü: publisher-version source, exact metric overlap, and spin-10 charge benchmark
 
-The published Eq. (10) defines \(\chi=a/\mu\), not \(a/\sqrt{\mu}\). For equal spins, \(\mu/r_h^2=(1+q^2)^2/2\), \(\nu_h=q/(1+q^2)\), and \(\chi r_h=2q/(1+q^2)^2\). The exact q(\nu_h) and chi*r_h(\nu_h) series are checked through \(\nu_h^{11}\); Eq. (50)'s equal-spin mass-parameter expansion is independently reproduced through \((\chi r_h)^4\). The exact-source parameter script is public blob SHA-1 956ad645c8b90882441a6a76ba89e11dcac99144 and SHA-256 6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c.
-
-The fixed-Symtropy map reports \(\chi R_H=2\nu_S-2\nu_S^3+(52/3)\epsilon_S\nu_S-(2344/15)\epsilon_S\nu_S^3+\cdots\), not a square-root-based chi. This correction supersedes earlier parameter-map drafts.
- 
-## First-coupling 5D MP cross-check: action identity established; validity envelope added
-
-The Ricci-flat Euler-tensor identity now establishes the exact first-coupling source map \(\alpha_R=\alpha_{GB}/4\), so \(\epsilon_R=\lambda/4\) at matched horizon radius. This is a source-level identity about a Ricci-flat MP background, not a finite-coupling equivalence or a completed metric comparison.
-
-The exact Ma--Lü equal-spin kinematic map is checked through \(\nu^{11}\), using the paper's printed \(\chi=a/\mu\) convention. The corrected task and artifacts explicitly prohibit the earlier shorthand \(\chi=\Omega_Hr_H\) at finite spin.
-
-The newly opened #6955 adds a perturbative validity envelope because Wu--Lü (2025) found rotation/ensemble-dependent divergences in first-order MP thermodynamic corrections. Report spin-series truncation, coupling-series truncation, metric/invariant correction size and ensemble dependence separately. A divergent perturbative observable is not proof that the full nonlinear solution fails to exist.
-
-
-## Ma–Lü version-of-record correction and source pin (23 November 2026)
-
-The correct canonical source is the JHEP version of record, published 8 May 2026 (DOI 10.1007/JHEP05(2026)081). It defines \(\chi=a/\sqrt{\mu}\), not \(a/\mu\). The equal-spin relations are
+The canonical source is the JHEP version of record (published 8 May 2026), not an arXiv-v1 text extraction. Eq. (2.9) defines \(\chi=a/\sqrt{\mu}\); for equal spins \(q=a/r_h\),
 \[
 \frac{\mu}{r_h^2}=\frac{(1+q^2)^2}{2},\qquad
-\nu_h=\frac{q}{1+q^2},\qquad
-\chi=\frac{\sqrt2q}{1+q^2}=\sqrt2\,\nu_h.
+\nu_h=\Omega_Hr_h=\frac{q}{1+q^2},\qquad
+\chi=\sqrt2\,\nu_h.
 \]
-The exact \(q(\nu_h)\) inverse is checked through \(\nu_h^{11}\), and Eq. (3.9) is reproduced through \(\chi^6\). Earlier scorecard passages asserting \(\chi=a/\mu\) or \(\chi r_h=2q/(1+q^2)^2\) are superseded.
+Eq. (2.8) includes both angular-axis factors \(x^2d\psi^2\) and \((1-x^2)d\phi^2\). The JHEP version's H5/H6 block and all three angular components have been checked against the Hopf-fibre form.
 
-## Fixed Symtropy boundary map
+The first-coupling source normalization \(\alpha_R=\alpha_{GB}/4\) is established on Ricci-flat MP. At fixed Symtropy \((R_H,\Omega_H)\), the radial/time/fibre profiles reproduce \(B_{21},F_{21},H_{21}\), all four original action-derived rows \(E_b,E_f,E_g,E_h\) vanish exactly on the MP-connected branch (\(c_B=c_H=0\)), and the positive \(E_f\) pivot independently reconstructs \(F_{21}\). The \(H_1\) asymptotic coefficient also matches the independent Ma–Lü ADM/Komar mass result through \(\chi^2\).
 
-The map distinguishes \(\nu_h=\Omega_Hr_h\) from \(\nu_S=\Omega_HR_H\). With \(\epsilon_S=\alpha_R/R_H^2\), its checked series include
+### New independent high-order charge benchmark
+
+A separate exact-source verifier now specializes publisher Eqs. (3.4) and (3.9) to equal spin:
 \[
-\frac{R_H}{r_h}=1+\frac53\epsilon_S+\frac12\nu_S^2+\frac{277}{90}\epsilon_S\nu_S^2+\cdots,
-\]
-\[
-q=\nu_S+\frac12\nu_S^3+\epsilon_S\left(7\nu_S-\frac{3619}{90}\nu_S^3\right)+\cdots,
-\]
-\[
-\frac{a}{R_H}=\nu_S+\frac{16}{3}\epsilon_S\nu_S-\frac{2068}{45}\epsilon_S\nu_S^3+\cdots,
-\]
-\[
-\frac{\mu}{R_H^2}=\frac12-\frac53\epsilon_S+\frac12\nu_S^2+\frac{454}{45}\epsilon_S\nu_S^2+\cdots,
+\frac{\mu}{r_h^2}
+=\frac12+\frac{\chi^2}{2}+\frac{5\chi^4}{8}
++\frac{7\chi^6}{8}+\frac{21\chi^8}{16}
++\frac{33\chi^{10}}{16}+O(\chi^{12}),
 \]
 \[
-\chi=\sqrt2\left(\nu_S-\frac12\nu_S^3+7\epsilon_S\nu_S-\frac{5509}{90}\epsilon_S\nu_S^3\right)+\cdots.
+\Delta M=2\pi-\frac{47\pi}{10}\chi^2
++\frac{1683\pi}{280}\chi^4-\frac{2047\pi}{420}\chi^6
++\frac{37921\pi}{6160}\chi^8-\frac{90107\pi}{20020}\chi^{10}
++O(\chi^{12}).
 \]
-Here \(\mu/R_H^2\) is the converted background MP parameter, not the corrected ADM mass.
+In the zero-coupling Symtropy boundary spin \(\nu_S=\Omega_HR_H\), the correction becomes
+\[
+\Delta M=2\pi-\frac{47\pi}{5}\nu_S^2
++\frac{2341\pi}{70}\nu_S^4-\frac{9143\pi}{105}\nu_S^6
++\frac{184423\pi}{770}\nu_S^8-\frac{655638\pi}{1001}\nu_S^{10}
++O(\nu_S^{12}).
+\]
+This is an independent thermodynamic/charge check; it does not replace field-equation verification.
 
-## Four original equations and asymptotic mass
+At first coupling with fixed Symtropy boundary data, the **total** \(M/R_H^2\) is claimed only through \(O(\epsilon_S\nu_S^2)\), and each \(J/R_H^3\) only through \(O(\epsilon_S\nu_S^3)\). The direct \(\alpha_R\Delta M\) observable correction has the separate \(\nu_S^{10}\) re-expansion above. Do not extend the total fixed-boundary mass to higher spin until the \(H_2/H_4/H_7\) boundary reparameterization is derived to that order.
 
-On the MP-connected branch, \(c_B=c_H=0\) are the zeroth-order homogeneous-mode offsets. Exact rational substitution of the fixed-boundary profiles into the four original Symtropy action rows gives \(E_b=E_f=E_g=E_h=0\), and the algebraic \(E_f\) pivot recovers \(F_{21}\). The horizon sensitivities \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\) are outputs, not \(c_B,c_H\).
+Exact replay record:
+- verify_ma_lu_equal_spin_thermodynamic_charge_series.py
+- Git blob SHA-1 e75dcd96941dadbc1f5f0940521d959060dbc776
+- SHA-256 038f21d147e07da45e1e3bb68e73b9bba8b3f5e102b2e05e250a068b09e31242
+- Python 3.13.5 / SymPy 1.14.0
+- Eq. (3.4), Eq. (3.9), \(\nu_S^{10}\) conversion, H1/Komar check, fixed-boundary \(M,J\) and both negative controls pass.
 
-Ma–Lü Eq. (3.4) is independently matched through \(\chi^2\) from the \(H_1\) asymptotic coefficient and the five-dimensional Komar prefactor. The full angular block also passes direct component checks, including both axis factors. These are all first-coupling / slow-spin results.
+The publisher article page reports no associated research data and no deposited code. Symtropy's public, version-pinned coefficient fixtures and exact-source verifiers therefore provide a meaningful reproducibility contribution, although this alone is not a scientific-performance superiority result.
 
-**Not yet demonstrated:** a finite-positive-coupling corrected rotating BVP, full-domain interval enclosure, local/global uniqueness, or full gravitational strong hyperbolicity. Keep stationary BVP regularity, PDE hyperbolicity, and mode stability as separate qualifications.
+### SOTA position and what would exceed it
+
+Ma–Lü remain the relevant published first-coupling 5D Myers–Perry metric benchmark: their perturbative spin series reaches tenth order in the two rotation parameters. Symtropy's demonstrated metric and original-row match is equal-spin through \(O(\chi^2)\), so it does **not** beat their metric spin order. The added equal-spin charge benchmark independently reproduces the published thermodynamic series through \(\chi^{10}\); it is a reproduction and cross-check, not a new tenth-order metric solution.
+
+A credible route beyond the current frontier is to:
+1. recover and verify the full two-spin coefficient set as machine-readable data, preserving all symmetries and source normalization;
+2. derive the first-order fixed-\((R_H,\Omega_H)\) map to \(O(\nu_S^{10})\), not just the present \(O(\nu_S^2)\) horizon/metric map;
+3. compute transformed metric invariants and thermodynamic quantities in several ensembles, checking Eq. (3.19)'s first law and the fixed-charge thermodynamic relations in Eqs. (3.20)–(3.26);
+4. compare independent spectral/finite-difference solvers at matched precision and cost, with all four original rows and held-out invariants;
+5. continue to finite positive coupling and add interval Newton/Krawczyk or radii-polynomial enclosures for a nontrivial branch segment;
+6. qualify the full gravitational principal symbol and strong hyperbolicity separately from stationary BVP regularity and mode stability.
+
+These are benchmark targets, not achieved results. See #6915, #6955, #6965 and the new spin-10 charge artifacts.
