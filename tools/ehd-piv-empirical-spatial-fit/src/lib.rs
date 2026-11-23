@@ -84,6 +84,9 @@ pub struct EmpiricalSpatialFit {
     /// Mean residual profile learned only from the calibration acquisitions.
     /// It is a bias diagnostic, not an automatic correction.
     pub calibration_mean_bias_profile_m_s: Vec<[f64; 3]>,
+    /// Standard error of the calibration component variance mean across
+    /// complete independent acquisition clusters, in (m/s)^2.
+    pub calibration_component_variance_standard_error_m2_s2: [f64; 3],
     pub maximum_calibration_mean_bias_m_s: f64,
     pub calibration_fit_relative_frobenius_error: f64,
     pub calibration_acquisition_count: usize,
@@ -117,7 +120,16 @@ pub enum QualificationStatus {
     Qualified,
     RejectedNegativeCorrelationLobe,
     RejectedHeldOutVarianceScale,
+    InconclusiveHeldOutVarianceScale,
     RejectedHeldOutCorrelationFit,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VarianceScaleStatus {
+    Equivalent,
+    Rejected,
+    Inconclusive,
+    NotApplicableZeroVariance,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -139,6 +151,11 @@ pub struct SpatialFitValidation {
     /// None is permitted only when both calibration and validation variance
     /// are numerically zero for that component.
     pub validation_to_calibration_variance_ratio: [Option<f64>; 3],
+    /// Approximate 95% acquisition-cluster t/log-delta intervals for each
+    /// variance ratio. None only when both component variances are zero or
+    /// the interval is numerically unresolved.
+    pub variance_ratio_confidence_interval_95: [[Option<f64>; 2]; 3],
+    pub variance_scale_status_by_component: [VarianceScaleStatus; 3],
     pub maximum_validation_relative_variance_error: f64,
     pub maximum_allowed_validation_relative_variance_error: f64,
     pub zero_to_nonzero_variance_component_detected: bool,
@@ -304,6 +321,7 @@ fn validate_fit_record(fit: &EmpiricalSpatialFit) -> Result<(), SpatialFitError>
         || fit.maximum_validation_correlation_error <= 0.0
         || !fit.maximum_validation_relative_variance_error.is_finite()
         || fit.maximum_validation_relative_variance_error <= 0.0
+        || !fit.calibration_component_variance_standard_error_m2_s2.iter().all(|v| v.is_finite() && *v >= 0.0)
         || !fit.negative_lobe_z_threshold.is_finite()
         || fit.negative_lobe_z_threshold < 1.96
         || !fit.maximum_calibration_mean_bias_m_s.is_finite()
@@ -456,18 +474,63 @@ fn matrix_sum(left: Matrix3, right: Matrix3) -> Matrix3 {
     sum
 }
 
-/// Compare held-out marginal variances against the frozen calibration C(0).
-/// Components with zero calibration variance are not assigned an infinite
-/// ratio; a newly non-zero held-out variance is reported as a separate hard
-/// mismatch. The maximum relative error covers components with positive
-/// calibration variance.
+/// Mean and standard error of per-acquisition, spatially averaged component
+/// variances. Acquisition clusters, not vector pairs, are the sampling units.
+fn cluster_variance_summary(
+    fields: &[ResidualField],
+    mean_profile: &[[f64; 3]],
+) -> ([f64; 3], [f64; 3]) {
+    let mut cluster_values = [Vec::with_capacity(fields.len()), Vec::with_capacity(fields.len()), Vec::with_capacity(fields.len())];
+    for field in fields {
+        let mut sums = [0.0_f64; 3];
+        for residual in centered_residuals(field, mean_profile) {
+            for component in 0..3 {
+                sums[component] += residual[component] * residual[component];
+            }
+        }
+        for component in 0..3 {
+            cluster_values[component].push(sums[component] / mean_profile.len() as f64);
+        }
+    }
+    let mut means = [0.0_f64; 3];
+    let mut standard_errors = [0.0_f64; 3];
+    for component in 0..3 {
+        if let Some((mean, standard_error)) = sample_mean_and_se(&cluster_values[component]) {
+            means[component] = mean;
+            standard_errors[component] = standard_error;
+        }
+    }
+    (means, standard_errors)
+}
+
+/// Approximate cluster-level 95% confidence intervals for the ratio of
+/// held-out and calibration component variances. The log-ratio delta method
+/// combines independent acquisition-cluster standard errors; t=2.101 is a
+/// conservative two-sided critical value for at least 20 clusters in each
+/// cohort (df >= 19). Qualification uses an equivalence test: the complete
+/// interval must lie inside [1-margin, 1+margin]. An interval that overlaps
+/// the equivalence boundary without fitting inside is inconclusive.
 fn held_out_variance_scale_metrics(
     calibration: Matrix3,
     validation: Matrix3,
-) -> ([Option<f64>; 3], f64, bool) {
+    calibration_standard_error: [f64; 3],
+    validation_standard_error: [f64; 3],
+    maximum_relative_error: f64,
+) -> (
+    [Option<f64>; 3],
+    [[Option<f64>; 2]; 3],
+    [VarianceScaleStatus; 3],
+    f64,
+    bool,
+) {
+    const T_CRITICAL_95_MIN_20_CLUSTERS: f64 = 2.101;
     let mut ratios = [None; 3];
-    let mut maximum_relative_error = 0.0_f64;
+    let mut intervals = [[None; 2]; 3];
+    let mut statuses = [VarianceScaleStatus::NotApplicableZeroVariance; 3];
+    let mut maximum_observed_relative_error = 0.0_f64;
     let mut zero_to_nonzero = false;
+    let lower_equivalence = 1.0 - maximum_relative_error;
+    let upper_equivalence = 1.0 + maximum_relative_error;
 
     for component in 0..3 {
         let calibration_variance = calibration[component][component].max(0.0);
@@ -475,15 +538,55 @@ fn held_out_variance_scale_metrics(
         if calibration_variance <= MATRIX_EPSILON {
             if validation_variance > MATRIX_EPSILON {
                 zero_to_nonzero = true;
+                statuses[component] = VarianceScaleStatus::Rejected;
             }
-        } else {
-            let ratio = validation_variance / calibration_variance;
-            ratios[component] = Some(ratio);
-            maximum_relative_error =
-                maximum_relative_error.max((ratio - 1.0).abs());
+            continue;
         }
+        if validation_variance <= MATRIX_EPSILON {
+            ratios[component] = Some(0.0);
+            intervals[component] = [Some(0.0), Some(0.0)];
+            statuses[component] = VarianceScaleStatus::Rejected;
+            maximum_observed_relative_error = maximum_observed_relative_error.max(1.0);
+            continue;
+        }
+
+        let ratio = validation_variance / calibration_variance;
+        ratios[component] = Some(ratio);
+        maximum_observed_relative_error =
+            maximum_observed_relative_error.max((ratio - 1.0).abs());
+
+        let relative_calibration_se =
+            calibration_standard_error[component] / calibration_variance;
+        let relative_validation_se =
+            validation_standard_error[component] / validation_variance;
+        let log_ratio_standard_error = relative_calibration_se.hypot(relative_validation_se);
+        if !ratio.is_finite() || !log_ratio_standard_error.is_finite() {
+            statuses[component] = VarianceScaleStatus::Inconclusive;
+            continue;
+        }
+        let half_width = T_CRITICAL_95_MIN_20_CLUSTERS * log_ratio_standard_error;
+        let lower = ratio * (-half_width).exp();
+        let upper = ratio * half_width.exp();
+        if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || lower > upper {
+            statuses[component] = VarianceScaleStatus::Inconclusive;
+            continue;
+        }
+        intervals[component] = [Some(lower), Some(upper)];
+        statuses[component] = if lower >= lower_equivalence && upper <= upper_equivalence {
+            VarianceScaleStatus::Equivalent
+        } else if lower > upper_equivalence || upper < lower_equivalence {
+            VarianceScaleStatus::Rejected
+        } else {
+            VarianceScaleStatus::Inconclusive
+        };
     }
-    (ratios, maximum_relative_error, zero_to_nonzero)
+    (
+        ratios,
+        intervals,
+        statuses,
+        maximum_observed_relative_error,
+        zero_to_nonzero,
+    )
 }
 
 fn zero_lag_covariance(fields: &[ResidualField], mean_profile: &[[f64; 3]]) -> Matrix3 {
@@ -643,6 +746,8 @@ pub fn fit_spatial_error_kernel(
     let coordinates = validate_fields(calibration_fields, &config.protocol_fingerprint, None)?;
     let mean_profile = mean_residual_profile(calibration_fields, coordinates.len());
     let c0 = zero_lag_covariance(calibration_fields, &mean_profile);
+    let (_, calibration_component_variance_standard_error_m2_s2) =
+        cluster_variance_summary(calibration_fields, &mean_profile);
 
     let mut best: Option<CandidateFit> = None;
     for candidate in &config.length_scale_candidates_m {
@@ -678,6 +783,7 @@ pub fn fit_spatial_error_kernel(
         spatial_component_covariance_m2_s2: best.spatial_covariance,
         local_nugget_covariance_m2_s2: best.nugget_covariance,
         calibration_mean_bias_profile_m_s: mean_profile,
+        calibration_component_variance_standard_error_m2_s2,
         maximum_calibration_mean_bias_m_s: maximum_bias,
         calibration_fit_relative_frobenius_error: best.relative_error,
         calibration_acquisition_count: calibration_fields.len(),
@@ -790,8 +896,21 @@ pub fn validate_spatial_error_kernel(
         fit.local_nugget_covariance_m2_s2,
     );
     let validation_c0 = zero_lag_covariance(validation_fields, &validation_mean_profile);
-    let (variance_ratios, maximum_variance_error, zero_to_nonzero_variance) =
-        held_out_variance_scale_metrics(calibration_c0, validation_c0);
+    let (_, validation_component_variance_standard_error_m2_s2) =
+        cluster_variance_summary(validation_fields, &validation_mean_profile);
+    let (
+        variance_ratios,
+        variance_ratio_confidence_intervals,
+        variance_scale_status_by_component,
+        maximum_variance_error,
+        zero_to_nonzero_variance,
+    ) = held_out_variance_scale_metrics(
+        calibration_c0,
+        validation_c0,
+        fit.calibration_component_variance_standard_error_m2_s2,
+        validation_component_variance_standard_error_m2_s2,
+        fit.maximum_validation_relative_variance_error,
+    );
 
     for field in validation_fields {
         // Estimate the held-out mean profile only to separate its covariance
@@ -872,12 +991,17 @@ pub fn validate_spatial_error_kernel(
         ]))
         .fold(0.0_f64, f64::max);
 
-    let variance_scale_mismatch = zero_to_nonzero_variance
-        || maximum_variance_error > fit.maximum_validation_relative_variance_error;
+    let variance_scale_rejected = zero_to_nonzero_variance
+        || variance_scale_status_by_component
+            .contains(&VarianceScaleStatus::Rejected);
+    let variance_scale_inconclusive = variance_scale_status_by_component
+        .contains(&VarianceScaleStatus::Inconclusive);
     let status = if negative_lobe {
         QualificationStatus::RejectedNegativeCorrelationLobe
-    } else if variance_scale_mismatch {
+    } else if variance_scale_rejected {
         QualificationStatus::RejectedHeldOutVarianceScale
+    } else if variance_scale_inconclusive {
+        QualificationStatus::InconclusiveHeldOutVarianceScale
     } else if maximum_error > fit.maximum_validation_correlation_error {
         QualificationStatus::RejectedHeldOutCorrelationFit
     } else {
@@ -899,6 +1023,8 @@ pub fn validate_spatial_error_kernel(
         maximum_absolute_correlation_fit_error: maximum_error,
         maximum_allowed_absolute_correlation_fit_error: fit.maximum_validation_correlation_error,
         validation_to_calibration_variance_ratio: variance_ratios,
+        variance_ratio_confidence_interval_95: variance_ratio_confidence_intervals,
+        variance_scale_status_by_component,
         maximum_validation_relative_variance_error: maximum_variance_error,
         maximum_allowed_validation_relative_variance_error: fit.maximum_validation_relative_variance_error,
         zero_to_nonzero_variance_component_detected: zero_to_nonzero_variance,
@@ -931,6 +1057,16 @@ impl SpatialFitValidation {
             || self.maximum_validation_relative_variance_error > fit.maximum_validation_relative_variance_error
             || self.validation_to_calibration_variance_ratio.iter().flatten().any(|ratio| {
                 !ratio.is_finite() || *ratio < 0.0
+            })
+            || self.variance_ratio_confidence_interval_95.iter().any(|interval| {
+                match interval {
+                    [Some(lower), Some(upper)] => !lower.is_finite() || !upper.is_finite() || lower < &0.0 || lower > upper,
+                    [None, None] => true,
+                    _ => true,
+                }
+            })
+            || self.variance_scale_status_by_component.iter().any(|status| {
+                !matches!(status, VarianceScaleStatus::Equivalent | VarianceScaleStatus::NotApplicableZeroVariance)
             })
             || !self.maximum_allowed_validation_relative_variance_error.is_finite()
             || self.maximum_allowed_validation_relative_variance_error != fit.maximum_validation_relative_variance_error
