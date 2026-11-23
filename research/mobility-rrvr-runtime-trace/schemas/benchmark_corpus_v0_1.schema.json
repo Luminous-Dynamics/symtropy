@@ -108,7 +108,14 @@
         "raw_episode_artifact_id",
         "raw_episode_sha256",
         "raw_trace_artifact_id",
-        "raw_trace_sha256"
+        "raw_trace_sha256",
+        "cluster_id",
+        "host_benchmark_id",
+        "host_benchmark_revision",
+        "policy_wrapper_revision",
+        "safety_spec_revision",
+        "delivery_adjudicator_revision",
+        "root_cause_adjudicator_revision"
       ],
       "properties": {
         "episode_id": {
@@ -267,6 +274,34 @@
         },
         "raw_trace_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_benchmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_benchmark_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_wrapper_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "safety_spec_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delivery_adjudicator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root_cause_adjudicator_revision": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
