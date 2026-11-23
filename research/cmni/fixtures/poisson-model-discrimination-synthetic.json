@@ -1,0 +1,41 @@
+{
+  "fixture_type": "synthetic_cmni_poisson_model_discrimination_v1",
+  "provenance": "fully synthetic independent-Poisson predictions; no detector calibration or laboratory data",
+  "candidate_models": {
+    "mechanism_A": [
+      10,
+      20
+    ],
+    "mechanism_B": [
+      20,
+      10
+    ],
+    "mechanism_C": [
+      10,
+      10
+    ]
+  },
+  "convention": "entry[i][j] = D_KL(Poisson model_i || Poisson model_j); rows are reference hypotheses",
+  "pairwise_directed_kl_matrix": [
+    [
+      0,
+      6.931471805599453,
+      3.862943611198906
+    ],
+    [
+      6.931471805599453,
+      0,
+      3.862943611198906
+    ],
+    [
+      3.068528194400547,
+      3.068528194400547,
+      0
+    ]
+  ],
+  "limitations": [
+    "Assumes independent Poisson measured channels and fixed response matrix.",
+    "No nuisance integration, priors, posterior model probabilities or experiment optimizer.",
+    "KL separation is design- and exposure-dependent."
+  ]
+}

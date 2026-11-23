@@ -1,0 +1,145 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "depth-response-observability-methods-and-synthetic-kernels-v0",
+  "provenance_kind": "literature_metadata_plus_synthetic_kernels",
+  "active_layer_context": {
+    "paper_doi": "10.1038/s41467-026-74421-1",
+    "reported_d_implantation_depth_nm": [
+      4.4,
+      67.5
+    ],
+    "membrane_thickness_um": 250,
+    "note": "Published summary context; does not mean each modality can resolve both endpoints."
+  },
+  "literature_characteristics": [
+    {
+      "modality": "dynamic_SIMs",
+      "isotope_scope": [
+        "H",
+        "D"
+      ],
+      "source": "https://www.nlr.gov/materials-science/dynamic-secondary-ion",
+      "reported_capability": "better-than-10-nm depth profiling under suitable sample, standards and instrument conditions",
+      "caveats": [
+        "matrix effects",
+        "sputter mixing",
+        "crater-depth calibration",
+        "isotope interference",
+        "lateral raster point-spread"
+      ],
+      "response_kernel_status": "must be calibrated for the Pd/Ti specimen"
+    },
+    {
+      "modality": "resonant_NRA_15N",
+      "isotope_scope": [
+        "1H"
+      ],
+      "reaction": "1H(15N,alpha gamma)12C at 6.385 MeV",
+      "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4841331/",
+      "reported_capability": "2-5-nm near-surface resolution in suitable smooth samples; degradation with depth due to energy straggling",
+      "caveats": [
+        "measures protium, not deuterium",
+        "matrix composition",
+        "stopping and straggling",
+        "overlayer"
+      ],
+      "response_kernel_status": "not a D measurement without a distinct isotope-sensitive method"
+    },
+    {
+      "modality": "deuterium_NRA",
+      "isotope_scope": [
+        "D"
+      ],
+      "reaction": "D(3He,p)alpha",
+      "source": "https://www.sciencedirect.com/science/article/pii/S0168583X13002231",
+      "reported_capability": "10-nm a-C:D reference layers used to study resolution; apparent profile broadened by overlayer thickness and matrix",
+      "caveats": [
+        "overlayer",
+        "matrix-dependent stopping",
+        "energy straggling",
+        "calibration"
+      ],
+      "response_kernel_status": "requires specimen-specific calibration"
+    },
+    {
+      "modality": "slow_positron_PAS",
+      "isotope_scope": [
+        "defect/open-volume proxy"
+      ],
+      "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9417578/",
+      "reported_capability": "variable-energy Makhov implantation profiles; tens of nm to few hundred nm at low energies, broadening with energy",
+      "caveats": [
+        "depth kernel is distributed, not a point",
+        "positron diffusion/trapping",
+        "lateral point-spread is separate",
+        "inversion non-uniqueness"
+      ],
+      "response_kernel_status": "use energy-specific Makhov/transport kernels"
+    },
+    {
+      "modality": "conventional_PAS",
+      "isotope_scope": [
+        "defect/open-volume proxy"
+      ],
+      "source": "https://doi.org/10.1021/acsnano.4c16841",
+      "reported_capability": "2025 Pd study discusses approximately 50-micrometre spatial resolution",
+      "caveats": [
+        "this is spatial/lateral resolution, not depth resolution",
+        "source-based positron implantation is broad"
+      ],
+      "response_kernel_status": "keep lateral PSF separate from depth response"
+    },
+    {
+      "modality": "ZEM",
+      "isotope_scope": [
+        "effective low-Z / defect-sensitive proxy"
+      ],
+      "source": "https://doi.org/10.1021/acsnano.4c16841",
+      "reported_capability": "electron penetration depths about 60-458 nm over 4-15 kV in the reported Pd study",
+      "caveats": [
+        "effective defect metric may include vacancies, voids, cracks and other defects",
+        "not a unique vacancy count"
+      ],
+      "response_kernel_status": "requires its own electron-transport / thermal-absorbance kernel"
+    }
+  ],
+  "synthetic_example": {
+    "latent_depth_cell_values": [
+      10,
+      0,
+      0,
+      0
+    ],
+    "kernels": [
+      {
+        "nominal_depth_nm": 0,
+        "weights": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "expected_value": 10,
+        "meaning": "synthetic identity response"
+      },
+      {
+        "nominal_depth_nm": 0,
+        "weights": [
+          0.5,
+          0.3,
+          0.15,
+          0.05
+        ],
+        "expected_value": 5,
+        "meaning": "synthetic broad response; not a real instrument profile"
+      }
+    ],
+    "note": "These weights are artificial test inputs only; no actual SIMS/NRA/PAS/ZEM response matrices are asserted."
+  },
+  "limitations": [
+    "Literature resolution values are method- and specimen-specific, not guaranteed for PdD/TiD under irradiation.",
+    "Depth response and lateral spatial resolution are separate dimensions.",
+    "Hydrogen-specific NRA reaction 1H(15N,alpha gamma)12C does not directly measure deuterium.",
+    "The response operator is a linear weighted-average scaffold and does not yet model non-linear sputtering, isotope cross-talk, positron trapping, scattering or measurement noise."
+  ]
+}

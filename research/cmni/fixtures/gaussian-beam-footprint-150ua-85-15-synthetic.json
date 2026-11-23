@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "gaussian-beam-footprint-150ua-85-15-synthetic-v0",
+  "provenance_kind": "synthetic",
+  "source_context": {
+    "paper_doi": "10.1038/s41467-026-74421-1",
+    "paper_reported_approximate_spot_area_cm2": 1,
+    "paper_reported_typical_ion_current_a": 0.00015,
+    "paper_reported_ion_current_fractions": {
+      "d_plus": 0.85,
+      "d2_plus": 0.15
+    },
+    "paper_note": "Target-bias-dependent electrostatic focusing is described; no complete measured 2-D profile is supplied in the article text."
+  },
+  "synthetic_assumptions": {
+    "radial_profile": "axisymmetric Gaussian",
+    "sigma_cm": 0.3989422804,
+    "effective_area_definition_cm2": "2*pi*sigma^2",
+    "effective_area_cm2": 1,
+    "current_is_uniformly_assigned_to_species_fractions": true
+  },
+  "derived": {
+    "total_ion_rate_per_second": 936226361169114.4,
+    "deuterons_per_ion_charge": 1.15,
+    "total_deuteron_rate_per_second": 1076660315344481.5,
+    "peak_deuteron_flux_density_per_cm2_s": 1076660315344481.5,
+    "warning": "Illustrative normalized Gaussian, not an inferred measured beam profile."
+  },
+  "limitations": [
+    "The reported approximately 1 cm2 spot area does not define whether the source intended FWHM area, hard-edge area, 1/e area, or Gaussian effective area.",
+    "Sigma is chosen synthetically so 2*pi*sigma^2 = 1 cm2; it is not measured.",
+    "No local heating, stopping, implantation, defects, D transport, or reaction yield is modelled in this fixture."
+  ]
+}
