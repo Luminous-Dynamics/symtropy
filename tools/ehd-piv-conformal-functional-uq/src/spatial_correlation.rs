@@ -12,8 +12,8 @@ use std::error::Error;
 use std::fmt;
 
 use crate::functional::{
-    propagate_field_functional_uncertainty, Covariance3, FieldFunctionalInput,
-    FieldFunctionalReport,
+    Covariance3, FieldFunctionalInput, FieldFunctionalReport,
+    propagate_field_functional_uncertainty,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -76,21 +76,46 @@ pub enum SpatialFunctionalError {
 impl fmt::Display for SpatialFunctionalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::BaseFunctional(error) => write!(f, "base field-functional propagation failed: {error}"),
-            Self::CoordinateCountMismatch { expected, actual } => write!(f, "coordinate count {actual}; expected {expected}"),
-            Self::NonFiniteCoordinate { sample_index } => write!(f, "non-finite coordinate at sample {sample_index}"),
+            Self::BaseFunctional(error) => {
+                write!(f, "base field-functional propagation failed: {error}")
+            }
+            Self::CoordinateCountMismatch { expected, actual } => {
+                write!(f, "coordinate count {actual}; expected {expected}")
+            }
+            Self::NonFiniteCoordinate { sample_index } => {
+                write!(f, "non-finite coordinate at sample {sample_index}")
+            }
             Self::EmptyKernelIdentity { field } => write!(f, "kernel {field} must be non-empty"),
             Self::UnsupportedKernel { model_id } => write!(f, "unsupported kernel {model_id}"),
-            Self::KernelProtocolMismatch => write!(f, "spatial kernel protocol differs from its calibration receipt"),
-            Self::InsufficientCalibrationAcquisitions { actual } => write!(f, "spatial kernel has only {actual} independent calibration acquisitions; at least 20 are required by this reference gate"),
-            Self::InvalidCalibrationDiagnostics => write!(f, "spatial kernel calibration diagnostics are invalid"),
-            Self::CorrelationFitErrorExceedsLimit { actual, maximum } => write!(f, "spatial kernel correlation fit error {actual} exceeds maximum {maximum}"),
-            Self::NegativeCorrelationLobeRequiresDifferentModel => write!(f, "observed negative spatial correlation lobe is not represented by the current Wendland model"),
+            Self::KernelProtocolMismatch => write!(
+                f,
+                "spatial kernel protocol differs from its calibration receipt"
+            ),
+            Self::InsufficientCalibrationAcquisitions { actual } => write!(
+                f,
+                "spatial kernel has only {actual} independent calibration acquisitions; at least 20 are required by this reference gate"
+            ),
+            Self::InvalidCalibrationDiagnostics => {
+                write!(f, "spatial kernel calibration diagnostics are invalid")
+            }
+            Self::CorrelationFitErrorExceedsLimit { actual, maximum } => write!(
+                f,
+                "spatial kernel correlation fit error {actual} exceeds maximum {maximum}"
+            ),
+            Self::NegativeCorrelationLobeRequiresDifferentModel => write!(
+                f,
+                "observed negative spatial correlation lobe is not represented by the current Wendland model"
+            ),
             Self::InvalidLengthScale { axis } => write!(f, "invalid length scale on axis {axis}"),
             Self::NonFiniteKernelCovariance => write!(f, "kernel covariance is non-finite"),
-            Self::KernelCovarianceNotPositiveSemidefinite => write!(f, "kernel component covariance is not positive semidefinite"),
+            Self::KernelCovarianceNotPositiveSemidefinite => write!(
+                f,
+                "kernel component covariance is not positive semidefinite"
+            ),
             Self::NonFiniteDerivedValue => write!(f, "spatial functional covariance is non-finite"),
-            Self::NegativeTotalVariance { functional_index } => write!(f, "negative variance for functional {functional_index}"),
+            Self::NegativeTotalVariance { functional_index } => {
+                write!(f, "negative variance for functional {functional_index}")
+            }
         }
     }
 }
@@ -109,12 +134,16 @@ fn validate_psd(c: Covariance3) -> Result<(), SpatialFunctionalError> {
     let mxy = c.xx * c.yy - c.xy * c.xy;
     let mxz = c.xx * c.zz - c.xz * c.xz;
     let myz = c.yy * c.zz - c.yz * c.yz;
-    let det = c.xx * (c.yy * c.zz - c.yz * c.yz)
-        - c.xy * (c.xy * c.zz - c.xz * c.yz)
+    let det = c.xx * (c.yy * c.zz - c.yz * c.yz) - c.xy * (c.xy * c.zz - c.xz * c.yz)
         + c.xz * (c.xy * c.yz - c.xz * c.yy);
-    if c.xx < -t1 || c.yy < -t1 || c.zz < -t1
-        || mxy < -t2 || mxz < -t2 || myz < -t2
-        || !det.is_finite() || det < -t3
+    if c.xx < -t1
+        || c.yy < -t1
+        || c.zz < -t1
+        || mxy < -t2
+        || mxz < -t2
+        || myz < -t2
+        || !det.is_finite()
+        || det < -t3
     {
         return Err(SpatialFunctionalError::KernelCovarianceNotPositiveSemidefinite);
     }
@@ -149,7 +178,11 @@ fn jacobian(u: [f64; 3], area: [f64; 3], rho: f64) -> [[f64; 3]; 4] {
 /// phi(r) = (1-r)^4(4r+1) for r<1, otherwise zero.
 /// Anisotropy is supplied by the axis-specific length scales.
 fn wendland_c2(r: f64) -> f64 {
-    if r >= 1.0 { 0.0 } else { (1.0-r).powi(4) * (4.0*r+1.0) }
+    if r >= 1.0 {
+        0.0
+    } else {
+        (1.0 - r).powi(4) * (4.0 * r + 1.0)
+    }
 }
 
 /// Add a compact-support spatially correlated velocity-error component.
@@ -165,22 +198,36 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
     }
     if kernel.protocol_fingerprint.trim().is_empty()
         || kernel.calibration_receipt.receipt_id.trim().is_empty()
-        || kernel.calibration_receipt.protocol_fingerprint.trim().is_empty()
+        || kernel
+            .calibration_receipt
+            .protocol_fingerprint
+            .trim()
+            .is_empty()
     {
-        return Err(SpatialFunctionalError::EmptyKernelIdentity { field: "calibration_receipt_or_protocol_fingerprint" });
+        return Err(SpatialFunctionalError::EmptyKernelIdentity {
+            field: "calibration_receipt_or_protocol_fingerprint",
+        });
     }
     if kernel.protocol_fingerprint != kernel.calibration_receipt.protocol_fingerprint {
         return Err(SpatialFunctionalError::KernelProtocolMismatch);
     }
     if kernel.calibration_receipt.independent_acquisition_count < 20 {
-        return Err(SpatialFunctionalError::InsufficientCalibrationAcquisitions {
-            actual: kernel.calibration_receipt.independent_acquisition_count,
-        });
+        return Err(
+            SpatialFunctionalError::InsufficientCalibrationAcquisitions {
+                actual: kernel.calibration_receipt.independent_acquisition_count,
+            },
+        );
     }
-    let fit_error = kernel.calibration_receipt.maximum_absolute_correlation_fit_error;
-    let maximum_fit_error = kernel.calibration_receipt.maximum_allowed_absolute_correlation_fit_error;
-    if !fit_error.is_finite() || !maximum_fit_error.is_finite()
-        || fit_error < 0.0 || maximum_fit_error <= 0.0
+    let fit_error = kernel
+        .calibration_receipt
+        .maximum_absolute_correlation_fit_error;
+    let maximum_fit_error = kernel
+        .calibration_receipt
+        .maximum_allowed_absolute_correlation_fit_error;
+    if !fit_error.is_finite()
+        || !maximum_fit_error.is_finite()
+        || fit_error < 0.0
+        || maximum_fit_error <= 0.0
     {
         return Err(SpatialFunctionalError::InvalidCalibrationDiagnostics);
     }
@@ -190,11 +237,16 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
             maximum: maximum_fit_error,
         });
     }
-    if kernel.calibration_receipt.negative_correlation_lobe_detected {
+    if kernel
+        .calibration_receipt
+        .negative_correlation_lobe_detected
+    {
         return Err(SpatialFunctionalError::NegativeCorrelationLobeRequiresDifferentModel);
     }
     if kernel.model_id != "wendland_c2_anisotropic_3d" {
-        return Err(SpatialFunctionalError::UnsupportedKernel { model_id: kernel.model_id.clone() });
+        return Err(SpatialFunctionalError::UnsupportedKernel {
+            model_id: kernel.model_id.clone(),
+        });
     }
     if coordinates_m.len() != base.samples.len() {
         return Err(SpatialFunctionalError::CoordinateCountMismatch {
@@ -216,7 +268,9 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
 
     let base_report = propagate_field_functional_uncertainty(base)
         .map_err(|e| SpatialFunctionalError::BaseFunctional(e.to_string()))?;
-    let js: Vec<[[f64; 3]; 4]> = base.samples.iter()
+    let js: Vec<[[f64; 3]; 4]> = base
+        .samples
+        .iter()
         .map(|s| jacobian(s.velocity_m_s, s.oriented_area_vector_m2, s.density_kg_m3))
         .collect();
 
@@ -228,20 +282,21 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
             let dx = (coordinates_m[i][0] - coordinates_m[j][0]) / kernel.length_scales_m[0];
             let dy = (coordinates_m[i][1] - coordinates_m[j][1]) / kernel.length_scales_m[1];
             let dz = (coordinates_m[i][2] - coordinates_m[j][2]) / kernel.length_scales_m[2];
-            let r = (dx*dx + dy*dy + dz*dz).sqrt();
+            let r = (dx * dx + dy * dy + dz * dz).sqrt();
             if !r.is_finite() {
                 return Err(SpatialFunctionalError::NonFiniteDerivedValue);
             }
             let k = wendland_c2(r);
-            if k == 0.0 { continue; }
-            if j >= i { pair_count += 1; }
+            if k == 0.0 {
+                continue;
+            }
+            if j >= i {
+                pair_count += 1;
+            }
             for a in 0..4 {
                 for b in 0..4 {
-                    contribution[a][b] += k * bilinear(
-                        kernel.component_covariance_m2_s2,
-                        js[i][a],
-                        js[j][b],
-                    );
+                    contribution[a][b] +=
+                        k * bilinear(kernel.component_covariance_m2_s2, js[i][a], js[j][b]);
                 }
             }
         }
@@ -260,7 +315,9 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
     let mut std = [0.0_f64; 4];
     for a in 0..4 {
         if total[a][a] < -1.0e-12 {
-            return Err(SpatialFunctionalError::NegativeTotalVariance { functional_index: a });
+            return Err(SpatialFunctionalError::NegativeTotalVariance {
+                functional_index: a,
+            });
         }
         std[a] = total[a][a].max(0.0).sqrt();
     }
@@ -271,7 +328,9 @@ pub fn propagate_spatially_correlated_functional_uncertainty(
         parameter_calibration_receipt_id: kernel.calibration_receipt.receipt_id.clone(),
         calibration_protocol_fingerprint: kernel.protocol_fingerprint.clone(),
         calibration_acquisition_count: kernel.calibration_receipt.independent_acquisition_count,
-        maximum_absolute_correlation_fit_error: kernel.calibration_receipt.maximum_absolute_correlation_fit_error,
+        maximum_absolute_correlation_fit_error: kernel
+            .calibration_receipt
+            .maximum_absolute_correlation_fit_error,
         correlated_sample_pair_count: pair_count,
         spatial_covariance_contribution: contribution,
         total_functional_covariance: total,
@@ -301,7 +360,12 @@ mod tests {
             oriented_area_vector_m2: [1.0, 0.0, 0.0],
             density_kg_m3: 1.0,
             local_velocity_covariance_m2_s2: Covariance3 {
-                xx: 0.0, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0,
+                xx: 0.0,
+                xy: 0.0,
+                xz: 0.0,
+                yy: 0.0,
+                yz: 0.0,
+                zz: 0.0,
             },
         }
     }
@@ -326,10 +390,20 @@ mod tests {
     #[test]
     fn overlapping_windows_add_cross_sample_mass_covariance() {
         let input = base(vec![face(), face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let result = propagate_spatially_correlated_functional_uncertainty(
-            &input, &[[0.0; 3], [0.5, 0.0, 0.0]], &kernel(c)
-        ).unwrap();
+            &input,
+            &[[0.0; 3], [0.5, 0.0, 0.0]],
+            &kernel(c),
+        )
+        .unwrap();
         let expected = 0.01 * (2.0 + 2.0 * 0.1875);
         assert!((result.spatial_covariance_contribution[0][0] - expected).abs() < 1.0e-12);
         assert_eq!(result.correlated_sample_pair_count, 3);
@@ -338,10 +412,20 @@ mod tests {
     #[test]
     fn points_outside_compact_support_have_no_cross_covariance() {
         let input = base(vec![face(), face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let result = propagate_spatially_correlated_functional_uncertainty(
-            &input, &[[0.0; 3], [2.0, 0.0, 0.0]], &kernel(c)
-        ).unwrap();
+            &input,
+            &[[0.0; 3], [2.0, 0.0, 0.0]],
+            &kernel(c),
+        )
+        .unwrap();
         assert!((result.spatial_covariance_contribution[0][0] - 0.02).abs() < 1.0e-12);
         assert_eq!(result.correlated_sample_pair_count, 2);
     }
@@ -349,12 +433,22 @@ mod tests {
     #[test]
     fn anisotropic_length_scale_changes_the_correlation() {
         let input = base(vec![face(), face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let mut k = kernel(c);
         k.length_scales_m = [2.0, 1.0, 1.0];
         let result = propagate_spatially_correlated_functional_uncertainty(
-            &input, &[[0.0; 3], [1.0, 0.0, 0.0]], &k
-        ).unwrap();
+            &input,
+            &[[0.0; 3], [1.0, 0.0, 0.0]],
+            &k,
+        )
+        .unwrap();
         let expected = 0.01 * (2.0 + 2.0 * 0.1875);
         assert!((result.spatial_covariance_contribution[0][0] - expected).abs() < 1.0e-12);
     }
@@ -365,10 +459,17 @@ mod tests {
         sample.velocity_m_s = [1.0, 1.0, 0.0];
         sample.oriented_area_vector_m2 = [1.0, 1.0, 0.0];
         let input = base(vec![sample]);
-        let c = Covariance3 { xx: 0.01, xy: 0.005, xz: 0.0, yy: 0.02, yz: 0.0, zz: 0.0 };
-        let result = propagate_spatially_correlated_functional_uncertainty(
-            &input, &[[0.0; 3]], &kernel(c)
-        ).unwrap();
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.005,
+            xz: 0.0,
+            yy: 0.02,
+            yz: 0.0,
+            zz: 0.0,
+        };
+        let result =
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &kernel(c))
+                .unwrap();
         assert!((result.spatial_covariance_contribution[0][0] - 0.04).abs() < 1.0e-12);
         assert!((result.spatial_covariance_contribution[0][1] - 0.07).abs() < 1.0e-12);
     }
@@ -378,10 +479,17 @@ mod tests {
         let mut sample = face();
         sample.local_velocity_covariance_m2_s2.xx = 0.25;
         let input = base(vec![sample]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
-        let result = propagate_spatially_correlated_functional_uncertainty(
-            &input, &[[0.0; 3]], &kernel(c)
-        ).unwrap();
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
+        let result =
+            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &kernel(c))
+                .unwrap();
         assert!((result.base_report.functional_covariance[0][0] - 0.25).abs() < 1.0e-12);
         assert!((result.total_functional_covariance[0][0] - 0.26).abs() < 1.0e-12);
     }
@@ -389,7 +497,14 @@ mod tests {
     #[test]
     fn missing_fit_receipt_and_nonfinite_coordinates_are_rejected() {
         let input = base(vec![face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let mut bad = kernel(c);
         bad.calibration_receipt.receipt_id.clear();
         assert!(matches!(
@@ -397,7 +512,11 @@ mod tests {
             Err(SpatialFunctionalError::EmptyKernelIdentity { .. })
         ));
         assert!(matches!(
-            propagate_spatially_correlated_functional_uncertainty(&input, &[[f64::NAN, 0.0, 0.0]], &kernel(c)),
+            propagate_spatially_correlated_functional_uncertainty(
+                &input,
+                &[[f64::NAN, 0.0, 0.0]],
+                &kernel(c)
+            ),
             Err(SpatialFunctionalError::NonFiniteCoordinate { .. })
         ));
     }
@@ -405,7 +524,14 @@ mod tests {
     #[test]
     fn low_acquisition_count_poor_fit_and_negative_lobe_are_rejected() {
         let input = base(vec![face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
 
         let mut too_few = kernel(c);
         too_few.calibration_receipt.independent_acquisition_count = 19;
@@ -415,16 +541,24 @@ mod tests {
         ));
 
         let mut poor_fit = kernel(c);
-        poor_fit.calibration_receipt.maximum_absolute_correlation_fit_error = 0.08;
+        poor_fit
+            .calibration_receipt
+            .maximum_absolute_correlation_fit_error = 0.08;
         assert!(matches!(
             propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &poor_fit),
             Err(SpatialFunctionalError::CorrelationFitErrorExceedsLimit { .. })
         ));
 
         let mut negative_lobe = kernel(c);
-        negative_lobe.calibration_receipt.negative_correlation_lobe_detected = true;
+        negative_lobe
+            .calibration_receipt
+            .negative_correlation_lobe_detected = true;
         assert!(matches!(
-            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &negative_lobe),
+            propagate_spatially_correlated_functional_uncertainty(
+                &input,
+                &[[0.0; 3]],
+                &negative_lobe
+            ),
             Err(SpatialFunctionalError::NegativeCorrelationLobeRequiresDifferentModel)
         ));
     }
@@ -432,7 +566,14 @@ mod tests {
     #[test]
     fn target_protocol_must_match_spatial_kernel_calibration_protocol() {
         let input = base(vec![face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let mut k = kernel(c);
         k.protocol_fingerprint = "different-grid-v2".into();
         assert!(matches!(
@@ -444,18 +585,35 @@ mod tests {
     #[test]
     fn invalid_length_scale_and_nonfinite_fit_threshold_are_rejected() {
         let input = base(vec![face()]);
-        let c = Covariance3 { xx: 0.01, xy: 0.0, xz: 0.0, yy: 0.0, yz: 0.0, zz: 0.0 };
+        let c = Covariance3 {
+            xx: 0.01,
+            xy: 0.0,
+            xz: 0.0,
+            yy: 0.0,
+            yz: 0.0,
+            zz: 0.0,
+        };
         let mut invalid_scale = kernel(c);
         invalid_scale.length_scales_m[1] = 0.0;
         assert!(matches!(
-            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &invalid_scale),
+            propagate_spatially_correlated_functional_uncertainty(
+                &input,
+                &[[0.0; 3]],
+                &invalid_scale
+            ),
             Err(SpatialFunctionalError::InvalidLengthScale { axis: 1 })
         ));
 
         let mut invalid_diagnostic = kernel(c);
-        invalid_diagnostic.calibration_receipt.maximum_allowed_absolute_correlation_fit_error = f64::NAN;
+        invalid_diagnostic
+            .calibration_receipt
+            .maximum_allowed_absolute_correlation_fit_error = f64::NAN;
         assert!(matches!(
-            propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &invalid_diagnostic),
+            propagate_spatially_correlated_functional_uncertainty(
+                &input,
+                &[[0.0; 3]],
+                &invalid_diagnostic
+            ),
             Err(SpatialFunctionalError::InvalidCalibrationDiagnostics)
         ));
     }
@@ -470,19 +628,26 @@ mod tests {
         b.oriented_area_vector_m2 = [0.5, 0.8, 0.1];
         let input = base(vec![a, b]);
         let c = Covariance3 {
-            xx: 0.02, xy: 0.003, xz: 0.001,
-            yy: 0.015, yz: 0.002, zz: 0.01,
+            xx: 0.02,
+            xy: 0.003,
+            xz: 0.001,
+            yy: 0.015,
+            yz: 0.002,
+            zz: 0.01,
         };
         let result = propagate_spatially_correlated_functional_uncertainty(
             &input,
             &[[0.0; 3], [0.25, 0.15, 0.0]],
             &kernel(c),
-        ).unwrap();
+        )
+        .unwrap();
         for i in 0..4 {
             for j in 0..4 {
                 assert!(
                     (result.total_functional_covariance[i][j]
-                        - result.total_functional_covariance[j][i]).abs() < 1.0e-12
+                        - result.total_functional_covariance[j][i])
+                        .abs()
+                        < 1.0e-12
                 );
             }
         }
@@ -491,7 +656,14 @@ mod tests {
     #[test]
     fn non_psd_kernel_component_covariance_is_rejected() {
         let input = base(vec![face()]);
-        let c = Covariance3 { xx: 1.0, xy: 0.9, xz: 0.9, yy: 1.0, yz: -0.9, zz: 1.0 };
+        let c = Covariance3 {
+            xx: 1.0,
+            xy: 0.9,
+            xz: 0.9,
+            yy: 1.0,
+            yz: -0.9,
+            zz: 1.0,
+        };
         assert!(matches!(
             propagate_spatially_correlated_functional_uncertainty(&input, &[[0.0; 3]], &kernel(c)),
             Err(SpatialFunctionalError::KernelCovarianceNotPositiveSemidefinite)
