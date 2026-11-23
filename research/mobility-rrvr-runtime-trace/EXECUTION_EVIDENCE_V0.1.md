@@ -106,3 +106,8 @@ The next integration is a Gazebo adapter that consumes the canonical plan, pause
 The simulator adapter core uses the compiled plan's exact Gazebo build, Simulation Interfaces revision and SceneBroadcaster binary pin. Its transport orchestration advances only by discrete simulation steps, resolves each target in the current world epoch, and separates dispatch from execution and observer receipts. A timed-out dispatch becomes Unknown and is reconciled against the same idempotency key; it is never silently resent.
 
 See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md). The current implementation is mock-tested and has no live ROS 2/Gazebo transport yet.
+
+
+## Cross-event chronology
+
+The validator now checks chronology across the ordered fault schedule, not only within each event. After target/dispatch/execution/observation receipts for event N, the first available receipt for event N+1 may not move backwards in simulation step or simulation time. All events retain the reset receipt's clock identity and run/world epochs. A locally ordered event cannot be replayed out of sequence in the larger campaign trace.
