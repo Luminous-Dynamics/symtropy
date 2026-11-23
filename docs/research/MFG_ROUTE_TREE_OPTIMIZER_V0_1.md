@@ -132,3 +132,24 @@ These are hypotheses, not production results:
 The crate uses strict Serde types and an offline Draft 2020-12 JSON Schema validator. Its focused workflow runs formatting, schema validation, known-answer/adversarial tests, exact policy evaluation, negative controls, hashing and strict Clippy.
 
 The exact oracle is exact only for the stated one-job/two-stage formulation. It does not establish optimal multi-stage scheduling, physical recovery performance, supplier availability, capacity reservation, product quality, machine qualification or accepted production. All recommendations remain non-binding and all physical authority remains with existing owners.
+
+## 11. Exact-head software qualification
+
+Focused workflow [#45180210708](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45180210708) passed on exact code head `c11e940822d33b5414e322c2b4d998740513f0c1`:
+- frozen corpus and answer identity checks;
+- rustfmt and formatting check;
+- offline Draft 2020-12 schema validation;
+- all Rust unit tests, including all 120 exact known-answer comparisons;
+- scenario-tree optimizer/report validation;
+- negative controls for probability mass and conflicting observations within one information set;
+- SHA-256 source/fixture/report manifest;
+- strict Clippy with warnings denied;
+- report and formatted-source artifact uploads.
+
+The exact policy/fixture check initially exposed a greedy recourse tie-break mismatch (the implementation used route-ID order while the frozen baseline specified lowest cost, then lead time, then route ID). The implementation was corrected; the expected-answer corpus was not weakened or regenerated. The corrected exact-head run passed.
+
+Artifacts:
+- Scenario-tree report: artifact `14821820275`, `mfg-route-tree-optimizer-report`.
+- Rustfmt source: artifact `14820746714`, `mfg-route-tree-rustfmt-source`.
+
+The full repository CI is separate and was still in progress at the time of this update; the focused workflow is the qualification evidence for this isolated crate only.
