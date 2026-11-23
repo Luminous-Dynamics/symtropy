@@ -8,8 +8,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -82,7 +82,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -93,7 +93,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -107,8 +107,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -181,7 +181,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1"
@@ -191,7 +191,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1"
@@ -204,8 +204,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -278,7 +278,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -289,7 +289,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1"
@@ -302,8 +302,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
+        "current_snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -375,7 +375,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1"
@@ -385,7 +385,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1"
@@ -404,7 +404,7 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "current_snapshot_sha256": "d7a0a349d87eeed566dd6e9c52ee4beedadf22b46c19e42f00e1164965bb807d",
         "window_start_ms": 0,
         "window_end_ms": 100,
@@ -478,7 +478,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -489,7 +489,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -503,8 +503,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -577,7 +577,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -602,8 +602,8 @@
       "domain": {
         "domain_id": "synthetic-orbital-maintenance-domain",
         "grammar_version": "grammar-v0.1",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
-        "current_snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "window_start_ms": 0,
         "window_end_ms": 100,
         "components": [
@@ -676,7 +676,7 @@
         "enumerator_id": "registry-enumerator",
         "method_id": "catalogue-traversal",
         "source_id": "registry-a",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "registry-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
@@ -687,7 +687,7 @@
         "enumerator_id": "model-enumerator",
         "method_id": "capability-prerequisite-solver",
         "source_id": "model-b",
-        "snapshot_sha256": "ed0baf13f9a5bcb30b84e3020e0b5b8a181ab71bc44ea5642304e9abcacc0836",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
         "execution_receipt_id": "model-execution",
         "action_ids": [
           "component:camera-1|operation:inspect|actor:tech-1",
