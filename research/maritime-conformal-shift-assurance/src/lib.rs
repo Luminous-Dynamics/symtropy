@@ -395,8 +395,7 @@ fn evaluate_method(
         let Some(prediction) = state.prediction() else {
             continue;
         };
-        let (joint_covered, arrival_covered, handling_covered) =
-            prediction.covers(sample.residual);
+        let (joint_covered, arrival_covered, handling_covered) = prediction.covers(sample.residual);
         let index = window_index(sample.window);
         let metrics = &mut report.windows[index];
 
@@ -445,14 +444,10 @@ pub fn render_csv() -> String {
     );
 
     for report in evaluate_suite() {
-        for (index, window) in [
-            Window::Stationary,
-            Window::Drift,
-            Window::Burst,
-        ]
-        .iter()
-        .copied()
-        .enumerate()
+        for (index, window) in [Window::Stationary, Window::Drift, Window::Burst]
+            .iter()
+            .copied()
+            .enumerate()
         {
             let metrics = report.windows[index];
             output.push_str(&format!(
@@ -590,7 +585,11 @@ mod tests {
         for report in reports {
             assert_eq!(report.windows.len(), 3);
             assert_eq!(
-                report.windows.iter().map(|window| window.total).sum::<usize>(),
+                report
+                    .windows
+                    .iter()
+                    .map(|window| window.total)
+                    .sum::<usize>(),
                 360
             );
         }
@@ -645,7 +644,10 @@ mod tests {
         let marginal = PolicyState::new(Method::FixedMarginal, &calibration)
             .prediction()
             .expect("marginal bands");
-        assert_eq!(joint.arrival_half_width_hours, marginal.arrival_half_width_hours);
+        assert_eq!(
+            joint.arrival_half_width_hours,
+            marginal.arrival_half_width_hours
+        );
         assert!(joint.handling_half_width_hours > marginal.handling_half_width_hours);
     }
 }
