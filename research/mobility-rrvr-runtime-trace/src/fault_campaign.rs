@@ -462,6 +462,7 @@ fn validate_scenario(scenario: &CampaignScenario) -> Result<(), CampaignError> {
     }
     let mut fault_ids = BTreeSet::new();
     let mut covered_sequence = 0u32;
+    let mut previous_scheduled_step = None;
     for fault in &scenario.faults {
         if !nonempty(&fault.fault_id)
             || !nonempty(&fault.target_component_id)
@@ -475,15 +476,12 @@ fn validate_scenario(scenario: &CampaignScenario) -> Result<(), CampaignError> {
         }
         covered_sequence += 1;
         if fault.sequence != covered_sequence
-            || scenario
-                .faults
-                .get(covered_sequence.saturating_sub(2) as usize)
-                .is_some_and(|previous| {
-                    fault.scheduled_simulation_step < previous.scheduled_simulation_step
-                })
+            || previous_scheduled_step
+                .is_some_and(|previous| fault.scheduled_simulation_step < previous)
         {
             return Err(CampaignError::FaultSequenceDiscontinuity);
         }
+        previous_scheduled_step = Some(fault.scheduled_simulation_step);
         require_sha256(&fault.parameters_sha256)?;
         require_sha256(&fault.target_profile_sha256)?;
         require_sha256(&fault.expected_delivery_signature_sha256)?;
