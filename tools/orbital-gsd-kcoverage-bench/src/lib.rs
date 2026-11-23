@@ -514,23 +514,33 @@ fn validate_case(case: &GsdCase) -> Result<(), String> {
     }
     if case.augmentation.tilt_angles_deg.len() > 90
         || case.augmentation.azimuth_angles_deg.len() > 12
-        || case.augmentation.tilt_angles_deg.iter().any(|angle| {
-            !angle.is_finite() || *angle < 1.0 || *angle > 90.0
-        })
-        || case.augmentation.azimuth_angles_deg.iter().any(|angle| {
-            !angle.is_finite() || *angle < 0.0 || *angle >= 360.0
-        })
+        || case
+            .augmentation
+            .tilt_angles_deg
+            .iter()
+            .any(|angle| !angle.is_finite() || *angle < 1.0 || *angle > 90.0)
+        || case
+            .augmentation
+            .azimuth_angles_deg
+            .iter()
+            .any(|angle| !angle.is_finite() || *angle < 0.0 || *angle >= 360.0)
     {
         return Err("AUGMENTATION_ANGLE_INPUT_INVALID".to_owned());
     }
     let mut tilt_values = case.augmentation.tilt_angles_deg.clone();
     tilt_values.sort_by(f64::total_cmp);
-    if tilt_values.windows(2).any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10) {
+    if tilt_values
+        .windows(2)
+        .any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10)
+    {
         return Err("DUPLICATE_TILT_ANGLE".to_owned());
     }
     let mut azimuth_values = case.augmentation.azimuth_angles_deg.clone();
     azimuth_values.sort_by(f64::total_cmp);
-    if azimuth_values.windows(2).any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10) {
+    if azimuth_values
+        .windows(2)
+        .any(|pair| (pair[1] - pair[0]).abs() <= 1.0e-10)
+    {
         return Err("DUPLICATE_AZIMUTH_ANGLE".to_owned());
     }
 
@@ -681,14 +691,25 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
             surface.normal_q1e6[1] as f64 / 1.0e6,
             surface.normal_q1e6[2] as f64 / 1.0e6,
         ]);
-        let reference_axis = if normal.x.abs() <= normal.y.abs()
-            && normal.x.abs() <= normal.z.abs()
+        let reference_axis = if normal.x.abs() <= normal.y.abs() && normal.x.abs() <= normal.z.abs()
         {
-            Vec3 { x: 1.0, y: 0.0, z: 0.0 }
+            Vec3 {
+                x: 1.0,
+                y: 0.0,
+                z: 0.0,
+            }
         } else if normal.y.abs() <= normal.z.abs() {
-            Vec3 { x: 0.0, y: 1.0, z: 0.0 }
+            Vec3 {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0,
+            }
         } else {
-            Vec3 { x: 0.0, y: 0.0, z: 1.0 }
+            Vec3 {
+                x: 0.0,
+                y: 0.0,
+                z: 1.0,
+            }
         };
         let tangent_one = reference_axis
             .sub(normal.scale(reference_axis.dot(normal)))
@@ -969,7 +990,11 @@ mod tests {
         );
         let receipt = evaluate_bytes(bytes, &"0".repeat(40)).unwrap();
         assert!(receipt.augmented_candidate_view_count > 0);
-        assert!(!receipt.undercovered_feature_ids_before_augmentation.is_empty());
+        assert!(
+            !receipt
+                .undercovered_feature_ids_before_augmentation
+                .is_empty()
+        );
         assert_eq!(
             receipt.candidate_view_count,
             receipt.initial_candidate_view_count + receipt.augmented_candidate_view_count
