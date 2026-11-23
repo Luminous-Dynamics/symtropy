@@ -1509,6 +1509,28 @@ mod tests {
     }
 
     #[test]
+    fn csv_rows_match_header_width_and_preserve_missingness_adjudication() {
+        let report = render_csv();
+        let mut rows = report.lines();
+        let header = rows.next().expect("CSV header");
+        let column_count = header.split(',').count();
+
+        assert_eq!(column_count, 25);
+        for row in rows {
+            assert_eq!(row.split(',').count(), column_count, "{row}");
+        }
+
+        assert!(report.contains(
+            "MISSING,a_critical_reserve_outage,hold,false,30,30,A,false,true,true,BOTH_VALID,0,2,1,52"
+        ));
+        assert!(report.contains(
+            "MISSING,a_critical_reserve_ready_sensor_only_fault,hold,false,30,30,A,true,true,true,BOTH_VALID,1,52,1,52"
+        ));
+        assert!(report.contains("COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE"));
+        assert!(report.contains("SENSOR_ONLY_FAILURE_RESERVE_READY"));
+    }
+
+    #[test]
     fn deterministic_report_replay_is_byte_identical() {
         assert_eq!(render_csv(), render_csv());
     }
