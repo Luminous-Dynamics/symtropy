@@ -92,6 +92,7 @@ fn run() -> Result<(), String> {
         "capability_profile_sha256": digest_hex(&capability_bytes),
         "simulator_id": profile.simulator_id,
         "simulator_revision": profile.simulator_revision,
+        "gazebo_release": profile.gazebo_release,
         "ros_distribution": profile.ros_distribution,
         "simulation_interfaces_revision": profile.simulation_interfaces_revision,
         "world_name": profile.world_name,
