@@ -9,7 +9,7 @@ from pathlib import Path
 
 CORPUS_SCHEMA = "luminous.orbital-truss.multicover-scale-corpus.v0.2"
 BENCHMARK_ID = "ORBITAL-MULTICOVER-SCALE-002"
-RECEIPT_SCHEMA = "luminous.orbital-truss.multicover-scale-receipt.v0.1"
+RECEIPT_SCHEMA = "luminous.orbital-truss.multicover-scale-receipt.v0.2"
 CLAIM_CEILING = "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
 FIXED_SCALE = 1_000_000_000_000_000_000
 EXP_NEGATIVE_ONE_FIXED = 367_879_441_171_442_321
