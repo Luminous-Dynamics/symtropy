@@ -5,7 +5,7 @@ const schema=JSON.parse(fs.readFileSync(schemaPath,"utf8")),corpus=JSON.parse(fs
 if(schema.properties?.schema?.const!=="luminous.orbital-loss-model-universe-adequacy.corpus.v0.1"
  ||schema.properties?.claim_ceiling?.const!=="synthetic-loss-model-universe-adequacy-only")throw Error("loss-model universe schema contract malformed");
 if(corpus.schema!==schema.properties.schema.const||corpus.claim_ceiling!==schema.properties.claim_ceiling.const
- ||corpus.evidence_class!=="synthetic"||!Array.isArray(corpus.cases)||corpus.cases.length!==17)throw Error("loss-model universe corpus contract mismatch");
+ ||corpus.evidence_class!=="synthetic"||!Array.isArray(corpus.cases)||corpus.cases.length!==18)throw Error("loss-model universe corpus contract mismatch");
 const base=corpus.cases.find(c=>c.case_id==="baseline_closed");
 const common=corpus.cases.find(c=>c.case_id==="common_mode_omission");
 const valid=corpus.cases.find(c=>c.case_id==="valid_exclusion");
