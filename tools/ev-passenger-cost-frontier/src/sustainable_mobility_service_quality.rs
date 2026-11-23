@@ -906,14 +906,6 @@ fn evaluate_policy(
         let _ = (latency, wait);
     }
 
-    for request_index in eligible_request_indices {
-        let request = &input.requests[request_index];
-        if let Some(assignment) = assignments.get(&request.request_id) {
-            continue;
-        }
-        let _ = request;
-    }
-
     for request in &input.requests {
         if let Some(assignment) = assignments.get(&request.request_id) {
             let latency = assignment
@@ -1335,6 +1327,7 @@ pub fn evaluate_linked_service_quality(
         )
     });
 
+    let qualified_opportunity_count = aerial_opportunities.len();
     let legacy_input = ServiceQualityInput {
         schema_version: input.schema_version.clone(),
         benchmark_id: input.benchmark_id.clone(),
@@ -1349,7 +1342,7 @@ pub fn evaluate_linked_service_quality(
                 .steady_state_cycle_capacity_upper_bound_per_hour,
             initial_inventory_capacity_allowance_per_hour: selected
                 .initial_inventory_capacity_allowance_per_hour,
-            max_aerial_opportunities: u32::try_from(aerial_opportunities.len())
+            max_aerial_opportunities: u32::try_from(qualified_opportunity_count)
                 .map_err(|_| vec!["qualified_opportunity_count_overflow".to_owned()])?,
         },
         requests: input.requests.clone(),
@@ -1371,7 +1364,7 @@ pub fn evaluate_linked_service_quality(
         capacity_service_opportunity_digest: opportunity_digest,
         capacity_architecture_configuration_digest: configuration_digest,
         capacity_opportunities_in_source: selected.service_opportunities.len(),
-        capacity_opportunities_qualified: aerial_opportunities.len(),
+        capacity_opportunities_qualified: qualified_opportunity_count,
         policy_results: evaluated.policy_results,
         service_quality_is_physical_performance_claim: false,
         claim_ceiling: linked_report_claim_ceiling(),
