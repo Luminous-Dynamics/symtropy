@@ -486,6 +486,8 @@ mod tests {
         let mut candidate = contract(7);
         candidate.probability_lower_bound = 0.9;
         candidate.probability_upper_bound = 1.0;
+        candidate.campaign_blocks[3].outcome =
+            AcquisitionCampaignOutcome::FailedOrTimedOut;
         assert_eq!(
             admit_active_evidence_reliability(&policy(), &[7], &[candidate]),
             Err(ActiveEvidenceReliabilityError::InvalidProbabilityInterval(7))
