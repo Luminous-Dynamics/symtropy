@@ -158,15 +158,13 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
     {
         return Err("CASE_ID_FRAME_UNITS_OR_COLLECTIONS_INVALID".to_owned());
     }
-    let candidate_ids: BTreeSet<&str> =
-        case.candidate_views.iter().map(String::as_str).collect();
+    let candidate_ids: BTreeSet<&str> = case.candidate_views.iter().map(String::as_str).collect();
     if candidate_ids.len() != case.candidate_views.len()
         || candidate_ids.iter().any(|id| id.trim().is_empty())
     {
         return Err("CANDIDATE_VIEW_IDS_DUPLICATE_OR_BLANK".to_owned());
     }
-    let selected_ids: BTreeSet<&str> =
-        case.selected_view_ids.iter().map(String::as_str).collect();
+    let selected_ids: BTreeSet<&str> = case.selected_view_ids.iter().map(String::as_str).collect();
     if selected_ids.len() != case.selected_view_ids.len()
         || selected_ids.iter().any(|id| !candidate_ids.contains(id))
     {
@@ -185,8 +183,11 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
         {
             return Err("SURFACE_ELEMENT_ID_AREA_OR_TARGET_INVALID".to_owned());
         }
-        let ray_view_ids: BTreeSet<&str> =
-            element.ray_counts.iter().map(|entry| entry.view_id.as_str()).collect();
+        let ray_view_ids: BTreeSet<&str> = element
+            .ray_counts
+            .iter()
+            .map(|entry| entry.view_id.as_str())
+            .collect();
         if ray_view_ids.len() != element.ray_counts.len() || ray_view_ids != candidate_ids {
             return Err("RAY_COUNT_MATRIX_MUST_MATCH_CANDIDATE_VIEWS_EXACTLY".to_owned());
         }
@@ -199,8 +200,7 @@ fn validate_case(case: &SamplingCase) -> Result<(), String> {
 
 fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
     validate_case(case)?;
-    let selected_ids: BTreeSet<&str> =
-        case.selected_view_ids.iter().map(String::as_str).collect();
+    let selected_ids: BTreeSet<&str> = case.selected_view_ids.iter().map(String::as_str).collect();
 
     let mut elements = Vec::with_capacity(case.elements.len());
     let mut candidate_pool_sufficient = true;
@@ -256,10 +256,8 @@ fn evaluate_case(case: &SamplingCase) -> Result<CaseReceipt, String> {
             element.area_um2,
             element.minimum_density_micro_rays_per_mm2,
         )?;
-        let candidate_view_count_meets =
-            candidate_view_count >= element.minimum_contributing_views;
-        let selected_view_count_meets =
-            selected_view_count >= element.minimum_contributing_views;
+        let candidate_view_count_meets = candidate_view_count >= element.minimum_contributing_views;
+        let selected_view_count_meets = selected_view_count >= element.minimum_contributing_views;
 
         candidate_pool_sufficient &= candidate_density_meets && candidate_view_count_meets;
         selected_plan_sufficient &= selected_density_meets && selected_view_count_meets;
@@ -399,9 +397,8 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!(
-        "../../../docs/research/orbital-truss/fixtures/sampling-density-v0_1.json"
-    );
+    const FIXTURE: &str =
+        include_str!("../../../docs/research/orbital-truss/fixtures/sampling-density-v0_1.json");
 
     #[test]
     fn frozen_sampling_density_corpus_matches_every_expected_status() {
@@ -411,7 +408,11 @@ mod tests {
             receipt.expected_outcome_matches,
             CASE_COUNT,
             "case statuses: {:?}",
-            receipt.cases.iter().map(|case| (&case.case_id, case.status)).collect::<Vec<_>>()
+            receipt
+                .cases
+                .iter()
+                .map(|case| (&case.case_id, case.status))
+                .collect::<Vec<_>>()
         );
         assert_eq!(receipt.expected_outcome_mismatches, 0);
         assert!(!receipt.authority_granted);
@@ -428,7 +429,10 @@ mod tests {
         let corpus: Corpus = serde_json::from_str(FIXTURE).unwrap();
         let a = evaluate_case(&corpus.cases[0]).unwrap().elements[0].clone();
         let b = evaluate_case(&corpus.cases[1]).unwrap().elements[0].clone();
-        assert_eq!(a.selected_total_intersections, b.selected_total_intersections);
+        assert_eq!(
+            a.selected_total_intersections,
+            b.selected_total_intersections
+        );
         assert_eq!(b.area_um2, a.area_um2 * 10);
     }
 
