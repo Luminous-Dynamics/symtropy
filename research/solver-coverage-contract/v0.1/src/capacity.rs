@@ -600,6 +600,8 @@ pub struct CapacityEvidenceReport {
     pub geometric_points_generated: u64,
     pub geometric_points_retained: u64,
     pub geometric_points_reduced: u64,
+    pub geometric_points_candidate_buffer_dropped: u64,
+    pub geometric_points_manifold_capacity_dropped: u64,
     pub geometric_points_capacity_dropped: u64,
     pub solver_contact_groups: u64,
     pub solver_mapping_incomplete_pairs: u64,
@@ -616,6 +618,8 @@ impl CapacityEvidence {
         let mut geometric_points_generated = 0_u64;
         let mut geometric_points_retained = 0_u64;
         let mut geometric_points_reduced = 0_u64;
+        let mut geometric_points_candidate_buffer_dropped = 0_u64;
+        let mut geometric_points_manifold_capacity_dropped = 0_u64;
         let mut geometric_points_capacity_dropped = 0_u64;
         let mut solver_contact_groups = 0_u64;
         let mut solver_mapping_incomplete_pairs = 0_u64;
@@ -632,7 +636,16 @@ impl CapacityEvidence {
             geometric_points_generated += report.generated_points;
             geometric_points_retained += report.retained_points;
             geometric_points_reduced += report.reduced_by_policy;
-            geometric_points_capacity_dropped += report.capacity_dropped;
+            geometric_points_candidate_buffer_dropped += report.candidate_buffer_capacity_dropped;
+            geometric_points_manifold_capacity_dropped += report.manifold_capacity_dropped;
+            geometric_points_capacity_dropped = checked_sum(
+                &[
+                    geometric_points_capacity_dropped,
+                    report.candidate_buffer_capacity_dropped,
+                    report.manifold_capacity_dropped,
+                ],
+                "capacity.geometric_points_capacity_dropped",
+            )?;
             solver_contact_groups += report.solver_groups;
             if !report.solver_mapping_complete {
                 solver_mapping_incomplete_pairs += 1;
@@ -682,6 +695,8 @@ impl CapacityEvidence {
             geometric_points_generated,
             geometric_points_retained,
             geometric_points_reduced,
+            geometric_points_candidate_buffer_dropped,
+            geometric_points_manifold_capacity_dropped,
             geometric_points_capacity_dropped,
             solver_contact_groups,
             solver_mapping_incomplete_pairs,
