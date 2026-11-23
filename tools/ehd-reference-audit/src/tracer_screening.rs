@@ -372,6 +372,30 @@ pub fn reference_self_check() -> Result<(), TracerScreenError> {
         return Err(TracerScreenError::InvalidMaximumWindow);
     }
 
+    let dehs_unavailable = screen_tracer_candidate(TracerScreenInput {
+        pressure_atm: 0.30,
+        tracer: TracerKind::Dehs,
+        maximum_interrogation_window_px: 128,
+        require_full_field: true,
+        require_boundary_layer_detail: false,
+    })?;
+    if dehs_unavailable.disposition != TracerScreenDisposition::UnavailableAtPressure {
+        return Err(TracerScreenError::InvalidMaximumWindow);
+    }
+
+    let incense_cones_edge_only = screen_tracer_candidate(TracerScreenInput {
+        pressure_atm: 0.30,
+        tracer: TracerKind::IncenseCones,
+        maximum_interrogation_window_px: 64,
+        require_full_field: true,
+        require_boundary_layer_detail: false,
+    })?;
+    if incense_cones_edge_only.disposition != TracerScreenDisposition::EdgeCaseOnly
+        || incense_cones_edge_only.eligible_for_requested_resolution
+    {
+        return Err(TracerScreenError::InvalidMaximumWindow);
+    }
+
     let unmeasured_pressure = screen_tracer_candidate(TracerScreenInput {
         pressure_atm: 0.33,
         tracer: TracerKind::Sio2,
