@@ -70,7 +70,7 @@ The projection binds:
 
 A path witness must start at its role binding, terminate at the named dependency node, have consistent node/edge/relation counts, contain no repeated nodes, and not use an independence conclusion as a dependency edge. Unknown and potentially-correlated path relations remain valid *uncertainty evidence* and prevent a separation result.
 
-A `NotApplicable` declaration includes both a rationale and an accountable owner. It does not discharge a mandatory v0.1 obligation.
+A `NotApplicable` declaration includes both a rationale and an accountable owner. It does not discharge a mandatory v0.1 obligation. A known common dependency may be annotated as explicitly accepted with a rationale, impact statement, and accountable owner; the finding still remains `Shared` and the profile does not claim separation.
 
 ### Per-dimension outcomes
 
@@ -85,7 +85,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 20 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 23 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
@@ -99,7 +99,7 @@ That is 900 deterministic identity-set cases. Additional tests cover:
 - partial disjoint inventory, unknown inventory and stale witnesses;
 - revoked or contradictory projection; malformed/cyclic path;
 - `PotentiallyCorrelated` and `DependencyUnknown` relations;
-- duplicate paths without duplicate identity counting;
+- duplicate paths without duplicate identity counting; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
 - profile/as-of mismatch, missing required dimension and owner-backed non-applicability;
 - fine-grained maritime component mapping and dimension-qualified identity equality.
 
