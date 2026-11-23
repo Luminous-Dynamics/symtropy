@@ -2,7 +2,7 @@
   "schema": "luminous.orbital-truss-support-envelope.corpus.v0.1",
   "benchmark_id": "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001",
   "evidence_class": "synthetic",
-  "claim_ceiling": "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed",
+  "claim_ceiling": "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed",
   "cases": [
     {
       "case_id": "SE-001-WHOLE-SUPPORT-PASS",
@@ -17,14 +17,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -60,14 +60,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -103,14 +103,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -146,14 +146,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -189,14 +189,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.2,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -232,14 +232,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.2,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0.34289780745545134,
           0,
           0.9393727128473789
         ],
         "normal_cone_half_angle_rad": 0.1,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -275,14 +275,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.1,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0.7173560908995228,
           0,
           0.6967067093471654
         ],
         "normal_cone_half_angle_rad": 0.05,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -318,14 +318,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.1,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0.24740395925452294,
           0,
           0.9689124217106447
         ],
         "normal_cone_half_angle_rad": 0.1,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -361,14 +361,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0.19866933079506122,
           0,
           0.9800665778412416
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -404,14 +404,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": false,
+        "enclosing_ball_asserted": false,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -447,14 +447,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": false
+        "normal_cone_asserted": false
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -490,14 +490,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
@@ -533,14 +533,14 @@
           0
         ],
         "enclosing_ball_radius_m": 0.01,
-        "enclosing_ball_proven": true,
+        "enclosing_ball_asserted": true,
         "outward_normal_unit": [
           0,
           0,
           1
         ],
         "normal_cone_half_angle_rad": 0.01,
-        "normal_cone_proven": true
+        "normal_cone_asserted": true
       },
       "sensor": {
         "sensor_id": "CAMERA-1",
