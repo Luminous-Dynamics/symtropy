@@ -606,8 +606,13 @@ pub fn dispatch_idempotency_key(
         return Err(GazeboAdapterError::InvalidIdempotencyContext);
     }
     Ok(format!(
-        "rrvr/{}/{}/{}/{}/{}",
-        plan.plan_sha256, scenario.pair_id, scenario.scenario_id, fault.fault_id, run_epoch
+        "rrvr/{}/{}/{}/{}/{}/{}",
+        plan.plan_sha256,
+        scenario.pair_id,
+        scenario.scenario_id,
+        fault.fault_id,
+        run_id,
+        run_epoch
     ))
 }
 
