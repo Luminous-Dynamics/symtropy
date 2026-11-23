@@ -49,8 +49,7 @@ pub use ncdot_sphere::{
 };
 pub use relative_covariance::{
     DcpCrossCovarianceInputs, RelativeNcdotConditionals, RelativeNcdotCovarianceInputs,
-    StateCovariance6, build_relative_ncdot_conditionals,
-    dcp_secondary_primary_cross_covariance,
+    StateCovariance6, build_relative_ncdot_conditionals, dcp_secondary_primary_cross_covariance,
 };
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
