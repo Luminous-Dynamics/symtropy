@@ -1358,7 +1358,7 @@ mod tests {
     #[test]
     fn generated_world_sets_match_exhaustive_oracle_for_every_partition() {
         let partitions = all_partitions(WORLD_COUNT);
-        assert_eq!(partitions.len(), 52);
+        assert_eq!(partitions.len(), 203);
 
         for seed in 0..64 {
             let worlds = generated_worlds(seed);
