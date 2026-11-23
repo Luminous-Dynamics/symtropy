@@ -472,7 +472,7 @@ fn enumerate_node_actions(
 fn node_request_mask(node: &NormalizedNode) -> u8 {
     node.request_indices
         .iter()
-        .fold(0_u8, |mask, index| mask | (1_u8 << index))
+        .fold(0_u8, |mask, index| mask | (1_u8 << *index))
 }
 
 fn solve_node(
@@ -904,7 +904,7 @@ fn leaf_policy_score(
     let rejected = expired_requests.len();
     let unserved = revealed_requests
         .difference(&assigned_requests)
-        .filter(|request_index| !expired_requests.contains(request_index))
+        .filter(|request_index| !expired_requests.contains(*request_index))
         .count();
     Ok((score, rejected, unserved))
 }
@@ -1741,8 +1741,8 @@ mod tests {
     #[test]
     fn bounds_exceeded_tree_is_rejected() {
         let mut tree = tree_fixture();
-        let duplicated = tree.nodes.clone();
-        tree.nodes.extend(duplicated);
+        let repeated_node = tree.nodes[0].clone();
+        tree.nodes = vec![repeated_node; MAX_TREE_NODES + 1];
         let errors = evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
             .expect_err("node bound");
         assert!(errors.iter().any(|error| error == "nonanticipative_identity_or_bounds_invalid"));
