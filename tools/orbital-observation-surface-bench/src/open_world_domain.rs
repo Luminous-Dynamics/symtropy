@@ -169,14 +169,6 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
-fn digest_ids(ids: &[String]) -> Result<String, String> {
-    let mut sorted = ids.to_vec();
-    sorted.sort();
-    let bytes = serde_json::to_vec(&sorted)
-        .map_err(|error| format!("failed to serialize action ID inventory: {error}"))?;
-    Ok(sha256_hex(&bytes))
-}
-
 fn payload_sha256(action_id: &str) -> String {
     sha256_hex(format!("orbital-domain-action:v0.1:{action_id}").as_bytes())
 }
@@ -198,24 +190,14 @@ fn validate_ids(label: &str, ids: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-fn overlaps(
-    domain_start: u64,
-    domain_end: u64,
-    component_start: u64,
-    component_end: u64,
-    operation_start: u64,
-    operation_end: u64,
-    actor_start: u64,
-    actor_end: u64,
+fn intervals_overlap(
+    domain: (u64, u64),
+    component: (u64, u64),
+    operation: (u64, u64),
+    actor: (u64, u64),
 ) -> bool {
-    let start = domain_start
-        .max(component_start)
-        .max(operation_start)
-        .max(actor_start);
-    let end = domain_end
-        .min(component_end)
-        .min(operation_end)
-        .min(actor_end);
+    let start = domain.0.max(component.0).max(operation.0).max(actor.0);
+    let end = domain.1.min(component.1).min(operation.1).min(actor.1);
     start < end
 }
 
@@ -238,15 +220,11 @@ fn generate_domain_actions(domain: &DomainManifest) -> Vec<ActionWitness> {
                     .role_ids
                     .iter()
                     .any(|role| role == &operation.required_role_id)
-                    || !overlaps(
-                        domain.window_start_ms,
-                        domain.window_end_ms,
-                        component.active_start_ms,
-                        component.active_end_ms,
-                        operation.active_start_ms,
-                        operation.active_end_ms,
-                        actor.active_start_ms,
-                        actor.active_end_ms,
+                    || !intervals_overlap(
+                        (domain.window_start_ms, domain.window_end_ms),
+                        (component.active_start_ms, component.active_end_ms),
+                        (operation.active_start_ms, operation.active_end_ms),
+                        (actor.active_start_ms, actor.active_end_ms),
                     )
                 {
                     continue;
