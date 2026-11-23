@@ -8,8 +8,8 @@
     "schema_version",
     "benchmark_id",
     "horizon_seconds",
-    "requests",
-    "opportunities",
+    "linked_service_input",
+    "capacity_input",
     "observation_nodes",
     "scenarios",
     "claim_ceiling"
@@ -25,22 +25,6 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 86400
-    },
-    "requests": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 4,
-      "items": {
-        "$ref": "#/$defs/request"
-      }
-    },
-    "opportunities": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 4,
-      "items": {
-        "$ref": "#/$defs/opportunity"
-      }
     },
     "observation_nodes": {
       "type": "array",
@@ -61,114 +45,15 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "linked_service_input": {
+      "$ref": "./sustainable_mobility_service_quality_linked_v0_1.schema.json"
+    },
+    "capacity_input": {
+      "$ref": "./sustainable_mobility_service_capacity_v0_1.schema.json"
     }
   },
   "$defs": {
-    "request": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "request_id",
-        "arrival_seconds",
-        "accept_by_seconds",
-        "deadline_seconds",
-        "required_service_seconds",
-        "payload_units",
-        "allowed_mode"
-      ],
-      "properties": {
-        "request_id": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 80
-        },
-        "arrival_seconds": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 86400
-        },
-        "accept_by_seconds": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 86400
-        },
-        "deadline_seconds": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 86400
-        },
-        "required_service_seconds": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 86400
-        },
-        "payload_units": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 10000
-        },
-        "allowed_mode": {
-          "enum": [
-            "aerial_only",
-            "fallback_only",
-            "either"
-          ]
-        }
-      }
-    },
-    "opportunity": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "opportunity_id",
-        "resource_id",
-        "mode",
-        "start_seconds",
-        "max_service_duration_seconds",
-        "turnaround_seconds",
-        "max_payload_units"
-      ],
-      "properties": {
-        "opportunity_id": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 80
-        },
-        "resource_id": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 80
-        },
-        "mode": {
-          "enum": [
-            "aerial",
-            "ground_courier",
-            "locker",
-            "amr"
-          ]
-        },
-        "start_seconds": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 86400
-        },
-        "max_service_duration_seconds": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 86400
-        },
-        "turnaround_seconds": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 86400
-        },
-        "max_payload_units": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 10000
-        }
-      }
-    },
     "node": {
       "type": "object",
       "additionalProperties": false,
@@ -183,7 +68,8 @@
         "weather_state",
         "permission_state",
         "weather_evidence_digest",
-        "permission_evidence_digest"
+        "permission_evidence_digest",
+        "flight_window_id"
       ],
       "properties": {
         "node_id": {
@@ -248,6 +134,11 @@
         "permission_evidence_digest": {
           "type": "string",
           "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "flight_window_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
         }
       }
     },
