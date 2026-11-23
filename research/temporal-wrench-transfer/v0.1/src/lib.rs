@@ -59,7 +59,12 @@ pub struct ImpulseAllocation {
 pub struct TemporalTransferReport {
     pub source_contact_ids: Vec<String>,
     pub retained_contact_ids: Vec<String>,
+    /// Previous frame's total normal impulse, used as the target force.
     pub total_normal_impulse: f64,
+    /// Total impulse actually assigned to the new manifold.
+    pub transferred_normal_impulse: f64,
+    /// Transferred minus source total normal impulse.
+    pub force_error: f64,
     pub target_center_of_pressure: [f64; 2],
     pub achieved_center_of_pressure: [f64; 2],
     /// Achieved minus target moment components [Mx, My].
@@ -309,76 +314,128 @@ fn exact_convex_hull_projection(
     best.ok_or_else(|| TransferError::new("convex-hull projection produced no feasible allocation"))
 }
 
-/// Redistribute the previous frame's total normal impulse over a new planar
-/// contact set while minimizing center-of-pressure (and therefore normal-force
-/// moment) error. All new impulses are non-negative and their sum is exact.
-///
-/// The solution is exact for a fixed +Z normal and unconstrained non-negative
-/// per-point impulse magnitudes. It is not a full frictional warm-start solver.
-pub fn transfer_normal_impulse(
-    previous: &[PreviousNormalImpulse],
-    new_contacts: &[NewContactCandidate],
+fn build_transfer_report(
+    old: &[PreviousNormalImpulse],
+    new: &[NewContactCandidate],
+    total_impulse: f64,
+    target_center: [f64; 2],
+    weights: &[f64],
+    transfer_scale: f64,
 ) -> Result<TemporalTransferReport, TransferError> {
-    let (old, new, total_impulse, target_center) = validate_inputs(previous, new_contacts)?;
-    let selected = exact_convex_hull_projection(&new, target_center)?;
-
+    if weights.len() != new.len() || !transfer_scale.is_finite() || transfer_scale <= 0.0 || transfer_scale > 1.0 {
+        return Err(TransferError::new("transfer weights and scale are invalid"));
+    }
+    let transferred_normal_impulse = total_impulse * transfer_scale;
     let mut allocations = Vec::new();
     let mut impulse_sum = 0.0_f64;
-    for (index, fraction) in selected.weights.iter().enumerate() {
-        if *fraction <= 1.0e-12 {
-            continue;
+    let mut achieved_center = [0.0_f64; 2];
+    for (index, fraction) in weights.iter().enumerate() {
+        if !fraction.is_finite() || *fraction < 0.0 {
+            return Err(TransferError::new("normalized impulse weights must be finite and non-negative"));
         }
-        let normal_impulse = total_impulse * fraction;
-        impulse_sum += normal_impulse;
-        allocations.push(ImpulseAllocation {
-            contact_id: new[index].contact_id.clone(),
-            normal_impulse,
-            normalized_load_fraction: *fraction,
-        });
+        achieved_center[0] += new[index].position[0] * fraction;
+        achieved_center[1] += new[index].position[1] * fraction;
+        if *fraction > 1.0e-12 {
+            let normal_impulse = transferred_normal_impulse * fraction;
+            impulse_sum += normal_impulse;
+            allocations.push(ImpulseAllocation {
+                contact_id: new[index].contact_id.clone(),
+                normal_impulse,
+                normalized_load_fraction: *fraction,
+            });
+        }
+    }
+    let weight_sum: f64 = weights.iter().sum();
+    if (weight_sum - 1.0).abs() > 1.0e-12 {
+        return Err(TransferError::new("normalized impulse weights must sum to one"));
     }
 
+    let force_error = transferred_normal_impulse - total_impulse;
     let moment_error = [
-        total_impulse * (selected.achieved[1] - target_center[1]),
-        -total_impulse * (selected.achieved[0] - target_center[0]),
+        transferred_normal_impulse * achieved_center[1] - total_impulse * target_center[1],
+        -transferred_normal_impulse * achieved_center[0] + total_impulse * target_center[0],
     ];
     let moment_error_norm = norm2(moment_error);
     let center_of_pressure_error_norm = norm2([
-        selected.achieved[0] - target_center[0],
-        selected.achieved[1] - target_center[1],
+        achieved_center[0] - target_center[0],
+        achieved_center[1] - target_center[1],
     ]);
-    let impulse_sum_error = impulse_sum - total_impulse;
+    let impulse_sum_error = impulse_sum - transferred_normal_impulse;
     if !moment_error_norm.is_finite()
         || !center_of_pressure_error_norm.is_finite()
         || !impulse_sum_error.is_finite()
+        || !force_error.is_finite()
     {
-        return Err(TransferError::new(
-            "resultant wrench transfer residual is non-finite",
-        ));
+        return Err(TransferError::new("resultant wrench transfer residual is non-finite"));
     }
-    let coordinate_scale = norm2(target_center).max(norm2(selected.achieved)).max(1.0);
+    let coordinate_scale = norm2(target_center).max(norm2(achieved_center)).max(1.0);
     let center_tolerance = 1.0e-12 * coordinate_scale;
     let impulse_tolerance = 1.0e-12 * total_impulse.max(1.0);
+    let force_tolerance = impulse_tolerance;
 
     Ok(TemporalTransferReport {
-        source_contact_ids: old
-            .iter()
-            .map(|contact| contact.contact_id.clone())
-            .collect(),
-        retained_contact_ids: allocations
-            .iter()
-            .map(|item| item.contact_id.clone())
-            .collect(),
+        source_contact_ids: old.iter().map(|contact| contact.contact_id.clone()).collect(),
+        retained_contact_ids: allocations.iter().map(|item| item.contact_id.clone()).collect(),
         total_normal_impulse: total_impulse,
+        transferred_normal_impulse,
+        force_error,
         target_center_of_pressure: target_center,
-        achieved_center_of_pressure: selected.achieved,
+        achieved_center_of_pressure: achieved_center,
         moment_error,
         moment_error_norm,
         center_of_pressure_error_norm,
         impulse_sum_error,
         allocations,
         exact_wrench_preservation: center_of_pressure_error_norm <= center_tolerance
+            && force_error.abs() <= force_tolerance
+            && moment_error_norm <= force_tolerance * coordinate_scale
             && impulse_sum_error.abs() <= impulse_tolerance,
     })
+}
+
+/// Redistribute the previous frame's total normal impulse over a new planar
+/// contact set while minimizing center-of-pressure (and therefore normal-force
+/// moment) error. All new impulses are non-negative and their sum is exact.
+pub fn transfer_normal_impulse(
+    previous: &[PreviousNormalImpulse],
+    new_contacts: &[NewContactCandidate],
+) -> Result<TemporalTransferReport, TransferError> {
+    let (old, new, total_impulse, target_center) =
+        validate_inputs(previous, new_contacts)?;
+    let selected = exact_convex_hull_projection(&new, target_center)?;
+    build_transfer_report(
+        &old,
+        &new,
+        total_impulse,
+        target_center,
+        &selected.weights,
+        1.0,
+    )
+}
+
+/// Reproduce the current scalar-cache baseline: scale the prior total normal
+/// impulse, then distribute it equally across all new manifold points. The
+/// production warm-start currently uses a scale of 0.8.
+pub fn transfer_equal_distribution(
+    previous: &[PreviousNormalImpulse],
+    new_contacts: &[NewContactCandidate],
+    warm_start_scale: f64,
+) -> Result<TemporalTransferReport, TransferError> {
+    let (old, new, total_impulse, target_center) =
+        validate_inputs(previous, new_contacts)?;
+    if !warm_start_scale.is_finite() || warm_start_scale <= 0.0 || warm_start_scale > 1.0 {
+        return Err(TransferError::new("warm-start scale must be in (0, 1]"));
+    }
+    let equal_fraction = 1.0 / new.len() as f64;
+    let weights = vec![equal_fraction; new.len()];
+    build_transfer_report(
+        &old,
+        &new,
+        total_impulse,
+        target_center,
+        &weights,
+        warm_start_scale,
+    )
 }
 
 #[cfg(test)]
@@ -486,6 +543,35 @@ mod tests {
             second.achieved_center_of_pressure
         );
         assert_eq!(first.moment_error, second.moment_error);
+    }
+
+    #[test]
+    fn current_equal_warm_start_baseline_reports_force_and_moment_loss() {
+        let previous = vec![old("old-a", -1.0, 0.0, 1.0), old("old-b", 1.0, 0.0, 1.0)];
+        let next = vec![new("left", -1.0, 0.0), new("right", 3.0, 0.0)];
+        let baseline = transfer_equal_distribution(&previous, &next, 0.8)
+            .expect("current equal-distribution baseline");
+        let transported =
+            transfer_normal_impulse(&previous, &next).expect("wrench-preserving transfer");
+
+        assert!((baseline.transferred_normal_impulse - 1.6).abs() < 1.0e-12);
+        assert!((baseline.force_error + 0.4).abs() < 1.0e-12);
+        assert!((baseline.achieved_center_of_pressure[0] - 1.0).abs() < 1.0e-12);
+        assert!((baseline.moment_error_norm - 1.6).abs() < 1.0e-12);
+        assert!(!baseline.exact_wrench_preservation);
+
+        assert!((transported.transferred_normal_impulse - 2.0).abs() < 1.0e-12);
+        assert!(transported.exact_wrench_preservation);
+        assert!((transported.achieved_center_of_pressure[0]).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn equal_distribution_scale_must_be_valid() {
+        let previous = vec![old("old", 0.0, 0.0, 1.0)];
+        let next = vec![new("new", 0.0, 0.0)];
+        assert!(transfer_equal_distribution(&previous, &next, 0.0).is_err());
+        assert!(transfer_equal_distribution(&previous, &next, 1.1).is_err());
+        assert!(transfer_equal_distribution(&previous, &next, f64::NAN).is_err());
     }
 
     #[test]
