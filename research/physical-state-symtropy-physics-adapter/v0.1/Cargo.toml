@@ -1,0 +1,15 @@
+[package]
+name = "physical-state-symtropy-physics-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Evidence-aware adapter from Symtropy PhysicsWorld to physical state feedback"
+
+[dependencies]
+physical-state-feedback-contract = { path = "../../physical-state-feedback-contract/v0.1" }
+symtropy-physics = { path = "../../../crates/core/symtropy-physics" }
+symtropy-math = { path = "../../../crates/core/symtropy-math" }
+nalgebra = "=0.34.2"
+
+[workspace]
