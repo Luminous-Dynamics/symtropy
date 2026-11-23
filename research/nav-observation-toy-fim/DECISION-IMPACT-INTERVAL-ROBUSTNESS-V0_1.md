@@ -55,7 +55,7 @@ The point scorer's class-pair report is revalidated for pair counts, separated/u
 
 ## Synthetic verification suite
 
-The module includes eleven tests:
+The module includes nine tests:
 
 1. Fixed weight intervals produce tight outward bounds around a non-integer rational resolution.
 2. A two-class-pair adversarial interval box returns the exact endpoint extremes for a zero/one resolution case.
@@ -183,6 +183,21 @@ For sequential sensing, the next step is a non-anticipative decision tree in whi
 - baseline retention for failed/invalid/unknown branches;
 - mean, VaR, AVaR and maximum residual outputs;
 - tests for a rare high-residual outcome hidden by a low mean, exact fractional tail mass, alpha monotonicity, unknown outcome retention, reliability/mass mismatch, frontier-action and outcome-model binding, reliability-action binding, commitment mismatch, permutation invariance and malformed scenarios.
+
+The action being assessed may be any action that appears exactly once in the reliability-admitted #7165 Pareto frontier; it need not be the plan's single recommended action. This makes it possible to evaluate every admitted alternative with the same finite-outcome contract before comparing actions. Its outcome-model digest and embedded reliability-record action ID must match the same frontier entry.
+
+The outcome-risk module has eleven focused tests:
+1. A rare high-residual outcome is visible in AVaR despite a low mean.
+2. AVaR consumes a fractional boundary scenario exactly.
+3. AVaR is monotone as the confidence level increases.
+4. Failed/invalid outcomes cannot claim improvement.
+5. Unknown outcomes retain baseline residual impact and remain separately visible.
+6. Scenario mass and qualified acquisition probability must both satisfy their contracts.
+7. Action and impact commitments must match.
+8. The scenario outcome-model digest and reliability action ID bind to the matching planner entry.
+9. A non-recommended action on the admitted Pareto frontier can still be assessed.
+10. Scenario permutation does not change the result.
+11. Duplicate IDs, zero mass and missing commitments reject.
 
 These tests are authored; exact-head Rust CI is the qualification gate.
 
