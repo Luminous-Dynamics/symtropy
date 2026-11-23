@@ -151,6 +151,7 @@ function evaluateCase(item) {
     return invalidInput(item, "upstream world or loss-model receipt pins are malformed");
   }
 
+
   const expectedWorlds = new Set(item.expected_world_ids);
   if (expectedWorlds.size !== item.expected_world_ids.length
     || [...expectedWorlds].some(id => !validId(id))
