@@ -31,6 +31,7 @@ pub mod conditional_velocity;
 pub mod coverage;
 pub mod lebedev;
 pub mod ncdot_sphere;
+pub mod ncdot_temporal;
 pub mod normal_positive_part;
 pub mod residual;
 pub mod sequential;
@@ -50,6 +51,11 @@ pub use lebedev::{
 pub use ncdot_sphere::{
     NcdotSphereConfig, NcdotSphereDiagnosticsConfig, NcdotSphereInputs, NcdotSphereReport,
     integrate_ncdot_sphere,
+};
+pub use ncdot_temporal::{
+    NcdotTemporalExtremum, NcdotTemporalExtremumKind, NcdotTemporalHorizon,
+    NcdotTemporalIdentity, NcdotTemporalReport, NcdotTemporalSample,
+    TemporalHorizonCoverageClaim, integrate_ncdot_time_series,
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
@@ -143,6 +149,26 @@ pub enum KernelError {
     InvalidCovarianceTolerance,
     /// A vector supplied as a sphere direction is not unit length.
     InvalidUnitDirection,
+    /// An evidence identifier is blank or malformed.
+    InvalidEvidenceIdentifier,
+    /// An evidence digest is not canonical lowercase SHA-256 hexadecimal.
+    InvalidEvidenceDigest,
+    /// Event, model or target-distribution identities differ.
+    EvidenceIdentityMismatch,
+    /// A temporal horizon has invalid endpoints or maximum interval.
+    InvalidTemporalHorizon,
+    /// Fewer than two fixed-time reports were supplied for time integration.
+    InsufficientTemporalSamples,
+    /// Two temporal samples reuse the same stable sample identifier.
+    DuplicateTemporalSample,
+    /// Temporal samples use different Lebedev sphere rules.
+    TemporalLebedevRuleMismatch,
+    /// A temporal Ncdot report contains an invalid rate or contribution ledger.
+    InvalidTemporalRate,
+    /// The first or last temporal sample does not match the declared horizon.
+    TemporalHorizonEndpointMismatch,
+    /// Temporal epochs are duplicate or not strictly increasing.
+    NonIncreasingTemporalEpochs,
 }
 
 impl fmt::Display for KernelError {
@@ -198,6 +224,16 @@ impl fmt::Display for KernelError {
                 "covariance and direction tolerances must be nonnegative and finite"
             }
             Self::InvalidUnitDirection => "sphere direction must have unit norm",
+            Self::InvalidEvidenceIdentifier => "evidence identifier must be nonempty",
+            Self::InvalidEvidenceDigest => "evidence digest must be 64 lowercase hexadecimal characters",
+            Self::EvidenceIdentityMismatch => "event, model or target-distribution identities do not match",
+            Self::InvalidTemporalHorizon => "temporal horizon or maximum interval is invalid",
+            Self::InsufficientTemporalSamples => "at least two time samples are required",
+            Self::DuplicateTemporalSample => "temporal sample identifiers must be unique",
+            Self::TemporalLebedevRuleMismatch => "all time samples must use the same Lebedev rule",
+            Self::InvalidTemporalRate => "temporal Ncdot rate or support report is invalid",
+            Self::TemporalHorizonEndpointMismatch => "temporal samples must include both declared horizon endpoints",
+            Self::NonIncreasingTemporalEpochs => "temporal sample epochs must be strictly increasing",
         };
         f.write_str(message)
     }
