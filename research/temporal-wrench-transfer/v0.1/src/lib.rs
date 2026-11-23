@@ -245,7 +245,7 @@ fn exact_convex_hull_projection(
     let mut best = None;
 
     // Vertices.
-    for index in 0..new_contacts.len() {
+    for (index, _contact) in new_contacts.iter().enumerate() {
         consider(
             &mut best,
             make_candidate(new_contacts, target, &[(index, 1.0)]),
@@ -254,10 +254,10 @@ fn exact_convex_hull_projection(
 
     // Every segment. A closest boundary point of a 2D convex hull lies on
     // a hull edge, and every hull edge is represented by one candidate pair.
-    for left in 0..new_contacts.len() {
-        for right in (left + 1)..new_contacts.len() {
-            let a = new_contacts[left].position;
-            let b = new_contacts[right].position;
+    for (left, left_contact) in new_contacts.iter().enumerate() {
+        for (right, right_contact) in new_contacts.iter().enumerate().skip(left + 1) {
+            let a = left_contact.position;
+            let b = right_contact.position;
             let edge = [b[0] - a[0], b[1] - a[1]];
             let denominator = edge[0] * edge[0] + edge[1] * edge[1];
             if denominator <= 1.0e-30 {
@@ -276,12 +276,12 @@ fn exact_convex_hull_projection(
     // By Carathéodory's theorem, any point in a 2D convex hull has a
     // representation using at most three vertices. Enumerate all triangles
     // to detect exact interior solutions.
-    for first in 0..new_contacts.len() {
-        for second in (first + 1)..new_contacts.len() {
-            for third in (second + 1)..new_contacts.len() {
-                let a = new_contacts[first].position;
-                let b = new_contacts[second].position;
-                let c = new_contacts[third].position;
+    for (first, first_contact) in new_contacts.iter().enumerate() {
+        for (second, second_contact) in new_contacts.iter().enumerate().skip(first + 1) {
+            for (third, third_contact) in new_contacts.iter().enumerate().skip(second + 1) {
+                let a = first_contact.position;
+                let b = second_contact.position;
+                let c = third_contact.position;
                 let ab = [b[0] - a[0], b[1] - a[1]];
                 let ac = [c[0] - a[0], c[1] - a[1]];
                 let at = [target[0] - a[0], target[1] - a[1]];
