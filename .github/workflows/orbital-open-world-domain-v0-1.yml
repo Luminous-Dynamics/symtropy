@@ -1,0 +1,70 @@
+name: orbital open-world domain v0.1
+
+on:
+  push:
+    branches:
+      - research/orbital-open-world-domain-v0-1
+  pull_request:
+    branches:
+      - research/orbital-action-universe-closure-v0-1
+    paths:
+      - "tools/orbital-observation-surface-bench/**"
+      - "research/orbital/OPEN_WORLD_DOMAIN_FALSIFICATION_V0_1.md"
+      - ".github/workflows/orbital-open-world-domain-v0-1.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-open-world-domain-v0-1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate frozen open-world corpus schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/open-world-domain-corpus.schema.json \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/open-world-domain-cases.json
+      - name: Verify rustfmt
+        run: cargo fmt --manifest-path tools/orbital-observation-surface-bench/Cargo.toml -- --check
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Generate source-pinned open-world receipt
+        run: |
+          mkdir -p artifacts
+          cargo run --locked --manifest-path tools/orbital-observation-surface-bench/Cargo.toml --bin open-world-domain -- \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/open-world-domain-cases.json \
+            --source-commit "${GITHUB_SHA}" > artifacts/open-world-domain-receipt-v0.1.json
+      - name: Run independent JavaScript domain oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/open_world_domain_oracle.mjs \
+            tools/orbital-observation-surface-bench/fixtures/v0.1/open-world-domain-cases.json \
+            > artifacts/open-world-domain-oracle-v0.1.json
+      - name: Validate receipt schema
+        run: |
+          node tools/orbital-observation-surface-bench/tests/validate_schema.mjs \
+            tools/orbital-observation-surface-bench/schema/v0.1/open-world-domain-receipt.schema.json \
+            artifacts/open-world-domain-receipt-v0.1.json
+      - name: Compare Rust receipt to independent domain oracle
+        run: |
+          node tools/orbital-observation-surface-bench/tests/compare_open_world_domain.mjs \
+            artifacts/open-world-domain-receipt-v0.1.json \
+            artifacts/open-world-domain-oracle-v0.1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbital-open-world-domain-v0.1-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error

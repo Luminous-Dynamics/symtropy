@@ -1,0 +1,701 @@
+{
+  "schema": "luminous.orbital-open-world-domain.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "independent-finite-domain-grammar-falsification-only",
+  "cases": [
+    {
+      "case_id": "bounded_closed",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    },
+    {
+      "case_id": "shared_omission",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    },
+    {
+      "case_id": "enumerator_disagreement",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    },
+    {
+      "case_id": "grammar_inadequate",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
+        "current_snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "480bf45ed47e11913b4b6b5d8e43efc5006dfdad25829744986ad7827b8c2faf",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1"
+        ]
+      },
+      "external_challenges": [
+        {
+          "action_id": "component:camera-1|operation:calibrate|actor:tech-1",
+          "payload_sha256": "4d9357107ad9d77d54356b365e7db069159c67319404eceec93a98733d73f6b4",
+          "in_scope_evidence_receipt_id": "independent-in-scope-calibration-witness"
+        }
+      ]
+    },
+    {
+      "case_id": "domain_snapshot_drift",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "d7a0a349d87eeed566dd6e9c52ee4beedadf22b46c19e42f00e1164965bb807d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    },
+    {
+      "case_id": "stale_enumerator",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "d7a0a349d87eeed566dd6e9c52ee4beedadf22b46c19e42f00e1164965bb807d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    },
+    {
+      "case_id": "outside_domain_action",
+      "domain": {
+        "domain_id": "synthetic-orbital-maintenance-domain",
+        "grammar_version": "grammar-v0.1",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "current_snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "window_start_ms": 0,
+        "window_end_ms": 100,
+        "components": [
+          {
+            "component_id": "camera-1",
+            "capability_ids": [
+              "inspect",
+              "calibrate"
+            ],
+            "resource_capacity_milli": 10,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "component_id": "camera-weak",
+            "capability_ids": [
+              "inspect"
+            ],
+            "resource_capacity_milli": 1,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "operations": [
+          {
+            "operation_id": "inspect",
+            "required_capability_id": "inspect",
+            "required_role_id": "technician",
+            "resource_required_milli": 2,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "operation_id": "calibrate",
+            "required_capability_id": "calibrate",
+            "required_role_id": "technician",
+            "resource_required_milli": 8,
+            "active_start_ms": 20,
+            "active_end_ms": 90
+          },
+          {
+            "operation_id": "repair",
+            "required_capability_id": "repair",
+            "required_role_id": "technician",
+            "resource_required_milli": 20,
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ],
+        "actors": [
+          {
+            "actor_id": "tech-1",
+            "role_ids": [
+              "technician"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          },
+          {
+            "actor_id": "observer-1",
+            "role_ids": [
+              "observer"
+            ],
+            "active_start_ms": 0,
+            "active_end_ms": 100
+          }
+        ]
+      },
+      "registry_enumerator": {
+        "enumerator_id": "registry-enumerator",
+        "method_id": "catalogue-traversal",
+        "source_id": "registry-a",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "registry-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1"
+        ]
+      },
+      "model_enumerator": {
+        "enumerator_id": "model-enumerator",
+        "method_id": "capability-prerequisite-solver",
+        "source_id": "model-b",
+        "snapshot_sha256": "ad62cc4071acd2a5041468ea34e63d6538a38f96663b6e631f0fdf860e6bd22d",
+        "execution_receipt_id": "model-execution",
+        "action_ids": [
+          "component:camera-1|operation:inspect|actor:tech-1",
+          "component:camera-1|operation:calibrate|actor:tech-1",
+          "component:camera-1|operation:repair|actor:tech-1"
+        ]
+      },
+      "external_challenges": []
+    }
+  ]
+}
