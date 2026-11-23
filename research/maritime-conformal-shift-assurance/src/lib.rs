@@ -658,6 +658,6 @@ mod tests {
             .prediction()
             .expect("marginal bands");
         assert_eq!(joint.arrival_half_width_hours, marginal.arrival_half_width_hours);
-        assert_eq!(joint.handling_half_width_hours, marginal.handling_half_width_hours);
+        assert!(joint.handling_half_width_hours > marginal.handling_half_width_hours);
     }
 }
