@@ -245,7 +245,10 @@ fn validate_probability_manifest(
         add_error(&mut errors, "probability_manifest_leaf_coverage_mismatch");
     }
     if manifest.scenario_tree_digest != source_tree_digest {
-        add_error(&mut errors, "probability_manifest_scenario_tree_digest_mismatch");
+        add_error(
+            &mut errors,
+            "probability_manifest_scenario_tree_digest_mismatch",
+        );
     }
 
     match manifest.probability_basis {
@@ -931,9 +934,11 @@ mod tests {
             &risk,
         )
         .expect_err("a probability set must be bound to the exact tree contents");
-        assert!(errors
-            .iter()
-            .any(|error| error == "probability_manifest_scenario_tree_digest_mismatch"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "probability_manifest_scenario_tree_digest_mismatch")
+        );
     }
 
     #[test]
@@ -1001,10 +1006,12 @@ mod tests {
         let mut risk = risk_fixture();
         let manifest = &mut risk.probability_manifest;
         manifest.probability_basis = ProbabilityBasis::ForecastModel;
-        manifest.source_dataset_digest =
-            Some("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned());
-        manifest.calibration_report_digest =
-            Some("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned());
+        manifest.source_dataset_digest = Some(
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+        );
+        manifest.calibration_report_digest = Some(
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+        );
         manifest.training_cutoff_seconds = Some(100);
         manifest.forecast_issue_time_seconds = Some(200);
         manifest.evaluation_window_start_seconds = Some(200);
@@ -1018,7 +1025,11 @@ mod tests {
             &risk,
         )
         .expect_err("forecast manifest without held-out window end is incomplete");
-        assert!(errors.iter().any(|error| error.contains("forecast_probability_provenance")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("forecast_probability_provenance"))
+        );
     }
 
     #[test]
@@ -1034,7 +1045,11 @@ mod tests {
             &risk,
         )
         .expect_err("expert probabilities require panel and protocol provenance");
-        assert!(errors.iter().any(|error| error.contains("expert_probability_elicitation_provenance")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expert_probability_elicitation_provenance"))
+        );
     }
 
     #[test]
