@@ -861,6 +861,7 @@ mod tests {
     fn geometric_reduction_is_separate_from_solver_contact_groups() {
         let receipt = ContactManifoldLineage {
             pair_id: "body-a/body-b".into(),
+            identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: Some("area-preserving-v1".into()),
             point_capacity: Some(8),
             generated_points: vec![
@@ -878,6 +879,7 @@ mod tests {
                 disposition: SolverContactDisposition::Solved,
                 reason: None,
             }],
+            aggregate_counts: None,
             solver_mapping_complete: true,
         };
         let report = receipt.validate().expect("valid contact lineage");
@@ -893,6 +895,7 @@ mod tests {
     fn solver_group_cannot_reference_reduced_geometry() {
         let receipt = ContactManifoldLineage {
             pair_id: "pair-0".into(),
+            identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: Some("policy-0".into()),
             point_capacity: Some(4),
             generated_points: vec![GeometricPointRecord {
@@ -906,6 +909,7 @@ mod tests {
                 disposition: SolverContactDisposition::Solved,
                 reason: None,
             }],
+            aggregate_counts: None,
             solver_mapping_complete: false,
         };
         assert!(receipt.validate().is_err());
@@ -915,6 +919,7 @@ mod tests {
     fn reduced_points_require_policy_identity() {
         let receipt = ContactManifoldLineage {
             pair_id: "pair-0".into(),
+            identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: None,
             point_capacity: Some(4),
             generated_points: vec![GeometricPointRecord {
@@ -923,6 +928,7 @@ mod tests {
                 reason: Some("reduced".into()),
             }],
             solver_contacts: vec![],
+            aggregate_counts: None,
             solver_mapping_complete: false,
         };
         assert!(receipt.validate().is_err());
@@ -932,13 +938,83 @@ mod tests {
     fn retained_points_cannot_exceed_declared_capacity() {
         let receipt = ContactManifoldLineage {
             pair_id: "pair-0".into(),
+            identity_mode: PointIdentityMode::StablePointIds,
             reduction_policy_id: None,
             point_capacity: Some(1),
             generated_points: vec![retained("p0"), retained("p1")],
             solver_contacts: vec![],
+            aggregate_counts: None,
             solver_mapping_complete: false,
         };
         assert!(receipt.validate().is_err());
+    }
+
+    #[test]
+    fn aggregate_only_lineage_preserves_counts_without_fabricating_point_ids() {
+        let lineage = ContactManifoldLineage {
+            pair_id: "aggregate-pair".into(),
+            identity_mode: PointIdentityMode::AggregateOnly,
+            reduction_policy_id: Some("area-policy-v2".into()),
+            point_capacity: Some(4),
+            generated_points: vec![],
+            solver_contacts: vec![],
+            aggregate_counts: Some(AggregateManifoldCounts {
+                generated_points: 5,
+                retained_points: 3,
+                reduced_by_policy: 1,
+                capacity_dropped: 1,
+                invalid_points: 0,
+                unsupported_points: 0,
+                solver_contact_groups: 2,
+                solver_solved_points: 1,
+                solver_not_converged_points: 0,
+                solver_sleeping_skipped_points: 0,
+                solver_capacity_dropped_points: 2,
+                solver_unsupported_points: 0,
+                solver_not_submitted_points: 0,
+                solver_aborted_points: 0,
+            }),
+            solver_mapping_complete: false,
+        };
+        let report = lineage.validate().expect("aggregate-only lineage");
+        assert_eq!(report.generated_points, 5);
+        assert_eq!(report.retained_points, 3);
+        assert_eq!(report.reduced_by_policy, 1);
+        assert_eq!(report.capacity_dropped, 1);
+        assert_eq!(report.solver_groups, 2);
+        assert_eq!(report.solver_solved_points, 1);
+        assert_eq!(report.solver_capacity_dropped_points, 2);
+        assert!(!report.solver_mapping_complete);
+    }
+
+    #[test]
+    fn aggregate_only_stage_counts_must_partition_exactly() {
+        let lineage = ContactManifoldLineage {
+            pair_id: "aggregate-invalid".into(),
+            identity_mode: PointIdentityMode::AggregateOnly,
+            reduction_policy_id: None,
+            point_capacity: Some(8),
+            generated_points: vec![],
+            solver_contacts: vec![],
+            aggregate_counts: Some(AggregateManifoldCounts {
+                generated_points: 4,
+                retained_points: 2,
+                reduced_by_policy: 0,
+                capacity_dropped: 0,
+                invalid_points: 0,
+                unsupported_points: 0,
+                solver_contact_groups: 1,
+                solver_solved_points: 1,
+                solver_not_converged_points: 0,
+                solver_sleeping_skipped_points: 0,
+                solver_capacity_dropped_points: 0,
+                solver_unsupported_points: 0,
+                solver_not_submitted_points: 0,
+                solver_aborted_points: 0,
+            }),
+            solver_mapping_complete: false,
+        };
+        assert!(lineage.validate().is_err());
     }
 
     #[test]
