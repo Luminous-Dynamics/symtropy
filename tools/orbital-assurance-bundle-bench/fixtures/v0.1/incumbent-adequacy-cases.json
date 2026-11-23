@@ -61,7 +61,7 @@
       "expected": {
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
-        "worst_case_regret": 5
+        "worst_case_improvement": 5
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -123,7 +123,7 @@
       "expected": {
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
-        "worst_case_regret": 0
+        "worst_case_improvement": 0
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -185,7 +185,7 @@
       "expected": {
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
-        "worst_case_regret": 4
+        "worst_case_improvement": 0
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -228,7 +228,7 @@
       "expected": {
         "disposition": "REOPTIMIZATION_WARRANTED",
         "trigger_reason": "WORST_CASE_REGRET_EXCEEDS_RETENTION_THRESHOLD",
-        "worst_case_regret": 20
+        "worst_case_improvement": 20
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -271,7 +271,7 @@
       "expected": {
         "disposition": "RETAIN_INCUMBENT",
         "trigger_reason": "WITHIN_FINITE_WORLD_RETENTION_ENVELOPE",
-        "worst_case_regret": 10
+        "worst_case_improvement": 10
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -328,7 +328,7 @@
       "expected": {
         "disposition": "REOPTIMIZATION_WARRANTED",
         "trigger_reason": "INCUMBENT_INFEASIBLE_IN_SURVIVING_WORLD",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -351,7 +351,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "NO_SURVIVING_WORLDS",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -394,7 +394,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "DOMAIN_NOT_CLOSED",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -437,7 +437,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "STALE_EVIDENCE",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -476,7 +476,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "INCOMPLETE_LOSS_MATRIX",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -523,7 +523,7 @@
       "expected": {
         "disposition": "INVALID_INPUT",
         "trigger_reason": "loss row is malformed, duplicated or not feasible in its world",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -566,7 +566,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "SCOPE_MISMATCH",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -609,7 +609,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "MODEL_FAMILY_INADEQUATE",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -671,7 +671,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "LOSS_UNIT_MISMATCH",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
     },
@@ -733,7 +733,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "DEPENDENCY_GRAPH_INADEQUATE",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "COMMON_MODE_DEPENDENCY_OMISSION"
     },
@@ -795,7 +795,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "trigger_reason": "STALE_DEPENDENCY_GRAPH",
-        "worst_case_regret": null
+        "worst_case_improvement": null
       },
       "dependency_graph_state": "STALE"
     }
