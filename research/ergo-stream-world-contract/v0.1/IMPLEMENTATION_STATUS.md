@@ -209,3 +209,23 @@ The Atlas source changes are after the earlier verified code head `bb11dc83015f6
 ## Scoped transfer-map semantics for v0.2
 
 The v0.2 protocol now requires transfer proposals to declare whether they are an isomorphism, embedding, homomorphism, quotient/coarse-graining, simulation, bisimulation, approximate simulation/bisimulation, or continuous-time conjugacy/semiconjugacy. Each type carries explicit source/target scope, unmapped entities, assumptions, transformations, uncertainty and counterexamples. The v0.1 executable validator remains a total finite structural isomorphism witness; it does not implement partial embeddings, quotients, simulations or approximate/continuous equivalence.
+
+## Scope-aware structural transfer v0.2
+
+The branch now adds `src/scoped.rs`, exposed as `scoped`, plus:
+
+- `SCOPED_STRUCTURAL_TRANSFER_V0_2.md` — finite scope and map-kind contract.
+- `schemas/scoped_transfer_proposal_v0.schema.json` — standalone sidecar schema pinned to source/target episode IDs and evidence-prefix digests.
+
+The executable validator supports three map kinds:
+- `Isomorphism`: complete structures; excluded entity sets must be empty.
+- `InducedEmbedding`: selected source/target induced substructures map bijectively; every relation wholly inside the selected node sets must be represented.
+- `SubgraphEmbedding`: selected source/target subgraphs map bijectively; extra target relations may be outside the mapping but must be explicitly listed as excluded.
+
+For both source and target, selected and excluded node/relation IDs must be unique, disjoint, valid and form a complete partition of the supplied structure. Selected relations cannot reference nodes outside the selected node scope. The returned witness reports excluded context counts; nothing outside the map is silently treated as equivalent.
+
+The current scope contract deliberately does not implement many-to-one homomorphism, quotient/coarse-graining, simulation, bisimulation, approximate maps or continuous-time conjugacy. Those remain distinct validators. The wire schema admits only the three currently implemented map kinds.
+
+Seven tests cover an induced embedding, full-isomorphism scope enforcement, omitted internal target relation, explicit extra target relation for subgraph embedding, incomplete scope partition, relation escaping the scope, and incomplete correspondence coverage.
+
+**Verification for the scope-aware extension:** pending exact-head Rust 1.96 formatting, tests/doctest and strict Clippy. Earlier successful workflow coverage does not extend to this new module.
