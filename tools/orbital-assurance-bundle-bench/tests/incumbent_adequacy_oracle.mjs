@@ -59,6 +59,10 @@ function result(item, disposition, triggerReason, threshold, metrics = {}, world
     materiality_margin: item.materiality_margin,
     switching_cost: item.switching_cost,
     retention_threshold: threshold,
+    world_set_receipt_schema: item.world_set_receipt_schema,
+    world_set_claim_ceiling: item.world_set_claim_ceiling,
+    world_set_source_commit: item.world_set_source_commit,
+    world_set_source_case_id: item.world_set_source_case_id,
     world_set_receipt_id: item.world_set_receipt_id,
     world_set_receipt_sha256: item.world_set_receipt_sha256,
     world_ids_sha256: item.expected_world_ids_sha256,
@@ -129,7 +133,11 @@ function evaluateCase(item) {
   }
 
   const modelSet = item.loss_model_set;
-  if (!validId(item.world_set_receipt_id) || !validSha(item.world_set_receipt_sha256)
+  if (item.world_set_receipt_schema !== "luminous.orbital-decision-identifiability.receipt.v0.1"
+    || item.world_set_claim_ceiling !== "exact-finite-world-decision-set-algebra-only"
+    || !validCommit(item.world_set_source_commit)
+    || !validId(item.world_set_source_case_id)
+    || !validId(item.world_set_receipt_id) || !validSha(item.world_set_receipt_sha256)
     || !validCommit(modelSet.source_commit) || !validSha(modelSet.source_receipt_sha256)
     || !validId(modelSet.source_case_id) || !validId(modelSet.source_manifest_id)
     || !validSha(modelSet.source_scenarios_sha256)
