@@ -40,13 +40,13 @@ pub use lebedev::{
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
     integrate_sphere_adaptive, integrate_sphere_samples, lebedev_sphere_rule,
 };
+pub use normal_positive_part::{
+    GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
+};
 pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
-};
-pub use normal_positive_part::{
-    GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
