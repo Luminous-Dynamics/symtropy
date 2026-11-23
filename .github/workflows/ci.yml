@@ -159,3 +159,15 @@ jobs:
     - name: Clippy EHD PIV Adaptive Acquisition
       if: ${{ hashFiles('tools/ehd-piv-adaptive-acquisition/Cargo.toml') != '' }}
       run: cargo clippy --manifest-path tools/ehd-piv-adaptive-acquisition/Cargo.toml --all-targets -- -D warnings
+
+    - name: Format EHD PIV Event Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-event-acquisition/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/ehd-piv-event-acquisition/Cargo.toml -- --check
+
+    - name: Test EHD PIV Event Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-event-acquisition/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/ehd-piv-event-acquisition/Cargo.toml
+
+    - name: Clippy EHD PIV Event Acquisition
+      if: ${{ hashFiles('tools/ehd-piv-event-acquisition/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/ehd-piv-event-acquisition/Cargo.toml --all-targets -- -D warnings
