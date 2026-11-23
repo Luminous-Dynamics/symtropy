@@ -590,68 +590,66 @@ const EXP_NEGATIVE_FIXED_1E15: [u64; 21] = [
     2_061_154,
 ];
 
-fn search_nominal_k_combination(
-    problem: &PlanningProblem,
-    ordered_view_indices: &[usize],
-    targets: &[usize],
+struct NominalKSearch<'a> {
+    problem: &'a PlanningProblem,
+    ordered_view_indices: Vec<usize>,
+    targets: Vec<usize>,
     target_size: usize,
-    start_position: usize,
-    chosen: &mut Vec<usize>,
-    covered_counts: &mut [usize],
-    subsets_evaluated: &mut u64,
-) -> Option<Vec<usize>> {
-    if chosen.len() == target_size {
-        *subsets_evaluated += 1;
-        return covered_counts
-            .iter()
-            .zip(targets)
-            .all(|(actual, required)| actual >= required)
-            .then(|| chosen.clone());
-    }
-
-    let needed = target_size - chosen.len();
-    if ordered_view_indices.len().saturating_sub(start_position) < needed {
-        return None;
-    }
-    let last_start = ordered_view_indices.len() - needed;
-    for position in start_position..=last_start {
-        let view_index = ordered_view_indices[position];
-        chosen.push(view_index);
-        for feature_id in &problem.views[view_index].nominal_feature_ids {
-            let feature_index = problem
-                .features
-                .iter()
-                .position(|feature| feature.feature_id == *feature_id)
-                .expect("validated feature id");
-            covered_counts[feature_index] += 1;
-        }
-
-        let result = search_nominal_k_combination(
-            problem,
-            ordered_view_indices,
-            targets,
-            target_size,
-            position + 1,
-            chosen,
-            covered_counts,
-            subsets_evaluated,
-        );
-
-        for feature_id in &problem.views[view_index].nominal_feature_ids {
-            let feature_index = problem
-                .features
-                .iter()
-                .position(|feature| feature.feature_id == *feature_id)
-                .expect("validated feature id");
-            covered_counts[feature_index] -= 1;
-        }
-        chosen.pop();
-        if result.is_some() {
-            return result;
-        }
-    }
-    None
+    chosen: Vec<usize>,
+    covered_counts: Vec<usize>,
+    subsets_evaluated: u64,
 }
+
+impl NominalKSearch<'_> {
+    fn visit(&mut self, start_position: usize) -> Option<Vec<usize>> {
+        if self.chosen.len() == self.target_size {
+            self.subsets_evaluated += 1;
+            return self
+                .covered_counts
+                .iter()
+                .zip(&self.targets)
+                .all(|(actual, required)| actual >= required)
+                .then(|| self.chosen.clone());
+        }
+
+        let needed = self.target_size - self.chosen.len();
+        if self.ordered_view_indices.len().saturating_sub(start_position) < needed {
+            return None;
+        }
+        let last_start = self.ordered_view_indices.len() - needed;
+        for position in start_position..=last_start {
+            let view_index = self.ordered_view_indices[position];
+            self.chosen.push(view_index);
+            for feature_id in &self.problem.views[view_index].nominal_feature_ids {
+                let feature_index = self
+                    .problem
+                    .features
+                    .iter()
+                    .position(|feature| feature.feature_id == *feature_id)
+                    .expect("validated feature id");
+                self.covered_counts[feature_index] += 1;
+            }
+
+            let result = self.visit(position + 1);
+
+            for feature_id in &self.problem.views[view_index].nominal_feature_ids {
+                let feature_index = self
+                    .problem
+                    .features
+                    .iter()
+                    .position(|feature| feature.feature_id == *feature_id)
+                    .expect("validated feature id");
+                self.covered_counts[feature_index] -= 1;
+            }
+            self.chosen.pop();
+            if result.is_some() {
+                return result;
+            }
+        }
+        None
+    }
+}
+
 
 fn k_coverage_feature_reports(
     candidate_coverage: &[FeatureCoverage],
@@ -707,18 +705,17 @@ fn exact_nominal_k_coverage(problem: &PlanningProblem) -> Result<NominalKCoverag
     let mut subsets_evaluated = 0_u64;
     let mut chosen_solution = None;
     for target_size in 0..=problem.views.len() {
-        let mut chosen = Vec::with_capacity(target_size);
-        let mut covered_counts = vec![0_usize; problem.features.len()];
-        chosen_solution = search_nominal_k_combination(
+        let mut search = NominalKSearch {
             problem,
-            &ordered_view_indices,
-            &targets,
+            ordered_view_indices: ordered_view_indices.clone(),
+            targets: targets.clone(),
             target_size,
-            0,
-            &mut chosen,
-            &mut covered_counts,
-            &mut subsets_evaluated,
-        );
+            chosen: Vec::with_capacity(target_size),
+            covered_counts: vec![0_usize; problem.features.len()],
+            subsets_evaluated: 0,
+        };
+        chosen_solution = search.visit(0);
+        subsets_evaluated += search.subsets_evaluated;
         if chosen_solution.is_some() {
             break;
         }
