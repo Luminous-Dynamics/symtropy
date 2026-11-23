@@ -572,7 +572,57 @@
           "raw_artifact_sha256": "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020"
         }
       },
-      "observer_assurance": null
+      "observer_assurance": {
+        "physical_outcome": {
+          "domain": "physical_outcome_observer_quorum",
+          "owner_id": "independent-observer-assurance-evaluator",
+          "owner_revision": "observer-assurance-v0.1",
+          "evidence_id": "attempt-3-physical-outcome-quorum-evidence",
+          "status": "quorum_qualified",
+          "asserted_value": "applied",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          },
+          "claim_id": "attempt-3-physical-outcome-applied",
+          "claim_scope_sha256": "da636ae5d67054737c5a9ee9df294fa19023c70804b16d1799831e40ef6197c0",
+          "observer_quorum": {
+            "fault_model_revision": "rrvr-lineage-fault-model-v0.1",
+            "required_independent_members": 2,
+            "members": [
+              {
+                "observer_id": "attempt-3-applied-observer-1",
+                "observer_revision": "applied-sensor-stack-1@v1",
+                "observation_id": "attempt-3-applied-observation-1",
+                "common_cause_domains": [
+                  "attempt-3-applied-power-1",
+                  "attempt-3-applied-clock-1",
+                  "attempt-3-applied-host-1"
+                ],
+                "raw_artifact_id": "attempt-3-applied-raw-1",
+                "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+              },
+              {
+                "observer_id": "attempt-3-applied-observer-2",
+                "observer_revision": "applied-sensor-stack-2@v1",
+                "observation_id": "attempt-3-applied-observation-2",
+                "common_cause_domains": [
+                  "attempt-3-applied-power-2",
+                  "attempt-3-applied-clock-2",
+                  "attempt-3-applied-host-2"
+                ],
+                "raw_artifact_id": "attempt-3-applied-raw-2",
+                "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ]
+          },
+          "raw_artifact_id": "attempt-3-physical-outcome-quorum-envelope",
+          "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "downstream_quiescence": null
+      }
     }
   ],
   "fault_profile_revision": "rrvr-lineage-fault-model-v0.1"
