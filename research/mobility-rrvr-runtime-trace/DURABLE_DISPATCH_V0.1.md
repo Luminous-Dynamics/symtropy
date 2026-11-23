@@ -104,3 +104,8 @@ The Rust suite contains tests for:
 - Gazebo world-statistics mismatch and unreviewed ROS/Gazebo pairings reject.
 
 A passing journal test proves deterministic local record semantics and tests the mocked transport path. It does not prove remote idempotency implementation, live telemetry freshness, real observer independence, live ROS/Gazebo operation, HIL, physical fault delivery, native authority or robot safety. Those remain separate gates.
+
+
+## Fresh statistics are part of the execution proof
+
+WorldStatistics artifacts carry both simulation-clock coordinates and a collector monotonic receive time. The reset receipt anchors the collector clock and initial stats artifact; each fault event must include a newer artifact in the same collector clock and current world epoch. This rejects cached samples after reset and repeated samples that match an iteration but were not newly received. Gazebo's server API documents the stats topic as throttled to 5 Hz; the live adapter must wait for the corresponding sample using a bounded timeout without advancing physics by waiting. The stats record is evidence of observed simulation state, not evidence by itself that a fault caused the observed state.
