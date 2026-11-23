@@ -234,7 +234,9 @@ fn validate_pair<'a, 'b>(
     if full.work_consumed_units > full.work_budget_units
         || reduced.work_consumed_units > reduced.work_budget_units
     {
-        return Err(ResponseError::new("actual work consumption exceeds its declared budget"));
+        return Err(ResponseError::new(
+            "actual work consumption exceeds its declared budget",
+        ));
     }
 
     let full_bodies = body_index(full)?;
@@ -660,20 +662,18 @@ mod tests {
         reduced.solver_iterations = 12;
         reduced.solver_rows_submitted = 3;
         reduced.solver_termination = SolverTermination::IterationLimit;
-        let result = compare_responses(
-            &full,
-            &reduced,
-            &[probe([1.0, 0.0, 0.0])],
-            scales(),
-        )
-        .expect("valid response comparison");
+        let result = compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales())
+            .expect("valid response comparison");
         assert_eq!(result.full_work_consumed_units, 100);
         assert_eq!(result.reduced_work_consumed_units, 72);
         assert_eq!(result.full_solver_iterations, 10);
         assert_eq!(result.reduced_solver_iterations, 12);
         assert_eq!(result.full_solver_rows_submitted, 4);
         assert_eq!(result.reduced_solver_rows_submitted, 3);
-        assert_eq!(result.reduced_solver_termination, SolverTermination::IterationLimit);
+        assert_eq!(
+            result.reduced_solver_termination,
+            SolverTermination::IterationLimit
+        );
         assert!(!result.both_solvers_converged);
     }
 
