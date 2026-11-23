@@ -201,6 +201,40 @@ The outcome-risk module has eleven focused tests:
 
 These tests are authored; exact-head Rust CI is the qualification gate.
 
+
+## Risk-aware Pareto action selection
+
+The module `src/navigation_outcome_risk_frontier.rs` compares the outcome-risk assessment of every eligible action without collapsing the risk and resource dimensions into one weighted scalar.
+
+It requires all compared actions to share the same:
+- deployment-domain fingerprint;
+- acquisition-protocol digest;
+- decision-partition digest;
+- impact-model digest;
+- impact-uncertainty-model digest.
+
+It also requires comparable risk contracts: one fixed AVaR confidence level, a minimum valid-acquisition lower bound, a minimum count of independent campaign blocks and a maximum confidence error. A scenario law remains action-specific but is carried with its outcome-model and scenario-law digests.
+
+The selection has three deliberately separate stages:
+
+1. **Hard eligibility:** reject any candidate exceeding latency, energy, mean residual, VaR, AVaR or worst-scenario ceilings, or failing the reliability/calibration floor.
+2. **Pareto construction:** retain every nondominated candidate over mean residual, VaR, AVaR, worst residual, latency and energy.
+3. **Declared preference:** choose a deterministic recommendation from that frontier using one explicit profile policy: AVaR-first, worst-case-first or VaR-first, with latency/energy and stable action ID tie-breaks.
+
+No scalar score hides trade-offs. If no action satisfies every hard gate, the result is abstention with no recommendation. The result never restores navigation authority.
+
+Eight synthetic tests cover:
+1. preservation of tail-risk/latency trade-offs;
+2. removal of a strictly dominated action;
+3. hard resource and risk-ceiling rejection;
+4. abstention when every action violates the profile;
+5. duplicate IDs, malformed policy and commitment mismatch;
+6. invalid risk-metric ordering and scenario-mass totals;
+7. rejection of incomparable AVaR confidence levels or insufficient acquisition reliability;
+8. deterministic lexicographic preference behavior.
+
+The module does not execute actions or independently authenticate the reliability/scenario evidence. Its candidates must be assessments produced by the preceding evidence transaction and outcome-risk contract.
+
 ## Research references
 
 - Jakeman, J. D., White, R., van Bloemen Waanders, B., Kouri, D. P., and Alexanderian, A. (2026), *Risk-Aware Goal-Oriented Bayesian Optimal Experimental Design*, arXiv:2609.08023: https://arxiv.org/abs/2609.08023
