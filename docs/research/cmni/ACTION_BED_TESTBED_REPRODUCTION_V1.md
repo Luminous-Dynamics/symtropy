@@ -33,7 +33,7 @@ The machine-readable pinned record is `research/cmni/benchmarks/actionbed-testbe
 
 The official temporal-discounting recipe uses a horizon of 20, discrete Bernoulli outcomes, and the standard hyperbolic-discounting prior. The outcome temperature is zero.
 
-**The training objective is downstream LogMSE loss, not EIG.** Since the outcomes are discrete, the recipe configures REINFORCE with a leave-one-out baseline. The Action-BED implementation explains that the trajectory score term is needed to propagate gradient to the design policy for non-reparameterizable outcomes. Its design policy is deterministic (`stochastic_design_policy=false`); the learned downstream action policy is an MLP.
+**The training objective is downstream `LogMSELoss`, not EIG.** The pinned TestBED implementation defines this element-wise as `mse + log(mse + epsilon)` (with the recipe's default input/target transforms disabled). This is the paper's log-augmented MSE loss family; preserve it as a distinct variant from raw MSE, CMSE, and true log-MSE rather than treating all “MSE” recipes as interchangeable. The outcomes are discrete, so the recipe configures REINFORCE with a leave-one-out baseline. The Action-BED implementation explains that the trajectory score term is needed to propagate gradient to the design policy for non-reparameterizable outcomes. Its design policy is deterministic (`stochastic_design_policy=false`); the learned downstream action policy is an MLP.
 
 | Parameter | Pinned recipe |
 |---|---:|
@@ -65,7 +65,22 @@ python -m testbed.methods.actionbed --config-name experiments/temporal_discounti
 
 Run five seeds (0–4) in separate directories, preserving resolved configuration, checkpoints, logs, exact environment, hardware/resource telemetry and final-evaluation output. The TestBED paper's broader comparison uses five seeds and a 12-hour NVIDIA GH200 budget for its policy-based benchmark. That is the paper's shared suite protocol, not a claim that the 170,000-step task recipe itself has been run here. Record training time and final EIG evaluation time separately.
 
-## 5. What TestBED changes about our benchmarking strategy
+## 5. TestBED's temporal-discounting result is a loss-variant control, not one Action-BED score
+
+The TestBED paper reports the following temporal-discounting results (mean ± standard error over five seeds) for the *refitted downstream predictor*:
+
+| Action-BED training variant | MSE ↓ | CMSE ↓ |
+|---|---:|---:|
+| MSE | 1.264 ± 0.019 | −0.546 ± 0.029 |
+| CMSE | 0.233 ± 0.004 | −4.773 ± 0.035 |
+| MSE-L | 0.157 ± 0.004 | −4.053 ± 0.093 |
+| CMSE-L | 0.290 ± 0.011 | −5.011 ± 0.040 |
+
+These rows demonstrate why the training-loss choice must be pinned and matched: they are all Action-BED but have different downstream outcomes and metric trade-offs. The current upstream recipe's `LogMSELoss` computes element-wise `mse + log(mse + epsilon)`, which is the log-augmented MSE family; verify the camera-ready naming correspondence to the paper's MSE-L row before declaring a byte-for-byte reproduced variant. The paper also reports DAD MSE 0.290 ± 0.009, JointVarPost (m=1) MSE 0.287 ± 0.009, static MSE 0.613 ± 0.10, and random MSE 0.725 ± 0.009. On the paper's reported MSE metric, the pinned Action-BED MSE recipe (1.264) is not a strong standalone score; the MSE-L/CMSE variants are materially different. Do not select one variant post hoc—reproduce the full loss matrix.
+
+Source: Kerrigan et al., TestBED, arXiv:2611.06633, temporal-discounting results table. https://arxiv.org/abs/2611.06633
+
+## 6. What TestBED changes about our benchmarking strategy
 
 TestBED's 2026 paper compares DAD, JointVarPost, RL-BOED, ALINE and Action-BED with static and random baselines across eight tasks. It reports no single policy method dominates all tasks and metrics; static designs and JointVarPost can be competitive. It also demonstrates that timestep embeddings can materially change some method results, and that EIG and downstream prediction loss can rank methods differently.
 
