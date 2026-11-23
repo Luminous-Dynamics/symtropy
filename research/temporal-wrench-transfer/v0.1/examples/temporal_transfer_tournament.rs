@@ -21,11 +21,7 @@ fn new(id: &str, x: f64, y: f64) -> NewContactCandidate {
     }
 }
 
-fn emit(
-    scenario: &str,
-    policy: &str,
-    report: temporal_wrench_transfer::TemporalTransferReport,
-) {
+fn emit(scenario: &str, policy: &str, report: temporal_wrench_transfer::TemporalTransferReport) {
     let ids = report
         .retained_contact_ids
         .iter()
