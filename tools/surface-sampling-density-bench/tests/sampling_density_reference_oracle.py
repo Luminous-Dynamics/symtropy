@@ -18,11 +18,11 @@ def density_meets(hits, area_um2, target_micro):
     return hits * SCALE * SCALE >= target_micro * area_um2
 
 
-def invalid_case(case):
+def invalid_case(case, reason):
     return {
         "case_id": case["case_id"],
         "status": "INVALID_INPUT",
-        "reason_codes": ["SAMPLING_INPUT_INVALID"],
+        "reason_codes": [reason],
         "candidate_pool_sufficient": False,
         "selected_plan_sufficient": False,
         "selected_view_budget_met": False,
@@ -34,17 +34,49 @@ def invalid_case(case):
     }
 
 
-def evaluate(case):
-    candidates = set(case["candidate_views"])
-    selected = set(case["selected_view_ids"])
+def validation_reason(case):
     if (not case["case_id"].strip() or not case["coordinate_frame_id"].strip()
             or case["area_unit"] != "SQUARE_MICROMETRE"
             or case["density_unit"] != "RAYS_PER_SQUARE_MILLIMETRE"
-            or not candidates or len(candidates) != len(case["candidate_views"])
-            or len(selected) != len(case["selected_view_ids"])
-            or not selected.issubset(candidates) or not case["elements"]
-            or case["max_selected_views"] > len(candidates)):
-        return invalid_case(case)
+            or not case["candidate_views"] or not case["elements"]):
+        return "CASE_ID_FRAME_UNITS_OR_COLLECTIONS_INVALID"
+
+    candidates = set(case["candidate_views"])
+    if (len(candidates) != len(case["candidate_views"])
+            or any(not view_id.strip() for view_id in candidates)):
+        return "CANDIDATE_VIEW_IDS_DUPLICATE_OR_BLANK"
+
+    selected = set(case["selected_view_ids"])
+    if (len(selected) != len(case["selected_view_ids"])
+            or any(view_id not in candidates for view_id in selected)):
+        return "SELECTED_VIEW_IDS_DUPLICATE_OR_UNKNOWN"
+
+    seen_elements = set()
+    for element in case["elements"]:
+        if (not element["element_id"].strip()
+                or not element["mesh_revision_id"].strip()
+                or element["element_id"] in seen_elements
+                or element["area_um2"] == 0
+                or element["minimum_density_micro_rays_per_mm2"] == 0
+                or element["minimum_contributing_views"] == 0
+                or element["minimum_contributing_views"] > len(case["candidate_views"])):
+            return "SURFACE_ELEMENT_ID_AREA_OR_TARGET_INVALID"
+        seen_elements.add(element["element_id"])
+        row_ids = [row["view_id"] for row in element["ray_counts"]]
+        if len(row_ids) != len(set(row_ids)) or set(row_ids) != candidates:
+            return "RAY_COUNT_MATRIX_MUST_MATCH_CANDIDATE_VIEWS_EXACTLY"
+
+    if case["max_selected_views"] > len(case["candidate_views"]):
+        return "MAX_SELECTED_VIEWS_EXCEEDS_CANDIDATE_POOL"
+    return None
+
+
+def evaluate(case):
+    reason = validation_reason(case)
+    if reason is not None:
+        return invalid_case(case, reason)
+    candidates = set(case["candidate_views"])
+    selected = set(case["selected_view_ids"])
 
     reports = []
     candidate_sufficient = True
