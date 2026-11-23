@@ -736,7 +736,6 @@ fn known_action(action: &str) -> bool {
             | "RecoveryDeviceDoesNotApply"
             | "RecoveryDevicePartiallyApplies"
             | "NaiveRetry"
-            | "Next"
     )
 }
 
