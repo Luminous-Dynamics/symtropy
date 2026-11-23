@@ -1,0 +1,238 @@
+{
+  "schema_id": "LUMINOUS-PRODUCTIVE-MACHINE-FAMILY-0.1",
+  "status": "research_profile_not_qualified",
+  "programme_issue": "Luminous-Dynamics/symtropy#6762",
+  "tier_model": [
+    "H0_household",
+    "N1_neighbourhood",
+    "R2_regional_partner",
+    "Q3_qualified_industrial"
+  ],
+  "shared_claims": {
+    "hardware_license": "must_be_explicit_per_design; software_repo_license_does_not_automatically_cover_cad",
+    "capability_evidence": "machine_identity_configuration_material_tool_calibration_safety_inspection_and_accepted_output",
+    "physical_status": "no_machine_fabricated_or_qualified",
+    "admission": "unknown_or_missing_evidence_blocks_release"
+  },
+  "machine_family": [
+    {
+      "id": "LMF-M0-WORKBENCH",
+      "name": "Productive workbench / metrology / assembly station",
+      "tier": [
+        "N1",
+        "R2"
+      ],
+      "status": "requirements_to_be_frozen",
+      "purpose": [
+        "workholding",
+        "repair",
+        "controlled_assembly",
+        "dimensional_inspection",
+        "low_voltage_test"
+      ],
+      "requirements": [
+        "stable_bench_and_workholding",
+        "tool_and_instrument_calibration_register",
+        "ESD_controls_when_required",
+        "torque_tool_verification",
+        "safe_isolation",
+        "serialised_work_traveller"
+      ],
+      "exclusions": [
+        "no_claim_of_accredited_metrology",
+        "no_mains_repair_without_separate_qualification"
+      ]
+    },
+    {
+      "id": "LMF-FDM-300",
+      "name": "Enclosed 300 mm-class CoreXY material extrusion printer",
+      "tier": [
+        "N1",
+        "R2"
+      ],
+      "status": "concept_envelope_only",
+      "target_envelope_mm": {
+        "build": [
+          300,
+          300,
+          300
+        ],
+        "frame": [
+          520,
+          520,
+          620
+        ]
+      },
+      "process": "material_extrusion",
+      "requirements": [
+        "frame_and_gantry_stiffness_analysis",
+        "kinematics_and_belt_path",
+        "thermal_model",
+        "thermal_runaway_and_overtemperature_protection",
+        "guarding_and_safety_functions",
+        "source_controlled_emissions_review",
+        "controlled_firmware_and_configuration",
+        "geometric_test_artifacts",
+        "maintenance_and_replacement_modules"
+      ],
+      "excluded_from_initial_household_scope": [
+        "P1_functional_spares",
+        "P2_engineered_parts",
+        "P3_safety_critical_parts"
+      ],
+      "concept_file": "cad/productive-machines/lmf_fdm_300_envelope_v0_1.scad"
+    },
+    {
+      "id": "LMF-CNC-400",
+      "name": "Enclosed bench CNC router",
+      "tier": [
+        "N1",
+        "R2"
+      ],
+      "status": "requirements_not_started",
+      "initial_material_scope": [
+        "wood",
+        "suitable_plastics"
+      ],
+      "requirements": [
+        "rigidity_and_modal_design",
+        "spindle_tooling_envelope",
+        "workholding",
+        "tool_runout_checks",
+        "guarding_and_interlocked_access",
+        "chip_and_dust_extraction",
+        "safe_stop",
+        "geometric_and_operational_tests"
+      ],
+      "excluded_claims": [
+        "not_H0_by_default",
+        "no_metal_cutting_capability_claim"
+      ]
+    },
+    {
+      "id": "LMF-RECYCLE-01",
+      "name": "Polymer sorting and recovery line",
+      "tier": [
+        "N1",
+        "R2"
+      ],
+      "status": "requirements_not_started",
+      "process_steps": [
+        "identified_intake_and_quarantine",
+        "cleaning_and_drying",
+        "guarded_size_reduction",
+        "controlled_extrusion_and_filtration",
+        "spooling_or_moulding",
+        "batch_property_testing"
+      ],
+      "requirements": [
+        "polymer_identity_and_lot_custody",
+        "contamination_controls",
+        "degradation_and_melt_flow_tests",
+        "operator_competence",
+        "machine_specific_risk_assessment"
+      ],
+      "excluded_claims": [
+        "no_mixed_unknown_feedstock",
+        "recycled_material_not_assumed_equivalent_to_virgin",
+        "not_household_H0"
+      ]
+    },
+    {
+      "id": "LMF-TEXTILE-ELECTRONICS",
+      "name": "Textile and low-voltage electronics repair/assembly cells",
+      "tier": [
+        "H0",
+        "N1",
+        "R2"
+      ],
+      "status": "reuse_existing_equipment_first",
+      "requirements": [
+        "task_specific_work_instructions",
+        "tool_and_instrument_control",
+        "low_voltage_scope_defined",
+        "repair_verification"
+      ],
+      "exclusions": [
+        "no_mains_repair_or_safety_critical_electronics_in_initial_home_toolkit"
+      ]
+    }
+  ],
+  "benchmark_contract": {
+    "comparator_routes": [
+      "commercial_machine_or_service",
+      "open_hardware_baseline",
+      "local_job_shop_or_OEM",
+      "H0_or_N1_only_when_admitted"
+    ],
+    "measures": [
+      "cost_per_accepted_output",
+      "first_pass_and_final_yield",
+      "quality_with_measurement_uncertainty",
+      "accepted_output_rate",
+      "P50_P90_request_to_part",
+      "P50_P90_restoration_time",
+      "energy_and_material_per_accepted_output",
+      "downtime_MTTR",
+      "independent_node_reproducibility",
+      "safety_and_exposure_controls",
+      "local_maintenance_and_reproduction_closure"
+    ],
+    "hypotheses_not_results": {
+      "released_machine_package_completeness": 1,
+      "seeded_invalid_case_rejection": 1,
+      "independent_replication_nodes": 3,
+      "restoration_time_improvement_target": 0.25,
+      "note": "Targets require preregistered matched baselines, adequate samples, uncertainty and no safety/quality/lifecycle regression."
+    },
+    "volume_scenarios_per_year": [
+      1,
+      3,
+      10,
+      50,
+      100
+    ]
+  },
+  "gate_model": [
+    "D0_requirements",
+    "D1_baseline_and_license",
+    "D2_engineering_design",
+    "D3_independent_design_review",
+    "D4_prototype",
+    "D5_commissioning",
+    "D6_independent_replication"
+  ],
+  "fail_closed_rules": [
+    "unknown_hardware_license_blocks_redistribution",
+    "missing_machine_risk_review_blocks_build_release",
+    "unsupported_material_or_tool_blocks_process",
+    "stale_calibration_blocks_affected_acceptance",
+    "bypassed_guard_or_interlock_blocks_operation",
+    "unknown_machine_configuration_blocks_qualified_use",
+    "self_report_is_not_independent_acceptance",
+    "simulation_is_not_physical_safety_evidence"
+  ],
+  "references": {
+    "standards": [
+      "ISO 12100:2010",
+      "IEC 60204-1:2016+A1:2021",
+      "ISO 230-1:2012",
+      "ISO/ASTM 52902:2023",
+      "ISO/ASTM 52920:2023",
+      "ISO/ASTM 52951:2026",
+      "ISO/ASTM 52966:2026",
+      "ISO 27548:2024"
+    ],
+    "ecosystem": [
+      "CSIR ADMIC",
+      "CSIR Future Production",
+      "CSIR Centre for Robotics and Future Production",
+      "Precious Plastic"
+    ],
+    "baselines": [
+      "Voron",
+      "Prusa CORE One"
+    ]
+  },
+  "claim_ceiling": "Research profile and envelope concept only. No machine fabrication, safety qualification, process capability, verified emissions, local-content result, supplier commitment or competitive advantage is established."
+}
