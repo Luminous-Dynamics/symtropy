@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_symtropy_radial_time_sector_map",
-  "status": "exact_radial_time_sector_map_derived; full angular block and ADM mass independently qualified at O(alpha_R,chi^2)",
+  "status": "exact_version_of_record_first_coupling_equal_spin_chi2_metric_and_charge_comparison",
   "source": {
     "paper": "Ma and Lu, JHEP 05 (2026) 081",
     "doi": "10.1007/JHEP05(2026)081",
@@ -69,13 +69,12 @@
     "S": "165/r^4+330*mu/r^6+150*mu^2/r^8",
     "H5": "H7-(4/45)*a^2*x^2*S",
     "H6": "H7-(4/45)*a^2*(1-x^2)*S",
-    "line_element": "G*[dtheta^2+(1-x^2)dphi^2+x^2 dpsi^2]+D*(1+alpha_R*H4)*[(1-x^2)dphi+x^2 dpsi]^2",
+    "line_element": "G*[dtheta^2+(1-x^2)*dphi^2+x^2*dpsi^2]+D*(1+alpha_R*H4)*[(1-x^2)*dphi+x^2*dpsi]^2",
     "component_match": "g_psi_psi, g_phi_phi and g_phi_psi all match the Hopf-fibre form through O(alpha_R*a^2)",
     "axis_factors": "x^2 for dpsi^2; 1-x^2 for dphi^2",
-    "local_verification": "Independent exact SymPy reconstruction using JHEP version-of-record Eqs. (2.8),(2.12); all three components and axis controls pass"
+    "local_verification": "The consolidated exact public-source verifier verify_ma_lu_version_record_equal_spin.py checks all three components, both axis degeneracies, wrong-chi, missing-axis and wrong-H6-sign negative controls."
   },
   "checks": {
-    "published_chi_equals_a_over_mu": true,
     "H1_equal_spin_chi2_includes_mu3_over_r8": true,
     "equal_spin_H2_equals_H3": true,
     "radial_f_chain_rule_exact_through_alpha": true,
@@ -84,7 +83,7 @@
     "all_four_original_even_rows_exact_zero_in_local_reconstruction": true,
     "Ef_algebraic_reconstruction_exact": true,
     "frame_dragging_W1_matches_at_O_a": true,
-    "angular_diagonal_H5_H6_match": false,
+    "angular_diagonal_H5_H6_match": true,
     "published_chi_a_over_sqrt_mu": true,
     "radial_f_chain_rule_identity_through_alpha": true,
     "H5_H6_direct_Eq2_12_reduction": true,
@@ -92,15 +91,17 @@
     "angular_axis_regular_factors": true,
     "fixed_boundary_parameter_map_uses_version_of_record_chi": true,
     "all_four_original_even_rows_exact_zero_locally": true,
-    "asymptotic_ADM_mass_matches_Eq3_4_through_chi2": true
+    "asymptotic_ADM_mass_matches_Eq3_4_through_chi2": true,
+    "angular_diagonal_H5_H6_match_in_version_of_record": true,
+    "published_chi_equals_a_over_sqrt_mu": true
   },
-  "claim_ceiling": "Exact first-coupling, equal-spin, O(chi^2) comparison: Ma-Lu radial/time/fibre/frame-dragging sectors, all three angular components, fixed-(R_H,Omega_H) map, four original Symtropy even-sector action rows, and ADM/Komar mass coefficient through chi^2. No finite-coupling nonlinear branch, interval existence/uniqueness, global uniqueness or hyperbolicity result.",
+  "claim_ceiling": "Exact first-coupling, equal-spin, O(chi^2) comparison against the JHEP version of record: radial/time/fibre/frame-dragging sectors, complete angular block, fixed-(R_H,Omega_H) map, four original Symtropy even-sector action rows, and ADM/Komar mass coefficient through chi^2. The separate thermodynamic-charge verifier reproduces the published equal-spin DeltaM and horizon mu series through chi^10; total fixed-boundary mass is only known through O(epsilon_S*nu_S^2). No finite-coupling nonlinear branch, interval existence/uniqueness, or hyperbolicity result is claimed.",
   "adm_mass_check": {
-    "paper": "Delta M=2*pi-(47*pi/20)*(chi_a^2+chi_b^2)+O(chi^4)",
-    "equal_spin": "Delta M=2*pi-(47*pi/10)*chi^2+O(chi^4)",
+    "paper": "Ma-Lu Eq. (3.4), equal spin: DeltaM=2*pi-47*pi*chi^2/10+O(chi^4)",
     "asymptotic_H1_coefficient": "16/3-188*chi^2/15",
     "Komar_prefactor": "3*pi/8",
     "metric_result": "(3*pi/8)*(16/3-188*chi^2/15)=2*pi-47*pi*chi^2/10",
-    "status": "exact_equal_spin_match_through_chi_squared"
+    "status": "exact_equal_spin_match_through_chi_squared",
+    "higher_spin_benchmark": "ma_lu_equal_spin_thermodynamic_charge_series_v1.json independently verifies Eq. (3.4) through chi^10"
   }
 }
