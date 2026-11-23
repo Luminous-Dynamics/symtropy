@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-benchmark-corpus-v0.1.json",
+  "title": "RRVR Matched Benchmark Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "benchmark_id",
+    "suite_revision",
+    "episodes"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suite_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "$ref": "#/$defs/episode"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "arm": {
+      "enum": [
+        "task_only",
+        "restart_only",
+        "logging_only",
+        "trace_only",
+        "full_rrvr"
+      ]
+    },
+    "safety": {
+      "enum": [
+        "safe",
+        "unsafe",
+        "not_evaluated"
+      ]
+    },
+    "ground_truth": {
+      "enum": [
+        "delivered",
+        "not_delivered",
+        "inconclusive",
+        "not_evaluated"
+      ]
+    },
+    "assessment": {
+      "enum": [
+        "confirmed",
+        "refuted",
+        "unknown",
+        "not_evaluated"
+      ]
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "matched_pair_id",
+        "arm",
+        "task_id",
+        "policy_id",
+        "policy_sha256",
+        "scene_sha256",
+        "action_prefix_sha256",
+        "seed",
+        "platform_profile_sha256",
+        "environment_artifact_sha256",
+        "fault_schedule_sha256",
+        "native_task_success",
+        "safety_verdict",
+        "safety_violation_severity_micros",
+        "recovery_attempted",
+        "recovery_success",
+        "adjudicated_delivery",
+        "assessed_delivery",
+        "planned_fault_event_count",
+        "dispatch_accepted_count",
+        "injector_executed_count",
+        "independently_observed_delivery_count",
+        "duplicate_effect_count",
+        "blind_redispatch_count",
+        "stale_execution_after_quiescence_count",
+        "false_admission_count",
+        "operator_intervention_count",
+        "mission_makespan_ns",
+        "time_to_evidence_ns",
+        "root_cause_truth_component_id",
+        "root_cause_ranked_component_ids",
+        "original_trace_event_count",
+        "minimized_trace_event_count",
+        "raw_episode_artifact_id",
+        "raw_episode_sha256",
+        "raw_trace_artifact_id",
+        "raw_trace_sha256"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "matched_pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arm": {
+          "$ref": "#/$defs/arm"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scene_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_prefix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "platform_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "fault_schedule_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "native_task_success": {
+          "type": "boolean"
+        },
+        "safety_verdict": {
+          "$ref": "#/$defs/safety"
+        },
+        "safety_violation_severity_micros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "recovery_attempted": {
+          "type": "boolean"
+        },
+        "recovery_success": {
+          "type": "boolean"
+        },
+        "adjudicated_delivery": {
+          "$ref": "#/$defs/ground_truth"
+        },
+        "assessed_delivery": {
+          "$ref": "#/$defs/assessment"
+        },
+        "planned_fault_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dispatch_accepted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "injector_executed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independently_observed_delivery_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_effect_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blind_redispatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_execution_after_quiescence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_admission_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_intervention_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mission_makespan_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_to_evidence_ns": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root_cause_truth_component_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root_cause_ranked_component_ids": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "original_trace_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimized_trace_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "raw_episode_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_episode_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "raw_trace_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_trace_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
