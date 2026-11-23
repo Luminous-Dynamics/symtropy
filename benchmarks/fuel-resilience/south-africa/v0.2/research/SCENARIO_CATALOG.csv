@@ -1,0 +1,12 @@
+scenario_id,stress_type,duration_days,severity,affected_component,assumption_basis,required_observation,classification
+SAFRB-BASE-000,baseline,0,0,none,synthetic_reference,grade_specific_demand_and_verified_stock,synthetic
+SAFRB-IMP-001,import_supplier_disruption,7,1,largest_supplier,one-quarter Q2 2026 origin share India 27 percent; not a stable long-run share,alternate_origin_volume_and_cargo_milestones,scenario
+SAFRB-IMP-002,import_supplier_disruption,14,2,top_three_origins,one-quarter Q2 2026 top-three origin share 63 percent; stress assumption not forecast,origin_by_origin_contract_and_vessel_evidence,scenario
+SAFRB-PORT-001,port_access_disruption,7,2,coastal_port,synthetic berth closure duration,berth_availability_and_cargo_discharge_status,scenario
+SAFRB-TERM-001,terminal_outage,14,2,coastal_terminal,synthetic tank or loading outage,usable_tank_capacity_and_quality_release,scenario
+SAFRB-PIPE-001,pipeline_outage,14,2,critical_pipeline_edge,synthetic route unavailability,edge_capacity_and_transit_state,scenario
+SAFRB-PIPE-002,pipeline_common_cause,30,3,multiple_pipeline_nodes,synthetic common-cause power or control failure,shared_dependency_and_power_availability,scenario
+SAFRB-REF-001,refinery_outage,30,2,refinery_train,synthetic production reduction; no site calibration,grade_specific_production_and_maintenance_state,scenario
+SAFRB-QUAL-001,quality_hold,7,1,batch_or_tank,synthetic product quality rejection,lab_certificate_and_tank_isolation_status,scenario
+SAFRB-DEM-001,critical_demand_spike,14,2,selected_demand_zones,synthetic demand uplift with critical-load tags,sector_demand_and_priority_authority,scenario
+SAFRB-SYS-001,systemic_compound_disruption,90,4,import_port_terminal_pipeline_and_refinery,synthetic correlated multi-node event,independent_source_and_common_cause_evidence,scenario

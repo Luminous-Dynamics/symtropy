@@ -1,0 +1,71 @@
+benchmark_id = "safrb.south-africa.grade-network.v0.2"
+revision = 2
+research_cut = "2026-11-23"
+status = "synthetic-reference-kernel-public-data-register-not-calibrated"
+implementation = "Rust 2024"
+package = "safrb-network"
+claim_ceiling = "synthetic_network_accounting_only"
+
+[demand_observations.d50]
+value_litres_2024 = 12000000000
+source_id = "DEE-2026-MARKET-REPORT"
+evidence_class = "reported_rounded"
+notes = "Government report's grade table; not assumed to reconcile to the national consumption series."
+
+[demand_observations.d500]
+value_litres_2024 = 273000000
+source_id = "DEE-2026-MARKET-REPORT"
+evidence_class = "reported_rounded"
+notes = "Government report's grade table."
+
+[demand_observations.national_aggregate_comparator]
+value_litres_2024 = 11800000000
+source_ids = ["DEE-2026-NATIONAL-SUPPLY-DEMAND-GRAPH", "STATSSA-MBALO-MAY-2026"]
+evidence_class = "reported_approximate"
+notes = "National aggregate comparator; not allocated to D50/D500 because grade breakdown is not reconciled."
+
+[demand_observations.reconciliation]
+grade_sum_litres = 12273000000
+aggregate_comparator_litres = 11800000000
+difference_litres = 473000000
+status = "unresolved"
+policy = "Preserve both source claims; do not average, select or infer the boundary difference."
+
+[q2_2026_imports]
+diesel_import_volume_litres = 3300000000
+source_id = "SA-ENERGY-TRADE-Q2-2026"
+evidence_class = "customs_reported_quarterly_flow"
+not_equivalent_to = ["usable_inventory", "annual_demand", "daily_supply", "contracted_future_supply"]
+
+[q2_2026_import_origin_shares]
+india_percent = 27
+united_states_percent = 21
+oman_percent = 15
+togo_percent = 9
+netherlands_percent = 5
+top_three_percent = 63
+top_five_percent = 77
+known_top_five_hhi_contribution_points = 1501
+hhi_note = "1501 is the sum of squared reported top-five shares only; it is a lower bound on full HHI because residual origin shares are not enumerated."
+
+[provincial_demand_shares]
+gauteng_percent = 26
+kwazulu_natal_percent = 20
+western_cape_percent = 18
+mpumalanga_percent = 11
+other_provinces_percent = 25
+notes = "Rounded aggregate shares. Do not allocate grade volumes to provinces without a grade-by-province source."
+
+[network_scope]
+grades = ["D50", "D500"]
+nodes = ["port", "refinery", "coastal_terminal", "pipeline_station", "inland_terminal", "demand_zone"]
+edge_capacity_basis = "synthetic_fixture_until_source_pinned"
+transit_time_basis = "synthetic_fixture_until_operator_data_or_engineering_reference"
+topology_status = "conceptual"
+hydraulic_validation = "not_performed"
+dispatch_optimisation = "not_implemented_in_v0_2"
+
+[stress_scenarios]
+durations_days = [7, 14, 30, 60, 90]
+recovery_tail_days = 30
+interpretation = "Stress-test durations; not forecasts or predictions."
