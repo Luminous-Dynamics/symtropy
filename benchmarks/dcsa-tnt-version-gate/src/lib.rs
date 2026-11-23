@@ -198,16 +198,17 @@ pub fn classify_source_claim(
 ) -> SourceClaimResult {
     let disposition = if message_id.is_none_or(str::is_empty) {
         SourceClaimDisposition::RejectedMissingMessageId
+    } else if event_classifier_code.is_none() {
+        SourceClaimDisposition::IndeterminateMissingClassifier
+    } else if event_date_time.is_none_or(str::is_empty) {
+        SourceClaimDisposition::IndeterminateMissingEventTime
     } else {
         match event_classifier_code {
-            None => SourceClaimDisposition::IndeterminateMissingClassifier,
             Some("PLN") => SourceClaimDisposition::PlannedNotPhysicalRealization,
             Some("EST") => SourceClaimDisposition::EstimatedNotPhysicalRealization,
-            Some("ACT") if event_date_time.is_none_or(str::is_empty) => {
-                SourceClaimDisposition::IndeterminateMissingEventTime
-            }
             Some("ACT") => SourceClaimDisposition::ActualSourceAssertionOnly,
             Some(_) => SourceClaimDisposition::UnsupportedClassifier,
+            None => SourceClaimDisposition::IndeterminateMissingClassifier,
         }
     };
 
@@ -324,6 +325,18 @@ mod tests {
         assert_eq!(
             classify_source_claim(Some("message-6"), Some("2026-11-23T08:30:00Z"), Some("FUT")).disposition,
             SourceClaimDisposition::UnsupportedClassifier
+        );
+    }
+
+    #[test]
+    fn missing_event_time_is_indeterminate_for_planned_and_estimated_claims() {
+        assert_eq!(
+            classify_source_claim(Some("message-7"), None, Some("PLN")).disposition,
+            SourceClaimDisposition::IndeterminateMissingEventTime
+        );
+        assert_eq!(
+            classify_source_claim(Some("message-8"), None, Some("EST")).disposition,
+            SourceClaimDisposition::IndeterminateMissingEventTime
         );
     }
 
