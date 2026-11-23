@@ -3,7 +3,7 @@
 **Issue:** #7036  
 **Parent:** EHD-OED-001 / #6660  
 **Implementation:** `tools/ehd-oed-portfolio/`  
-**Status:** reference source and manufactured tests authored; Rust format/build/test/Clippy pending exact-head CI.
+**Status:** reference source and 14 manufactured tests authored; Rust format/build/test/Clippy pending exact-head CI.
 
 ## Paradigm shift
 
@@ -79,6 +79,7 @@ The surviving portfolios are filtered by Pareto dominance across E-like informat
 - missing required control tags abstain;
 - worst-case scenario metrics are not replaced by nominal averages;
 - candidate-order permutation preserves scores and frontier identities;
+- covariance dimensions must exactly match the candidate inventory;
 - independent unit rescaling preserves qualification;
 - singular/asymmetric covariance is rejected;
 - the returned frontier contains no dominated pairs;
