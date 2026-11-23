@@ -150,13 +150,20 @@ pub struct InjectorExecution {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ObserverDeliveryEvidence {
+    pub observer_id: String,
+    pub observer_revision: String,
+    pub observer_binary_sha256: String,
+    pub common_cause_domains: Vec<String>,
+    pub observed_fault_signature_sha256: String,
+    pub receipt: FaultEvidenceReceipt,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FaultDeliveryObservation {
     pub verdict: DeliveryVerdict,
-    pub observer_id: Option<String>,
-    pub observer_revision: Option<String>,
-    pub observer_fault_domain_id: Option<String>,
-    pub observed_fault_signature_sha256: Option<String>,
-    pub receipt: Option<FaultEvidenceReceipt>,
+    pub members: Vec<ObserverDeliveryEvidence>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -225,6 +232,7 @@ pub struct ExecutionSummary {
     pub delivery_refuted_count: usize,
     pub delivery_unknown_count: usize,
     pub delivery_not_observed_count: usize,
+    pub delivery_observer_receipt_count: usize,
     pub reconcile_required: bool,
     /// This validator never issues native retry or actuation authority.
     pub retry_permitted: bool,
@@ -372,6 +380,7 @@ impl ExecutionEvidenceBundle {
                 delivery_refuted_count: 0,
                 delivery_unknown_count: 0,
                 delivery_not_observed_count: 0,
+                delivery_observer_receipt_count: 0,
                 reconcile_required: self.reset.status == ResetStatus::Unknown,
                 retry_permitted: false,
             });
@@ -704,198 +713,127 @@ impl ExecutionEvidenceBundle {
 
             let observation = &event.delivery_observation;
             match observation.verdict {
-                DeliveryVerdict::Confirmed => {
-                    delivery_confirmed_count += 1;
-                    if event.execution.status != ExecutionStatus::Executed {
+                DeliveryVerdict::Confirmed | DeliveryVerdict::Refuted => {
+                    if event.execution.status != ExecutionStatus::Executed
+                        || observation.members.len()
+                            < self.platform.required_delivery_observer_quorum
+                        || observation.members.len() > 32
+                    {
                         return Err(ExecutionEvidenceError::InvalidDeliveryObservation);
                     }
                     let target_id = resolved_target
                         .ok_or(ExecutionEvidenceError::InvalidDeliveryObservation)?;
-                    let observer_id = observation
-                        .observer_id
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    let observer_revision = observation
-                        .observer_revision
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    let observer_fault_domain_id = observation
-                        .observer_fault_domain_id
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    if observer_id == self.platform.fault_injector_id
-                        || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
-                    {
-                        return Err(ExecutionEvidenceError::ObserverNotDistinct);
-                    }
-                    let signature = observation
-                        .observed_fault_signature_sha256
-                        .as_deref()
-                        .ok_or(ExecutionEvidenceError::DeliverySignatureMismatch)?;
-                    if !valid_sha256(signature)
-                        || signature != expected.expected_delivery_signature_sha256
-                    {
-                        return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
-                    }
-                    let receipt = observation
-                        .receipt
-                        .as_ref()
-                        .ok_or(ExecutionEvidenceError::InvalidDeliveryObservation)?;
-                    validate_receipt(
-                        receipt,
-                        EvidencePhase::DeliveryObservation,
-                        self,
-                        expected,
-                        target_id,
-                    )?;
-                    if receipt.producer_id != observer_id
-                        || receipt.producer_revision != observer_revision
-                    {
-                        return Err(ExecutionEvidenceError::ObserverNotDistinct);
-                    }
                     let execution_receipt = event
                         .execution
                         .receipt
                         .as_ref()
                         .ok_or(ExecutionEvidenceError::InvalidExecution)?;
-                    if receipt.simulation_step < execution_receipt.simulation_step {
-                        return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
+                    let mut observer_ids = BTreeSet::new();
+                    let mut common_cause_domains = BTreeSet::new();
+                    let mut previous_observer_id: Option<&str> = None;
+
+                    for member in &observation.members {
+                        if !nonempty(&member.observer_id)
+                            || !nonempty(&member.observer_revision)
+                            || !valid_sha256(&member.observer_binary_sha256)
+                            || member.common_cause_domains.is_empty()
+                            || member.common_cause_domains.len() > 32
+                            || member
+                                .common_cause_domains
+                                .iter()
+                                .any(|domain| !nonempty(domain))
+                            || !observer_ids.insert(member.observer_id.as_str())
+                            || previous_observer_id
+                                .is_some_and(|previous| previous >= member.observer_id.as_str())
+                        {
+                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
+                        }
+                        previous_observer_id = Some(&member.observer_id);
+
+                        let profile = self
+                            .platform
+                            .observer_profiles
+                            .iter()
+                            .find(|profile| profile.observer_id == member.observer_id)
+                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
+                        if member.observer_revision != profile.revision
+                            || member.observer_binary_sha256 != profile.binary_sha256
+                            || member.common_cause_domains != profile.common_cause_domains
+                            || member.observer_id == self.platform.fault_injector_id
+                            || member
+                                .common_cause_domains
+                                .iter()
+                                .any(|domain| {
+                                    domain == &self.platform.fault_injector_fault_domain_id
+                                        || !common_cause_domains.insert(domain.as_str())
+                                })
+                        {
+                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
+                        }
+
+                        if !valid_sha256(&member.observed_fault_signature_sha256) {
+                            return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
+                        }
+                        match observation.verdict {
+                            DeliveryVerdict::Confirmed
+                                if member.observed_fault_signature_sha256
+                                    != expected.expected_delivery_signature_sha256 =>
+                            {
+                                return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
+                            }
+                            DeliveryVerdict::Refuted
+                                if member.observed_fault_signature_sha256
+                                    == expected.expected_delivery_signature_sha256 =>
+                            {
+                                return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
+                            }
+                            _ => {}
+                        }
+
+                        validate_receipt(
+                            &member.receipt,
+                            EvidencePhase::DeliveryObservation,
+                            self,
+                            expected,
+                            target_id,
+                        )?;
+                        if member.receipt.producer_id != member.observer_id
+                            || member.receipt.producer_revision != member.observer_revision
+                            || member.receipt.simulation_step < execution_receipt.simulation_step
+                            || member.receipt.clock_id != execution_receipt.clock_id
+                        {
+                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
+                        }
+                        register_receipt(
+                            &member.receipt,
+                            &mut evidence_ids,
+                            &mut artifact_ids,
+                            &mut artifact_hashes,
+                        )?;
+                        delivery_observer_receipt_count += 1;
                     }
-                    register_receipt(
-                        receipt,
-                        &mut evidence_ids,
-                        &mut artifact_ids,
-                        &mut artifact_hashes,
-                    )?;
-                }
-                DeliveryVerdict::Refuted => {
-                    delivery_refuted_count += 1;
-                    let observer_id = observation
-                        .observer_id
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    let observer_revision = observation
-                        .observer_revision
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    let observer_fault_domain_id = observation
-                        .observer_fault_domain_id
-                        .as_deref()
-                        .filter(|value| nonempty(value))
-                        .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    if observer_id == self.platform.fault_injector_revision
-                        || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
-                    {
-                        return Err(ExecutionEvidenceError::ObserverNotDistinct);
+
+                    match observation.verdict {
+                        DeliveryVerdict::Confirmed => delivery_confirmed_count += 1,
+                        DeliveryVerdict::Refuted => delivery_refuted_count += 1,
+                        _ => unreachable!("outer match only enters confirmed/refuted"),
                     }
-                    let signature = observation
-                        .observed_fault_signature_sha256
-                        .as_deref()
-                        .ok_or(ExecutionEvidenceError::DeliverySignatureMismatch)?;
-                    if !valid_sha256(signature)
-                        || signature == expected.expected_delivery_signature_sha256
-                    {
-                        return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
-                    }
-                    let receipt = observation
-                        .receipt
-                        .as_ref()
-                        .ok_or(ExecutionEvidenceError::InvalidDeliveryObservation)?;
-                    let target_id = resolved_target.unwrap_or(&expected.target_component_id);
-                    validate_receipt(
-                        receipt,
-                        EvidencePhase::DeliveryObservation,
-                        self,
-                        expected,
-                        target_id,
-                    )?;
-                    if receipt.producer_id != observer_id
-                        || receipt.producer_revision != observer_revision
-                    {
-                        return Err(ExecutionEvidenceError::ObserverNotDistinct);
-                    }
-                    register_receipt(
-                        receipt,
-                        &mut evidence_ids,
-                        &mut artifact_ids,
-                        &mut artifact_hashes,
-                    )?;
                 }
                 DeliveryVerdict::Unknown => {
                     delivery_unknown_count += 1;
+                    if !observation.members.is_empty() {
+                        return Err(ExecutionEvidenceError::InvalidDeliveryObservation);
+                    }
                     if event.execution.status == ExecutionStatus::Executed
                         || event.dispatch.status == DispatchStatus::Unknown
                         || event.execution.status == ExecutionStatus::Unknown
                     {
                         reconcile_required = true;
                     }
-                    if let Some(receipt) = observation.receipt.as_ref() {
-                        let observer_id = observation
-                            .observer_id
-                            .as_deref()
-                            .filter(|value| nonempty(value))
-                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                        let observer_revision = observation
-                            .observer_revision
-                            .as_deref()
-                            .filter(|value| nonempty(value))
-                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                        let observer_fault_domain_id = observation
-                            .observer_fault_domain_id
-                            .as_deref()
-                            .filter(|value| nonempty(value))
-                            .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                        if observer_id == self.platform.fault_injector_id
-                            || observer_fault_domain_id
-                                == self.platform.fault_injector_fault_domain_id
-                        {
-                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
-                        }
-                        if let Some(signature) =
-                            observation.observed_fault_signature_sha256.as_deref()
-                            && !valid_sha256(signature)
-                        {
-                            return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
-                        }
-                        validate_receipt(
-                            receipt,
-                            EvidencePhase::DeliveryObservation,
-                            self,
-                            expected,
-                            resolved_target.unwrap_or(&expected.target_component_id),
-                        )?;
-                        if receipt.producer_id != observer_id
-                            || receipt.producer_revision != observer_revision
-                        {
-                            return Err(ExecutionEvidenceError::ObserverNotDistinct);
-                        }
-                        register_receipt(
-                            receipt,
-                            &mut evidence_ids,
-                            &mut artifact_ids,
-                            &mut artifact_hashes,
-                        )?;
-                    } else if observation.observer_id.is_some()
-                        || observation.observer_revision.is_some()
-                        || observation.observer_fault_domain_id.is_some()
-                        || observation.observed_fault_signature_sha256.is_some()
-                    {
-                        return Err(ExecutionEvidenceError::InvalidDeliveryObservation);
-                    }
                 }
                 DeliveryVerdict::NotObserved => {
                     delivery_not_observed_count += 1;
-                    if observation.receipt.is_some()
-                        || observation.observer_id.is_some()
-                        || observation.observer_revision.is_some()
-                        || observation.observer_fault_domain_id.is_some()
-                        || observation.observed_fault_signature_sha256.is_some()
-                    {
+                    if !observation.members.is_empty() {
                         return Err(ExecutionEvidenceError::InvalidDeliveryObservation);
                     }
                     if event.execution.status == ExecutionStatus::Executed
@@ -907,15 +845,21 @@ impl ExecutionEvidenceBundle {
                 }
             }
 
-            let phase_receipts: Vec<&FaultEvidenceReceipt> = [
+            let mut phase_receipts: Vec<&FaultEvidenceReceipt> = [
                 event.target_resolution.receipt.as_ref(),
                 event.dispatch.receipt.as_ref(),
                 event.execution.receipt.as_ref(),
-                event.delivery_observation.receipt.as_ref(),
             ]
             .into_iter()
             .flatten()
             .collect();
+            phase_receipts.extend(
+                event
+                    .delivery_observation
+                    .members
+                    .iter()
+                    .map(|member| &member.receipt),
+            );
             if phase_receipts
                 .first()
                 .is_some_and(|first| first.clock_id != reset_receipt.clock_id)
@@ -958,6 +902,7 @@ impl ExecutionEvidenceBundle {
             delivery_refuted_count,
             delivery_unknown_count,
             delivery_not_observed_count,
+            delivery_observer_receipt_count,
             reconcile_required,
             retry_permitted: false,
         })
