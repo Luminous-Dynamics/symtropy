@@ -581,10 +581,16 @@ mod tests {
         let mut case = corpus.cases[4].clone();
         case.support.enclosing_ball_radius_m = 0.01;
         let small = evaluate_support_envelope(&case);
-        assert_eq!(small.status, SupportStatus::ConditionalWithinSensingEnvelope);
+        assert_eq!(
+            small.status,
+            SupportStatus::ConditionalWithinSensingEnvelope
+        );
         case.support.enclosing_ball_radius_m = 0.2;
         let large = evaluate_support_envelope(&case);
-        assert_ne!(large.status, SupportStatus::ConditionalWithinSensingEnvelope);
+        assert_ne!(
+            large.status,
+            SupportStatus::ConditionalWithinSensingEnvelope
+        );
     }
 
     #[test]
@@ -592,10 +598,16 @@ mod tests {
         let corpus: SupportEnvelopeCorpus = serde_json::from_str(FIXTURE).unwrap();
         let mut case = corpus.cases[0].clone();
         let narrow = evaluate_support_envelope(&case);
-        assert_eq!(narrow.status, SupportStatus::ConditionalWithinSensingEnvelope);
+        assert_eq!(
+            narrow.status,
+            SupportStatus::ConditionalWithinSensingEnvelope
+        );
         case.support.normal_cone_half_angle_rad = 0.6;
         let wide = evaluate_support_envelope(&case);
-        assert_ne!(wide.status, SupportStatus::ConditionalWithinSensingEnvelope);
+        assert_ne!(
+            wide.status,
+            SupportStatus::ConditionalWithinSensingEnvelope
+        );
     }
 
     #[test]
