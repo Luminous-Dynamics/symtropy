@@ -661,6 +661,32 @@ pub fn reference_self_check() -> Result<(), PivQualificationError> {
         return Err(PivQualificationError::NonFiniteDerivedValue);
     }
 
+    let joint_quality = qualify_piv_measurement_quality(
+        PivConfusionCounts {
+            invalid_vectors_rejected: 9_900,
+            valid_vectors_rejected: 50,
+            invalid_vectors_retained: 100,
+            valid_vectors_retained: 9_950,
+        },
+        PivClassifierGate {
+            minimum_f1: 0.95,
+            minimum_recall: 0.90,
+            maximum_false_valid_vector_removal_rate: 0.01,
+        },
+        &regional,
+        CoverageGate {
+            nominal_coverage: 0.95,
+            minimum_acceptable_coverage: 0.90,
+            maximum_acceptable_coverage: 0.98,
+            minimum_samples_per_region: 200,
+        },
+    )?;
+    if !joint_quality.overall_eligible
+        || joint_quality.regional_coverage.len() != REQUIRED_REGION_COUNT
+    {
+        return Err(PivQualificationError::NonFiniteDerivedValue);
+    }
+
     let piv = VelocityVectorEstimate {
         method: DiagnosticMethod::Piv,
         condition_id: "manufactured-condition".to_owned(),
