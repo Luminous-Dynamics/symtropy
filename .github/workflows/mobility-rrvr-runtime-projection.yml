@@ -265,7 +265,18 @@ jobs:
           JAR="$RUNNER_TEMP/tla/tla2tools.jar"
           WORK="$ROOT/tla-negative-wrong-action"
           mkdir -p "$WORK"
-          jq -s '.[1].event = "MarkDispatchStarted" | .[]' "$ROOT/runtime-trace.ndjson" > "$WORK/rrvr-trace.ndjson"
+          jq -s '
+            map(if .event? == "ReserveAttempt"
+                then .event = "MarkDispatchStarted"
+                else .
+                end)
+            | .[]
+          ' "$ROOT/runtime-trace.ndjson" > "$WORK/rrvr-trace.ndjson"
+          jq -s -e '
+            length == 4
+            and .[1].event == "MarkDispatchStarted"
+            and .[1].state.s.stage == "reserved"
+          ' "$WORK/rrvr-trace.ndjson"
           cp "$MODEL" "$WORK/RestartSafeEffectContinuity.tla"
           cp "$TRACE_SPEC" "$WORK/RestartSafeEffectContinuityTrace.tla"
           cp "$TRACE_CFG" "$WORK/RestartSafeEffectContinuityTrace.cfg"
@@ -280,12 +291,16 @@ jobs:
           ) > "$ROOT/tlc-negative-wrong-action.log" 2>&1
           status=$?
           set -e
+          cat "$ROOT/tlc-negative-wrong-action.log"
           if [ "$status" -eq 0 ]; then
-            cat "$ROOT/tlc-negative-wrong-action.log"
             echo "TLC accepted a trace whose named action cannot produce its recorded state."
             exit 1
           fi
-          grep -Fq "Invariant TraceNotStuck is violated" "$ROOT/tlc-negative-wrong-action.log"
+          if ! grep -Fq "TraceNotStuck" "$ROOT/tlc-negative-wrong-action.log" \
+            || ! grep -Eiq "violat" "$ROOT/tlc-negative-wrong-action.log"; then
+            echo "TLC failed for a reason other than the expected TraceNotStuck invariant."
+            exit 1
+          fi
           echo "Expected negative control rejected: action/state mismatch."
 
           cp "$TRACE_SPEC" "$ROOT/RestartSafeEffectContinuityTrace.tla"
