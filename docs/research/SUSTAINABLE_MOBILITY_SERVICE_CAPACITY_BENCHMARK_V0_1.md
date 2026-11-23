@@ -422,6 +422,12 @@ Receipts are sorted by `(start_seconds, aircraft_id, mission_sequence)` and hash
 - the frozen Dock-shaped profile has the deterministic first ID `aircraft-00-mission-000000`;
 - the no-grid-headroom negative control emits only the initial mission, with no post-recharge opportunity.
 
-The module now has 22 test definitions, including per-aircraft sequence continuity, turnaround separation, horizon coverage, digest reproducibility and no-grid receipt starvation. Exact-head CI is pending on the current branch at this point. The next child #6999 will bind request admission to these receipts so #6921 no longer needs to accept independently authored aircraft/time/duration values.
+The module now has 22 test definitions, including per-aircraft sequence continuity, turnaround separation, horizon coverage, digest reproducibility and no-grid receipt starvation. Exact-head CI run [#45135480347](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45135480347) passed schema parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload on head 0ed57b962032f4d2fa94b799c36b7122db3b58c8. The source module has 22 test definitions; Clippy remains unverified. The next child #6999 will bind request admission to these receipts so #6921 no longer needs to accept independently authored aircraft/time/duration values.
 
 These receipts are generated from synthetic assumptions, not measured flight/charger telemetry. The digest is an integrity check over supplied JSON, not producer authentication or physical qualification.
+
+## 21. Composition with service requests
+
+The capacity simulator is now the sole producer of aerial service-opportunity timing. Each receipt contains a stable ID, aircraft ID, per-aircraft mission sequence, mission start, mission duration and turnaround, and each architecture result binds the ordered receipt list with a SHA-256 digest. The verified producer is [PR #7004](https://github.com/Luminous-Dynamics/symtropy/pull/7004); exact-head Actions run [#45135480347](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45135480347) passed at head 0ed57b962032f4d2fa94b799c36b7122db3b58c8.
+
+The consumer implementation for #6999 is being added separately. It re-runs this capacity evaluator from the source architecture input and accepts only the receipt ID and payload qualification from the request side. The consumer must not trust a manually authored aircraft schedule or infer extra slots from the aggregate cycles/hour ceiling.
