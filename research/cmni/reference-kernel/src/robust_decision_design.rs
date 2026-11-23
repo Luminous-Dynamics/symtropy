@@ -852,14 +852,13 @@ fn enumerate_primal_game_strategy(
                 let mut matrix = vec![vec![0.0; support_size + 1]; support_size + 1];
                 let mut rhs = vec![0.0; support_size + 1];
                 for (row, scenario_index) in scenario_support.iter().enumerate() {
+                    let equation = &mut matrix[row];
                     for (column, policy_index) in policy_support.iter().enumerate() {
-                        matrix[row][column] = payoffs[*policy_index][*scenario_index];
+                        equation[column] = payoffs[*policy_index][*scenario_index];
                     }
-                    matrix[row][support_size] = -1.0;
+                    equation[support_size] = -1.0;
                 }
-                for column in 0..support_size {
-                    matrix[support_size][column] = 1.0;
-                }
+                matrix[support_size][..support_size].fill(1.0);
                 rhs[support_size] = 1.0;
 
                 let Some(solution) = solve_small_linear_system(matrix, rhs, tolerance) else {
@@ -921,14 +920,13 @@ fn enumerate_dual_game_strategy(
                 let mut matrix = vec![vec![0.0; support_size + 1]; support_size + 1];
                 let mut rhs = vec![0.0; support_size + 1];
                 for (row, policy_index) in policy_support.iter().enumerate() {
+                    let equation = &mut matrix[row];
                     for (column, scenario_index) in scenario_support.iter().enumerate() {
-                        matrix[row][column] = payoffs[*policy_index][*scenario_index];
+                        equation[column] = payoffs[*policy_index][*scenario_index];
                     }
-                    matrix[row][support_size] = -1.0;
+                    equation[support_size] = -1.0;
                 }
-                for column in 0..support_size {
-                    matrix[support_size][column] = 1.0;
-                }
+                matrix[support_size][..support_size].fill(1.0);
                 rhs[support_size] = 1.0;
 
                 let Some(solution) = solve_small_linear_system(matrix, rhs, tolerance) else {
@@ -977,8 +975,10 @@ fn robust_policy_value(
     policy_support: &[usize],
     probabilities: &[f64],
 ) -> f64 {
-    (0..payoffs[0].len())
-        .map(|scenario_index| {
+    payoffs[0]
+        .iter()
+        .enumerate()
+        .map(|(scenario_index, _)| {
             policy_support
                 .iter()
                 .zip(probabilities.iter())
@@ -1030,6 +1030,8 @@ fn normalize_feasible_probabilities(
     Some(probabilities)
 }
 
+// Matrix row/column indices are required for pivoted Gaussian elimination.
+#[allow(clippy::needless_range_loop)]
 fn solve_small_linear_system(
     mut matrix: Vec<Vec<f64>>,
     mut rhs: Vec<f64>,
