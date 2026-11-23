@@ -68,7 +68,8 @@ fn set_gate(packet: &mut Value, gate: &str) {
         "evidence_refs": [evidence("product-owner", &format!("{gate}-evidence"))],
         "reviewer_id": "reviewer-1",
         "decision_ref": evidence("product-owner", &format!("{gate}-decision")),
-        "recorded_at": "2026-11-23T00:00:00Z"
+        "recorded_at": "2026-11-23T00:00:00Z",
+        "disposition_reason": null
     });
 }
 
