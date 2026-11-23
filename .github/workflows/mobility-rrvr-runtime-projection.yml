@@ -173,6 +173,27 @@ jobs:
       - name: Run runtime projection tests
         run: cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
 
+      - name: Run multi-attempt lineage CLI positive control
+        shell: bash
+        run: |
+          set -euo pipefail
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/attempt_lineage_three_attempts_v0_1.json"
+          REPORT="$RUNNER_TEMP/rrvr-attempt-lineage-summary.json"
+          cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_attempt_lineage -- "$FIXTURE" "$REPORT"
+          jq -e '
+            .validation == "passed"
+            and .attempt_count == 3
+            and .recovery_edge_count == 2
+            and .applied_attempt_count == 1
+            and .head_attempt_id == "attempt-3"
+            and .head_physical_outcome == "applied"
+            and .owner_authentication == "not_performed"
+            and .evidence_completeness == "not_established"
+            and .tla_refinement == "not_checked"
+            and .physical_safety == "not_established"
+            and .native_action_authority == "not_created"
+          ' "$REPORT"
+
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
 
