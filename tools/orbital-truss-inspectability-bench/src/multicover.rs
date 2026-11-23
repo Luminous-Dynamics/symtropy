@@ -6,7 +6,7 @@ pub const MULTICOVER_CORPUS_SCHEMA: &str =
     "luminous.orbital-truss.multicover-scale-corpus.v0.1";
 pub const MULTICOVER_BENCHMARK_ID: &str = "ORBITAL-MULTICOVER-SCALE-001";
 pub const MULTICOVER_RECEIPT_SCHEMA: &str =
-    "luminous.orbital-truss.multicover-scale-receipt.v0.1";
+    "luminous.orbital-truss.multicover-scale-receipt.v0.2";
 pub const MAX_CANDIDATE_VIEWS: usize = 100_000;
 pub const MAX_FEATURES: usize = 250_000;
 pub const MAX_VISIBILITY_EDGES: usize = 50_000_000;
@@ -27,6 +27,7 @@ pub struct MultiCoverFeature {
 pub struct MultiCoverView {
     pub view_id: String,
     pub failure_domain_id: String,
+    pub vertical_order_rank: i64,
     pub nominal_feature_ids: Vec<String>,
     pub robust_feature_ids: Vec<String>,
 }
@@ -84,6 +85,20 @@ pub struct DualBoundCertificate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct OverlapPruningBaseline {
+    pub ordering: String,
+    pub threshold_percent: u8,
+    pub selected_view_ids: Vec<String>,
+    pub selection_order_view_ids: Vec<String>,
+    pub selected_view_count: usize,
+    pub zero_visibility_candidates_skipped: usize,
+    pub full_nominal_union_covered: bool,
+    pub requested_k_fully_covered: bool,
+    pub attainable_capped_targets_fully_covered: bool,
+    pub feature_coverage: Vec<MultiCoverFeatureCoverage>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MultiCoverReceipt {
     pub schema: String,
     pub benchmark_id: String,
@@ -106,6 +121,7 @@ pub struct MultiCoverReceipt {
     pub selected_attainable_targets_fully_covered: bool,
     pub selected_robust_requested_k_fully_covered: bool,
     pub feature_coverage: Vec<MultiCoverFeatureCoverage>,
+    pub overlap_pruning_baselines: Vec<OverlapPruningBaseline>,
     pub dual_bound: DualBoundCertificate,
     pub selected_minus_dual_lower_bound: u64,
     pub relative_excess_over_dual_lower_bound_basis_points: Option<u64>,
@@ -117,6 +133,7 @@ pub struct MultiCoverReceipt {
 struct IndexedProblem {
     feature_ids: Vec<String>,
     view_ids: Vec<String>,
+    vertical_order_ranks: Vec<i64>,
     requested_k: Vec<usize>,
     failure_domain_ids: Vec<String>,
     nominal_by_view: Vec<Vec<usize>>,
@@ -164,6 +181,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
     let mut nominal_edge_count = 0_usize;
     let mut robust_edge_count = 0_usize;
     let mut failure_domain_ids = Vec::with_capacity(problem.views.len());
+    let mut vertical_order_ranks = Vec::with_capacity(problem.views.len());
 
     for (view_index, view) in problem.views.iter().enumerate() {
         if view.view_id.trim().is_empty()
@@ -173,6 +191,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
             return Err("MULTICOVER_VIEW_IDENTITY_INVALID".to_owned());
         }
         failure_domain_ids.push(view.failure_domain_id.clone());
+        vertical_order_ranks.push(view.vertical_order_rank);
 
         let nominal_names: BTreeSet<&str> = view.nominal_feature_ids.iter().map(String::as_str).collect();
         let robust_names: BTreeSet<&str> = view.robust_feature_ids.iter().map(String::as_str).collect();
@@ -220,6 +239,7 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
     Ok(IndexedProblem {
         feature_ids,
         view_ids: problem.views.iter().map(|view| view.view_id.clone()).collect(),
+        vertical_order_ranks,
         requested_k,
         failure_domain_ids,
         nominal_by_view,
@@ -529,11 +549,109 @@ fn build_feature_coverage(
         .collect()
 }
 
+fn overlap_pruning_baseline(
+    indexed: &IndexedProblem,
+    threshold_percent: u8,
+    ordering: &str,
+) -> Result<OverlapPruningBaseline, String> {
+    if !(1..100).contains(&threshold_percent) {
+        return Err("OVERLAP_THRESHOLD_OUT_OF_RANGE".to_owned());
+    }
+    let mut order = (0..indexed.view_ids.len()).collect::<Vec<_>>();
+    match ordering {
+        "VERTICAL_BOTTOM_TO_TOP" => {
+            order.sort_by(|left, right| {
+                indexed.vertical_order_ranks[*left]
+                    .cmp(&indexed.vertical_order_ranks[*right])
+                    .then_with(|| indexed.view_ids[*left].cmp(&indexed.view_ids[*right]))
+            });
+        }
+        "VISIBILITY_DESCENDING" => {
+            order.sort_by(|left, right| {
+                indexed.nominal_by_view[*right]
+                    .len()
+                    .cmp(&indexed.nominal_by_view[*left].len())
+                    .then_with(|| indexed.view_ids[*left].cmp(&indexed.view_ids[*right]))
+            });
+        }
+        _ => return Err("OVERLAP_ORDERING_UNSUPPORTED".to_owned()),
+    }
+
+    let mut covered = vec![false; indexed.feature_ids.len()];
+    let mut selected = vec![false; indexed.view_ids.len()];
+    let mut selection_order = Vec::new();
+    let mut zero_visibility_candidates_skipped = 0_usize;
+
+    for view_index in order {
+        let visible = &indexed.nominal_by_view[view_index];
+        if visible.is_empty() {
+            zero_visibility_candidates_skipped += 1;
+            continue;
+        }
+        let overlap_count = visible.iter().filter(|feature| covered[**feature]).count();
+        let overlap_numerator = (overlap_count as u128) * 100;
+        let threshold_numerator = (threshold_percent as u128) * (visible.len() as u128);
+        if overlap_numerator < threshold_numerator {
+            selected[view_index] = true;
+            selection_order.push(view_index);
+            for feature_index in visible {
+                covered[*feature_index] = true;
+            }
+        }
+    }
+
+    let mut selected_view_ids = indexed
+        .view_ids
+        .iter()
+        .zip(&selected)
+        .filter(|(_, include)| **include)
+        .map(|(view_id, _)| view_id.clone())
+        .collect::<Vec<_>>();
+    selected_view_ids.sort();
+    let selection_order_view_ids = selection_order
+        .iter()
+        .map(|index| indexed.view_ids[*index].clone())
+        .collect::<Vec<_>>();
+    let feature_coverage = build_feature_coverage(indexed, &selected);
+    let full_nominal_union_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.selected_nominal_views > 0);
+    let requested_k_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.requested_k_met);
+    let attainable_capped_targets_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.attainable_target_met);
+
+    Ok(OverlapPruningBaseline {
+        ordering: ordering.to_owned(),
+        threshold_percent,
+        selected_view_count: selected_view_ids.len(),
+        selected_view_ids,
+        selection_order_view_ids,
+        zero_visibility_candidates_skipped,
+        full_nominal_union_covered,
+        requested_k_fully_covered,
+        attainable_capped_targets_fully_covered,
+        feature_coverage,
+    })
+}
+
 pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt, String> {
     let indexed = validate_problem(problem)?;
     let (selected, selection_order, cleanup_removed) = select_greedily(&indexed)?;
     let dual_bound = dual_certificate(&indexed)?;
     let feature_coverage = build_feature_coverage(&indexed, &selected);
+    let mut overlap_pruning_baselines = Vec::with_capacity(4);
+    for threshold in [50_u8, 70_u8] {
+        for ordering in ["VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING"] {
+            overlap_pruning_baselines.push(overlap_pruning_baseline(
+                &indexed,
+                threshold,
+                ordering,
+            )?);
+        }
+    }
 
     let mut selected_view_ids = problem
         .views
@@ -597,6 +715,7 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
         selected_attainable_targets_fully_covered,
         selected_robust_requested_k_fully_covered,
         feature_coverage,
+        overlap_pruning_baselines,
         dual_bound,
         selected_minus_dual_lower_bound: excess,
         relative_excess_over_dual_lower_bound_basis_points,
