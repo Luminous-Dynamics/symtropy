@@ -376,43 +376,116 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "physical_outcome_claim_id",
-        "physical_outcome_asserted_value",
-        "physical_outcome_claim_scope_sha256",
-        "physical_outcome_quorum",
-        "downstream_quiescence_claim_id",
-        "downstream_quiescence_asserted_value",
-        "downstream_quiescence_claim_scope_sha256",
-        "downstream_quiescence_quorum"
+        "physical_outcome",
+        "downstream_quiescence"
       ],
       "properties": {
-        "physical_outcome_claim_id": {
+        "physical_outcome": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observer_owner_evidence_ref"
+            },
+            {
+              "properties": {
+                "domain": {
+                  "const": "physical_outcome_observer_quorum"
+                },
+                "status": {
+                  "const": "quorum_qualified"
+                },
+                "asserted_value": {
+                  "const": "no_effect"
+                }
+              }
+            }
+          ]
+        },
+        "downstream_quiescence": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/observer_owner_evidence_ref"
+            },
+            {
+              "properties": {
+                "domain": {
+                  "const": "downstream_observer_quorum"
+                },
+                "status": {
+                  "const": "quorum_qualified"
+                },
+                "asserted_value": {
+                  "const": "quiescent"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "observer_owner_evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "owner_id",
+        "owner_revision",
+        "evidence_id",
+        "status",
+        "asserted_value",
+        "scope",
+        "claim_id",
+        "claim_scope_sha256",
+        "observer_quorum",
+        "raw_artifact_id",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "domain": {
+          "enum": [
+            "physical_outcome_observer_quorum",
+            "downstream_observer_quorum"
+          ]
+        },
+        "owner_id": {
           "type": "string",
           "minLength": 1
         },
-        "physical_outcome_asserted_value": {
-          "const": "no_effect"
-        },
-        "physical_outcome_claim_scope_sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        },
-        "physical_outcome_quorum": {
-          "$ref": "#/$defs/observer_quorum"
-        },
-        "downstream_quiescence_claim_id": {
+        "owner_revision": {
           "type": "string",
           "minLength": 1
         },
-        "downstream_quiescence_asserted_value": {
-          "const": "quiescent"
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
         },
-        "downstream_quiescence_claim_scope_sha256": {
+        "status": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "asserted_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/receipt/properties/scope"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_scope_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
         },
-        "downstream_quiescence_quorum": {
+        "observer_quorum": {
           "$ref": "#/$defs/observer_quorum"
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     }
