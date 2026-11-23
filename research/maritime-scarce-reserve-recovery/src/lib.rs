@@ -1366,6 +1366,39 @@ mod tests {
     }
 
     #[test]
+    fn every_selected_policy_preserves_the_declared_participant_service_floor() {
+        let results = evaluate_benchmark();
+        let inspection = candidate(&results, "independent_reserve_inspection");
+
+        assert_eq!(inspection.world_decisions.len(), WORLD_COUNT);
+        for decision in &inspection.world_decisions {
+            assert!(decision.outcome.a_service_units >= 30);
+            assert!(decision.outcome.b_service_units >= 30);
+        }
+    }
+
+    #[test]
+    fn unauthorised_read_only_scope_and_stale_authorization_block_sensing() {
+        let mut not_read_only = SENSORS[1];
+        let mut gate = not_read_only.gate.expect("inspection gate");
+        gate.read_only_authorized = false;
+        not_read_only.gate = Some(gate);
+        assert_eq!(
+            evidence_blocker(&not_read_only),
+            Some("BLOCKED_NOT_AUTHORIZED_READ_ONLY")
+        );
+
+        let mut stale_authorization = SENSORS[1];
+        let mut gate = stale_authorization.gate.expect("inspection gate");
+        gate.authorization_snapshot_current = false;
+        stale_authorization.gate = Some(gate);
+        assert_eq!(
+            evidence_blocker(&stale_authorization),
+            Some("BLOCKED_STALE_AUTHORIZATION")
+        );
+    }
+
+    #[test]
     fn deterministic_report_replay_is_byte_identical() {
         assert_eq!(render_csv(), render_csv());
     }
