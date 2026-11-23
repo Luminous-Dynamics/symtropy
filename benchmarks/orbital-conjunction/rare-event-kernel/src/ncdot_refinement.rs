@@ -661,7 +661,6 @@ fn validate_policy(policy: NcdotRefinementPolicy) -> Result<(), KernelError> {
         || !(0.0..=1.0).contains(&policy.integration_node_share_tolerance)
         || !policy.gamma.is_finite()
         || !(0.0..=1.0).contains(&policy.gamma)
-        || policy.gamma == 0.0
         || !policy.zero_rate_absolute_md2_tolerance.is_finite()
         || policy.zero_rate_absolute_md2_tolerance < 0.0
         || !policy.zero_rate_relative_md2_tolerance.is_finite()
@@ -749,6 +748,12 @@ mod tests {
         assert_eq!(policy.integration_node_share_tolerance, 0.02);
         assert_eq!(policy.gamma, 1.0e-6);
         assert_eq!(policy.initial_epoch_count, 101);
+    }
+
+    #[test]
+    fn zero_gamma_uses_nasas_one_e_minus_six_floor() {
+        assert_eq!(nasa_rate_cutoff(0.0).unwrap(), nasa_rate_cutoff(1.0e-6).unwrap());
+        assert_eq!(nasa_rate_cutoff(1.0e-7).unwrap(), nasa_rate_cutoff(1.0e-6).unwrap());
     }
 
     #[test]
