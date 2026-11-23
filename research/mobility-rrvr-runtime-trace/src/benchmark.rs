@@ -587,8 +587,12 @@ fn bootstrap_interval(
         return Err(InferenceError::InsufficientMetricClusters);
     }
     replicate_means.sort_unstable();
-    let lower_index = (replicate_means.len() * 25).div_ceil(1_000).saturating_sub(1);
-    let upper_index = (replicate_means.len() * 975).div_ceil(1_000).saturating_sub(1);
+    let lower_index = (replicate_means.len() * 25)
+        .div_ceil(1_000)
+        .saturating_sub(1);
+    let upper_index = (replicate_means.len() * 975)
+        .div_ceil(1_000)
+        .saturating_sub(1);
     Ok(Some(BootstrapInterval {
         estimate_mean_delta_ppm: estimate,
         lower_95_ppm: replicate_means[lower_index],
@@ -605,7 +609,8 @@ fn deterministic_index(
     if upper_bound == 0 {
         return Err(InferenceError::InsufficientMetricClusters);
     }
-    let upper = u64::try_from(upper_bound).map_err(|_| InferenceError::InsufficientMetricClusters)?;
+    let upper =
+        u64::try_from(upper_bound).map_err(|_| InferenceError::InsufficientMetricClusters)?;
     let limit = (1u128 << 64) - ((1u128 << 64) % u128::from(upper));
     loop {
         let mut hasher = Sha256::new();
@@ -712,9 +717,7 @@ impl BenchmarkCorpus {
     ) -> Result<ClusterBootstrapReport, InferenceError> {
         self.validate_and_score(source_corpus_sha256)
             .map_err(|_| InferenceError::InvalidCorpus)?;
-        if !(MIN_BOOTSTRAP_REPLICATES..=MAX_BOOTSTRAP_REPLICATES)
-            .contains(&replicate_count)
-        {
+        if !(MIN_BOOTSTRAP_REPLICATES..=MAX_BOOTSTRAP_REPLICATES).contains(&replicate_count) {
             return Err(InferenceError::InvalidReplicateCount);
         }
 
@@ -741,9 +744,7 @@ impl BenchmarkCorpus {
             return Err(InferenceError::TooFewClusters);
         }
 
-        let seed_material = format!(
-            "{BOOTSTRAP_VERSION}:{source_corpus_sha256}:{replicate_count}"
-        );
+        let seed_material = format!("{BOOTSTRAP_VERSION}:{source_corpus_sha256}:{replicate_count}");
         let seed_digest = Sha256::digest(seed_material.as_bytes());
         let mut seed = [0u8; 32];
         seed.copy_from_slice(&seed_digest);
@@ -771,8 +772,8 @@ impl BenchmarkCorpus {
                     .get(&baseline_arm)
                     .ok_or(InferenceError::InvalidCorpus)?;
 
-                let task_delta = (full.native_task_success as i64)
-                    - (baseline.native_task_success as i64);
+                let task_delta =
+                    (full.native_task_success as i64) - (baseline.native_task_success as i64);
                 task_by_cluster
                     .entry(cluster_id.clone())
                     .or_default()
@@ -794,8 +795,7 @@ impl BenchmarkCorpus {
                         .entry(cluster_id.clone())
                         .or_default()
                         .push(
-                            ((full.recovery_success as i64)
-                                - (baseline.recovery_success as i64))
+                            ((full.recovery_success as i64) - (baseline.recovery_success as i64))
                                 * i64::from(RATE_SCALE),
                         );
                 }
@@ -828,18 +828,10 @@ impl BenchmarkCorpus {
                 .collect();
 
             let mut counter = 0u64;
-            let task_success_delta = bootstrap_interval(
-                &task_cluster_means,
-                replicate_count,
-                &seed,
-                &mut counter,
-            )?;
-            let safety_delta = bootstrap_interval(
-                &safety_cluster_means,
-                replicate_count,
-                &seed,
-                &mut counter,
-            )?;
+            let task_success_delta =
+                bootstrap_interval(&task_cluster_means, replicate_count, &seed, &mut counter)?;
+            let safety_delta =
+                bootstrap_interval(&safety_cluster_means, replicate_count, &seed, &mut counter)?;
             let recovery_success_delta = bootstrap_interval(
                 &recovery_cluster_means,
                 replicate_count,
