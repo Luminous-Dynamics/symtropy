@@ -75,6 +75,17 @@ The vessel joint score is the maximum of the two normalized absolute residuals. 
 
 These are synthetic structural results, not DCT performance estimates or calibrated operational probabilities.
 
+## Online-conformal methods must use the schedule as the calibration unit
+
+The next method comparison should include SAOCP/SF-OGD, PACE and online conformal via online optimization, already identified in PR #7219. For a schedule-level claim, feed each method the **one maximum normalized residual per whole schedule**, not 25 independent per-call scores.
+
+- **SAOCP/SF-OGD:** test strongly adaptive guarantees on contiguous schedule windows, but at the schedule unit. Report worst-window schedule coverage debt and interval efficiency.
+- **PACE:** retain heterogeneous adaptation horizons and top-K ensemble weighting, but calibrate its schedule-level max score. Compare interval width and extreme-regime coverage.
+- **Online conformal via online optimization:** compare adversarial/stochastic online guarantees on the same schedule-max residual stream.
+- **Bonferroni:** retain as a transparent family-wise baseline where per-call finite-sample alpha permits a finite quantile.
+
+Do not infer a schedule guarantee from a per-vessel guarantee, even when the per-vessel method is strongly adaptive or ensemble-based. Calibration unit must match the decision/claim unit.
+
 ## Required evaluation
 
 A schedule-level uncertainty set must be evaluated against:
