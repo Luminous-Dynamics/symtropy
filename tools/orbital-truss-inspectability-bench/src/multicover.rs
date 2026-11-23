@@ -116,6 +116,7 @@ pub struct MultiCoverReceipt {
 #[derive(Debug, Clone)]
 struct IndexedProblem {
     feature_ids: Vec<String>,
+    view_ids: Vec<String>,
     requested_k: Vec<usize>,
     failure_domain_ids: Vec<String>,
     nominal_by_view: Vec<Vec<usize>>,
@@ -219,6 +220,9 @@ fn validate_problem(problem: &MultiCoverProblem) -> Result<IndexedProblem, Strin
     Ok(IndexedProblem {
         feature_ids,
         requested_k,
+        feature_ids,
+        view_ids: problem.views.iter().map(|view| view.view_id.clone()).collect(),
+        requested_k,
         failure_domain_ids,
         nominal_by_view,
         robust_by_view,
@@ -317,15 +321,8 @@ fn select_greedily(indexed: &IndexedProblem) -> Result<(Vec<bool>, Vec<usize>, V
                     score > best_score
                         || (score == best_score
                             && score > 0
-                            && indexed.failure_domain_ids[view_index]
-                                .cmp(&indexed.failure_domain_ids[best_index])
-                                .then_with(|| {
-                                    indexed.feature_ids.first().map_or(
-                                        std::cmp::Ordering::Equal,
-                                        |_| std::cmp::Ordering::Equal,
-                                    )
-                                })
-                                == std::cmp::Ordering::Less)
+                            && indexed.view_ids[view_index]
+                                < indexed.view_ids[best_index])
                 }
             };
             if replace {
@@ -486,7 +483,6 @@ fn dual_certificate(indexed: &IndexedProblem) -> Result<DualBoundCertificate, St
 }
 
 fn build_feature_coverage(
-    problem: &MultiCoverProblem,
     indexed: &IndexedProblem,
     selected: &[bool],
 ) -> Vec<MultiCoverFeatureCoverage> {
@@ -539,7 +535,7 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     let indexed = validate_problem(problem)?;
     let (selected, selection_order, cleanup_removed) = select_greedily(&indexed)?;
     let dual_bound = dual_certificate(&indexed)?;
-    let feature_coverage = build_feature_coverage(problem, &indexed, &selected);
+    let feature_coverage = build_feature_coverage(&indexed, &selected);
 
     let mut selected_view_ids = problem
         .views
