@@ -1,0 +1,40 @@
+name: Temporary EHD PIV adaptive acquisition rustfmt
+
+on:
+  push:
+    branches:
+      - research/ehd-piv-adaptive-acquisition-v0-1
+    paths:
+      - .github/workflows/format-ehd-piv-adaptive-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format adaptive acquisition crate
+        run: cargo fmt --manifest-path tools/ehd-piv-adaptive-acquisition/Cargo.toml
+      - name: Check whitespace
+        run: git diff --check
+      - name: Commit formatting-only changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Adaptive acquisition crate is already rustfmt-clean."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/ehd-piv-adaptive-acquisition
+          git commit -m "style(ehd-piv): apply pinned rustfmt to adaptive acquisition crate"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
