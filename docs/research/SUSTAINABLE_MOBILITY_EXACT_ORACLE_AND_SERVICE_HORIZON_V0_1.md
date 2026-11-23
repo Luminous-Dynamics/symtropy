@@ -3,7 +3,7 @@
 **Parent:** [SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 #6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921)  
 **Capacity source:** [SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 #6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909)  
 **Branch:** research/mobility-service-quality-exact-oracle-v0-1  
-**Status:** bounded exact assignment oracle and horizon accounting added to the linked capacity-receipt consumer; runner verification pending.
+**Status:** bounded exact assignment oracle and horizon accounting implemented; exact-head Actions verified.
 
 ## 1. Why this increment matters
 
@@ -135,4 +135,4 @@ The full matched tournament should add nonanticipative rolling-horizon MPC, scen
 
 ## 7. Claim boundary
 
-A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Clippy, physical/field evidence and the exact-head CI result remain separate qualifications.
+A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45208705994](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45208705994) at `177ff299e86aedf27fc37146ce644dc582270b74` passed strict schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/exact-oracle assertions and artifact upload. Test binaries reported 222 passed, 0 failed; the service-quality module contains 29 focused Rust test definitions. Clippy is not included, and physical/field evidence remains a separate qualification.
