@@ -36,7 +36,9 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
-pub use gaussian_overlap::{GaussianOverlapInput, GaussianOverlapModeReport, gaussian_product_mode};
+pub use gaussian_overlap::{
+    GaussianOverlapInput, GaussianOverlapModeReport, gaussian_product_mode,
+};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
