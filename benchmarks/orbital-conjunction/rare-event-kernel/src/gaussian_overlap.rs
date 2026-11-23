@@ -103,6 +103,7 @@ pub fn overlap_step_mahalanobis_squared(
     previous_overlap_position: [f64; 3],
     current_overlap_position: [f64; 3],
     remediated_metric_covariance: Matrix3,
+    config: GaussianOverlapConfig,
 ) -> Result<f64, KernelError> {
     if !finite_vector(previous_overlap_position)
         || !finite_vector(current_overlap_position)
@@ -110,10 +111,16 @@ pub fn overlap_step_mahalanobis_squared(
     {
         return Err(KernelError::NonFiniteValue);
     }
+    validate_config(config)?;
     // Validate and invert the supplied covariance here. Accepting an arbitrary
     // caller-supplied inverse could make an indefinite metric look valid for
     // one particular displacement.
-    let remediated_metric_inverse = inverse_spd(remediated_metric_covariance)?;
+    let (symmetric_metric, _) =
+        checked_symmetric(remediated_metric_covariance, config.symmetry_relative_tolerance)?;
+    let (remediated_metric_inverse, metric_condition) = inverse_and_condition(symmetric_metric)?;
+    if metric_condition.condition_estimate > config.maximum_condition_estimate {
+        return Err(KernelError::IllConditionedCovariance);
+    }
     let displacement = subtract_vector(current_overlap_position, previous_overlap_position);
     let transformed = matrix_vector(remediated_metric_inverse, displacement);
     let value = dot(displacement, transformed);
@@ -146,14 +153,7 @@ pub fn gaussian_position_overlap(
     if hard_body_radius <= 0.0 {
         return Err(KernelError::InvalidHardBodyRadius);
     }
-    if !config.symmetry_relative_tolerance.is_finite()
-        || config.symmetry_relative_tolerance < 0.0
-        || config.symmetry_relative_tolerance > 1.0e-6
-        || !config.maximum_condition_estimate.is_finite()
-        || config.maximum_condition_estimate <= 1.0
-    {
-        return Err(KernelError::InvalidGaussianOverlapConfig);
-    }
+    validate_config(config)?;
     if !finite_matrix(primary.covariance) || !finite_matrix(secondary.covariance) {
         return Err(KernelError::NonFiniteValue);
     }
@@ -224,6 +224,19 @@ pub fn gaussian_position_overlap(
         hard_body_radius,
         policy: GaussianOverlapCovariancePolicy::StrictSpd,
     })
+}
+
+fn validate_config(config: GaussianOverlapConfig) -> Result<(), KernelError> {
+    if !config.symmetry_relative_tolerance.is_finite()
+        || config.symmetry_relative_tolerance < 0.0
+        || config.symmetry_relative_tolerance > 1.0e-6
+        || !config.maximum_condition_estimate.is_finite()
+        || config.maximum_condition_estimate <= 1.0
+    {
+        Err(KernelError::InvalidGaussianOverlapConfig)
+    } else {
+        Ok(())
+    }
 }
 
 fn checked_symmetric(
@@ -441,6 +454,7 @@ mod tests {
             [0.0, 0.0, 0.0],
             [3.0, 0.0, 0.0],
             result.remediated_metric_covariance,
+            config(),
         )
         .expect("valid remediated metric");
         assert!((md2 - 9.0 / 4.5).abs() < 1.0e-13);
@@ -741,8 +755,40 @@ mod tests {
                 [0.0; 3],
                 [1.0, 0.0, 0.0],
                 covariance([-1.0, 1.0, 1.0]),
+                config(),
             ),
             Err(KernelError::NotPositiveDefinite)
+        );
+    }
+
+    #[test]
+    fn mahalanobis_helper_rejects_nonsymmetric_metric() {
+        let nonsymmetric = [[2.0, 0.1, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 2.0]];
+        assert_eq!(
+            overlap_step_mahalanobis_squared(
+                [0.0; 3],
+                [1.0, 0.0, 0.0],
+                nonsymmetric,
+                config(),
+            ),
+            Err(KernelError::NonSymmetricMatrix)
+        );
+    }
+
+    #[test]
+    fn mahalanobis_helper_enforces_the_declared_condition_limit() {
+        let strict = GaussianOverlapConfig {
+            maximum_condition_estimate: 1.0e10,
+            ..config()
+        };
+        assert_eq!(
+            overlap_step_mahalanobis_squared(
+                [0.0; 3],
+                [1.0, 0.0, 0.0],
+                covariance([1.0e-14, 1.0, 1.0]),
+                strict,
+            ),
+            Err(KernelError::IllConditionedCovariance)
         );
     }
 
