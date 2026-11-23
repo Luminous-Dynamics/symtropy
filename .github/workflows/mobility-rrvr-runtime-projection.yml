@@ -425,6 +425,9 @@ jobs:
             and ([.events[].execution.status] | all(. == "executed"))
             and ([.events[].delivery_observation.verdict] | all(. == "confirmed"))
             and ([.events[].planned_fault.expected_delivery_signature_sha256] == [.events[].delivery_observation.observed_fault_signature_sha256])
+            and ([.events[].world_statistics.iterations] == [.events[].planned_fault.scheduled_simulation_step])
+            and ([.events[].world_statistics.capture_clock_id] | unique == ["adapter-monotonic"])
+            and ([.events[].world_statistics.received_monotonic_ns] | .[0] > 1000 and .[1] > .[0] and .[2] > .[1] and .[3] > .[2])
             and ([.events[].target_resolution.receipt.evidence_id, .events[].dispatch.receipt.evidence_id, .events[].execution.receipt.evidence_id, .events[].delivery_observation.receipt.evidence_id] | length == 16)
           ' "$BUNDLE"
 
