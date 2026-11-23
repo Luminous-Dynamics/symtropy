@@ -846,7 +846,7 @@ mod tests {
                 ).unwrap()
             }).sum::<u64>();
             assert!(x_value <= g_value);
-            assert!(x.primary_route_id.len()>0);
+            assert!(!x.primary_route_id.is_empty());
         }
     }
 }
