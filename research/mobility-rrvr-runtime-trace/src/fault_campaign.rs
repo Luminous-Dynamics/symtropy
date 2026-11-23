@@ -740,6 +740,21 @@ mod tests {
     }
 
     #[test]
+    fn accepts_supported_ros_gazebo_lts_pairs_and_rejects_cross_pairing() {
+        let mut current_lts = valid_manifest();
+        current_lts.platform.ros_distribution = "lyrical".into();
+        current_lts.platform.gazebo_release = "jetty".into();
+        assert!(current_lts.validate().is_ok());
+
+        let mut unsupported = valid_manifest();
+        unsupported.platform.gazebo_release = "jetty".into();
+        assert_eq!(
+            unsupported.validate(),
+            Err(CampaignError::InvalidPlatformProfile)
+        );
+    }
+
+    #[test]
     fn rejects_observer_that_shares_injector_identity_or_fault_domain() {
         let mut shared_id = valid_manifest();
         shared_id.platform.observer_id = shared_id.platform.fault_injector_id.clone();
