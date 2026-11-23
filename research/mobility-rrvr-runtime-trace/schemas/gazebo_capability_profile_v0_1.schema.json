@@ -18,7 +18,8 @@
     "scene_broadcaster_sha256",
     "scene_broadcaster_loaded",
     "capabilities",
-    "world_stats_topic"
+    "world_stats_topic",
+    "gazebo_release"
   ],
   "properties": {
     "version": {
@@ -74,6 +75,12 @@
     "world_stats_topic": {
       "type": "string",
       "minLength": 1
+    },
+    "gazebo_release": {
+      "enum": [
+        "harmonic",
+        "jetty"
+      ]
     }
   },
   "$defs": {
