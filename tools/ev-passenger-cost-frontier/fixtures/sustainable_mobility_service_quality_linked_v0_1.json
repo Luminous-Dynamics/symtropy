@@ -20,7 +20,7 @@
       "request_id": "request-tight-deadline",
       "arrival_seconds": 0,
       "accept_by_seconds": 0,
-      "deadline_seconds": 300,
+      "deadline_seconds": 400,
       "required_service_seconds": 240,
       "payload_units": 1,
       "service_class": "urgent",
