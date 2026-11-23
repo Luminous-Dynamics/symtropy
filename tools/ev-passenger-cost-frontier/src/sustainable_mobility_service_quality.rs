@@ -263,8 +263,6 @@ struct ScheduledOpportunity {
 
 #[derive(Debug, Clone)]
 struct Assignment {
-    request_index: usize,
-    is_aerial: bool,
     opportunity_id: String,
     mode: FulfilmentMode,
     start_seconds: u64,
@@ -638,9 +636,6 @@ fn evaluate_policy(
                     denial_reason: Some("arrival_after_acceptance_cutoff".to_owned()),
                 },
             );
-            *denial_reason_counts
-                .entry("arrival_after_acceptance_cutoff".to_owned())
-                .or_insert(0) += 1;
         } else {
             eligible_request_indices.push(index);
         }
@@ -730,9 +725,7 @@ fn evaluate_policy(
             }
             if !any_qualified {
                 blocked_aerial_ids.insert(aerial.opportunity_id.clone());
-                for reason in reasons {
-                    *denial_reason_counts.entry(reason).or_insert(0) += 1;
-                }
+                let _ = reasons;
                 continue;
             }
             aerial_opportunities_available += 1;
@@ -785,8 +778,6 @@ fn evaluate_policy(
         assignments.insert(
             request.request_id.clone(),
             Assignment {
-                request_index,
-                is_aerial: opportunity.is_aerial,
                 opportunity_id,
                 mode,
                 start_seconds: opportunity.start_seconds,
@@ -801,19 +792,7 @@ fn evaluate_policy(
         if let Some(assignment) = assignments.get(&request.request_id) {
             continue;
         }
-        let reason = if opportunities.iter().any(|opportunity| {
-            opportunity.start_seconds > request.deadline_seconds
-                && (if opportunity.is_aerial {
-                    matches!(request.allowed_mode, ServiceMode::AerialOnly | ServiceMode::Either)
-                } else {
-                    matches!(request.allowed_mode, ServiceMode::FallbackOnly | ServiceMode::Either)
-                })
-        }) {
-            "no_service_opportunity_before_deadline"
-        } else {
-            "no_eligible_service_opportunity"
-        };
-        *denial_reason_counts.entry(reason.to_owned()).or_insert(0) += 1;
+        let _ = request;
     }
 
     for request in &input.requests {
@@ -878,13 +857,7 @@ fn evaluate_policy(
 
     for outcome in outcomes.values() {
         if let Some(reason) = &outcome.denial_reason {
-            let entry = denial_reason_counts.entry(reason.clone()).or_insert(0);
-            if outcome.disposition == RequestDisposition::RejectedAfterAcceptanceCutoff {
-                // Rejection was counted when it was first observed.
-                let _ = entry;
-            } else if *entry == 0 {
-                *entry = 1;
-            }
+            *denial_reason_counts.entry(reason.clone()).or_insert(0) += 1;
         }
     }
 
