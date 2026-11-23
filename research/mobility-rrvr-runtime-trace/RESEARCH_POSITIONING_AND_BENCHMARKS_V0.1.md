@@ -28,6 +28,26 @@ Published results:
 - A retrospective per-scenario best-of-six oracle reaches `95.63%` on RoboTwin and `91.80%` on LIBERO. This is an oracle upper reference, not a deployable policy.
 - LIBERO interventions raise direct `π0.5` recovery RSR from `64.4%` to `77.0%` with Monitor+Reversion; Monitor+Correction reaches `75.5%`. Reversion changes the starting state; Correction introduces a short external controller, so these are not like-for-like fixed-policy comparisons.
 
+### Safety baseline: SafeVLA-Bench
+
+SafeVLA-Bench demonstrates the complementary point that task completion and safety are separate dimensions. Its public leaderboard reports 24 policies, five evaluation suites, 22,500 episodes and eight safety specifications (last updated 26 September 2026). It ranks by the share of episodes satisfying every applicable specification, while reporting native task success (SR), successful-but-unsafe episodes (SBU) and violation severity (VSI) separately.
+
+Two examples make the measurement problem concrete:
+- On LIBERO, VLA-Adapter reports 97.6% task success alongside 82.0% safety and 17.0% successful-but-unsafe episodes.
+- On RoboCasa-365 Atomic-Seen, Xiaomi-Robotics-1 reports 81.9% task success, 50.1% safety and 37.7% successful-but-unsafe episodes.
+
+These are SafeVLA's own leaderboard quantities, not RRVR results. RRVR should preserve SafeVLA-style safety/task-success separation, then add a separate recovery-evidence dimension: did the system know what the previous attempt physically did, did every command-holding path become quiescent, and was the next attempt admitted only after those claims were independently supported? An unsafe-but-successful policy episode and a false-safe recovery admission are different failure classes and should be reported separately.
+
+Source: [SafeVLA-Bench leaderboard](https://safevla.org/leaderboard), including its definitions of SR, safety, SBU and VSI; leaderboard snapshot dated 26 September 2026.
+
+### Prior art: receipt-gated effectuation is not a new claim
+
+The October 2026 Internet-Draft [A Permit to Effect Once Is Not a Permit to Effect Permanently](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00) already discusses staged physical effectuation, single-use authority, receipts, anti-replay, independent observation and recovery from indeterminate/partial/conflicting outcomes. It is an active individual Internet-Draft with intended status Experimental, not an IETF-endorsed standard; the draft itself says it has no formal standing in the IETF standards process and expires 4 April 2027.
+
+Therefore RRVR should not claim novelty for receipt-gated or staged effectuation, one-shot permits, anti-replay, or distinguishing Applied/NoEffect/Partial/Unknown/Disputed. The narrower research hypothesis is whether these semantics can be made executable across separately owned robot persistence, mission resolution, controller queues, downstream driver/firmware graphs, independently qualified observers and the existing native authority boundary—with exact attempt lineage, model-trace conformance and reproducible fault-injection evidence. That integration claim also remains to be demonstrated against a real declared stack.
+
+Source: [IETF Datatracker, draft-das-safety-first-execution-finality-00](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00), published 1 October 2026, Experimental individual Internet-Draft.
+
 The key conclusion is not that RRVR must produce a higher RSR. It is that recovery success and recovery authorization are different questions. A controller can produce a successful trajectory from an execution-deviation state while the system still lacks evidence that an earlier physical effect did not occur or that an old command is quiescent. RRVR should report policy RSR and evidence-gate correctness separately.
 
 **Reproducibility/access qualification (checked 23 November 2026):** the [public RoboRecover repository](https://github.com/RUCKBReasoning/RoboRecover) documents replay adapters, fixed train/test starting-point splits and per-file SHA-256 checksums. Its README also states that the complete scenario archive is still being prepared for Hugging Face and that full evaluation currently requires an archive exported by the authors. The README lists six LIBERO adapters but only four included RoboTwin recovery adapters; FastWAM and LingBot-VA have configuration guidance while their RoboTwin recovery entrypoints are pending. Its dependency manifest lists source revisions but marks historical revision verification incomplete. Therefore the benchmark plan has an explicit access gate: obtain the authorised archive, verify the exact archive and per-scenario hashes, simulator/model revisions and licenses/terms, then smoke-test one LIBERO and one RoboTwin sample in clean pinned environments. No result may be called a RoboRecover reproduction until those steps succeed. If access remains unavailable, use a clearly separate synthetic RRVR fault overlay and report the external-data gap rather than substituting scenarios.
