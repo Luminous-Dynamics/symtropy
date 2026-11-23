@@ -366,8 +366,8 @@ fn cholesky_3(matrix: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
     for i in 0..3 {
         for j in 0..=i {
             let mut residual = matrix[i][j];
-            for k in 0..j {
-                residual -= lower[i][k] * lower[j][k];
+            for (left, right) in lower[i].iter().zip(lower[j].iter()).take(j) {
+                residual -= left * right;
             }
             if i == j {
                 if !residual.is_finite() || residual <= 0.0 {
@@ -388,7 +388,7 @@ fn cholesky_3(matrix: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
 
 fn inverse_from_cholesky_3(lower: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], KernelError> {
     let mut inverse = [[0.0; 3]; 3];
-    for column in 0..3 {
+    for (column, inverse_row) in inverse.iter_mut().enumerate() {
         let mut forward = [0.0; 3];
         for i in 0..3 {
             let mut value = if i == column { 1.0 } else { 0.0 };
@@ -407,8 +407,8 @@ fn inverse_from_cholesky_3(lower: [[f64; 3]; 3]) -> Result<[[f64; 3]; 3], Kernel
             solution[i] = value / lower[i][i];
         }
 
-        for row in 0..3 {
-            inverse[row][column] = solution[row];
+        for (row, value) in inverse_row.iter_mut().enumerate() {
+            *value = solution[row];
         }
     }
     if inverse.iter().flatten().all(|value| value.is_finite()) {
@@ -448,9 +448,9 @@ fn validate_symmetric_6(matrix: StateCovariance6) -> Result<(), KernelError> {
         .flatten()
         .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
     let tolerance = 256.0 * f64::EPSILON * scale;
-    for i in 0..6 {
-        for j in 0..i {
-            if (matrix[i][j] - matrix[j][i]).abs() > tolerance {
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().take(i) {
+            if (value - matrix[j][i]).abs() > tolerance {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -464,9 +464,9 @@ fn validate_symmetric_3(matrix: [[f64; 3]; 3]) -> Result<(), KernelError> {
         .flatten()
         .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
     let tolerance = 256.0 * f64::EPSILON * scale;
-    for i in 0..3 {
-        for j in 0..i {
-            if (matrix[i][j] - matrix[j][i]).abs() > tolerance {
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate().take(i) {
+            if (value - matrix[j][i]).abs() > tolerance {
                 return Err(KernelError::NonSymmetricMatrix);
             }
         }
@@ -614,12 +614,10 @@ mod tests {
         inputs.primary_covariance = p;
         let result = build_relative_ncdot_conditionals(inputs).expect("valid joint covariance");
         let expected_regression = [[0.25, 0.0, 0.0], [0.0, 0.2, 0.0], [0.0, 0.0, 0.2]];
-        for i in 0..3 {
-            for j in 0..3 {
+        for (i, expected_row) in expected_regression.iter().enumerate() {
+            for (j, expected) in expected_row.iter().enumerate() {
                 assert!(
-                    (result.conditional_velocity_regression[i][j] - expected_regression[i][j])
-                        .abs()
-                        < 1.0e-14
+                    (result.conditional_velocity_regression[i][j] - expected).abs() < 1.0e-14
                 );
             }
         }
