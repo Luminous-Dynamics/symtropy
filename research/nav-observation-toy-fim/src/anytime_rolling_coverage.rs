@@ -1353,6 +1353,110 @@ mod tests {
         assert_eq!(report.monitoring_horizon, 1);
     }
 
+    fn range_ready_policy(
+        mut cfg: RollingWindowPolicyConfig,
+    ) -> AnytimeRollingCoveragePolicy {
+        cfg.target_miscoverage = 0.9;
+        cfg.confidence_error_probability = 0.99;
+        let mut policy = AnytimeRollingCoveragePolicy::new(cfg).unwrap();
+        policy.monitoring_horizon = 39;
+        policy.prefixes = vec![PrefixSnapshot::zero(); 40];
+
+        let mut index = ConservativeRollingRangeIndex::new();
+        for start in 0..40_u64 {
+            let (r_interval, q_interval) = prefix_range_intervals(
+                PrefixSnapshot::zero(),
+                start,
+                policy.config.window_rule,
+                policy.config.target_miscoverage,
+            )
+            .unwrap()
+            .unwrap();
+            index.append(r_interval, q_interval).unwrap();
+        }
+        policy.rolling_range_index = Some(index);
+        policy
+    }
+
+    #[test]
+    fn accelerated_range_proof_matches_reference_and_emits_compact_receipts() {
+        let mut cfg = config(RollingWindowRule::Proportional {
+            numerator: 1,
+            denominator: 2,
+        });
+        cfg.maximum_feasibility_starts = 128;
+        let mut reference = range_ready_policy(cfg);
+        let mut accelerated = range_ready_policy(cfg);
+
+        let reference_decision = reference.decide_next_episode().unwrap();
+        let accelerated_decision =
+            accelerated.decide_next_episode_accelerated().unwrap();
+
+        assert_eq!(
+            accelerated_decision.disposition,
+            reference_decision.disposition
+        );
+        assert!(reference_decision.is_bounded_set_requested());
+        assert_eq!(reference_decision.feasibility_witnesses.len(), 40);
+        assert_eq!(accelerated_decision.feasibility_witnesses.len(), 2);
+        assert_eq!(accelerated_decision.range_proof_witnesses.len(), 2);
+        assert!(accelerated_decision
+            .range_proof_witnesses
+            .iter()
+            .all(|witness| witness.q_minimum.is_none()));
+
+        let reference_report = complete(&mut reference, &reference_decision, Some(false));
+        let accelerated_report = complete(&mut accelerated, &accelerated_decision, Some(false));
+        assert_eq!(accelerated_report, reference_report);
+    }
+
+    #[test]
+    fn accelerated_range_proof_can_avoid_the_exact_scan_budget() {
+        let mut cfg = config(RollingWindowRule::Proportional {
+            numerator: 1,
+            denominator: 2,
+        });
+        cfg.maximum_feasibility_starts = 1;
+        let mut accelerated = range_ready_policy(cfg);
+        let decision = accelerated.decide_next_episode_accelerated().unwrap();
+
+        assert!(decision.is_bounded_set_requested());
+        assert_eq!(decision.range_proof_witnesses.len(), 2);
+        assert_eq!(decision.feasibility_witnesses.len(), 2);
+
+        let mut reference = range_ready_policy(cfg);
+        let reference_decision = reference.decide_next_episode().unwrap();
+        assert_eq!(
+            reference_decision.disposition,
+            RollingWindowDisposition::Abstain(
+                RollingAbstentionReason::FeasibilityBudgetExceeded
+            )
+        );
+    }
+
+    #[test]
+    fn ambiguous_range_proof_falls_back_to_the_complete_reference_scan() {
+        let mut cfg = config(RollingWindowRule::Proportional {
+            numerator: 1,
+            denominator: 2,
+        });
+        cfg.maximum_feasibility_starts = 128;
+        let mut policy = range_ready_policy(cfg);
+
+        let mut ambiguous = ConservativeRollingRangeIndex::new();
+        let low_r = OutwardInterval::around(0.0).unwrap();
+        let low_q = OutwardInterval::around(-100.0).unwrap();
+        for _ in 0..40 {
+            ambiguous.append(low_r, low_q).unwrap();
+        }
+        policy.rolling_range_index = Some(ambiguous);
+
+        let decision = policy.decide_next_episode_accelerated().unwrap();
+        assert!(decision.is_bounded_set_requested());
+        assert_eq!(decision.range_proof_witnesses.len(), 0);
+        assert_eq!(decision.feasibility_witnesses.len(), 40);
+    }
+
     #[test]
     fn feasibility_budget_exhaustion_abstains_instead_of_skipping_windows() {
         let mut cfg = config(RollingWindowRule::Proportional {
