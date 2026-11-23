@@ -12,9 +12,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::transfer::{
-    validate_structural_correspondence, NodeCorrespondenceV0, ParticipantTransformV0,
-    RelationCorrespondenceV0, RelationKindCorrespondenceV0, RelationOrientationV0,
-    StructuralCorrespondenceV0, StructuralTransferWitnessV0, StructureV0, TransferErrorV0,
+    NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
+    RelationKindCorrespondenceV0, RelationOrientationV0, StructuralCorrespondenceV0,
+    StructuralTransferWitnessV0, StructureV0, TransferErrorV0, validate_structural_correspondence,
 };
 
 type NodeSignatureV0 = Vec<(u8, usize, usize)>;
@@ -50,7 +50,10 @@ impl fmt::Display for GraphMatchErrorV0 {
                 "distinct source relation kinds map to the same target relation kind"
             }
             Self::InvalidCandidate(error) => {
-                return write!(formatter, "candidate correspondence failed validation: {error}");
+                return write!(
+                    formatter,
+                    "candidate correspondence failed validation: {error}"
+                );
             }
         };
         formatter.write_str(message)
@@ -173,10 +176,7 @@ impl UniqueIncidenceSignatureBaselineV0 {
                     {
                         return Err(GraphMatchErrorV0::NonInjectiveRelationKindMap);
                     }
-                    kind_map.insert(
-                        source_relation.kind,
-                        (target_relation.kind, transform),
-                    );
+                    kind_map.insert(source_relation.kind, (target_relation.kind, transform));
                     reverse_kind_map.insert(target_relation.kind, source_relation.kind);
                 }
             }
@@ -188,15 +188,13 @@ impl UniqueIncidenceSignatureBaselineV0 {
 
         let relation_kinds = kind_map
             .into_iter()
-            .map(
-                |(source_kind, (target_kind, participant_transform))| {
-                    RelationKindCorrespondenceV0 {
-                        source_kind,
-                        target_kind,
-                        participant_transform,
-                    }
-                },
-            )
+            .map(|(source_kind, (target_kind, participant_transform))| {
+                RelationKindCorrespondenceV0 {
+                    source_kind,
+                    target_kind,
+                    participant_transform,
+                }
+            })
             .collect();
 
         let correspondence = StructuralCorrespondenceV0 {
@@ -214,9 +212,7 @@ impl UniqueIncidenceSignatureBaselineV0 {
     }
 }
 
-fn grouped_signatures(
-    structure: &StructureV0,
-) -> BTreeMap<NodeSignatureV0, Vec<u32>> {
+fn grouped_signatures(structure: &StructureV0) -> BTreeMap<NodeSignatureV0, Vec<u32>> {
     let mut grouped = BTreeMap::<NodeSignatureV0, Vec<u32>>::new();
 
     for node in &structure.nodes {
@@ -252,7 +248,12 @@ fn participant_transform(
         RelationOrientationV0::Directed => {
             if mapped_source == target {
                 Some(ParticipantTransformV0::PreserveOrder)
-            } else if mapped_source.iter().rev().copied().eq(target.iter().copied()) {
+            } else if mapped_source
+                .iter()
+                .rev()
+                .copied()
+                .eq(target.iter().copied())
+            {
                 Some(ParticipantTransformV0::ReverseOrder)
             } else {
                 None
@@ -271,9 +272,7 @@ fn participant_transform(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transfer::{
-        NodeV0, RelationV0, StructuralCorrespondenceV0,
-    };
+    use crate::transfer::{NodeV0, RelationV0, StructuralCorrespondenceV0};
 
     fn asymmetric_structures() -> (StructureV0, StructureV0) {
         let source = StructureV0 {
