@@ -334,6 +334,9 @@ function evaluateCase(item){
   const baseInfo=validateBase(item.base_decision);
   const allowed=new Set(["ACTION_UNIVERSE_OPEN","ACTION_UNIVERSE_INDETERMINATE","ACTION_ADMISSIBILITY_INDETERMINATE","OUT_OF_PROFILE","LOSS_MODEL_INDETERMINATE","FEASIBILITY_INDETERMINATE","NO_FEASIBLE_ACTION_IN_SCENARIO"]);
   if(allowed.has(baseInfo.status)) return emptyCase(item,"BASE_DECISION_INDETERMINATE",baseInfo.status);
+  const clairvoyantWorstCaseLoss=item.base_decision.scenario_manifest.scenarios
+    .map(scenario=>scenarioBest(scenario))
+    .reduce((worst,value)=>worst===null||cmpR(value,worst)>0?value:worst,null);
   const noQuery=noQueryPolicies(item.base_decision,baseInfo);
   const noQueryIds=noQuery.map(p=>p.policy_id);
   let bestNoQuery=null;
@@ -367,7 +370,8 @@ function evaluateCase(item){
     queries_sha256:item.query_universe.queries_sha256,
     no_query_policy_ids:noQueryIds,query_reports:reports,policy_metrics:policies,
     policy_pareto_frontier_ids:frontier,
-    best_no_query_worst_case_loss:bestNoQuery?jsonR(bestNoQuery):null
+    best_no_query_worst_case_loss:bestNoQuery?jsonR(bestNoQuery):null,
+    clairvoyant_worst_case_loss:clairvoyantWorstCaseLoss?jsonR(clairvoyantWorstCaseLoss):null
   };
 }
 function validateCorpus(input){
