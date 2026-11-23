@@ -1,0 +1,43 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/orbital-assurance-budget-corpus-v0.1.json",
+  "title":"Exact assurance budget corpus v0.1",
+  "type":"object","additionalProperties":false,
+  "required":["schema","evidence_class","claim_ceiling","assurance_budget_id","requested_scope","requested_scope_id","total_alpha","expected_claim_ids","expected_claim_ids_sha256","claims_sha256","claims"],
+  "properties":{
+    "schema":{"const":"luminous.orbital-assurance-budget.corpus.v0.1"},
+    "evidence_class":{"const":"synthetic"},
+    "claim_ceiling":{"const":"exact-union-bound-assurance-budget-algebra-only"},
+    "assurance_budget_id":{"type":"string","minLength":1},
+    "requested_scope":{"enum":["FIXED_EVALUATION","ANYTIME"]},
+    "requested_scope_id":{"type":"string","minLength":1},
+    "total_alpha":{"$ref":"#/$defs/rational"},
+    "expected_claim_ids":{"type":"array","minItems":1,"maxItems":128,"items":{"type":"string","minLength":1}},
+    "expected_claim_ids_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "claims_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "claims":{"type":"array","minItems":1,"maxItems":128,"items":{"$ref":"#/$defs/claim"}}
+  },
+  "$defs":{
+    "rational":{"type":"object","additionalProperties":false,"required":["numerator","denominator"],
+      "properties":{"numerator":{"type":"integer","minimum":0,"maximum":9007199254740991},
+                    "denominator":{"type":"integer","minimum":1,"maximum":9007199254740991}}},
+    "nullable_id":{"anyOf":[{"type":"string","minLength":1},{"type":"null"}]},
+    "claim":{"type":"object","additionalProperties":false,
+      "required":["claim_id","claim_class","guarantee_kind","claim_scope","scope_id","evidence_status","evidence_receipt_id","claim_receipt_id","multiplicity_family_id","multiplicity_allocation_receipt_id","alpha","source_contract_sha256"],
+      "properties":{
+        "claim_id":{"type":"string","minLength":1},
+        "claim_class":{"enum":["OBSERVATION_WORLD_COVERAGE","LOSS_MODEL_COVERAGE","REGRET_SCORE_CALIBRATION","TRANSPORTABILITY","MULTIPLICITY_FAMILY"]},
+        "guarantee_kind":{"enum":["STATISTICAL_GUARANTEE","STRUCTURAL_ONLY"]},
+        "claim_scope":{"enum":["FIXED_EVALUATION","ANYTIME"]},
+        "scope_id":{"type":"string","minLength":1},
+        "evidence_status":{"enum":["admissible","indeterminate","out_of_scope"]},
+        "evidence_receipt_id":{"$ref":"#/$defs/nullable_id"},
+        "claim_receipt_id":{"$ref":"#/$defs/nullable_id"},
+        "multiplicity_family_id":{"$ref":"#/$defs/nullable_id"},
+        "multiplicity_allocation_receipt_id":{"$ref":"#/$defs/nullable_id"},
+        "alpha":{"anyOf":[{"$ref":"#/$defs/rational"},{"type":"null"}]},
+        "source_contract_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}
