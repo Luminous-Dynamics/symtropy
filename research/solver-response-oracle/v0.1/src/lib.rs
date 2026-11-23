@@ -654,6 +654,37 @@ mod tests {
     }
 
     #[test]
+    fn solver_work_and_termination_metadata_are_preserved() {
+        let (full, mut reduced) = zero_pair();
+        reduced.work_consumed_units = 72;
+        reduced.solver_iterations = 12;
+        reduced.solver_rows_submitted = 3;
+        reduced.solver_termination = SolverTermination::IterationLimit;
+        let result = compare_responses(
+            &full,
+            &reduced,
+            &[probe([1.0, 0.0, 0.0])],
+            scales(),
+        )
+        .expect("valid response comparison");
+        assert_eq!(result.full_work_consumed_units, 100);
+        assert_eq!(result.reduced_work_consumed_units, 72);
+        assert_eq!(result.full_solver_iterations, 10);
+        assert_eq!(result.reduced_solver_iterations, 12);
+        assert_eq!(result.full_solver_rows_submitted, 4);
+        assert_eq!(result.reduced_solver_rows_submitted, 3);
+        assert_eq!(result.reduced_solver_termination, SolverTermination::IterationLimit);
+        assert!(!result.both_solvers_converged);
+    }
+
+    #[test]
+    fn consumed_work_cannot_exceed_budget() {
+        let (full, mut reduced) = zero_pair();
+        reduced.work_consumed_units = reduced.work_budget_units + 1;
+        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales()).is_err());
+    }
+
+    #[test]
     fn unequal_work_budgets_are_rejected() {
         let (full, mut reduced) = zero_pair();
         reduced.work_budget_units += 1;
