@@ -205,6 +205,11 @@ pub fn plan_non_anticipative_robust_campaign(
     }
 
     let mut total_tree_count = terminal_choice_count;
+    if total_tree_count > policy.max_campaign_policy_trees {
+        return Err(ModelError::InvalidParameter(
+            "robust_campaign_policy_tree_cap_exceeded",
+        ));
+    }
     let mut branch_choices_by_root = Vec::with_capacity(acquisitions.len());
     for (root_index, root) in acquisitions.iter().enumerate() {
         if root.cost > policy.remaining_resource_budget {
@@ -223,6 +228,11 @@ pub fn plan_non_anticipative_robust_campaign(
                 .ok_or(ModelError::InvalidParameter(
                     "robust_campaign_policy_tree_count_overflow",
                 ))?;
+        if total_tree_count > policy.max_campaign_policy_trees {
+            return Err(ModelError::InvalidParameter(
+                "robust_campaign_policy_tree_cap_exceeded",
+            ));
+        }
         branch_choices_by_root.push(branch_choices);
     }
 
