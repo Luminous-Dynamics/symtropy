@@ -27,6 +27,7 @@
 use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
+pub mod conditional_velocity;
 pub mod coverage;
 pub mod lebedev;
 pub mod normal_positive_part;
@@ -35,6 +36,11 @@ pub mod sequential;
 pub mod stats;
 pub mod trajectory;
 
+pub use conditional_velocity::{
+    ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
+    ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
+    ZeroConditionalVarianceMode,
+};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
@@ -128,6 +134,10 @@ pub enum KernelError {
     InvalidSphereQuadratureTolerance,
     /// A standard deviation for a one-dimensional Gaussian is negative.
     InvalidNormalScale,
+    /// A covariance or directional-validation tolerance is negative or non-finite.
+    InvalidCovarianceTolerance,
+    /// A vector supplied as a sphere direction is not unit length.
+    InvalidUnitDirection,
 }
 
 impl fmt::Display for KernelError {
@@ -179,6 +189,10 @@ impl fmt::Display for KernelError {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
             }
             Self::InvalidNormalScale => "normal standard deviation must be nonnegative and finite",
+            Self::InvalidCovarianceTolerance => {
+                "covariance and direction tolerances must be nonnegative and finite"
+            }
+            Self::InvalidUnitDirection => "sphere direction must have unit norm",
         };
         f.write_str(message)
     }
