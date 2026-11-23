@@ -655,7 +655,7 @@ fn overlap_pruning_baseline(
 pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt, String> {
     let indexed = validate_problem(problem)?;
     let (selected, selection_order, cleanup_removed) = select_greedily(&indexed)?;
-    let dual_bound = dual_certificate(&indexed)?;
+    let mut dual_bound = dual_certificate(&indexed)?;
     let feature_coverage = build_feature_coverage(&indexed, &selected);
     let mut overlap_pruning_baselines = Vec::with_capacity(4);
     for threshold in [50_u8, 70_u8] {
@@ -685,6 +685,14 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     if dual_bound.lower_bound_ceiling > selected_count as u64 {
         return Err("MULTICOVER_DUAL_LOWER_BOUND_EXCEEDS_FEASIBLE_INCUMBENT".to_owned());
     }
+    let selected_attainable_targets_fully_covered = feature_coverage
+        .iter()
+        .all(|feature| feature.attainable_target_met);
+    if !selected_attainable_targets_fully_covered {
+        return Err("MULTICOVER_PRIMAL_INCUMBENT_DOES_NOT_MEET_CAPPED_TARGETS".to_owned());
+    }
+    dual_bound.minimum_cardinality_optimum_certified = dual_bound.dual_constraints_verified
+        && dual_bound.lower_bound_ceiling == selected_count as u64;
 
     let candidate_pool_requested_k_fully_available = feature_coverage
         .iter()
@@ -692,9 +700,6 @@ pub fn solve_multicover(problem: &MultiCoverProblem) -> Result<MultiCoverReceipt
     let selected_requested_k_fully_covered = feature_coverage
         .iter()
         .all(|feature| feature.requested_k_met);
-    let selected_attainable_targets_fully_covered = feature_coverage
-        .iter()
-        .all(|feature| feature.attainable_target_met);
     let selected_robust_requested_k_fully_covered = feature_coverage
         .iter()
         .all(|feature| feature.robust_requested_k_met);
@@ -881,6 +886,40 @@ mod tests {
         assert_ne!(exact, usize::MAX);
         assert!(receipt.dual_bound.lower_bound_ceiling <= exact as u64);
         assert!(exact <= receipt.selected_view_count);
+    }
+
+    #[test]
+    fn primal_dual_equality_certifies_minimum_cardinality() {
+        let problem = MultiCoverProblem {
+            case_id: "PRIMAL-DUAL-TIGHT".to_owned(),
+            coordinate_frame_id: "ABSTRACT-SPARSE-MATRIX".to_owned(),
+            features: vec![MultiCoverFeature {
+                feature_id: "F1".to_owned(),
+                requested_k: 2,
+            }],
+            views: vec![
+                MultiCoverView {
+                    view_id: "V1".to_owned(),
+                    failure_domain_id: "D1".to_owned(),
+                    vertical_order_rank: 0,
+                    nominal_feature_ids: vec!["F1".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned()],
+                },
+                MultiCoverView {
+                    view_id: "V2".to_owned(),
+                    failure_domain_id: "D2".to_owned(),
+                    vertical_order_rank: 1,
+                    nominal_feature_ids: vec!["F1".to_owned()],
+                    robust_feature_ids: vec!["F1".to_owned()],
+                },
+            ],
+        };
+        let receipt = solve_multicover(&problem).unwrap();
+        assert_eq!(receipt.selected_view_count, 2);
+        assert_eq!(receipt.dual_bound.lower_bound_ceiling, 2);
+        assert!(receipt.dual_bound.dual_constraints_verified);
+        assert!(receipt.selected_attainable_targets_fully_covered);
+        assert!(receipt.dual_bound.minimum_cardinality_optimum_certified);
     }
 
     #[test]
