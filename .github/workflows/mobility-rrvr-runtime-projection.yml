@@ -217,6 +217,9 @@ jobs:
             and (.platform.fault_injector_revision | length > 0)
             and (.platform.native_adapter_id | length > 0)
             and (.platform.native_adapter_revision | length > 0)
+            and .platform.required_delivery_observer_quorum >= 2
+            and (.platform.observer_profiles | length >= .platform.required_delivery_observer_quorum)
+            and ([.platform.observer_profiles[].binary_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
             and (.reset.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.reset.expected_initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.scenarios | length == 4)
@@ -432,6 +435,8 @@ jobs:
             and .dispatch_accepted_count == 4
             and .executed_count == 4
             and .delivery_confirmed_count == 4
+            and .delivery_observer_receipt_count == 8
+            and .required_delivery_observer_quorum == 2
             and .reconcile_required == false
             and .retry_permitted == false
             and .native_authority_created == false
@@ -455,6 +460,7 @@ jobs:
             .dispatch_accepted_count == 4
             and .executed_count == 3
             and .delivery_confirmed_count == 3
+            and .delivery_observer_receipt_count == 6
             and .reconcile_required == true
             and .retry_permitted == false
           ' "$RUNNER_TEMP/rrvr-dispatch-only-report.json"
