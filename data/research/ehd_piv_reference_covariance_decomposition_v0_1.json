@@ -1,0 +1,61 @@
+{
+  "schema": "luminous.ehd_piv_reference_covariance_decomposition",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-PIV-UQ-008",
+  "status": "manufactured_reference_covariance_kernel_authored_tests_execution_pending",
+  "residual_estimand": "PIV_minus_reference_residual_covariance",
+  "identity": "C_residual = C_piv + C_reference - C_piv_reference - C_reference_piv",
+  "piv_only_decomposition": "C_piv = C_residual - C_reference + C_piv_reference + transpose(C_piv_reference)",
+  "unknown_reference_or_cross_covariance": "residual_covariance_only",
+  "reference_evidence_requirements": [
+    "reference_identity_and_assessment",
+    "sha256_source_manifest_identity",
+    "sha256_calibration_evidence_identity",
+    "traceability",
+    "complete_uncertainty_budget",
+    "validity_interval_and_operating_range",
+    "bandwidth_and_response",
+    "time_synchronization",
+    "coordinate_registration",
+    "drift_assessment",
+    "piv_reference_cross_covariance",
+    "shared_cause_assessment"
+  ],
+  "dependence_status": {
+    "independent": "eligible_when_other_evidence_is_qualified",
+    "partially_shared": "eligible_only_when_cross_covariance_and_shared_causes_are_quantified",
+    "dependent": "residual_covariance_only",
+    "unknown": "residual_covariance_only"
+  },
+  "mathematical_invariants": [
+    "residual_covariance_is_symmetric_positive_semidefinite",
+    "reference_covariance_is_symmetric_positive_semidefinite",
+    "derived_piv_covariance_is_symmetric_positive_semidefinite",
+    "joint_piv_reference_covariance_is_positive_semidefinite",
+    "no_unknown_cross_covariance_is_assumed_zero",
+    "no_covariance_is_projected_or_regularized",
+    "reconstructed_residual_covariance_closes_to_observed_residual"
+  ],
+  "matrix_dimensions": {
+    "residual": "3x3",
+    "reference": "3x3",
+    "piv_reference_cross": "3x3_not_assumed_symmetric",
+    "derived_piv": "3x3",
+    "joint": "6x6"
+  },
+  "prospective_acceptance_targets": {
+    "manufactured_identity_recovery": 1.0,
+    "unqualified_evidence_residual_only_disposition": 1.0,
+    "invalid_joint_covariance_rejection": 1.0,
+    "accepted_non_psd_covariances": 0,
+    "silent_covariance_repairs": 0,
+    "unit_rescaling_disposition_mismatches": 0
+  },
+  "claim_boundary": [
+    "reference_assessment_fields_are_external_declarations_not_authenticated_certificates",
+    "sha256_strings_are_not_rehashed_by_this_kernel",
+    "no_raw_image_processing",
+    "no_spatial_or_temporal_covariance_fit",
+    "no_physical_ehd_or_thrust_validation"
+  ]
+}
