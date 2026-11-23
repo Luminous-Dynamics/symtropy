@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-attempt-lineage-v0.1.json",
+  "title": "RRVR Multi-Attempt Physical-Effect Lineage v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "logical_effect_id",
+    "attempts"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "logical_effect_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/attempt"
+      }
+    }
+  },
+  "$defs": {
+    "epoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boot_epoch",
+        "controller_epoch"
+      ],
+      "properties": {
+        "boot_epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "controller_epoch": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_id",
+        "owner_revision",
+        "evidence_id",
+        "raw_artifact_id",
+        "raw_artifact_sha256",
+        "scope"
+      ],
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "logical_effect_id",
+            "attempt_id",
+            "subject_boot_epoch",
+            "subject_controller_epoch"
+          ],
+          "properties": {
+            "logical_effect_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attempt_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject_boot_epoch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "subject_controller_epoch": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "evidence_status": {
+      "enum": [
+        "current",
+        "confirmed",
+        "refuted",
+        "insufficient_evidence",
+        "unknown",
+        "disputed",
+        "quorum_qualified",
+        "quorum_not_qualified",
+        "not_applicable"
+      ]
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "verdict",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "definitely_not_committed",
+            "committed",
+            "in_flight",
+            "indeterminate_commit"
+          ]
+        },
+        "verdict": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "receipt": {
+          "$ref": "#/$defs/receipt"
+        }
+      }
+    },
+    "physical_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "verdict",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "not_observed",
+            "applied",
+            "no_effect",
+            "partial",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "verdict": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "receipt": {
+          "$ref": "#/$defs/receipt"
+        }
+      }
+    },
+    "mission_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "verdict",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "no_effect",
+            "effect_predicate_satisfied",
+            "unresolved"
+          ]
+        },
+        "verdict": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "receipt": {
+          "$ref": "#/$defs/receipt"
+        }
+      }
+    },
+    "fence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "verdict",
+        "target_epoch",
+        "receipt"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "quiescent",
+            "active",
+            "unknown"
+          ]
+        },
+        "verdict": {
+          "$ref": "#/$defs/evidence_status"
+        },
+        "target_epoch": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/epoch"
+            }
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/receipt"
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "ordinal",
+        "parent_attempt_id",
+        "authorized_epoch",
+        "persistence",
+        "physical_outcome",
+        "mission_resolution",
+        "controller_queue_fence",
+        "downstream_quiescence"
+      ],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parent_attempt_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "authorized_epoch": {
+          "$ref": "#/$defs/epoch"
+        },
+        "persistence": {
+          "$ref": "#/$defs/persistence"
+        },
+        "physical_outcome": {
+          "$ref": "#/$defs/physical_outcome"
+        },
+        "mission_resolution": {
+          "$ref": "#/$defs/mission_resolution"
+        },
+        "controller_queue_fence": {
+          "$ref": "#/$defs/fence"
+        },
+        "downstream_quiescence": {
+          "$ref": "#/$defs/fence"
+        }
+      }
+    }
+  }
+}
