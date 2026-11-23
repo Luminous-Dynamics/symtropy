@@ -9,8 +9,9 @@ const ANSWERS_JSON: &str =
     include_str!("../../../fixtures/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.json");
 const CORPUS_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_multiperiod_policy_cases_v0_1.schema.json");
-const ANSWERS_SCHEMA_JSON: &str =
-    include_str!("../../../schemas/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.schema.json");
+const ANSWERS_SCHEMA_JSON: &str = include_str!(
+    "../../../schemas/manufacturing/mfg_multiperiod_policy_known_answers_v0_1.schema.json"
+);
 const PROBABILITY_DENOMINATOR: u64 = 1_000_000;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -185,8 +186,8 @@ fn fail(message: impl Into<String>) -> String {
 }
 
 fn validate_schema(instance: &serde_json::Value, schema_source: &str) -> Result<(), String> {
-    let schema: serde_json::Value =
-        serde_json::from_str(schema_source).map_err(|error| fail(format!("schema_parse:{error}")))?;
+    let schema: serde_json::Value = serde_json::from_str(schema_source)
+        .map_err(|error| fail(format!("schema_parse:{error}")))?;
     let validator = jsonschema::draft202012::options()
         .offline()
         .build(&schema)
@@ -208,14 +209,19 @@ fn canonical_observation(observation: &Observation) -> Result<Observation, Strin
             return Err(fail("observation_contains_duplicate_resource_id"));
         }
     }
-    let failed: BTreeSet<&str> =
-        canonical.failed_resource_ids.iter().map(String::as_str).collect();
+    let failed: BTreeSet<&str> = canonical
+        .failed_resource_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if canonical
         .unknown_resource_ids
         .iter()
         .any(|id| failed.contains(id.as_str()))
     {
-        return Err(fail("resource_cannot_be_failed_and_unknown_in_same_observation"));
+        return Err(fail(
+            "resource_cannot_be_failed_and_unknown_in_same_observation",
+        ));
     }
     Ok(canonical)
 }
@@ -285,7 +291,9 @@ fn validate_case(case: &PolicyCase) -> Result<(), String> {
             || scenario.probability_ppm == 0
             || scenario.observations_by_period.len() != case.horizon
         {
-            return Err(fail(format!("scenario_{index}_identity_probability_or_horizon_invalid")));
+            return Err(fail(format!(
+                "scenario_{index}_identity_probability_or_horizon_invalid"
+            )));
         }
         total_probability = total_probability
             .checked_add(scenario.probability_ppm)
@@ -311,10 +319,15 @@ fn validate_case(case: &PolicyCase) -> Result<(), String> {
                 .iter()
                 .find(|job| job.job_id == pair.job_id)
                 .ok_or_else(|| fail("hidden_quality_event_references_unknown_job"))?;
-            if !job.routes.iter().any(|route| route.resource_id == pair.resource_id)
+            if !job
+                .routes
+                .iter()
+                .any(|route| route.resource_id == pair.resource_id)
                 || !rejected.insert((pair.job_id.as_str(), pair.resource_id.as_str()))
             {
-                return Err(fail("hidden_quality_event_references_invalid_or_duplicate_route"));
+                return Err(fail(
+                    "hidden_quality_event_references_invalid_or_duplicate_route",
+                ));
             }
         }
     }
@@ -415,12 +428,29 @@ fn immediate_action_cost(
     Ok(total)
 }
 
-fn enumerate_actions(case: &PolicyCase, period: usize, completed: &BTreeMap<String, String>, observation: &Observation) -> Result<Vec<Vec<Assignment>>, String> {
+fn enumerate_actions(
+    case: &PolicyCase,
+    period: usize,
+    completed: &BTreeMap<String, String>,
+    observation: &Observation,
+) -> Result<Vec<Vec<Assignment>>, String> {
     let mut jobs: Vec<&Job> = case.jobs.iter().collect();
     jobs.sort_by(|a, b| a.job_id.cmp(&b.job_id));
-    let failed: BTreeSet<&str> = observation.failed_resource_ids.iter().map(String::as_str).collect();
-    let unknown: BTreeSet<&str> = observation.unknown_resource_ids.iter().map(String::as_str).collect();
-    let resources: BTreeMap<&str, &Resource> = case.resources.iter().map(|resource| (resource.resource_id.as_str(), resource)).collect();
+    let failed: BTreeSet<&str> = observation
+        .failed_resource_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let unknown: BTreeSet<&str> = observation
+        .unknown_resource_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let resources: BTreeMap<&str, &Resource> = case
+        .resources
+        .iter()
+        .map(|resource| (resource.resource_id.as_str(), resource))
+        .collect();
 
     fn visit(
         jobs: &[&Job],
@@ -441,11 +471,33 @@ fn enumerate_actions(case: &PolicyCase, period: usize, completed: &BTreeMap<Stri
         }
         let job = jobs[index];
         if completed.contains_key(&job.job_id) {
-            visit(jobs, index + 1, period, resources, failed, unknown, completed, used, current, out);
+            visit(
+                jobs,
+                index + 1,
+                period,
+                resources,
+                failed,
+                unknown,
+                completed,
+                used,
+                current,
+                out,
+            );
             return;
         }
 
-        visit(jobs, index + 1, period, resources, failed, unknown, completed, used, current, out);
+        visit(
+            jobs,
+            index + 1,
+            period,
+            resources,
+            failed,
+            unknown,
+            completed,
+            used,
+            current,
+            out,
+        );
         let mut routes = job.routes.clone();
         routes.sort_by(|a, b| a.resource_id.cmp(&b.resource_id));
         for route in routes {
@@ -467,7 +519,18 @@ fn enumerate_actions(case: &PolicyCase, period: usize, completed: &BTreeMap<Stri
                 job_id: job.job_id.clone(),
                 resource_id: route.resource_id.clone(),
             });
-            visit(jobs, index + 1, period, resources, failed, unknown, completed, used, current, out);
+            visit(
+                jobs,
+                index + 1,
+                period,
+                resources,
+                failed,
+                unknown,
+                completed,
+                used,
+                current,
+                out,
+            );
             current.pop();
             let remaining = used.get_mut(resource_id).expect("used capacity inserted");
             *remaining -= 1;
@@ -514,7 +577,10 @@ fn completed_after(
     Ok(next)
 }
 
-fn terminal_unserved_cost(case: &PolicyCase, completed: &BTreeMap<String, String>) -> Result<u64, String> {
+fn terminal_unserved_cost(
+    case: &PolicyCase,
+    completed: &BTreeMap<String, String>,
+) -> Result<u64, String> {
     case.jobs.iter().try_fold(0_u64, |total, job| {
         let cost = if completed.contains_key(&job.job_id) {
             0
@@ -541,7 +607,11 @@ fn partition_scenarios(
         groups.entry(key).or_default().push(index);
     }
     for indices in groups.values_mut() {
-        indices.sort_by(|a, b| case.scenarios[*a].scenario_id.cmp(&case.scenarios[*b].scenario_id));
+        indices.sort_by(|a, b| {
+            case.scenarios[*a]
+                .scenario_id
+                .cmp(&case.scenarios[*b].scenario_id)
+        });
     }
     Ok(groups)
 }
@@ -567,10 +637,14 @@ fn solve_group(
     let history = history_prefix(case, indices[0], period)?;
     for &index in indices.iter().skip(1) {
         if history_prefix(case, index, period)? != history {
-            return Err(fail("decision_group_contains_distinct_observable_histories"));
+            return Err(fail(
+                "decision_group_contains_distinct_observable_histories",
+            ));
         }
     }
-    let observation = history.last().ok_or_else(|| fail("decision_history_missing_current_observation"))?;
+    let observation = history
+        .last()
+        .ok_or_else(|| fail("decision_history_missing_current_observation"))?;
     let mut actions = enumerate_actions(case, period, completed_before, observation)?;
 
     if !exact {
@@ -585,7 +659,12 @@ fn solve_group(
     }
 
     let probability = group_probability(case, indices)?;
-    let mut best: Option<(u64, Vec<Assignment>, BTreeMap<String, String>, Vec<DecisionNode>)> = None;
+    let mut best: Option<(
+        u64,
+        Vec<Assignment>,
+        BTreeMap<String, String>,
+        Vec<DecisionNode>,
+    )> = None;
 
     for action in actions {
         let completed_after_action = completed_after(completed_before, &action)?;
@@ -596,9 +675,16 @@ fn solve_group(
         let mut children = Vec::new();
 
         if period + 1 < case.horizon {
-            let child_groups = partition_scenarios(case, indices, period + 1, &completed_after_action)?;
+            let child_groups =
+                partition_scenarios(case, indices, period + 1, &completed_after_action)?;
             for child_indices in child_groups.values() {
-                let child = solve_group(case, child_indices, period + 1, &completed_after_action, exact)?;
+                let child = solve_group(
+                    case,
+                    child_indices,
+                    period + 1,
+                    &completed_after_action,
+                    exact,
+                )?;
                 total = total
                     .checked_add(child.expected_cost_numerator)
                     .ok_or_else(|| fail("policy_child_cost_overflow"))?;
@@ -677,7 +763,9 @@ fn verify_node(
     };
     if let Some(previous) = action_by_key.insert(key, node.assignments.clone()) {
         if previous != node.assignments {
-            return Err(fail("non_anticipativity_violation_for_identical_observable_history"));
+            return Err(fail(
+                "non_anticipativity_violation_for_identical_observable_history",
+            ));
         }
     }
 
@@ -689,27 +777,45 @@ fn verify_node(
         .ok_or_else(|| fail("policy_node_missing_current_observation"))?;
     for assignment in &node.assignments {
         if !job_ids.insert(assignment.job_id.as_str())
-            || node.completed_routes_before.contains_key(&assignment.job_id)
+            || node
+                .completed_routes_before
+                .contains_key(&assignment.job_id)
         {
             return Err(fail("policy_node_assigns_duplicate_or_completed_job"));
         }
-        let job = case.jobs.iter().find(|job| job.job_id == assignment.job_id)
+        let job = case
+            .jobs
+            .iter()
+            .find(|job| job.job_id == assignment.job_id)
             .ok_or_else(|| fail("policy_assignment_unknown_job"))?;
         let route = route_for(job, &assignment.resource_id)?;
-        let resource = case.resources.iter().find(|resource| resource.resource_id == assignment.resource_id)
+        let resource = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == assignment.resource_id)
             .ok_or_else(|| fail("policy_assignment_unknown_resource"))?;
-        if current_observation.failed_resource_ids.contains(&assignment.resource_id)
-            || current_observation.unknown_resource_ids.contains(&assignment.resource_id)
+        if current_observation
+            .failed_resource_ids
+            .contains(&assignment.resource_id)
+            || current_observation
+                .unknown_resource_ids
+                .contains(&assignment.resource_id)
         {
             return Err(fail("policy_uses_failed_or_unknown_resource"));
         }
-        *resource_use.entry(assignment.resource_id.as_str()).or_default() += 1;
-        if resource_use[assignment.resource_id.as_str()] > resource.capacity_units_by_period[node.period] {
+        *resource_use
+            .entry(assignment.resource_id.as_str())
+            .or_default() += 1;
+        if resource_use[assignment.resource_id.as_str()]
+            > resource.capacity_units_by_period[node.period]
+        {
             return Err(fail("policy_exceeds_time_indexed_resource_capacity"));
         }
         let _ = route;
     }
-    if completed_after(&node.completed_routes_before, &node.assignments)? != node.completed_routes_after {
+    if completed_after(&node.completed_routes_before, &node.assignments)?
+        != node.completed_routes_after
+    {
         return Err(fail("policy_completed_route_state_mismatch"));
     }
 
@@ -733,7 +839,9 @@ fn quality_rejection_numerator(case: &PolicyCase, policy: &PolicyForest) -> Resu
     fn visit(case: &PolicyCase, node: &DecisionNode, total: &mut u64) -> Result<(), String> {
         if node.children.is_empty() {
             for scenario_id in &node.scenario_ids {
-                let scenario = case.scenarios.iter()
+                let scenario = case
+                    .scenarios
+                    .iter()
                     .find(|scenario| scenario.scenario_id == *scenario_id)
                     .ok_or_else(|| fail("policy_node_references_unknown_scenario"))?;
                 for pair in &scenario.hidden_quality_rejections {
@@ -778,10 +886,14 @@ fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
     }
 
     let greedy_cost = greedy_policy.roots.iter().try_fold(0_u64, |total, node| {
-        total.checked_add(node.expected_cost_numerator).ok_or_else(|| fail("greedy_root_cost_overflow"))
+        total
+            .checked_add(node.expected_cost_numerator)
+            .ok_or_else(|| fail("greedy_root_cost_overflow"))
     })?;
     let exact_cost = exact_policy.roots.iter().try_fold(0_u64, |total, node| {
-        total.checked_add(node.expected_cost_numerator).ok_or_else(|| fail("exact_root_cost_overflow"))
+        total
+            .checked_add(node.expected_cost_numerator)
+            .ok_or_else(|| fail("exact_root_cost_overflow"))
     })?;
     if exact_cost > greedy_cost {
         return Err(fail("exact_policy_cost_exceeds_myopic_baseline"));
@@ -806,7 +918,8 @@ fn evaluate_case(case: &PolicyCase) -> Result<CaseResult, String> {
 }
 
 fn validate_known_answers(answers: &KnownAnswerFile, cases: &[PolicyCase]) -> Result<(), String> {
-    if answers.schema_id != "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-known-answers-v0.1"
+    if answers.schema_id
+        != "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-known-answers-v0.1"
         || answers.benchmark_id != "MFG-MULTIPERIOD-POLICY-001"
         || answers.evidence_class != "synthetic"
         || answers.answer_count != cases.len()
@@ -815,11 +928,14 @@ fn validate_known_answers(answers: &KnownAnswerFile, cases: &[PolicyCase]) -> Re
     {
         return Err(fail("known_answer_manifest_invalid"));
     }
-    let expected: HashMap<&str, &KnownAnswer> = answers.answers.iter()
+    let expected: HashMap<&str, &KnownAnswer> = answers
+        .answers
+        .iter()
         .map(|answer| (answer.case_id.as_str(), answer))
         .collect();
     for case in cases {
-        let answer = expected.get(case.case_id.as_str())
+        let answer = expected
+            .get(case.case_id.as_str())
             .ok_or_else(|| fail("known_answer_missing_case"))?;
         let result = evaluate_case(case)?;
         if result.greedy_expected_cost_numerator != answer.greedy_expected_cost_numerator
@@ -873,18 +989,18 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 }
 
 fn load_corpus() -> Result<Corpus, String> {
-    let schema: serde_json::Value =
-        serde_json::from_str(CORPUS_SCHEMA_JSON).map_err(|error| fail(format!("corpus_schema_parse:{error}")))?;
-    let value: serde_json::Value =
-        serde_json::from_str(CORPUS_JSON).map_err(|error| fail(format!("corpus_json_parse:{error}")))?;
+    let schema: serde_json::Value = serde_json::from_str(CORPUS_SCHEMA_JSON)
+        .map_err(|error| fail(format!("corpus_schema_parse:{error}")))?;
+    let value: serde_json::Value = serde_json::from_str(CORPUS_JSON)
+        .map_err(|error| fail(format!("corpus_json_parse:{error}")))?;
     validate_schema(&value, CORPUS_SCHEMA_JSON)?;
     let _ = schema;
     serde_json::from_value(value).map_err(|error| fail(format!("corpus_deserialize:{error}")))
 }
 
 fn load_answers() -> Result<KnownAnswerFile, String> {
-    let value: serde_json::Value =
-        serde_json::from_str(ANSWERS_JSON).map_err(|error| fail(format!("answers_json_parse:{error}")))?;
+    let value: serde_json::Value = serde_json::from_str(ANSWERS_JSON)
+        .map_err(|error| fail(format!("answers_json_parse:{error}")))?;
     validate_schema(&value, ANSWERS_SCHEMA_JSON)?;
     serde_json::from_value(value).map_err(|error| fail(format!("answers_deserialize:{error}")))
 }
@@ -921,30 +1037,47 @@ mod tests {
     #[test]
     fn identical_observable_histories_share_the_same_action_despite_hidden_terminal_outcomes() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "quality-outcome-uncertainty")
             .unwrap();
         let policy = build_policy(case, true).unwrap();
-        let relevant = case.scenarios.iter()
-            .filter(|scenario| scenario.scenario_id == "B-AVAILABLE-NO-REJECT"
-                || scenario.scenario_id == "B-AVAILABLE-HIDDEN-REJECT")
+        let relevant = case
+            .scenarios
+            .iter()
+            .filter(|scenario| {
+                scenario.scenario_id == "B-AVAILABLE-NO-REJECT"
+                    || scenario.scenario_id == "B-AVAILABLE-HIDDEN-REJECT"
+            })
             .map(|scenario| scenario.scenario_id.as_str())
             .collect::<BTreeSet<_>>();
         assert_eq!(relevant.len(), 2);
-        let node = policy.roots.iter()
+        let node = policy
+            .roots
+            .iter()
             .flat_map(|root| root.children.iter())
-            .find(|node| relevant.iter().all(|id| node.scenario_ids.iter().any(|candidate| candidate == id)))
+            .find(|node| {
+                relevant
+                    .iter()
+                    .all(|id| node.scenario_ids.iter().any(|candidate| candidate == id))
+            })
             .expect("same visible prefix must remain one decision node");
         assert_eq!(
             node.assignments,
-            vec![Assignment { job_id: "JOB-FLEX".into(), resource_id: "RESOURCE-B".into() }]
+            vec![Assignment {
+                job_id: "JOB-FLEX".into(),
+                resource_id: "RESOURCE-B".into()
+            }]
         );
     }
 
     #[test]
     fn hidden_terminal_quality_mutations_do_not_change_policy_decisions() {
         let corpus = corpus();
-        let original = corpus.cases.iter()
+        let original = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "quality-outcome-uncertainty")
             .unwrap()
             .clone();
@@ -963,12 +1096,20 @@ mod tests {
         let corpus = corpus();
         let original = corpus.cases[0].clone();
         let expected = build_policy(&original, true).unwrap();
-        let expected_cost = expected.roots.iter().map(|node| node.expected_cost_numerator).sum::<u64>();
+        let expected_cost = expected
+            .roots
+            .iter()
+            .map(|node| node.expected_cost_numerator)
+            .sum::<u64>();
 
         let mut permuted = original;
         permuted.scenarios.reverse();
         let actual = build_policy(&permuted, true).unwrap();
-        let actual_cost = actual.roots.iter().map(|node| node.expected_cost_numerator).sum::<u64>();
+        let actual_cost = actual
+            .roots
+            .iter()
+            .map(|node| node.expected_cost_numerator)
+            .sum::<u64>();
         assert_eq!(expected, actual);
         assert_eq!(expected_cost, actual_cost);
     }
@@ -976,17 +1117,31 @@ mod tests {
     #[test]
     fn unknown_resource_is_not_treated_as_admissible_capacity() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "qualification-unknown")
             .unwrap();
         let policy = build_policy(case, true).unwrap();
-        let unknown_node = policy.roots.iter()
+        let unknown_node = policy
+            .roots
+            .iter()
             .flat_map(|root| root.children.iter())
-            .find(|node| node.observable_history.last().is_some_and(|observation| {
-                observation.unknown_resource_ids.iter().any(|resource| resource == "RESOURCE-B")
-            }))
+            .find(|node| {
+                node.observable_history.last().is_some_and(|observation| {
+                    observation
+                        .unknown_resource_ids
+                        .iter()
+                        .any(|resource| resource == "RESOURCE-B")
+                })
+            })
             .expect("unknown qualification branch exists");
-        assert!(!unknown_node.assignments.iter().any(|assignment| assignment.resource_id == "RESOURCE-B"));
+        assert!(
+            !unknown_node
+                .assignments
+                .iter()
+                .any(|assignment| assignment.resource_id == "RESOURCE-B")
+        );
     }
 
     #[test]
@@ -1023,8 +1178,16 @@ mod tests {
         for case in &corpus.cases {
             let greedy = build_policy(case, false).unwrap();
             let exact = build_policy(case, true).unwrap();
-            let greedy_cost: u64 = greedy.roots.iter().map(|node| node.expected_cost_numerator).sum();
-            let exact_cost: u64 = exact.roots.iter().map(|node| node.expected_cost_numerator).sum();
+            let greedy_cost: u64 = greedy
+                .roots
+                .iter()
+                .map(|node| node.expected_cost_numerator)
+                .sum();
+            let exact_cost: u64 = exact
+                .roots
+                .iter()
+                .map(|node| node.expected_cost_numerator)
+                .sum();
             assert!(exact_cost <= greedy_cost, "{}", case.case_id);
             verify_policy(case, &exact).unwrap();
         }
@@ -1044,7 +1207,10 @@ mod tests {
     #[test]
     fn corpus_schema_rejects_unknown_root_fields() {
         let mut value: serde_json::Value = serde_json::from_str(CORPUS_JSON).unwrap();
-        value.as_object_mut().unwrap().insert("unexpected".into(), serde_json::Value::Bool(true));
+        value
+            .as_object_mut()
+            .unwrap()
+            .insert("unexpected".into(), serde_json::Value::Bool(true));
         assert!(validate_schema(&value, CORPUS_SCHEMA_JSON).is_err());
     }
 }
