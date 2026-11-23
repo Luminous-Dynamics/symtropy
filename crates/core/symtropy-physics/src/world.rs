@@ -297,19 +297,58 @@ impl<const D: usize> PhysicsWorld<D> {
     }
 
     /// Add a dynamic sphere body and return its handle.
+    ///
+    /// Panics only if the finite handle space is exhausted or the next
+    /// allocator value is already indexed. Use try_add_sphere when allocation
+    /// failure must be handled without panicking.
     pub fn add_sphere(&mut self, position: Point<D>, radius: f64, mass: f64) -> BodyHandle {
-        let handle = self.allocate_handle();
-        let body = RigidBody::dynamic_sphere(handle, position, radius, mass);
+        self.try_add_sphere(position, radius, mass)
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
+    }
+
+    /// Fallible variant of add_sphere.
+    ///
+    /// Allocation is checked before changing the body vector, indexes, or
+    /// broadphase state. This protects the single-body path from integer
+    /// wraparound; it does not repair arbitrary external mutation of the
+    /// public bodies vector.
+    pub fn try_add_sphere(
+        &mut self,
+        position: Point<D>,
+        radius: f64,
+        mass: f64,
+    ) -> Result<BodyHandle, String> {
+        // Construct first so any constructor assertion happens before the
+        // allocator advances; the placeholder is replaced before publication.
+        let mut body = RigidBody::dynamic_sphere(BodyHandle(0), position, radius, mass);
+        let handle = self.try_allocate_handle()?;
+        body.handle = handle;
         let idx = self.bodies.len();
         self.bodies.push(body);
         self.handle_to_index.insert(handle, idx);
-        handle
+        Ok(handle)
     }
 
     /// Add a dynamic body with a custom collider.
-    pub fn add_body(&mut self, mut body: RigidBody<D>) -> BodyHandle {
+    ///
+    /// Panics only if the finite handle space is exhausted or the next
+    /// allocator value is already indexed. Use try_add_body when allocation
+    /// failure must be handled without panicking.
+    pub fn add_body(&mut self, body: RigidBody<D>) -> BodyHandle {
+        self.try_add_body(body)
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
+    }
+
+    /// Fallible variant of add_body.
+    ///
+    /// The handle is reserved before any body/index/broadphase mutation. An
+    /// allocation error therefore leaves those structures unchanged. This
+    /// does not repair arbitrary external mutation of the public bodies
+    /// vector; full topology encapsulation remains separate work.
+    pub fn try_add_body(&mut self, mut body: RigidBody<D>) -> Result<BodyHandle, String> {
         use crate::body::BodyType;
-        let handle = self.allocate_handle();
+
+        let handle = self.try_allocate_handle()?;
         body.handle = handle;
         if body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic {
             self.static_tree_dirty = true;
@@ -317,33 +356,109 @@ impl<const D: usize> PhysicsWorld<D> {
         let idx = self.bodies.len();
         self.bodies.push(body);
         self.handle_to_index.insert(handle, idx);
-        handle
+        Ok(handle)
     }
 
     /// Add multiple bodies with stable network IDs in deterministic order.
     ///
     /// Bodies are sorted by `NetId` before insertion, ensuring the same
     /// `BodyHandle` assignment regardless of the caller's iteration order.
-    /// Returns an error if any `NetId` is duplicated.
+    ///
+    /// All validation is performed before the first mutation. Duplicate IDs,
+    /// a stale/non-monotonic allocator, or handle-space exhaustion therefore
+    /// reject the whole batch without partially inserting bodies or changing
+    /// the indexes. Inserting a static or kinematic body also invalidates the
+    /// cached static broadphase.
     pub fn add_bodies_deterministic(
         &mut self,
         mut bodies: Vec<(NetId, RigidBody<D>)>,
     ) -> Result<Vec<BodyHandle>, String> {
+        use crate::body::BodyType;
+
         bodies.sort_by_key(|(id, _)| *id);
-        let mut handles = Vec::with_capacity(bodies.len());
-        for (net_id, mut body) in bodies {
-            if self.net_id_map.contains_key(&net_id) {
-                return Err(format!("duplicate NetId({})", net_id.0));
+        if bodies.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Detect duplicates inside the input before considering the existing
+        // world. Sorting makes this check deterministic and O(n).
+        for pair in bodies.windows(2) {
+            if pair[0].0 == pair[1].0 {
+                return Err(format!("duplicate NetId({}) in input batch", pair[0].0.0));
             }
+        }
+
+        // Check both identity representations. RigidBody::net_id remains
+        // publicly mutable, so consulting only net_id_map would miss a
+        // duplicate inserted through that compatibility escape hatch.
+        for (net_id, _) in &bodies {
+            if let Some(owner) = self.net_id_map.get(net_id) {
+                return Err(format!(
+                    "duplicate NetId({}) already mapped to {owner:?}",
+                    net_id.0
+                ));
+            }
+            if let Some(owner) = self
+                .bodies
+                .iter()
+                .find(|body| body.net_id == Some(*net_id))
+                .map(|body| body.handle)
+            {
+                return Err(format!(
+                    "duplicate NetId({}) already carried by body {owner:?}",
+                    net_id.0
+                ));
+            }
+        }
+
+        // The allocator must be strictly beyond every live body handle. This
+        // prevents a stale public-world state from assigning a handle already
+        // present in body storage, even if the reverse index is inconsistent.
+        if let Some(max_handle) = self.bodies.iter().map(|body| body.handle.0).max()
+            && self.next_handle <= max_handle
+        {
+            return Err(format!(
+                "next_handle {} is not greater than live handle {}",
+                self.next_handle, max_handle
+            ));
+        }
+
+        // Reserve the post-batch allocator value before mutation. Requiring a
+        // representable next value avoids wrapping the last allocated handle
+        // and leaves allocate_handle's existing fast path unchanged.
+        let next_handle_after = self
+            .next_handle
+            .checked_add(bodies.len())
+            .ok_or_else(|| "BodyHandle space exhausted for deterministic batch".to_string())?;
+
+        for raw_handle in self.next_handle..next_handle_after {
+            let candidate = BodyHandle(raw_handle);
+            if self.handle_to_index.contains_key(&candidate) {
+                return Err(format!(
+                    "BodyHandle({}) is already present in the handle index",
+                    raw_handle
+                ));
+            }
+        }
+
+        // Commit phase: no validation branch below can fail.
+        let mut handles = Vec::with_capacity(bodies.len());
+        let mut invalidates_static_tree = false;
+        for (net_id, mut body) in bodies {
             let handle = self.allocate_handle();
             body.handle = handle;
             body.net_id = Some(net_id);
+            invalidates_static_tree |=
+                body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic;
             self.net_id_map.insert(net_id, handle);
             let idx = self.bodies.len();
             self.bodies.push(body);
             self.handle_to_index.insert(handle, idx);
             handles.push(handle);
         }
+
+        debug_assert_eq!(self.next_handle, next_handle_after);
+        self.static_tree_dirty |= invalidates_static_tree;
         Ok(handles)
     }
 
@@ -1229,11 +1344,30 @@ impl<const D: usize> PhysicsWorld<D> {
         contact
     }
 
+    /// Reserve one handle without wrapping the allocator or overwriting an
+    /// existing reverse-index entry. The check is O(1); direct mutation of the
+    /// public body vector remains outside this allocator's authority boundary.
+    #[inline]
+    fn try_allocate_handle(&mut self) -> Result<BodyHandle, String> {
+        let next_handle = self
+            .next_handle
+            .checked_add(1)
+            .ok_or_else(|| "BodyHandle space exhausted".to_string())?;
+        let handle = BodyHandle(self.next_handle);
+        if self.handle_to_index.contains_key(&handle) {
+            return Err(format!(
+                "BodyHandle({}) is already present in the handle index",
+                handle.0
+            ));
+        }
+        self.next_handle = next_handle;
+        Ok(handle)
+    }
+
     #[inline]
     fn allocate_handle(&mut self) -> BodyHandle {
-        let handle = BodyHandle(self.next_handle);
-        self.next_handle += 1;
-        handle
+        self.try_allocate_handle()
+            .expect("PhysicsWorld cannot allocate another BodyHandle")
     }
 
     #[inline]
@@ -2559,5 +2693,180 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod deterministic_bulk_insertion_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    fn dynamic_body(x: f64) -> RigidBody<3> {
+        RigidBody::dynamic_sphere(BodyHandle(999), Point::new([x, 0.0, 0.0]), 0.5, 1.0)
+    }
+
+    #[test]
+    fn duplicate_ids_inside_input_reject_the_entire_batch() {
+        let mut world = PhysicsWorld::<3>::default();
+
+        let result = world.add_bodies_deterministic(vec![
+            (NetId(7), dynamic_body(0.0)),
+            (NetId(7), dynamic_body(2.0)),
+        ]);
+
+        assert!(result.unwrap_err().contains("duplicate NetId(7)"));
+        assert_eq!(world.body_count(), 0);
+        assert_eq!(world.next_handle, 0);
+        assert!(world.handle_to_index.is_empty());
+        assert!(world.net_id_map.is_empty());
+    }
+
+    #[test]
+    fn existing_net_id_conflict_does_not_partially_insert_other_batch_members() {
+        let mut world = PhysicsWorld::<3>::default();
+        let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.set_net_id(existing, NetId(20));
+        let next_before = world.next_handle;
+        let body_count_before = world.body_count();
+        let handle_index_before = world.handle_to_index.clone();
+        let net_id_map_before = world.net_id_map.clone();
+
+        // NetId(10) sorts before the already-owned NetId(20). A validation
+        // inside the old insertion loop would have inserted the first body.
+        let result = world.add_bodies_deterministic(vec![
+            (NetId(20), dynamic_body(2.0)),
+            (NetId(10), dynamic_body(1.0)),
+        ]);
+
+        assert!(result.unwrap_err().contains("duplicate NetId(20)"));
+        assert_eq!(world.next_handle, next_before);
+        assert_eq!(world.body_count(), body_count_before);
+        assert_eq!(world.handle_to_index, handle_index_before);
+        assert_eq!(world.net_id_map, net_id_map_before);
+        assert_eq!(world.net_id_for_handle(existing), Some(NetId(20)));
+    }
+
+    #[test]
+    fn unindexed_public_body_identity_also_blocks_duplicate_batch_id() {
+        let mut world = PhysicsWorld::<3>::default();
+        let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.body_mut(existing).unwrap().net_id = Some(NetId(31));
+        let next_before = world.next_handle;
+
+        let result = world.add_bodies_deterministic(vec![
+            (NetId(31), dynamic_body(2.0)),
+            (NetId(32), dynamic_body(3.0)),
+        ]);
+
+        assert!(result.unwrap_err().contains("NetId(31)"));
+        assert_eq!(world.body_count(), 1);
+        assert_eq!(world.next_handle, next_before);
+        assert!(world.net_id_map.is_empty());
+    }
+
+    #[test]
+    fn allocator_exhaustion_rejects_batch_before_mutation() {
+        let mut world = PhysicsWorld::<3> {
+            next_handle: usize::MAX,
+            ..Default::default()
+        };
+
+        let result = world.add_bodies_deterministic(vec![(NetId(44), dynamic_body(0.0))]);
+
+        assert!(result.unwrap_err().contains("space exhausted"));
+        assert_eq!(world.body_count(), 0);
+        assert_eq!(world.next_handle, usize::MAX);
+        assert!(world.handle_to_index.is_empty());
+        assert!(world.net_id_map.is_empty());
+    }
+
+    #[test]
+    fn stale_allocator_rejects_batch_before_handle_reuse() {
+        let mut world = PhysicsWorld::<3>::default();
+        let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.next_handle = existing.0;
+
+        let result = world.add_bodies_deterministic(vec![(NetId(45), dynamic_body(2.0))]);
+
+        assert!(result.unwrap_err().contains("not greater than live handle"));
+        assert_eq!(world.body_count(), 1);
+        assert_eq!(world.next_handle, existing.0);
+        assert_eq!(world.body(existing).unwrap().handle, existing);
+    }
+
+    #[test]
+    fn static_batch_insertion_invalidates_cached_static_broadphase() {
+        let mut world = PhysicsWorld::<3>::default();
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(999),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::unit()),
+        );
+
+        world
+            .add_bodies_deterministic(vec![(NetId(50), static_body)])
+            .unwrap();
+
+        assert!(world.static_tree_dirty);
+        assert_eq!(world.body_count(), 1);
+        assert_eq!(world.handle_for_net_id(NetId(50)), Some(BodyHandle(0)));
+    }
+
+    #[test]
+    fn single_body_insertions_reject_handle_exhaustion_without_mutation() {
+        let mut world = PhysicsWorld::<3> {
+            next_handle: usize::MAX,
+            ..Default::default()
+        };
+
+        let sphere_result = world.try_add_sphere(Point::origin(), 0.5, 1.0);
+        assert!(sphere_result.unwrap_err().contains("space exhausted"));
+
+        let body_result = world.try_add_body(dynamic_body(0.0));
+        assert!(body_result.unwrap_err().contains("space exhausted"));
+
+        assert_eq!(world.body_count(), 0);
+        assert_eq!(world.next_handle, usize::MAX);
+        assert!(world.handle_to_index.is_empty());
+        assert!(world.net_id_map.is_empty());
+        assert!(!world.static_tree_dirty);
+    }
+
+    #[test]
+    fn single_body_insertions_reject_index_collision_before_mutation() {
+        let mut world = PhysicsWorld::<3>::default();
+        let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.next_handle = existing.0;
+
+        let static_body = RigidBody::<3>::static_body(
+            BodyHandle(999),
+            Point::new([2.0, 0.0, 0.0]),
+            Box::new(symtropy_math::Sphere::unit()),
+        );
+        let result = world.try_add_body(static_body);
+
+        assert!(result.unwrap_err().contains("already present"));
+        assert_eq!(world.body_count(), 1);
+        assert_eq!(world.next_handle, existing.0);
+        assert_eq!(world.body(existing).unwrap().handle, existing);
+        assert!(!world.static_tree_dirty);
+    }
+
+    #[test]
+    fn successful_batch_retains_deterministic_order_and_atomic_commit() {
+        let mut world = PhysicsWorld::<3>::default();
+        let handles = world
+            .add_bodies_deterministic(vec![
+                (NetId(30), dynamic_body(3.0)),
+                (NetId(10), dynamic_body(1.0)),
+                (NetId(20), dynamic_body(2.0)),
+            ])
+            .unwrap();
+
+        assert_eq!(handles, vec![BodyHandle(0), BodyHandle(1), BodyHandle(2)]);
+        assert_eq!(world.handle_for_net_id(NetId(10)), Some(BodyHandle(0)));
+        assert_eq!(world.handle_for_net_id(NetId(20)), Some(BodyHandle(1)));
+        assert_eq!(world.handle_for_net_id(NetId(30)), Some(BodyHandle(2)));
+        assert_eq!(world.next_handle, 3);
     }
 }
