@@ -105,3 +105,19 @@ The next integration is a version-pinned ROS 2 service/action client implementin
 ## Cross-event trace ordering
 
 The execution-evidence contract checks one continuous simulation clock from reset through every fault event. It requires both phase-local order and cross-event nondecreasing step/time coordinates. This catches a replay where each fault's local receipts appear valid but the sequence of fault events is globally reordered.
+
+
+## Supported ROS/Gazebo release pairing and profile provenance
+
+The campaign manifest and compiled plan now carry an explicit Gazebo release label as well as the exact simulator revision and Simulation Interfaces package revision. The v0.1 supported LTS pairings are:
+
+- ROS 2 Jazzy + Gazebo Harmonic on Ubuntu Noble 24.04;
+- ROS 2 Lyrical + Gazebo Jetty on Ubuntu Resolute 26.04.
+
+The adapter rejects unreviewed cross-pairings, including Jazzy + Jetty. This follows Gazebo's current installation/compatibility guidance rather than assuming that any ROS distribution can be combined with any Gazebo release. See the Gazebo ROS installation matrix: https://gazebosim.org/docs/latest/ros_installation/.
+
+The checked-in profile is explicitly a **synthetic contract fixture**: it carries Jazzy/Harmonic labels so it conforms to a supported pair, but its simulator, plugin, interface, world and reset identifiers are fixture placeholders, not hashes captured from a live Gazebo installation. Preflight PASS only checks those captured strings against the plan. A real qualification must capture the actual package versions, package/binary digests, server configuration, SceneBroadcaster build and world profile from the target container.
+
+## Independent world iteration witness
+
+A successful StepSimulation service/action response is not treated as proof that the requested iteration occurred. The transport must also supply a pinned Gazebo world-statistics receipt from the exact world stats topic. The adapter compares the message type, producer/build, topic, clock, iterations and sim_time with the world snapshot. A mismatch between service-control result and published world statistics fails closed. The topic path, raw artifact ID and digest are carried as measurement evidence; this closes the control/measurement distinction but does not authenticate the telemetry producer.
