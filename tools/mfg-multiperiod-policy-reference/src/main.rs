@@ -428,87 +428,46 @@ fn immediate_action_cost(
     Ok(total)
 }
 
-fn enumerate_actions(
-    case: &PolicyCase,
+struct ActionEnumerator<'a> {
+    jobs: Vec<&'a Job>,
     period: usize,
-    completed: &BTreeMap<String, String>,
-    observation: &Observation,
-) -> Result<Vec<Vec<Assignment>>, String> {
-    let mut jobs: Vec<&Job> = case.jobs.iter().collect();
-    jobs.sort_by(|a, b| a.job_id.cmp(&b.job_id));
-    let failed: BTreeSet<&str> = observation
-        .failed_resource_ids
-        .iter()
-        .map(String::as_str)
-        .collect();
-    let unknown: BTreeSet<&str> = observation
-        .unknown_resource_ids
-        .iter()
-        .map(String::as_str)
-        .collect();
-    let resources: BTreeMap<&str, &Resource> = case
-        .resources
-        .iter()
-        .map(|resource| (resource.resource_id.as_str(), resource))
-        .collect();
+    completed: &'a BTreeMap<String, String>,
+    resources: BTreeMap<String, &'a Resource>,
+    failed: BTreeSet<String>,
+    unknown: BTreeSet<String>,
+}
 
+impl ActionEnumerator<'_> {
     fn visit(
-        jobs: &[&Job],
+        &self,
         index: usize,
-        period: usize,
-        resources: &BTreeMap<&str, &Resource>,
-        failed: &BTreeSet<&str>,
-        unknown: &BTreeSet<&str>,
-        completed: &BTreeMap<String, String>,
         used: &mut BTreeMap<String, u64>,
         current: &mut Vec<Assignment>,
         out: &mut Vec<Vec<Assignment>>,
     ) {
-        if index == jobs.len() {
+        if index == self.jobs.len() {
             current.sort();
             out.push(current.clone());
             return;
         }
-        let job = jobs[index];
-        if completed.contains_key(&job.job_id) {
-            visit(
-                jobs,
-                index + 1,
-                period,
-                resources,
-                failed,
-                unknown,
-                completed,
-                used,
-                current,
-                out,
-            );
+        let job = self.jobs[index];
+        if self.completed.contains_key(&job.job_id) {
+            self.visit(index + 1, used, current, out);
             return;
         }
 
-        visit(
-            jobs,
-            index + 1,
-            period,
-            resources,
-            failed,
-            unknown,
-            completed,
-            used,
-            current,
-            out,
-        );
+        self.visit(index + 1, used, current, out);
         let mut routes = job.routes.clone();
         routes.sort_by(|a, b| a.resource_id.cmp(&b.resource_id));
         for route in routes {
-            let resource_id = route.resource_id.as_str();
-            if failed.contains(resource_id) || unknown.contains(resource_id) {
+            let resource_id = &route.resource_id;
+            if self.failed.contains(resource_id) || self.unknown.contains(resource_id) {
                 continue;
             }
-            let Some(resource) = resources.get(resource_id) else {
+            let Some(resource) = self.resources.get(resource_id) else {
                 continue;
             };
-            let capacity = resource.capacity_units_by_period[period];
+            let capacity = resource.capacity_units_by_period[self.period];
             let consumed = used.get(resource_id).copied().unwrap_or(0);
             if consumed >= capacity {
                 continue;
@@ -519,36 +478,44 @@ fn enumerate_actions(
                 job_id: job.job_id.clone(),
                 resource_id: route.resource_id.clone(),
             });
-            visit(
-                jobs,
-                index + 1,
-                period,
-                resources,
-                failed,
-                unknown,
-                completed,
-                used,
-                current,
-                out,
-            );
+            self.visit(index + 1, used, current, out);
             current.pop();
-            let remaining = used.get_mut(resource_id).expect("used capacity inserted");
+            let remaining = used
+                .get_mut(resource_id)
+                .expect("used capacity inserted");
             *remaining -= 1;
             if *remaining == 0 {
                 used.remove(resource_id);
             }
         }
     }
+}
+
+fn enumerate_actions(
+    case: &PolicyCase,
+    period: usize,
+    completed: &BTreeMap<String, String>,
+    observation: &Observation,
+) -> Result<Vec<Vec<Assignment>>, String> {
+    let mut jobs: Vec<&Job> = case.jobs.iter().collect();
+    jobs.sort_by(|a, b| a.job_id.cmp(&b.job_id));
+    let resources: BTreeMap<String, &Resource> = case
+        .resources
+        .iter()
+        .map(|resource| (resource.resource_id.clone(), resource))
+        .collect();
+    let enumerator = ActionEnumerator {
+        jobs,
+        period,
+        completed,
+        resources,
+        failed: observation.failed_resource_ids.iter().cloned().collect(),
+        unknown: observation.unknown_resource_ids.iter().cloned().collect(),
+    };
 
     let mut out = Vec::new();
-    visit(
-        &jobs,
+    enumerator.visit(
         0,
-        period,
-        &resources,
-        &failed,
-        &unknown,
-        completed,
         &mut BTreeMap::new(),
         &mut Vec::new(),
         &mut out,
@@ -594,6 +561,12 @@ fn terminal_unserved_cost(
 }
 
 type HistoryState = (Vec<Observation>, BTreeMap<String, String>);
+type BestCandidate = (
+    u64,
+    Vec<Assignment>,
+    BTreeMap<String, String>,
+    Vec<DecisionNode>,
+);
 
 fn partition_scenarios(
     case: &PolicyCase,
@@ -659,12 +632,7 @@ fn solve_group(
     }
 
     let probability = group_probability(case, indices)?;
-    let mut best: Option<(
-        u64,
-        Vec<Assignment>,
-        BTreeMap<String, String>,
-        Vec<DecisionNode>,
-    )> = None;
+    let mut best: Option<BestCandidate> = None;
 
     for action in actions {
         let completed_after_action = completed_after(completed_before, &action)?;
@@ -761,12 +729,12 @@ fn verify_node(
         history: node.observable_history.clone(),
         completed_before: node.completed_routes_before.clone(),
     };
-    if let Some(previous) = action_by_key.insert(key, node.assignments.clone()) {
-        if previous != node.assignments {
-            return Err(fail(
-                "non_anticipativity_violation_for_identical_observable_history",
-            ));
-        }
+    if let Some(previous) = action_by_key.insert(key, node.assignments.clone())
+        && previous != node.assignments
+    {
+        return Err(fail(
+            "non_anticipativity_violation_for_identical_observable_history",
+        ));
     }
 
     let mut job_ids = BTreeSet::new();
