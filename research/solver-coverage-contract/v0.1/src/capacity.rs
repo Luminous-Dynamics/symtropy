@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{ConstraintRowFamily, ValidationError, is_sha256, non_empty};
+use super::{ConstraintRowFamily, ValidationError, checked_sum, is_sha256, non_empty};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -120,17 +120,94 @@ impl SolverContactGroup {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum PointIdentityMode {
+    StablePointIds = 1,
+    AggregateOnly = 2,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AggregateManifoldCounts {
+    pub generated_points: u64,
+    pub retained_points: u64,
+    pub reduced_by_policy: u64,
+    pub capacity_dropped: u64,
+    pub invalid_points: u64,
+    pub unsupported_points: u64,
+    pub solver_contact_groups: u64,
+    pub solver_solved_points: u64,
+    pub solver_not_converged_points: u64,
+    pub solver_sleeping_skipped_points: u64,
+    pub solver_capacity_dropped_points: u64,
+    pub solver_unsupported_points: u64,
+    pub solver_not_submitted_points: u64,
+    pub solver_aborted_points: u64,
+}
+
+impl AggregateManifoldCounts {
+    fn validate(&self) -> Result<(), ValidationError> {
+        let generated_partition = checked_sum(
+            &[
+                self.retained_points,
+                self.reduced_by_policy,
+                self.capacity_dropped,
+                self.invalid_points,
+                self.unsupported_points,
+            ],
+            "manifold.aggregate_counts",
+        )?;
+        if generated_partition != self.generated_points {
+            return Err(ValidationError::new(
+                "manifold.aggregate_counts",
+                "generated_points must equal retained + reduced + capacity_dropped + invalid + unsupported",
+            ));
+        }
+
+        let solver_partition = checked_sum(
+            &[
+                self.solver_solved_points,
+                self.solver_not_converged_points,
+                self.solver_sleeping_skipped_points,
+                self.solver_capacity_dropped_points,
+                self.solver_unsupported_points,
+                self.solver_not_submitted_points,
+                self.solver_aborted_points,
+            ],
+            "manifold.aggregate_counts",
+        )?;
+        if solver_partition != self.retained_points {
+            return Err(ValidationError::new(
+                "manifold.aggregate_counts",
+                "retained_points must equal solver-contact disposition point counts",
+            ));
+        }
+        if (self.solver_contact_groups == 0) != (solver_partition == 0)
+            || self.solver_contact_groups > solver_partition
+        {
+            return Err(ValidationError::new(
+                "manifold.aggregate_counts.solver_contact_groups",
+                "group count must be zero iff no points are represented, and cannot exceed represented points",
+            ));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ContactManifoldLineage {
     pub pair_id: String,
+    pub identity_mode: PointIdentityMode,
     /// Present when any generated point is intentionally reduced by policy.
     pub reduction_policy_id: Option<String>,
     /// Inline manifold point capacity; None means the adapter declares no fixed cap.
     pub point_capacity: Option<u64>,
-    /// Exactly one disposition for each generated geometric candidate.
+    /// Exactly one disposition for each generated geometric candidate in StablePointIds mode.
     pub generated_points: Vec<GeometricPointRecord>,
     /// Solver contacts may represent one point or a cluster of geometric points.
     pub solver_contacts: Vec<SolverContactGroup>,
+    /// Aggregate stage counts are mandatory when stable point identifiers are unavailable.
+    pub aggregate_counts: Option<AggregateManifoldCounts>,
     /// True only when every retained point is mapped to exactly one solver contact group.
     pub solver_mapping_complete: bool,
 }
@@ -171,6 +248,66 @@ impl ContactManifoldLineage {
             return Err(ValidationError::new(
                 "manifold.reduction_policy_id",
                 "must not be empty when present",
+            ));
+        }
+
+        if self.identity_mode == PointIdentityMode::AggregateOnly {
+            if !self.generated_points.is_empty()
+                || !self.solver_contacts.is_empty()
+                || self.solver_mapping_complete
+            {
+                return Err(ValidationError::new(
+                    "manifold.identity_mode",
+                    "AggregateOnly mode cannot contain point IDs or claim complete point mapping",
+                ));
+            }
+            let counts = self.aggregate_counts.as_ref().ok_or_else(|| {
+                ValidationError::new(
+                    "manifold.aggregate_counts",
+                    "AggregateOnly mode requires aggregate stage counts",
+                )
+            })?;
+            counts.validate()?;
+            if counts.reduced_by_policy > 0 && self.reduction_policy_id.is_none() {
+                return Err(ValidationError::new(
+                    "manifold.reduction_policy_id",
+                    "aggregate reductions require a reduction policy identity",
+                ));
+            }
+            let point_capacity_respected = self
+                .point_capacity
+                .is_none_or(|capacity| counts.retained_points <= capacity);
+            if !point_capacity_respected {
+                return Err(ValidationError::new(
+                    "manifold.point_capacity",
+                    "aggregate retained points exceed the declared inline point capacity",
+                ));
+            }
+            return Ok(ContactManifoldReport {
+                pair_id: self.pair_id.clone(),
+                generated_points: counts.generated_points,
+                retained_points: counts.retained_points,
+                reduced_by_policy: counts.reduced_by_policy,
+                capacity_dropped: counts.capacity_dropped,
+                invalid_points: counts.invalid_points,
+                unsupported_points: counts.unsupported_points,
+                solver_groups: counts.solver_contact_groups,
+                solver_mapped_points: 0,
+                solver_solved_points: counts.solver_solved_points,
+                solver_not_converged_points: counts.solver_not_converged_points,
+                solver_sleeping_skipped_points: counts.solver_sleeping_skipped_points,
+                solver_capacity_dropped_points: counts.solver_capacity_dropped_points,
+                solver_unsupported_points: counts.solver_unsupported_points,
+                solver_not_submitted_points: counts.solver_not_submitted_points,
+                solver_aborted_points: counts.solver_aborted_points,
+                solver_mapping_complete: false,
+                point_capacity_respected,
+            });
+        }
+        if self.aggregate_counts.is_some() {
+            return Err(ValidationError::new(
+                "manifold.aggregate_counts",
+                "StablePointIds mode cannot also provide aggregate-only counts",
             ));
         }
 
@@ -528,6 +665,31 @@ impl CapacityEvidence {
             push_string(&mut out, &lineage.pair_id);
             push_optional_string(&mut out, lineage.reduction_policy_id.as_deref());
             push_optional_u64(&mut out, lineage.point_capacity);
+            out.push(lineage.identity_mode as u8);
+            match lineage.aggregate_counts {
+                Some(counts) => {
+                    out.push(1);
+                    for value in [
+                        counts.generated_points,
+                        counts.retained_points,
+                        counts.reduced_by_policy,
+                        counts.capacity_dropped,
+                        counts.invalid_points,
+                        counts.unsupported_points,
+                        counts.solver_contact_groups,
+                        counts.solver_solved_points,
+                        counts.solver_not_converged_points,
+                        counts.solver_sleeping_skipped_points,
+                        counts.solver_capacity_dropped_points,
+                        counts.solver_unsupported_points,
+                        counts.solver_not_submitted_points,
+                        counts.solver_aborted_points,
+                    ] {
+                        push_u64(&mut out, value);
+                    }
+                }
+                None => out.push(0),
+            }
             out.push(u8::from(lineage.solver_mapping_complete));
 
             let mut points = lineage.generated_points.clone();
