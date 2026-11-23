@@ -206,8 +206,7 @@ fn released_packet() -> Value {
         "reviewer_id":"reviewer-1",
         "disposition":"RELEASED_FOR_FABRICATION",
         "decision_ref":evidence("product-owner","fabrication-release-decision"),
-        "recorded_at":"2026-11-23T00:00:00Z",
-        "disposition_reason":null
+        "recorded_at":"2026-11-23T00:00:00Z"
     });
 
     packet
