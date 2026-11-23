@@ -207,14 +207,11 @@ struct QualifiedOpportunity {
     start_seconds: u64,
     max_service_duration_seconds: u32,
     max_payload_units: u16,
-    aircraft_or_resource_id: String,
-    source_receipt_id: String,
 }
 
 #[derive(Debug, Clone)]
 struct NormalizedNode {
     source: ScenarioTreeNode,
-    parent_index: Option<usize>,
     child_indices: Vec<usize>,
     depth: usize,
     request_indices: Vec<usize>,
@@ -260,12 +257,9 @@ struct Plan {
 
 #[derive(Debug, Clone)]
 struct Model<'a> {
-    input: &'a NonanticipativeServiceOracleInput,
     service: &'a LinkedServiceQualityInput,
     requests: &'a [ServiceRequest],
-    request_indices: BTreeMap<&'a str, usize>,
     nodes: Vec<NormalizedNode>,
-    node_indices: BTreeMap<String, usize>,
     transitions: usize,
 }
 
@@ -333,34 +327,19 @@ fn compare_scores(left: &ScaledScore, right: &ScaledScore) -> Ordering {
         .then_with(|| right.latency_seconds.cmp(&left.latency_seconds))
 }
 
-fn local_score(assignments: &[LocalAssignment], scale: u128) -> Option<ScaledScore> {
-    let raw = assignments.iter().try_fold(RawScore::default(), |mut score, item| {
-        match item.disposition {
-            RequestDisposition::CompletedOnTime => {
-                score.on_time = score.on_time.checked_add(1)?;
-                score.completed = score.completed.checked_add(1)?;
-                score.latency_seconds = score.latency_seconds.checked_add(
-                    item.completion_seconds
-                        .checked_sub(0)?,
-                )?;
-            }
-            RequestDisposition::CompletedLate => {
-                score.completed = score.completed.checked_add(1)?;
-                score.lateness_seconds = score.lateness_seconds.checked_add(
-                    item.completion_seconds,
-                )?;
-                score.latency_seconds = score.latency_seconds.checked_add(
-                    item.completion_seconds,
-                )?;
-            }
-            RequestDisposition::InProgressAtHorizon => {
-                score.in_progress = score.in_progress.checked_add(1)?;
-            }
-            RequestDisposition::RejectedAfterAcceptanceCutoff | RequestDisposition::Unserved => {}
-        }
-        Some(score)
-    })?;
-
+fn local_score(
+    assignments: &[LocalAssignment],
+    requests: &[ServiceRequest],
+    horizon_seconds: u64,
+    scale: u128,
+) -> Option<ScaledScore> {
+    let mut raw = RawScore::default();
+    for assignment in assignments {
+        let request = requests.get(assignment.request_index)?;
+        let (_, contribution) =
+            disposition_score(request, assignment.completion_seconds, horizon_seconds);
+        add_raw_score(&mut raw, contribution).ok()?;
+    }
     Some(ScaledScore {
         on_time: u128::from(raw.on_time).checked_mul(scale)?,
         completed: u128::from(raw.completed).checked_mul(scale)?,
@@ -436,6 +415,7 @@ fn enumerate_node_actions(
     index: usize,
     used_mask: u8,
     current: &mut Vec<LocalAssignment>,
+    horizon_seconds: u64,
     output: &mut Vec<Vec<LocalAssignment>>,
     transitions: &mut usize,
 ) -> Result<(), String> {
@@ -458,6 +438,7 @@ fn enumerate_node_actions(
         index + 1,
         used_mask,
         current,
+        horizon_seconds,
         output,
         transitions,
     )?;
@@ -469,7 +450,7 @@ fn enumerate_node_actions(
             continue;
         }
         let Some(assignment) =
-            make_local_assignment(request_index, opportunity, requests, u64::MAX)
+            make_local_assignment(request_index, opportunity, requests, horizon_seconds)
         else {
             continue;
         };
@@ -481,6 +462,7 @@ fn enumerate_node_actions(
             index + 1,
             used_mask | bit,
             current,
+            horizon_seconds,
             output,
             transitions,
         )?;
@@ -523,15 +505,24 @@ fn solve_node(
         }
     });
 
+    let available_opportunities: Vec<_> = node
+        .revealed_opportunities
+        .iter()
+        .filter(|opportunity| {
+            node.available_opportunity_ids.contains(&opportunity.opportunity_id)
+        })
+        .cloned()
+        .collect();
     let mut actions = Vec::new();
     let mut transitions = 0_usize;
     enumerate_node_actions(
-        &node.revealed_opportunities,
+        &available_opportunities,
         model.requests,
         eligible_mask,
         0,
         0,
         &mut Vec::new(),
+        model.service.horizon_seconds,
         &mut actions,
         &mut transitions,
     )?;
@@ -566,8 +557,13 @@ fn solve_node(
         }
         expired_request_ids.sort();
 
-        let mut score = local_score(&action, scale)
-            .ok_or_else(|| "nonanticipative_local_score_overflow".to_owned())?;
+        let mut score = local_score(
+            &action,
+            model.requests,
+            model.service.horizon_seconds,
+            scale,
+        )
+        .ok_or_else(|| "nonanticipative_local_score_overflow".to_owned())?;
         let mut assignments_by_node = BTreeMap::new();
         let mut expired_by_node = BTreeMap::new();
         let mut policy_assignments: Vec<_> = action
@@ -881,6 +877,7 @@ fn leaf_policy_score(
     nodes: &[NormalizedNode],
     requests: &[ServiceRequest],
     policy: &BTreeMap<String, Vec<ScenarioPolicyAssignment>>,
+    expired_by_node: &BTreeMap<String, Vec<String>>,
     horizon_seconds: u64,
 ) -> Result<(RawScore, usize, usize), String> {
     let mut revealed_requests = BTreeSet::new();
@@ -910,30 +907,12 @@ fn leaf_policy_score(
                 add_raw_score(&mut score, raw)?;
             }
         }
-        if let Some(expired) = policy.get(&node.source.node_id) {
-            let _ = expired;
-        }
-    }
-    for node_index in path {
-        let node = &nodes[*node_index];
-        // Expiry is reconstructed from the node decision times and the same
-        // policy mapping, not trusted as a second independently authored input.
-        for request_index in &node.request_indices {
-            let _ = request_index;
-        }
-        let actions = policy.get(&node.source.node_id);
-        let assigned_at_node: BTreeSet<String> = actions
-            .into_iter()
-            .flatten()
-            .map(|action| action.request_id.clone())
-            .collect();
-        for request_index in 0..requests.len() {
-            if revealed_requests.contains(&request_index)
-                && !assigned_requests.contains(&request_index)
-                && requests[request_index].accept_by_seconds
-                    <= node.source.decision_time_seconds
-                && !assigned_at_node.contains(&requests[request_index].request_id)
-            {
+        if let Some(expired) = expired_by_node.get(&node.source.node_id) {
+            for request_id in expired {
+                let request_index = requests
+                    .iter()
+                    .position(|request| request.request_id == *request_id)
+                    .ok_or_else(|| "expired_policy_request_unknown".to_owned())?;
                 expired_requests.insert(request_index);
             }
         }
@@ -949,7 +928,6 @@ fn leaf_policy_score(
 fn leaf_clairvoyant_score(
     path: &[usize],
     nodes: &[NormalizedNode],
-    service: &LinkedServiceQualityInput,
     requests: &[ServiceRequest],
     horizon_seconds: u64,
     transitions: &mut usize,
@@ -1079,7 +1057,6 @@ pub fn evaluate_nonanticipative_service_oracle(
         .map(|(index, request)| (request.request_id.as_str(), index))
         .collect();
 
-    let mut source_report_digest = String::new();
     let report_bytes = serde_json::to_vec(&capacity_report)
         .map_err(|error| vec![format!("capacity_report_serialization_failed:{error}")])?;
     source_report_digest = sha256_hex(&report_bytes);
@@ -1292,8 +1269,6 @@ pub fn evaluate_nonanticipative_service_oracle(
                 start_seconds: fallback.start_seconds,
                 max_service_duration_seconds: fallback.max_service_duration_seconds,
                 max_payload_units: fallback.max_payload_units,
-                aircraft_or_resource_id: fallback.fallback_resource_id.clone(),
-                source_receipt_id: observation.receipt_id.clone(),
             };
             if observation.available {
                 available_opportunity_ids.insert(observation.opportunity_id.clone());
@@ -1308,7 +1283,6 @@ pub fn evaluate_nonanticipative_service_oracle(
         information_digests.push(information_set_digest.clone());
         normalized.push(NormalizedNode {
             source: node.clone(),
-            parent_index: parent_indices[index],
             child_indices: children_by_index[index].clone(),
             depth: depths[index],
             request_indices: node_request_indices,
@@ -1367,17 +1341,11 @@ pub fn evaluate_nonanticipative_service_oracle(
     }
 
     let mut model = Model {
-        input,
         service,
         requests: &service.requests,
-        request_indices,
         nodes: normalized,
-        node_indices: BTreeMap::new(),
         transitions: 0,
     };
-    for (index, node) in model.nodes.iter().enumerate() {
-        model.node_indices.insert(node.source.node_id.clone(), index);
-    }
     let mut memo = BTreeMap::new();
     let root_plan = solve_node(0, 0, &mut model, &mut memo)
         .map_err(|error| vec![error])?;
@@ -1409,13 +1377,13 @@ pub fn evaluate_nonanticipative_service_oracle(
             &model.nodes,
             model.requests,
             &root_plan.assignments_by_node,
+            &root_plan.expired_by_node,
             service.horizon_seconds,
         )
         .map_err(|error| vec![error])?;
         let clairvoyant_score = leaf_clairvoyant_score(
             path,
             &model.nodes,
-            service,
             model.requests,
             service.horizon_seconds,
             &mut clairvoyant_transitions,
