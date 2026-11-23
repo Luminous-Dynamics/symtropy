@@ -100,7 +100,11 @@ fn run() -> Result<(), String> {
         "native_authority_created": false,
         "platform_inventory_authenticated": false,
         "physical_safety_established": false,
-        "claim_note": "PASS means a deterministic, digest-bound campaign instruction plan was compiled from a validated manifest. It does not mean any fault was injected or delivered, authority was issued, or a physical safety claim was established."
+        "claim_note": concat!(
+            "PASS means a deterministic, digest-bound campaign instruction plan was compiled ",
+            "from a validated manifest. It does not mean any fault was injected or delivered, ",
+            "authority was issued, or a physical safety claim was established."
+        )
     });
     let report_bytes = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("serialize compilation report: {error}"))?;
