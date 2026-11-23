@@ -32,7 +32,28 @@
     "simulation_interfaces_revision": "simulation_interfaces-fixture-v0.1",
     "scene_broadcaster_id": "gz::sim::systems::SceneBroadcaster",
     "scene_broadcaster_revision": "gazebo-build-2026.11.23",
-    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "required_delivery_observer_quorum": 2,
+    "observer_profiles": [
+      {
+        "observer_id": "gazebo-ground-truth-pose",
+        "revision": "pose-observer-v0.1",
+        "binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "common_cause_domains": [
+          "observer-host-a",
+          "observer-power-a"
+        ]
+      },
+      {
+        "observer_id": "gazebo-joint-state-verifier",
+        "revision": "joint-state-verifier-v0.1",
+        "binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "common_cause_domains": [
+          "observer-host-b",
+          "observer-clock-b"
+        ]
+      }
+    ]
   },
   "reset": {
     "status": "confirmed",
@@ -140,28 +161,64 @@
       },
       "delivery_observation": {
         "verdict": "confirmed",
-        "observer_id": "sim-ground-truth-observer",
-        "observer_revision": "gazebo-ground-truth-observer-v0.1",
-        "observer_fault_domain_id": "world-state-observer-domain-a",
-        "observed_fault_signature_sha256": "3030303030303030303030303030303030303030303030303030303030303030",
-        "receipt": {
-          "phase": "delivery_observation",
-          "evidence_id": "evidence-004",
-          "producer_id": "sim-ground-truth-observer",
-          "producer_revision": "gazebo-ground-truth-observer-v0.1",
-          "raw_artifact_id": "artifact-004",
-          "raw_artifact_sha256": "5454545454545454545454545454545454545454545454545454545454545454",
-          "run_id": "run-simulator-known-answer-001",
-          "run_epoch": "sim-process-epoch-01",
-          "world_epoch": "gazebo-world-epoch-001",
-          "fault_id": "fault-process-crash",
-          "fault_sequence": 1,
-          "cut_point": "after_native_acceptance_before_effect",
-          "target_id": "gazebo-entity-1-native-application",
-          "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 101,
-          "simulation_time_ns": 1010000000
-        }
+        "members": [
+          {
+            "observer_id": "gazebo-ground-truth-pose",
+            "observer_revision": "pose-observer-v0.1",
+            "observer_binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "common_cause_domains": [
+              "observer-host-a",
+              "observer-power-a"
+            ],
+            "observed_fault_signature_sha256": "3030303030303030303030303030303030303030303030303030303030303030",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-004",
+              "producer_id": "gazebo-ground-truth-pose",
+              "producer_revision": "pose-observer-v0.1",
+              "raw_artifact_id": "artifact-004",
+              "raw_artifact_sha256": "5454545454545454545454545454545454545454545454545454545454545454",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-process-crash",
+              "fault_sequence": 1,
+              "cut_point": "after_native_acceptance_before_effect",
+              "target_id": "gazebo-entity-1-native-application",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 101,
+              "simulation_time_ns": 1010000000
+            }
+          },
+          {
+            "observer_id": "gazebo-joint-state-verifier",
+            "observer_revision": "joint-state-verifier-v0.1",
+            "observer_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "common_cause_domains": [
+              "observer-host-b",
+              "observer-clock-b"
+            ],
+            "observed_fault_signature_sha256": "3030303030303030303030303030303030303030303030303030303030303030",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-018",
+              "producer_id": "gazebo-joint-state-verifier",
+              "producer_revision": "joint-state-verifier-v0.1",
+              "raw_artifact_id": "artifact-018",
+              "raw_artifact_sha256": "7070707070707070707070707070707070707070707070707070707070707070",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-process-crash",
+              "fault_sequence": 1,
+              "cut_point": "after_native_acceptance_before_effect",
+              "target_id": "gazebo-entity-1-native-application",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 101,
+              "simulation_time_ns": 1010000000
+            }
+          }
+        ]
       }
     },
     {
@@ -251,28 +308,64 @@
       },
       "delivery_observation": {
         "verdict": "confirmed",
-        "observer_id": "sim-ground-truth-observer",
-        "observer_revision": "gazebo-ground-truth-observer-v0.1",
-        "observer_fault_domain_id": "world-state-observer-domain-a",
-        "observed_fault_signature_sha256": "3131313131313131313131313131313131313131313131313131313131313131",
-        "receipt": {
-          "phase": "delivery_observation",
-          "evidence_id": "evidence-008",
-          "producer_id": "sim-ground-truth-observer",
-          "producer_revision": "gazebo-ground-truth-observer-v0.1",
-          "raw_artifact_id": "artifact-008",
-          "raw_artifact_sha256": "5858585858585858585858585858585858585858585858585858585858585858",
-          "run_id": "run-simulator-known-answer-001",
-          "run_epoch": "sim-process-epoch-01",
-          "world_epoch": "gazebo-world-epoch-001",
-          "fault_id": "fault-observer-common-cause",
-          "fault_sequence": 2,
-          "cut_point": "after_possible_effect_before_persistence_ack",
-          "target_id": "gazebo-entity-2-physical-observer-pair",
-          "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 201,
-          "simulation_time_ns": 2010000000
-        }
+        "members": [
+          {
+            "observer_id": "gazebo-ground-truth-pose",
+            "observer_revision": "pose-observer-v0.1",
+            "observer_binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "common_cause_domains": [
+              "observer-host-a",
+              "observer-power-a"
+            ],
+            "observed_fault_signature_sha256": "3131313131313131313131313131313131313131313131313131313131313131",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-008",
+              "producer_id": "gazebo-ground-truth-pose",
+              "producer_revision": "pose-observer-v0.1",
+              "raw_artifact_id": "artifact-008",
+              "raw_artifact_sha256": "5858585858585858585858585858585858585858585858585858585858585858",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-observer-common-cause",
+              "fault_sequence": 2,
+              "cut_point": "after_possible_effect_before_persistence_ack",
+              "target_id": "gazebo-entity-2-physical-observer-pair",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 201,
+              "simulation_time_ns": 2010000000
+            }
+          },
+          {
+            "observer_id": "gazebo-joint-state-verifier",
+            "observer_revision": "joint-state-verifier-v0.1",
+            "observer_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "common_cause_domains": [
+              "observer-host-b",
+              "observer-clock-b"
+            ],
+            "observed_fault_signature_sha256": "3131313131313131313131313131313131313131313131313131313131313131",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-019",
+              "producer_id": "gazebo-joint-state-verifier",
+              "producer_revision": "joint-state-verifier-v0.1",
+              "raw_artifact_id": "artifact-019",
+              "raw_artifact_sha256": "7171717171717171717171717171717171717171717171717171717171717171",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-observer-common-cause",
+              "fault_sequence": 2,
+              "cut_point": "after_possible_effect_before_persistence_ack",
+              "target_id": "gazebo-entity-2-physical-observer-pair",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 201,
+              "simulation_time_ns": 2010000000
+            }
+          }
+        ]
       }
     },
     {
@@ -362,28 +455,64 @@
       },
       "delivery_observation": {
         "verdict": "confirmed",
-        "observer_id": "sim-ground-truth-observer",
-        "observer_revision": "gazebo-ground-truth-observer-v0.1",
-        "observer_fault_domain_id": "world-state-observer-domain-a",
-        "observed_fault_signature_sha256": "3232323232323232323232323232323232323232323232323232323232323232",
-        "receipt": {
-          "phase": "delivery_observation",
-          "evidence_id": "evidence-012",
-          "producer_id": "sim-ground-truth-observer",
-          "producer_revision": "gazebo-ground-truth-observer-v0.1",
-          "raw_artifact_id": "artifact-012",
-          "raw_artifact_sha256": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
-          "run_id": "run-simulator-known-answer-001",
-          "run_epoch": "sim-process-epoch-01",
-          "world_epoch": "gazebo-world-epoch-001",
-          "fault_id": "fault-controller-queue-retention",
-          "fault_sequence": 3,
-          "cut_point": "after_controller_fence_before_downstream_fence",
-          "target_id": "gazebo-entity-3-controller-command-queue",
-          "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 301,
-          "simulation_time_ns": 3010000000
-        }
+        "members": [
+          {
+            "observer_id": "gazebo-ground-truth-pose",
+            "observer_revision": "pose-observer-v0.1",
+            "observer_binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "common_cause_domains": [
+              "observer-host-a",
+              "observer-power-a"
+            ],
+            "observed_fault_signature_sha256": "3232323232323232323232323232323232323232323232323232323232323232",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-012",
+              "producer_id": "gazebo-ground-truth-pose",
+              "producer_revision": "pose-observer-v0.1",
+              "raw_artifact_id": "artifact-012",
+              "raw_artifact_sha256": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-controller-queue-retention",
+              "fault_sequence": 3,
+              "cut_point": "after_controller_fence_before_downstream_fence",
+              "target_id": "gazebo-entity-3-controller-command-queue",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 301,
+              "simulation_time_ns": 3010000000
+            }
+          },
+          {
+            "observer_id": "gazebo-joint-state-verifier",
+            "observer_revision": "joint-state-verifier-v0.1",
+            "observer_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "common_cause_domains": [
+              "observer-host-b",
+              "observer-clock-b"
+            ],
+            "observed_fault_signature_sha256": "3232323232323232323232323232323232323232323232323232323232323232",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-020",
+              "producer_id": "gazebo-joint-state-verifier",
+              "producer_revision": "joint-state-verifier-v0.1",
+              "raw_artifact_id": "artifact-020",
+              "raw_artifact_sha256": "7272727272727272727272727272727272727272727272727272727272727272",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-controller-queue-retention",
+              "fault_sequence": 3,
+              "cut_point": "after_controller_fence_before_downstream_fence",
+              "target_id": "gazebo-entity-3-controller-command-queue",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 301,
+              "simulation_time_ns": 3010000000
+            }
+          }
+        ]
       }
     },
     {
@@ -473,28 +602,64 @@
       },
       "delivery_observation": {
         "verdict": "confirmed",
-        "observer_id": "sim-ground-truth-observer",
-        "observer_revision": "gazebo-ground-truth-observer-v0.1",
-        "observer_fault_domain_id": "world-state-observer-domain-a",
-        "observed_fault_signature_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "receipt": {
-          "phase": "delivery_observation",
-          "evidence_id": "evidence-016",
-          "producer_id": "sim-ground-truth-observer",
-          "producer_revision": "gazebo-ground-truth-observer-v0.1",
-          "raw_artifact_id": "artifact-016",
-          "raw_artifact_sha256": "6060606060606060606060606060606060606060606060606060606060606060",
-          "run_id": "run-simulator-known-answer-001",
-          "run_epoch": "sim-process-epoch-01",
-          "world_epoch": "gazebo-world-epoch-001",
-          "fault_id": "fault-firmware-power-loss",
-          "fault_sequence": 4,
-          "cut_point": "after_permit_consumption_before_ack",
-          "target_id": "gazebo-entity-4-actuator-drive",
-          "clock_id": "gazebo-iteration-clock",
-          "simulation_step": 401,
-          "simulation_time_ns": 4010000000
-        }
+        "members": [
+          {
+            "observer_id": "gazebo-ground-truth-pose",
+            "observer_revision": "pose-observer-v0.1",
+            "observer_binary_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "common_cause_domains": [
+              "observer-host-a",
+              "observer-power-a"
+            ],
+            "observed_fault_signature_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-016",
+              "producer_id": "gazebo-ground-truth-pose",
+              "producer_revision": "pose-observer-v0.1",
+              "raw_artifact_id": "artifact-016",
+              "raw_artifact_sha256": "6060606060606060606060606060606060606060606060606060606060606060",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-firmware-power-loss",
+              "fault_sequence": 4,
+              "cut_point": "after_permit_consumption_before_ack",
+              "target_id": "gazebo-entity-4-actuator-drive",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 401,
+              "simulation_time_ns": 4010000000
+            }
+          },
+          {
+            "observer_id": "gazebo-joint-state-verifier",
+            "observer_revision": "joint-state-verifier-v0.1",
+            "observer_binary_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "common_cause_domains": [
+              "observer-host-b",
+              "observer-clock-b"
+            ],
+            "observed_fault_signature_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "receipt": {
+              "phase": "delivery_observation",
+              "evidence_id": "evidence-021",
+              "producer_id": "gazebo-joint-state-verifier",
+              "producer_revision": "joint-state-verifier-v0.1",
+              "raw_artifact_id": "artifact-021",
+              "raw_artifact_sha256": "7373737373737373737373737373737373737373737373737373737373737373",
+              "run_id": "run-simulator-known-answer-001",
+              "run_epoch": "sim-process-epoch-01",
+              "world_epoch": "gazebo-world-epoch-001",
+              "fault_id": "fault-firmware-power-loss",
+              "fault_sequence": 4,
+              "cut_point": "after_permit_consumption_before_ack",
+              "target_id": "gazebo-entity-4-actuator-drive",
+              "clock_id": "gazebo-iteration-clock",
+              "simulation_step": 401,
+              "simulation_time_ns": 4010000000
+            }
+          }
+        ]
       }
     }
   ]
