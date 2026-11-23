@@ -1,0 +1,14 @@
+[package]
+name = "orbital-observation-process-identifiability-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+description = "Identifiability and sensitivity benchmark for thinned power-law event processes"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[workspace]

@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-observation-identifiability-receipt-v0.1.json",
+  "title": "Orbital observation-process identifiability receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "fixture_sha256",
+    "result",
+    "report",
+    "physical_reliability_claim_granted",
+    "qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-observation-identifiability.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "fixture_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "physical_reliability_claim_granted": {
+      "const": false
+    },
+    "qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analytic_case_count",
+        "equivalent_decomposition_count",
+        "sensitivity_case_count",
+        "analytic_expected_result_mismatches",
+        "sensitivity_mismatches",
+        "simulation_case_count",
+        "simulation_consistent_count",
+        "simulation_inconsistent_count",
+        "shape_nonidentifiability_cases",
+        "scale_nonidentifiability_cases",
+        "physical_reliability_claims",
+        "qualification_claims",
+        "authority_grants"
+      ],
+      "properties": {
+        "analytic_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "equivalent_decomposition_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sensitivity_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "analytic_expected_result_mismatches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sensitivity_mismatches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulation_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulation_consistent_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulation_inconsistent_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shape_nonidentifiability_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scale_nonidentifiability_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "physical_reliability_claims": {
+          "const": 0
+        },
+        "qualification_claims": {
+          "const": 0
+        },
+        "authority_grants": {
+          "const": 0
+        }
+      }
+    },
+    "decomposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture",
+        "physical",
+        "reproduced_observed",
+        "shape_residual",
+        "scale_relative_residual",
+        "observationally_equivalent"
+      ],
+      "properties": {
+        "capture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "p0",
+            "gamma"
+          ],
+          "properties": {
+            "p0": {
+              "type": "number"
+            },
+            "gamma": {
+              "type": "number"
+            }
+          }
+        },
+        "physical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eta",
+            "beta"
+          ],
+          "properties": {
+            "eta": {
+              "type": "number"
+            },
+            "beta": {
+              "type": "number"
+            }
+          }
+        },
+        "reproduced_observed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eta_observed",
+            "beta_observed"
+          ],
+          "properties": {
+            "eta_observed": {
+              "type": "number"
+            },
+            "beta_observed": {
+              "type": "number"
+            }
+          }
+        },
+        "shape_residual": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scale_relative_residual": {
+          "type": "number",
+          "minimum": 0
+        },
+        "observationally_equivalent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "analytic_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "observed",
+        "equivalent_decompositions",
+        "shape_identifiable_from_timestamps_alone",
+        "scale_identifiable_from_timestamps_alone",
+        "expected_result_matched",
+        "blockers"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "observed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eta_observed",
+            "beta_observed"
+          ],
+          "properties": {
+            "eta_observed": {
+              "type": "number"
+            },
+            "beta_observed": {
+              "type": "number"
+            }
+          }
+        },
+        "equivalent_decompositions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decomposition"
+          }
+        },
+        "shape_identifiable_from_timestamps_alone": {
+          "const": false
+        },
+        "scale_identifiable_from_timestamps_alone": {
+          "const": false
+        },
+        "expected_result_matched": {
+          "type": "boolean"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sensitivity_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "interval",
+        "expected_result_matched",
+        "blockers"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "beta_min",
+            "beta_max",
+            "lower_open",
+            "identifiable",
+            "gamma_min",
+            "gamma_max"
+          ],
+          "properties": {
+            "beta_min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "beta_max": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "lower_open": {
+              "type": "boolean"
+            },
+            "identifiable": {
+              "type": "boolean"
+            },
+            "gamma_min": {
+              "type": "number",
+              "minimum": 0
+            },
+            "gamma_max": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "expected_result_matched": {
+          "type": "boolean"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "simulation_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "physical_beta",
+        "capture_p0",
+        "capture_gamma",
+        "theoretical_observed_beta",
+        "estimated_observed_beta",
+        "physical_event_count",
+        "captured_event_count",
+        "empirical_capture_fraction",
+        "theoretical_capture_fraction",
+        "beta_absolute_error",
+        "simulation_consistent_with_observed_plp",
+        "physical_rng_seed",
+        "capture_rng_seed",
+        "prng_id",
+        "blockers"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "physical_beta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "capture_p0": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "capture_gamma": {
+          "type": "number",
+          "minimum": 0
+        },
+        "theoretical_observed_beta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "estimated_observed_beta": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "physical_event_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "captured_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "empirical_capture_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "theoretical_capture_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "beta_absolute_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "simulation_consistent_with_observed_plp": {
+          "type": "boolean"
+        },
+        "physical_rng_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "capture_rng_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "prng_id": {
+          "type": "string"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result",
+        "evidence_class",
+        "claim_ceiling",
+        "mathematical_identity",
+        "physical_reliability_claim_granted",
+        "qualification_granted",
+        "authority_granted",
+        "summary",
+        "analytic_cases",
+        "sensitivity_cases",
+        "simulation_cases"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "claim_ceiling": {
+          "const": "synthetic-thinned-plp-identifiability-only"
+        },
+        "mathematical_identity": {
+          "const": "beta_observed = beta_physical + gamma_detection"
+        },
+        "physical_reliability_claim_granted": {
+          "const": false
+        },
+        "qualification_granted": {
+          "const": false
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "analytic_cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/analytic_case"
+          }
+        },
+        "sensitivity_cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sensitivity_case"
+          }
+        },
+        "simulation_cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/simulation_case"
+          }
+        }
+      }
+    }
+  }
+}
