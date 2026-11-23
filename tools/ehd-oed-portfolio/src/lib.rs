@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Constraint-first, nuisance-adjusted experiment portfolio selection.
 //!
 //! This is an abstract linear-Gaussian reference kernel with two physical
