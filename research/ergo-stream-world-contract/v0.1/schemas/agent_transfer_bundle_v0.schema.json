@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ergo-agent-transfer-bundle-v0.schema.json",
+  "title": "ErgoStream agent transfer bundle v0",
+  "description": "Versioned transfer sidecar attached to an existing blind AgentSubmission by digest and evidence-prefix identity. It contains learner proposals/predictions only, never evaluator truth or hidden target transitions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "agent_submission_binding",
+    "structural_transfer"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-agent-transfer-bundle-v0"
+    },
+    "agent_submission_binding": {
+      "$ref": "#/$defs/submission_binding"
+    },
+    "structural_transfer": {
+      "$ref": "ergo-transfer-proposal-v0.schema.json"
+    },
+    "dynamics_transfer": {
+      "$ref": "#/$defs/dynamics_transfer"
+    },
+    "unresolved": {
+      "type": "boolean"
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dynamics_transfer"
+      }
+    },
+    "known_non_transfer_boundaries": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "submission_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "submission_schema_version",
+        "submission_sha256",
+        "source_episode_id",
+        "target_episode_id",
+        "source_evidence_prefix_sha256",
+        "target_evidence_prefix_sha256"
+      ],
+      "properties": {
+        "submission_schema_version": {
+          "const": "symthaea-open-world-research-episode-v0"
+        },
+        "submission_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "id_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_ids",
+        "action_ids",
+        "excluded_state_ids",
+        "excluded_action_ids"
+      ],
+      "properties": {
+        "state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "excluded_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "excluded_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "state_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_id",
+        "target_state_id"
+      ],
+      "properties": {
+        "source_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "action_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_action_kind",
+        "target_action_kind"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "target_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "predicted_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_from_state_id",
+        "source_action_id",
+        "source_to_state_id",
+        "predicted_target_from_state_id",
+        "predicted_target_action_id",
+        "predicted_target_to_state_id"
+      ],
+      "properties": {
+        "source_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "dynamics_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_kind",
+        "source_scope",
+        "target_scope",
+        "state_mappings",
+        "action_mappings",
+        "predicted_transitions",
+        "assumptions",
+        "unresolved"
+      ],
+      "properties": {
+        "map_kind": {
+          "const": "deterministic_transition_commutation"
+        },
+        "source_scope": {
+          "$ref": "#/$defs/id_scope"
+        },
+        "target_scope": {
+          "$ref": "#/$defs/id_scope"
+        },
+        "state_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_mapping"
+          }
+        },
+        "action_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_mapping"
+          }
+        },
+        "predicted_transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/predicted_transition"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "unresolved": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
