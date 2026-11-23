@@ -14,7 +14,7 @@ Sources:
 - DCSA, Implementing the DCSA Track & Trace Standard (v2.2): https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace
 - DCSA, Track & Trace Interface Standard v2.2 release announcement: https://dcsa.org/newsroom/dcsa-releases-track-trace-interface-standard-version-2-2
 
-The v2.2.0 event-family gate recognizes SHIPMENT, TRANSPORT and EQUIPMENT. IOT and REEFER are explicitly unsupported under that profile; they are not silently coerced into equipment events.
+The v2.2.0 event-family gate recognizes SHIPMENT, TRANSPORT and EQUIPMENT. IOT and REEFER are explicitly unsupported under that profile; they are not silently coerced into equipment events. The IOT and REEFER names in this benchmark are local family labels, not assertions about the exact v3.0.0 wire-enum spellings; those must come from the authenticated, version-pinned v3 normative artifacts.
 
 For v3.0.0, the gate requires a caller-declared member/partner access class plus a syntactically valid artifact digest and non-empty scope reference. A successful SUPPORTED_V3_PROFILE_ONLY result means only that the candidate belongs to a locally declared, access-authorized, pinned v3 profile. It does not mean that access rights have been independently authenticated, that the normative artifact bytes have been hashed here, or that DCSA conformance has passed.
 
