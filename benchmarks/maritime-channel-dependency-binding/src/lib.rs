@@ -136,7 +136,7 @@ pub enum DimensionInventory {
     /// No defensible inventory is available.
     Unknown,
     /// Exclusion must carry an explicit rationale and remains visible.
-    NotApplicable { rationale: String },
+    NotApplicable { rationale: String, owner: String },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -269,7 +269,7 @@ impl MaritimeProfile {
             profile_digest,
             as_of_epoch_seconds,
             source_role: "source".to_owned(),
-            witness_role: "independent_witness".to_owned(),
+            witness_role: "witness".to_owned(),
             obligations,
         }
     }
@@ -320,7 +320,7 @@ pub struct DimensionFinding {
     pub notes: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ValidationError {
     EmptyProfileBinding,
     InvalidProfileSchema,
@@ -446,7 +446,7 @@ fn validate_profile_and_projection(
                     }
                     DimensionInventory::Partial(_) | DimensionInventory::Unknown => {}
                     DimensionInventory::NotApplicable { rationale }
-                        if rationale.trim().is_empty() =>
+                        if rationale.trim().is_empty() || owner.trim().is_empty() =>
                     {
                         errors.insert(ValidationError::EmptyNotApplicableRationale);
                     }
@@ -522,14 +522,14 @@ fn assess_obligation(
         return finding;
     };
 
-    if let DimensionInventory::NotApplicable { rationale } = left_inventory {
+    if let DimensionInventory::NotApplicable { rationale, owner } = left_inventory {
         finding.disposition = SeparationDisposition::NotApplicable;
-        finding.notes.push(format!("source role excludes dimension: {rationale}"));
+        finding.notes.push(format!("source role excludes dimension: {rationale}; owner: {owner}"));
         return finding;
     }
-    if let DimensionInventory::NotApplicable { rationale } = right_inventory {
+    if let DimensionInventory::NotApplicable { rationale, owner } = right_inventory {
         finding.disposition = SeparationDisposition::NotApplicable;
-        finding.notes.push(format!("witness role excludes dimension: {rationale}"));
+        finding.notes.push(format!("witness role excludes dimension: {rationale}; owner: {owner}"));
         return finding;
     }
 
@@ -720,9 +720,9 @@ mod tests {
                     },
                 ),
                 (
-                    "independent_witness".to_owned(),
+                    "witness".to_owned(),
                     RoleClosure {
-                        role_id: "independent_witness".to_owned(),
+                        role_id: "witness".to_owned(),
                         role_binding_node_id: "witness-binding".to_owned(),
                         dimensions: right_dimensions,
                     },
@@ -1034,7 +1034,7 @@ mod tests {
                 "edge-a",
             )]),
             DimensionInventory::Complete(vec![witness(
-                5,
+                6,
                 MaritimeDependencyClass::PhysicalAcquisition,
                 "witness-binding",
                 "witness-reader",
@@ -1050,7 +1050,7 @@ mod tests {
             role.dimensions.insert(
                 runtime,
                 DimensionInventory::Complete(vec![witness(
-                    5,
+                    if role.role_id == "source" { 5 } else { 6 },
                     MaritimeDependencyClass::GatewayRuntime,
                     if role.role_id == "source" { "source-binding" } else { "witness-binding" },
                     if role.role_id == "source" { "source-gateway" } else { "witness-gateway" },
@@ -1148,6 +1148,7 @@ mod tests {
         let (profile, projection) = projection(
             DimensionInventory::NotApplicable {
                 rationale: "no trust-root proof supplied in this synthetic profile".to_owned(),
+                owner: "profile-review-owner".to_owned(),
             },
             DimensionInventory::Complete(vec![witness(
                 2,
