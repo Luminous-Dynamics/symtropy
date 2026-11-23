@@ -252,7 +252,12 @@ pub fn aggregate_latent_mission_collision_risk(
 
     let mut lower = Rational::from_integer(0);
     let mut upper = Rational::from_integer(0);
-    let mut independence_point = Some(Rational::from_integer(0));
+    let mut independence_point = match dependence_mode {
+        ConditionalDependenceMode::UnknownWithinLatentState => None,
+        ConditionalDependenceMode::IndependentGivenLatentState { .. } => {
+            Some(Rational::from_integer(0))
+        }
+    };
 
     for (state_id, state_cells) in &cells_by_state {
         let weight = *state_weights
@@ -627,6 +632,39 @@ mod tests {
         assert_eq!(report.event_count, 0);
         assert_eq!(report.dependence_free_lower_bound, rational(0, 1));
         assert_eq!(report.dependence_free_upper_bound, rational(0, 1));
+    }
+
+    #[test]
+    fn unknown_dependence_does_not_compute_an_unneeded_conditional_product() {
+        let tiny = rational(1, u128::MAX);
+        let cells = [cell(1, 1, 1, u128::MAX), cell(1, 2, 1, u128::MAX)];
+        let report = aggregate_latent_mission_collision_risk(
+            scope(),
+            &[state(1, 1, 1)],
+            &cells,
+            ConditionalDependenceMode::UnknownWithinLatentState,
+        )
+        .unwrap();
+
+        assert_eq!(report.dependence_free_lower_bound, tiny);
+        assert_eq!(report.dependence_free_upper_bound, rational(2, u128::MAX));
+        assert_eq!(report.conditional_independence_point, None);
+    }
+
+    #[test]
+    fn conditional_product_overflow_is_reported_only_when_that_model_is_requested() {
+        let cells = [cell(1, 1, 1, u128::MAX), cell(1, 2, 1, u128::MAX)];
+        assert_eq!(
+            aggregate_latent_mission_collision_risk(
+                scope(),
+                &[state(1, 1, 1)],
+                &cells,
+                ConditionalDependenceMode::IndependentGivenLatentState {
+                    assumption_digest: [9; 32],
+                },
+            ),
+            Err(LatentMissionRiskError::ArithmeticOverflow)
+        );
     }
 
     #[test]
