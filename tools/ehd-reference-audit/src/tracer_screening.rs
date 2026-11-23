@@ -386,7 +386,7 @@ pub fn reference_self_check() -> Result<(), TracerScreenError> {
     let incense_cones_edge_only = screen_tracer_candidate(TracerScreenInput {
         pressure_atm: 0.30,
         tracer: TracerKind::IncenseCones,
-        maximum_interrogation_window_px: 64,
+        maximum_interrogation_window_px: 128,
         require_full_field: true,
         require_boundary_layer_detail: false,
     })?;
