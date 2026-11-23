@@ -2101,8 +2101,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 184991860,
-          "regret_units_micros": 55156400,
+          "expected_cost_units_micros": 184990720,
+          "regret_units_micros": 55155260,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 72
@@ -2153,8 +2153,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 200001740,
-          "regret_units_micros": 48155260,
+          "expected_cost_units_micros": 200000600,
+          "regret_units_micros": 48154120,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 87
@@ -2205,8 +2205,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 215011620,
-          "regret_units_micros": 41153740,
+          "expected_cost_units_micros": 215010480,
+          "regret_units_micros": 41152600,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 102
@@ -2257,8 +2257,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 170021500,
-          "regret_units_micros": 62152600,
+          "expected_cost_units_micros": 170020360,
+          "regret_units_micros": 62151460,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 57
@@ -2309,8 +2309,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 185031380,
-          "regret_units_micros": 55151460,
+          "expected_cost_units_micros": 185030240,
+          "regret_units_micros": 55150320,
           "synthetic_completion": false,
           "on_time": false,
           "realized_cost_units": 452
@@ -2361,8 +2361,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 200041260,
-          "regret_units_micros": 48150320,
+          "expected_cost_units_micros": 200040120,
+          "regret_units_micros": 48149180,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 87
@@ -2413,8 +2413,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 215051140,
-          "regret_units_micros": 41148800,
+          "expected_cost_units_micros": 215050000,
+          "regret_units_micros": 41147660,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 102
@@ -2465,8 +2465,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 170061020,
-          "regret_units_micros": 62147660,
+          "expected_cost_units_micros": 170059880,
+          "regret_units_micros": 62146520,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 57
@@ -2517,8 +2517,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 185070900,
-          "regret_units_micros": 55146520,
+          "expected_cost_units_micros": 185069760,
+          "regret_units_micros": 55145380,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 72
@@ -2569,8 +2569,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 200080780,
-          "regret_units_micros": 48145000,
+          "expected_cost_units_micros": 200079640,
+          "regret_units_micros": 48143860,
           "synthetic_completion": false,
           "on_time": false,
           "realized_cost_units": 467
@@ -2621,8 +2621,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 215090660,
-          "regret_units_micros": 41143860,
+          "expected_cost_units_micros": 215089520,
+          "regret_units_micros": 41142720,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 102
@@ -2673,8 +2673,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 170100160,
-          "regret_units_micros": 62142340,
+          "expected_cost_units_micros": 170099400,
+          "regret_units_micros": 62141580,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 57
@@ -2725,8 +2725,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 185110040,
-          "regret_units_micros": 55141200,
+          "expected_cost_units_micros": 185109280,
+          "regret_units_micros": 55140440,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 72
@@ -2777,8 +2777,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 200119920,
-          "regret_units_micros": 48139680,
+          "expected_cost_units_micros": 200118780,
+          "regret_units_micros": 48138540,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 87
@@ -2829,8 +2829,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 215129800,
-          "regret_units_micros": 41138540,
+          "expected_cost_units_micros": 215128660,
+          "regret_units_micros": 41137400,
           "synthetic_completion": false,
           "on_time": false,
           "realized_cost_units": 482
@@ -2881,8 +2881,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 170139680,
-          "regret_units_micros": 62137400,
+          "expected_cost_units_micros": 170138540,
+          "regret_units_micros": 62136260,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 57
@@ -2933,8 +2933,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 185149560,
-          "regret_units_micros": 55135880,
+          "expected_cost_units_micros": 185148420,
+          "regret_units_micros": 55134740,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 72
@@ -2985,8 +2985,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 200159440,
-          "regret_units_micros": 48134740,
+          "expected_cost_units_micros": 200158300,
+          "regret_units_micros": 48133600,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 87
@@ -3037,8 +3037,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 215169320,
-          "regret_units_micros": 41133600,
+          "expected_cost_units_micros": 215168180,
+          "regret_units_micros": 41132460,
           "synthetic_completion": true,
           "on_time": true,
           "realized_cost_units": 102
@@ -3089,8 +3089,8 @@
         {
           "policy_id": "fastest_admissible",
           "chosen_route_id": "REGIONAL-FDM",
-          "expected_cost_units_micros": 170179200,
-          "regret_units_micros": 62132460,
+          "expected_cost_units_micros": 170178060,
+          "regret_units_micros": 62131320,
           "synthetic_completion": false,
           "on_time": false,
           "realized_cost_units": 437
