@@ -334,7 +334,7 @@ InjectDownstreamRetention ==
     LET i == s.activeAttempt IN
         /\ s.processStatus = "running"
         /\ s.attempts[i].status = "accepted"
-        /\ s.attempts[i].downstreamFenceBootEpoch = 0
+        /\ s.attempts[i].downstreamFenceBootEpoch < s.bootEpoch
         /\ s' = [s EXCEPT !.attempts[i].downstreamRetention = TRUE]
 
 ClearDownstreamRetention ==
