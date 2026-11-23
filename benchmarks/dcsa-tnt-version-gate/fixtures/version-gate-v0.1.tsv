@@ -1,0 +1,15 @@
+# case_id|version|family|access|artifact_sha256|scope_ref|expected
+v22-shipment|2.2.0|SHIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
+v22-transport|2.2.0|TRANSPORT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
+v22-equipment|2.2.0|EQUIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|SUPPORTED_V2_2_PROFILE_ONLY
+v22-iot-not-in-profile|2.2.0|IOT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|UNSUPPORTED_FOR_VERSION
+v22-reefer-not-in-profile|2.2.0|REEFER|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|UNSUPPORTED_FOR_VERSION
+v30-public-not-authorized|3.0.0|IOT|PUBLIC|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|DCSA-TNT-3.0.0-MEMBER|ACCESS_REQUIRED
+v30-missing-artifact-pin|3.0.0|IOT|MEMBER_PARTNER||DCSA-TNT-3.0.0-MEMBER|ARTIFACTS_NOT_PINNED
+v30-iot-authorized-profile|3.0.0|IOT|MEMBER_PARTNER|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|DCSA-TNT-3.0.0-MEMBER|SUPPORTED_V3_PROFILE_ONLY
+v30-reefer-authorized-profile|3.0.0|REEFER|MEMBER_PARTNER|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|DCSA-TNT-3.0.0-MEMBER|SUPPORTED_V3_PROFILE_ONLY
+v30-equipment-authorized-profile|3.0.0|EQUIPMENT|MEMBER_PARTNER|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|DCSA-TNT-3.0.0-MEMBER|SUPPORTED_V3_PROFILE_ONLY
+unknown-version|9.9.9|SHIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|UNKNOWN|UNSUPPORTED_VERSION
+unknown-event-family|2.2.0|FUTURE_FAMILY|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|DCSA-TNT-2.2.0-CONSUMER|UNSUPPORTED_EVENT_FAMILY
+invalid-digest|2.2.0|SHIPMENT|PUBLIC|not-a-digest|DCSA-TNT-2.2.0-CONSUMER|ARTIFACTS_NOT_PINNED
+missing-scope|2.2.0|SHIPMENT|PUBLIC|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa||ARTIFACTS_NOT_PINNED
