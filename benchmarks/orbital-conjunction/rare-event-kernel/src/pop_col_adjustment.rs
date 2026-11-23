@@ -16,11 +16,9 @@
 //! midpoint-bisection semantics. This remains a fixed-time numerical policy;
 //! it is not a propagator or the full iterative PeakOverlapPos state machine.
 
-use crate::conditional_velocity::Matrix3;
-use crate::pop_col_energy::{
-    PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy,
-};
 use crate::KernelError;
+use crate::conditional_velocity::Matrix3;
+use crate::pop_col_energy::{PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy};
 
 /// Pinned NASA CARA center-of-linearity adjustment configuration.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -229,8 +227,7 @@ pub fn adjust_pop_col_energy_limited_center(
     if selected_fraction <= 0.0 {
         selected_fraction = 1.0 / (INITIAL_FRACTION_COUNT - 1) as f64;
         selected_objective = energy_change_objective(
-            evaluate_fraction(input, selected_fraction)?
-                .specific_orbital_energy_km2_per_s2,
+            evaluate_fraction(input, selected_fraction)?.specific_orbital_energy_km2_per_s2,
             original_energy.specific_orbital_energy_km2_per_s2,
             config.maximum_relative_energy_change,
         )?;
@@ -491,8 +488,7 @@ fn relative_energy_change(original_energy: f64, proposed_energy: f64) -> Result<
 }
 
 fn validate_config(config: PopColAdjustmentConfig) -> Result<(), KernelError> {
-    if config.maximum_relative_energy_change.is_nan()
-        || config.maximum_relative_energy_change < 0.0
+    if config.maximum_relative_energy_change.is_nan() || config.maximum_relative_energy_change < 0.0
     {
         return Err(KernelError::InvalidPopColAdjustmentPolicy);
     }
@@ -599,9 +595,15 @@ mod tests {
             0.10,
         );
         let result = adjust_pop_col_energy_limited_center(input, config).unwrap();
-        assert_eq!(result.status, PopColAdjustmentStatus::CandidateWithinEnergyLimit);
+        assert_eq!(
+            result.status,
+            PopColAdjustmentStatus::CandidateWithinEnergyLimit
+        );
         assert_eq!(result.adjustment_fraction, 1.0);
-        assert_eq!(result.adjusted_col_position_km, input.proposed_overlap_position_km);
+        assert_eq!(
+            result.adjusted_col_position_km,
+            input.proposed_overlap_position_km
+        );
         assert!(!result.search.refinement_attempted);
         assert_eq!(result.search.initial_sample_count, 0);
         assert_eq!(result.search.initial_minimum_grid_index, None);
@@ -618,7 +620,10 @@ mod tests {
             0.10,
         );
         let result = adjust_pop_col_energy_limited_center(input, config).unwrap();
-        assert_eq!(result.status, PopColAdjustmentStatus::OriginalCenterNonnegativeEnergy);
+        assert_eq!(
+            result.status,
+            PopColAdjustmentStatus::OriginalCenterNonnegativeEnergy
+        );
         assert_eq!(result.adjustment_fraction, 1.0);
         assert_eq!(result.adjusted_col_position_km, input.proposed_overlap_position_km);
         assert_eq!(result.proposed_relative_energy_change, None);
@@ -626,11 +631,7 @@ mod tests {
 
     #[test]
     fn energy_limiter_selects_an_interior_fraction_for_a_large_conditional_velocity_change() {
-        let beta = [
-            [0.05, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ];
+        let beta = [[0.05, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
         let (input, config) = input(
             [7000.0, 0.0, 0.0],
             [7100.0, 0.0, 0.0],
@@ -639,19 +640,18 @@ mod tests {
             0.10,
         );
         let result = adjust_pop_col_energy_limited_center(input, config).unwrap();
-        assert_eq!(result.status, PopColAdjustmentStatus::EnergyLimitedCandidate);
+        assert_eq!(
+            result.status,
+            PopColAdjustmentStatus::EnergyLimitedCandidate
+        );
         assert!(result.adjustment_fraction > 0.0 && result.adjustment_fraction < 1.0);
-        assert!(result.search.initial_sample_count == 201);
+        assert_eq!(result.search.initial_sample_count, 201);
         assert!(result.adjusted_energy.specific_orbital_energy_km2_per_s2 < 0.0);
     }
 
     #[test]
     fn source_endpoint_refinement_is_triggered_when_grid_minimum_is_in_first_two_points() {
-        let beta = [
-            [1.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ];
+        let beta = [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
         let (input, config) = input(
             [7000.0, 0.0, 0.0],
             [7100.0, 0.0, 0.0],
