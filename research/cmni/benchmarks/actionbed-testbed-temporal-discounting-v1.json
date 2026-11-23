@@ -1,0 +1,169 @@
+{
+  "schema_version": "cmni-external-baseline-v1",
+  "baseline_id": "actionbed-testbed-temporal-discounting",
+  "baseline_family": "task_driven_bayesian_experimental_design",
+  "paper": {
+    "title": "Action-BED: Task-Driven Bayesian Experimental Design with Singly Intractable Objectives",
+    "authors": [
+      "Tom Rossa",
+      "Angus Phillips",
+      "Tom Rainforth"
+    ],
+    "arxiv": "2606.23662",
+    "version": "v2",
+    "version_date": "2026-11-06",
+    "accepted_venue": "NeurIPS 2026",
+    "url": "https://arxiv.org/abs/2606.23662"
+  },
+  "benchmark_software": {
+    "name": "TestBED",
+    "repository": "https://github.com/testbed-benchmark/testbed",
+    "commit": "016fd46fd38186f2d7e7e4fed35d38165ace905a",
+    "commit_date": "2026-11-05T14:25:57Z",
+    "license": "Apache-2.0",
+    "readme_blob": "26bcedefca70b9c7ece6500e0dc1889f66091d3b",
+    "pyproject_blob": "7bb2236c9fd5d6a8bd9ab370b70a654c4a79ef07",
+    "actionbed_implementation_blob": "8a9cb776ff23e2320f85ddf8751e960283fd884b",
+    "temporal_discounting_recipe_blob": "4d11ca4e4fdff1fa9f98ba890e86b96c511e3fa8",
+    "method_recipe_blob": "592982799fabe56e84b326a8d7d6c4c93d724fd4",
+    "task_recipe_blob": "bf576efeb611c7057b4bdbbeed0932286091e6f6",
+    "final_eval_recipe_blob": "8ae8edefc7684280323a4eee4c4120b344308a49",
+    "immutable_commit_url": "https://github.com/testbed-benchmark/testbed/tree/016fd46fd38186f2d7e7e4fed35d38165ace905a"
+  },
+  "environment_contract": {
+    "python_minimum": "3.10",
+    "python_maximum": "3.13",
+    "pytorch_minimum": "2.5",
+    "hydra_core_minimum": "1.3",
+    "rationale": "TestBED README notes Hydra 1.3 CLI is not supported on Python 3.14.",
+    "environment_lock_required": true,
+    "container_digest_required": true,
+    "actual_device_must_be_recorded": true
+  },
+  "task": {
+    "name": "temporal_discounting",
+    "horizon": 20,
+    "task_model": "testbed.tasks.TemporalDiscounting",
+    "prior": "TestBED standard hyperbolic temporal-discounting prior",
+    "outcome_model": "discrete Bernoulli, temperature=0.0",
+    "design": "(delay D1 >= 0, immediate reward R0 in [0,100])",
+    "parameters": [
+      "discount rate k",
+      "choice-noise scale alpha"
+    ]
+  },
+  "method": {
+    "name": "Action-BED",
+    "design_policy": "PolicyDesigner with inherited AttentivePolicyNet",
+    "action_policy": "MLPPolicyNet",
+    "action_network_dimensions": [
+      60,
+      512,
+      256,
+      128,
+      2
+    ],
+    "objective": "REINFORCE",
+    "reinforce_baseline": "leave_one_out",
+    "stochastic_design_policy": false,
+    "downstream_loss": "LogMSELoss",
+    "use_raw_history": true,
+    "note": "This is a task-driven expected-future-loss training recipe. It does not optimize EIG directly."
+  },
+  "training": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "action_warmup_steps": 50000,
+    "joint_training_steps": 150000,
+    "outer_samples_per_step": 2000,
+    "optimizer": "Adam",
+    "learning_rate": 0.0005,
+    "betas": [
+      0.8,
+      0.998
+    ],
+    "gradient_clip_norm": 1,
+    "scheduler": "StepLR",
+    "scheduler_gamma": 0.95,
+    "scheduler_period_steps": 2500,
+    "periodic_evaluation": false,
+    "wandb_enabled": false,
+    "paper_suite_compute_protocol": {
+      "wall_clock_budget_hours": 12,
+      "accelerator": "NVIDIA GH200",
+      "seeds": 5,
+      "applicability": "TestBED paper's shared policy-based benchmark protocol; preserve separately from the task recipe settings."
+    }
+  },
+  "final_evaluation": {
+    "inherited_recipe": "testbed/recipes/final_eval/default.yaml",
+    "enabled": true,
+    "outer_samples": 2048,
+    "contrastive_samples": 1000000000,
+    "outer_batch_size": 256,
+    "contrastive_chunk_size": 200000,
+    "metrics": [
+      "EIG upper bound",
+      "downstream parameter-prediction MSE"
+    ],
+    "note": "EIG is an evaluation metric here, not the Action-BED training objective."
+  },
+  "official_command": {
+    "executable": "python -m testbed.methods.actionbed",
+    "config_name": "experiments/temporal_discounting/actionbed",
+    "example": "python -m testbed.methods.actionbed --config-name experiments/temporal_discounting/actionbed seed=0",
+    "per_seed_override": "seed={0,1,2,3,4}",
+    "requirement": "Run each seed in an isolated output directory and retain all checkpoints, configs, stdout/stderr, resource accounting and final-evaluation artifacts."
+  },
+  "comparison_contract": {
+    "baselines": [
+      "random",
+      "static",
+      "DAD",
+      "JointVarPost",
+      "RL-BOED",
+      "ALINE",
+      "CMNI deterministic robust decision oracle",
+      "CMNI randomized robust decision oracle"
+    ],
+    "primary_metric": "expected future LogMSE loss",
+    "secondary_metrics": [
+      "EIG upper bound",
+      "parameter prediction MSE",
+      "worst-case decision regret on finite CMNI control",
+      "non-anticipativity gap"
+    ],
+    "matched_inputs": [
+      "joint prior",
+      "likelihood",
+      "task horizon",
+      "design/action spaces",
+      "downstream loss",
+      "seed set"
+    ],
+    "matched_resources": [
+      "training wall time",
+      "CPU/GPU type",
+      "GPU memory",
+      "peak RAM",
+      "joint model samples",
+      "gradient updates",
+      "evaluation samples"
+    ],
+    "hidden_source_extension": "For the CMNI extension, do not expose dependence-scenario IDs to either policy. Compare worst-case loss over a finite admitted scenario set and report the scenario-aware clairvoyant value only as an upper bound."
+  },
+  "qualification": {
+    "upstream_recipe_inspected": true,
+    "upstream_training_executed": false,
+    "exact_environment_locked": false,
+    "five_seed_reproduction": "not_run",
+    "independent_review": "not_run",
+    "physical_validation": "not_applicable"
+  },
+  "claim_boundary": "Pinned external baseline specification only. This is not a reproduction result, training run, performance result, physical validation, or superiority claim."
+}
