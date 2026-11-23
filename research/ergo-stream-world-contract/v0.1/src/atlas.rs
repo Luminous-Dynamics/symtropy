@@ -11,20 +11,31 @@
 
 use super::matching::{GraphMatchErrorV0, UniqueIncidenceSignatureBaselineV0};
 use super::transfer::{
-    StructuralCorrespondenceV0, StructuralTransferWitnessV0, StructureV0,
-    TransferErrorV0, validate_structural_correspondence,
+    ActionCorrespondenceV0, EffectSignV0, EffectTransformV0, InterventionObservationV0,
+    InterventionTransferWitnessV0, StructuralCorrespondenceV0, StructuralTransferWitnessV0,
+    StructureV0, TransferErrorV0, validate_intervention_correspondence,
+    validate_structural_correspondence,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransferAtlasFamilyV0 {
     RelabelledReverse,
     DegreeMatchedNonIsomorphic,
+    StructurallySimilarInterventionDivergent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ActionDescriptorV0 {
+    pub id: u32,
+    pub kind: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransferAtlasPolicyViewV0 {
     pub source: StructureV0,
     pub target: StructureV0,
+    pub source_actions: Vec<ActionDescriptorV0>,
+    pub target_actions: Vec<ActionDescriptorV0>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +53,21 @@ pub struct TransferAtlasReportV0 {
     pub validation_error: Option<TransferErrorV0>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InterventionAtlasDispositionV0 {
+    NoEvidence,
+    AllDeclaredEffectsMatch,
+    Counterexample,
+    InvalidCandidate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterventionAtlasReportV0 {
+    pub disposition: InterventionAtlasDispositionV0,
+    pub witness: Option<InterventionTransferWitnessV0>,
+    pub validation_error: Option<TransferErrorV0>,
+}
+
 /// Owner-side paired-world fixture and evaluator.
 ///
 /// The expected-transfer flag is intentionally private and absent from the
@@ -50,6 +76,7 @@ pub struct TransferAtlasReportV0 {
 pub struct TransferAtlasWorldV0 {
     policy_view: TransferAtlasPolicyViewV0,
     transfer_expected: bool,
+    intervention_observations: Option<Vec<InterventionObservationV0>>,
 }
 
 impl TransferAtlasWorldV0 {
@@ -58,10 +85,35 @@ impl TransferAtlasWorldV0 {
             TransferAtlasFamilyV0::RelabelledReverse => Self {
                 policy_view: relabelled_reverse_pair(),
                 transfer_expected: true,
+                intervention_observations: Some(vec![InterventionObservationV0 {
+                    source_action_id: 1,
+                    target_action_id: 11,
+                    source_effect: EffectSignV0::Positive,
+                    target_effect: EffectSignV0::Positive,
+                }]),
             },
             TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic => Self {
                 policy_view: degree_matched_non_isomorphic_pair(),
                 transfer_expected: false,
+                intervention_observations: None,
+            },
+            TransferAtlasFamilyV0::StructurallySimilarInterventionDivergent => Self {
+                policy_view: intervention_divergent_pair(),
+                transfer_expected: true,
+                intervention_observations: Some(vec![
+                    InterventionObservationV0 {
+                        source_action_id: 1,
+                        target_action_id: 11,
+                        source_effect: EffectSignV0::Positive,
+                        target_effect: EffectSignV0::Positive,
+                    },
+                    InterventionObservationV0 {
+                        source_action_id: 2,
+                        target_action_id: 22,
+                        source_effect: EffectSignV0::Negative,
+                        target_effect: EffectSignV0::Positive,
+                    },
+                ]),
             },
         }
     }
@@ -120,6 +172,40 @@ impl TransferAtlasWorldV0 {
         }
     }
 
+    /// Compare a frozen action-kind/effect mapping with evaluator-owned
+    /// intervention observations. The outcome is only a qualitative sign
+    /// check, not causal qualification or intervention provenance.
+    pub fn evaluate_interventions(
+        &self,
+        candidate: &[ActionCorrespondenceV0],
+    ) -> InterventionAtlasReportV0 {
+        let Some(observations) = self.intervention_observations.as_deref() else {
+            return InterventionAtlasReportV0 {
+                disposition: InterventionAtlasDispositionV0::NoEvidence,
+                witness: None,
+                validation_error: None,
+            };
+        };
+
+        match validate_intervention_correspondence(candidate, observations) {
+            Ok(witness) => InterventionAtlasReportV0 {
+                disposition: InterventionAtlasDispositionV0::AllDeclaredEffectsMatch,
+                witness: Some(witness),
+                validation_error: None,
+            },
+            Err(TransferErrorV0::InterventionEffectMismatch) => InterventionAtlasReportV0 {
+                disposition: InterventionAtlasDispositionV0::Counterexample,
+                witness: None,
+                validation_error: Some(TransferErrorV0::InterventionEffectMismatch),
+            },
+            Err(error) => InterventionAtlasReportV0 {
+                disposition: InterventionAtlasDispositionV0::InvalidCandidate,
+                witness: None,
+                validation_error: Some(error),
+            },
+        }
+    }
+
     /// Run the transparent unique-incidence baseline on the policy view, then
     /// score its frozen proposal. The baseline's error is preserved so
     /// ambiguity-driven abstention is observable.
@@ -172,7 +258,12 @@ fn relabelled_reverse_pair() -> TransferAtlasPolicyViewV0 {
         ],
     };
 
-    TransferAtlasPolicyViewV0 { source, target }
+    TransferAtlasPolicyViewV0 {
+        source,
+        target,
+        source_actions: vec![ActionDescriptorV0 { id: 1, kind: 1 }],
+        target_actions: vec![ActionDescriptorV0 { id: 11, kind: 10 }],
+    }
 }
 
 fn degree_matched_non_isomorphic_pair() -> TransferAtlasPolicyViewV0 {
@@ -226,7 +317,22 @@ fn degree_matched_non_isomorphic_pair() -> TransferAtlasPolicyViewV0 {
             nodes: target_nodes,
             relations: target_relations,
         },
+        source_actions: Vec::new(),
+        target_actions: Vec::new(),
     }
+}
+
+fn intervention_divergent_pair() -> TransferAtlasPolicyViewV0 {
+    let mut pair = relabelled_reverse_pair();
+    pair.source_actions = vec![
+        ActionDescriptorV0 { id: 1, kind: 5 },
+        ActionDescriptorV0 { id: 2, kind: 5 },
+    ];
+    pair.target_actions = vec![
+        ActionDescriptorV0 { id: 11, kind: 50 },
+        ActionDescriptorV0 { id: 22, kind: 50 },
+    ];
+    pair
 }
 
 #[cfg(test)]
@@ -252,6 +358,91 @@ mod tests {
 
         let report = world.evaluate(None);
         assert_eq!(report.disposition, TransferAtlasDispositionV0::CorrectAbstention);
+    }
+
+    #[test]
+    fn structural_match_can_fail_under_intervention_divergence() {
+        let world = TransferAtlasWorldV0::generate(
+            TransferAtlasFamilyV0::StructurallySimilarInterventionDivergent,
+        );
+        let structural = world.run_unique_incidence_baseline().unwrap();
+        assert_eq!(
+            structural.disposition,
+            TransferAtlasDispositionV0::TransferAccepted
+        );
+
+        let candidate = vec![
+            ActionCorrespondenceV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_action_kind: 5,
+                target_action_kind: 50,
+                effect_transform: EffectTransformV0::Preserve,
+            },
+            ActionCorrespondenceV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_action_kind: 5,
+                target_action_kind: 50,
+                effect_transform: EffectTransformV0::Preserve,
+            },
+        ];
+        let report = world.evaluate_interventions(&candidate);
+        assert_eq!(
+            report.disposition,
+            InterventionAtlasDispositionV0::Counterexample
+        );
+    }
+
+    #[test]
+    fn intervention_mapping_cannot_change_transform_per_example() {
+        let world = TransferAtlasWorldV0::generate(
+            TransferAtlasFamilyV0::StructurallySimilarInterventionDivergent,
+        );
+        let candidate = vec![
+            ActionCorrespondenceV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_action_kind: 5,
+                target_action_kind: 50,
+                effect_transform: EffectTransformV0::Preserve,
+            },
+            ActionCorrespondenceV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_action_kind: 5,
+                target_action_kind: 50,
+                effect_transform: EffectTransformV0::Negate,
+            },
+        ];
+        let report = world.evaluate_interventions(&candidate);
+        assert_eq!(
+            report.disposition,
+            InterventionAtlasDispositionV0::InvalidCandidate
+        );
+        assert_eq!(
+            report.validation_error,
+            Some(TransferErrorV0::InconsistentActionKindTransform)
+        );
+    }
+
+    #[test]
+    fn matching_qualitative_signs_are_not_reported_as_causal_qualification() {
+        let world = TransferAtlasWorldV0::generate(TransferAtlasFamilyV0::RelabelledReverse);
+        let candidate = vec![ActionCorrespondenceV0 {
+            source_action_id: 1,
+            target_action_id: 11,
+            source_action_kind: 1,
+            target_action_kind: 10,
+            effect_transform: EffectTransformV0::Preserve,
+        }];
+
+        let report = world.evaluate_interventions(&candidate);
+        assert_eq!(
+            report.disposition,
+            InterventionAtlasDispositionV0::AllDeclaredEffectsMatch
+        );
+        assert!(report.witness.unwrap().all_declared_effects_match);
     }
 
     #[test]
