@@ -482,8 +482,6 @@ fn evaluate_case(c: &GeometryCase) -> Result<GeometryCaseReceipt, String> {
     })
 }
 
-
-
 pub const DENSITY_BRIDGE_SCHEMA: &str =
     "luminous.orbital-sampling-density.geometry-density-bridge.v0.1";
 
@@ -688,7 +686,10 @@ mod density_bridge_tests {
         )
         .unwrap();
 
-        assert_eq!(bridge.density.status, crate::DensityStatus::BudgetInfeasible);
+        assert_eq!(
+            bridge.density.status,
+            crate::DensityStatus::BudgetInfeasible
+        );
         assert!(bridge.density.candidate_pool_sufficient);
         assert!(!bridge.density.selected_plan_sufficient);
         assert_eq!(bridge.density.elements[0].candidate_contributing_views, 2);
@@ -773,7 +774,6 @@ pub fn audit_geometry_corpus(
         cases,
     })
 }
-
 
 #[cfg(test)]
 mod tests {
