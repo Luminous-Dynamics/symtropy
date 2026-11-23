@@ -1077,6 +1077,46 @@ mod tests {
     }
 
     #[test]
+    fn capacity_lineage_is_part_of_the_canonical_run_receipt() {
+        let mut first = receipt();
+        let mut second = receipt();
+        second.capacity_evidence.manifold_lineages.push(
+            capacity::ContactManifoldLineage {
+                pair_id: "body-a/body-b".into(),
+                reduction_policy_id: None,
+                point_capacity: Some(8),
+                generated_points: vec![capacity::GeometricPointRecord {
+                    point_id: "point-0".into(),
+                    disposition: capacity::GeometricPointDisposition::Retained,
+                    reason: None,
+                }],
+                solver_contacts: vec![capacity::SolverContactGroup {
+                    solver_contact_id: "solver-contact-0".into(),
+                    source_point_ids: vec!["point-0".into()],
+                    disposition: capacity::SolverContactDisposition::Solved,
+                    reason: None,
+                }],
+                solver_mapping_complete: true,
+            },
+        );
+        assert_ne!(
+            canonical_receipt_preimage(&first),
+            canonical_receipt_preimage(&second)
+        );
+
+        let report = validate_receipt(&second).expect("valid composed capacity evidence");
+        assert_eq!(report.capacity_evidence.manifold_pairs, 1);
+        assert_eq!(report.capacity_evidence.geometric_points_generated, 1);
+        assert_eq!(report.capacity_evidence.solver_mapping_incomplete_pairs, 0);
+
+        first.capacity_evidence = second.capacity_evidence.clone();
+        assert_eq!(
+            canonical_receipt_preimage(&first),
+            canonical_receipt_preimage(&second)
+        );
+    }
+
+    #[test]
     fn interval_uncertainty_must_be_finite_and_contain_value() {
         let mut value = receipt();
         value.observable_results[0].uncertainty = Some(UncertaintySemantics::Interval {
