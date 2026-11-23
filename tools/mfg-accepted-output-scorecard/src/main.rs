@@ -45,7 +45,7 @@ struct EpisodeCase {
 struct OutputRecord {
     output_id: String,
     produced_at_ms: u64,
-    units: u64,
+    unit_ids: Vec<String>,
     disposition: Disposition,
     disposition_at_ms: Option<u64>,
     verifier_class: VerifierClass,
@@ -189,10 +189,11 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
     }
 
     let mut output_ids = BTreeSet::new();
+    let mut product_unit_ids = BTreeSet::new();
     for output in &case.outputs {
         if output.output_id.trim().is_empty()
             || !output_ids.insert(output.output_id.as_str())
-            || output.units == 0
+            || output.unit_ids.is_empty()
             || output.produced_at_ms < case.disturbance_at_ms
             || output.produced_at_ms > case.horizon_end_ms
         {
@@ -200,6 +201,14 @@ fn validate_case(case: &EpisodeCase) -> Result<(), String> {
                 "case_{}_output_identity_units_or_production_time_invalid",
                 case.case_id
             )));
+        }
+        for unit_id in &output.unit_ids {
+            if unit_id.trim().is_empty()
+                || unit_id.trim() != unit_id
+                || !product_unit_ids.insert(unit_id.as_str())
+            {
+                return Err(fail("duplicate_or_invalid_product_unit_id"));
+            }
         }
 
         let disposition_requires_time = matches!(
@@ -265,25 +274,27 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
     let mut accepted_events: Vec<(u64, String, u64)> = Vec::new();
 
     for output in &case.outputs {
-        produced_units = checked_add(produced_units, output.units, "produced_units")?;
+        let output_units = u64::try_from(output.unit_ids.len())
+            .map_err(|_| fail("output_unit_count_overflow"))?;
+        produced_units = checked_add(produced_units, output_units, "produced_units")?;
         let qualified = independently_qualified(output);
         match (output.disposition, qualified) {
             (Disposition::Accepted, true) => {
                 independently_accepted_units =
-                    checked_add(independently_accepted_units, output.units, "accepted_units")?;
+                    checked_add(independently_accepted_units, output_units, "accepted_units")?;
                 let accepted_at = output.disposition_at_ms.ok_or_else(|| {
                     fail("accepted_output_missing_disposition_time_after_validation")
                 })?;
-                accepted_events.push((accepted_at, output.output_id.clone(), output.units));
+                accepted_events.push((accepted_at, output.output_id.clone(), output_units));
             }
             (Disposition::Rejected, true) => {
                 independently_rejected_units =
-                    checked_add(independently_rejected_units, output.units, "rejected_units")?;
+                    checked_add(independently_rejected_units, output_units, "rejected_units")?;
             }
             (Disposition::Accepted, false) => {
                 unqualified_acceptance_claim_units = checked_add(
                     unqualified_acceptance_claim_units,
-                    output.units,
+                    output_units,
                     "unqualified_acceptance_claim_units",
                 )?;
             }
@@ -591,6 +602,24 @@ mod tests {
         let mut corpus = sample_corpus();
         let duplicate_id = corpus.cases[0].outputs[0].output_id.clone();
         corpus.cases[0].outputs[1].output_id = duplicate_id;
+        assert!(validate_case(&corpus.cases[0]).is_err());
+    }
+
+    #[test]
+    fn duplicate_product_unit_ids_across_outputs_fail_closed() {
+        let mut corpus = sample_corpus();
+        let duplicate_id = corpus.cases[0].outputs[0].unit_ids[0].clone();
+        corpus.cases[0].outputs[1].unit_ids[0] = duplicate_id;
+        assert_eq!(
+            validate_case(&corpus.cases[0]),
+            Err("duplicate_or_invalid_product_unit_id".to_owned())
+        );
+    }
+
+    #[test]
+    fn empty_product_unit_ids_fail_closed() {
+        let mut corpus = sample_corpus();
+        corpus.cases[0].outputs[0].unit_ids.clear();
         assert!(validate_case(&corpus.cases[0]).is_err());
     }
 
