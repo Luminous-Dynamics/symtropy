@@ -214,6 +214,16 @@ pub struct StageDimension {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AcceptedSharedDependency {
+    pub stage: MaritimeStage,
+    pub dimension: FaultDomainDimension,
+    pub identity: Digest,
+    pub rationale: String,
+    pub impact: String,
+    pub owner: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MaritimeProfile {
     pub schema: String,
     pub profile_id: String,
@@ -225,6 +235,9 @@ pub struct MaritimeProfile {
     pub source_role: String,
     pub witness_role: String,
     pub obligations: BTreeSet<StageDimension>,
+    /// Explicitly accepted common dependencies remain visible and never turn
+    /// a Shared finding into a SeparatedForProfile finding.
+    pub accepted_shared_dependencies: Vec<AcceptedSharedDependency>,
 }
 
 impl MaritimeProfile {
@@ -298,6 +311,7 @@ impl MaritimeProfile {
             source_role: "source".to_owned(),
             witness_role: "witness".to_owned(),
             obligations,
+            accepted_shared_dependencies: Vec::new(),
         }
     }
 }
@@ -340,6 +354,9 @@ pub struct DimensionFinding {
     /// Exact path witnesses are retained; duplicate paths do not multiply
     /// identities or improve the disposition.
     pub shared_paths: Vec<SharedPathWitness>,
+    /// Explicitly accepted common dependencies with rationale, impact and owner.
+    /// This annotation never removes or weakens the underlying Shared result.
+    pub accepted_shared_dependencies: Vec<AcceptedSharedDependency>,
     pub left_known_count: usize,
     pub right_known_count: usize,
     pub left_partial: bool,
@@ -359,6 +376,9 @@ pub enum ValidationError {
     EmptyInventory,
     EmptyPartialInventory,
     EmptyNotApplicableRationale,
+    InvalidSharedAcceptance,
+    DuplicateSharedAcceptance,
+    UnobservedSharedAcceptance,
     DimensionClassMismatch,
     InvalidPathWitness,
     NonCurrentProjectionRevoked,
@@ -539,6 +559,7 @@ fn assess_obligation(
         disposition: SeparationDisposition::Incomplete,
         shared_identities: BTreeSet::new(),
         shared_paths: Vec::new(),
+        accepted_shared_dependencies: Vec::new(),
         left_known_count: 0,
         right_known_count: 0,
         left_partial: false,
@@ -656,12 +677,49 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
         };
     }
 
-    let findings: Vec<_> = profile
+    let mut findings: Vec<_> = profile
         .obligations
         .iter()
         .map(|obligation| assess_obligation(*obligation, profile, projection))
         .collect();
-    let disposition = if findings
+    let mut post_validation_errors = BTreeSet::new();
+    let mut seen_acceptances = BTreeSet::new();
+    for acceptance in &profile.accepted_shared_dependencies {
+        if acceptance.rationale.trim().is_empty()
+            || acceptance.impact.trim().is_empty()
+            || acceptance.owner.trim().is_empty()
+            || !profile.obligations.contains(&StageDimension {
+                stage: acceptance.stage,
+                dimension: acceptance.dimension,
+            })
+        {
+            post_validation_errors.insert(ValidationError::InvalidSharedAcceptance);
+            continue;
+        }
+        if !seen_acceptances.insert((
+            acceptance.stage,
+            acceptance.dimension,
+            acceptance.identity,
+        )) {
+            post_validation_errors.insert(ValidationError::DuplicateSharedAcceptance);
+            continue;
+        }
+        let Some(finding) = findings.iter_mut().find(|finding| {
+            finding.stage == acceptance.stage && finding.dimension == acceptance.dimension
+        }) else {
+            post_validation_errors.insert(ValidationError::InvalidSharedAcceptance);
+            continue;
+        };
+        if !finding.shared_identities.contains(&acceptance.identity) {
+            post_validation_errors.insert(ValidationError::UnobservedSharedAcceptance);
+            continue;
+        }
+        finding.accepted_shared_dependencies.push(acceptance.clone());
+    }
+    let mut validation_errors = post_validation_errors.into_iter().collect::<Vec<_>>();
+    let disposition = if !validation_errors.is_empty() {
+        ProfileDisposition::ProfileInvalid
+    } else if findings
         .iter()
         .any(|finding| finding.disposition == SeparationDisposition::Invalid)
     {
