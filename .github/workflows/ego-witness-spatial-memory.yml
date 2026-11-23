@@ -1,0 +1,101 @@
+name: EgoWitness Spatial Memory Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/ego-witness-spatial-memory-v0
+    paths:
+      - "research/ego-witness-spatial-memory-v0/**"
+      - "tools/ego-witness-spatial-evaluator/**"
+      - ".github/workflows/ego-witness-spatial-memory.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/ego-witness-spatial-memory-v0/**"
+      - "tools/ego-witness-spatial-evaluator/**"
+      - ".github/workflows/ego-witness-spatial-memory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ego-witness-spatial-memory-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Install JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schemas and three data planes
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/ego-witness-spatial-memory-v0/"
+          schemas = {
+              "workload": json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8")),
+              "submission": json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8")),
+              "scorecard": json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8")),
+          }
+          for schema in schemas.values():
+              Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/truth-v1.json", encoding="utf-8"))
+          submission = json.load(open(base + "fixtures/agent/reference-submission-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schemas["workload"]).validate(workload)
+          Draft202012Validator(schemas["submission"]).validate(submission)
+          assert len(workload["episodes"]) == 4
+          ids = [x["episode_id"] for x in workload["episodes"]]
+          assert ids == [x["episode_id"] for x in truth["episodes"]]
+          assert ids == [x["episode_id"] for x in submission["predictions"]]
+          assert len(set(ids)) == 4
+          forbidden = {"instance_identity_by_observation", "room_identity_by_observation", "same_instance", "same_room", "expected_observation_ref", "expected_wearer_ref"}
+          def scan(value):
+              if isinstance(value, dict):
+                  assert not (forbidden & set(value)), "evaluator-only identity truth leaked to workload"
+                  for child in value.values(): scan(child)
+              elif isinstance(value, list):
+                  for child in value: scan(child)
+          scan(workload)
+          assert expected["totals"]["episode_count"] == 4
+          PY
+      - name: Run spatial identity evaluator adversarial tests
+        run: python -m unittest discover -s tools/ego-witness-spatial-evaluator -p "test_*.py" -v
+      - name: Score synthetic reference policy
+        run: |
+          python tools/ego-witness-spatial-evaluator/evaluate.py \
+            --workload research/ego-witness-spatial-memory-v0/fixtures/agent/workload-v1.json \
+            --truth research/ego-witness-spatial-memory-v0/fixtures/evaluator-only/truth-v1.json \
+            --submission research/ego-witness-spatial-memory-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/ego-witness-spatial-scorecard.json
+      - name: Validate exact known-answer scorecard
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/ego-witness-spatial-memory-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/ego-witness-spatial-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["totals"] == expected["totals"]
+          assert actual["totals"]["false_merge_count"] == 0
+          assert actual["totals"]["false_split_count"] == 0
+          assert actual["totals"]["false_wearer_attribution_count"] == 0
+          assert actual["totals"]["hard_violation_count"] == 0
+          PY

@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "ego-witness-spatial-memory-v0",
+  "policy_id": "synthetic-spatial-reference-v1",
+  "run_id": "ego-witness-known-answer-reference-v1",
+  "model_revision": null,
+  "runtime_revision": "synthetic-rule-reference-v1",
+  "predictions": [
+    {
+      "episode_id": "ew-001-cross-day-instance-reidentification",
+      "decision": "answer",
+      "answer": "obs-ew1-same-instance",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-ew1-anchor",
+        "obs-ew1-same-instance",
+        "obs-ew1-lookalike"
+      ],
+      "evidence_as_of_tick": 87000,
+      "response_tick": 87001,
+      "instance_pair_predictions": [
+        {
+          "left_observation_ref": "obs-ew1-anchor",
+          "right_observation_ref": "obs-ew1-same-instance",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew1-anchor",
+          "right_observation_ref": "obs-ew1-lookalike",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew1-same-instance",
+          "right_observation_ref": "obs-ew1-lookalike",
+          "same_instance": false
+        }
+      ],
+      "room_pair_predictions": [],
+      "last_seen_prediction": null
+    },
+    {
+      "episode_id": "ew-002-last-seen-wearer-attribution",
+      "decision": "answer",
+      "answer": "wearer-cia|obs-ew2-target-cia",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-ew2-target-ada",
+        "obs-ew2-target-bob",
+        "obs-ew2-target-cia",
+        "obs-ew2-lookalike-ada"
+      ],
+      "evidence_as_of_tick": 250,
+      "response_tick": 251,
+      "instance_pair_predictions": [
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-target-bob",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-target-cia",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-ada",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-bob",
+          "right_observation_ref": "obs-ew2-target-cia",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-bob",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew2-target-cia",
+          "right_observation_ref": "obs-ew2-lookalike-ada",
+          "same_instance": false
+        }
+      ],
+      "room_pair_predictions": [],
+      "last_seen_prediction": {
+        "target_observation_ref": "obs-ew2-target-ada",
+        "selected_observation_ref": "obs-ew2-target-cia",
+        "wearer_ref": "wearer-cia"
+      }
+    },
+    {
+      "episode_id": "ew-003-room-anchor-identity",
+      "decision": "answer",
+      "answer": "obs-ew3-room-living-a|obs-ew3-room-living-b",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-ew3-room-living-a",
+        "obs-ew3-room-living-b",
+        "obs-ew3-room-kitchen"
+      ],
+      "evidence_as_of_tick": 150,
+      "response_tick": 151,
+      "instance_pair_predictions": [],
+      "room_pair_predictions": [
+        {
+          "left_observation_ref": "obs-ew3-room-living-a",
+          "right_observation_ref": "obs-ew3-room-living-b",
+          "same_room": true
+        },
+        {
+          "left_observation_ref": "obs-ew3-room-living-a",
+          "right_observation_ref": "obs-ew3-room-kitchen",
+          "same_room": false
+        },
+        {
+          "left_observation_ref": "obs-ew3-room-living-b",
+          "right_observation_ref": "obs-ew3-room-kitchen",
+          "same_room": false
+        }
+      ],
+      "last_seen_prediction": null
+    },
+    {
+      "episode_id": "ew-004-same-category-distinct-instances",
+      "decision": "answer",
+      "answer": "different_instances|obs-ew4-toolbox-a-return",
+      "confidence": 0.95,
+      "cited_observation_refs": [
+        "obs-ew4-toolbox-a",
+        "obs-ew4-toolbox-b",
+        "obs-ew4-toolbox-a-return"
+      ],
+      "evidence_as_of_tick": 250,
+      "response_tick": 251,
+      "instance_pair_predictions": [
+        {
+          "left_observation_ref": "obs-ew4-toolbox-a",
+          "right_observation_ref": "obs-ew4-toolbox-b",
+          "same_instance": false
+        },
+        {
+          "left_observation_ref": "obs-ew4-toolbox-a",
+          "right_observation_ref": "obs-ew4-toolbox-a-return",
+          "same_instance": true
+        },
+        {
+          "left_observation_ref": "obs-ew4-toolbox-b",
+          "right_observation_ref": "obs-ew4-toolbox-a-return",
+          "same_instance": false
+        }
+      ],
+      "room_pair_predictions": [],
+      "last_seen_prediction": null
+    }
+  ]
+}

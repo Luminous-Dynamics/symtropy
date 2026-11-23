@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "ego-witness-spatial-memory-v0",
+  "note": "Synthetic metadata-only adapter fixtures. No images, masks, face/biometric data or physical spatial maps are included.",
+  "episodes": [
+    {
+      "episode_id": "ew-001-cross-day-instance-reidentification",
+      "memory_budget_bytes": 262144,
+      "observations": [
+        {
+          "observation_ref": "obs-ew1-anchor",
+          "availability_tick": 0,
+          "capture_tick": 0,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-clip-day1-01",
+          "category": "red-mug",
+          "room_observation_ref": "room-anchor-living-a",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "observation_ref": "obs-ew1-same-instance",
+          "availability_tick": 86400,
+          "capture_tick": 86400,
+          "wearer_ref": "wearer-bob",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-clip-day2-08",
+          "category": "red-mug",
+          "room_observation_ref": "room-anchor-living-b",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "observation_ref": "obs-ew1-lookalike",
+          "availability_tick": 86500,
+          "capture_tick": 86500,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-clip-day2-09",
+          "category": "red-mug",
+          "room_observation_ref": "room-anchor-kitchen",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "query": {
+        "query_id": "q-ew1",
+        "query_tick": 87000,
+        "query_text": "Which later observation depicts the same physical mug instance as obs-ew1-anchor, rather than a same-category lookalike?",
+        "response_deadline_tick": 87030
+      }
+    },
+    {
+      "episode_id": "ew-002-last-seen-wearer-attribution",
+      "memory_budget_bytes": 262144,
+      "observations": [
+        {
+          "observation_ref": "obs-ew2-target-ada",
+          "availability_tick": 0,
+          "capture_tick": 0,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-ada-01",
+          "category": "blue-bottle",
+          "room_observation_ref": "room-anchor-kitchen-a",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "observation_ref": "obs-ew2-target-bob",
+          "availability_tick": 100,
+          "capture_tick": 100,
+          "wearer_ref": "wearer-bob",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-bob-17",
+          "category": "blue-bottle",
+          "room_observation_ref": "room-anchor-lounge-a",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "observation_ref": "obs-ew2-target-cia",
+          "availability_tick": 200,
+          "capture_tick": 200,
+          "wearer_ref": "wearer-cia",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-cia-04",
+          "category": "blue-bottle",
+          "room_observation_ref": "room-anchor-office-a",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "observation_ref": "obs-ew2-lookalike-ada",
+          "availability_tick": 220,
+          "capture_tick": 220,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-ada-09",
+          "category": "blue-bottle",
+          "room_observation_ref": "room-anchor-kitchen-b",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "query": {
+        "query_id": "q-ew2",
+        "query_tick": 250,
+        "query_text": "Who most recently saw this exact blue-bottle instance anchored by obs-ew2-target-ada before the query time?",
+        "response_deadline_tick": 280
+      }
+    },
+    {
+      "episode_id": "ew-003-room-anchor-identity",
+      "memory_budget_bytes": 262144,
+      "observations": [
+        {
+          "observation_ref": "obs-ew3-room-living-a",
+          "availability_tick": 0,
+          "capture_tick": 0,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-living-01",
+          "category": "person",
+          "room_observation_ref": "room-view-living-a",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "observation_ref": "obs-ew3-room-living-b",
+          "availability_tick": 50,
+          "capture_tick": 50,
+          "wearer_ref": "wearer-bob",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-living-02",
+          "category": "person",
+          "room_observation_ref": "room-view-living-b",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "observation_ref": "obs-ew3-room-kitchen",
+          "availability_tick": 100,
+          "capture_tick": 100,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-home",
+          "local_track_ref": "track-kitchen-01",
+          "category": "person",
+          "room_observation_ref": "room-view-kitchen",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ],
+      "query": {
+        "query_id": "q-ew3",
+        "query_tick": 150,
+        "query_text": "Which two room observations refer to the same physical room viewed from different camera positions?",
+        "response_deadline_tick": 180
+      }
+    },
+    {
+      "episode_id": "ew-004-same-category-distinct-instances",
+      "memory_budget_bytes": 262144,
+      "observations": [
+        {
+          "observation_ref": "obs-ew4-toolbox-a",
+          "availability_tick": 0,
+          "capture_tick": 0,
+          "wearer_ref": "wearer-ada",
+          "environment_ref": "environment-workshop",
+          "local_track_ref": "track-ada-tool-1",
+          "category": "red-toolbox",
+          "room_observation_ref": "room-anchor-workbench",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        {
+          "observation_ref": "obs-ew4-toolbox-b",
+          "availability_tick": 100,
+          "capture_tick": 100,
+          "wearer_ref": "wearer-bob",
+          "environment_ref": "environment-workshop",
+          "local_track_ref": "track-bob-tool-7",
+          "category": "red-toolbox",
+          "room_observation_ref": "room-anchor-shelf",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        {
+          "observation_ref": "obs-ew4-toolbox-a-return",
+          "availability_tick": 200,
+          "capture_tick": 200,
+          "wearer_ref": "wearer-cia",
+          "environment_ref": "environment-workshop",
+          "local_track_ref": "track-cia-tool-3",
+          "category": "red-toolbox",
+          "room_observation_ref": "room-anchor-workbench-2",
+          "clock_domain_id": "spatial-clock",
+          "clock_generation": 0,
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+        }
+      ],
+      "query": {
+        "query_id": "q-ew4",
+        "query_tick": 250,
+        "query_text": "Are obs-ew4-toolbox-a and obs-ew4-toolbox-b the same physical toolbox, or merely the same category? Also identify which later observation matches the first toolbox.",
+        "response_deadline_tick": 280
+      }
+    }
+  ]
+}
