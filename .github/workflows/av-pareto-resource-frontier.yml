@@ -1,0 +1,83 @@
+name: AV Pareto Resource Frontier Fixture Integrity
+
+on:
+  push:
+    branches: [research/av-pareto-resource-frontier-v0]
+    paths:
+      - "research/av-pareto-resource-frontier-v0/**"
+      - "tools/av-modality-necessity-evaluator/resource_frontier.py"
+      - "tools/av-modality-necessity-evaluator/test_resource_frontier.py"
+      - ".github/workflows/av-pareto-resource-frontier.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-pareto-resource-frontier-v0/**"
+      - "tools/av-modality-necessity-evaluator/resource_frontier.py"
+      - "tools/av-modality-necessity-evaluator/test_resource_frontier.py"
+      - ".github/workflows/av-pareto-resource-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-pareto-resource-frontier-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Validate input and scorecard schemas
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          root = "research/av-pareto-resource-frontier-v0/"
+          bundle_schema = json.load(open(root + "schemas/bundle-v1.schema.json", encoding="utf-8"))
+          score_schema = json.load(open(root + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          Draft202012Validator.check_schema(bundle_schema)
+          Draft202012Validator.check_schema(score_schema)
+          bundle = json.load(open(root + "fixtures/synthetic-comparison-v1.json", encoding="utf-8"))
+          expected = json.load(open(root + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(bundle_schema).validate(bundle)
+          assert bundle["benchmark_id"] == expected["benchmark_id"]
+          PY
+      - name: Run Pareto and provenance adversarial tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_resource_frontier.py" -v
+      - name: Score synthetic reference frontier
+        run: |
+          python tools/av-modality-necessity-evaluator/resource_frontier.py \
+            --bundle research/av-pareto-resource-frontier-v0/fixtures/synthetic-comparison-v1.json \
+            --output /tmp/av-pareto-frontier-scorecard.json
+      - name: Validate scorecard and frozen frontier
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          root = "research/av-pareto-resource-frontier-v0/"
+          schema = json.load(open(root + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-pareto-frontier-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(root + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual["pareto_frontier_run_ids"] == expected["expected_frontier_run_ids"]
+          by_id = {row["run_id"]: row for row in actual["runs"]}
+          ineligible = sorted(run_id for run_id, row in by_id.items() if not row["eligible"])
+          assert ineligible == expected["expected_ineligible_run_ids"]
+          assert by_id[expected["expected_dominated_run_id"]]["dominated_by"] == ["run-adaptive", "run-minimal"]
+          assert actual["totals"]["single_weighted_score"] is None
+          slices = {row["slice_id"]: row["frontier_run_ids"] for row in actual["budget_slices"]}
+          assert slices == expected["expected_budget_slices"]
+          PY
