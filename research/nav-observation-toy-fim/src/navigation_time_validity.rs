@@ -42,6 +42,8 @@ pub struct NavigationTimeValidityPolicy {
     pub policy_id: u64,
     pub policy_sha256: [u8; SHA256_BYTES],
     pub expected_time_basis_sha256: [u8; SHA256_BYTES],
+    pub expected_estimator_or_predictor_revision_sha256: [u8; SHA256_BYTES],
+    pub expected_model_domain_support_sha256: [u8; SHA256_BYTES],
     pub maximum_observation_age_ns: u64,
     pub maximum_acquisition_to_receipt_delay_ns: u64,
     pub maximum_receipt_to_processing_complete_ns: u64,
@@ -87,6 +89,8 @@ pub enum NavigationTimeDisposition {
     ProcessingDelayExceeded,
     /// The processing result became available after the decision cutoff.
     FutureDataLeakage,
+    UnsupportedEstimatorOrPredictorRevision,
+    UnsupportedModelDomainSupport,
     /// Required chronological order cannot be established from the intervals.
     IndeterminateChronology,
     /// A future prediction's target interval is partly or wholly non-future.
@@ -172,6 +176,8 @@ impl NavigationTimeValidityPolicy {
         if self.policy_id == 0
             || is_zero_digest(&self.policy_sha256)
             || is_zero_digest(&self.expected_time_basis_sha256)
+            || is_zero_digest(&self.expected_estimator_or_predictor_revision_sha256)
+            || is_zero_digest(&self.expected_model_domain_support_sha256)
         {
             return Err(NavigationTimeValidityError::InvalidPolicy);
         }
@@ -288,6 +294,21 @@ pub fn evaluate_navigation_time_validity(
             navigation_authorized: false,
         }
     };
+
+    if input.estimator_or_predictor_revision_sha256
+        != policy.expected_estimator_or_predictor_revision_sha256
+    {
+        return Ok(report(
+            NavigationTimeDisposition::UnsupportedEstimatorOrPredictorRevision,
+            None, None, None, None, None,
+        ));
+    }
+    if input.model_domain_support_sha256 != policy.expected_model_domain_support_sha256 {
+        return Ok(report(
+            NavigationTimeDisposition::UnsupportedModelDomainSupport,
+            None, None, None, None, None,
+        ));
+    }
 
     match prove_non_decreasing(
         input.measurement_event_time,
@@ -497,6 +518,8 @@ mod tests {
             policy_id: 3,
             policy_sha256: [0x33; SHA256_BYTES],
             expected_time_basis_sha256: [0x11; SHA256_BYTES],
+            expected_estimator_or_predictor_revision_sha256: [0x66; SHA256_BYTES],
+            expected_model_domain_support_sha256: [0x77; SHA256_BYTES],
             maximum_observation_age_ns: 100,
             maximum_acquisition_to_receipt_delay_ns: 30,
             maximum_receipt_to_processing_complete_ns: 20,
@@ -738,6 +761,25 @@ mod tests {
         assert_eq!(
             evaluate_navigation_time_validity(policy(), candidate),
             Err(NavigationTimeValidityError::MissingEvidenceCommitment)
+        );
+    }
+
+    #[test]
+    fn unsupported_predictor_revision_or_domain_cannot_pass_temporal_gate() {
+        let mut candidate = input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        candidate.estimator_or_predictor_revision_sha256 = [0x68; SHA256_BYTES];
+        let result = evaluate_navigation_time_validity(policy(), candidate).unwrap();
+        assert_eq!(
+            result.disposition,
+            NavigationTimeDisposition::UnsupportedEstimatorOrPredictorRevision
+        );
+
+        let mut candidate = input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        candidate.model_domain_support_sha256 = [0x78; SHA256_BYTES];
+        let result = evaluate_navigation_time_validity(policy(), candidate).unwrap();
+        assert_eq!(
+            result.disposition,
+            NavigationTimeDisposition::UnsupportedModelDomainSupport
         );
     }
 
