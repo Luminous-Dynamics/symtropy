@@ -576,8 +576,10 @@ mod tests {
     fn refuses_shared_common_cause_across_physical_and_downstream_claims() {
         let mut recording = valid_recording();
         let assurance = recording.attempts[0].observer_assurance.as_mut().unwrap();
-        assurance.downstream_quiescence_quorum.members[0].common_cause_domains[0] =
-            assurance.physical_outcome_quorum.members[0].common_cause_domains[0].clone();
+        assurance.downstream_quiescence.observer_quorum.as_mut().unwrap().members[0]
+            .common_cause_domains[0] = assurance.physical_outcome.observer_quorum.as_ref().unwrap().members[0]
+            .common_cause_domains[0]
+            .clone();
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverQuorumUnqualified)
@@ -591,7 +593,26 @@ mod tests {
             .observer_assurance
             .as_mut()
             .unwrap()
-            .physical_outcome_claim_scope_sha256 = "f".repeat(64);
+            .physical_outcome.claim_scope_sha256 = Some("f".repeat(64));
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::ObserverClaimMismatch)
+        );
+    }
+
+    #[test]
+    fn refuses_replayed_observer_owner_receipt_from_another_attempt() {
+        let mut recording = valid_recording();
+        recording.attempts[1]
+            .observer_assurance
+            .as_mut()
+            .unwrap()
+            .physical_outcome = recording.attempts[0]
+            .observer_assurance
+            .as_ref()
+            .unwrap()
+            .physical_outcome
+            .clone();
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverClaimMismatch)
@@ -605,7 +626,10 @@ mod tests {
             .observer_assurance
             .as_mut()
             .unwrap()
-            .physical_outcome_quorum
+            .physical_outcome
+            .observer_quorum
+            .as_mut()
+            .unwrap()
             .fault_model_revision = "other-fault-model".into();
         assert_eq!(
             recording.validate(),
