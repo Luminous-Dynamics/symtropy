@@ -47,13 +47,13 @@ jobs:
       - name: Format
         run: cargo fmt --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all -- --check
       - name: Rust tests
-        run: cargo test --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets
+        run: cargo test --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets
       - name: Strict Clippy
-        run: cargo clippy --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic Rust receipt replay
         run: |
-          cargo run --quiet --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-a.json
-          cargo run --quiet --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-b.json
+          cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-a.json
+          cargo run --quiet --locked --manifest-path tools/surface-sampling-density-bench/Cargo.toml --bin sampling-density-bench -- docs/research/orbital-truss/fixtures/sampling-density-v0_1.json "$GITHUB_SHA" > /tmp/sampling-b.json
           cmp /tmp/sampling-a.json /tmp/sampling-b.json
           jq -e '.case_count == 12 and .expected_outcome_matches == 12 and .expected_outcome_mismatches == 0 and .authority_granted == false and .physical_validation == "NOT_ASSESSED"' /tmp/sampling-a.json
       - name: Independent oracle and full receipt comparison
@@ -85,5 +85,6 @@ jobs:
             /tmp/sampling-oracle.json
             docs/research/orbital-truss/fixtures/sampling-density-v0_1.json
             docs/research/orbital-truss/sampling_density_v0_1.schema.json
+            tools/surface-sampling-density-bench/Cargo.lock
           if-no-files-found: error
           retention-days: 30
