@@ -58,7 +58,6 @@ jobs:
       shell: bash
       run: |
         cargo fmt --all
-        cargo fmt --all -- --check
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           while IFS= read -r file; do
             echo "RUSTFMT_CAPTURE_BEGIN:$file"
@@ -66,6 +65,7 @@ jobs:
             echo "RUSTFMT_CAPTURE_END:$file"
           done < <(git diff --name-only -- '*.rs')
         fi
+        cargo fmt --all -- --check
 
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
