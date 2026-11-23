@@ -582,6 +582,29 @@ AttemptParentLinksAreStable ==
     /\ s.attempts[1].parent = 0
     /\ \A i \in 2..MaxAttempts: s.attempts[i].parent = i - 1
 
+AttemptEpochsIncreaseAcrossRecovery ==
+    \A i \in 2..MaxAttempts:
+        s.attempts[i].status # "unreserved" =>
+            /\ s.attempts[i].authorizedBootEpoch > s.attempts[i - 1].authorizedBootEpoch
+            /\ s.attempts[i].authorizedControllerEpoch > s.attempts[i - 1].authorizedControllerEpoch
+
+MissionResolutionMatchesPhysicalOutcome ==
+    \A i \in Attempts:
+        /\ (s.attempts[i].missionResolution = "no_effect" =>
+                /\ s.attempts[i].physicalOutcome = "no_effect"
+                /\ s.attempts[i].physicalObserverQualified)
+        /\ (s.attempts[i].missionResolution = "effect_predicate_satisfied" =>
+                /\ s.attempts[i].physicalOutcome = "applied"
+                /\ s.attempts[i].physicalObserverQualified)
+        /\ (s.attempts[i].missionResolution = "unresolved" =>
+                /\ s.attempts[i].physicalOutcome \in {"partial", "unknown", "disputed"}
+                /\ s.attempts[i].physicalObserverQualified)
+
+PermitUseCountMatchesAcceptedChildren ==
+    s.permitUseCount =
+        Cardinality({i \in 2..MaxAttempts:
+            s.attempts[i].status \in {"accepted", "reconciled"}})
+
 ReservationPrecedesAcceptance ==
     \A i \in Attempts:
         s.attempts[i].status \in {"accepted", "reconciled"} =>
