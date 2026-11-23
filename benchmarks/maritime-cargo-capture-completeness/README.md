@@ -17,6 +17,7 @@ This crate owns none of the operational source adapters, canonical container ide
 - Reject a reference whose declared failure domains overlap the source capture path; different device IDs do not prove independence.
 - Match independently referenced events to source records by exact event ID and event time.
 - Count a source record only when durably persisted and visible at the declared as-of cutoff.
+- Qualify a full capture window only after the as-of instant reaches the window end; partial windows remain `NOT_EVALUABLE` rather than complete or missing.
 - Treat exact duplicate delivery as idempotent; conflicting reuse of an event ID as incomplete.
 - Permit a known-no-event interval only when the independent reference explicitly qualifies complete coverage and reports no events.
 
@@ -29,7 +30,7 @@ Dispositions:
 
 ## Frozen corpus
 
-`fixtures/capture-v0.1.tsv` contains 17 hand-authored expected dispositions. Synthetic `event_time`, `published_at` and `as_of` values use one declared reference coordinate: future reference events are not yet due at an earlier as-of instant, an evaluation before the capture window is not evaluable, and a record published before its claimed occurrence is not evaluable. Unit tests add metamorphic controls for event removal, shared failure domains, acknowledgements without persistence, historical cutoffs, exact duplicates and conflicting event identities.
+`fixtures/capture-v0.1.tsv` contains 18 hand-authored expected dispositions. Synthetic `event_time`, `published_at` and `as_of` values use one declared reference coordinate: a window not yet closed at the as-of instant is not evaluable (future reference events are not counted as missing), an evaluation before the capture window is not evaluable, and a record published before its claimed occurrence is not evaluable. Unit tests add metamorphic controls for event removal, shared failure domains, acknowledgements without persistence, historical cutoffs, exact duplicates and conflicting event identities.
 
 All cases are synthetic. The test helper creates the candidate input; the TSV independently declares the expected disposition. This is a reference contract, not a physical test campaign.
 
