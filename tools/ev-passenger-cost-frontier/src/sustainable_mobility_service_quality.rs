@@ -1106,8 +1106,8 @@ mod tests {
             },
             ServiceRequest {
                 request_id: "urgent".to_owned(),
-                arrival_seconds: 0,
-                accept_by_seconds: 0,
+                arrival_seconds: 30,
+                accept_by_seconds: 30,
                 deadline_seconds: 2_000,
                 required_service_seconds: 600,
                 payload_units: 1,
