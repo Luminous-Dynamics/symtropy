@@ -95,6 +95,7 @@ pub enum NavigationTimeDisposition {
     TargetEpochMismatch,
     /// The target epoch is provably before the decision cutoff.
     TargetEpochBeforeDecision,
+    FutureTargetForNowcast,
     /// The future prediction horizon exceeds the pinned policy.
     PredictionHorizonExceeded,
 }
@@ -428,7 +429,7 @@ pub fn evaluate_navigation_time_validity(
             }
             if target.lower_ns > decision.upper_ns {
                 return Ok(metrics(
-                    NavigationTimeDisposition::IndeterminateTargetEpoch,
+                    NavigationTimeDisposition::FutureTargetForNowcast,
                     None,
                 ));
             }
@@ -683,6 +684,17 @@ mod tests {
             NavigationTimeDisposition::PredictionHorizonExceeded
         );
         assert_eq!(result.prediction_horizon_upper_bound_ns, Some(70));
+    }
+
+    #[test]
+    fn a_target_strictly_after_decision_is_not_a_nowcast() {
+        let mut candidate = input(NavigationTimeClaimKind::DecisionEpochNowcast);
+        candidate.target_valid_time = interval(31, 35);
+        let result = evaluate_navigation_time_validity(policy(), candidate).unwrap();
+        assert_eq!(
+            result.disposition,
+            NavigationTimeDisposition::FutureTargetForNowcast
+        );
     }
 
     #[test]
