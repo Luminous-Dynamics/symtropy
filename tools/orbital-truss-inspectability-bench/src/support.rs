@@ -604,10 +604,7 @@ mod tests {
         );
         case.support.normal_cone_half_angle_rad = 0.6;
         let wide = evaluate_support_envelope(&case);
-        assert_ne!(
-            wide.status,
-            SupportStatus::ConditionalWithinSensingEnvelope
-        );
+        assert_ne!(wide.status, SupportStatus::ConditionalWithinSensingEnvelope);
     }
 
     #[test]
