@@ -129,6 +129,31 @@ All arms must use the same model revision, action schedule, reset conditions, fa
 
 Do not collapse these into a weighted score. A higher success or throughput score cannot compensate for one false-safe acceptance.
 
+### Paired policy-plus-assurance evaluation
+
+Use RoboRecover-style reconstructed intermediate states as the recovery-policy substrate and SafeVLA-style trajectory specifications for physical-safety scoring. Keep the candidate policy, initial scene, action prefix, simulator revision, random seed and injected deviation identical between paired arms.
+
+| Arm | Recovery policy | Recovery admission | Purpose |
+|---|---|---|---|
+| P0 | Fixed policy | Original benchmark behavior | Native recovery-success reference |
+| P1 | Same policy | Blind/naive retry after process restart | Quantify why a policy-only retry is insufficient |
+| P2 | Same policy | Typed owner evidence, without independent observer/fence gates | Isolate the value of evidence structure |
+| P3 | Same policy | Full RRVR evidence, observer and graph-fence gate | Measure the incremental assurance effect |
+| P4 | Same policy | Full RRVR plus injected observer/common-cause and downstream queue faults | Test adversarial robustness, not just nominal replay |
+
+Do not silently count a blocked recovery as a successful task. Report (a) native policy RSR, (b) trajectory safety, (c) RRVR false-safe admissions, (d) RRVR false holds on valid positive controls, (e) duplicate physical effects, (f) stale commands after accepted quiescence, and (g) time/throughput costs. The desired result is not “RRVR has the highest RSR”; it is “the same recovery policy is prevented from making unsupported or duplicate physical mutations while valid, independently evidenced recovery remains available.”
+
+### Statistical qualification
+
+A one-sided 95% upper confidence bound below 0.1% after zero observed failures requires approximately 2,995 independent representative Bernoulli trials. This is a planning reference under an IID assumption, not a blanket safety demonstration. Robotics campaigns commonly contain clustered observations: repeated rollouts may share a controller build, firmware, sensor, calibration, environment, simulator seed family or power/clock failure domain. Treating every correlated rollout as independent would overstate the evidence.
+
+Therefore:
+- publish exact denominators and the unit of independence (episode, hardware unit, controller/firmware build, campaign, or independent fault realization);
+- stratify by platform, controller/driver/firmware revision, sensor family, calibration, environment, fault class and common-cause domain;
+- report per-stratum results and cluster-aware intervals alongside pooled estimates;
+- use model checking, exhaustive declared cut coverage, adversarial fault injection and mutation controls for rare structural failures; do not try to establish their absence by random trials alone;
+- preserve zero-tolerance requirements for false-safe admissions and duplicate effects even when performance intervals are reported.
+
 ## 4. Fault campaign
 
 Build a reproducible factorial fault matrix around the actual RRVR lifecycle:
@@ -153,6 +178,10 @@ For each fault family, publish the exact injected schedule, frozen state/config,
 - 0 acceptance of evidence whose logical-effect/attempt/epoch scope does not match.
 - 0 observer quorum qualifications with overlapping declared common-cause domains or reused observer/artifact identities.
 - 100% deterministic output for identical recording bytes and context.
+- At least 99.9% admission of valid positive controls within a declared platform profile, reported separately from safety failures.
+- 100% coverage of declared crash cuts, command-holding graph nodes, observer fault scenarios and recovery transitions in the frozen campaign.
+- Zero false-safe admissions and zero duplicate physical effects across the frozen negative-control corpus.
+- A stretch target of at least 25% lower verified mission makespan through safe concurrency, measured only after every hard safety and evidence gate passes; no latency gain may compensate for an invalid admission.
 
 ### Formal conformance
 - 100% of the frozen valid action schedules pass the independent `tla.trace`/TLC replay gate.
