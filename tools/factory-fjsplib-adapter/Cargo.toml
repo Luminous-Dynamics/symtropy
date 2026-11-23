@@ -1,0 +1,10 @@
+[package]
+name = "factory-fjsplib-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Dependency-free parser and normalizer for FJSPLib flexible jobshop text formats"
+
+[workspace]
+members = []
