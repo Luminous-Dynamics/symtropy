@@ -54,7 +54,7 @@ pub struct SpatialFieldFunctionalReport {
     pub total_standard_uncertainties: [f64; 4],
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SpatialFunctionalError {
     BaseFunctional(String),
     CoordinateCountMismatch { expected: usize, actual: usize },
