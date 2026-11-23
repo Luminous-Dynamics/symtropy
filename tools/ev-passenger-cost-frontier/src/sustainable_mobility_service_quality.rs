@@ -191,7 +191,10 @@ pub struct ServiceQualityInput {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PayloadQualificationEvidence {
+    pub capacity_opportunity_id: String,
     pub aircraft_id: String,
+    pub site_id: String,
+    pub site_configuration_digest: String,
     pub architecture_configuration_digest: String,
     pub producer_id: String,
     pub method_id: String,
@@ -1256,7 +1259,10 @@ pub fn evaluate_linked_service_quality(
             || !qualification_ids.insert(qualification.opportunity_id.as_str())
             || qualification.max_payload_units == 0
             || qualification.max_payload_units > MAX_PAYLOAD_UNITS
+            || evidence.capacity_opportunity_id != receipt.opportunity_id
             || evidence.aircraft_id != receipt.aircraft_id
+            || evidence.site_id != input.site_id
+            || evidence.site_configuration_digest != input.site_configuration_digest
             || evidence.architecture_configuration_digest != configuration_digest
             || evidence.producer_id.trim().is_empty()
             || evidence.method_id.trim().is_empty()
@@ -1559,6 +1565,33 @@ mod tests {
         qualification.evidence.valid_until_seconds = 15_500;
         let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
             .expect_err("evidence expires before mission plus turnaround ends");
+        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+    }
+
+    #[test]
+    fn payload_evidence_is_bound_to_the_exact_capacity_opportunity_id() {
+        let mut input = linked_fixture();
+        input.aerial_opportunity_qualifications[1].evidence.capacity_opportunity_id =
+            input.aerial_opportunity_qualifications[0].opportunity_id.clone();
+        let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
+            .expect_err("evidence receipt must name the exact source opportunity");
+        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+    }
+
+    #[test]
+    fn payload_evidence_is_bound_to_the_exact_site_configuration() {
+        let mut input = linked_fixture();
+        input.aerial_opportunity_qualifications[0].evidence.site_id =
+            "another-site".to_owned();
+        let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
+            .expect_err("payload qualification cannot be replayed at another site");
+        assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
+
+        let mut input = linked_fixture();
+        input.aerial_opportunity_qualifications[0].evidence.site_configuration_digest =
+            "sha256:another-site-config".to_owned();
+        let errors = evaluate_linked_service_quality(&input, &capacity_fixture())
+            .expect_err("payload qualification cannot cross site configurations");
         assert!(errors.iter().any(|error| error.contains("aerial_payload_qualification_invalid")));
     }
 
