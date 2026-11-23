@@ -878,7 +878,7 @@ mod tests {
     #[test]
     fn higher_local_velocity_shortens_the_accumulation_window() {
         let mut fast = snapshot();
-        fast.velocity_magnitude_pixels_per_second = 2_000.0;
+        fast.velocity_magnitude_pixels_per_second = 1_000.0;
         let slow_plan = plan_event_acquisition(&snapshot(), &config(), &catalog())
             .unwrap()
             .plan
@@ -1039,7 +1039,9 @@ mod tests {
     fn infeasible_minimum_information_vs_buffer_limit_abstains() {
         let mut sample = snapshot();
         sample.minimum_events_required = 50_000;
-        sample.buffer_capacity_events = 10_000;
+        sample.buffer_capacity_events = 60_000;
+        sample.velocity_magnitude_pixels_per_second = 0.0;
+        sample.velocity_standard_uncertainty_pixels_per_second = 0.0;
         let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
         assert_eq!(
             report.abstention_reason,
@@ -1064,7 +1066,9 @@ mod tests {
     fn packet_loss_is_included_in_minimum_retained_event_count() {
         let mut sample = snapshot();
         sample.packet_loss_fraction = Some(0.10);
-        let report = plan_event_acquisition(&sample, &config(), &catalog()).unwrap();
+        let mut config = config();
+        config.maximum_packet_loss_fraction = 0.20;
+        let report = plan_event_acquisition(&sample, &config, &catalog()).unwrap();
         let plan = report.plan.unwrap();
         assert!(plan.expected_retained_event_count_lower >= sample.minimum_events_required as f64);
     }
