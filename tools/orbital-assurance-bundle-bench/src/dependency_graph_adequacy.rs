@@ -6,7 +6,7 @@
 //! prevents a correct invalidation algorithm from reaching the affected descendant.
 
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
 
 const SCHEMA: &str = "luminous.orbital-dependency-graph-adequacy.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-dependency-graph-adequacy-only";
