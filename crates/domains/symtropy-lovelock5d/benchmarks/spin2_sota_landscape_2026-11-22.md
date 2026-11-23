@@ -328,18 +328,15 @@ Static Lovelock characteristic cones, gauge-fixed strong hyperbolicity, linear s
 Every public SOTA table must identify, for each numeric result: theory/action, dimension, background/branch, spin and coupling, perturbative order, gauge/normalization, arithmetic, resolution, whether it is a pointwise residual, global norm, profile error, observable error or interval bound, and whether it is independently verified. Values from different metric classes must not be ranked as if they were the same score.
 
 
-## 12. Ma--Lü parameter-map correction (23 November 2026)
+## 12. Ma--Lü parameter-map correction and exact replay (23 November 2026)
 
-The prior shorthand in Section 10 that wrote chi=a/sqrt(mu) and chi=Omega_H*r_h is superseded. The current paper's Eq. (16) literally prints chi=a/mu; Eqs. (4), (6) give for equal spins q=a/r_h, nu=Omega_H*r_h:
-\[
-\mu/r_h^2=(1+q^2)^2/2,\quad
-\nu=q/(1+q^2),\quad
-\chi r_h=2q/(1+q^2)^2.
-\]
-The small-root inverse is q=nu+nu^3+2nu^5+5nu^7+...; thus only the leading O(nu^2) spin-squared metric overlap uses q^2=nu^2+O(nu^4). The printed chi-series normalization is distinct and must be carried explicitly. The manuscript's Eq. (50) gives the equal-spin consistency expansion mu=r_h^2/2+r_h^4*chi^2/4+9*r_h^6*chi^4/32+...; the dimensional convention in Eq. (16) still warrants careful explanation.
+The earlier reading of Eq. (2.9) as chi=a/mu was wrong. The published PDF explicitly gives chi_a=a/sqrt(mu), chi_b=b/sqrt(mu). For equal spins q=a/r_h and nu=Omega_H*r_h, the horizon and angular-velocity relations imply mu/r_h^2=(1+q^2)^2/2, nu=q/(1+q^2), and chi=sqrt(2)*q/(1+q^2)=sqrt(2)*nu exactly.
 
-The parameter-map script has now been fetched byte-for-byte from the public branch and locally executed with Python 3.13.5 / SymPy 1.14.0. Public Git blob SHA-1 5d17da9c52e0668d699d591c608a5bc18eb98efc; local SHA-256 dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3. All exact symbolic checks pass. See issue #6915 and the parameter-map artifacts in the benchmark directory.
+The inverse physical spin ratio is q=nu+nu^3+2nu^5+5nu^7+14nu^9+42nu^11+O(nu^13). Ma-Lu Eq. (3.9) independently gives mu/r_h^2=1/2+chi^2/2+5chi^4/8+7chi^6/8+O(chi^8), which the exact map reproduces.
 
+The corrected SymPy script was fetched byte-for-byte from the public branch and replayed locally with Python 3.13.5 / SymPy 1.14.0. Public Git blob SHA-1: 3b14fe1ba1062cc840da07267c89275b1096b7f7. SHA-256: 2ce25554f128c2f1d3478a4b0e94da751180ade7f1d3055a27bc15fec613e41a. Exact horizon, angular velocity, Eq. (2.9), chi=sqrt(2)*nu, inverse-series, Eq. (3.9), and coupling-normalization checks pass.
+
+Artifacts: derive_ma_lu_equal_spin_parameter_map.py, ma_lu_equal_spin_parameter_map_v1.json, ma_lu_equal_spin_parameter_map_v1.md, and ma_lu_equal_spin_parameter_map_replay_v1.json. The metric/gauge transformation and full component comparison remain open in issue #6915.
 
 ## 13. First-coupling identity and perturbative failure mode
 
