@@ -107,7 +107,6 @@ pub struct FenceEvidence {
     pub receipt: EvidenceReceipt,
 }
 
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptObserverAssurance {
@@ -576,10 +575,20 @@ mod tests {
     fn refuses_shared_common_cause_across_physical_and_downstream_claims() {
         let mut recording = valid_recording();
         let assurance = recording.attempts[0].observer_assurance.as_mut().unwrap();
-        let shared_domain = assurance.physical_outcome.observer_quorum.as_ref().unwrap().members[0]
+        let shared_domain = assurance
+            .physical_outcome
+            .observer_quorum
+            .as_ref()
+            .unwrap()
+            .members[0]
             .common_cause_domains[0]
             .clone();
-        assurance.downstream_quiescence.observer_quorum.as_mut().unwrap().members[0]
+        assurance
+            .downstream_quiescence
+            .observer_quorum
+            .as_mut()
+            .unwrap()
+            .members[0]
             .common_cause_domains[0] = shared_domain;
         assert_eq!(
             recording.validate(),
@@ -594,7 +603,8 @@ mod tests {
             .observer_assurance
             .as_mut()
             .unwrap()
-            .physical_outcome.claim_scope_sha256 = Some("f".repeat(64));
+            .physical_outcome
+            .claim_scope_sha256 = Some("f".repeat(64));
         assert_eq!(
             recording.validate(),
             Err(LineageError::ObserverClaimMismatch)
@@ -650,7 +660,8 @@ mod tests {
     }
 
     #[test]
-    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect() {
+    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect()
+    {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::Committed;
         assert!(recording.validate().is_ok());
