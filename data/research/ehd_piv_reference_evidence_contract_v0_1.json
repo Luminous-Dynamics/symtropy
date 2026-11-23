@@ -62,7 +62,9 @@
       "dependence_component_id",
       "asset_id",
       "reference_evidence_id"
-    ]
+    ],
+    "cohort_partitions_bind_source_manifest_digest": true,
+    "complete_coverage_required_for_accepted_split": true
   },
   "asset_manifest": {
     "hash_algorithm": "SHA-256",
@@ -274,9 +276,9 @@
     "canonicalization_version": "serde_json_v1_sorted_inventory",
     "source_asset_hashing": "streaming_sha256_and_byte_count_from_same_read_stream",
     "manifest_verification": "manifest_digest_then_rehash_every_file_before_processing",
-    "cohort_partition": "union_find_dependency_components_and_pairwise_disjoint_roles",
+    "cohort_partition": "source_manifest_bound_union_find_dependency_components_and_pairwise_disjoint_roles",
     "reference_claim_gate": "metadata_eligibility_only_not_authentication_or_deconvolution",
-    "authored_negative_control_count": 19,
+    "authored_negative_control_count": 21,
     "filesystem_threat_model": "symlink_and_path_escape_rejection; not race_hardened_against_concurrent_local_adversary",
     "validation_state": {
       "rust_format": "not_run",
@@ -293,7 +295,8 @@
         "cargo test --manifest-path ...",
         "cargo clippy --manifest-path ... --all-targets -- -D warnings"
       ]
-    }
+    },
+    "complete_cohort_cover": "all_manifest_dependence_components_must_be_assigned_exactly_once"
   },
   "nonclaims": [
     "reference verifier Rust tests, compilation, rustfmt and Clippy have not yet passed in the authoring environment",
