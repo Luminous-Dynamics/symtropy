@@ -420,10 +420,12 @@ fn class_scenarios<'a>(
         .iter()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
-    scenarios
+    let mut rows = scenarios
         .iter()
         .filter(|scenario| world_set.contains(scenario.world_id.as_str()))
-        .collect()
+        .collect::<Vec<_>>();
+    rows.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    rows
 }
 
 fn common_feasible_actions(
@@ -840,7 +842,11 @@ fn evaluate_no_query(base: &DecisionCase) -> Result<Vec<PolicyMetric>, String> {
         .collect::<BTreeMap<_, _>>();
     let classes = BTreeMap::from([(
         NO_QUERY_OUTCOME.to_owned(),
-        base.compatible_world_set.world_ids.clone(),
+        {
+            let mut worlds = base.compatible_world_set.world_ids.clone();
+            worlds.sort();
+            worlds
+        },
     )]);
     let rows = class_scenarios(
         &base.scenario_manifest.scenarios,
@@ -1190,7 +1196,7 @@ mod tests {
     #[test]
     fn inadmissible_high_information_query_is_not_executed() {
         let evaluation = evaluate(&fixture()).expect("discovery corpus evaluates");
-        let result = case(&evaluation, "query-merges-incompatible-worlds");
+        let result = case(&evaluation, "query-resolves-disjoint-worlds");
         let query = result
             .query_reports
             .iter()
