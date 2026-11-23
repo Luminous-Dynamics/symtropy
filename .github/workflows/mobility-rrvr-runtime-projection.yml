@@ -5,14 +5,21 @@ on:
     branches:
       - research/mobility-rrvr-runtime-projection-v0-1
       - research/mobility-rrvr-attempt-lineage-v0-1
+      - research/mobility-rrvr-multi-attempt-formal-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.tla"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.cfg"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttemptUnsafe.cfg"
       - ".github/workflows/mobility-rrvr-runtime-projection.yml"
   pull_request:
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.tla"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.cfg"
+      - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttemptUnsafe.cfg"
       - ".github/workflows/mobility-rrvr-runtime-projection.yml"
   workflow_dispatch:
 
@@ -41,7 +48,13 @@ jobs:
           MODEL_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.cfg"
           TRACE_SPEC="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.tla"
           TRACE_CFG="research/mobility-rrvr-runtime-trace/RestartSafeEffectContinuityTrace.cfg"
+          MULTI_MODEL="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.tla"
+          MULTI_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.cfg"
+          MULTI_UNSAFE_CFG="research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttemptUnsafe.cfg"
           printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+          printf '%s  %s\n' "9b595fd9d4858c1be1df01a140526579c7815fdfee95e09d844a1f4fc6d096d5" "$MULTI_MODEL" | sha256sum --check
+          printf '%s  %s\n' "2c2f6af9ef9c3e81554b15b640c8e35a5e5d53c3d43a7c62b834194b975efefa" "$MULTI_CFG" | sha256sum --check
+          printf '%s  %s\n' "fca4178d9590ccbf3a2aee179361e3032dde6c38c2cd789177b7478032c90341" "$MULTI_UNSAFE_CFG" | sha256sum --check
           printf '%s  %s\n' "fb2117728e195f9ae5f188e75afdf989d42165472c4bcb6a47238ceb07810d81" "$MODEL" | sha256sum --check
           printf '%s  %s\n' "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168" "$MODEL_CFG" | sha256sum --check
           printf '%s  %s\n' "281c17f88823c88edf070b4d7b320738f8c5b46645ec41cb1059213c69a5e3aa" "$TRACE_SPEC" | sha256sum --check
@@ -339,6 +352,63 @@ jobs:
 
           run_trace_check "reservation" "$ROOT/runtime-trace.ndjson"
           run_trace_check "no-effect-recovery" "$ROOT/no-effect-recovery-trace.ndjson"
+
+      - name: Model check bounded three-attempt lifecycle and unsafe-retry counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/research/mobility-restart-reconciliation/model"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          MODEL="RestartSafeEffectContinuityMultiAttempt.tla"
+          SAFE_CFG="RestartSafeEffectContinuityMultiAttempt.cfg"
+          UNSAFE_CFG="RestartSafeEffectContinuityMultiAttemptUnsafe.cfg"
+          SAFE_WORK="$RUNNER_TEMP/tlc-multi-attempt-safe"
+          UNSAFE_WORK="$RUNNER_TEMP/tlc-multi-attempt-unsafe"
+          ARTIFACT_ROOT="$RUNNER_TEMP/rrvr-runtime-projection/multi-attempt-formal"
+          mkdir -p "$SAFE_WORK" "$UNSAFE_WORK" "$ARTIFACT_ROOT"
+          cp "$ROOT/$MODEL" "$SAFE_WORK/$MODEL"
+          cp "$ROOT/$SAFE_CFG" "$SAFE_WORK/$SAFE_CFG"
+          cp "$ROOT/$MODEL" "$UNSAFE_WORK/$MODEL"
+          cp "$ROOT/$UNSAFE_CFG" "$UNSAFE_WORK/$UNSAFE_CFG"
+
+          (
+            cd "$SAFE_WORK"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-multi-attempt-safe-meta" \
+              -config "$SAFE_CFG" "$MODEL"
+          ) | tee "$ARTIFACT_ROOT/tlc-safe.log"
+          grep -Fq "Model checking completed. No error has been found." "$ARTIFACT_ROOT/tlc-safe.log"
+          grep -Fq "0 states left on queue" "$ARTIFACT_ROOT/tlc-safe.log"
+
+          set +e
+          (
+            cd "$UNSAFE_WORK"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-multi-attempt-unsafe-meta" \
+              -config "$UNSAFE_CFG" "$MODEL"
+          ) > "$ARTIFACT_ROOT/tlc-unsafe.log" 2>&1
+          unsafe_status=$?
+          set -e
+          cat "$ARTIFACT_ROOT/tlc-unsafe.log"
+          if [ "$unsafe_status" -eq 0 ]; then
+            echo "TLC did not produce the expected unsafe-retry counterexample."
+            exit 1
+          fi
+          if ! grep -Fq "NoDuplicatePhysicalMutations" "$ARTIFACT_ROOT/tlc-unsafe.log"; then
+            echo "TLC failed for a reason other than the expected duplicate-mutation invariant."
+            exit 1
+          fi
+
+          cp "$ROOT/$MODEL" "$ARTIFACT_ROOT/$MODEL"
+          cp "$ROOT/$SAFE_CFG" "$ARTIFACT_ROOT/$SAFE_CFG"
+          cp "$ROOT/$UNSAFE_CFG" "$ARTIFACT_ROOT/$UNSAFE_CFG"
+          (
+            cd "$ARTIFACT_ROOT"
+            sha256sum "$MODEL" "$SAFE_CFG" "$UNSAFE_CFG" tlc-safe.log tlc-unsafe.log > SHA256SUMS
+          )
+          echo "Safe three-attempt model exhausted; unsafe retry produced the expected duplicate-mutation counterexample."
 
       - name: Prove trace validator rejects wrong action labels
         shell: bash

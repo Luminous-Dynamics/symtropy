@@ -112,3 +112,15 @@ The synthetic three-attempt fixture and JSON Schema are:
 - schemas/attempt_lineage_v0_1.schema.json
 
 The Rust tests validate two NoEffect recovery edges followed by a terminal Applied attempt, and reject evidence replay, cross-attempt scope changes, incomplete persistence, epoch regression, wrong fence targets, and unsafe intermediate outcomes. This is a reference-contract test, not yet a Rust/TLA+ multi-cycle refinement proof or physical robotics result.
+
+## Bounded multi-attempt formal refinement (in progress)
+
+The original pinned RestartSafeEffectContinuity model remains unchanged and covers one recovery admission. The separate indexed-attempt TLA+ model adds a bounded three-attempt lifecycle so attempt 2 may itself crash and be reconciled before attempt 3 is admitted.
+
+- Model: research/mobility-restart-reconciliation/model/RestartSafeEffectContinuityMultiAttempt.tla
+- Safe config: RestartSafeEffectContinuityMultiAttempt.cfg
+- Unsafe retry negative config: RestartSafeEffectContinuityMultiAttemptUnsafe.cfg
+- Specification: research/mobility-restart-reconciliation/model/MULTI_ATTEMPT_FORMAL_V0.1.md
+- Tracking: [#6985](https://github.com/Luminous-Dynamics/symtropy/issues/6985)
+
+The multi-attempt workflow pins the model/config inputs, runs TLC on the bounded safe model, then runs a separate unsafe-retry configuration that must produce a counterexample to NoDuplicatePhysicalMutations. These checks are distinct from the 43-field runtime projection and the original one-recovery proof. The model remains bounded; the Rust/TLA trace-decision differential harness and physical simulator/HIL qualification are still separate gates.
