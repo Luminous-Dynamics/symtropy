@@ -240,12 +240,12 @@ pub fn identity_roles<'a>(
 mod tests {
     use super::*;
 
-    fn profile(
-        version: &str,
-        access: &str,
-        digest: Option<&str>,
-        scope: Option<&str>,
-    ) -> ProfileEvidence<'_> {
+    fn profile<'a>(
+        version: &'a str,
+        access: &'a str,
+        digest: Option<&'a str>,
+        scope: Option<&'a str>,
+    ) -> ProfileEvidence<'a> {
         ProfileEvidence {
             version: StandardVersion::parse(version),
             access: ProfileAccess::parse(access),
