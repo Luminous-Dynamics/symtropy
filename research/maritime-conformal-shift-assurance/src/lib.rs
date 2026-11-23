@@ -196,14 +196,9 @@ impl PolicyState {
         }
     }
 
-    fn observe(&mut self, residual: ResidualPair, observed: bool, missed: bool) {
-        // The online policy cannot update from an outcome that was not observed.
-        // The evaluator retains hidden outcomes for latent-coverage accounting;
-        // those outcomes are never passed into this method.
-        if !observed {
-            return;
-        }
-
+    fn observe(&mut self, residual: ResidualPair, missed: bool) {
+        // This method is called only when an outcome was actually observed.
+        // Missing outcomes never cross the policy/evaluator boundary.
         if self.method.uses_rolling_history() {
             self.history.push_back(residual);
             while self.history.len() > ROLLING_WINDOW_SIZE {
@@ -420,12 +415,12 @@ fn evaluate_method(
             metrics.observed_joint_covered += usize::from(joint_covered);
             metrics.observed_arrival_covered += usize::from(arrival_covered);
             metrics.observed_handling_covered += usize::from(handling_covered);
+            // Only the observed outcome crosses into the online calibrator.
+            state.observe(sample.residual, !joint_covered);
         } else {
             metrics.missing += 1;
+            // Evaluator-only hidden truth is not passed into the policy.
         }
-
-        // The policy receives feedback only when an outcome is observed.
-        state.observe(sample.residual, sample.observed, !joint_covered);
         metrics.final_alpha_milli = state.alpha_milli;
     }
 
@@ -506,7 +501,7 @@ mod tests {
     }
 
     #[test]
-    fn joint_band_covers_both_targets_or_neither() {
+    fn joint_coverage_requires_both_targets() {
         let band = PredictionBand::joint(4);
         let inside = ResidualPair {
             arrival_abs_hours: 20,
@@ -559,14 +554,7 @@ mod tests {
         ];
         let mut state = PolicyState::new(Method::RollingJoint, &calibration);
         let before = state.history.len();
-        state.observe(
-            ResidualPair {
-                arrival_abs_hours: 500,
-                handling_abs_hours: 1_000,
-            },
-            false,
-            true,
-        );
+        // Missing feedback invokes no update and carries no hidden residual.
         assert_eq!(state.history.len(), before);
     }
 
