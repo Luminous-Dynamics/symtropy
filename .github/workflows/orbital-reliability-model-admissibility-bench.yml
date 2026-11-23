@@ -1,0 +1,98 @@
+name: Orbital Reliability Model-Admissibility Benchmark
+
+on:
+  push:
+    branches: ["research/orbital-reliability-model-admissibility-v0-1"]
+    paths:
+      - "tools/orbital-reliability-model-admissibility-bench/**"
+      - ".github/workflows/orbital-reliability-model-admissibility-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/orbital-reliability-model-admissibility-bench/**"
+      - ".github/workflows/orbital-reliability-model-admissibility-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-reliability-model-admissibility-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  model-admissibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-reliability-model-admissibility-bench/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-reliability-model-admissibility-bench/Cargo.toml -- --check
+
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path tools/orbital-reliability-model-admissibility-bench/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-reliability-model-admissibility-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Replay frozen model-admissibility corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          set +e
+          cargo run --locked --quiet --manifest-path tools/orbital-reliability-model-admissibility-bench/Cargo.toml -- \
+            tools/orbital-reliability-model-admissibility-bench/fixtures/v0.1/admissibility-cases.json \
+            --source-commit "$actual_commit" > orbital-reliability-model-admissibility-receipt.json
+          replay_status=$?
+          set -e
+          jq '.report.summary' orbital-reliability-model-admissibility-receipt.json
+          jq -r '.report.cases[] | select(.expected_result_matched == false) | [.case_id, .disposition, (.blockers | join(";"))] | @tsv' orbital-reliability-model-admissibility-receipt.json
+          if [ "$replay_status" -ne 0 ]; then
+            echo "Model-admissibility corpus replay returned $replay_status."
+            exit "$replay_status"
+          fi
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-reliability-model-admissibility.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .report.evidence_class == "synthetic"
+            and .report.claim_ceiling == "synthetic-model-input-admissibility-only"
+            and .report.summary.case_count == 63
+            and .report.summary.expected_result_mismatches == 0
+            and .report.summary.supported_for_analysis >= 1
+            and .report.summary.constant_intensity_confirmations == 0
+            and .report.summary.reliability_claims_granted == 0
+            and .report.authority_granted == false
+            and .authority_granted == false
+            and ([.report.cases[] | select(.constant_intensity_confirmed == true or .reliability_claim_granted == true)] | length) == 0
+          ' orbital-reliability-model-admissibility-receipt.json
+
+      - name: Run independent model-admissibility oracle
+        run: node tools/orbital-reliability-model-admissibility-bench/tests/reference_oracle.mjs tools/orbital-reliability-model-admissibility-bench/fixtures/v0.1/admissibility-cases.json
+
+      - name: Upload reproducible model-admissibility receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-reliability-model-admissibility-${{ github.event.pull_request.head.sha || github.sha }}
+          path: orbital-reliability-model-admissibility-receipt.json
+          if-no-files-found: error
+          retention-days: 30

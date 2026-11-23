@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-reliability-model-admissibility-corpus-v0.1.json",
+  "title": "Orbital reliability model-admissibility corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-reliability-model-admissibility.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-model-input-admissibility-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "article_serial",
+        "sampling_cluster_id",
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "environment_profile_id",
+        "exposure_seconds",
+        "reported_failure_events",
+        "events",
+        "raw_artifact_sha256",
+        "evidence_complete",
+        "exposure_clock_verified",
+        "clock_error_bound_seconds",
+        "event_capture_complete",
+        "data_loss_counter_verified",
+        "maintenance_history_complete",
+        "censoring"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_serial": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampling_cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "environment_profile_id": {
+          "type": "string"
+        },
+        "exposure_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reported_failure_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "raw_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_complete": {
+          "type": "boolean"
+        },
+        "exposure_clock_verified": {
+          "type": "boolean"
+        },
+        "clock_error_bound_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "event_capture_complete": {
+          "type": "boolean"
+        },
+        "data_loss_counter_verified": {
+          "type": "boolean"
+        },
+        "maintenance_history_complete": {
+          "type": "boolean"
+        },
+        "censoring": {
+          "enum": [
+            "administrative_end",
+            "right_censored",
+            "intervention",
+            "informative_withdrawal",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_time_seconds",
+        "failure_definition_id",
+        "restoration_state",
+        "effective_at",
+        "recorded_at"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_time_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "restoration_state": {
+          "enum": [
+            "minimal_repair",
+            "as_good_as_new",
+            "imperfect_repair",
+            "no_repair_required",
+            "unknown"
+          ]
+        },
+        "effective_at": {
+          "type": "integer"
+        },
+        "recorded_at": {
+          "type": "integer"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "article_count",
+        "cluster_count",
+        "total_exposure_seconds",
+        "total_failure_events",
+        "event_level_records",
+        "recurrent_event_articles",
+        "assumption_diagnostics_ready",
+        "blockers"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "supported_for_analysis",
+            "indeterminate",
+            "model_not_supported",
+            "rejected",
+            "disputed"
+          ]
+        },
+        "article_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cluster_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_exposure_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_failure_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_level_records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recurrent_event_articles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assumption_diagnostics_ready": {
+          "type": "boolean"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "selected_profile",
+        "analysis_request",
+        "input_resolution",
+        "preregistration_ref",
+        "sampling_frame_ref",
+        "dependence_assessment_ref",
+        "assumption_assessment_ref",
+        "maintenance_policy_ref",
+        "event_capture_assessment_ref",
+        "clock_calibration_ref",
+        "diagnostics_protocol_ref",
+        "multiplicity_policy_ref",
+        "holdout_split_ref",
+        "population_id",
+        "lot_id",
+        "configuration_id",
+        "operating_mode_id",
+        "environment_profile_id",
+        "failure_definition_id",
+        "max_clock_error_seconds",
+        "effective_cutoff",
+        "knowledge_cutoff",
+        "diagnostics_predeclared",
+        "thresholds_frozen_before_holdout",
+        "articles",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selected_profile": {
+          "enum": [
+            "homogeneous_poisson_constant_intensity",
+            "weibull_first_failure_life",
+            "nonhomogeneous_poisson_recurrent_events",
+            "accelerated_life",
+            "degradation_path",
+            "unknown_or_unregistered",
+            "power_law_recurrent_minimal_repair"
+          ]
+        },
+        "analysis_request": {
+          "enum": [
+            "aggregate_rate_only",
+            "assumption_challenge",
+            "first_failure_life",
+            "power_law_recurrent_estimate"
+          ]
+        },
+        "input_resolution": {
+          "enum": [
+            "aggregate_count_exposure",
+            "event_level"
+          ]
+        },
+        "preregistration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_frame_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dependence_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "assumption_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maintenance_policy_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_capture_assessment_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clock_calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "diagnostics_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "multiplicity_policy_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "holdout_split_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "population_id": {
+          "type": "string"
+        },
+        "lot_id": {
+          "type": "string"
+        },
+        "configuration_id": {
+          "type": "string"
+        },
+        "operating_mode_id": {
+          "type": "string"
+        },
+        "environment_profile_id": {
+          "type": "string"
+        },
+        "failure_definition_id": {
+          "type": "string"
+        },
+        "max_clock_error_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_cutoff": {
+          "type": "integer"
+        },
+        "knowledge_cutoff": {
+          "type": "integer"
+        },
+        "diagnostics_predeclared": {
+          "type": "boolean"
+        },
+        "thresholds_frozen_before_holdout": {
+          "type": "boolean"
+        },
+        "articles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/article"
+          }
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    }
+  }
+}
