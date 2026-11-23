@@ -921,7 +921,6 @@ pub fn evaluate_nonanticipative_oracle(
             add_error(&mut errors, format!("observation_or_information_digest_mismatch:{}", node.node_id));
         }
         let group = InformationSet {
-            digest: node.information_set_digest.clone(),
             parent_digest: node.parent_information_set_digest.clone(),
             decision_time_seconds: node.decision_time_seconds,
             revealed_mask,
