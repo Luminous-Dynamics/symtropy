@@ -1,0 +1,111 @@
+name: MFG Route Scenario-Tree Optimizer
+on:
+  pull_request:
+    paths:
+      - "tools/mfg-route-tree-optimizer/**"
+      - "schemas/manufacturing/mfg_route_tree_case_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_route_tree_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_tree_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_tree_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-tree-optimizer.yml"
+  push:
+    branches:
+      - research/mfg-route-tree-optimizer-v0-1
+    paths:
+      - "tools/mfg-route-tree-optimizer/**"
+      - "schemas/manufacturing/mfg_route_tree_case_v0_1.schema.json"
+      - "schemas/manufacturing/mfg_route_tree_known_answers_v0_1.schema.json"
+      - "fixtures/manufacturing/mfg_route_tree_cases_v0_1.json"
+      - "fixtures/manufacturing/mfg_route_tree_known_answers_v0_1.json"
+      - ".github/workflows/mfg-route-tree-optimizer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scenario-tree-qualification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Validate frozen corpus and answer identities
+        run: |
+          jq empty schemas/manufacturing/mfg_route_tree_case_v0_1.schema.json
+          jq empty schemas/manufacturing/mfg_route_tree_known_answers_v0_1.schema.json
+          jq empty fixtures/manufacturing/mfg_route_tree_cases_v0_1.json
+          jq empty fixtures/manufacturing/mfg_route_tree_known_answers_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-TREE-OPT-001"
+            and .evidence_class == "synthetic"
+            and .case_count == 120
+            and (.family_manifest | length) == 6
+            and (.cases | length) == 120
+            and all(.family_manifest[]; .case_count == 20 and (.replication_seeds | length) == 20)
+            and all(.cases[]; (.scenarios | length) == 5)
+          ' fixtures/manufacturing/mfg_route_tree_cases_v0_1.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-TREE-OPT-001"
+            and .evidence_class == "synthetic"
+            and .answer_count == 120
+            and (.answers | length) == 120
+          ' fixtures/manufacturing/mfg_route_tree_known_answers_v0_1.json
+      - name: Apply rustfmt and check
+        run: |
+          cargo fmt --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml
+          cargo fmt --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml -- --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-tree-rustfmt-source
+          path: tools/mfg-route-tree-optimizer/src/main.rs
+          if-no-files-found: error
+      - name: Run Draft 2020-12, exact-answer and adversarial tests
+        run: cargo test --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml
+      - name: Run scenario-tree optimizer and validate report
+        run: |
+          cargo run --quiet --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml -- fixtures/manufacturing/mfg_route_tree_cases_v0_1.json > mfg-route-tree-report.json
+          jq -e '
+            .benchmark_id == "MFG-ROUTE-TREE-OPT-001"
+            and .evidence_class == "synthetic"
+            and .family_count == 6
+            and .case_count == 120
+            and .scenario_leaf_count == 600
+            and .non_anticipativity_verified
+            and .recommendations_are_non_binding
+            and (.execution_authority_used == false)
+            and (.physical_acceptance_claimed == false)
+            and (.production_release_authorized == false)
+            and (.greedy_regret_numerator >= 0)
+            and (.clairvoyant_lower_bound_numerator <= .exact_expected_cost_numerator)
+          ' mfg-route-tree-report.json
+      - name: Negative controls - probability mass and information-set corruption
+        run: |
+          jq '.cases[0].scenarios[0].probability_ppm -= 1' fixtures/manufacturing/mfg_route_tree_cases_v0_1.json > invalid-probability-mass.json
+          jq '.cases[0].scenarios[1].observations.failed_route_ids = []' fixtures/manufacturing/mfg_route_tree_cases_v0_1.json > invalid-information-set.json
+          for invalid in invalid-probability-mass.json invalid-information-set.json; do
+            if cargo run --quiet --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml -- "$invalid" >/dev/null 2>&1; then
+              echo "invalid scenario tree unexpectedly accepted: $invalid"
+              exit 1
+            fi
+          done
+      - name: Hash source, schemas, fixtures and report
+        run: |
+          sha256sum \
+            tools/mfg-route-tree-optimizer/Cargo.toml \
+            tools/mfg-route-tree-optimizer/src/main.rs \
+            schemas/manufacturing/mfg_route_tree_case_v0_1.schema.json \
+            schemas/manufacturing/mfg_route_tree_known_answers_v0_1.schema.json \
+            fixtures/manufacturing/mfg_route_tree_cases_v0_1.json \
+            fixtures/manufacturing/mfg_route_tree_known_answers_v0_1.json \
+            mfg-route-tree-report.json > mfg-route-tree.sha256
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-route-tree-optimizer/Cargo.toml --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mfg-route-tree-optimizer-report
+          path: |
+            mfg-route-tree-report.json
+            mfg-route-tree.sha256
+          if-no-files-found: error
