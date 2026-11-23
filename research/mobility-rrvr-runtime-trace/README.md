@@ -179,3 +179,6 @@ The first transport-neutral adapter core now validates an exact Gazebo capabilit
 The campaign/compiled plan pin the simulator build, ROS distribution, Simulation Interfaces package revision, SceneBroadcaster ID/revision/binary digest, environment and reset profile. The capability profile must advertise GetSimulatorFeatures, ResetSimulation, state query/update, entity query and one discrete step interface (StepSimulation or SimulateSteps). Missing SceneBroadcaster or a mismatched plugin/API build fails closed.
 
 The transport trait has no live ROS client implementation yet. The CLI validates a captured capability profile only; it does not contact Gazebo, reset/step a world, or inject a fault. Mock tests exercise the orchestration, and the actual ROS 2 service/action client remains the next integration.
+
+
+The execution-evidence validator also enforces cross-event chronology: fault event N+1 cannot begin with a receipt earlier than the last available receipt of event N on the same simulation clock. Local correctness is not enough if the global trace is reordered.
