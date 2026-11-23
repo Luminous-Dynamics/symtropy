@@ -4,18 +4,18 @@
 use std::{env, fs, process::ExitCode};
 
 use ev_passenger_cost_frontier::mobility_service_risk_envelope::{
-    MobilityServiceRiskInput,
-    evaluate_mobility_service_risk_envelope,
+    MobilityServiceRiskInput, evaluate_mobility_service_risk_envelope,
 };
 use ev_passenger_cost_frontier::nonanticipative_service_oracle::NonanticipativeServiceOracleInput;
 use ev_passenger_cost_frontier::sustainable_mobility_service_capacity::SustainableServiceCapacityInput;
 use ev_passenger_cost_frontier::sustainable_mobility_service_quality::LinkedServiceQualityInput;
 
-fn read_json<T: serde::de::DeserializeOwned>(path: &std::ffi::OsStr, label: &str) -> Result<T, String> {
-    let raw = fs::read_to_string(path)
-        .map_err(|error| format!("cannot read {label}: {error}"))?;
-    serde_json::from_str(&raw)
-        .map_err(|error| format!("invalid {label} JSON: {error}"))
+fn read_json<T: serde::de::DeserializeOwned>(
+    path: &std::ffi::OsStr,
+    label: &str,
+) -> Result<T, String> {
+    let raw = fs::read_to_string(path).map_err(|error| format!("cannot read {label}: {error}"))?;
+    serde_json::from_str(&raw).map_err(|error| format!("invalid {label} JSON: {error}"))
 }
 
 fn main() -> ExitCode {
