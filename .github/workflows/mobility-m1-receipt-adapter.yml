@@ -1,0 +1,52 @@
+name: Mobility M1 Receipt Adapter
+
+on:
+  pull_request:
+    paths:
+      - 'research/mobility-m1-receipt-adapter/**'
+      - '.github/workflows/mobility-m1-receipt-adapter.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/mobility-m1-receipt-adapter/**'
+      - '.github/workflows/mobility-m1-receipt-adapter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-m1-receipt-adapter-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact M1 reference
+        uses: actions/checkout@v4
+        with:
+          ref: 1e29153065c35026a1d07db254ed1815efbee850
+          path: m1-src
+      - name: Checkout exact M2 contract
+        uses: actions/checkout@v4
+        with:
+          ref: 884bcfbd4474b31ed395fbedf63f0a4091eefa14
+          path: m2-src
+      - name: Checkout exact Mycelix Position API
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/mycelix
+          ref: fb92acb62c3b2b9c040de8ebc34fe371f4efd8a7
+          path: mycelix-src
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-m1-receipt-adapter/Cargo.toml -- --check
+      - name: Run pinned M1/M2 integration and upstream regression tests
+        run: cargo test --manifest-path research/mobility-m1-receipt-adapter/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/mobility-m1-receipt-adapter/Cargo.toml --all-targets --locked -- -D warnings
