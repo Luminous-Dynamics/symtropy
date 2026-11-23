@@ -35,6 +35,8 @@ pub(crate) use robust_decision_design::solve_finite_zero_sum_game;
 mod robust_campaign_planning;
 pub use robust_campaign_planning::{
     plan_non_anticipative_robust_campaign, RobustCampaignAcquisition, RobustCampaignContinuation,
+    plan_randomized_non_anticipative_robust_campaign, RandomizedRobustCampaignPlanningPolicy,
+    RandomizedRobustCampaignPlanningResult, RandomizedRobustCampaignTreeComponent,
     RobustCampaignOutcomeBranch, RobustCampaignPlanNode, RobustCampaignPlanningPolicy,
     RobustCampaignPlanningResult, RobustCampaignScenarioLikelihood, RobustCampaignScenarioScore,
     RobustCampaignStop,
