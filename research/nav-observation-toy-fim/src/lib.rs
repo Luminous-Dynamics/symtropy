@@ -19,6 +19,7 @@ pub mod uwb_hypothesis_discrimination;
 pub mod decision_relevant_discrimination;
 pub mod active_evidence_discrimination;
 pub mod active_evidence_decision_planner;
+pub mod active_evidence_reliability_planner;
 pub mod active_evidence_reliability;
 pub mod hbr_quality_mapping;
 pub mod hbr_residual_gate;
