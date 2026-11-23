@@ -10,7 +10,7 @@ A deterministic policy reference for selecting a feasible event-accumulation int
 
 ## Policy
 
-The minimum event-count requirement defines a lower bound on the accumulation window. Velocity/displacement, event-buffer utilization, clock quality and calibrated illumination limits define upper bounds. A geometric midpoint is selected only when the feasible interval is non-empty.
+The minimum retained-event requirement (after measured packet loss) defines a lower bound on the accumulation window. Velocity/displacement, event-buffer utilization, clock quality and calibrated illumination limits define upper bounds. A geometric midpoint is selected only when the feasible interval is non-empty.
 
 - Full-field, block-scanned and line-scanned modes are selectable only under their own calibration receipts and validated operating envelopes.
 - Event-rate and particle-density uncertainties are propagated as conservative upper/lower bounds.
