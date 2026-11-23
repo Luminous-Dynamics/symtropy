@@ -330,13 +330,15 @@ pub fn decide_peak_overlap_convergence(
         PeakOverlapConvergenceStatus::NotConverged,
         PeakOverlapConvergenceReason::Md2AboveActiveThreshold,
         0.0,
-        Some(active_md2_cutoff),
-        schedule_fraction,
-        Some(current_vs_previous_md2),
-        Some(current_vs_two_back_md2),
-        acceleration_iteration,
-        averaging_iteration,
-        oscillation_iteration,
+        DecisionDiagnostics {
+            active_md2_cutoff: Some(active_md2_cutoff),
+            relaxed_schedule_fraction: schedule_fraction,
+            current_vs_previous_md2: Some(current_vs_previous_md2),
+            current_vs_two_back_md2: Some(current_vs_two_back_md2),
+            acceleration_iteration,
+            averaging_iteration,
+            oscillation_iteration,
+        },
     ))
 }
 
