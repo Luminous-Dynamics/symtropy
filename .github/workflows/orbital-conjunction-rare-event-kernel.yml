@@ -1,0 +1,69 @@
+name: Orbital Conjunction Rare-Event Kernel
+
+on:
+  push:
+    branches: ["research/orbital-conjunction-kernel-v0-1-2026-11-22"]
+    paths:
+      - "benchmarks/orbital-conjunction/rare-event-kernel/**"
+      - ".github/workflows/orbital-conjunction-rare-event-kernel.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/orbital-conjunction/rare-event-kernel/**"
+      - ".github/workflows/orbital-conjunction-rare-event-kernel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-conjunction-rare-event-kernel-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analytic-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml -- --check
+
+      - name: Run analytic known-answer tests
+        run: cargo test --locked --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml --all-targets
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-kernel/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify the checked-out head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          printf 'validated_commit=%s\n' "$actual_commit" > rare-event-kernel-validation.txt
+          printf 'claim_ceiling=analytic-kernel-tests-only\n' >> rare-event-kernel-validation.txt
+
+      - name: Upload exact-head validation identity
+        uses: actions/upload-artifact@v4
+        with:
+          name: rare-event-kernel-validation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: rare-event-kernel-validation.txt
+          if-no-files-found: error
+          retention-days: 30

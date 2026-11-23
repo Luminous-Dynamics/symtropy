@@ -1,0 +1,14 @@
+[package]
+name = "symtropy-rare-event-kernel"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-light analytic and numerical kernels for rare-event assurance research"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+
+[dependencies]
+libm = "0.2"
+
+# Keep this benchmark crate independently buildable. It is intentionally not
+# coupled to the full Symtropy/Bevy workspace or the orbit propagator.
+[workspace]
