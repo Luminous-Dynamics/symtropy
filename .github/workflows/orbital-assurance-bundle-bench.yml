@@ -13,6 +13,7 @@ on:
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md"
+      - "research/orbital/LOSS_MODEL_UNIVERSE_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
     branches:
@@ -27,6 +28,7 @@ on:
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md"
+      - "research/orbital/LOSS_MODEL_UNIVERSE_ADEQUACY_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   workflow_dispatch:
 
