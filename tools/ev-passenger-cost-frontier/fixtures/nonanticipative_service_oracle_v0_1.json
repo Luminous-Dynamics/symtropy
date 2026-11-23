@@ -1,0 +1,118 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "NONANTICIPATIVE-SERVICE-ORACLE-001",
+  "nodes": [
+    {
+      "node_id": "root",
+      "parent_node_id": null,
+      "decision_time_seconds": 0,
+      "conditional_probability_ppm": 1000000,
+      "request_reveals": [
+        {
+          "request_id": "request-visible-early",
+          "receipt_id": "receipt-request-visible-root",
+          "evidence": {
+            "site_id": "single-service-site-v01",
+            "site_configuration_digest": "sha256:service-site-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-information-reveal-v0.1",
+            "evidence_reference": "receipt-request-visible-root",
+            "evidence_class": "synthetic",
+            "observed_at_seconds": 0,
+            "valid_from_seconds": 0,
+            "valid_until_seconds": 0
+          }
+        }
+      ],
+      "aerial_reveals": [
+        {
+          "opportunity_id": "aircraft-00-mission-000000",
+          "weather_state": "go",
+          "permission_state": "approved",
+          "receipt_id": "receipt-aerial-root",
+          "evidence": {
+            "site_id": "single-service-site-v01",
+            "site_configuration_digest": "sha256:service-site-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-information-reveal-v0.1",
+            "evidence_reference": "receipt-aerial-root",
+            "evidence_class": "synthetic",
+            "observed_at_seconds": 0,
+            "valid_from_seconds": 0,
+            "valid_until_seconds": 345
+          }
+        }
+      ],
+      "fallback_reveals": []
+    },
+    {
+      "node_id": "high-demand",
+      "parent_node_id": "root",
+      "decision_time_seconds": 300,
+      "conditional_probability_ppm": 400000,
+      "request_reveals": [
+        {
+          "request_id": "request-hidden-later",
+          "receipt_id": "receipt-request-hidden-high",
+          "evidence": {
+            "site_id": "single-service-site-v01",
+            "site_configuration_digest": "sha256:service-site-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-information-reveal-v0.1",
+            "evidence_reference": "receipt-request-hidden-high",
+            "evidence_class": "synthetic",
+            "observed_at_seconds": 300,
+            "valid_from_seconds": 0,
+            "valid_until_seconds": 300
+          }
+        }
+      ],
+      "aerial_reveals": [],
+      "fallback_reveals": [
+        {
+          "opportunity_id": "fallback-locker-branch",
+          "available": true,
+          "receipt_id": "receipt-fallback-high",
+          "evidence": {
+            "site_id": "single-service-site-v01",
+            "site_configuration_digest": "sha256:service-site-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-information-reveal-v0.1",
+            "evidence_reference": "receipt-fallback-high",
+            "evidence_class": "synthetic",
+            "observed_at_seconds": 300,
+            "valid_from_seconds": 300,
+            "valid_until_seconds": 900
+          }
+        }
+      ]
+    },
+    {
+      "node_id": "low-demand",
+      "parent_node_id": "root",
+      "decision_time_seconds": 300,
+      "conditional_probability_ppm": 600000,
+      "request_reveals": [],
+      "aerial_reveals": [],
+      "fallback_reveals": [
+        {
+          "opportunity_id": "fallback-locker-branch",
+          "available": true,
+          "receipt_id": "receipt-fallback-low",
+          "evidence": {
+            "site_id": "single-service-site-v01",
+            "site_configuration_digest": "sha256:service-site-v01",
+            "producer_id": "fixture-generator",
+            "method_id": "synthetic-information-reveal-v0.1",
+            "evidence_reference": "receipt-fallback-low",
+            "evidence_class": "synthetic",
+            "observed_at_seconds": 300,
+            "valid_from_seconds": 300,
+            "valid_until_seconds": 900
+          }
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Exact bounded nonanticipative policy oracle over supplied synthetic scenario-tree observations and re-evaluated service-capacity receipts only. No route planning, physical flight, weather forecast calibration, permission authority, customer delivery, grid dispatch or production performance claim."
+}
