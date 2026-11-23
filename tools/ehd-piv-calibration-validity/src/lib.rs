@@ -166,6 +166,10 @@ impl CalibrationCertificate {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WeightedSupportEvidence {
     pub estimator_id: String,
+    /// Independently qualified evidence that the conditional residual law is
+    /// stable for the declared covariate-shift operation. A density-ratio
+    /// estimate alone cannot establish this assumption.
+    pub conditional_law_stability_evidence_id: String,
     pub effective_sample_size: f64,
     pub maximum_normalized_weight: f64,
     pub overlap_fraction: f64,
@@ -221,6 +225,7 @@ pub enum Reason {
     ObserverChanged,
     ConditionalResidualDrift,
     CovariateShiftUnsupported,
+    CovariateShiftWeightedSupportAdmitted,
     WeightedSupportInsufficient,
     ReferenceUnqualified,
     SharedCauseUnresolved,
@@ -551,10 +556,12 @@ impl CalibrationSupervisor {
                 );
             };
             let adequate = !support.estimator_id.trim().is_empty()
+                && !support.conditional_law_stability_evidence_id.trim().is_empty()
                 && support.finite_ratio_evidence
                 && support.effective_sample_size.is_finite()
                 && support.effective_sample_size >= policy.minimum_effective_sample_size
                 && support.maximum_normalized_weight.is_finite()
+                && support.maximum_normalized_weight >= 1.0
                 && support.maximum_normalized_weight <= policy.maximum_normalized_weight
                 && support.overlap_fraction.is_finite()
                 && (0.0..=1.0).contains(&support.overlap_fraction)
@@ -797,6 +804,7 @@ mod tests {
         sample.signals.insert(ShiftSignal::CovariateShiftDetected);
         sample.weighted_support = Some(WeightedSupportEvidence {
             estimator_id: "ratio-estimator-v1".into(),
+            conditional_law_stability_evidence_id: "conditional-law-audit-v1".into(),
             effective_sample_size: 75.0,
             maximum_normalized_weight: 4.0,
             overlap_fraction: 0.95,
@@ -805,7 +813,7 @@ mod tests {
         assert_eq!(
             supervisor.observe(&sample),
             Disposition::QualifiedWithWarning {
-                reason: Reason::CovariateShiftUnsupported
+                reason: Reason::CovariateShiftWeightedSupportAdmitted
             }
         );
     }
@@ -824,7 +832,36 @@ mod tests {
         sample.signals.insert(ShiftSignal::CovariateShiftDetected);
         sample.weighted_support = Some(WeightedSupportEvidence {
             estimator_id: "ratio-estimator-v1".into(),
+            conditional_law_stability_evidence_id: "conditional-law-audit-v1".into(),
             effective_sample_size: 12.0,
+            maximum_normalized_weight: 4.0,
+            overlap_fraction: 0.95,
+            finite_ratio_evidence: true,
+        });
+        assert_eq!(
+            supervisor.observe(&sample),
+            Disposition::AbstainInsufficientEvidence {
+                reason: Reason::WeightedSupportInsufficient
+            }
+        );
+    }
+
+    #[test]
+    fn weighted_shift_abstains_without_conditional_law_support() {
+        let mut cert = certificate();
+        cert.method = CalibrationMethod::WeightedCovariateShift;
+        cert.weighted_support_policy = Some(WeightedSupportPolicy {
+            minimum_effective_sample_size: 50.0,
+            maximum_normalized_weight: 20.0,
+            minimum_overlap_fraction: 0.8,
+        });
+        let mut supervisor = CalibrationSupervisor::new(cert).expect("valid fixture");
+        let mut sample = evidence("e-1", 11);
+        sample.signals.insert(ShiftSignal::CovariateShiftDetected);
+        sample.weighted_support = Some(WeightedSupportEvidence {
+            estimator_id: "ratio-estimator-v1".into(),
+            conditional_law_stability_evidence_id: String::new(),
+            effective_sample_size: 75.0,
             maximum_normalized_weight: 4.0,
             overlap_fraction: 0.95,
             finite_ratio_evidence: true,
