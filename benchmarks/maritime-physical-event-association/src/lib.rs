@@ -442,12 +442,14 @@ pub fn evaluate(case: &AssociationCase) -> AssociationReport {
             candidate_edge_count,
         ),
         MatchingResult::Unique(left_to_right) => {
-            let has_unresolved_time_order = left_to_right.iter().enumerate().any(
-                |(source_index, witness_index)| {
-                    temporal_compatibility(&source[source_index], &witness[*witness_index])
-                        == TemporalCompatibility::Unresolved
-                },
-            );
+            let has_unresolved_time_order =
+                left_to_right
+                    .iter()
+                    .enumerate()
+                    .any(|(source_index, witness_index)| {
+                        temporal_compatibility(&source[source_index], &witness[*witness_index])
+                            == TemporalCompatibility::Unresolved
+                    });
             if has_unresolved_time_order {
                 return AssociationReport::new(
                     Disposition::TimeOrderUnresolved,
