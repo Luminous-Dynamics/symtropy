@@ -561,7 +561,10 @@ mod tests {
         .unwrap();
 
         assert!(result.converged);
-        assert_eq!(result.reason, PopOuterConvergenceReason::AllPopEpochsConverged);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::AllPopEpochsConverged
+        );
     }
 
     #[test]
@@ -603,11 +606,9 @@ mod tests {
         policy.refine_ephemeris = true;
         policy.refinement_count = 249;
         policy.maximum_refinements = 250;
-        let result = decide_pop_outer_convergence(
-            &[epoch(1, 0.0, true, 0, Some(1.0), Some(1.0))],
-            policy,
-        )
-        .unwrap();
+        let result =
+            decide_pop_outer_convergence(&[epoch(1, 0.0, true, 0, Some(1.0), Some(1.0))], policy)
+                .unwrap();
 
         assert!(result.converged);
         assert!(result.refinement_limit_satisfied);
@@ -658,7 +659,10 @@ mod tests {
 
         assert!(!result.converged);
         assert_eq!(result.minimum_surface_md2, Some(-0.25));
-        assert_eq!(result.reason, PopOuterConvergenceReason::PartialZeroRateUnresolved);
+        assert_eq!(
+            result.reason,
+            PopOuterConvergenceReason::PartialZeroRateUnresolved
+        );
     }
 
     #[test]
