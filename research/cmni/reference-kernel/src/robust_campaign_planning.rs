@@ -1111,9 +1111,12 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
             )?
         };
         let branch_count = checked_power(branch_choices.len(), root.outcome_ids.len())?;
-        total_tree_count = total_tree_count.checked_add(branch_count).ok_or(
-            ModelError::InvalidParameter("randomized_campaign_tree_count_overflow"),
-        )?;
+        total_tree_count =
+            total_tree_count
+                .checked_add(branch_count)
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_campaign_tree_count_overflow",
+                ))?;
         if total_tree_count > policy.campaign.max_campaign_policy_trees {
             return Err(ModelError::InvalidParameter(
                 "randomized_campaign_tree_cap_exceeded",
@@ -1148,11 +1151,12 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
             &mut clairvoyant_best_by_scenario,
             &mut deterministic_maximin_net_utility,
         )?;
-        complete_policy_trees_evaluated = complete_policy_trees_evaluated
-            .checked_add(1)
-            .ok_or(ModelError::InvalidParameter(
-                "randomized_campaign_tree_count_overflow",
-            ))?;
+        complete_policy_trees_evaluated =
+            complete_policy_trees_evaluated
+                .checked_add(1)
+                .ok_or(ModelError::InvalidParameter(
+                    "randomized_campaign_tree_count_overflow",
+                ))?;
         scenario_policy_evaluations = scenario_policy_evaluations
             .checked_add(scenario_ids.len())
             .ok_or(ModelError::InvalidParameter(
@@ -1165,8 +1169,7 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
         if branch_choices.is_empty() {
             continue;
         }
-        let combinations =
-            branch_choice_combinations(branch_choices, root.outcome_ids.len());
+        let combinations = branch_choice_combinations(branch_choices, root.outcome_ids.len());
         for combination in combinations {
             let plan = materialize_campaign_plan(root, &combination, acquisitions, action_ids);
             let evaluations = evaluate_acquisition_tree(
@@ -1186,11 +1189,10 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
                 &mut clairvoyant_best_by_scenario,
                 &mut deterministic_maximin_net_utility,
             )?;
-            complete_policy_trees_evaluated = complete_policy_trees_evaluated
-                .checked_add(1)
-                .ok_or(ModelError::InvalidParameter(
-                    "randomized_campaign_tree_count_overflow",
-                ))?;
+            complete_policy_trees_evaluated =
+                complete_policy_trees_evaluated.checked_add(1).ok_or(
+                    ModelError::InvalidParameter("randomized_campaign_tree_count_overflow"),
+                )?;
             scenario_policy_evaluations = scenario_policy_evaluations
                 .checked_add(scenario_ids.len())
                 .ok_or(ModelError::InvalidParameter(
@@ -1249,9 +1251,7 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
             ));
         }
         let candidate = &frontier[*frontier_index];
-        for (scenario_index, evaluation) in
-            candidate.scenario_evaluations.iter().enumerate()
-        {
+        for (scenario_index, evaluation) in candidate.scenario_evaluations.iter().enumerate() {
             randomized_net_utility_by_scenario[scenario_index] +=
                 probability * evaluation.net_expected_utility;
         }
@@ -1283,10 +1283,10 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
             "randomized_campaign_policy_mixture_not_normalized",
         ));
     }
-    let all_mixture_components_pathwise_feasible = campaign_policy_mixture.iter().all(
-        |component| component.maximum_path_resource_cost
-            <= policy.campaign.remaining_resource_budget,
-    );
+    let all_mixture_components_pathwise_feasible =
+        campaign_policy_mixture.iter().all(|component| {
+            component.maximum_path_resource_cost <= policy.campaign.remaining_resource_budget
+        });
     if !all_mixture_components_pathwise_feasible {
         return Err(ModelError::InvalidParameter(
             "randomized_campaign_mixture_contains_pathwise_infeasible_tree",
@@ -1299,10 +1299,12 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
         .iter()
         .zip(game.minimizing_scenario_mixture.probabilities.iter())
         .filter(|(_, probability)| **probability > 0.0)
-        .map(|(scenario_index, probability)| crate::LeastFavourableScenarioWeight {
-            scenario_id: scenario_ids[*scenario_index].clone(),
-            probability: *probability,
-        })
+        .map(
+            |(scenario_index, probability)| crate::LeastFavourableScenarioWeight {
+                scenario_id: scenario_ids[*scenario_index].clone(),
+                probability: *probability,
+            },
+        )
         .collect::<Vec<_>>();
 
     let randomized_worst_case_net_utility = randomized_net_utility_by_scenario
@@ -1315,8 +1317,7 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
         .fold(f64::INFINITY, f64::min);
     let non_anticipativity_gap =
         (clairvoyant_campaign_upper_bound - randomized_worst_case_net_utility).max(0.0);
-    let robust_expected_value_of_campaign =
-        randomized_worst_case_net_utility - prior_best_utility;
+    let robust_expected_value_of_campaign = randomized_worst_case_net_utility - prior_best_utility;
     let deterministic_to_randomized_value_gain =
         randomized_worst_case_net_utility - deterministic_maximin_net_utility;
     let scale = randomized_worst_case_net_utility
@@ -1357,12 +1358,8 @@ pub fn plan_randomized_non_anticipative_robust_campaign(
         primal_game_value: game.maximizing_policy_mixture.value,
         dual_game_value: game.minimizing_scenario_mixture.value,
         primal_dual_gap: game.primal_dual_gap,
-        maximum_primal_feasibility_residual: game
-            .maximizing_policy_mixture
-            .feasibility_residual,
-        maximum_dual_feasibility_residual: game
-            .minimizing_scenario_mixture
-            .feasibility_residual,
+        maximum_primal_feasibility_residual: game.maximizing_policy_mixture.feasibility_residual,
+        maximum_dual_feasibility_residual: game.minimizing_scenario_mixture.feasibility_residual,
         maximum_complementarity_residual: game.maximum_complementarity_residual,
         complete_policy_trees_evaluated,
         nondominated_policy_trees: frontier.len(),
@@ -1419,17 +1416,15 @@ fn add_campaign_game_candidate(
             ));
         }
         worst_case_value = worst_case_value.min(evaluation.net_expected_utility);
-        clairvoyant_best_by_scenario[scenario_index] = clairvoyant_best_by_scenario
-            [scenario_index]
-            .max(evaluation.net_expected_utility);
+        clairvoyant_best_by_scenario[scenario_index] =
+            clairvoyant_best_by_scenario[scenario_index].max(evaluation.net_expected_utility);
     }
     if !worst_case_value.is_finite() {
         return Err(ModelError::NonFiniteValue(
             "randomized_campaign_worst_case_payoff",
         ));
     }
-    *deterministic_maximin_net_utility =
-        deterministic_maximin_net_utility.max(worst_case_value);
+    *deterministic_maximin_net_utility = deterministic_maximin_net_utility.max(worst_case_value);
     candidates.push(CampaignGameCandidate {
         plan,
         scenario_evaluations,
@@ -1448,9 +1443,7 @@ fn campaign_game_pareto_frontier(
                 continue 'candidate;
             }
         }
-        frontier.retain(|existing| {
-            !campaign_game_candidate_dominates(&candidate, existing)
-        });
+        frontier.retain(|existing| !campaign_game_candidate_dominates(&candidate, existing));
         frontier.push(candidate);
     }
     frontier
@@ -1476,8 +1469,7 @@ fn campaign_game_candidate_dominates(
         .iter()
         .zip(right.scenario_evaluations.iter())
         .any(|(left, right)| left.net_expected_utility > right.net_expected_utility);
-    strictly_better
-        || left.maximum_path_resource_cost <= right.maximum_path_resource_cost
+    strictly_better || left.maximum_path_resource_cost <= right.maximum_path_resource_cost
 }
 
 #[cfg(test)]
@@ -1950,9 +1942,7 @@ mod tests {
             } => outcome_branches
                 .iter()
                 .map(|branch| match &branch.continuation {
-                    RobustCampaignContinuation::Stop(stop) => {
-                        Some(stop.terminal_action_id.clone())
-                    }
+                    RobustCampaignContinuation::Stop(stop) => Some(stop.terminal_action_id.clone()),
                     RobustCampaignContinuation::AcquireSecond { .. } => None,
                 })
                 .collect(),
@@ -1987,9 +1977,10 @@ mod tests {
         assert!(result.primal_dual_gap < 1.0e-9);
         assert!(result.maximum_complementarity_residual < 1.0e-8);
         assert_eq!(result.randomized_net_utility_by_scenario.len(), 2);
-        assert!(result.randomized_net_utility_by_scenario.iter().all(|value| {
-            (*value - 133.0 / 300.0).abs() < 1.0e-9
-        }));
+        assert!(result
+            .randomized_net_utility_by_scenario
+            .iter()
+            .all(|value| { (*value - 133.0 / 300.0).abs() < 1.0e-9 }));
         assert_eq!(result.campaign_policy_mixture.len(), 2);
 
         let policy_a = result
@@ -2125,5 +2116,4 @@ mod tests {
             ))
         );
     }
-
 }
