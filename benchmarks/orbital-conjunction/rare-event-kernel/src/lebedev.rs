@@ -246,7 +246,7 @@ pub fn lebedev_sphere_rule(rule: LebedevRule) -> Result<LebedevSphereRule, Kerne
 // by the standard octahedral symmetry groups; each node weight is 4π times
 // the listed normalized weight.
 //
-// Source: https://github.com/nasa/CARA_Analysis_Tools/blob/master/DistributedMatlab/ProbabilityOfCollision/Utils/getLebedevSphere.m
+// Source: https://github.com/nasa/CARA_Analysis_Tools/blob/43f0160f94d76a91805d86521c3e8fa0d09ecd68/DistributedMatlab/ProbabilityOfCollision/Utils/getLebedevSphere.m
 //
 // Preserve the published decimal coefficients verbatim; they are source data,
 // not hand-authored f64 constants whose excess precision should be rounded.
