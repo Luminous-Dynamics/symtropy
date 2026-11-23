@@ -473,6 +473,19 @@ fn solve_dense(
     let residual_scale = rhs_scale
         .max(matrix_scale * solution_norm)
         .max(f64::MIN_POSITIVE);
+    if !residual_scale.is_finite() {
+        return Err(QpError::new(
+            QpErrorKind::NonFiniteEvaluation,
+            "linear-system residual scale is non-finite",
+        ));
+    }
+    let residual_tolerance = solve_relative * residual_scale;
+    if !residual_tolerance.is_finite() {
+        return Err(QpError::new(
+            QpErrorKind::NonFiniteEvaluation,
+            "linear-system residual tolerance is non-finite",
+        ));
+    }
     let mut maximum_residual = 0.0_f64;
     for i in 0..dimension {
         let predicted = original_matrix[i]
@@ -486,9 +499,16 @@ fn solve_dense(
                 "linear-system residual evaluation is non-finite",
             ));
         }
-        maximum_residual = maximum_residual.max((predicted - original_rhs[i]).abs());
+        let residual = (predicted - original_rhs[i]).abs();
+        if !residual.is_finite() {
+            return Err(QpError::new(
+                QpErrorKind::NonFiniteEvaluation,
+                "linear-system residual magnitude is non-finite",
+            ));
+        }
+        maximum_residual = maximum_residual.max(residual);
     }
-    if maximum_residual > solve_relative * residual_scale {
+    if maximum_residual > residual_tolerance {
         return Err(QpError::new(
             QpErrorKind::LinearSolveResidualExceeded,
             "active-set linear solve residual exceeds the declared relative tolerance",
@@ -756,7 +776,14 @@ fn verify_validated_kkt(
     for i in 0..qp.ids.len() {
         primal_violation = primal_violation.max((-lambda[i]).max(0.0));
         dual_violation = dual_violation.max((-dual[i]).max(0.0));
-        complementarity = complementarity.max((lambda[i] * dual[i]).abs());
+        let complementarity_term = (lambda[i] * dual[i]).abs();
+        if !complementarity_term.is_finite() {
+            return Err(QpError::new(
+                QpErrorKind::NonFiniteEvaluation,
+                "KKT complementarity product is non-finite",
+            ));
+        }
+        complementarity = complementarity.max(complementarity_term);
 
         if !retained.contains(qp.ids[i].as_str()) {
             maximum_omitted_impulse = maximum_omitted_impulse.max(lambda[i].abs());
@@ -1053,6 +1080,23 @@ mod tests {
         assert!(certificate.globally_optimal_within_declared_qp);
         assert!(!certificate.retained_subset_is_globally_optimal);
         assert_eq!(certificate.maximum_omitted_impulse, 1.0);
+    }
+
+    #[test]
+    fn non_finite_complementarity_product_is_rejected() {
+        let problem = qp(&["c1"], vec![vec![0.0]], vec![2.0]);
+        let impulses = vec![ContactImpulse {
+            contact_id: "c1".to_owned(),
+            normal_impulse: f64::MAX,
+        }];
+        let error = verify_full_patch_kkt(
+            &problem,
+            &impulses,
+            &strings(&["c1"]),
+            NumericTolerances::default(),
+        )
+        .expect_err("overflowed complementarity must fail closed");
+        assert_eq!(error.kind, QpErrorKind::NonFiniteEvaluation);
     }
 
     #[test]
