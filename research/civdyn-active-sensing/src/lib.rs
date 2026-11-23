@@ -86,6 +86,7 @@ struct CandidateResult {
     acquisition_cost_service_units: Option<u32>,
     partition_count: Option<usize>,
     worst_case_regret_service_units: Option<u32>,
+    worst_case_regret_reduction_service_units: Option<i64>,
     partition_actions: Vec<PartitionDecision>,
     evidence_receipts: String,
     recommended: bool,
@@ -289,6 +290,15 @@ fn evidence_blocker(sensor: &SensorAction) -> Option<&'static str> {
         return Some("BLOCKED_MISSING_GATE_RECEIPT");
     };
 
+    if gate.dependency_receipt.is_empty() {
+        return Some("BLOCKED_MISSING_DEPENDENCY_RECEIPT");
+    }
+    if gate.capture_receipt.is_empty() {
+        return Some("BLOCKED_MISSING_CAPTURE_RECEIPT");
+    }
+    if sensor.mode == SensingMode::IndependentWitness && gate.association_receipt.is_empty() {
+        return Some("BLOCKED_MISSING_ASSOCIATION_RECEIPT");
+    }
     if !gate.read_only_authorized {
         return Some("BLOCKED_NOT_AUTHORIZED_READ_ONLY");
     }
@@ -479,6 +489,7 @@ fn evaluate_sensor(
         acquisition_cost_service_units: cost,
         partition_count: partitions,
         worst_case_regret_service_units: regret,
+        worst_case_regret_reduction_service_units: None,
         partition_actions: actions,
         evidence_receipts: evidence_receipts.clone(),
         recommended: false,
@@ -534,6 +545,18 @@ fn evaluate_benchmark() -> Vec<CandidateResult> {
     results.push(evaluate_sensor(&NO_OBSERVATION, &oracle));
     results.extend(SENSORS.iter().map(|sensor| evaluate_sensor(sensor, &oracle)));
 
+    let baseline_regret = results
+        .iter()
+        .find(|result| result.id == NO_OBSERVATION.id)
+        .and_then(|result| result.worst_case_regret_service_units);
+    if let Some(baseline) = baseline_regret {
+        for result in &mut results {
+            result.worst_case_regret_reduction_service_units = result
+                .worst_case_regret_service_units
+                .map(|regret| i64::from(baseline) - i64::from(regret));
+        }
+    }
+
     let recommendation = choose_recommendation(&results);
     for result in &mut results {
         result.recommended = Some(result.id) == recommendation;
@@ -544,7 +567,7 @@ fn evaluate_benchmark() -> Vec<CandidateResult> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "sensor_id,status,claim_ceiling,energy_kwh,service_units_per_kwh,latency_ticks,service_units_per_latency_tick,acquisition_cost_service_units,partition_count,worst_case_regret_service_units,recommended,evidence_receipts,partition_actions\n",
+        "sensor_id,status,claim_ceiling,energy_kwh,service_units_per_kwh,latency_ticks,service_units_per_latency_tick,acquisition_cost_service_units,partition_count,worst_case_regret_service_units,worst_case_regret_reduction_service_units,recommended,evidence_receipts,partition_actions\n",
     );
 
     for result in evaluate_benchmark() {
@@ -556,6 +579,9 @@ pub fn render_csv() -> String {
             .map_or_else(|| "NA".to_owned(), |value| value.to_string());
         let regret = result
             .worst_case_regret_service_units
+            .map_or_else(|| "NA".to_owned(), |value| value.to_string());
+        let regret_reduction = result
+            .worst_case_regret_reduction_service_units
             .map_or_else(|| "NA".to_owned(), |value| value.to_string());
         let actions = if result.partition_actions.is_empty() {
             "NA".to_owned()
@@ -576,7 +602,7 @@ pub fn render_csv() -> String {
         };
 
         output.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             result.id,
             result.status,
             result.claim_ceiling,
@@ -587,6 +613,7 @@ pub fn render_csv() -> String {
             cost,
             partitions,
             regret,
+            regret_reduction,
             result.recommended,
             result.evidence_receipts,
             actions
@@ -616,6 +643,7 @@ mod tests {
         assert_eq!(baseline.acquisition_cost_service_units, Some(0));
         assert_eq!(baseline.partition_count, Some(1));
         assert_eq!(baseline.worst_case_regret_service_units, Some(70));
+        assert_eq!(baseline.worst_case_regret_reduction_service_units, Some(0));
         assert_eq!(baseline.partition_actions[0].action_id, "maintain_primary");
     }
 
@@ -628,6 +656,7 @@ mod tests {
         assert_eq!(inspection.acquisition_cost_service_units, Some(5));
         assert_eq!(inspection.partition_count, Some(3));
         assert_eq!(inspection.worst_case_regret_service_units, Some(5));
+        assert_eq!(inspection.worst_case_regret_reduction_service_units, Some(65));
         assert!(inspection.recommended);
 
         let selected = inspection
@@ -660,6 +689,7 @@ mod tests {
         );
         assert_eq!(telemetry.partition_count, Some(2));
         assert_eq!(telemetry.worst_case_regret_service_units, Some(71));
+        assert_eq!(telemetry.worst_case_regret_reduction_service_units, Some(-1));
         assert!(!telemetry.recommended);
         assert!(telemetry.evidence_receipts.contains("shared-gateway"));
     }
@@ -760,6 +790,19 @@ mod tests {
         assert_eq!(
             evidence_blocker(&unmatched),
             Some("BLOCKED_UNMATCHED_ASSOCIATION")
+        );
+    }
+
+
+    #[test]
+    fn empty_upstream_receipt_identifiers_are_not_accepted() {
+        let mut sensor = SENSORS[1];
+        let mut gate = sensor.gate.expect("fixture gate");
+        gate.dependency_receipt = "";
+        sensor.gate = Some(gate);
+        assert_eq!(
+            evidence_blocker(&sensor),
+            Some("BLOCKED_MISSING_DEPENDENCY_RECEIPT")
         );
     }
 
