@@ -14,7 +14,9 @@ use std::fmt;
 
 const SHA256_BYTES: usize = 32;
 const LOG_LOG_COEFFICIENT: f64 = 0.72;
-const STITCHED_MARGIN_COEFFICIENT: f64 = 7.0;
+const SQRT_MARGIN_COEFFICIENT: f64 = 1.7;
+const LOG_LOG_MARGIN_COEFFICIENT: f64 = 3.4;
+const LOG_MARGIN_COEFFICIENT: f64 = 2.45;
 const STITCHED_LOG_CONSTANT: f64 = 5.19;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -377,19 +379,30 @@ impl AnytimeEpisodeCoverageAudit {
         if self.monitoring_horizon == 0 {
             return Err(AnytimeEpisodeCoverageError::ArithmeticOverflow);
         }
+        // Before the first bounded set, every outcome is a deterministic
+        // abstention (Z_t = nu_t = 0) and Algorithm 1 keeps t*omega_t at zero.
+        if self.bounded_episode_count == 0 {
+            return Ok(0.0);
+        }
+
         let variation = self.predictable_variation.max(1.0);
         let twice_variation = 2.0 * variation;
         if !twice_variation.is_finite() || twice_variation <= 1.0 {
             return Err(AnytimeEpisodeCoverageError::ArithmeticOverflow);
         }
         let log_log = twice_variation.ln().ln().max(0.0);
-        let confidence_term = LOG_LOG_COEFFICIENT
-            * (STITCHED_LOG_CONSTANT / self.config.confidence_error_probability).ln();
+        let log_delta = (STITCHED_LOG_CONSTANT / self.config.confidence_error_probability).ln();
+        let confidence_term = LOG_LOG_COEFFICIENT * log_delta;
         let inner = log_log + confidence_term;
-        if !inner.is_finite() || inner <= 0.0 {
+        if !inner.is_finite() || inner <= 0.0 || !log_delta.is_finite() || log_delta <= 0.0 {
             return Err(AnytimeEpisodeCoverageError::ArithmeticOverflow);
         }
-        let numerator = STITCHED_MARGIN_COEFFICIENT * (variation * inner).sqrt();
+
+        // Exact three-term stitched empirical-Bernstein margin from Fang (2026),
+        // Equation (29), not the simplified leading square-root term alone.
+        let numerator = SQRT_MARGIN_COEFFICIENT * (variation * inner).sqrt()
+            + LOG_LOG_MARGIN_COEFFICIENT * log_log
+            + LOG_MARGIN_COEFFICIENT * log_delta;
         let margin = numerator / self.monitoring_horizon as f64;
         margin
             .is_finite()
