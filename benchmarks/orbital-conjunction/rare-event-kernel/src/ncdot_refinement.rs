@@ -260,19 +260,28 @@ pub fn decide_ncdot_refinement(
     let peaks = top_four_sampled_peaks(rates);
     let mut peak_insertions = Vec::new();
     for peak in peaks {
-        let left_gap = epochs[peak] - epochs[peak - 1];
-        let right_gap = epochs[peak + 1] - epochs[peak];
         let peak_rate = rates[peak];
         let tolerance = policy.peak_relative_drop_tolerance * peak_rate;
+        let left_gap = (peak > 0).then(|| epochs[peak] - epochs[peak - 1]);
+        let right_gap =
+            (peak + 1 < count).then(|| epochs[peak + 1] - epochs[peak]);
 
-        let left_drop = peak_rate - rates[peak - 1];
-        if left_drop > tolerance || left_gap >= 2.0 * right_gap {
-            peak_insertions.push(midpoint(epochs[peak - 1], epochs[peak])?);
+        if let Some(gap) = left_gap {
+            let left_drop = peak_rate - rates[peak - 1];
+            let opposite_gap_is_too_large =
+                right_gap.is_some_and(|other| gap >= 2.0 * other);
+            if left_drop > tolerance || opposite_gap_is_too_large {
+                peak_insertions.push(midpoint(epochs[peak - 1], epochs[peak])?);
+            }
         }
 
-        let right_drop = peak_rate - rates[peak + 1];
-        if right_drop > tolerance || right_gap >= 2.0 * left_gap {
-            peak_insertions.push(midpoint(epochs[peak], epochs[peak + 1])?);
+        if let Some(gap) = right_gap {
+            let right_drop = peak_rate - rates[peak + 1];
+            let opposite_gap_is_too_large =
+                left_gap.is_some_and(|other| gap >= 2.0 * other);
+            if right_drop > tolerance || opposite_gap_is_too_large {
+                peak_insertions.push(midpoint(epochs[peak], epochs[peak + 1])?);
+            }
         }
     }
     if !peak_insertions.is_empty() {
@@ -491,13 +500,19 @@ fn zero_rate_refinement(
 }
 
 fn top_four_sampled_peaks(rates: &[f64]) -> Vec<usize> {
-    let mut peaks = (1..rates.len() - 1)
-        .filter(|index| {
-            rates[*index] > 0.0
-                && rates[*index] > rates[*index - 1]
-                && rates[*index] > rates[*index + 1]
-        })
-        .collect::<Vec<_>>();
+    let mut peaks = Vec::new();
+    if rates[0] > 0.0 && rates[0] > rates[1] {
+        peaks.push(0);
+    }
+    peaks.extend((1..rates.len() - 1).filter(|index| {
+        rates[*index] > 0.0
+            && rates[*index] > rates[*index - 1]
+            && rates[*index] > rates[*index + 1]
+    }));
+    let last = rates.len() - 1;
+    if rates[last] > 0.0 && rates[last] > rates[last - 1] {
+        peaks.push(last);
+    }
     peaks.sort_by(|left, right| {
         rates[*right]
             .total_cmp(&rates[*left])
@@ -853,6 +868,36 @@ mod tests {
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
         assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0]);
+    }
+
+    #[test]
+    fn endpoint_local_maximum_below_significant_cutoff_is_still_refined() {
+        let input = snapshot(
+            &[-20.0, -10.0, 0.0, 10.0, 20.0],
+            &[1.0e-6, 1.0e-8, 10.0, 4.0, 0.0],
+            &[8.0, 4.0, 0.0, 4.0, 8.0],
+            -20.0,
+            20.0,
+        );
+        let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
+
+        assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
+        assert_eq!(result.inserted_epochs_seconds, vec![-15.0, -5.0, 5.0]);
+    }
+
+    #[test]
+    fn right_endpoint_local_maximum_below_significant_cutoff_is_still_refined() {
+        let input = snapshot(
+            &[-20.0, -10.0, 0.0, 10.0, 20.0],
+            &[0.0, 4.0, 10.0, 1.0e-8, 1.0e-6],
+            &[8.0, 4.0, 0.0, 4.0, 8.0],
+            -20.0,
+            20.0,
+        );
+        let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
+
+        assert_eq!(result.reason, NcdotRefinementReason::RefineSampledPeaks);
+        assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0, 15.0]);
     }
 
     #[test]
