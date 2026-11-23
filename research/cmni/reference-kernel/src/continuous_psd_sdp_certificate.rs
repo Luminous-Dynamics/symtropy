@@ -315,9 +315,8 @@ pub fn verify_continuous_dependence_sdp_certificate(
     for (observation, dual_row) in observation_dual.iter().take(observation_count).enumerate() {
         observation_m0_inner_product +=
             candidate.independent_observation_noise_variances[observation] * dual_row[observation];
-        observation_m0_inner_product += 2.0
-            * candidate.observation_sensitivities[observation]
-            * dual_row[observation_count];
+        observation_m0_inner_product +=
+            2.0 * candidate.observation_sensitivities[observation] * dual_row[observation_count];
     }
     let diagonal_multiplier_sum = certificate
         .diagonal_equality_multipliers
