@@ -168,3 +168,43 @@ RRVR software evidence is not ISO conformity assessment, a risk assessment, a sa
 v0.1 covers one original effect attempt plus one recovery-authority admission. It does not yet qualify the physical outcome of the recovery attempt itself or nested/multiple recovery cycles. The next semantic increment must give each successive attempt its own physical-outcome, persistence, mission, controller-queue and downstream-graph evidence domains while preserving the original effect lineage.
 
 A passing Rust fixture establishes only the projection contract over supplied synthetic inputs. A Reflow/TLC trace pass establishes only that the recorded state/action sequence is a behavior of the pinned abstraction. Neither proves event capture is complete, owner artifacts are authentic, observer independence holds outside the declared fault model, or the TLA abstraction matches physical hardware. Those require independent owner authentication, fault campaigns, simulator/HIL/physical evidence and safety review.
+
+
+## 8. Multi-attempt recovery as a distinct benchmark dimension
+
+The v0.1 runtime projection has a disclosed one-recovery-admission ceiling. A robot that safely reaches a second attempt has not yet demonstrated safe recovery if that second attempt itself crashes or produces an ambiguous effect. The attempt-lineage reference contract adds a separately measurable dimension: preservation of one logical-effect identity across repeated, individually evidenced attempts.
+
+### Benchmark arms
+
+| Arm | Recovery-history representation | What it can miss |
+|---|---|---|
+| L0 | Last-attempt-only record | Prior effects and stale attempts are discarded |
+| L1 | Flat attempt list without parent links | Evidence can be attached to the wrong predecessor |
+| L2 | Parent-linked attempts with logical-effect ID | Does not necessarily qualify persistence and graph fences |
+| L3 | RRVR attempt lineage with per-attempt scoped receipts | Higher validation and evidence-retention cost; still depends on owner completeness and authenticity |
+
+All arms receive the same frozen chain, epoch changes, physical outcomes, persistence states, and injected faults. A policy-recovery score must remain separate from this evidence/authorization dimension.
+
+### Mandatory chain faults
+
+- A descendant follows Applied, Partial, Unknown, Disputed, or NotObserved.
+- A NoEffect claim is only InsufficientEvidence or is Refuted.
+- Persistence is Committed, InFlight, or IndeterminateCommit.
+- The child names the wrong parent, skips an ordinal, or reuses an attempt ID.
+- Evidence is replayed across attempts or carries the wrong logical-effect/attempt/epoch scope.
+- Boot/controller epochs regress or do not advance together.
+- Controller or downstream fence is missing, non-quiescent, unconfirmed, or targeted at a different child epoch.
+- The same logical effect is split across separate identifiers.
+
+### Proposed targets (not achieved)
+
+- Zero accepted descendant attempts after any non-NoEffect or unqualified NoEffect outcome.
+- Zero accepted retry edges with unresolved persistence.
+- Zero accepted evidence receipts with cross-attempt or cross-epoch scope leakage.
+- 100% rejection of the frozen unsafe-lineage controls and 100% acceptance of the frozen valid reference chains.
+- Validation cost grows linearly with attempt count; report p50/p95/p99 runtime and bytes per attempt rather than hiding cost in a composite score.
+- Report false holds separately from false-safe acceptance. No aggregate score may trade a false-safe admission for a better recovery-success rate.
+
+### Qualification boundary
+
+The current Rust contract is a bounded reference validator and its three-attempt fixture is synthetic. It does not yet refine the TLA+ state machine for nested restart/recovery, and it does not authenticate raw receipts. The next formal step is a bounded multi-attempt TLA+ model with a second recovery crash cut, followed by differential testing of Rust decisions against all reachable model traces. Only after that should the benchmark be adapted to a declared simulator and then an instrumented ROS/controller/driver stack.
