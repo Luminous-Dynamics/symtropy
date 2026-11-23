@@ -480,4 +480,296 @@ fn log_fraction(log_numerator: f64, log_denominator: f64) -> f64 {
     } else {
         (log_numerator - log_denominator).exp().clamp(0.0, 1.0)
     }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HASH_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const HASH_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const HASH_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const HASH_D: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+
+    fn identity() -> NcdotTemporalIdentity {
+        NcdotTemporalIdentity {
+            event_id: "event-42".to_owned(),
+            event_revision: "event-r9".to_owned(),
+            event_definition_sha256: HASH_A.to_owned(),
+            model_revision: "force-model-r4".to_owned(),
+            model_sha256: HASH_B.to_owned(),
+            target_distribution_sha256: HASH_C.to_owned(),
+            reference_frame: "GCRF".to_owned(),
+            time_scale: "TAI".to_owned(),
+        }
+    }
+
+    fn report(log_rate: f64, significant_node_count: usize, rule: LebedevRule) -> NcdotSphereReport {
+        let materialized = log_rate.exp();
+        NcdotSphereReport {
+            rule,
+            node_count: rule.node_count(),
+            weight_sum: 4.0 * core::f64::consts::PI,
+            log_sphere_integral: log_rate,
+            sphere_integral: materialized,
+            sphere_integral_underflowed: log_rate.is_finite() && materialized == 0.0,
+            sphere_integral_overflowed: log_rate > f64::MAX.ln(),
+            log_collision_rate: log_rate,
+            collision_rate: materialized,
+            collision_rate_underflowed: log_rate.is_finite() && materialized == 0.0,
+            collision_rate_overflowed: log_rate > f64::MAX.ln(),
+            maximum_log_integrand: 0.0,
+            relative_contribution_threshold: 1.0e-3,
+            significant_node_count,
+            significant_weight_fraction: significant_node_count as f64 / rule.node_count() as f64,
+            significant_integral_fraction: 1.0,
+            maximum_node_integral_fraction: 1.0 / rule.node_count() as f64,
+            node_underflow_count: 0,
+            node_overflow_count: 0,
+            zero_variance_fallback_count: 0,
+            exact_zero_integrand: log_rate == f64::NEG_INFINITY,
+            adequacy_satisfied: true,
+        }
+    }
+
+    fn sample(
+        index: usize,
+        epoch_seconds: f64,
+        log_rate: f64,
+        significant_node_count: usize,
+        rule: LebedevRule,
+    ) -> NcdotTemporalSample {
+        let source_sha256 = match index % 4 {
+            0 => HASH_D,
+            1 => "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            2 => "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            _ => "1111111111111111111111111111111111111111111111111111111111111111",
+        };
+        NcdotTemporalSample {
+            epoch_seconds,
+            sample_id: format!("epoch-{index}"),
+            source_sha256: source_sha256.to_owned(),
+            identity: identity(),
+            report: report(log_rate, significant_node_count, rule),
+            upstream_qualified: true,
+        }
+    }
+
+    fn horizon(end_seconds: f64, max_interval: f64) -> NcdotTemporalHorizon {
+        NcdotTemporalHorizon {
+            start_seconds: 0.0,
+            end_seconds,
+            maximum_interval_seconds: max_interval,
+            coverage_claim: TemporalHorizonCoverageClaim::CallerDeclaredComplete,
+        }
+    }
+
+    #[test]
+    fn constant_rate_on_irregular_grid_matches_analytic_nc_and_weighted_support() {
+        let samples = [
+            sample(0, 0.0, 2.0_f64.ln(), 7, LebedevRule::Points26),
+            sample(1, 2.0, 2.0_f64.ln(), 7, LebedevRule::Points26),
+            sample(2, 5.0, 2.0_f64.ln(), 7, LebedevRule::Points26),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(5.0, 3.0), &samples)
+            .expect("valid constant-rate series");
+        assert!((result.expected_collision_count - 10.0).abs() < 1.0e-12);
+        assert_eq!(result.rate_weighted_average_significant_nodes, Some(7.0));
+        assert_eq!(result.cumulative_log_expected_collision_count.len(), 3);
+        assert!(result.qualified);
+        assert!(result.extrema.is_empty());
+    }
+
+    #[test]
+    fn significant_node_average_is_rate_weighted_not_an_arithmetic_mean() {
+        let samples = [
+            sample(0, 0.0, 0.0, 1, LebedevRule::Points5810),
+            sample(1, 1.0, 1.0e-6_f64.ln(), 100, LebedevRule::Points5810),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples)
+            .expect("valid uneven-risk series");
+        let expected = (0.5 * (1.0 + 100.0e-6)) / (0.5 * (1.0 + 1.0e-6));
+        let average = result.rate_weighted_average_significant_nodes.unwrap();
+        assert!((average - expected).abs() < 1.0e-12);
+        assert!(average < 1.001);
+        assert!(average < 50.5);
+    }
+
+    #[test]
+    fn two_peaks_and_a_flat_minimum_plateau_are_preserved() {
+        let rates = [1.0, 3.0, 2.0, 2.0, 4.0, 1.0];
+        let samples = rates
+            .iter()
+            .enumerate()
+            .map(|(i, rate)| sample(i, i as f64, rate.ln(), 10, LebedevRule::Points14))
+            .collect::<Vec<_>>();
+        let result = integrate_ncdot_time_series(&identity(), horizon(5.0, 1.0), &samples)
+            .expect("multimodal series");
+        let maxima = result.extrema.iter()
+            .filter(|extremum| extremum.kind == NcdotTemporalExtremumKind::Maximum)
+            .collect::<Vec<_>>();
+        let minima = result.extrema.iter()
+            .filter(|extremum| extremum.kind == NcdotTemporalExtremumKind::Minimum)
+            .collect::<Vec<_>>();
+        assert_eq!(maxima.len(), 2);
+        assert_eq!(minima.len(), 3);
+        assert!(minima.iter().any(|extremum| extremum.plateau
+            && extremum.first_sample_index == 2
+            && extremum.last_sample_index == 3));
+        assert_eq!(maxima[0].first_sample_index, 1);
+        assert_eq!(maxima[1].first_sample_index, 4);
+    }
+
+    #[test]
+    fn endpoints_are_reported_as_sampled_extrema() {
+        let rates = [4.0, 2.0, 1.0];
+        let samples = rates
+            .iter()
+            .enumerate()
+            .map(|(i, rate)| sample(i, i as f64, rate.ln(), 5, LebedevRule::Points6))
+            .collect::<Vec<_>>();
+        let result = integrate_ncdot_time_series(&identity(), horizon(2.0, 1.0), &samples)
+            .expect("endpoint maximum");
+        assert_eq!(result.extrema.len(), 2);
+        assert_eq!(result.extrema[0].kind, NcdotTemporalExtremumKind::Maximum);
+        assert_eq!(result.extrema[0].first_sample_index, 0);
+        assert_eq!(result.extrema[1].kind, NcdotTemporalExtremumKind::Minimum);
+        assert_eq!(result.extrema[1].first_sample_index, 2);
+    }
+
+    #[test]
+    fn excessive_time_gap_requests_refinement_and_prevents_qualification() {
+        let samples = [
+            sample(0, 0.0, 0.0, 10, LebedevRule::Points26),
+            sample(1, 5.0, 0.0, 10, LebedevRule::Points26),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(5.0, 1.0), &samples)
+            .expect("sparse but structurally valid samples");
+        assert_eq!(result.intervals_requiring_refinement, vec![0]);
+        assert!(!result.qualified);
+        assert_eq!(result.maximum_interval_seconds, 5.0);
+    }
+
+    #[test]
+    fn known_incomplete_horizon_never_qualifies() {
+        let samples = [
+            sample(0, 0.0, 0.0, 10, LebedevRule::Points6),
+            sample(1, 2.0, 0.0, 10, LebedevRule::Points6),
+        ];
+        let mut declared = horizon(2.0, 2.0);
+        declared.coverage_claim = TemporalHorizonCoverageClaim::KnownIncomplete;
+        let result = integrate_ncdot_time_series(&identity(), declared, &samples)
+            .expect("partial aggregation can still be recorded");
+        assert!(!result.qualified);
+        assert_eq!(result.coverage_claim, TemporalHorizonCoverageClaim::KnownIncomplete);
+    }
+
+    #[test]
+    fn zero_collision_rate_has_undefined_average_not_nan_or_fake_zero() {
+        let samples = [
+            sample(0, 0.0, f64::NEG_INFINITY, 0, LebedevRule::Points6),
+            sample(1, 3.0, f64::NEG_INFINITY, 0, LebedevRule::Points6),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(3.0, 3.0), &samples)
+            .expect("exact zero collision rate");
+        assert_eq!(result.log_expected_collision_count, f64::NEG_INFINITY);
+        assert_eq!(result.expected_collision_count, 0.0);
+        assert_eq!(result.rate_weighted_average_significant_nodes, None);
+        assert!(!result.collision_count_underflowed);
+        assert!(result.qualified);
+    }
+
+    #[test]
+    fn rare_positive_rates_retain_finite_log_nc_after_f64_underflow() {
+        let samples = [
+            sample(0, 0.0, -900.0, 3, LebedevRule::Points6),
+            sample(1, 10.0, -900.0, 3, LebedevRule::Points6),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(10.0, 10.0), &samples)
+            .expect("rare positive rate");
+        assert!((result.log_expected_collision_count - (-900.0_f64 + 10.0_f64.ln())).abs() < 1.0e-12);
+        assert_eq!(result.expected_collision_count, 0.0);
+        assert!(result.collision_count_underflowed);
+        assert_eq!(result.rate_weighted_average_significant_nodes, Some(3.0));
+    }
+
+    #[test]
+    fn overflowed_nc_retains_finite_log_count() {
+        let samples = [
+            sample(0, 0.0, 800.0, 3, LebedevRule::Points6),
+            sample(1, 1.0, 800.0, 3, LebedevRule::Points6),
+        ];
+        let result = integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples)
+            .expect("large positive rate");
+        assert!(result.log_expected_collision_count.is_finite());
+        assert!(result.expected_collision_count.is_infinite());
+        assert!(result.collision_count_overflowed);
+    }
+
+    #[test]
+    fn mixed_identity_digest_rule_and_invalid_rate_fail_closed() {
+        let samples = [
+            sample(0, 0.0, 0.0, 3, LebedevRule::Points6),
+            sample(1, 1.0, 0.0, 3, LebedevRule::Points14),
+        ];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples),
+            Err(KernelError::TemporalLebedevRuleMismatch)
+        );
+
+        let mut mismatched = sample(1, 1.0, 0.0, 3, LebedevRule::Points6);
+        mismatched.identity.model_revision = "other-model".to_owned();
+        let samples = [sample(0, 0.0, 0.0, 3, LebedevRule::Points6), mismatched];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples),
+            Err(KernelError::EvidenceIdentityMismatch)
+        );
+
+        let mut invalid_rate = sample(1, 1.0, 0.0, 3, LebedevRule::Points6);
+        invalid_rate.report.log_collision_rate = f64::NAN;
+        let samples = [sample(0, 0.0, 0.0, 3, LebedevRule::Points6), invalid_rate];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples),
+            Err(KernelError::InvalidTemporalRate)
+        );
+    }
+
+    #[test]
+    fn duplicated_or_non_increasing_epochs_fail_closed() {
+        let duplicated = [
+            sample(0, 0.0, 0.0, 3, LebedevRule::Points6),
+            sample(1, 0.0, 0.0, 3, LebedevRule::Points6),
+        ];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &duplicated),
+            Err(KernelError::NonIncreasingTemporalEpochs)
+        );
+
+        let mut repeated_id = sample(1, 1.0, 0.0, 3, LebedevRule::Points6);
+        repeated_id.sample_id = "epoch-0".to_owned();
+        let repeated = [sample(0, 0.0, 0.0, 3, LebedevRule::Points6), repeated_id];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &repeated),
+            Err(KernelError::DuplicateTemporalSample)
+        );
+    }
+
+    #[test]
+    fn horizon_endpoints_and_sample_inventory_are_mandatory() {
+        let one_sample = [sample(0, 0.0, 0.0, 3, LebedevRule::Points6)];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &one_sample),
+            Err(KernelError::InsufficientTemporalSamples)
+        );
+
+        let samples = [
+            sample(0, 0.5, 0.0, 3, LebedevRule::Points6),
+            sample(1, 1.0, 0.0, 3, LebedevRule::Points6),
+        ];
+        assert_eq!(
+            integrate_ncdot_time_series(&identity(), horizon(1.0, 1.0), &samples),
+            Err(KernelError::TemporalHorizonEndpointMismatch)
+        );
+    }
+}
+
 }
