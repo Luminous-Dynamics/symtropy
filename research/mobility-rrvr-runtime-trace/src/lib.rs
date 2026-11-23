@@ -1545,6 +1545,13 @@ mod tests {
     }
 
     #[test]
+    fn outer_tlc_next_label_is_not_accepted_as_a_specific_transition() {
+        assert!(!known_action("Next"));
+        assert!(!known_action("next"));
+        assert!(known_action("ReserveAttempt"));
+    }
+
+    #[test]
     fn state_field_catalogue_is_the_exact_pinned_tla_init_record() {
         const EXPECTED: [&str; 43] = [
             "processStatus",
