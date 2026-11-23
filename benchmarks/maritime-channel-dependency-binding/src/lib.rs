@@ -1507,7 +1507,10 @@ mod tests {
             );
         let result = assess(&profile, &projection);
         assert_eq!(result.findings.len(), 2);
-        assert_eq!(result.findings[0].disposition, SeparationDisposition::Shared);
+        assert_eq!(
+            result.findings[0].disposition,
+            SeparationDisposition::Shared
+        );
         assert_eq!(
             result.findings[1].disposition,
             SeparationDisposition::SeparatedForProfile
