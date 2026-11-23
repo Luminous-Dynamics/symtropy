@@ -26,3 +26,10 @@ Run:
 The standard-library Python oracle independently reconstructs occupancy flood-fill, face normals, candidate views, FOV/GSD filters, voxel ray tests and receipt fields.
 
 Paper: Bin Khalid and Yeum, arXiv:2610.36450 (27 October 2026). The paper evaluates a voxel-centre approximation and does not establish whole-surface sensor detection or route/flight feasibility. This crate is a synthetic algorithm prototype, not a source-faithful reproduction of their Angel/Rooster parameter sweep.
+
+
+## Source admission: paper parameters are not camera intrinsics
+
+The companion source-admission manifest is at `docs/research/orbital-gsd-kcoverage/source-admission-v0_1.json`. The paper provides its GSD equation, maximum obliquity and derived range, but the current admitted source record does not yet pin both horizontal FOV and horizontal pixel width, nor the exact mapping of its two rendered models to a versioned dataset file. The synthetic fixture therefore carries explicit test-only FOV/pixel values. A synthetic workflow PASS is not a source-faithful reproduction.
+
+The upstream example repository is GPL-3.0; the linked Mendeley datasets separately state CC BY 4.0. This crate contains an independent implementation and no copied upstream code. Dataset file mapping and SHA-256 digests remain admission blockers until verified.

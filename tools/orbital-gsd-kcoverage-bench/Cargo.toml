@@ -2,7 +2,7 @@
 name = "orbital-gsd-kcoverage-bench"
 version = "0.1.0"
 edition = "2024"
-license = "AGPL-3.0-or-later"
+license = "Apache-2.0 OR MIT"
 publish = false
 description = "Synthetic 3D voxel-surface GSD and viewpoint visibility reference contract"
 

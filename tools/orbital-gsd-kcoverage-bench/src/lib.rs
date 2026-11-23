@@ -736,6 +736,31 @@ mod tests {
     }
 
     #[test]
+    fn ray_crossing_a_foreign_occupied_voxel_is_occluded() {
+        let grid = Grid::from_input(&GridInput {
+            origin_m: [0.0, 0.0, 0.0],
+            voxel_size_m: 0.1,
+            dimensions: [3, 1, 1],
+            occupied_cells: vec![[1, 0, 0], [2, 0, 0]],
+        })
+        .unwrap();
+        let origin = Vec3 { x: -0.1, y: 0.05, z: 0.05 };
+        let target = grid.centre([2, 0, 0]);
+        assert!(grid.ray_occluded(origin, target, [2, 0, 0]));
+    }
+
+    #[test]
+    fn source_intrinsics_are_not_defaulted_when_missing_or_invalid() {
+        let mut case = fixture();
+        case.camera.horizontal_fov_rad = 0.0;
+        let bytes = serde_json::to_vec(&case).unwrap();
+        assert_eq!(
+            evaluate_bytes(&bytes, &"0".repeat(40)),
+            Err("CAMERA_MODEL_INVALID".to_owned())
+        );
+    }
+
+    #[test]
     fn invalid_camera_intrinsics_are_rejected_not_defaulted() {
         let mut case = fixture();
         case.camera.horizontal_pixel_count = 0;
