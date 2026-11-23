@@ -941,7 +941,7 @@ mod tests {
             result
                 .node_days
                 .iter()
-                .filter(|r| r.grade == Grade::D50)
+                .filter(|r| r.day == 3 && r.grade == Grade::D50)
                 .map(|r| r.closing_l)
                 .sum::<u64>(),
             60
@@ -950,7 +950,7 @@ mod tests {
             result
                 .node_days
                 .iter()
-                .filter(|r| r.grade == Grade::D500)
+                .filter(|r| r.day == 3 && r.grade == Grade::D500)
                 .map(|r| r.closing_l)
                 .sum::<u64>(),
             40
