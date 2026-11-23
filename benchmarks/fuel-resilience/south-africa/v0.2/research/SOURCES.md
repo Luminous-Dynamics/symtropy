@@ -13,6 +13,18 @@ Research cut: **23 November 2026**. Values below are public-source claims, not c
 | IEA-OMR-NOV-2026 | [IEA Oil Market Report, November 2026](https://www.iea.org/reports/oil-market-report-november-2026) | Global oil market projected surplus in Q4 2026 while diesel and other refined product supply remains tight; on-land inventories remain low. | Global aggregate oil balance is not a diesel-product balance and is not a South African inventory measurement. |
 | NIST-OT-IPD-2026 | [NIST SP 800-82 Rev. 4 Initial Public Draft](https://csrc.nist.gov/pubs/sp/800/82/r4/ipd) | Draft OT security guidance; published 21 September 2026; comments due 30 November 2026. | Draft, not final standard. |
 
+## National usable-stock coverage is not established
+
+The public sources reviewed for this benchmark do **not** establish a single consolidated, independently verified national total of immediately usable South African diesel. In particular:
+
+- Strategic crude inventory is crude feedstock, not refined diesel available to end users.
+- Pipeline line-fill is not automatically a withdrawable reserve or local depot stock.
+- Commercial stock reports are not a complete, independently reconciled national inventory.
+- Cargo nominations, vessels in transit, customs imports and future commitments are not current usable stock.
+- A draft 60/90-day stock-cover policy target is not evidence that such stock is currently held.
+
+Therefore the benchmark must not calculate or publish national "days of diesel remaining" from these incomplete categories. That calculation requires a time-aligned opening stock by grade, terminal/tank boundary, quality release and physical accessibility, plus domestic production, discharges, transfers, losses and demand on a consistent accounting basis. Until that evidence exists, report the stock total as **unknown / not established**, not as zero and not as an imputed estimate.
+
 ## Mandatory evidence semantics
 
 - **Reported:** a source states a value. No measurement claim is implied.
