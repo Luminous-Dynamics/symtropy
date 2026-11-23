@@ -141,12 +141,10 @@ impl WorldV0 {
         let mut classes = Vec::with_capacity(event_count);
         let mut tick = 0_u64;
 
-        for event_index in 0..event_count {
-            let unit_class = if event_index < MOTIF_PREFIX.len() {
-                MOTIF_PREFIX[event_index]
-            } else {
-                (splitmix64_next(&mut random_state) % UNIT_PATTERNS.len() as u64) as u8
-            };
+        let class_stream = MOTIF_PREFIX.into_iter().chain(std::iter::repeat_with(|| {
+            (splitmix64_next(&mut random_state) % UNIT_PATTERNS.len() as u64) as u8
+        }));
+        for (event_index, unit_class) in class_stream.take(event_count).enumerate() {
             let pattern = UNIT_PATTERNS[unit_class as usize];
             let start_frame = frames.len();
 
@@ -181,12 +179,12 @@ impl WorldV0 {
         }
 
         let mut truth_motifs = Vec::with_capacity(event_count - 1);
-        for index in 0..(event_count - 1) {
-            let class_id = u16::from(classes[index]) * 3 + u16::from(classes[index + 1]);
+        for (class_pair, event_pair) in classes.windows(2).zip(truth_units.windows(2)) {
+            let class_id = u16::from(class_pair[0]) * 3 + u16::from(class_pair[1]);
             truth_motifs.push(TruthSpan {
                 span: SpanV0 {
-                    start_frame: truth_units[index].span.start_frame,
-                    end_frame: truth_units[index + 1].span.end_frame,
+                    start_frame: event_pair[0].span.start_frame,
+                    end_frame: event_pair[1].span.end_frame,
                 },
                 class_id,
             });
