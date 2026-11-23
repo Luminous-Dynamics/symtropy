@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital open-world domain receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_schema",
+    "source_commit",
+    "corpus_sha256",
+    "result",
+    "evidence_class",
+    "claim_ceiling",
+    "summary",
+    "cases",
+    "physical_qualification_granted",
+    "authority_granted"
+  ],
+  "properties": {
+    "receipt_schema": {
+      "const": "luminous.orbital-open-world-domain.receipt.v0.1"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "adversarial-controls-detected"
+      ]
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "independent-finite-domain-grammar-falsification-only"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "closed_within_generated_domain_cases",
+        "common_mode_omission_cases",
+        "enumerator_disagreement_cases",
+        "domain_model_inadequate_cases",
+        "stale_snapshot_cases",
+        "enumerator_outside_domain_cases"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "closed_within_generated_domain_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "common_mode_omission_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enumerator_disagreement_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "domain_model_inadequate_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_snapshot_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enumerator_outside_domain_cases": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "status",
+          "domain_id",
+          "snapshot_sha256",
+          "generated_action_count",
+          "registry_missing_action_ids",
+          "model_missing_action_ids",
+          "registry_extra_action_ids",
+          "model_extra_action_ids",
+          "jointly_omitted_action_ids",
+          "external_challenge_action_ids",
+          "enumerator_reports",
+          "physical_qualification_granted",
+          "authority_granted"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CLOSED_WITHIN_GENERATED_DOMAIN",
+              "COMMON_MODE_ACTION_OMISSION",
+              "ENUMERATOR_DISAGREEMENT",
+              "DOMAIN_MODEL_INADEQUATE",
+              "DOMAIN_SNAPSHOT_DRIFT",
+              "STALE_ENUMERATION",
+              "ENUMERATOR_OUTSIDE_DOMAIN"
+            ]
+          },
+          "domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "generated_action_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "registry_missing_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "model_missing_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "registry_extra_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "model_extra_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "jointly_omitted_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "external_challenge_action_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enumerator_reports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enumerator_id",
+                "method_id",
+                "source_id",
+                "action_count",
+                "matched_generated_domain"
+              ],
+              "properties": {
+                "enumerator_id": {
+                  "type": "string"
+                },
+                "method_id": {
+                  "type": "string"
+                },
+                "source_id": {
+                  "type": "string"
+                },
+                "action_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "matched_generated_domain": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "physical_qualification_granted": {
+            "const": false
+          },
+          "authority_granted": {
+            "const": false
+          }
+        }
+      }
+    },
+    "physical_qualification_granted": {
+      "const": false
+    },
+    "authority_granted": {
+      "const": false
+    }
+  }
+}
