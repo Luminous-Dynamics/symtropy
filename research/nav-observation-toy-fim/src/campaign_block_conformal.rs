@@ -662,8 +662,9 @@ mod tests {
         let family = CampaignBlockAnisotropicConformalFamily2d::fit(
             &calibration_blocks(), config()
         ).unwrap();
-        let selected = family.select_radius(0.5).unwrap().unwrap();
-        // Block 101 has max score 2; block 102 has 1; block 103 has 1.5.
+        let selected = family.select_radius(0.25).unwrap().unwrap();
+        // At 25% miscoverage, rank 3 selects the largest block score (2).
+        assert_eq!(selected.selected_order_statistic_rank, 3);
         assert!((selected.normalized_radius - 2.0).abs() < 1.0e-12);
         assert_eq!(selected.calibration_episode_count, 3);
     }
