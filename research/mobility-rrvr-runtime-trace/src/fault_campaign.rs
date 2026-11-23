@@ -217,6 +217,10 @@ pub struct PlatformProfile {
     pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
+    pub fault_injector_revision: String,
+    pub fault_injector_sha256: String,
+    pub native_adapter_revision: String,
+    pub runtime_monitor_revision: String,
     pub ros_distribution: String,
     pub middleware_revision: String,
     pub controller_revision: String,
@@ -350,6 +354,9 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     for value in [
         platform.platform_id.as_str(),
         platform.simulator_revision.as_str(),
+        platform.fault_injector_revision.as_str(),
+        platform.native_adapter_revision.as_str(),
+        platform.runtime_monitor_revision.as_str(),
         platform.ros_distribution.as_str(),
         platform.middleware_revision.as_str(),
         platform.controller_revision.as_str(),
@@ -364,6 +371,7 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     }
     require_sha256(&platform.profile_sha256)?;
     require_sha256(&platform.environment_artifact_sha256)?;
+    require_sha256(&platform.fault_injector_sha256)?;
     Ok(())
 }
 
