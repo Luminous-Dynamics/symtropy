@@ -443,8 +443,21 @@ impl CompiledCampaignPlan {
         Ok(plan)
     }
 
-    /// Return deterministic compact JSON bytes for a compiled plan.
+    /// Verify the exact source manifest bytes that were compiled into this plan.
+    pub fn verify_source_manifest_bytes(
+        &self,
+        source_manifest_bytes: &[u8],
+    ) -> Result<(), PlanCompileError> {
+        if sha256_hex(source_manifest_bytes) == self.source_manifest_sha256 {
+            Ok(())
+        } else {
+            Err(PlanCompileError::CommitmentMismatch)
+        }
+    }
+
+    /// Return deterministic compact JSON bytes for an internally verified plan.
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, PlanCompileError> {
+        self.verify_integrity()?;
         canonical_json_bytes(self)
     }
 }
@@ -506,6 +519,19 @@ mod tests {
         changed_platform.platform.controller_revision = "untracked-controller".into();
         assert_eq!(
             changed_platform.verify_integrity(),
+            Err(PlanCompileError::CommitmentMismatch)
+        );
+    }
+
+    #[test]
+    fn source_manifest_bytes_must_match_the_compiled_source_commitment() {
+        let manifest_bytes = include_bytes!("../fixtures/fault_campaign_paired_v0_1.json");
+        let manifest: FaultCampaignManifest = serde_json::from_slice(manifest_bytes).unwrap();
+        let source_digest = sha256_hex(manifest_bytes);
+        let plan = CompiledCampaignPlan::compile(&manifest, &source_digest).unwrap();
+        assert_eq!(plan.verify_source_manifest_bytes(manifest_bytes), Ok(()));
+        assert_eq!(
+            plan.verify_source_manifest_bytes(b"changed manifest bytes"),
             Err(PlanCompileError::CommitmentMismatch)
         );
     }
