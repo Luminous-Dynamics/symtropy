@@ -1,0 +1,107 @@
+{
+  "schema": "luminous.ehd_exergy_qualification",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-EXERGY-001",
+  "as_of": "2026-11-22",
+  "status": "second_law_specification_only_no_physical_exergy_model",
+  "claim_ceiling": "This contract defines a research benchmark only. No EHD exergy calculation, entropy-generation measurement, physical efficiency result, or SOTA improvement is claimed.",
+  "reference_environment": {
+    "required_fields": [
+      "temperature_k",
+      "pressure_pa",
+      "gas_composition",
+      "velocity_m_s",
+      "elevation_m",
+      "reference_state_identity"
+    ],
+    "dead_state_changes_must_be_versioned": true
+  },
+  "system_boundaries": [
+    "electrode_terminal",
+    "high_voltage_converter_output",
+    "wall_plug_input",
+    "thruster_gas_control_volume",
+    "bare_thruster",
+    "integrated_vehicle"
+  ],
+  "flow_exergy": {
+    "physical_expression": "(h-h0)-T0*(s-s0)+|u|^2/2+g*z",
+    "chemical_exergy_required_when_composition_changes": true,
+    "plasma_charged_species_field_radiation_terms_require_separate_definitions": true,
+    "single_exit_plane_is_not_a_complete_flow_boundary": true
+  },
+  "exergy_balance": {
+    "generic_expression": "dB_CV/dt = W_ex_in + sum((1-T0/Tb)*Qdot_in) + mass_exergy_in - mass_exergy_out - other_exergy_outputs - T0*Sgen",
+    "exergy_destruction": "T0*S_gen",
+    "nonnegative_entropy_generation_gate": true,
+    "field_energy_double_counting_forbidden": true
+  },
+  "distinct_performance_metrics": [
+    "static_thrust_newton",
+    "flow_kinetic_energy_rate_watt",
+    "flow_exergy_rate_watt",
+    "electrical_to_flow_energy_conversion",
+    "electrical_to_flow_exergy_conversion",
+    "in_flight_propulsive_efficiency",
+    "integrated_system_pareto_metrics"
+  ],
+  "static_thrust_is_not_flight_power": {
+    "vehicle_velocity_required_for_propulsive_power": true,
+    "static_thrust_times_assumed_speed_permitted": false,
+    "zero_freestream_propulsive_efficiency_claim_permitted": false
+  },
+  "required_entropy_generation_channels": [
+    "ion_neutral_drift_friction",
+    "viscous_dissipation",
+    "joule_and_electrical_losses",
+    "thermal_conduction",
+    "species_diffusion",
+    "ionization_recombination_reaction_affinity",
+    "charge_exchange_and_excitation_relaxation",
+    "wall_and_electrode_heat_transfer",
+    "radiation"
+  ],
+  "uncertainty_policy": {
+    "assume_components_independent": false,
+    "rss_requires_validated_covariance": true,
+    "unknown_channels_are_zero": false
+  },
+  "prospective_targets": {
+    "exergy_balance_closure": "within_predeclared_combined_uncertainty",
+    "entropy_generation_nonnegative": true,
+    "nominal_95_percent_interval_coverage_range": [0.90, 0.98],
+    "status": "targets_not_results"
+  },
+  "related_work": {
+    "collision_energy": "https://github.com/Luminous-Dynamics/symtropy/issues/6640",
+    "thrust_observability": "https://github.com/Luminous-Dynamics/symtropy/issues/6641",
+    "control_volume": "https://github.com/Luminous-Dynamics/symtropy/pull/6650",
+    "identifiability": "https://github.com/Luminous-Dynamics/symtropy/issues/6660",
+    "model_discrepancy": "https://github.com/Luminous-Dynamics/symtropy/issues/6681"
+  },
+  "research_comparators": [
+    {
+      "name": "ASHRAE Handbook Chapter 2",
+      "url": "https://handbook.ashrae.org/Handbooks/F21/SI/F21_Ch02/F21_Ch02_si.aspx",
+      "scope": "flow exergy and exergy balance definitions"
+    },
+    {
+      "name": "Cengel and Kanoglu 2025 Exergy Efficiency of Closed and Unsteady-Flow Systems",
+      "doi": "10.3390/e27090943",
+      "scope": "unsteady system exergy balance"
+    },
+    {
+      "name": "A Systematic Approach to Exergy Efficiency of Steady-Flow Systems",
+      "doi": "10.3390/e27111108",
+      "scope": "exergy input/output/destruction"
+    }
+  ],
+  "limitations": [
+    "no_exergy_model_implemented",
+    "no_plasma_entropy_generation_model",
+    "no_raw_flow_field_exergy_reduction",
+    "no_physical_measurements",
+    "no_efficiency_result",
+    "no_sota_superiority_claim"
+  ]
+}
