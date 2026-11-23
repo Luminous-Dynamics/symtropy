@@ -278,6 +278,10 @@ pub struct ExactOracleReport {
     pub opportunity_bound: usize,
     pub dp_transition_limit: usize,
     pub dp_transitions: usize,
+    /// This solver sees the full frozen request stream; it is an offline upper bound.
+    pub information_model: &'static str,
+    /// Always false: no nonanticipative policy is learned or executed by this oracle.
+    pub deployable_online_policy: bool,
     pub best_score: Option<ExactOracleScore>,
     pub best_assignments: Vec<ExactOracleAssignment>,
     pub policy_gaps: Vec<ExactOraclePolicyGap>,
@@ -1370,10 +1374,12 @@ fn exact_assignment_oracle(
             opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
             dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
             dp_transitions: 0,
+            information_model: "clairvoyant_full_horizon_offline_upper_bound",
+            deployable_online_policy: false,
             best_score: None,
             best_assignments: Vec::new(),
             policy_gaps: Vec::new(),
-            objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
+            objective: "Clairvoyant full-horizon offline upper bound (not an online policy); bitmask DP lexicographically maximizes on-time completions, then completed services; minimizes lateness, in-progress-at-horizon assignments and completed-request latency; then applies a canonical assignment tie-break.",
         });
     }
 
@@ -1568,10 +1574,12 @@ fn exact_assignment_oracle(
             opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
             dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
             dp_transitions,
+            information_model: "clairvoyant_full_horizon_offline_upper_bound",
+            deployable_online_policy: false,
             best_score: None,
             best_assignments: Vec::new(),
             policy_gaps: Vec::new(),
-            objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
+            objective: "Clairvoyant full-horizon offline upper bound (not an online policy); bitmask DP lexicographically maximizes on-time completions, then completed services; minimizes lateness, in-progress-at-horizon assignments and completed-request latency; then applies a canonical assignment tie-break.",
         });
     }
 
@@ -1607,10 +1615,12 @@ fn exact_assignment_oracle(
         opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
         dp_transition_limit: MAX_EXACT_ORACLE_TRANSITIONS,
         dp_transitions,
+        information_model: "clairvoyant_full_horizon_offline_upper_bound",
+        deployable_online_policy: false,
         best_score: Some(best.score),
         best_assignments: best.assignments.into_iter().flatten().collect(),
         policy_gaps,
-        objective: "Bitmask dynamic programming over opportunity/request assignments; lexicographically maximize on-time completions, then completed services; minimize lateness, in-progress-at-horizon assignments and completed-request latency; finally choose the canonical opportunity/request assignment.",
+        objective: "Clairvoyant full-horizon offline upper bound (not an online policy); bitmask DP lexicographically maximizes on-time completions, then completed services; minimizes lateness, in-progress-at-horizon assignments and completed-request latency; then applies a canonical assignment tie-break.",
     })
 }
 
@@ -2515,6 +2525,21 @@ mod tests {
                 policy.accepted_requests
             );
         }
+    }
+
+    #[test]
+    fn exact_oracle_declares_full_horizon_clairvoyance_and_no_online_authority() {
+        let report = evaluate_linked_service_quality(&linked_fixture(), &capacity_fixture())
+            .expect("linked full fixture");
+        assert_eq!(
+            report.exact_oracle.information_model,
+            "clairvoyant_full_horizon_offline_upper_bound"
+        );
+        assert!(!report.exact_oracle.deployable_online_policy);
+        assert_eq!(
+            report.exact_oracle.status,
+            ExactOracleStatus::Evaluated
+        );
     }
 
     #[test]
