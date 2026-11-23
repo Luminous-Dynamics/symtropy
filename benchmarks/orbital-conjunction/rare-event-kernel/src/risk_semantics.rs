@@ -162,10 +162,7 @@ impl CollisionNullPValue {
     /// Apply a predeclared type-I false-rejection threshold.
     ///
     /// Rejecting the collision null is not the same as returning Pc = 0.
-    pub fn test_at(
-        self,
-        alpha: Rational,
-    ) -> Result<CollisionNullTestReport, RiskSemanticsError> {
+    pub fn test_at(self, alpha: Rational) -> Result<CollisionNullTestReport, RiskSemanticsError> {
         if alpha.numerator() == 0 || alpha > Rational::from_integer(1) {
             return Err(RiskSemanticsError::InvalidTestThreshold);
         }
@@ -431,9 +428,7 @@ pub fn aggregate_mission_collision_risk(
             return Err(RiskSemanticsError::DuplicateConjunctionIdentity);
         }
 
-        if event.conditional_pc.probability_measure_digest()
-            != scope.probability_measure_digest
-        {
+        if event.conditional_pc.probability_measure_digest() != scope.probability_measure_digest {
             return Err(RiskSemanticsError::ProbabilityMeasureMismatch);
         }
         if event.conditional_pc.conditioning_digest() != scope.conditioning_set_digest {
@@ -604,11 +599,7 @@ mod tests {
         let mut input = event(1, 1, 10);
         input.scope = changed_scope;
         assert_eq!(
-            aggregate_mission_collision_risk(
-                scope(),
-                &[input],
-                EventDependenceMode::Unknown,
-            ),
+            aggregate_mission_collision_risk(scope(), &[input], EventDependenceMode::Unknown,),
             Err(RiskSemanticsError::EventScopeMismatch)
         );
     }
@@ -616,12 +607,8 @@ mod tests {
     #[test]
     fn conditional_pcs_from_a_different_target_measure_cannot_be_aggregated() {
         let mut input = event(1, 1, 10);
-        input.conditional_pc = ConditionalCollisionProbability::new(
-            rational(1, 10),
-            [99; 32],
-            [4; 32],
-        )
-        .unwrap();
+        input.conditional_pc =
+            ConditionalCollisionProbability::new(rational(1, 10), [99; 32], [4; 32]).unwrap();
 
         assert_eq!(
             aggregate_mission_collision_risk(
@@ -636,12 +623,8 @@ mod tests {
     #[test]
     fn event_pc_from_a_different_conditioning_set_cannot_be_aggregated() {
         let mut input = event(1, 1, 10);
-        input.conditional_pc = ConditionalCollisionProbability::new(
-            rational(1, 10),
-            [3; 32],
-            [99; 32],
-        )
-        .unwrap();
+        input.conditional_pc =
+            ConditionalCollisionProbability::new(rational(1, 10), [3; 32], [99; 32]).unwrap();
 
         assert_eq!(
             aggregate_mission_collision_risk(
@@ -709,12 +692,9 @@ mod tests {
 
     #[test]
     fn invalid_p_value_threshold_is_rejected() {
-        let p_value = CollisionNullPValue::new(
-            rational(1, 10),
-            CollisionNullHypothesis::DirectHit,
-            [5; 32],
-        )
-        .unwrap();
+        let p_value =
+            CollisionNullPValue::new(rational(1, 10), CollisionNullHypothesis::DirectHit, [5; 32])
+                .unwrap();
         assert_eq!(
             p_value.test_at(Rational::from_integer(0)),
             Err(RiskSemanticsError::InvalidTestThreshold)
@@ -735,7 +715,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(detection.value(), rational(7, 10));
-        assert_eq!(detection.condition(), CollisionDetectionCondition::DirectHit);
+        assert_eq!(
+            detection.condition(),
+            CollisionDetectionCondition::DirectHit
+        );
     }
 
     #[test]
@@ -746,12 +729,8 @@ mod tests {
 
     #[test]
     fn empty_event_set_returns_exact_zero_risk() {
-        let result = aggregate_mission_collision_risk(
-            scope(),
-            &[],
-            EventDependenceMode::Unknown,
-        )
-        .unwrap();
+        let result =
+            aggregate_mission_collision_risk(scope(), &[], EventDependenceMode::Unknown).unwrap();
 
         assert_eq!(result.event_count, 0);
         assert_eq!(result.reported_lower_bound, Rational::from_integer(0));
@@ -777,12 +756,9 @@ mod tests {
             },
         ];
 
-        let result = aggregate_mission_collision_risk(
-            scope(),
-            &input,
-            EventDependenceMode::Unknown,
-        )
-        .unwrap();
+        let result =
+            aggregate_mission_collision_risk(scope(), &input, EventDependenceMode::Unknown)
+                .unwrap();
         assert_eq!(result.dependence_free_lower_bound, rational(1, u128::MAX));
         assert_eq!(result.dependence_free_upper_bound, rational(2, u128::MAX));
     }
