@@ -67,7 +67,7 @@ struct Route {
     common_cause_domains: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 struct Observations {
     failed_route_ids: Vec<String>,
@@ -211,6 +211,25 @@ fn available_initial_routes(case: &TreeCase) -> Vec<&Route> {
             .then(a.route_id.cmp(&b.route_id))
     });
     routes
+}
+
+fn canonical_observations(observations: &Observations) -> Result<Observations, String> {
+    let mut canonical = observations.clone();
+    canonical.failed_route_ids.sort();
+    canonical.failed_domains.sort();
+    canonical.unknown_route_ids.sort();
+
+    for values in [
+        &canonical.failed_route_ids,
+        &canonical.failed_domains,
+        &canonical.unknown_route_ids,
+    ] {
+        if values.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(fail("observation_set_contains_duplicate"));
+        }
+    }
+
+    Ok(canonical)
 }
 
 fn information_groups(case: &TreeCase) -> BTreeMap<String, Vec<&Scenario>> {
@@ -481,7 +500,8 @@ fn validate_case(case: &TreeCase) -> Result<(), String> {
 
     let mut scenario_ids = HashSet::new();
     let mut total_probability = 0_u64;
-    let mut groups: BTreeMap<&str, &Observations> = BTreeMap::new();
+    let mut groups: BTreeMap<&str, Observations> = BTreeMap::new();
+    let mut observation_groups: BTreeMap<Observations, &str> = BTreeMap::new();
     let mut group_counts: BTreeMap<&str, usize> = BTreeMap::new();
     for scenario in &case.scenarios {
         if scenario.scenario_id.trim().is_empty()
@@ -497,12 +517,17 @@ fn validate_case(case: &TreeCase) -> Result<(), String> {
         *group_counts
             .entry(scenario.information_set_id.as_str())
             .or_default() += 1;
-        let previous = groups.insert(
-            scenario.information_set_id.as_str(),
-            &scenario.observations,
-        );
-        if previous.is_some_and(|value| value != &scenario.observations) {
+        let canonical = canonical_observations(&scenario.observations)?;
+        let information_set_id = scenario.information_set_id.as_str();
+
+        let previous = groups.insert(information_set_id, canonical.clone());
+        if previous.is_some_and(|value| value != canonical) {
             return Err(fail("same_information_set_has_different_observations"));
+        }
+
+        let previous_id = observation_groups.insert(canonical, information_set_id);
+        if previous_id.is_some_and(|value| value != information_set_id) {
+            return Err(fail("identical_observations_split_across_information_sets"));
         }
         for route_id in &scenario.observations.failed_route_ids {
             if !route_ids.contains(route_id.as_str()) {
@@ -785,6 +810,97 @@ mod tests {
     #[test]
     fn frozen_cross_language_answers_match_all_scenario_trees() {
         validate_known_answers(&corpus()).expect("120 exact policy answers match");
+    }
+
+    #[test]
+    fn canonical_observations_sort_set_fields_and_reject_duplicates() {
+        let observations = Observations {
+            failed_route_ids: vec!["ROUTE-B".into(), "ROUTE-A".into()],
+            failed_domains: vec!["DOMAIN-B".into(), "DOMAIN-A".into()],
+            unknown_route_ids: vec!["ROUTE-D".into(), "ROUTE-C".into()],
+            capacity_reductions: BTreeMap::new(),
+        };
+        let canonical = canonical_observations(&observations).unwrap();
+        assert_eq!(canonical.failed_route_ids, vec!["ROUTE-A", "ROUTE-B"]);
+        assert_eq!(canonical.failed_domains, vec!["DOMAIN-A", "DOMAIN-B"]);
+        assert_eq!(canonical.unknown_route_ids, vec!["ROUTE-C", "ROUTE-D"]);
+
+        let duplicate = Observations {
+            failed_route_ids: vec!["ROUTE-A".into(), "ROUTE-A".into()],
+            failed_domains: Vec::new(),
+            unknown_route_ids: Vec::new(),
+            capacity_reductions: BTreeMap::new(),
+        };
+        assert_eq!(
+            canonical_observations(&duplicate).unwrap_err(),
+            "observation_set_contains_duplicate"
+        );
+    }
+
+    #[test]
+    fn validation_rejects_identical_observations_split_across_labels() {
+        let input = corpus();
+        let mut case = input
+            .cases
+            .iter()
+            .find(|case| case.scenario_family_id == "quality-inspection-uncertainty")
+            .unwrap()
+            .clone();
+        assert_eq!(
+            case.scenarios[0].observations,
+            case.scenarios[1].observations
+        );
+        assert_ne!(
+            case.scenarios[0].hidden_quality_rejected_route_ids,
+            case.scenarios[1].hidden_quality_rejected_route_ids
+        );
+
+        // Negative control: split two indistinguishable histories by their supplied labels.
+        case.scenarios[1].information_set_id = "adversarial-split-label".into();
+        assert_eq!(
+            validate_case(&case).unwrap_err(),
+            "identical_observations_split_across_information_sets"
+        );
+    }
+
+    #[test]
+    fn policy_is_invariant_to_scenario_order_and_label_renaming() {
+        let input = corpus();
+        let original = input
+            .cases
+            .iter()
+            .find(|case| case.scenario_family_id == "quality-inspection-uncertainty")
+            .unwrap()
+            .clone();
+        validate_case(&original).unwrap();
+        let (original_plan, _) = exact_policy(&original).unwrap();
+
+        let mut renamed = original.clone();
+        for scenario in &mut renamed.scenarios {
+            scenario.information_set_id = format!("renamed-{}", scenario.information_set_id);
+        }
+        renamed.scenarios.reverse();
+        validate_case(&renamed).unwrap();
+        let (renamed_plan, _) = exact_policy(&renamed).unwrap();
+
+        assert_eq!(original_plan.primary_route_id, renamed_plan.primary_route_id);
+        let action_by_observation = |case: &TreeCase, plan: &PolicyPlan| {
+            let mut actions = BTreeMap::new();
+            for scenario in &case.scenarios {
+                let key = canonical_observations(&scenario.observations).unwrap();
+                let action = plan
+                    .recourse_by_information_set
+                    .get(&scenario.information_set_id)
+                    .cloned()
+                    .unwrap();
+                actions.insert(key, action);
+            }
+            actions
+        };
+        assert_eq!(
+            action_by_observation(&original, &original_plan),
+            action_by_observation(&renamed, &renamed_plan)
+        );
     }
 
     #[test]
