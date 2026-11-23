@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GAUGE-RIGID-BODY",
+  "scope": "M0_SOURCE_AUDIT_ONLY",
+  "no_data_imported": true,
+  "sources": [
+    {
+      "source_id": "gauge-code",
+      "source_role": "benchmark_runner_source",
+      "url": "https://github.com/InternRobotics/GAUGE",
+      "revision_full": "5a6207c22d1dc0bf321369875963e7fa259bcbfb",
+      "revision_observed_short": null,
+      "license": {
+        "declared_expression": "MIT",
+        "evidence_url": "https://github.com/InternRobotics/GAUGE/blob/5a6207c22d1dc0bf321369875963e7fa259bcbfb/LICENSE",
+        "review_status": "reviewed_for_code_only"
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "1064b982b08fa8ca8f771d4ca780cb1cb8566357"
+        },
+        {
+          "path": "LICENSE",
+          "git_blob_sha1": "8f6f4750ffc3056a755c35eef876cce3e323ac5e"
+        }
+      ],
+      "artifact_manifest": [],
+      "qualifications": {
+        "dataset_schema_reviewed": false,
+        "coordinate_frames_and_units_reviewed": false,
+        "calibration_uncertainty_reviewed": false,
+        "repeat_and_split_structure_reviewed": false,
+        "provenance_and_integrity_reviewed": false,
+        "data_use_authorized": false
+      },
+      "admission_state": "not_admitted",
+      "blockers": [
+        "The pinned upstream repository tree contains README.md, README.zh-CN.md, LICENSE and media assets, but no scripts/simulation or scripts/metrics paths although the README describes those paths in its project-layout section.",
+        "A runnable and revision-pinned official evaluation implementation has not been located in the pinned repository tree; no substitute runner is silently inferred."
+      ],
+      "observed_inventory": [
+        "LICENSE",
+        "README.md",
+        "README.zh-CN.md",
+        "media/"
+      ],
+      "data_card_preview": null,
+      "runner_paths_present": []
+    },
+    {
+      "source_id": "gauge-dataset",
+      "source_role": "physical_measurements_and_assets",
+      "url": "https://huggingface.co/datasets/InternRobotics/GAUGE-Dataset",
+      "revision_full": "f95bb06e7d11142f88ffd3b6b56c7258deb8fff6",
+      "revision_observed_short": "f95bb06",
+      "license": {
+        "declared_expression": "MIT",
+        "evidence_url": "https://huggingface.co/datasets/InternRobotics/GAUGE-Dataset",
+        "review_status": "declared_not_independently_reviewed"
+      },
+      "source_files": [],
+      "artifact_manifest": [],
+      "qualifications": {
+        "dataset_schema_reviewed": false,
+        "coordinate_frames_and_units_reviewed": false,
+        "calibration_uncertainty_reviewed": false,
+        "repeat_and_split_structure_reviewed": false,
+        "provenance_and_integrity_reviewed": false,
+        "data_use_authorized": false
+      },
+      "admission_state": "not_admitted",
+      "blockers": [
+        "No file-level SHA-256 inventory for the rigid-body physical measurement payloads has been captured.",
+        "Only representative bouncing-ball and Newton's-cradle trial JSON files have been structurally inspected; all eight rigid task families, material branches and trial files still require a complete schema audit.",
+        "Per-sample measurement uncertainty/covariance, calibration uncertainty propagation, missing-frame policy, outlier policy and recording-level grouping have not yet been fully audited.",
+        "The MIT license is a Hub metadata declaration; its application to every data artifact, embedded asset and external dependency has not been independently reviewed.",
+        "No use/mirroring approval decision has been made for the exact physical-trial payloads.",
+        "The paper states 180 Hz camera acquisition followed by truncation to the valid experiment interval and downsampling to 30 FPS for released trajectory JSON. The exact resampling/filter method, sample phase, timestamp reconstruction and uncertainty propagation through downsampling are not identified in the inspected artifacts.",
+        "The 30 FPS exported trajectories cannot by themselves establish peak contact force or sub-frame impact timing. The task-specific GAUGE momentum-transfer metric is not a direct contact-force measurement; impact/impulse claims require a separate observability and measurement qualification."
+      ],
+      "observed_inventory": [
+        "Pinned Hub repository revision: f95bb06e7d11142f88ffd3b6b56c7258deb8fff6 (resolved from the main branch commit link).",
+        "Hub root exposes assets/, data/, input/, media/, metadata/ and world_models/; the repository UI reports 13.2 GB and 51 commits.",
+        "data/ directory UI reports 9.87 GB and includes rigid/, rope/, textile/ and deformable/ subtrees.",
+        "data/rigid/ contains eight task directories; its UI reports 3.83 GB in total.",
+        "metadata/rigid/ contains eight task metadata JSON files and reports 111 kB.",
+        "Representative trial file data/rigid/bouncing ball/json/1.json is 12.3 kB and declares FPS=30, translation unit mm, Euler order ZYX, with per-body x/y/z, qx/qy/qz/qw and ex/ey/ez arrays.",
+        "Representative data/rigid/newton's cradle/json/1.json is 416 kB and contains multiple named body streams, including ball_passive.",
+        "Rigid task data is separated into json/ and video/ subdirectories. The observed bouncing-ball json directory reports 280 kB; Newton's-cradle json reports 9.19 MB.",
+        "The dataset preview split is validation; the preview row is a video/trajectory pipeline status record (3249 videos and 3249 trajectories), not the raw trial schema.",
+        "Observed abbreviated subtree commits: data/rigid root e5655c5; metadata/rigid root c2d8cd1; bouncing-ball JSON cba0206. These short subtree refs are not substituted for the full dataset revision.",
+        "Hub metadata declares license mit; this is recorded as a declaration, not as an independently reviewed artifact-level rights conclusion.",
+        "GAUGE paper (arXiv:2608.05948, 2026-08-06) states that 16 NOKOV Mars9H cameras acquire at 180 Hz with sub-millimetre localization; each recording is truncated to the valid interval then downsampled to 30 FPS for JSON. Rigid/textile simulator states are also recorded at 30 Hz after 180 Hz simulation; deformable simulation runs at 900 Hz but states are recorded at 30 Hz."
+      ],
+      "data_card_preview": {
+        "viewer_available": false,
+        "preview_rows": 1,
+        "preview_is_trial_schema": false
+      },
+      "runner_paths_present": []
+    }
+  ]
+}
