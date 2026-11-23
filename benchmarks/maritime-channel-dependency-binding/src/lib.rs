@@ -1024,6 +1024,7 @@ mod tests {
 
     #[test]
     fn named_frozen_v0_1_profile_cannot_remove_mandatory_stage_obligations() {
+        assert_eq!(frozen_v0_1_obligations().len(), 18);
         let dimension = FaultDomainDimension::InputAcquisition;
         let (mut profile, projection) = projection(
             DimensionInventory::Complete(vec![witness(
