@@ -655,7 +655,6 @@ impl NominalKSearch<'_> {
     }
 }
 
-
 fn k_coverage_feature_reports(
     candidate_coverage: &[FeatureCoverage],
     selected_coverage: &[FeatureCoverage],
