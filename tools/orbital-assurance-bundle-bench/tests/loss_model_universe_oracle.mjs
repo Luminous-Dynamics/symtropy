@@ -51,8 +51,12 @@ function evalCase(c){
   if(m.scope_sha256!==c.scope_sha256)findings.push(mkFinding("MODEL_SCOPE_MISMATCH",m.model_id,null,"producer model scope differs from the campaign scope"));
   if(m.source_receipt_id){
    const prior=receiptOwners.get(m.source_receipt_id);
-   if(prior&&prior!==m.model_id)findings.push(mkFinding("MODEL_RECEIPT_ALIAS",m.model_id,null,"one source receipt ID is reused for distinct consequence models"));
-   else receiptOwners.set(m.source_receipt_id,m.model_id);
+   if(prior&&prior!==m.model_id){
+    const [first,second]=[prior,m.model_id].sort(cmp);
+    findings.push(mkFinding("MODEL_RECEIPT_ALIAS",first,null,
+      "source receipt "+m.source_receipt_id+" is shared by models "+first+" and "+second));
+    receiptOwners.set(m.source_receipt_id,first);
+   } else if(!prior) receiptOwners.set(m.source_receipt_id,m.model_id);
   }
  }
  const reqById=new Map(reqs.map(r=>[r.id,r]));
