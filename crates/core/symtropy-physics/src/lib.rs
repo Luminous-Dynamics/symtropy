@@ -24,6 +24,7 @@ pub mod diagnostics;
 pub mod epa;
 pub mod gjk;
 pub mod integrator;
+pub mod interval;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
