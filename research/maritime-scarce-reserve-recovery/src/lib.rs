@@ -1021,8 +1021,15 @@ pub fn render_csv() -> String {
                         .iter()
                         .find(|(partition, _)| *partition == decision.partition)
                         .map(|(_, regret)| *regret)
-                })
-                .unwrap_or_default();
+                });
+            let partition_misses = partition_regret.map_or_else(
+                || "MISSING".to_owned(),
+                |regret| regret.additional_critical_deadlines_missed.to_string(),
+            );
+            let partition_service_loss = partition_regret.map_or_else(
+                || "MISSING".to_owned(),
+                |regret| regret.service_loss_units.to_string(),
+            );
 
             output.push_str(&format!(
                 "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
@@ -1036,7 +1043,7 @@ pub fn render_csv() -> String {
                 decision.partition,
                 world.id,
                 decision.action.id(),
-                decision.outcome.reserve_used, 
+                decision.outcome.reserve_used,
                 decision.outcome.a_service_units,
                 decision.outcome.b_service_units,
                 missed_participant,
@@ -1046,8 +1053,8 @@ pub fn render_csv() -> String {
                 authorization_disposition(world),
                 decision.regret.additional_critical_deadlines_missed,
                 decision.regret.service_loss_units,
-                partition_regret.additional_critical_deadlines_missed,
-                partition_regret.service_loss_units,
+                partition_misses,
+                partition_service_loss,
                 result.evidence_receipts
             ));
         }
