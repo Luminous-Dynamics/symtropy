@@ -508,7 +508,191 @@ fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePa
 mod tests {
     use super::*;
     use crate::body::RigidBody;
-    use symtropy_math::{Point, Sphere};
+    use symtropy_math::{Bivector, Capsule, Point, Rotor, Sphere, Transform};
+
+    // Independent analytical AABBs for spheres and capsules. This oracle
+    // intentionally does not use support_aabb or Aabb::from_body.
+    fn independent_sphere_capsule_aabb(
+        body: &RigidBody<3>,
+    ) -> (SVector<f64, 3>, SVector<f64, 3>) {
+        if let Some(sphere) = body.collider.as_any().downcast_ref::<Sphere<3>>() {
+            let center = body.transform.transform_point(&sphere.center).0;
+            let radius = SVector::from_element(sphere.radius);
+            return (center - radius, center + radius);
+        }
+
+        if let Some(capsule) = body.collider.as_any().downcast_ref::<Capsule<3>>() {
+            let mut min = SVector::<f64, 3>::from_element(f64::INFINITY);
+            let mut max = SVector::<f64, 3>::from_element(f64::NEG_INFINITY);
+            for sign in [-1.0, 1.0] {
+                let mut local = [0.0; 3];
+                local[capsule.axis] = sign * capsule.half_height;
+                let endpoint = body
+                    .transform
+                    .transform_point(&Point::new(local))
+                    .0;
+                for axis in 0..3 {
+                    min[axis] = min[axis].min(endpoint[axis]);
+                    max[axis] = max[axis].max(endpoint[axis]);
+                }
+            }
+            let radius = SVector::from_element(capsule.radius);
+            return (min - radius, max + radius);
+        }
+
+        panic!("sphere/capsule oracle received an unsupported collider");
+    }
+
+    fn independent_sphere_capsule_pair_oracle(
+        bodies: &[RigidBody<3>],
+    ) -> Vec<BroadphasePair> {
+        let bounds: Vec<_> = bodies
+            .iter()
+            .map(independent_sphere_capsule_aabb)
+            .collect();
+        let mut pairs = Vec::new();
+
+        for i in 0..bodies.len() {
+            for j in (i + 1)..bodies.len() {
+                let a = &bodies[i];
+                let b = &bodies[j];
+                if a.body_type == BodyType::Static && b.body_type == BodyType::Static {
+                    continue;
+                }
+                if (a.collision_group & b.collision_mask == 0)
+                    || (b.collision_group & a.collision_mask == 0)
+                {
+                    continue;
+                }
+
+                let mut overlaps = true;
+                for axis in 0..3 {
+                    if bounds[i].1[axis] < bounds[j].0[axis]
+                        || bounds[j].1[axis] < bounds[i].0[axis]
+                    {
+                        overlaps = false;
+                        break;
+                    }
+                }
+                if overlaps {
+                    let (ha, hb) = (a.handle, b.handle);
+                    pairs.push(if ha < hb {
+                        BroadphasePair(ha, hb)
+                    } else {
+                        BroadphasePair(hb, ha)
+                    });
+                }
+            }
+        }
+
+        pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        pairs.dedup();
+        pairs
+    }
+
+    fn sphere_capsule_scene(
+        static_count: usize,
+        dynamic_count: usize,
+    ) -> Vec<RigidBody<3>> {
+        let mut bodies = Vec::with_capacity(static_count + dynamic_count);
+        for index in 0..static_count {
+            let position = Point::new([
+                (index % 8) as f64 * 1.4,
+                (index / 8) as f64 * 1.4,
+                (index % 3) as f64 * 0.15,
+            ]);
+            let rotation = Rotor::from_plane_angle(
+                &Bivector::unit_plane(0, 1),
+                (index % 5) as f64 * 0.17,
+            );
+            let transform = Transform {
+                translation: position,
+                rotation,
+            };
+            let collider: Box<dyn symtropy_math::Shape<3>> = if index % 2 == 0 {
+                Box::new(Sphere::new(Point::new([0.1, 0.0, 0.0]), 0.55))
+            } else {
+                Box::new(Capsule::<3>::new(0.35, 0.3, index % 3))
+            };
+            let mut body = RigidBody::new(
+                BodyHandle(index),
+                BodyType::Static,
+                transform,
+                collider,
+                0.0,
+                SVector::zeros(),
+            );
+            body.collision_group = 1 << (index % 2);
+            body.collision_mask = 1 << (index % 2);
+            bodies.push(body);
+        }
+
+        for index in 0..dynamic_count {
+            let anchor = index * static_count / dynamic_count.max(1);
+            let position = Point::new([
+                (anchor % 8) as f64 * 1.4 + 0.2,
+                (anchor / 8) as f64 * 1.4 + 0.1,
+                (anchor % 3) as f64 * 0.15 + 0.1,
+            ]);
+            let rotation = Rotor::from_plane_angle(
+                &Bivector::unit_plane(0, 1),
+                (index % 7) as f64 * 0.13,
+            );
+            let transform = Transform {
+                translation: position,
+                rotation,
+            };
+            let collider: Box<dyn symtropy_math::Shape<3>> = if index % 2 == 0 {
+                Box::new(Sphere::new(Point::new([-0.05, 0.0, 0.0]), 0.45))
+            } else {
+                Box::new(Capsule::<3>::new(0.4, 0.28, (index + 1) % 3))
+            };
+            let mut body = RigidBody::new(
+                BodyHandle(static_count + index),
+                BodyType::Dynamic,
+                transform,
+                collider,
+                1.0,
+                SVector::from_element(1.0),
+            );
+            body.collision_group = 1 << (index % 2);
+            body.collision_mask = 0b11;
+            bodies.push(body);
+        }
+
+        bodies
+    }
+
+    #[test]
+    fn independent_sphere_capsule_oracle_qualifies_full_and_incremental_paths() {
+        // 56 bodies crosses the LBVH threshold while retaining fewer than 50
+        // dynamic bodies, so the incremental flat-static path is exercised.
+        let bodies = sphere_capsule_scene(32, 24);
+        let expected = independent_sphere_capsule_pair_oracle(&bodies);
+        assert!(!expected.is_empty());
+
+        assert_eq!(find_pairs(&bodies), expected);
+
+        let mut static_cache = StaticBroadphase::new();
+        static_cache.rebuild(&bodies);
+        assert_eq!(
+            find_pairs_incremental(&bodies, &static_cache),
+            expected
+        );
+
+        // Pair identities/order must not depend on body storage order.
+        let reversed: Vec<_> = bodies.into_iter().rev().collect();
+        let reversed_expected = independent_sphere_capsule_pair_oracle(&reversed);
+        assert_eq!(reversed_expected, expected);
+        assert_eq!(find_pairs(&reversed), reversed_expected);
+
+        let mut reversed_cache = StaticBroadphase::new();
+        reversed_cache.rebuild(&reversed);
+        assert_eq!(
+            find_pairs_incremental(&reversed, &reversed_cache),
+            reversed_expected
+        );
+    }
 
     #[test]
     fn overlapping_pair_detected() {
