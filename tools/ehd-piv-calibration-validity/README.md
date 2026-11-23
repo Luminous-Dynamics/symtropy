@@ -23,4 +23,4 @@ A density-ratio estimate alone does not establish the conditional-law stability 
     cargo test --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml
     cargo clippy --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml --all-targets -- -D warnings
 
-All claims remain limited to deterministic policy behavior under manufactured evidence inputs.
+The supervisor's replay/ordering ledger is process-local in V0. A production adapter must persist and restore an append-only evidence ledger before accepting new observations after restart. All claims remain limited to deterministic policy behavior under manufactured evidence inputs.
