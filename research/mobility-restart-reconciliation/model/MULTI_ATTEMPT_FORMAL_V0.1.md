@@ -60,6 +60,9 @@ The model permits an Applied terminal attempt, but its outcome cannot have a des
 | NoDuplicatePhysicalMutations | At most one Applied or Partial physical mutation is counted for the logical effect |
 | AttemptIdentityIsStable | Every attempt belongs to the same logical-effect identity |
 | AttemptParentLinksAreStable | Attempt 1 has no parent; each later attempt names its immediate predecessor |
+| AttemptEpochsIncreaseAcrossRecovery | Both boot and controller authorization epochs strictly increase on each child edge |
+| MissionResolutionMatchesPhysicalOutcome | NoEffect/Applied/Unresolved mission verdicts agree with independently observed physical outcomes |
+| PermitUseCountMatchesAcceptedChildren | The consumed-permit count equals the number of accepted recovery attempts |
 | ReservationPrecedesAcceptance | An accepted/reconciled attempt has a durable reservation and dispatch predecessor |
 | RetryAdmissionIsQualified | Every child has a reconciled parent with all exact NoEffect/persistence/observer/fence conditions |
 | RecoveryAdmissionWasCurrentAndFenced | The child captured fresh boot/controller, fences, M1/M2 and binding at admission |
