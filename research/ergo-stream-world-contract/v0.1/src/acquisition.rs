@@ -9,9 +9,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use super::{
-    CandidateSpanV0, PolicyViewV0, SCHEMA_VERSION_V0, SpanV0, StructuralSnapshotV0,
-};
+use super::{CandidateSpanV0, PolicyViewV0, SCHEMA_VERSION_V0, SpanV0, StructuralSnapshotV0};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AcquisitionErrorV0 {
@@ -145,8 +143,8 @@ fn validate_view(view: &PolicyViewV0) -> Result<(), AcquisitionErrorV0> {
     }
 
     for (index, frame) in view.frames.iter().enumerate() {
-        let expected = u32::try_from(index)
-            .map_err(|_| AcquisitionErrorV0::InvalidFrameSequence)?;
+        let expected =
+            u32::try_from(index).map_err(|_| AcquisitionErrorV0::InvalidFrameSequence)?;
         if frame.sequence != expected {
             return Err(AcquisitionErrorV0::InvalidFrameSequence);
         }
