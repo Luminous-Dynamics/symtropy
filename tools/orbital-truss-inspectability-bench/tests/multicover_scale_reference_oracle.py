@@ -422,6 +422,9 @@ def solve(problem):
         "candidate_pool_requested_k_fully_available": robust_candidate_k,
         "selected_requested_k_fully_covered": robust_selected_k,
         "selected_attainable_targets_fully_covered": robust_capped,
+        "full_requested_k_comparable_with_nominal": (
+            candidate_k and selected_k and robust_candidate_k and robust_selected_k
+        ),
         "feature_coverage": robust_coverage,
         "dual_bound": robust_dual,
         "selected_minus_dual_lower_bound": robust_excess,
