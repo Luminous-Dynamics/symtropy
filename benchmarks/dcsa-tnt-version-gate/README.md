@@ -11,7 +11,7 @@ DCSA's 30 September 2026 announcement says Track & Trace 3.0.0 adds IoT and reef
 Sources:
 - DCSA, Track & Trace 3.0.0: IoT and Reefer Visibility, 30 September 2026: https://dcsa.org/newsroom/track-and-trace-3-0-0-iot-reefer-visibility
 - DCSA Standards Public Reference, Track & Trace v3: https://reference.dcsa.org/content/standards/releases/track-and-trace/v3
-- DCSA, Implementing the DCSA Track & Trace Standard (v2.2): https://reference.dcsa.org/content/standards/guidelines/implementing-track-and-trace
+- DCSA, Implementing the DCSA Track & Trace Standard (v2.2): https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace
 - DCSA, Track & Trace Interface Standard v2.2 release announcement: https://dcsa.org/newsroom/dcsa-releases-track-trace-interface-standard-version-2-2
 
 The v2.2.0 event-family gate recognizes SHIPMENT, TRANSPORT and EQUIPMENT. IOT and REEFER are explicitly unsupported under that profile; they are not silently coerced into equipment events.
