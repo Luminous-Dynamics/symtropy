@@ -263,6 +263,11 @@ def evaluate(case,raw,source_commit):
     if initial_candidate_view_count+upper_bound>20000:
         raise ValueError("CANDIDATE_VIEW_LIMIT_EXCEEDED")
 
+    augmentation_candidate_attempt_count = 0
+    augmentation_rejected_max_oblique_count = 0
+    augmentation_rejected_source_occlusion_count = 0
+    augmentation_rejected_source_visibility_count = 0
+
     # Deterministic local tangent basis, using the least-aligned Cartesian axis.
     for surface,count in zip(surfaces,initial_coverage):
         if count>=aug["requested_k"]:
@@ -280,13 +285,22 @@ def evaluate(case,raw,source_commit):
         for tilt_deg in aug["tilt_angles_deg"]:
             beta=math.radians(tilt_deg)
             for azimuth_deg in aug["azimuth_angles_deg"]:
+                augmentation_candidate_attempt_count += 1
                 phi=math.radians(azimuth_deg)
                 tangent=add(mul(tangent_one,math.cos(phi)),mul(tangent_two,math.sin(phi)))
                 direction=unit(add(mul(normal,math.cos(beta)),mul(tangent,math.sin(beta))))
+                source_deviation=angle(direction,normal)
+                if source_deviation is None or source_deviation>cam["max_oblique_angle_rad"]+1e-10:
+                    augmentation_rejected_max_oblique_count += 1
+                    continue
                 position=add(centre,mul(direction,perpendicular))
                 if grid.occluded(position,centre,surface["cell"]):
+                    augmentation_rejected_source_occlusion_count += 1
                     continue
                 visible=visible_features(position,direction)
+                if surface["feature_id"] not in visible:
+                    augmentation_rejected_source_visibility_count += 1
+                    continue
                 views.append({
                     "view_id":f"VIEW-{len(views)}",
                     "source_feature_id":surface["feature_id"],
@@ -301,6 +315,14 @@ def evaluate(case,raw,source_commit):
                 })
 
     augmented_candidate_view_count=len(views)-initial_candidate_view_count
+    accounted_augmentation_candidates = (
+        augmented_candidate_view_count
+        + augmentation_rejected_max_oblique_count
+        + augmentation_rejected_source_occlusion_count
+        + augmentation_rejected_source_visibility_count
+    )
+    if accounted_augmentation_candidates != augmentation_candidate_attempt_count:
+        raise ValueError("AUGMENTATION_CANDIDATE_ACCOUNTING_MISMATCH")
     coverage=[]
     for index,surface in enumerate(surfaces):
         seen=sorted(
@@ -347,6 +369,10 @@ def evaluate(case,raw,source_commit):
         "perpendicular_distance_um":quant(perpendicular,1e6),
         "requested_k":aug["requested_k"],
         "initial_candidate_view_count":initial_candidate_view_count,
+        "augmentation_candidate_attempt_count":augmentation_candidate_attempt_count,
+        "augmentation_rejected_max_oblique_count":augmentation_rejected_max_oblique_count,
+        "augmentation_rejected_source_occlusion_count":augmentation_rejected_source_occlusion_count,
+        "augmentation_rejected_source_visibility_count":augmentation_rejected_source_visibility_count,
         "augmented_candidate_view_count":augmented_candidate_view_count,
         "undercovered_feature_ids_before_augmentation":undercovered,
         "requested_k_covered_after_augmentation":requested_k_covered,
