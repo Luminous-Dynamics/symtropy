@@ -98,10 +98,10 @@ pub struct FenceEvidence {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptObserverAssurance {
-    /// Existing owner-issued physical NoEffect observer-quorum evidence.
+    /// Existing owner-issued observer-quorum evidence for the typed physical outcome.
     pub physical_outcome: OwnerEvidenceRef,
-    /// Separate owner-issued downstream-graph quiescence observer-quorum evidence.
-    pub downstream_quiescence: OwnerEvidenceRef,
+    /// Required when this attempt is a parent of a retry edge.
+    pub downstream_quiescence: Option<OwnerEvidenceRef>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -412,6 +412,7 @@ fn validate_attempt_observer_assurance(
     fault_profile_revision: &str,
     logical_effect_id: &str,
     attempt: &AttemptRecord,
+    require_downstream_quiescence: bool,
     evidence_ids: &mut BTreeSet<String>,
     claim_ids: &mut BTreeSet<String>,
     artifact_ids: &mut BTreeSet<String>,
@@ -427,19 +428,7 @@ fn validate_attempt_observer_assurance(
     let physical = validate_observer_claim(
         &assurance.physical_outcome,
         OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
-        "no_effect",
-        &scope,
-        fault_profile_revision,
-        evidence_ids,
-        claim_ids,
-        artifact_ids,
-        artifact_hashes,
-        observation_ids,
-    )?;
-    let downstream = validate_observer_claim(
-        &assurance.downstream_quiescence,
-        OwnerEvidenceDomain::DownstreamObserverQuorum,
-        "quiescent",
+        physical_value(attempt.physical_outcome.outcome),
         &scope,
         fault_profile_revision,
         evidence_ids,
@@ -449,8 +438,28 @@ fn validate_attempt_observer_assurance(
         observation_ids,
     )?;
 
-    if !observer_proofs_are_independent(physical, downstream) {
-        return Err(LineageError::ObserverQuorumUnqualified);
+    match &assurance.downstream_quiescence {
+        Some(downstream_evidence) => {
+            let downstream = validate_observer_claim(
+                downstream_evidence,
+                OwnerEvidenceDomain::DownstreamObserverQuorum,
+                "quiescent",
+                &scope,
+                fault_profile_revision,
+                evidence_ids,
+                claim_ids,
+                artifact_ids,
+                artifact_hashes,
+                observation_ids,
+            )?;
+            if !observer_proofs_are_independent(physical, downstream) {
+                return Err(LineageError::ObserverQuorumUnqualified);
+            }
+        }
+        None if require_downstream_quiescence => {
+            return Err(LineageError::MissingObserverAssurance);
+        }
+        None => {}
     }
     Ok(())
 }
@@ -478,6 +487,7 @@ fn validate_recovery_handoff(
         fault_profile_revision,
         logical_effect_id,
         parent,
+        true,
         evidence_ids,
         claim_ids,
         artifact_ids,
@@ -588,6 +598,23 @@ impl AttemptLineageRecording {
             }
 
             validate_attempt_evidence(&self.logical_effect_id, attempt, &mut evidence_ids)?;
+
+            if index + 1 == self.attempts.len()
+                && (attempt.physical_outcome.receipt.status == OwnerEvidenceStatus::Confirmed
+                    || attempt.observer_assurance.is_some())
+            {
+                validate_attempt_observer_assurance(
+                    &self.fault_profile_revision,
+                    &self.logical_effect_id,
+                    attempt,
+                    false,
+                    &mut evidence_ids,
+                    &mut claim_ids,
+                    &mut observer_artifact_ids,
+                    &mut observer_artifact_hashes,
+                    &mut observer_observation_ids,
+                )?;
+            }
 
             if attempt.physical_outcome.outcome == PhysicalOutcome::Applied
                 && attempt.physical_outcome.receipt.status == OwnerEvidenceStatus::Confirmed
