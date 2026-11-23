@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod conditional_velocity;
 pub mod coverage;
+pub mod gaussian_overlap;
 pub mod lebedev;
 pub mod ncdot_sphere;
 pub mod normal_positive_part;
@@ -41,6 +42,13 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use gaussian_overlap::{
+    CovarianceConditionDiagnostics, CovarianceDefiniteness, GaussianOverlapConfig,
+    GaussianOverlapCovariancePolicy, GaussianOverlapReport, GaussianPositionDistribution3,
+    NasaCovarianceClipReport, NasaPeakOverlapConfig, NasaPeakOverlapReport,
+    gaussian_position_overlap, nasa_covariance_eigenvalue_clip, nasa_peak_overlap_compatibility,
+    overlap_step_mahalanobis_squared,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
@@ -143,6 +151,14 @@ pub enum KernelError {
     InvalidCovarianceTolerance,
     /// A vector supplied as a sphere direction is not unit length.
     InvalidUnitDirection,
+    /// Gaussian-overlap symmetry tolerance or condition threshold is invalid.
+    InvalidGaussianOverlapConfig,
+    /// Gaussian covariance exceeds the configured condition estimate.
+    IllConditionedCovariance,
+    /// NASA PeakOverlapPos clipping factor or symmetry tolerance is invalid.
+    InvalidNasaPeakOverlapConfig,
+    /// A deterministic symmetric eigendecomposition did not reach its residual threshold.
+    EigenDecompositionDidNotConverge,
 }
 
 impl fmt::Display for KernelError {
@@ -198,6 +214,18 @@ impl fmt::Display for KernelError {
                 "covariance and direction tolerances must be nonnegative and finite"
             }
             Self::InvalidUnitDirection => "sphere direction must have unit norm",
+            Self::InvalidGaussianOverlapConfig => {
+                "Gaussian-overlap configuration contains an invalid tolerance or condition threshold"
+            }
+            Self::IllConditionedCovariance => {
+                "Gaussian covariance exceeds the configured condition estimate"
+            }
+            Self::InvalidNasaPeakOverlapConfig => {
+                "NASA PeakOverlapPos clipping factor or symmetry tolerance is invalid"
+            }
+            Self::EigenDecompositionDidNotConverge => {
+                "symmetric eigendecomposition did not converge within its iteration budget"
+            }
         };
         f.write_str(message)
     }
