@@ -141,20 +141,20 @@ jobs:
             and (.attempts | length == 3)
             and .fault_profile_revision == "rrvr-lineage-fault-model-v0.1"
             and ([.attempts[].ordinal] == [1, 2, 3])
-            and .attempts[0].observer_assurance.physical_outcome_asserted_value == "no_effect"
-            and .attempts[0].observer_assurance.downstream_quiescence_asserted_value == "quiescent"
-            and .attempts[1].observer_assurance.physical_outcome_asserted_value == "no_effect"
-            and .attempts[1].observer_assurance.downstream_quiescence_asserted_value == "quiescent"
-            and .attempts[0].observer_assurance.physical_outcome_quorum.fault_model_revision == .fault_profile_revision
-            and .attempts[0].observer_assurance.downstream_quiescence_quorum.fault_model_revision == .fault_profile_revision
-            and .attempts[1].observer_assurance.physical_outcome_quorum.fault_model_revision == .fault_profile_revision
-            and .attempts[1].observer_assurance.downstream_quiescence_quorum.fault_model_revision == .fault_profile_revision
-            and (.attempts[0].observer_assurance.physical_outcome_quorum.members | length == 2)
-            and (.attempts[0].observer_assurance.downstream_quiescence_quorum.members | length == 2)
-            and (([.attempts[0].observer_assurance.physical_outcome_quorum.members[].observer_id] + [.attempts[0].observer_assurance.downstream_quiescence_quorum.members[].observer_id] | unique | length) == 4)
-            and (([.attempts[0].observer_assurance.physical_outcome_quorum.members[].common_cause_domains[]] + [.attempts[0].observer_assurance.downstream_quiescence_quorum.members[].common_cause_domains[]] | unique | length) == 12)
-            and (([.attempts[1].observer_assurance.physical_outcome_quorum.members[].observer_id] + [.attempts[1].observer_assurance.downstream_quiescence_quorum.members[].observer_id] | unique | length) == 4)
-            and (([.attempts[1].observer_assurance.physical_outcome_quorum.members[].common_cause_domains[]] + [.attempts[1].observer_assurance.downstream_quiescence_quorum.members[].common_cause_domains[]] | unique | length) == 12)
+            and .attempts[0].observer_assurance.physical_outcome.asserted_value == "no_effect"
+            and .attempts[0].observer_assurance.downstream_quiescence.asserted_value == "quiescent"
+            and .attempts[1].observer_assurance.physical_outcome.asserted_value == "no_effect"
+            and .attempts[1].observer_assurance.downstream_quiescence.asserted_value == "quiescent"
+            and .attempts[0].observer_assurance.physical_outcome.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[0].observer_assurance.downstream_quiescence.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[1].observer_assurance.physical_outcome.observer_quorum.fault_model_revision == .fault_profile_revision
+            and .attempts[1].observer_assurance.downstream_quiescence.observer_quorum.fault_model_revision == .fault_profile_revision
+            and (.attempts[0].observer_assurance.physical_outcome.observer_quorum.members | length == 2)
+            and (.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members | length == 2)
+            and (([.attempts[0].observer_assurance.physical_outcome.observer_quorum.members[].observer_id] + [.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[0].observer_assurance.physical_outcome.observer_quorum.members[].common_cause_domains[]] + [.attempts[0].observer_assurance.downstream_quiescence.observer_quorum.members[].common_cause_domains[]] | unique | length) == 12)
+            and (([.attempts[1].observer_assurance.physical_outcome.observer_quorum.members[].observer_id] + [.attempts[1].observer_assurance.downstream_quiescence.observer_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[1].observer_assurance.physical_outcome.observer_quorum.members[].common_cause_domains[]] + [.attempts[1].observer_assurance.downstream_quiescence.observer_quorum.members[].common_cause_domains[]] | unique | length) == 12)
             and .attempts[2].observer_assurance == null
             and .attempts[0].parent_attempt_id == null
             and .attempts[1].parent_attempt_id == .attempts[0].attempt_id
