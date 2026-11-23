@@ -9,7 +9,7 @@ from pathlib import Path
 
 CORPUS_SCHEMA = "luminous.orbital-truss.multicover-scale-corpus.v0.2"
 BENCHMARK_ID = "ORBITAL-MULTICOVER-SCALE-002"
-RECEIPT_SCHEMA = "luminous.orbital-truss.multicover-scale-receipt.v0.2"
+RECEIPT_SCHEMA = "luminous.orbital-truss.multicover-scale-receipt.v0.3"
 CLAIM_CEILING = "synthetic_sparse_nominal_k_multicover_with_robust_diagnostics_only"
 FIXED_SCALE = 1_000_000_000_000_000_000
 EXP_NEGATIVE_ONE_FIXED = 367_879_441_171_442_321
@@ -67,6 +67,7 @@ def index_problem(problem):
     nominal_by_view = []
     robust_by_view = []
     feature_to_views = [[] for _ in features]
+    robust_feature_to_views = [[] for _ in features]
     nominal_counts = [0] * len(features)
     robust_counts = [0] * len(features)
     nominal_domains = [set() for _ in features]
@@ -84,6 +85,7 @@ def index_problem(problem):
         for feature_index in robust:
             robust_counts[feature_index] += 1
             robust_domains[feature_index].add(view["failure_domain_id"])
+            robust_feature_to_views[feature_index].append(view_index)
 
     return {
         "feature_ids": [feature["feature_id"] for feature in features],
@@ -94,6 +96,7 @@ def index_problem(problem):
         "nominal_by_view": nominal_by_view,
         "robust_by_view": robust_by_view,
         "feature_to_views": feature_to_views,
+        "robust_feature_to_views": robust_feature_to_views,
         "nominal_counts": nominal_counts,
         "robust_counts": robust_counts,
         "nominal_domains": nominal_domains,
@@ -101,16 +104,18 @@ def index_problem(problem):
     }
 
 
-def paper_style_greedy(indexed):
+def paper_style_greedy(indexed, robust_relation=False):
     requested = indexed["requested_k"]
-    target = [min(k, count) for k, count in zip(requested, indexed["nominal_counts"])]
-    remaining = list(indexed["nominal_counts"])
+    relation = "robust" if robust_relation else "nominal"
+    candidate_counts = indexed[f"{relation}_counts"]
+    by_view = indexed[f"{relation}_by_view"]
+    target = [min(k, count) for k, count in zip(requested, candidate_counts)]
+    remaining = list(candidate_counts)
     covered = [0] * len(requested)
     selected = [False] * len(indexed["view_ids"])
     selection_order = []
     exp = decay_table()
     view_ids = indexed["view_ids"]
-    nominal_by_view = indexed["nominal_by_view"]
 
     while any(actual < required for actual, required in zip(covered, target)):
         sigma = [0] * len(requested)
@@ -133,7 +138,7 @@ def paper_style_greedy(indexed):
 
         best_index = None
         best_score = 0
-        for view_index, feature_indices in enumerate(nominal_by_view):
+        for view_index, feature_indices in enumerate(by_view):
             if selected[view_index]:
                 continue
             score = sum(weights[feature_index] for feature_index in feature_indices)
@@ -148,7 +153,7 @@ def paper_style_greedy(indexed):
 
         selected[best_index] = True
         selection_order.append(best_index)
-        for feature_index in nominal_by_view[best_index]:
+        for feature_index in by_view[best_index]:
             covered[feature_index] += 1
             remaining[feature_index] -= 1
 
@@ -161,21 +166,23 @@ def paper_style_greedy(indexed):
                 continue
             if all(
                 covered[feature_index] - 1 >= target[feature_index]
-                for feature_index in nominal_by_view[view_index]
+                for feature_index in by_view[view_index]
             ):
                 selected[view_index] = False
                 removed.append(view_index)
-                for feature_index in nominal_by_view[view_index]:
+                for feature_index in by_view[view_index]:
                     covered[feature_index] -= 1
                 changed = True
                 break
     return selected, selection_order, removed
 
 
-def build_dual(indexed):
+def build_dual(indexed, robust_relation=False):
     requested = indexed["requested_k"]
-    target = [min(k, count) for k, count in zip(requested, indexed["nominal_counts"])]
-    adjacency = indexed["feature_to_views"]
+    relation = "robust" if robust_relation else "nominal"
+    candidate_counts = indexed[f"{relation}_counts"]
+    adjacency = indexed["robust_feature_to_views" if robust_relation else "feature_to_views"]
+    target = [min(k, count) for k, count in zip(requested, candidate_counts)]
     feature_ids = indexed["feature_ids"]
     views = len(indexed["view_ids"])
 
@@ -213,7 +220,10 @@ def build_dual(indexed):
     floor = best["objective"] // FIXED_SCALE
     ceil = floor + int(best["objective"] % FIXED_SCALE != 0)
     return {
-        "method": "FEASIBLE_SET_MULTICOVER_LP_DUAL_V0_1",
+        "method": (
+            "FEASIBLE_ROBUST_SET_MULTICOVER_LP_DUAL_V0_1"
+            if robust_relation else "FEASIBLE_NOMINAL_SET_MULTICOVER_LP_DUAL_V0_1"
+        ),
         "ordering": best["ordering"],
         "objective_numerator": best["objective"],
         "objective_denominator": FIXED_SCALE,
@@ -246,19 +256,23 @@ def build_feature_coverage(indexed, selected):
     reports = []
     for i, feature_id in enumerate(indexed["feature_ids"]):
         requested = indexed["requested_k"][i]
-        available = indexed["nominal_counts"][i]
-        attainable = min(requested, available)
+        available_nominal = indexed["nominal_counts"][i]
+        available_robust = indexed["robust_counts"][i]
+        attainable = min(requested, available_nominal)
+        robust_attainable = min(requested, available_robust)
         reports.append({
             "feature_id": feature_id,
             "requested_k": requested,
-            "available_nominal_candidate_views": available,
-            "available_robust_candidate_views": indexed["robust_counts"][i],
+            "available_nominal_candidate_views": available_nominal,
+            "available_robust_candidate_views": available_robust,
             "attainable_capped_target": attainable,
+            "robust_attainable_capped_target": robust_attainable,
             "selected_nominal_views": selected_nominal[i],
             "selected_robust_views": selected_robust[i],
             "requested_k_met": selected_nominal[i] >= requested,
             "attainable_target_met": selected_nominal[i] >= attainable,
             "robust_requested_k_met": selected_robust[i] >= requested,
+            "robust_attainable_target_met": selected_robust[i] >= robust_attainable,
             "nominal_failure_domain_count_available": len(indexed["nominal_domains"][i]),
             "robust_failure_domain_count_available": len(indexed["robust_domains"][i]),
             "nominal_failure_domain_count_selected": len(selected_nominal_domains[i]),
@@ -304,11 +318,6 @@ def overlap_pruning(indexed, threshold_percent, ordering):
                 covered[feature_index] = True
 
     coverage = build_feature_coverage(indexed, selected)
-    overlap_baselines = [
-        overlap_pruning(indexed, threshold, ordering)
-        for threshold in (50, 70)
-        for ordering in ("VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING")
-    ]
     selected_ids = sorted(
         view_id for view_id, include in zip(indexed["view_ids"], selected) if include
     )
@@ -336,9 +345,20 @@ def overlap_pruning(indexed, threshold_percent, ordering):
 def solve(problem):
     validate(problem)
     indexed = index_problem(problem)
-    selected, selection_order, removed = paper_style_greedy(indexed)
-    dual = build_dual(indexed)
+    selected, selection_order, removed = paper_style_greedy(indexed, robust_relation=False)
+    dual = build_dual(indexed, robust_relation=False)
     coverage = build_feature_coverage(indexed, selected)
+    robust_selected, robust_order, robust_removed = paper_style_greedy(
+        indexed, robust_relation=True
+    )
+    robust_dual = build_dual(indexed, robust_relation=True)
+    robust_coverage = build_feature_coverage(indexed, robust_selected)
+    overlap_baselines = [
+        overlap_pruning(indexed, threshold, ordering)
+        for threshold in (50, 70)
+        for ordering in ("VERTICAL_BOTTOM_TO_TOP", "VISIBILITY_DESCENDING")
+    ]
+
     selected_ids = sorted(
         view_id for view_id, include in zip(indexed["view_ids"], selected) if include
     )
@@ -347,21 +367,67 @@ def solve(problem):
     selected_count = len(selected_ids)
     if dual["lower_bound_ceiling"] > selected_count:
         raise ValueError("MULTICOVER_DUAL_LOWER_BOUND_EXCEEDS_FEASIBLE_INCUMBENT")
-
     candidate_k = all(
         item["available_nominal_candidate_views"] >= item["requested_k"] for item in coverage
     )
     selected_k = all(item["requested_k_met"] for item in coverage)
     capped = all(item["attainable_target_met"] for item in coverage)
-    robust = all(item["robust_requested_k_met"] for item in coverage)
+    robust_diag = all(item["robust_requested_k_met"] for item in coverage)
     excess = selected_count - dual["lower_bound_ceiling"]
     lower = dual["lower_bound_ceiling"]
     relative = ((excess * 10_000 + lower - 1) // lower) if lower > 0 else None
     dual["minimum_cardinality_optimum_certified"] = (
-        dual["dual_constraints_verified"]
-        and capped
+        dual["dual_constraints_verified"] and capped
         and dual["lower_bound_ceiling"] == selected_count
     )
+
+    robust_ids = sorted(
+        view_id for view_id, include in zip(indexed["view_ids"], robust_selected) if include
+    )
+    robust_order_ids = [indexed["view_ids"][index] for index in robust_order]
+    robust_removed_ids = [indexed["view_ids"][index] for index in robust_removed]
+    robust_count = len(robust_ids)
+    if robust_dual["lower_bound_ceiling"] > robust_count:
+        raise ValueError("MULTICOVER_ROBUST_DUAL_LOWER_BOUND_EXCEEDS_FEASIBLE_INCUMBENT")
+    robust_candidate_k = all(
+        item["available_robust_candidate_views"] >= item["requested_k"]
+        for item in robust_coverage
+    )
+    robust_selected_k = all(item["robust_requested_k_met"] for item in robust_coverage)
+    robust_capped = all(item["robust_attainable_target_met"] for item in robust_coverage)
+    if not robust_capped:
+        raise ValueError("MULTICOVER_ROBUST_PRIMAL_INCUMBENT_DOES_NOT_MEET_CAPPED_TARGETS")
+    robust_dual["minimum_cardinality_optimum_certified"] = (
+        robust_dual["dual_constraints_verified"] and robust_capped
+        and robust_dual["lower_bound_ceiling"] == robust_count
+    )
+    nominal_set = set(selected_ids)
+    robust_set = set(robust_ids)
+    robust_excess = robust_count - robust_dual["lower_bound_ceiling"]
+    robust_lower = robust_dual["lower_bound_ceiling"]
+    robust_relative = (
+        (robust_excess * 10_000 + robust_lower - 1) // robust_lower
+        if robust_lower > 0 else None
+    )
+    robust_companion = {
+        "algorithm": "ROBUST_VISIBILITY_GLOBALLY_INFORMED_GREEDY_K_VARIANT_V0_1",
+        "selected_view_ids": robust_ids,
+        "selection_order_view_ids": robust_order_ids,
+        "cleanup_removed_view_ids": robust_removed_ids,
+        "nominal_only_view_ids": sorted(nominal_set - robust_set),
+        "robust_only_view_ids": sorted(robust_set - nominal_set),
+        "nominal_selected_view_count": selected_count,
+        "robust_selected_view_count": robust_count,
+        "view_count_delta_vs_nominal": robust_count - selected_count,
+        "candidate_pool_requested_k_fully_available": robust_candidate_k,
+        "selected_requested_k_fully_covered": robust_selected_k,
+        "selected_attainable_targets_fully_covered": robust_capped,
+        "feature_coverage": robust_coverage,
+        "dual_bound": robust_dual,
+        "selected_minus_dual_lower_bound": robust_excess,
+        "relative_excess_over_dual_lower_bound_basis_points": robust_relative,
+    }
+
     return {
         "schema": RECEIPT_SCHEMA,
         "benchmark_id": BENCHMARK_ID,
@@ -382,8 +448,9 @@ def solve(problem):
         "candidate_pool_requested_k_fully_available": candidate_k,
         "selected_requested_k_fully_covered": selected_k,
         "selected_attainable_targets_fully_covered": capped,
-        "selected_robust_requested_k_fully_covered": robust,
+        "selected_robust_requested_k_fully_covered": robust_diag,
         "feature_coverage": coverage,
+        "robust_selection_companion": robust_companion,
         "overlap_pruning_baselines": overlap_baselines,
         "dual_bound": dual,
         "selected_minus_dual_lower_bound": excess,
