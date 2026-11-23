@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use maritime_channel_dependency_binding::{
-    assess, ClosureProjection, Digest, MaritimeProfile, ProfileDisposition,
-    ProjectionCurrentness, ValidationError, CLOSURE_SCHEMA,
+    CLOSURE_SCHEMA, ClosureProjection, Digest, MaritimeProfile, ProfileDisposition,
+    ProjectionCurrentness, ValidationError, assess,
 };
 
 fn projection_for(profile: &MaritimeProfile) -> ClosureProjection {
