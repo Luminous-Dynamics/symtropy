@@ -79,7 +79,7 @@ def derive() -> dict:
       "status":"exact_radial_temporal_fibre_and_frame_dragging_map_derived",
       "source":{
         "paper":"Ma and Lu, JHEP 05 (2026) 081, arXiv:2512.23797",
-        "equations":["(9)","(10)","(13)"],
+        "equations":["(2.8)","(2.9)","(2.12)"],
         "chi_definition":"chi=a/sqrt(mu)",
         "compact_rotation_combination":"chi^2=a^2/mu"
       },
@@ -103,7 +103,7 @@ def derive() -> dict:
         "f":"Delta*(dG/dr)^2/(4*G^2)",
         "coordinate_caveat":"Compose with r(R), then convert Ma-Lu (r_h,mu,a) to fixed Symtropy (R_H,Omega_H)."},
       "checks":{
-        "printed_chi_a_over_mu_convention":True,
+        "published_chi_a_over_sqrt_mu_convention":True,
         "H1_full_equal_spin_chi2_term_includes_mu3_over_r8":True,
         "equal_spin_H2_equals_H3":True,
         "radial_f_chain_rule_identity_through_alpha":True,
