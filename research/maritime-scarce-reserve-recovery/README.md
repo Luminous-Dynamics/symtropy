@@ -85,7 +85,7 @@ The independent inspection separates all six worlds. Participant authorization i
 | shared_tos_signal | 1 | 52 |
 | independent_reserve_inspection | 0 | 7 |
 
-This known-answer result demonstrates an important distinction: the independent inspection is valuable not because it maximizes information gain, but because it enables a feasible, rights-respecting allocation that avoids a critical deadline miss. The shared TOS signal costs 2 service_units without making reserve use admissible. The exact observation costs 7 but reduces the first component of regret from 1 to 0.
+This known-answer result demonstrates an important distinction: the independent inspection is valuable not because it maximizes information gain, but because it enables the best feasible, rights-respecting allocation in each world. It does **not** mean that no critical deadlines are missed in absolute terms. Three worlds still have an absolute critical miss: the reserve-outage world, the A-consent-revoked world, and the B-consent-revoked world. In each, no consent- and capacity-feasible action can serve that world’s critical participant; the inspection does not add a miss relative to the per-world feasible oracle. The world-level CSV receipt preserves the participant who misses service. The shared TOS signal costs 2 service_units without making reserve use admissible. The exact observation costs 7 and reduces the worst-case **additional** missed deadlines from 1 to 0.
 
 These values are from a small finite synthetic fixture. They are not measured port performance, a causal impact estimate, or evidence that Luminous outperforms an installed TOS.
 
