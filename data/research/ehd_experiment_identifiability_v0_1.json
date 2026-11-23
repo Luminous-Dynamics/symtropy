@@ -1,0 +1,90 @@
+{
+  "schema": "luminous.ehd_experiment_identifiability_benchmark",
+  "schema_version": "0.1.0",
+  "benchmark_id": "EHD-OED-001",
+  "as_of": "2026-11-21",
+  "status": "research_specification_manufactured_linear_algebra_fixture",
+  "claim_ceiling": "The cases below are manufactured linear algebra and statistical design references only. They are not an EHD constitutive model, calibrated physical parameter estimator, experiment recommendation, or physical measurement.",
+  "manufactured_model": {
+    "equation": "y_j = a*x_j + b + epsilon_j",
+    "parameter_order": ["a", "b"],
+    "noise_model": "independent_normal_zero_mean_unit_variance",
+    "observation_covariance": "identity",
+    "interpretation": "abstract two-coefficient regression used only to test identifiability logic"
+  },
+  "cases": [
+    {
+      "case_id": "E0-REPEATED-CONDITION-RANK-1",
+      "purpose": "negative_control_repetition_does_not_repair_structural_rank_deficiency",
+      "design_matrix": [[1.0, 1.0], [1.0, 1.0], [1.0, 1.0]],
+      "controlled_coordinate": [1.0, 1.0, 1.0],
+      "reference_parameters": [2.0, 0.5],
+      "manufactured_observations_without_noise": [2.5, 2.5, 2.5],
+      "information_matrix": [[3.0, 3.0], [3.0, 3.0]],
+      "expected_eigenvalues_descending": [6.0, 0.0],
+      "expected_rank": 1,
+      "expected_disposition": "not_identifiable",
+      "identified_combination": "a_plus_b",
+      "unidentified_direction": [1.0, -1.0],
+      "invariant_under_repetition": "rank_remains_1_for_any_positive_number_of_repeated_x_equals_1_observations"
+    },
+    {
+      "case_id": "E0-BALANCED-CONDITION-RANK-2",
+      "purpose": "positive_control_independent_design_coordinates_resolve_two_coefficients",
+      "design_matrix": [[-1.0, 1.0], [0.0, 1.0], [1.0, 1.0]],
+      "controlled_coordinate": [-1.0, 0.0, 1.0],
+      "reference_parameters": [2.0, 0.5],
+      "manufactured_observations_without_noise": [-1.5, 0.5, 2.5],
+      "information_matrix": [[2.0, 0.0], [0.0, 3.0]],
+      "expected_eigenvalues_descending": [3.0, 2.0],
+      "expected_rank": 2,
+      "expected_disposition": "locally_identifiable_for_manufactured_linear_model"
+    }
+  ],
+  "required_checks": [
+    "information_matrix_equals_transpose_design_times_inverse_covariance_times_design",
+    "numerical_rank_uses_frozen_scaled_tolerance",
+    "rank_deficient_case_returns_not_identifiable",
+    "repetition_does_not_change_rank_of_repeated_condition_case",
+    "balanced_case_recovers_reference_parameters",
+    "eigenvalues_are_reported_not_only_determinant",
+    "unidentified_parameter_direction_is_reported",
+    "rank_tolerance_and_parameter_scaling_are_in_receipt"
+  ],
+  "future_extension_requirements": [
+    "physical_parameters_and_nuisance_parameters_are_separate",
+    "nuisance_adjusted_information_reports_singular_nuisance_blocks",
+    "profile_likelihood_checks_practical_identifiability",
+    "model_discrimination_includes_explicit_artifact_models",
+    "robust_design_is_evaluated_over_frozen_parameter_and_noise_envelopes",
+    "training_and_confirmatory_holdout_conditions_are_separated"
+  ],
+  "prospective_targets": {
+    "nominal_interval_coverage": {
+      "target_level": 0.95,
+      "empirical_coverage_range": [0.90, 0.98],
+      "status": "target_not_result"
+    },
+    "minimum_normalized_information_eigenvalue_improvement_vs_random": {
+      "target_factor": 2.0,
+      "matched_observation_budget_required": true,
+      "status": "target_not_result"
+    },
+    "profile_likelihood_interval_width_reduction_vs_frozen_naive_design": {
+      "target_fraction": 0.30,
+      "only_when_practical_identifiability_is_achievable": true,
+      "status": "target_not_result"
+    },
+    "artifact_false_positive_rate": {
+      "target_maximum": 0.01,
+      "detection_power_must_be_reported": true,
+      "status": "target_not_result"
+    }
+  },
+  "provenance": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/6660",
+    "benchmark_specification": "docs/research/EHD_EXPERIMENT_IDENTIFIABILITY_BENCHMARK_2026.md",
+    "related_control_program": "https://github.com/Luminous-Dynamics/symtropy/issues/6462",
+    "related_thrust_observability": "https://github.com/Luminous-Dynamics/symtropy/issues/6641"
+  }
+}
