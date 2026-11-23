@@ -14,6 +14,8 @@ The unit of assessment here is:
 
 The adapter retains the exact dependencies and path witnesses for that unit. It does not collapse a five-stage dependency vector into a global `independent=true`, a source count, or a scalar confidence score.
 
+The production v0.1 profile has a frozen mandatory obligation set. The evaluator rejects a named v0.1 profile that removes any role × stage × dimension obligation, and a release build rejects unrecognized profile IDs/versions. Test-only single-obligation fixtures are compiled only under `cfg(test)`; they are not valid production profiles. A future site-specific or expanded profile requires an explicit new reviewed profile identifier/version and a new contract, not mutation of the frozen v0.1 obligation set.
+
 The five stages are:
 
 1. **Detection** — physical sensor/reader, installation/read-point, power, clock/calibration and local acquisition.
@@ -97,7 +99,7 @@ Overall outcomes are `ProfileObligationsMet`, `ProfileObligationsNotMet`, `Profi
 
 ## Tests and frozen cases
 
-The crate contains 26 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
+The crate contains 27 Rust test declarations. The generated finite panel compares the production assessment with a separately expressed set-intersection/completeness oracle for all:
 
 - 15 non-empty subsets of a four-identity universe for the source role;
 - 15 non-empty subsets for the witness role;
@@ -114,7 +116,7 @@ That is 900 deterministic identity-set cases. Additional tests cover:
 - duplicate paths without duplicate identity counting;
 - separate inventory comparisons for the same generic dimension at different evidence stages;
 - rejection when a dependency class is placed in a stage outside its declared applicability set; explicit accepted-shared residual risks with rationale/impact/owner, without changing the shared disposition;
-- profile/as-of mismatch, missing required dimension and owner-backed non-applicability;
+- profile/as-of mismatch, missing required dimension, owner-backed non-applicability, and attempted removal of a mandatory frozen v0.1 obligation;
 - fine-grained maritime component mapping and dimension-qualified identity equality.
 
 Expected scenario labels are in `fixtures/channel-dependency-v0.1.tsv`.
