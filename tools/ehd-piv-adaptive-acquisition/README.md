@@ -13,7 +13,9 @@ A deterministic, event-triggered scheduler for choosing the next measurement act
 - Low-cost sentinel metrics trigger capabilities, not an arbitrary composite score.
 - Hard target requirements add independent velocity, direct force, full control-volume and electrical-power capabilities as needed.
 - Available diagnostic actions are selected by a bounded set-cover search minimizing total cost, then latency, then stable action IDs.
-- Any potentially perturbative or unknown-observer-impact diagnostic requires an observer requalification action in the same plan.
+- Any potentially perturbative or unknown-observer-impact diagnostic requires observer requalification after measurement.
+- An already-unqualified observer state requires requalification before measurement; both boundaries are required when both conditions apply.
+- A field-covariance target always requires high-resolution PIV, spatial-region coverage and reference qualification.
 - Every action must require a replayable evidence receipt.
 - If the catalog cannot cover all requirements within budget, latency and action-count limits, the output is explicit abstention.
 - The scheduler never replaces missing direct-force evidence with PIV and never declares a physical claim qualified.
