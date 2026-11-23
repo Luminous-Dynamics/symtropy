@@ -579,8 +579,12 @@ jobs:
             and .capacity_source_architecture_id == "fixed_dock4_reference_profile"
             and .capacity_opportunities_in_source == 38
             and .capacity_opportunities_qualified == 7
-            and .exact_oracle.status == "not_run_bounds_exceeded"
-            and (.exact_oracle.best_score == null)
+            and .exact_oracle.status == "evaluated"
+            and (.exact_oracle.best_score != null)
+            and .exact_oracle.dp_transitions > 0
+            and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
+            and (.exact_oracle.best_assignments | length) <= 12
+            and (.exact_oracle.policy_gaps | length) == 2
             and all(.policy_results[]; .in_progress_requests == 0)
             and all(.policy_results[]; .served_by_aerial + .served_by_fallback + .in_progress_by_aerial + .in_progress_by_fallback == .completed_on_time + .completed_late + .in_progress_requests)
             and (.capacity_source_report_digest | test("^sha256:[0-9a-f]{64}$"))
@@ -606,7 +610,7 @@ jobs:
             > sustainable-mobility-service-quality-exact-oracle-report.json
           jq -e '
             .exact_oracle.status == "evaluated"
-            and .exact_oracle.search_nodes > 0
+            and .exact_oracle.dp_transitions > 0 and .exact_oracle.dp_transitions <= .exact_oracle.dp_transition_limit
             and .exact_oracle.best_score.completed_on_time == 2
             and .exact_oracle.best_score.completed_late == 0
             and .exact_oracle.best_score.completed_by_horizon == 2
