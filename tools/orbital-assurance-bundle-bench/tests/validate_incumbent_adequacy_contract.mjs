@@ -56,6 +56,20 @@ for (const item of corpus.cases) {
     || digestIds(modelSet.expected_scenario_ids) !== modelSet.expected_scenario_ids_sha256) {
     throw new Error("physical-world or joint-scenario inventory digest mismatch in " + item.case_id);
   }
+  const identityProjection = modelSet.projection_id === "exact-rational-to-integer-identity-v1"
+    && modelSet.source_loss_unit === item.loss_unit
+    && modelSet.projection_scale_numerator === 1
+    && modelSet.projection_scale_denominator === 1;
+  const normalizedProjection = modelSet.projection_id === "normalized-loss-times-1000-exact-v1"
+    && modelSet.source_loss_unit === "normalized_loss"
+    && item.loss_unit === "loss_micro_units"
+    && modelSet.projection_scale_numerator === 1000
+    && modelSet.projection_scale_denominator === 1;
+  const unsupportedProjectionControl = item.expected?.disposition === "INVALID_INPUT"
+    && item.expected?.trigger_reason === "unsupported loss unit projection contract";
+  if (!identityProjection && !normalizedProjection && !unsupportedProjectionControl) {
+    throw new Error("unapproved loss-unit projection in " + item.case_id);
+  }
   if (item.world_set_receipt_schema !== "luminous.orbital-decision-identifiability.receipt.v0.1"
     || item.world_set_claim_ceiling !== "exact-finite-world-decision-set-algebra-only"
     || !/^[0-9a-f]{40}$/.test(item.world_set_source_commit)
@@ -86,21 +100,36 @@ for (const item of corpus.cases) {
     }
     scenarioIds.add(scenario.scenario_id);
     worldIds.add(scenario.world_id);
+    const lossActionIds = new Set();
     for (const row of scenario.losses) {
       if (!Number.isSafeInteger(row.loss) || row.loss < 0 || !row.action_id
+        || !item.action_ids.includes(row.action_id) || lossActionIds.has(row.action_id)
         || !Number.isSafeInteger(row.source_numerator) || row.source_numerator < 0
         || !Number.isSafeInteger(row.source_denominator) || row.source_denominator <= 0) {
         throw new Error("invalid source or projected loss row in " + item.case_id + "/" + scenario.scenario_id);
       }
+      lossActionIds.add(row.action_id);
       const numerator = BigInt(row.source_numerator) * BigInt(modelSet.projection_scale_numerator);
       const denominator = BigInt(row.source_denominator) * BigInt(modelSet.projection_scale_denominator);
-      if (numerator % denominator !== 0n) {
-        throw new Error("non-integral source rational projection in " + item.case_id + "/" + scenario.scenario_id);
+      const exact = numerator % denominator === 0n ? numerator / denominator : null;
+      if (exact === null) {
+        if (item.expected?.trigger_reason !== "source rational loss cannot be projected exactly into the declared loss unit") {
+          throw new Error("unexpected non-integral source rational projection in " + item.case_id + "/" + scenario.scenario_id);
+        }
+      } else if (exact > 9223372036854775807n || exact !== BigInt(row.loss)) {
+        if (item.expected?.trigger_reason !== "integer loss does not match exact source rational projection") {
+          throw new Error("integer loss differs from exact source rational projection in " + item.case_id);
+        }
       }
-      const exact = numerator / denominator;
-      if (exact > 9223372036854775807n || exact !== BigInt(row.loss)) {
-        throw new Error("integer loss differs from exact source rational projection in " + item.case_id);
+    }
+    const missingLossActions = item.action_ids.filter(actionId => !lossActionIds.has(actionId));
+    if (missingLossActions.length) {
+      if (item.expected?.trigger_reason !== "INCOMPLETE_LOSS_MATRIX"
+        || item.case_id !== "incomplete_loss_matrix") {
+        throw new Error("joint loss vector omits declared actions in " + item.case_id);
       }
+    } else if (item.expected?.trigger_reason === "INCOMPLETE_LOSS_MATRIX") {
+      throw new Error("incomplete loss-matrix negative control is no longer incomplete");
     }
   }
   if (scenarioIds.size !== modelSet.expected_scenario_ids.length
