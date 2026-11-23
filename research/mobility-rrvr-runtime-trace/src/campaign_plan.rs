@@ -472,10 +472,8 @@ mod tests {
     use crate::fault_campaign::FaultCampaignManifest;
 
     fn manifest() -> FaultCampaignManifest {
-        serde_json::from_str(include_str!(
-            "../fixtures/fault_campaign_paired_v0_1.json"
-        ))
-        .expect("known-answer campaign fixture deserializes")
+        serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+            .expect("known-answer campaign fixture deserializes")
     }
 
     #[test]
@@ -700,7 +698,9 @@ mod tests {
         invalid.scenarios[1].seed += 1;
         assert!(matches!(
             CompiledCampaignPlan::compile(&invalid, &"a".repeat(64)),
-            Err(PlanCompileError::ManifestRejected(CampaignError::IncomparablePair))
+            Err(PlanCompileError::ManifestRejected(
+                CampaignError::IncomparablePair
+            ))
         ));
     }
 }
