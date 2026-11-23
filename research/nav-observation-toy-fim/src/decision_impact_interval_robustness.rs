@@ -598,7 +598,7 @@ mod tests {
                 &point,
                 &policy(&[(1, 2, 1, 2), (1, 3, 1, 2), (2, 3, 1, 2), (2, 4, 1, 2)]),
             ),
-            Err(RobustDecisionImpactError::UnexpectedWeightInterval(2, 3))
+            Err(RobustDecisionImpactError::UnexpectedWeightInterval(2, 4))
         );
         assert_eq!(
             assess_robust_decision_impact(
