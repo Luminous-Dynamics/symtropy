@@ -178,7 +178,7 @@ pub fn plan_active_evidence_with_reliability(
     let admitted_candidates: Vec<EvidenceActionCandidate> = resource_feasible
         .iter()
         .filter(|candidate| admitted_by_action.contains_key(&candidate.action_id))
-        .map(|candidate| **candidate)
+        .map(|candidate| (**candidate).clone())
         .collect();
 
     if admitted_candidates.is_empty() {
