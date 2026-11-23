@@ -59,13 +59,18 @@
     "gates_frozen_in_fit_config": true,
     "holdout_used_to_refit_or_select_range": false,
     "mean_bias_shift_reported_separately": true,
-    "correlation_normalization": "one_variance_scale_estimated_across_complete_holdout",
-    "cluster_inference": "one_lag_bin_statistic_per_independent_acquisition; vector_pairs_are_within_cluster_not_independent_samples"
+    "correlation_normalization": "frozen_calibration_zero_lag_variance_C0_equals_S_plus_N; never normalize shape error by holdout_C0",
+    "cluster_inference": "one_lag_bin_statistic_per_independent_acquisition; vector_pairs_are_within_cluster_not_independent_samples",
+    "variance_scale_comparison": "componentwise_holdout_C0_diagonal_over_frozen_calibration_C0_diagonal",
+    "maximum_validation_relative_variance_error_initial_target": 0.1,
+    "zero_calibration_variance_policy": "if calibration component variance is numerically zero and held-out component variance is nonzero, reject variance scale",
+    "variance_scale_gate_frozen_in_fit_config": true
   },
   "qualification": {
-    "qualified": "heldout_maximum_absolute_correlation_error_within_frozen_limit_and_no_resolved_negative_lobe",
+    "qualified": "heldout maximum absolute correlation shape error and separate componentwise variance scale error both within frozen limits, with no resolved negative lobe",
     "rejected_negative_lobe": "current_nonnegative_wendland_family_cannot_represent_observed_lobe",
-    "rejected_fit_error": "heldout_correlation_error_exceeds_frozen_limit"
+    "rejected_fit_error": "heldout_correlation_error_exceeds_frozen_limit",
+    "rejected_heldout_variance_scale": "heldout marginal variance amplitude differs from calibration C0 beyond the frozen relative bound, or a zero calibration variance component becomes nonzero"
   },
   "uq005_adapter": {
     "spatial_kernel_component": "S",
@@ -97,6 +102,18 @@
       "metric": "nominal_95_percent_integrated_mass_momentum_functional_coverage",
       "target": 0.95,
       "status": "not_measured"
+    },
+    {
+      "metric": "heldout_component_variance_relative_error",
+      "target": 0.1,
+      "status": "not_measured",
+      "method": "componentwise_validation_C0_diagonal_over_frozen_calibration_C0_diagonal"
+    },
+    {
+      "metric": "false_qualification_on_heldout_amplitude_shift",
+      "target": 0,
+      "status": "not_measured",
+      "method": "manufactured_scaled_holdout_and_zero_to_nonzero_component_controls"
     }
   ],
   "explicit_nonclaims": [
