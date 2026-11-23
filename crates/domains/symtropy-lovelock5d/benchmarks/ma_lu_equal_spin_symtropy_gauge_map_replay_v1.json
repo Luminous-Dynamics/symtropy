@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "artifact_kind": "ma_lu_equal_spin_symtropy_full_metric_comparison_replay",
-  "status": "exact_public_source_replays_passed_for_parameter_map_fixed_boundary_map_ADM_mass_full_metric_comparator_and_original_rows",
+  "status": "exact_public_source_replays_passed_for_full_VOR_comparator_original_rows_fixed_boundary_and_spin10_charge_benchmarks",
   "source": {
     "paper": "Ma and Lu, JHEP 05 (2026) 081",
     "doi": "10.1007/JHEP05(2026)081",
@@ -69,9 +69,11 @@
   "full_verifier": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
     "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
-    "exact_blob_replay": "pending; independent equivalent local reconstruction is recorded above"
+    "sha256": "e39cd8f5257acdf291bf8b7ea056767b35c9ab67a4f7963e977d5a867634650f",
+    "exact_blob_replay": true,
+    "local_execution": "Python 3.13.5 / SymPy 1.14.0. Exact source blob replay passed angular H5/H6 direct reductions, dpsi2/dphi2/dphi_dpsi components, axis regularity, fixed-boundary coefficients, ADM mass chi^2 and action normalization."
   },
-  "claim_ceiling": "Exact first-coupling O(chi^2) overlap: complete angular block, fixed-boundary map, ADM mass and all four original Symtropy even-sector rows. Consolidated VOR verifier and fixture-driven original-row verifier both have exact public-source replay. No finite-coupling branch, interval existence or hyperbolicity result.",
+  "claim_ceiling": "Exact first-coupling equal-spin O(chi^2) metric comparison: full angular block, fixed-boundary map, ADM mass coefficient and all four original Symtropy even-sector rows. A separate exact-source benchmark verifies Ma-Lu equal-spin Eq. (3.4) DeltaM and Eq. (3.9) horizon mass-parameter through chi^10; in Symtropy nu_S this direct observable correction is checked through nu_S^10. Total fixed-boundary ADM mass is only claimed through O(epsilon_S*nu_S^2) and angular momentum through O(epsilon_S*nu_S^3). No finite-coupling branch, interval existence/uniqueness or hyperbolicity result is claimed.",
   "full_version_of_record_verifier": {
     "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_version_record_equal_spin.py",
     "git_blob_sha1": "b1f9c4a2802cca0369c9eb036dfd6fd3c55e3bfd",
@@ -97,5 +99,28 @@
       "tangent_as_mode_offset_rejected": true,
       "mutated_H1_rejected": true
     }
+  },
+  "angular_diagonal_standalone_verifier": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_angular_diagonal.py",
+    "git_blob_sha1": "deead0bb33bf47eb8e9be9fd923cbe3126dfb085",
+    "sha256": "pending exact local blob replay",
+    "source": "JHEP version of record Eqs. (2.8),(2.9),(2.12)",
+    "status": "corrected_to_canonical_VOR; redundant with full verifier"
+  },
+  "thermodynamic_charge_series": {
+    "path": "crates/domains/symtropy-lovelock5d/benchmarks/verify_ma_lu_equal_spin_thermodynamic_charge_series.py",
+    "git_blob_sha1": "e75dcd96941dadbc1f5f0940521d959060dbc776",
+    "sha256": "038f21d147e07da45e1e3bb68e73b9bba8b3f5e102b2e05e250a068b09e31242",
+    "exact_public_blob_replay": true,
+    "results": {
+      "Eq3_9_mu_equal_spin_through_chi10": true,
+      "Eq3_4_DeltaM_equal_spin_through_chi10": true,
+      "DeltaM_reexpanded_in_nuS_through_nu10": true,
+      "H1_asymptotic_ADM_mass_matches_Eq3_4_through_chi2": true,
+      "fixed_boundary_total_M_through_epsilon_nu2": true,
+      "fixed_boundary_J_through_epsilon_nu3": true,
+      "negative_controls": true
+    },
+    "scope_note": "Total fixed-boundary M is known only through O(epsilon_S*nu_S^2); direct alpha*DeltaM correction is checked through nu_S^10."
   }
 }
