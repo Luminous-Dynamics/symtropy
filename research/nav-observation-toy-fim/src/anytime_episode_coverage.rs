@@ -170,7 +170,9 @@ impl AnytimeEpisodeCoverageAudit {
                 observed_running_miscoverage: 0.0,
                 bounded_episode_miscoverage: None,
                 qualified_availability: 0.0,
-                anytime_margin: f64::INFINITY,
+                // No time-uniform claim is made before the first completed episode.
+                // One is the trivial upper bound for an unobserved running average.
+                anytime_margin: 1.0,
                 true_running_miscoverage_upper: 1.0,
                 confidence_level: 1.0 - self.config.confidence_error_probability,
                 target_miscoverage: self.config.target_miscoverage,
@@ -179,7 +181,7 @@ impl AnytimeEpisodeCoverageAudit {
                 availability_target_met: self.config.minimum_qualified_availability == 0.0,
                 operational_targets_met: false,
                 predictable_variation: self.predictable_variation,
-                certified_upper_miss_sum: f64::INFINITY,
+                certified_upper_miss_sum: 0.0,
             });
         }
 
@@ -367,6 +369,12 @@ impl AnytimeEpisodeCoverageAudit {
 mod tests {
     use super::*;
 
+    fn digest(sequence: u64, domain: u8) -> [u8; SHA256_BYTES] {
+        let mut digest = [domain; SHA256_BYTES];
+        digest[..8].copy_from_slice(&sequence.to_le_bytes());
+        digest
+    }
+
     fn config() -> AnytimeEpisodeCoverageConfig {
         AnytimeEpisodeCoverageConfig {
             target_miscoverage: 0.05,
@@ -389,11 +397,11 @@ mod tests {
             episode_id,
             episode_sequence_id: sequence,
             decision_receipt_sequence_id: sequence,
-            decision_receipt_sha256: [((sequence % 255) + 1) as u8; SHA256_BYTES],
+            decision_receipt_sha256: digest(sequence, 0xA1),
             bounded_set_issued: bounded,
             missed,
             outcome_receipt_sha256: if bounded {
-                Some([((sequence % 254) + 1) as u8; SHA256_BYTES])
+                Some(digest(sequence, 0xB2))
             } else {
                 None
             },
