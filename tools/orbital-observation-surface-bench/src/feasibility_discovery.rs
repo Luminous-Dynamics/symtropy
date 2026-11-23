@@ -143,6 +143,8 @@ pub struct CaseResult {
     pub policy_metrics: Vec<PolicyMetric>,
     pub policy_pareto_frontier_ids: Vec<String>,
     pub best_no_query_worst_case_loss: Option<Rational>,
+    /// Non-deployable information-relaxation bound: the world is revealed before acting.
+    pub clairvoyant_worst_case_loss: Option<Rational>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -366,6 +368,7 @@ fn empty_case_result(case: &DiscoveryCase, status: &str, base_status: &str) -> C
         policy_metrics: Vec::new(),
         policy_pareto_frontier_ids: Vec::new(),
         best_no_query_worst_case_loss: None,
+        clairvoyant_worst_case_loss: None,
     }
 }
 
@@ -882,6 +885,16 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
         .map(|item| &item.worst_case_loss)
         .min_by(|left, right| left.compare_exact(right))
         .map(Rational::canonicalized);
+    let mut clairvoyant_worst_case_loss: Option<Rational> = None;
+    for scenario in &case.base_decision.scenario_manifest.scenarios {
+        let scenario_best = scenario_best_loss(scenario)?;
+        if clairvoyant_worst_case_loss
+            .as_ref()
+            .is_none_or(|current| scenario_best.compare_exact(current) == Ordering::Greater)
+        {
+            clairvoyant_worst_case_loss = Some(scenario_best);
+        }
+    }
 
     let mut sorted_queries = case.query_universe.queries.iter().collect::<Vec<_>>();
     sorted_queries.sort_by(|left, right| left.query_id.cmp(&right.query_id));
@@ -938,6 +951,7 @@ fn evaluate_case(case: &DiscoveryCase) -> Result<CaseResult, String> {
         policy_metrics,
         policy_pareto_frontier_ids,
         best_no_query_worst_case_loss: no_query_best,
+        clairvoyant_worst_case_loss,
     })
 }
 
@@ -1054,6 +1068,12 @@ mod tests {
             "QUERY_CONDITIONED_POLICIES_AVAILABLE_NO_STATIC_BASELINE"
         );
         assert!(result.no_query_policy_ids.is_empty());
+        let clairvoyant = result
+            .clairvoyant_worst_case_loss
+            .as_ref()
+            .expect("clairvoyant information bound exists");
+        assert_eq!(clairvoyant.numerator, 3);
+        assert_eq!(clairvoyant.denominator, 10);
         let query = result
             .query_reports
             .iter()
