@@ -512,13 +512,10 @@ fn validate_profile_and_projection(
     if profile.schema != PROFILE_SCHEMA {
         errors.insert(ValidationError::InvalidProfileSchema);
     }
-    let is_frozen_v0_1 = profile.profile_id == PROFILE_ID_V0_1
-        && profile.profile_version == PROFILE_VERSION_V0_1;
+    let is_frozen_v0_1 =
+        profile.profile_id == PROFILE_ID_V0_1 && profile.profile_version == PROFILE_VERSION_V0_1;
     if is_frozen_v0_1 {
-        if !profile
-            .obligations
-            .is_superset(&frozen_v0_1_obligations())
-        {
+        if !profile.obligations.is_superset(&frozen_v0_1_obligations()) {
             errors.insert(ValidationError::MissingFrozenObligations);
         }
     } else {
