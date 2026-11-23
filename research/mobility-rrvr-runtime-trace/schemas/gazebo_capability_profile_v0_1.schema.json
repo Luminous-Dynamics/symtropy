@@ -17,7 +17,8 @@
     "scene_broadcaster_revision",
     "scene_broadcaster_sha256",
     "scene_broadcaster_loaded",
-    "capabilities"
+    "capabilities",
+    "world_stats_topic"
   ],
   "properties": {
     "version": {
@@ -69,6 +70,10 @@
       "items": {
         "$ref": "#/$defs/capability"
       }
+    },
+    "world_stats_topic": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
