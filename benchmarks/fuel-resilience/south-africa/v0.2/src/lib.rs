@@ -62,9 +62,10 @@ impl Evidence {
     /// calibration, sampling location or the physical truth of the claim.
     pub fn is_measured_and_digest_bound(&self) -> bool {
         self.evidence_class == EvidenceClass::Measured
-            && self.raw_sha256.as_ref().is_some_and(|d| {
-                d.len() == 64 && d.bytes().all(|b| b.is_ascii_hexdigit())
-            })
+            && self
+                .raw_sha256
+                .as_ref()
+                .is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_hexdigit()))
     }
 }
 
@@ -306,10 +307,16 @@ impl Model {
                 return Err(format!("edge {} must not be a self-loop", edge.id));
             }
             if edge.transit_days == 0 {
-                return Err(format!("edge {} transit_days must be at least one", edge.id));
+                return Err(format!(
+                    "edge {} transit_days must be at least one",
+                    edge.id
+                ));
             }
             if edge.transit_loss_bps > 10_000 {
-                return Err(format!("edge {} transit_loss_bps must be in 0..=10000", edge.id));
+                return Err(format!(
+                    "edge {} transit_loss_bps must be in 0..=10000",
+                    edge.id
+                ));
             }
             if !edge.grade_allowed.iter().any(|allowed| *allowed) {
                 return Err(format!("edge {} allows no product grade", edge.id));
@@ -326,10 +333,16 @@ impl Model {
                 return Err(format!("duplicate cargo event_id: {}", event.event_id));
             }
             if event.day >= self.horizon_days {
-                return Err(format!("cargo event {} is outside the horizon", event.event_id));
+                return Err(format!(
+                    "cargo event {} is outside the horizon",
+                    event.event_id
+                ));
             }
             if !node_ids.contains(event.destination_node.as_str()) {
-                return Err(format!("cargo event {} has unknown destination", event.event_id));
+                return Err(format!(
+                    "cargo event {} has unknown destination",
+                    event.event_id
+                ));
             }
             event.evidence.validate()?;
         }
@@ -337,10 +350,16 @@ impl Model {
         let mut edge_day_grade = BTreeMap::<(u16, String, Grade), u64>::new();
         for dispatch in &self.dispatches {
             if dispatch.day >= self.horizon_days {
-                return Err(format!("dispatch on day {} is outside the horizon", dispatch.day));
+                return Err(format!(
+                    "dispatch on day {} is outside the horizon",
+                    dispatch.day
+                ));
             }
             let Some(edge_index) = edge_by_id.get(dispatch.edge_id.as_str()) else {
-                return Err(format!("dispatch references unknown edge: {}", dispatch.edge_id));
+                return Err(format!(
+                    "dispatch references unknown edge: {}",
+                    dispatch.edge_id
+                ));
             };
             let edge = &self.edges[*edge_index];
             if !edge.grade_allowed[dispatch.grade.index()] {
@@ -533,8 +552,7 @@ impl Model {
                     "daily node dispatch",
                 )?;
 
-                let loss = (u128::from(dispatch.volume_l)
-                    * u128::from(edge.transit_loss_bps)
+                let loss = (u128::from(dispatch.volume_l) * u128::from(edge.transit_loss_bps)
                     / 10_000) as u64;
                 let delivered_volume = dispatch.volume_l - loss;
                 transit_loss_l += u128::from(loss);
@@ -588,13 +606,10 @@ impl Model {
             .iter()
             .map(|arrival| u128::from(arrival.volume_l))
             .sum();
-        let network_inputs = opening_inventory_l
-            + accepted_cargo_receipts_l
-            + domestic_production_l;
-        let network_outputs = delivered_demand_l
-            + transit_loss_l
-            + closing_node_inventory_l
-            + closing_in_transit_l;
+        let network_inputs =
+            opening_inventory_l + accepted_cargo_receipts_l + domestic_production_l;
+        let network_outputs =
+            delivered_demand_l + transit_loss_l + closing_node_inventory_l + closing_in_transit_l;
         let network_balance_residual_l = i128::try_from(network_inputs)
             .map_err(|_| "network input total exceeds i128".to_string())?
             - i128::try_from(network_outputs)
@@ -883,7 +898,12 @@ mod tests {
     fn time_expanded_transit_and_node_balances_conserve_mass() {
         let result = base_model().simulate().unwrap();
         assert_eq!(result.network_balance_residual_l, 0);
-        assert!(result.node_days.iter().all(|day| day.balance_residual_l == 0));
+        assert!(
+            result
+                .node_days
+                .iter()
+                .all(|day| day.balance_residual_l == 0)
+        );
         assert_eq!(result.delivered_demand_l, 10);
         assert_eq!(result.unserved_demand_l, 20);
         assert_eq!(result.closing_node_inventory_l, 90);
@@ -917,8 +937,24 @@ mod tests {
         let result = model.simulate().unwrap();
         assert_eq!(result.opening_inventory_l, 100);
         assert_eq!(result.closing_node_inventory_l, 100);
-        assert_eq!(result.node_days.iter().filter(|r| r.grade == Grade::D50).map(|r| r.closing_l).sum::<u64>(), 60);
-        assert_eq!(result.node_days.iter().filter(|r| r.grade == Grade::D500).map(|r| r.closing_l).sum::<u64>(), 40);
+        assert_eq!(
+            result
+                .node_days
+                .iter()
+                .filter(|r| r.grade == Grade::D50)
+                .map(|r| r.closing_l)
+                .sum::<u64>(),
+            60
+        );
+        assert_eq!(
+            result
+                .node_days
+                .iter()
+                .filter(|r| r.grade == Grade::D500)
+                .map(|r| r.closing_l)
+                .sum::<u64>(),
+            40
+        );
     }
 
     #[test]
