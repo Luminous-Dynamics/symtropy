@@ -13,7 +13,7 @@ The contract keeps two independent questions separate:
 1. **Protocol completeness:** did every catalogued observable receive exactly one valid disposition, and does every declared row family have internally consistent accounting?
 2. **Required-work completion:** were all required requested observables produced and all required solver rows solved without drops, skips, unsupported rows, non-convergence or aborts?
 
-An explicitly reported omission can be protocol-complete while the physical computation remains incomplete. That is intentional.
+An explicitly reported omission can be protocol-complete while the physical computation remains incomplete. That is intentional. Aggregate-only row counts cannot attribute a produced value to one of several partially omitted rows; the report marks this as incomplete row attribution. If every requested row in a linked family was omitted, a row-linked observable cannot be marked Produced.
 
 ## Contract
 
@@ -44,6 +44,7 @@ The unit suite includes:
 - unrequested catalog entry;
 - explicitly unsupported optional torsion output;
 - capacity and count-accounting failures;
+- aggregate row-attribution ambiguity under partial omission;
 - canonical order invariance;
 - malformed digest;
 - invalid uncertainty interval.
