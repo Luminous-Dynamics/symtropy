@@ -83,7 +83,7 @@ V0 requires all of the following before returning a warning that weighted covari
 - a nonempty external conditional-law stability evidence ID;
 - external finite-ratio evidence;
 - effective sample size at least the certificate's minimum;
-- maximum normalized weight between 1 and the configured maximum;
+- maximum normalized weight between 1 and the configured maximum (weights are normalized to mean one over the calibration cohort);
 - overlap fraction in [0, 1] and above the configured minimum.
 
 The evidence IDs and boolean are caller-supplied claims. The crate does not verify their provenance, estimate density ratios, or prove conditional-law stability. A production integration must resolve them to authenticated, independently reviewable evidence receipts.
