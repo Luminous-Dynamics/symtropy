@@ -89,11 +89,49 @@ jobs:
       - name: Run independent JavaScript graph oracle
         run: node tools/orbital-assurance-bundle-bench/tests/reference_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json
 
+      - name: Validate dependency-invalidation corpus contract
+        run: |
+          node tools/orbital-assurance-bundle-bench/tests/validate_invalidation_contract.mjs \\
+            tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-corpus.schema.json \\
+            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/invalidation-receipt.schema.json", "utf8"))'
+
+      - name: Generate dependency-invalidation receipt
+        run: |
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin dependency-invalidation -- \\
+            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json \\
+            --source-commit "$BENCHMARK_COMMIT" > dependency-invalidation-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-assurance-invalidation.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .evaluation.summary.case_count == 7
+            and .evaluation.summary.expected_result_mismatches == 0
+            and .evaluation.summary.authority_grants == 0
+            and .evaluation.authority_granted == false
+            and .authority_granted == false
+          ' dependency-invalidation-receipt.json
+
+      - name: Run independent JavaScript invalidation oracle
+        run: |
+          node tools/orbital-assurance-bundle-bench/tests/dependency_invalidation_oracle.mjs \\
+            tools/orbital-assurance-bundle-bench/fixtures/v0.1/invalidation-cases.json \\
+            > dependency-invalidation-oracle.json
+
+      - name: Compare Rust invalidation receipt to independent oracle
+        run: |
+          node tools/orbital-assurance-bundle-bench/tests/compare_dependency_invalidation.mjs \\
+            dependency-invalidation-receipt.json dependency-invalidation-oracle.json
+
       - name: Upload reproducible assurance receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: orbital-assurance-bundle-${{ github.event.pull_request.head.sha || github.sha }}
-          path: orbital-assurance-bundle-receipt.json
+          path: |
+            orbital-assurance-bundle-receipt.json
+            dependency-invalidation-receipt.json
+            dependency-invalidation-oracle.json
           if-no-files-found: error
           retention-days: 30
