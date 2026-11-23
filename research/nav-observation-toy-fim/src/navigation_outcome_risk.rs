@@ -25,7 +25,7 @@ use std::fmt;
 
 use crate::active_evidence_reliability::AdmittedAcquisitionReliability;
 use crate::active_evidence_reliability_planner::ReliableActiveEvidencePlan;
-use crate::decision_impact_interval_robustness::RobustDecisionImpactAssessment;
+use crate::decision_impact_interval_robustness::{RobustDecisionClassPairAssessment, RobustDecisionImpactAssessment};
 
 const PROBABILITY_SCALE: u64 = 1_000_000_000;
 const RESIDUAL_SCALE: u32 = 1_000_000_000;
@@ -35,6 +35,7 @@ pub enum NavigationObservationOutcomeKind {
     QualifiedObservation,
     FailedOrTimedOut,
     AcquiredButInvalid,
+    UnknownOrUnreconciled,
 }
 
 /// One mutually exclusive branch in an externally committed action-outcome
@@ -85,6 +86,7 @@ pub struct NavigationOutcomeRiskAssessment {
     pub qualified_observation_probability_mass_parts_per_billion: u64,
     pub failed_or_timed_out_probability_mass_parts_per_billion: u64,
     pub acquired_but_invalid_probability_mass_parts_per_billion: u64,
+    pub unknown_or_unreconciled_probability_mass_parts_per_billion: u64,
     /// Ceiling of the scenario-law expected residual impact.
     pub mean_residual_impact_upper_parts_per_billion: u32,
     /// Upper alpha-quantile of residual impact.
@@ -119,7 +121,8 @@ pub enum NavigationOutcomeRiskError {
     ProbabilityMassDoesNotSumToOne,
     QualifiedProbabilityOutsideAdmittedInterval,
     InvalidResidualImpact(u64),
-    FailedOrInvalidBranchImprovesBaseline(u64),
+    NonQualifiedBranchImprovesBaseline(u64),
+    InvalidRobustImpactAssessment,
     ArithmeticOverflow,
 }
 
@@ -140,7 +143,8 @@ impl fmt::Display for NavigationOutcomeRiskError {
             Self::ProbabilityMassDoesNotSumToOne => write!(f, "scenario probability masses must sum exactly to 1e9 parts per billion"),
             Self::QualifiedProbabilityOutsideAdmittedInterval => write!(f, "qualified scenario mass falls outside the admitted acquisition probability interval"),
             Self::InvalidResidualImpact(id) => write!(f, "scenario {id} residual impact must be between zero and one"),
-            Self::FailedOrInvalidBranchImprovesBaseline(id) => write!(f, "failed or invalid scenario {id} cannot claim residual-impact improvement"),
+            Self::NonQualifiedBranchImprovesBaseline(id) => write!(f, "non-qualified scenario {id} cannot claim residual-impact improvement"),
+            Self::InvalidRobustImpactAssessment => write!(f, "robust decision-impact assessment is incomplete or internally inconsistent"),
             Self::ArithmeticOverflow => write!(f, "scenario probability or residual-impact arithmetic overflowed"),
         }
     }
@@ -182,6 +186,7 @@ pub fn assess_navigation_outcome_risk(
     {
         return Err(NavigationOutcomeRiskError::ImpactCommitmentMismatch);
     }
+    validate_robust_impact(robust_impact)?;
     if contract.baseline_residual_impact_upper_parts_per_billion > RESIDUAL_SCALE
         || contract.avar_confidence_level_parts_per_billion == 0
         || contract.avar_confidence_level_parts_per_billion >= PROBABILITY_SCALE
@@ -214,6 +219,7 @@ pub fn assess_navigation_outcome_risk(
     let mut qualified_probability = 0_u64;
     let mut failed_probability = 0_u64;
     let mut invalid_probability = 0_u64;
+    let mut unknown_probability = 0_u64;
     let mut weighted_residual_sum = 0_u128;
     let mut worst_residual = 0_u32;
 
@@ -247,7 +253,7 @@ pub fn assess_navigation_outcome_risk(
                     != contract.baseline_residual_impact_upper_parts_per_billion
                 {
                     return Err(
-                        NavigationOutcomeRiskError::FailedOrInvalidBranchImprovesBaseline(
+                        NavigationOutcomeRiskError::NonQualifiedBranchImprovesBaseline(
                             scenario.scenario_id,
                         ),
                     );
@@ -256,19 +262,26 @@ pub fn assess_navigation_outcome_risk(
                     .checked_add(scenario.probability_mass_parts_per_billion)
                     .ok_or(NavigationOutcomeRiskError::ArithmeticOverflow)?;
             }
-            NavigationObservationOutcomeKind::AcquiredButInvalid => {
+            NavigationObservationOutcomeKind::AcquiredButInvalid
+            | NavigationObservationOutcomeKind::UnknownOrUnreconciled => {
                 if scenario.residual_impact_upper_parts_per_billion
                     != contract.baseline_residual_impact_upper_parts_per_billion
                 {
                     return Err(
-                        NavigationOutcomeRiskError::FailedOrInvalidBranchImprovesBaseline(
+                        NavigationOutcomeRiskError::NonQualifiedBranchImprovesBaseline(
                             scenario.scenario_id,
                         ),
                     );
                 }
-                invalid_probability = invalid_probability
-                    .checked_add(scenario.probability_mass_parts_per_billion)
-                    .ok_or(NavigationOutcomeRiskError::ArithmeticOverflow)?;
+                if scenario.outcome_kind == NavigationObservationOutcomeKind::AcquiredButInvalid {
+                    invalid_probability = invalid_probability
+                        .checked_add(scenario.probability_mass_parts_per_billion)
+                        .ok_or(NavigationOutcomeRiskError::ArithmeticOverflow)?;
+                } else {
+                    unknown_probability = unknown_probability
+                        .checked_add(scenario.probability_mass_parts_per_billion)
+                        .ok_or(NavigationOutcomeRiskError::ArithmeticOverflow)?;
+                }
             }
         }
         total_probability = total_probability
@@ -324,6 +337,7 @@ pub fn assess_navigation_outcome_risk(
         qualified_observation_probability_mass_parts_per_billion: qualified_probability,
         failed_or_timed_out_probability_mass_parts_per_billion: failed_probability,
         acquired_but_invalid_probability_mass_parts_per_billion: invalid_probability,
+        unknown_or_unreconciled_probability_mass_parts_per_billion: unknown_probability,
         mean_residual_impact_upper_parts_per_billion: mean_residual,
         value_at_risk_upper_parts_per_billion: var_residual,
         avar_residual_impact_upper_parts_per_billion: avar_residual,
@@ -336,6 +350,74 @@ pub fn assess_navigation_outcome_risk(
         reliability_calibration_cohort_sha256: reliability.calibration_cohort_sha256,
         reliability_bound_method_sha256: reliability.bound_method_sha256,
     })
+}
+
+fn validate_robust_impact(
+    assessment: &RobustDecisionImpactAssessment,
+) -> Result<(), NavigationOutcomeRiskError> {
+    if assessment.action_id == 0
+        || assessment.pair_assessments.is_empty()
+        || assessment.worst_case_resolved_fraction_parts_per_billion
+            > assessment.best_case_resolved_fraction_parts_per_billion
+        || assessment.best_case_resolved_fraction_parts_per_billion > RESIDUAL_SCALE
+        || assessment.worst_case_unresolved_fraction_parts_per_billion
+            != RESIDUAL_SCALE - assessment.worst_case_resolved_fraction_parts_per_billion
+        || assessment.best_case_unresolved_fraction_parts_per_billion
+            != RESIDUAL_SCALE - assessment.best_case_resolved_fraction_parts_per_billion
+    {
+        return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut classes = BTreeSet::new();
+    let mut minimum_pair: Option<(u32, (u64, u64))> = None;
+    for pair in &assessment.pair_assessments {
+        let key = (pair.lower_decision_class_id, pair.upper_decision_class_id);
+        if key.0 == 0
+            || key.1 <= key.0
+            || pair.weight_lower_bound == 0
+            || pair.weight_upper_bound < pair.weight_lower_bound
+            || pair.hypothesis_pair_count == 0
+            || pair.guaranteed_separated_pair_count > pair.hypothesis_pair_count
+            || pair.unresolved_pair_count
+                != pair.hypothesis_pair_count - pair.guaranteed_separated_pair_count
+            || pair.resolution_lower_parts_per_billion
+                > pair.resolution_upper_parts_per_billion
+            || pair.resolution_upper_parts_per_billion > RESIDUAL_SCALE
+        {
+            return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+        }
+        if !seen.insert(key) {
+            return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+        }
+        classes.insert(key.0);
+        classes.insert(key.1);
+        let candidate = (pair.resolution_lower_parts_per_billion, key);
+        minimum_pair = Some(minimum_pair.map_or(candidate, |current| current.min(candidate)));
+    }
+
+    let class_count = classes.len();
+    let expected_pairs = class_count
+        .checked_mul(class_count.saturating_sub(1))
+        .and_then(|value| value.checked_div(2))
+        .ok_or(NavigationOutcomeRiskError::InvalidRobustImpactAssessment)?;
+    if expected_pairs != assessment.pair_assessments.len()
+        || minimum_pair != Some((
+            assessment.minimum_class_pair_resolution_lower_parts_per_billion,
+            assessment.minimum_class_pair_resolution_pair,
+        ))
+    {
+        return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+    }
+    let ordered: Vec<u64> = classes.into_iter().collect();
+    for index in 0..ordered.len() {
+        for other in (index + 1)..ordered.len() {
+            if !seen.contains(&(ordered[index], ordered[other])) {
+                return Err(NavigationOutcomeRiskError::InvalidRobustImpactAssessment);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_reliability(
@@ -553,7 +635,17 @@ mod tests {
             best_case_unresolved_fraction_parts_per_billion: 400_000_000,
             minimum_class_pair_resolution_lower_parts_per_billion: 250_000_000,
             minimum_class_pair_resolution_pair: (1, 2),
-            pair_assessments: Vec::new(),
+            pair_assessments: vec![RobustDecisionClassPairAssessment {
+                lower_decision_class_id: 1,
+                upper_decision_class_id: 2,
+                weight_lower_bound: 1,
+                weight_upper_bound: 2,
+                hypothesis_pair_count: 4,
+                guaranteed_separated_pair_count: 1,
+                unresolved_pair_count: 3,
+                resolution_lower_parts_per_billion: 250_000_000,
+                resolution_upper_parts_per_billion: 250_000_000,
+            }],
         }
     }
 
@@ -616,7 +708,7 @@ mod tests {
             scenario(3, 20_000_000, NavigationObservationOutcomeKind::QualifiedObservation, RESIDUAL_SCALE),
         ];
         let result = assess_navigation_outcome_risk(
-            &reliable_plan(7, 1.0, 1.0),
+            &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
             &contract(950_000_000, 0, scenarios),
         )
@@ -634,13 +726,13 @@ mod tests {
             scenario(3, 100_000_000, NavigationObservationOutcomeKind::QualifiedObservation, 900_000_000),
         ];
         let low = assess_navigation_outcome_risk(
-            &reliable_plan(7, 1.0, 1.0),
+            &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
             &contract(800_000_000, 0, scenarios.clone()),
         )
         .unwrap();
         let high = assess_navigation_outcome_risk(
-            &reliable_plan(7, 1.0, 1.0),
+            &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
             &contract(990_000_000, 0, scenarios),
         )
@@ -660,8 +752,25 @@ mod tests {
                 &robust_impact(7),
                 &contract(950_000_000, RESIDUAL_SCALE, scenarios),
             ),
-            Err(NavigationOutcomeRiskError::FailedOrInvalidBranchImprovesBaseline(2))
+            Err(NavigationOutcomeRiskError::NonQualifiedBranchImprovesBaseline(2))
         );
+    }
+
+    #[test]
+    fn unknown_outcome_retains_baseline_and_remains_visible_as_a_blocking_branch() {
+        let scenarios = vec![
+            scenario(1, 990_000_000, NavigationObservationOutcomeKind::QualifiedObservation, 200_000_000),
+            scenario(2, 10_000_000, NavigationObservationOutcomeKind::UnknownOrUnreconciled, RESIDUAL_SCALE),
+        ];
+        let result = assess_navigation_outcome_risk(
+            &reliable_plan(7, 0.99, 1.0),
+            &robust_impact(7),
+            &contract(950_000_000, RESIDUAL_SCALE, scenarios),
+        )
+        .unwrap();
+        assert_eq!(result.unknown_or_unreconciled_probability_mass_parts_per_billion, 10_000_000);
+        assert_eq!(result.mean_residual_impact_upper_parts_per_billion, 208_000_000);
+        assert_eq!(result.avar_residual_impact_upper_parts_per_billion, RESIDUAL_SCALE);
     }
 
     #[test]
@@ -704,7 +813,7 @@ mod tests {
         law.impact_model_sha256 = [0x99; 32];
         assert_eq!(
             assess_navigation_outcome_risk(
-                &reliable_plan(7, 1.0, 1.0),
+                &reliable_plan(7, 0.99, 1.0),
                 &robust_impact(7),
                 &law,
             ),
@@ -739,7 +848,7 @@ mod tests {
             scenario(2, 200_000_000, NavigationObservationOutcomeKind::QualifiedObservation, 400_000_000),
         ];
         let first = assess_navigation_outcome_risk(
-            &reliable_plan(7, 1.0, 1.0),
+            &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
             &contract(950_000_000, 0, scenarios.clone()),
         )
@@ -747,7 +856,7 @@ mod tests {
         let mut reversed = scenarios;
         reversed.reverse();
         let second = assess_navigation_outcome_risk(
-            &reliable_plan(7, 1.0, 1.0),
+            &reliable_plan(7, 0.99, 1.0),
             &robust_impact(7),
             &contract(950_000_000, 0, reversed),
         )
@@ -763,7 +872,7 @@ mod tests {
         ];
         assert_eq!(
             assess_navigation_outcome_risk(
-                &reliable_plan(7, 1.0, 1.0),
+                &reliable_plan(7, 0.99, 1.0),
                 &robust_impact(7),
                 &contract(950_000_000, 0, repeated),
             ),
@@ -778,7 +887,7 @@ mod tests {
         )];
         assert_eq!(
             assess_navigation_outcome_risk(
-                &reliable_plan(7, 1.0, 1.0),
+                &reliable_plan(7, 0.99, 1.0),
                 &robust_impact(7),
                 &contract(950_000_000, 0, zero_mass),
             ),
@@ -798,7 +907,7 @@ mod tests {
         missing.scenario_law_sha256 = [0; 32];
         assert_eq!(
             assess_navigation_outcome_risk(
-                &reliable_plan(7, 1.0, 1.0),
+                &reliable_plan(7, 0.99, 1.0),
                 &robust_impact(7),
                 &missing,
             ),
