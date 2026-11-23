@@ -117,7 +117,6 @@ jobs:
         run: node tools/orbital-assurance-bundle-bench/tests/compare_dependency_invalidation.mjs dependency-invalidation-receipt.json dependency-invalidation-oracle.json
 
       - name: Upload reproducible assurance receipt
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: orbital-assurance-bundle-${{ github.event.pull_request.head.sha || github.sha }}
