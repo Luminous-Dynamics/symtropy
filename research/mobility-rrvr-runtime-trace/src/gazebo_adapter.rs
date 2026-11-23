@@ -8,6 +8,9 @@
 //! mutation, fault dispatch or actuation occurs in this crate module.
 
 use crate::campaign_plan::{CompiledCampaignPlan, CompiledScenario};
+use crate::dispatch_journal::{
+    DispatchJournalStore, JournaledDispatchOutcome, dispatch_once_with_journal,
+};
 use crate::fault_campaign::FaultInjection;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -710,6 +713,58 @@ pub fn dispatch_idempotency_key(
         "rrvr/{}/{}/{}/{}/{}/{}",
         plan.plan_sha256, scenario.pair_id, scenario.scenario_id, fault.fault_id, run_id, run_epoch
     ))
+}
+
+/// Dispatch exactly one plan event through the durable write-ahead journal.
+///
+/// All plan, session, world and target identities are checked before the journal
+/// writes an intent. Once the intent is synced, any process restart suppresses
+/// further dispatch and reconciliation is performed by idempotency-key lookup.
+pub fn dispatch_fault_with_write_ahead<S, T>(
+    store: &mut S,
+    injector: &mut T,
+    plan: &CompiledCampaignPlan,
+    scenario: &CompiledScenario,
+    fault: &FaultInjection,
+    target: &GazeboTargetBinding,
+    session: &GazeboAdapterSession,
+    run_id: &str,
+    run_epoch: &str,
+) -> Result<JournaledDispatchOutcome, GazeboAdapterError>
+where
+    S: DispatchJournalStore,
+    T: GazeboFaultInjectorTransport,
+{
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
+    session.profile.validate_for_plan(plan)?;
+    if scenario.pair_id.is_empty()
+        || !plan.scenarios.iter().any(|known| known == scenario)
+        || !scenario.fault_events.iter().any(|known| known == fault)
+    {
+        return Err(GazeboAdapterError::InvalidIdempotencyContext);
+    }
+    validate_target_binding(
+        target,
+        fault,
+        &session.profile.world_name,
+        &session.world_epoch,
+    )?;
+    let key = dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
+    let request = GazeboDispatchRequest {
+        plan_sha256: plan.plan_sha256.clone(),
+        campaign_id: plan.campaign_id.clone(),
+        pair_id: scenario.pair_id.clone(),
+        scenario_id: scenario.scenario_id.clone(),
+        fault_id: fault.fault_id.clone(),
+        fault_sequence: fault.sequence,
+        target_id: target.target_id.clone(),
+        fault_domain_id: fault.fault_domain_id.clone(),
+        scheduled_simulation_step: fault.scheduled_simulation_step,
+        parameters_sha256: fault.parameters_sha256.clone(),
+        idempotency_key: key,
+    };
+    Ok(dispatch_once_with_journal(store, injector, &request))
 }
 
 /// Validate a resolved platform target against the exact planned fault.
