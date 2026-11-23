@@ -14,8 +14,8 @@
 
 use crate::KernelError;
 use crate::lebedev::{
-    LebedevRule, LebedevSphereRule, SphereQuadratureDiagnosticsConfig,
-    SphereQuadratureReport, integrate_sphere_samples,
+    LebedevRule, LebedevSphereRule, SphereQuadratureDiagnosticsConfig, SphereQuadratureReport,
+    integrate_sphere_samples,
 };
 use crate::ncdot_pointwise::{NcdotPointwiseInputs, evaluate_ncdot_pointwise};
 
@@ -148,8 +148,7 @@ pub fn integrate_ncdot_sphere(
         })
         .collect::<Vec<_>>();
 
-    let diagnostics =
-        integrate_sphere_samples(rule, &scaled_integrands, config.diagnostics)?;
+    let diagnostics = integrate_sphere_samples(rule, &scaled_integrands, config.diagnostics)?;
     let log_sphere_integral = maximum_log_integrand + diagnostics.integral.ln();
     if !log_sphere_integral.is_finite() {
         return Err(KernelError::NumericalOverflow);
@@ -208,17 +207,9 @@ mod tests {
             hard_body_radius: 1.0,
             mean_relative_position: [0.0, 0.0, 0.0],
             mean_relative_velocity: [0.0, 0.0, 0.0],
-            inverse_position_covariance: [
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-            ],
+            inverse_position_covariance: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             conditional_velocity_regression: [[0.0; 3]; 3],
-            conditional_velocity_covariance: [
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-            ],
+            conditional_velocity_covariance: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             log_position_density_normalizer: 0.0,
         }
     }
@@ -243,8 +234,8 @@ mod tests {
             inputs.log_position_density_normalizer = 0.0;
             // x=0 and isotropic covariances make the pointwise integrand independent
             // of the sphere direction.
-            let report = integrate_ncdot_sphere(inputs, &rule, config())
-                .expect("isotropic sphere integral");
+            let report =
+                integrate_ncdot_sphere(inputs, &rule, config()).expect("isotropic sphere integral");
             let pointwise = 1.0 / (2.0 * PI).sqrt() * (-0.5 * 4.0).exp();
             let expected_sphere_integral = 4.0 * PI * pointwise;
             let expected_rate = 4.0 * expected_sphere_integral;
@@ -255,7 +246,11 @@ mod tests {
             assert_eq!(report.node_count, selected.node_count());
             assert!(!report.all_directions_zero);
             assert_eq!(
-                report.quadrature_diagnostics.as_ref().unwrap().significant_node_count,
+                report
+                    .quadrature_diagnostics
+                    .as_ref()
+                    .unwrap()
+                    .significant_node_count,
                 selected.node_count()
             );
         }
