@@ -584,9 +584,6 @@ fn validate_input(input: &ServiceQualityInput) -> Result<(), Vec<String>> {
     let mut by_fallback_resource: BTreeMap<&str, Vec<&FallbackServiceOpportunity>> =
         BTreeMap::new();
     for opportunity in &input.fallback_opportunities {
-        let end = opportunity
-            .start_seconds
-            .checked_add(u64::from(opportunity.max_service_duration_seconds));
         if opportunity.opportunity_id.trim().is_empty()
             || !opportunity_ids.insert(opportunity.opportunity_id.as_str())
             || opportunity.fallback_resource_id.trim().is_empty()
@@ -1189,6 +1186,398 @@ fn evaluate_policy(
         denial_reason_counts,
         outcomes,
         claim_ceiling: CLAIM_CEILING,
+    })
+}
+
+fn exact_score(assignments: &[Option<ExactOracleAssignment>], input: &ServiceQualityInput) -> ExactOracleScore {
+    let mut completed_on_time = 0_usize;
+    let mut completed_late = 0_usize;
+    let mut in_progress_at_horizon = 0_usize;
+    let mut total_lateness_seconds = 0_u64;
+    let mut total_latency_seconds = 0_u64;
+
+    let request_by_id: BTreeMap<&str, &ServiceRequest> = input
+        .requests
+        .iter()
+        .map(|request| (request.request_id.as_str(), request))
+        .collect();
+
+    for assignment in assignments.iter().flatten() {
+        let Some(request) = request_by_id.get(assignment.request_id.as_str()) else {
+            continue;
+        };
+        if assignment.projected_completion_seconds > input.horizon_seconds {
+            in_progress_at_horizon += 1;
+            continue;
+        }
+
+        total_latency_seconds = total_latency_seconds
+            .saturating_add(
+                assignment
+                    .projected_completion_seconds
+                    .saturating_sub(request.arrival_seconds),
+            );
+        if assignment.projected_completion_seconds <= request.deadline_seconds {
+            completed_on_time += 1;
+        } else {
+            completed_late += 1;
+            total_lateness_seconds = total_lateness_seconds.saturating_add(
+                assignment
+                    .projected_completion_seconds
+                    .saturating_sub(request.deadline_seconds),
+            );
+        }
+    }
+
+    ExactOracleScore {
+        completed_on_time,
+        completed_late,
+        completed_by_horizon: completed_on_time + completed_late,
+        in_progress_at_horizon,
+        total_lateness_seconds,
+        total_latency_seconds,
+    }
+}
+
+fn exact_score_is_better(
+    candidate: &ExactOracleScore,
+    candidate_key: &[String],
+    current: &ExactOracleScore,
+    current_key: &[String],
+) -> bool {
+    if candidate.completed_on_time != current.completed_on_time {
+        return candidate.completed_on_time > current.completed_on_time;
+    }
+    if candidate.completed_by_horizon != current.completed_by_horizon {
+        return candidate.completed_by_horizon > current.completed_by_horizon;
+    }
+    if candidate.total_lateness_seconds != current.total_lateness_seconds {
+        return candidate.total_lateness_seconds < current.total_lateness_seconds;
+    }
+    if candidate.in_progress_at_horizon != current.in_progress_at_horizon {
+        return candidate.in_progress_at_horizon < current.in_progress_at_horizon;
+    }
+    if candidate.total_latency_seconds != current.total_latency_seconds {
+        return candidate.total_latency_seconds < current.total_latency_seconds;
+    }
+    candidate_key < current_key
+}
+
+fn exact_assignment_key(assignments: &[Option<ExactOracleAssignment>]) -> Vec<String> {
+    assignments
+        .iter()
+        .map(|assignment| match assignment {
+            Some(item) => format!("{}=>{}", item.opportunity_id, item.request_id),
+            None => "~".to_owned(),
+        })
+        .collect()
+}
+
+fn exact_policy_gap(
+    policy_result: &ServicePolicyResult,
+    oracle: &ExactOracleScore,
+) -> ExactOraclePolicyGap {
+    let policy_lateness_seconds = policy_result
+        .outcomes
+        .iter()
+        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
+        .filter_map(|outcome| {
+            Some(
+                outcome
+                    .service_completion_seconds?
+                    .saturating_sub(
+                        outcome
+                            .service_start_seconds?
+                            .saturating_sub(outcome.queue_wait_seconds.unwrap_or_default())
+                            .saturating_add(0),
+                    ),
+            )
+        })
+        .fold(0_u64, u64::saturating_add);
+
+    let policy_total_lateness = policy_result
+        .outcomes
+        .iter()
+        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
+        .filter_map(|outcome| {
+            let completion = outcome.service_completion_seconds?;
+            let deadline = outcome.arrival_seconds.checked_add(
+                completion
+                    .saturating_sub(outcome.arrival_seconds)
+                    .saturating_add(0),
+            )?;
+            let _ = deadline;
+            Some(completion)
+        })
+        .count();
+
+    let policy_lateness = policy_result
+        .outcomes
+        .iter()
+        .filter(|outcome| outcome.disposition == RequestDisposition::CompletedLate)
+        .filter_map(|outcome| outcome.latency_seconds)
+        .fold(0_u64, u64::saturating_add);
+
+    let _ = (policy_lateness_seconds, policy_total_lateness);
+    let policy_latency = policy_result
+        .outcomes
+        .iter()
+        .filter(|outcome| {
+            matches!(
+                outcome.disposition,
+                RequestDisposition::CompletedOnTime | RequestDisposition::CompletedLate
+            )
+        })
+        .filter_map(|outcome| outcome.latency_seconds)
+        .fold(0_u64, u64::saturating_add);
+
+    ExactOraclePolicyGap {
+        policy: policy_result.policy,
+        on_time_completion_gap: oracle
+            .completed_on_time
+            .saturating_sub(policy_result.completed_on_time),
+        completed_by_horizon_gap: oracle
+            .completed_by_horizon
+            .saturating_sub(policy_result.completed_on_time + policy_result.completed_late),
+        lateness_excess_seconds: policy_lateness.saturating_sub(oracle.total_lateness_seconds),
+        latency_excess_seconds: policy_latency.saturating_sub(oracle.total_latency_seconds),
+        in_progress_excess: policy_result
+            .in_progress_requests
+            .saturating_sub(oracle.in_progress_at_horizon),
+    }
+}
+
+struct ExactOracleSearch<'a> {
+    input: &'a ServiceQualityInput,
+    opportunities: &'a [ScheduledOpportunity],
+    candidates_by_opportunity: &'a [Vec<ExactOracleCandidate>],
+    nodes: usize,
+    limit_reached: bool,
+    current: Vec<Option<ExactOracleAssignment>>,
+    used_requests: BTreeSet<usize>,
+    best: Option<ExactOracleBest>,
+}
+
+impl ExactOracleSearch<'_> {
+    fn visit(&mut self, opportunity_index: usize) {
+        if self.limit_reached {
+            return;
+        }
+        self.nodes = self.nodes.saturating_add(1);
+        if self.nodes > MAX_EXACT_ORACLE_NODES {
+            self.limit_reached = true;
+            return;
+        }
+
+        if opportunity_index == self.opportunities.len() {
+            let score = exact_score(&self.current, self.input);
+            let key = exact_assignment_key(&self.current);
+            let replace = self.best.as_ref().is_none_or(|current| {
+                exact_score_is_better(&score, &key, &current.score, &current.canonical_key)
+            });
+            if replace {
+                self.best = Some(ExactOracleBest {
+                    score,
+                    assignments: self.current.clone(),
+                    canonical_key: key,
+                });
+            }
+            return;
+        }
+
+        // Leaving a capacity opportunity unused is always a valid choice.
+        self.current.push(None);
+        self.visit(opportunity_index + 1);
+        self.current.pop();
+
+        for candidate in &self.candidates_by_opportunity[opportunity_index] {
+            if !self.used_requests.insert(candidate.request_index) {
+                continue;
+            }
+            let request = &self.input.requests[candidate.request_index];
+            let opportunity = &self.opportunities[opportunity_index];
+            self.current.push(Some(ExactOracleAssignment {
+                request_id: request.request_id.clone(),
+                opportunity_id: opportunity.opportunity_id.clone(),
+                fulfilment_mode: candidate.mode,
+                service_start_seconds: opportunity.start_seconds,
+                projected_completion_seconds: candidate.completion_seconds,
+                disposition: if candidate.completion_seconds > self.input.horizon_seconds {
+                    RequestDisposition::InProgressAtHorizon
+                } else if candidate.completion_seconds <= request.deadline_seconds {
+                    RequestDisposition::CompletedOnTime
+                } else {
+                    RequestDisposition::CompletedLate
+                },
+            }));
+            self.visit(opportunity_index + 1);
+            self.current.pop();
+            self.used_requests.remove(&candidate.request_index);
+            if self.limit_reached {
+                return;
+            }
+        }
+    }
+}
+
+fn exact_assignment_oracle(
+    input: &ServiceQualityInput,
+    policy_results: &[ServicePolicyResult],
+) -> Result<ExactOracleReport, Vec<String>> {
+    let opportunity_count = input.aerial_opportunities.len() + input.fallback_opportunities.len();
+    if input.requests.len() > MAX_EXACT_ORACLE_REQUESTS
+        || opportunity_count > MAX_EXACT_ORACLE_OPPORTUNITIES
+    {
+        return Ok(ExactOracleReport {
+            status: ExactOracleStatus::NotRunBoundsExceeded,
+            request_bound: MAX_EXACT_ORACLE_REQUESTS,
+            opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
+            search_node_limit: MAX_EXACT_ORACLE_NODES,
+            search_nodes: 0,
+            best_score: None,
+            best_assignments: Vec::new(),
+            policy_gaps: Vec::new(),
+            objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
+        });
+    }
+
+    let mut opportunities = Vec::with_capacity(opportunity_count);
+    for (index, opportunity) in input.aerial_opportunities.iter().enumerate() {
+        opportunities.push(ScheduledOpportunity {
+            start_seconds: opportunity.start_seconds,
+            is_aerial: true,
+            index,
+            opportunity_id: opportunity.opportunity_id.clone(),
+        });
+    }
+    for (index, opportunity) in input.fallback_opportunities.iter().enumerate() {
+        opportunities.push(ScheduledOpportunity {
+            start_seconds: opportunity.start_seconds,
+            is_aerial: false,
+            index,
+            opportunity_id: opportunity.opportunity_id.clone(),
+        });
+    }
+    opportunities.sort_by_key(|opportunity| {
+        (
+            opportunity.start_seconds,
+            if opportunity.is_aerial { 0_u8 } else { 1_u8 },
+            opportunity.opportunity_id.clone(),
+        )
+    });
+
+    let mut candidates_by_opportunity = Vec::with_capacity(opportunities.len());
+    for opportunity in &opportunities {
+        let mut candidates = Vec::new();
+        for (request_index, request) in input.requests.iter().enumerate() {
+            if request.arrival_seconds > request.accept_by_seconds
+                || request.arrival_seconds > opportunity.start_seconds
+                || opportunity.start_seconds > request.deadline_seconds
+                || (opportunity.is_aerial
+                    && !matches!(
+                        request.allowed_mode,
+                        ServiceMode::AerialOnly | ServiceMode::Either
+                    ))
+                || (!opportunity.is_aerial
+                    && !matches!(
+                        request.allowed_mode,
+                        ServiceMode::FallbackOnly | ServiceMode::Either
+                    ))
+            {
+                continue;
+            }
+
+            let (max_duration, max_payload, mode) = if opportunity.is_aerial {
+                let aerial = &input.aerial_opportunities[opportunity.index];
+                (
+                    aerial.max_service_duration_seconds,
+                    aerial.max_payload_units,
+                    FulfilmentMode::Aerial,
+                )
+            } else {
+                let fallback = &input.fallback_opportunities[opportunity.index];
+                (
+                    fallback.max_service_duration_seconds,
+                    fallback.max_payload_units,
+                    mode_for_fallback(fallback.fallback_mode),
+                )
+            };
+            if max_duration < request.required_service_seconds
+                || max_payload < request.payload_units
+            {
+                continue;
+            }
+            if opportunity.is_aerial {
+                let aerial = &input.aerial_opportunities[opportunity.index];
+                match aerial_block_reason(input, aerial, request.required_service_seconds) {
+                    Ok(None) => {}
+                    Ok(Some(_)) => continue,
+                    Err(error) => return Err(vec![error]),
+                }
+            }
+            let completion_seconds = opportunity
+                .start_seconds
+                .checked_add(u64::from(request.required_service_seconds))
+                .ok_or_else(|| vec!["exact_oracle_service_completion_overflow".to_owned()])?;
+            candidates.push(ExactOracleCandidate {
+                request_index,
+                completion_seconds,
+                mode,
+            });
+        }
+        candidates.sort_by_key(|candidate| {
+            (
+                input.requests[candidate.request_index].request_id.clone(),
+                candidate.request_index,
+            )
+        });
+        candidates_by_opportunity.push(candidates);
+    }
+
+    let mut search = ExactOracleSearch {
+        input,
+        opportunities: &opportunities,
+        candidates_by_opportunity: &candidates_by_opportunity,
+        nodes: 0,
+        limit_reached: false,
+        current: Vec::with_capacity(opportunities.len()),
+        used_requests: BTreeSet::new(),
+        best: None,
+    };
+    search.visit(0);
+
+    if search.limit_reached {
+        return Ok(ExactOracleReport {
+            status: ExactOracleStatus::NodeLimitReached,
+            request_bound: MAX_EXACT_ORACLE_REQUESTS,
+            opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
+            search_node_limit: MAX_EXACT_ORACLE_NODES,
+            search_nodes: search.nodes,
+            best_score: None,
+            best_assignments: Vec::new(),
+            policy_gaps: Vec::new(),
+            objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
+        });
+    }
+
+    let best = search
+        .best
+        .ok_or_else(|| vec!["exact_oracle_failed_to_emit_empty_assignment".to_owned()])?;
+    let policy_gaps = policy_results
+        .iter()
+        .map(|policy| exact_policy_gap(policy, &best.score))
+        .collect();
+
+    Ok(ExactOracleReport {
+        status: ExactOracleStatus::Evaluated,
+        request_bound: MAX_EXACT_ORACLE_REQUESTS,
+        opportunity_bound: MAX_EXACT_ORACLE_OPPORTUNITIES,
+        search_node_limit: MAX_EXACT_ORACLE_NODES,
+        search_nodes: search.nodes,
+        best_score: Some(best.score),
+        best_assignments: best.assignments.into_iter().flatten().collect(),
+        policy_gaps,
+        objective: "Lexicographically maximize on-time completions, then completed services; minimize total lateness, in-progress-at-horizon assignments and total completed-request latency; finally choose the canonical opportunity/request assignment.",
     })
 }
 
