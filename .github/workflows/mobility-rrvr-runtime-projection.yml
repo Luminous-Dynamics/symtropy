@@ -149,6 +149,12 @@ jobs:
             and .attempts[0].observer_assurance.downstream_quiescence_quorum.fault_model_revision == .fault_profile_revision
             and .attempts[1].observer_assurance.physical_outcome_quorum.fault_model_revision == .fault_profile_revision
             and .attempts[1].observer_assurance.downstream_quiescence_quorum.fault_model_revision == .fault_profile_revision
+            and (.attempts[0].observer_assurance.physical_outcome_quorum.members | length == 2)
+            and (.attempts[0].observer_assurance.downstream_quiescence_quorum.members | length == 2)
+            and (([.attempts[0].observer_assurance.physical_outcome_quorum.members[].observer_id] + [.attempts[0].observer_assurance.downstream_quiescence_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[0].observer_assurance.physical_outcome_quorum.members[].common_cause_domains[]] + [.attempts[0].observer_assurance.downstream_quiescence_quorum.members[].common_cause_domains[]] | unique | length) == 12)
+            and (([.attempts[1].observer_assurance.physical_outcome_quorum.members[].observer_id] + [.attempts[1].observer_assurance.downstream_quiescence_quorum.members[].observer_id] | unique | length) == 4)
+            and (([.attempts[1].observer_assurance.physical_outcome_quorum.members[].common_cause_domains[]] + [.attempts[1].observer_assurance.downstream_quiescence_quorum.members[].common_cause_domains[]] | unique | length) == 12)
             and .attempts[2].observer_assurance == null
             and .attempts[0].parent_attempt_id == null
             and .attempts[1].parent_attempt_id == .attempts[0].attempt_id
