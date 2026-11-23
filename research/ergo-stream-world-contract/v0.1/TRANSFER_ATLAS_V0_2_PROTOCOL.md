@@ -149,12 +149,23 @@ Report per family, transformation class, size regime and budget. Do not collapse
 - calibration of relation and map scope;
 - downstream action success, regret, partial progress, recovery and constraint violations.
 
+### Proposal / validator / mechanism outcomes
+
+Record transfer disposition as a three-stage outcome rather than collapsing every rejected map into abstention:
+
+- **Abstention:** the learner emits no transfer proposal. Score correct abstention on non-identifiable or evaluator-negative pairs separately from missed transfer on positive pairs.
+- **Rejected proposal:** the learner emits a candidate map, but the structural or dynamics witness rejects it. Record the specific counterexample and rejection reason; do not call this abstention.
+- **Accepted correspondence:** the candidate map passes the declared structural / dynamical validator. Then compare it against the evaluator-owned mechanism-transfer truth and held-out interventions. A valid structural map can still be a **false unification** if the underlying mechanism does not transfer.
+
+Report proposal coverage, proposal rejection rate, accepted-structure precision, mechanism false-unification rate, correct-abstention rate and missed-transfer rate separately. This avoids rewarding an invalid proposal as if the learner had abstained, and avoids treating a graph isomorphism as evidence that the mechanism is shared.
+
 ### Epistemic reliability
 
-- **false-unification rate:** accepted correspondence on evaluator-defined negative pairs;
+- **false-unification rate:** structurally accepted correspondence on evaluator-defined non-transferable mechanism pairs; keep this separate from structural-validator rejection rate;
 - **false-invariance / false-equivariance rate:** unsupported transform claim;
 - **false-unique rate:** one asserted map where the available evidence is non-identifying;
 - **false-causal-transfer rate:** effect / mechanism transfer asserted but contradicted by valid intervention evidence;
+- **proposal rejection rate:** candidate maps rejected for structural / dynamical counterexamples (not the same as abstention);
 - risk–coverage, selective accuracy and abstention quality;
 - negative-transfer cost and counterexample correction / retraction latency.
 
