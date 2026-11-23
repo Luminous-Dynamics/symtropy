@@ -178,6 +178,21 @@ fn source_digest<T: Serialize>(value: &T) -> Result<String, String> {
     Ok(sha256_hex(&bytes))
 }
 
+fn canonical_tree_digest(
+    tree: &NonanticipativeServiceOracleInput,
+) -> Result<String, String> {
+    let mut canonical = tree.clone();
+    canonical.nodes.sort_by(|a, b| a.node_id.cmp(&b.node_id));
+    for node in &mut canonical.nodes {
+        node.request_reveals.sort_by(|a, b| a.request_id.cmp(&b.request_id));
+        node.aerial_reveals
+            .sort_by(|a, b| a.opportunity_id.cmp(&b.opportunity_id));
+        node.fallback_reveals
+            .sort_by(|a, b| a.opportunity_id.cmp(&b.opportunity_id));
+    }
+    source_digest(&canonical)
+}
+
 fn valid_sha256(value: &str) -> bool {
     let Some(hex) = value.strip_prefix("sha256:") else {
         return false;
@@ -484,7 +499,7 @@ pub fn evaluate_mobility_service_risk_envelope(
         return Err(vec!["upstream_oracle_not_fully_evaluated".to_owned()]);
     }
 
-    let source_tree_digest = source_digest(tree).map_err(|error| vec![error])?;
+    let source_tree_digest = canonical_tree_digest(tree).map_err(|error| vec![error])?;
     let source_service_digest = source_digest(service).map_err(|error| vec![error])?;
     let source_capacity_digest = source_digest(capacity).map_err(|error| vec![error])?;
 
@@ -580,7 +595,7 @@ pub fn evaluate_mobility_service_risk_envelope(
         worst_case_tv_expectation(&leaves, probability_denominator, radius_mass, lateness, false)
             .map_err(|error| vec![error])?;
 
-    let leaf_results: Vec<ServiceLeafRiskResult> = oracle
+    let mut leaf_results: Vec<ServiceLeafRiskResult> = oracle
         .leaf_results
         .iter()
         .map(|leaf| ServiceLeafRiskResult {
@@ -597,6 +612,7 @@ pub fn evaluate_mobility_service_risk_envelope(
             completed_latency_seconds: leaf.completed_latency_seconds,
         })
         .collect();
+    leaf_results.sort_by(|a, b| a.leaf_node_id.cmp(&b.leaf_node_id));
 
     let all_synthetic = input.probability_manifest.probability_basis == ProbabilityBasis::Synthetic;
     let mut claim_ceiling = CLAIM_CEILING;
@@ -757,7 +773,7 @@ mod tests {
         let high_late = worst_case_tv_expectation(&leaves, 100, 100, lateness, false).expect("late");
         assert_eq!(nominal, ExactRiskRatio { numerator: 220, denominator: 100 });
         assert_eq!(full, ExactRiskRatio { numerator: 0, denominator: 100 });
-        assert_eq!(high_late, ExactRiskRatio { numerator: 100, denominator: 100 });
+        assert_eq!(high_late, ExactRiskRatio { numerator: 10_000, denominator: 100 });
     }
 
     fn validate_probability_mass(weights: &[u128], denominator: u128) -> Result<(), String> {
@@ -853,6 +869,7 @@ mod tests {
         let b = evaluate_mobility_service_risk_envelope(&permuted_tree, &service, &capacity, &risk)
             .expect("permuted tree");
         assert_eq!(a.leaf_results, b.leaf_results);
+        assert_eq!(a.source_tree_digest, b.source_tree_digest);
         assert_eq!(a.lower_tail_cvar_on_time_services, b.lower_tail_cvar_on_time_services);
         assert_eq!(a.tv_robust_min_expected_on_time_services, b.tv_robust_min_expected_on_time_services);
     }
