@@ -7,8 +7,8 @@
 use std::fmt;
 
 pub mod acquisition;
-pub mod dynamics;
 pub mod atlas;
+pub mod dynamics;
 pub mod matching;
 
 pub mod transfer;
