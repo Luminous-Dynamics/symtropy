@@ -1,0 +1,23 @@
+name: AV anytime-valid evaluator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-anytime-valid-evaluator.yml"
+      - "tools/av-anytime-valid-evaluator/**"
+      - "research/av-anytime-valid-policy-tournament-v0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    name: Exact-head evaluator contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run anytime-valid evaluator tests
+        run: python3 -m unittest discover -s tools/av-anytime-valid-evaluator -p "test_*.py" -v
