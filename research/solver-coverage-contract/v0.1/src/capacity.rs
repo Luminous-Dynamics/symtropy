@@ -165,13 +165,13 @@ impl ContactManifoldLineage {
                 "must not be empty",
             ));
         }
-        if let Some(policy) = &self.reduction_policy_id {
-            if !non_empty(policy) {
-                return Err(ValidationError::new(
-                    "manifold.reduction_policy_id",
-                    "must not be empty when present",
-                ));
-            }
+        if let Some(policy) = &self.reduction_policy_id
+            && !non_empty(policy)
+        {
+            return Err(ValidationError::new(
+                "manifold.reduction_policy_id",
+                "must not be empty when present",
+            ));
         }
 
         let mut point_records = BTreeMap::new();
