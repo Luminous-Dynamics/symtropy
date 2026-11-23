@@ -66,11 +66,11 @@ pub struct PopColFractionSearchReport {
     /// Number of local minima found in the final refined sample series.
     pub final_minimum_count: usize,
     /// Zero-based initial 201-point grid index selected by the first objective scan.
-    pub initial_minimum_grid_index: usize,
-    /// Number of source initial-grid samples.
+    pub initial_minimum_grid_index: Option<usize>,
+    /// Number of source initial-grid samples; zero when the source bypasses the search.
     pub initial_sample_count: usize,
-    /// Objective value at the final selected fraction.
-    pub selected_objective: f64,
+    /// Objective value at the final selected fraction, absent when the source bypasses the search.
+    pub selected_objective: Option<f64>,
 }
 
 /// Input to the NASA CoL energy-change limiter.
@@ -145,7 +145,7 @@ pub fn adjust_pop_col_energy_limited_center(
     let proposed_energy = evaluate_fraction(input, 1.0)?;
 
     if original_energy.specific_orbital_energy_km2_per_s2 >= 0.0 {
-        let search = empty_search(0, 1.0);
+        let search = empty_search();
         return Ok(PopColAdjustmentReport {
             status: PopColAdjustmentStatus::OriginalCenterNonnegativeEnergy,
             original_energy,
@@ -252,9 +252,9 @@ pub fn adjust_pop_col_energy_limited_center(
             refinement_converged,
             bisection_rounds,
             final_minimum_count,
-            initial_minimum_grid_index: initial_minimum_index,
+            initial_minimum_grid_index: Some(initial_minimum_index),
             initial_sample_count: INITIAL_FRACTION_COUNT,
-            selected_objective,
+            selected_objective: Some(selected_objective),
         },
     })
 }
@@ -545,15 +545,15 @@ fn argmin_first(values: &[f64]) -> Result<usize, KernelError> {
     Ok(best)
 }
 
-fn empty_search(initial_minimum_grid_index: usize, selected_objective: f64) -> PopColFractionSearchReport {
+fn empty_search() -> PopColFractionSearchReport {
     PopColFractionSearchReport {
         refinement_attempted: false,
         refinement_converged: None,
         bisection_rounds: 0,
         final_minimum_count: 0,
-        initial_minimum_grid_index,
-        initial_sample_count: INITIAL_FRACTION_COUNT,
-        selected_objective,
+        initial_minimum_grid_index: None,
+        initial_sample_count: 0,
+        selected_objective: None,
     }
 }
 
@@ -603,7 +603,9 @@ mod tests {
         assert_eq!(result.adjustment_fraction, 1.0);
         assert_eq!(result.adjusted_col_position_km, input.proposed_overlap_position_km);
         assert!(!result.search.refinement_attempted);
-        assert_eq!(result.search.initial_sample_count, 201);
+        assert_eq!(result.search.initial_sample_count, 0);
+        assert_eq!(result.search.initial_minimum_grid_index, None);
+        assert_eq!(result.search.selected_objective, None);
     }
 
     #[test]
