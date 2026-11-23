@@ -721,9 +721,9 @@ mod tests {
                 BodyType::Dynamic
             };
             let position = Point::new([
-                rng.range(-8.0, 8.0),
-                rng.range(-8.0, 8.0),
-                rng.range(-8.0, 8.0),
+                rng.range(-4.0, 4.0),
+                rng.range(-4.0, 4.0),
+                rng.range(-4.0, 4.0),
             ]);
             let rotation = Rotor::from_plane_angle(
                 &Bivector::unit_plane(0, 1),
@@ -791,6 +791,10 @@ mod tests {
         ] {
             let bodies = seeded_sphere_capsule_scene(seed, 48, 20);
             let expected = independent_sphere_capsule_pair_oracle(&bodies);
+            assert!(
+                !expected.is_empty(),
+                "seed {seed:#x} must exercise at least one candidate pair"
+            );
 
             assert_eq!(
                 find_pairs(&bodies),
