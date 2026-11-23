@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Empirical, acquisition-cluster-weighted fitting of spatial PIV error covariance.
 //!
 //! Residuals are measured minus an independently established reference field.
