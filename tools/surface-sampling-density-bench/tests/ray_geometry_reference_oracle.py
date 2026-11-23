@@ -267,6 +267,7 @@ def evaluate_case(case):
                 {
                     "element_id": element["element_id"],
                     "mesh_revision_id": element["mesh_revision_id"],
+                    "area_um2": element["area_um2"],
                     "view_id": camera["view_id"],
                     "hit_pixel_count": actual,
                     "expected_hit_pixel_count": expected_value,
