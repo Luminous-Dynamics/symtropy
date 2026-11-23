@@ -645,9 +645,14 @@ fn validate_state(state: &Value, max_epoch: u64) -> Result<(), ProjectionError> 
             || old_physical != "no_effect"
             || mission != "no_effect"
             || !["committed", "definitely_not_committed"].contains(&persist)
-            || bool_field(state, "storeCallPending")?
-            || !bool_field(state, "m1Current")?
-            || !bool_field(state, "m2Current")?)
+            || bool_field(state, "storeCallPending")?)
+    {
+        return Err(ProjectionError::RecoveryFromUnqualifiedOutcome);
+    }
+    // Freshness is required at permit issuance/admission. Once NativeAcceptRecovery
+    // has captured admittedM1/admittedM2, later revocation is not retroactive.
+    if permit == "issued"
+        && (!bool_field(state, "m1Current")? || !bool_field(state, "m2Current")?)
     {
         return Err(ProjectionError::RecoveryFromUnqualifiedOutcome);
     }
@@ -1440,7 +1445,10 @@ mod tests {
                     observer_quorum: None,
                     scope,
                     raw_artifact_id: format!("artifact-{index}"),
-                    raw_artifact_sha256: sha(char::from(b'a' + index as u8)),
+                    raw_artifact_sha256: {
+                        const HEX: [char; 10] = ['a', 'b', 'c', 'd', 'e', 'f', '0', '1', '2', '3'];
+                        sha(HEX[index])
+                    },
                 }
             })
             .collect()
@@ -1852,18 +1860,27 @@ mod tests {
     }
     #[test]
     fn command_pending_owner_pair_must_match() {
-        let mut r = recording();
-        r.snapshots[0].state_s["commandPending"] = json!(true);
-        assert_eq!(r.validate(), Err(ProjectionError::CommandOwnerMismatch));
-        let mut r = recording();
-        r.snapshots[0].state_s["commandOwnerAttempt"] = json!("attempt-1");
-        assert_eq!(r.validate(), Err(ProjectionError::CommandOwnerMismatch));
+        let mut state = model_init_state();
+        state["commandPending"] = json!(true);
+        assert_eq!(
+            validate_state(&state, 4),
+            Err(ProjectionError::CommandOwnerMismatch)
+        );
+        let mut state = model_init_state();
+        state["commandOwnerAttempt"] = json!("attempt-1");
+        assert_eq!(
+            validate_state(&state, 4),
+            Err(ProjectionError::CommandOwnerMismatch)
+        );
     }
     #[test]
     fn downstream_fence_closes_pending_command_and_requires_controller_fence() {
-        let mut r = recording();
-        r.snapshots[0].state_s["downstreamFenceBootEpoch"] = json!(1);
-        assert_eq!(r.validate(), Err(ProjectionError::DownstreamFenceInvariant));
+        let mut state = model_init_state();
+        state["downstreamFenceBootEpoch"] = json!(1);
+        assert_eq!(
+            validate_state(&state, 4),
+            Err(ProjectionError::DownstreamFenceInvariant)
+        );
     }
     #[test]
     fn recovery_acceptance_uses_captured_admission_facts_not_current_revocation_flags() {
