@@ -1,0 +1,367 @@
+{
+  "schema": "luminous.orbital-sampling-density.geometry-corpus.v0.1",
+  "benchmark_id": "ORBITAL-RAY-TRIANGLE-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_pinhole_pixel_centre_rays_and_nearest_triangle_intersections_only",
+  "cases": [
+    {
+      "case_id": "RG-001-TRIANGLE-3X3-PIXEL-CENTRES",
+      "coordinate_frame_id": "SYNTHETIC-CAMERA-WORLD-METRES",
+      "area_unit": "SQUARE_MICROMETRE",
+      "cameras": [
+        {
+          "view_id": "VIEW-A",
+          "origin_m": [
+            0,
+            0,
+            1
+          ],
+          "forward_axis": [
+            0,
+            0,
+            -1
+          ],
+          "right_axis": [
+            1,
+            0,
+            0
+          ],
+          "up_axis": [
+            0,
+            1,
+            0
+          ],
+          "horizontal_fov_rad": 1.5707963267948966,
+          "width_px": 3,
+          "height_px": 3
+        }
+      ],
+      "elements": [
+        {
+          "element_id": "TRIANGLE-FRONT",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000000000,
+          "triangles": [
+            {
+              "triangle_id": "TRI-001",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  -1,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "expected_hit_counts": [
+        {
+          "element_id": "TRIANGLE-FRONT",
+          "view_id": "VIEW-A",
+          "hit_pixel_count": 5
+        }
+      ]
+    },
+    {
+      "case_id": "RG-002-NEAREST-SURFACE-SHADOWING",
+      "coordinate_frame_id": "SYNTHETIC-CAMERA-WORLD-METRES",
+      "area_unit": "SQUARE_MICROMETRE",
+      "cameras": [
+        {
+          "view_id": "VIEW-A",
+          "origin_m": [
+            0,
+            0,
+            1
+          ],
+          "forward_axis": [
+            0,
+            0,
+            -1
+          ],
+          "right_axis": [
+            1,
+            0,
+            0
+          ],
+          "up_axis": [
+            0,
+            1,
+            0
+          ],
+          "horizontal_fov_rad": 1.5707963267948966,
+          "width_px": 3,
+          "height_px": 3
+        }
+      ],
+      "elements": [
+        {
+          "element_id": "FRONT-SURFACE",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000000000,
+          "triangles": [
+            {
+              "triangle_id": "TRI-FRONT",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  -1,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "element_id": "REAR-SURFACE",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000000000,
+          "triangles": [
+            {
+              "triangle_id": "TRI-REAR",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  -0.2
+                ],
+                [
+                  1,
+                  -1,
+                  -0.2
+                ],
+                [
+                  0,
+                  1,
+                  -0.2
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "expected_hit_counts": [
+        {
+          "element_id": "FRONT-SURFACE",
+          "view_id": "VIEW-A",
+          "hit_pixel_count": 5
+        },
+        {
+          "element_id": "REAR-SURFACE",
+          "view_id": "VIEW-A",
+          "hit_pixel_count": 0
+        }
+      ]
+    },
+    {
+      "case_id": "RG-003-TWO-VIEWS-COUNTED-SEPARATELY",
+      "coordinate_frame_id": "SYNTHETIC-CAMERA-WORLD-METRES",
+      "area_unit": "SQUARE_MICROMETRE",
+      "cameras": [
+        {
+          "view_id": "VIEW-A",
+          "origin_m": [
+            0,
+            0,
+            1
+          ],
+          "forward_axis": [
+            0,
+            0,
+            -1
+          ],
+          "right_axis": [
+            1,
+            0,
+            0
+          ],
+          "up_axis": [
+            0,
+            1,
+            0
+          ],
+          "horizontal_fov_rad": 1.5707963267948966,
+          "width_px": 3,
+          "height_px": 3
+        },
+        {
+          "view_id": "VIEW-B",
+          "origin_m": [
+            0,
+            0,
+            1
+          ],
+          "forward_axis": [
+            0,
+            0,
+            -1
+          ],
+          "right_axis": [
+            1,
+            0,
+            0
+          ],
+          "up_axis": [
+            0,
+            1,
+            0
+          ],
+          "horizontal_fov_rad": 1.5707963267948966,
+          "width_px": 3,
+          "height_px": 3
+        }
+      ],
+      "elements": [
+        {
+          "element_id": "TRIANGLE-FRONT",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 2000000000000,
+          "triangles": [
+            {
+              "triangle_id": "TRI-001",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  -1,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "expected_hit_counts": [
+        {
+          "element_id": "TRIANGLE-FRONT",
+          "view_id": "VIEW-A",
+          "hit_pixel_count": 5
+        },
+        {
+          "element_id": "TRIANGLE-FRONT",
+          "view_id": "VIEW-B",
+          "hit_pixel_count": 5
+        }
+      ]
+    },
+    {
+      "case_id": "RG-004-SHARED-EDGE-PARTITION-COUNTS-PIXEL-ONCE",
+      "coordinate_frame_id": "SYNTHETIC-CAMERA-WORLD-METRES",
+      "area_unit": "SQUARE_MICROMETRE",
+      "cameras": [
+        {
+          "view_id": "VIEW-A",
+          "origin_m": [
+            0,
+            0,
+            1
+          ],
+          "forward_axis": [
+            0,
+            0,
+            -1
+          ],
+          "right_axis": [
+            1,
+            0,
+            0
+          ],
+          "up_axis": [
+            0,
+            1,
+            0
+          ],
+          "horizontal_fov_rad": 1.5707963267948966,
+          "width_px": 2,
+          "height_px": 2
+        }
+      ],
+      "elements": [
+        {
+          "element_id": "SPLIT-SQUARE",
+          "mesh_revision_id": "MESH-REV-A",
+          "area_um2": 4000000000000,
+          "triangles": [
+            {
+              "triangle_id": "TRI-A",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  1,
+                  0
+                ]
+              ]
+            },
+            {
+              "triangle_id": "TRI-B",
+              "vertices_m": [
+                [
+                  -1,
+                  -1,
+                  0
+                ],
+                [
+                  1,
+                  1,
+                  0
+                ],
+                [
+                  -1,
+                  1,
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "expected_hit_counts": [
+        {
+          "element_id": "SPLIT-SQUARE",
+          "view_id": "VIEW-A",
+          "hit_pixel_count": 4
+        }
+      ]
+    }
+  ]
+}
