@@ -333,7 +333,7 @@ pub fn project_decision_relevant_discrimination(
         }
     }
 
-    if observed_hypotheses != expected_hypotheses {
+    if upstream.hypothesis_count > 1 && observed_hypotheses != expected_hypotheses {
         return Err(DecisionProjectionError::InvalidUpstreamReport);
     }
 
@@ -628,6 +628,14 @@ mod tests {
                 &assignments(&[(1, 10), (3, 20)]),
             ),
             Err(DecisionProjectionError::MissingHypothesisAssignment(2))
+        );
+        assert_eq!(
+            project(
+                &report,
+                &[1, 2],
+                &assignments(&[(1, 10), (2, 20), (3, 30)]),
+            ),
+            Err(DecisionProjectionError::UnexpectedHypothesisAssignment(3))
         );
     }
 
