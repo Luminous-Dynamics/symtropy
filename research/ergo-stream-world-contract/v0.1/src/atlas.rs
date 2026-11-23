@@ -345,8 +345,8 @@ fn intervention_divergent_pair() -> TransferAtlasPolicyViewV0 {
 mod tests {
     use super::*;
     use crate::transfer::{
-        EffectTransformV0, NodeCorrespondenceV0, ParticipantTransformV0,
-        RelationCorrespondenceV0, RelationKindCorrespondenceV0,
+        EffectTransformV0, NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
+        RelationKindCorrespondenceV0,
     };
 
     #[test]
