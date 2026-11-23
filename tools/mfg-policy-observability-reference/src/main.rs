@@ -3,15 +3,13 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::process::ExitCode;
 
-const CORPUS_JSON: &str = include_str!(
-    "../../../fixtures/manufacturing/mfg_policy_observability_cases_v0_1.json"
-);
+const CORPUS_JSON: &str =
+    include_str!("../../../fixtures/manufacturing/mfg_policy_observability_cases_v0_1.json");
 const ANSWERS_JSON: &str = include_str!(
     "../../../fixtures/manufacturing/mfg_policy_observability_known_answers_v0_1.json"
 );
-const CORPUS_SCHEMA_JSON: &str = include_str!(
-    "../../../schemas/manufacturing/mfg_policy_observability_cases_v0_1.schema.json"
-);
+const CORPUS_SCHEMA_JSON: &str =
+    include_str!("../../../schemas/manufacturing/mfg_policy_observability_cases_v0_1.schema.json");
 const ANSWERS_SCHEMA_JSON: &str = include_str!(
     "../../../schemas/manufacturing/mfg_policy_observability_known_answers_v0_1.schema.json"
 );
@@ -183,10 +181,7 @@ fn normalize_events(events: &[SourceEvent]) -> Result<Vec<SourceEvent>, String> 
         }
     }
 
-    let mut unique: Vec<SourceEvent> = by_id
-        .values()
-        .map(|event| (*event).clone())
-        .collect();
+    let mut unique: Vec<SourceEvent> = by_id.values().map(|event| (*event).clone()).collect();
     unique.sort_by(|left, right| {
         left.observed_at_ms
             .cmp(&right.observed_at_ms)
@@ -277,10 +272,7 @@ fn sha256_history(cut: &DecisionCut, visible: &[SourceEvent]) -> Result<String, 
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-fn project(
-    events: &[SourceEvent],
-    cut: &DecisionCut,
-) -> Result<Projection, String> {
+fn project(events: &[SourceEvent], cut: &DecisionCut) -> Result<Projection, String> {
     let normalized = normalize_events(events)?;
     let visible: Vec<SourceEvent> = normalized
         .into_iter()
@@ -324,10 +316,8 @@ fn project(
         .collect();
     unresolved_event_ids.sort();
 
-    let mut visible_event_ids: Vec<String> = visible
-        .iter()
-        .map(|event| event.event_id.clone())
-        .collect();
+    let mut visible_event_ids: Vec<String> =
+        visible.iter().map(|event| event.event_id.clone()).collect();
     visible_event_ids.sort_by(|left, right| {
         let left_event = visible_by_id[left.as_str()];
         let right_event = visible_by_id[right.as_str()];
@@ -408,7 +398,10 @@ fn compare_known_answers(corpus: &Corpus, answers: &KnownAnswerFile) -> Result<(
         let actual = project_case(case)?;
         let expected_projections = &answer.projections;
         if actual.len() != expected_projections.len() {
-            return Err(fail(format!("known_projection_count_mismatch:{}", case.case_id)));
+            return Err(fail(format!(
+                "known_projection_count_mismatch:{}",
+                case.case_id
+            )));
         }
         for (actual_projection, expected_projection) in
             actual.iter().zip(expected_projections.iter())
@@ -513,7 +506,11 @@ mod tests {
     #[test]
     fn future_receipt_never_leaks_even_when_effective_time_is_in_the_past() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-02-LATE-OLD-EFFECTIVE").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-02-LATE-OLD-EFFECTIVE")
+            .unwrap();
         let before_arrival = project_case(case).unwrap();
         assert!(before_arrival[0].visible_event_ids.is_empty());
         assert!(before_arrival[0].active_event_ids.is_empty());
@@ -523,7 +520,11 @@ mod tests {
     #[test]
     fn late_arrival_changes_only_decision_cuts_after_receipt_time() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-10-LATE-MEASUREMENT").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-10-LATE-MEASUREMENT")
+            .unwrap();
         let projections = project_case(case).unwrap();
         assert!(projections[0].visible_event_ids.is_empty());
         assert_eq!(projections[1].visible_event_ids, vec!["e1"]);
@@ -534,7 +535,11 @@ mod tests {
     #[test]
     fn exact_duplicate_replay_is_idempotent_but_payload_conflict_is_rejected() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-03-REPLAY-DUPLICATE").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-03-REPLAY-DUPLICATE")
+            .unwrap();
         let projection = project_case(case).unwrap();
         assert_eq!(projection[0].visible_event_ids, vec!["e1", "e2"]);
 
@@ -565,7 +570,11 @@ mod tests {
     #[test]
     fn correction_is_non_retroactive_and_preserves_original_receipt() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-04-ADMITTED-CORRECTION").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-04-ADMITTED-CORRECTION")
+            .unwrap();
         let projections = project_case(case).unwrap();
         assert_eq!(projections[0].active_event_ids, vec!["e1"]);
         assert_eq!(projections[0].visible_event_ids, vec!["e1"]);
@@ -577,7 +586,11 @@ mod tests {
     #[test]
     fn unknown_correction_does_not_supersede_admitted_prior_event() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-05-UNKNOWN-CORRECTION").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-05-UNKNOWN-CORRECTION")
+            .unwrap();
         let projections = project_case(case).unwrap();
         assert_eq!(projections[1].active_event_ids, vec!["e1"]);
         assert_eq!(projections[1].unresolved_event_ids, vec!["e2"]);
@@ -587,19 +600,35 @@ mod tests {
     #[test]
     fn clock_interval_crossing_decision_cut_remains_unresolved() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-06-CLOCK-UNCERTAINTY").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-06-CLOCK-UNCERTAINTY")
+            .unwrap();
         let projections = project_case(case).unwrap();
-        assert!(projections[0].unresolved_event_ids.contains(&"e1".to_string()));
+        assert!(
+            projections[0]
+                .unresolved_event_ids
+                .contains(&"e1".to_string())
+        );
         assert!(projections[1].active_event_ids.contains(&"e1".to_string()));
     }
 
     #[test]
     fn conflicting_and_unknown_receipts_remain_visible_but_not_admissible() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-08-CONFLICTED-SOURCE").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-08-CONFLICTED-SOURCE")
+            .unwrap();
         let projection = project_case(case).unwrap();
         assert!(projection[0].visible_event_ids.contains(&"e1".to_string()));
-        assert!(projection[0].unresolved_event_ids.contains(&"e1".to_string()));
+        assert!(
+            projection[0]
+                .unresolved_event_ids
+                .contains(&"e1".to_string())
+        );
         assert!(!projection[0].active_event_ids.contains(&"e1".to_string()));
         assert!(projection[0].active_event_ids.contains(&"e2".to_string()));
     }
@@ -607,7 +636,11 @@ mod tests {
     #[test]
     fn exact_cutoff_boundary_is_inclusive_for_observed_receipt() {
         let corpus = corpus();
-        let case = corpus.cases.iter().find(|case| case.case_id == "OBS-18-EXACT-CUTOFF").unwrap();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "OBS-18-EXACT-CUTOFF")
+            .unwrap();
         let projections = project_case(case).unwrap();
         assert_eq!(projections[0].visible_event_ids, vec!["e1"]);
         assert_eq!(projections[1].visible_event_ids, vec!["e1", "e2"]);
@@ -630,7 +663,11 @@ mod tests {
         let case = &corpus.cases[9];
         let original = project_case(case).unwrap();
         let mut mutated = case.clone();
-        let late = mutated.events.iter_mut().find(|event| event.event_id == "e1").unwrap();
+        let late = mutated
+            .events
+            .iter_mut()
+            .find(|event| event.event_id == "e1")
+            .unwrap();
         late.event_type = "DIFFERENT_FUTURE_PAYLOAD".into();
         let changed = project_case(&mutated).unwrap();
         assert_eq!(original[0], changed[0]);
@@ -651,7 +688,10 @@ mod tests {
         let mut cycle = case.events.clone();
         cycle[0].observed_at_ms = cycle[1].observed_at_ms;
         cycle[0].supersedes_event_id = Some("e2".into());
-        assert_eq!(normalize_events(&cycle).unwrap_err(), "supersession_cycle_detected");
+        assert_eq!(
+            normalize_events(&cycle).unwrap_err(),
+            "supersession_cycle_detected"
+        );
     }
 
     #[test]
