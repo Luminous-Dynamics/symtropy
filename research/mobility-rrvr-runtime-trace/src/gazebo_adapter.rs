@@ -449,7 +449,8 @@ pub trait GazeboSimulationTransport {
     ) -> Result<GazeboTargetBinding, Self::Error>;
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct GazeboDispatchRequest {
     pub plan_sha256: String,
     pub campaign_id: String,
