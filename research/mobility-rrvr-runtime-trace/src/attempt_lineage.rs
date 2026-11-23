@@ -289,6 +289,12 @@ fn validate_observer_claim<'a>(
         .as_ref()
         .ok_or(LineageError::ObserverQuorumUnqualified)?;
 
+    let expected_claim_scope_sha256 = claim_scope_digest(
+        expected_domain,
+        claim_id,
+        expected_asserted_value,
+        expected_scope,
+    );
     if evidence.domain != expected_domain
         || evidence.status != OwnerEvidenceStatus::QuorumQualified
         || evidence.asserted_value != expected_asserted_value
@@ -299,13 +305,7 @@ fn validate_observer_claim<'a>(
         || !nonempty(&evidence.raw_artifact_id)
         || !valid_sha256(&evidence.raw_artifact_sha256)
         || quorum.fault_model_revision != fault_profile_revision
-        || claim_scope_sha256
-            != claim_scope_digest(
-                expected_domain,
-                claim_id,
-                expected_asserted_value,
-                expected_scope,
-            )
+        || claim_scope_sha256 != expected_claim_scope_sha256
     {
         return Err(LineageError::ObserverClaimMismatch);
     }
