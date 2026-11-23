@@ -329,7 +329,10 @@ fn validate_query_universe(case: &DiscoveryCase) -> Result<(), String> {
             .values()
             .any(|outcome| !valid_id(outcome))
         {
-            return Err(format!("query {} contains an invalid observable outcome ID", query.query_id));
+            return Err(format!(
+                "query {} contains an invalid observable outcome ID",
+                query.query_id
+            ));
         }
     }
 
@@ -347,7 +350,11 @@ fn empty_case_result(case: &DiscoveryCase, status: &str, base_status: &str) -> C
         case_id: case.case_id.clone(),
         status: status.to_owned(),
         base_feasibility_status: base_status.to_owned(),
-        compatible_world_ids_sha256: case.base_decision.compatible_world_set.world_ids_sha256.clone(),
+        compatible_world_ids_sha256: case
+            .base_decision
+            .compatible_world_set
+            .world_ids_sha256
+            .clone(),
         action_ids_sha256: case.base_decision.action_universe.expected_action_ids_sha256.clone(),
         scenario_manifest_sha256: case.base_decision.scenario_manifest.scenarios_sha256.clone(),
         query_universe_receipt_id: case.query_universe.source_receipt_id.clone(),
@@ -407,7 +414,9 @@ fn common_feasible_actions(
             scenario
                 .action_outcomes
                 .get(action_id)
-                .is_some_and(|outcome| outcome.feasibility_status == "feasible" && outcome.loss.is_some())
+                .is_some_and(|outcome| {
+                    outcome.feasibility_status == "feasible" && outcome.loss.is_some()
+                })
         });
     }
 
@@ -438,7 +447,10 @@ fn policy_identifier(
     Ok(sha256_hex(&bytes))
 }
 
-fn signed_difference(baseline: &Rational, candidate: &Rational) -> Result<SignedDifference, String> {
+fn signed_difference(
+    baseline: &Rational,
+    candidate: &Rational,
+) -> Result<SignedDifference, String> {
     match baseline.compare_exact(candidate) {
         Ordering::Greater => Ok(SignedDifference {
             direction: "positive_improvement".to_owned(),
@@ -570,7 +582,12 @@ fn build_policy(
         let outcome = scenario
             .action_outcomes
             .get(action_id)
-            .ok_or_else(|| format!("policy action {action_id} missing from scenario {}", scenario.scenario_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "policy action {action_id} missing from scenario {}",
+                    scenario.scenario_id
+                )
+            })?;
         if outcome.feasibility_status != "feasible" {
             return Err(format!(
                 "policy action {} is not feasible in scenario {}",
@@ -1090,7 +1107,12 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(!query_policy_ids.is_empty());
         for policy_id in query_policy_ids {
-            assert!(!result.policy_pareto_frontier_ids.iter().any(|frontier| frontier == policy_id));
+            assert!(
+                !result
+                    .policy_pareto_frontier_ids
+                    .iter()
+                    .any(|frontier| frontier == policy_id)
+            );
         }
     }
 
