@@ -338,3 +338,16 @@ A new SymPy parameter-map verifier has been committed and exact-public-source re
 Artifacts: derive_ma_lu_equal_spin_parameter_map.py, ma_lu_equal_spin_parameter_map_v1.json, ma_lu_equal_spin_parameter_map_v1.md, and ma_lu_equal_spin_parameter_map_replay_v1.json.
 
 The candidate first-coupling conversion alpha_R=alpha_GB/4 is supported by the Ricci-flat Euler-tensor identity in the accompanying note, but the corrected metric/gauge map is still open.
+
+
+## Ma--Lü Ricci-flat source identity and perturbative validity (23 November 2026)
+
+The first-coupling field-equation source identity is now derived: the Gauss--Bonnet Euler tensor and the Riemann-squared Euler tensor reduce to the same algebraic tensor on a Ricci-flat MP background. The Ma--Lü double-divergence term vanishes by the contracted Bianchi identity. With Symtropy's \(R+\alpha_{GB}\mathcal L_{GB}/4\) and Ma--Lü's \(R+\alpha_R Riemann^2\), the matched first-order normalization is \(\alpha_R=\alpha_{GB}/4\), or \(\epsilon_R=\lambda/4\) at the same horizon radius.
+
+Artifacts:
+- ma_lu_ricci_flat_euler_identity_v1.md
+- ma_lu_ricci_flat_euler_identity_v1.json
+
+The Ma--Lü equal-spin kinematic map has also been replayed from its exact public source blob (Git blob SHA-1 5d17da9c52e0668d699d591c608a5bc18eb98efc, SHA-256 dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3); its inverse series passes through \(\nu^{11}\). The paper's printed \(\chi=a/\mu\) is retained literally, with a dimensional-convention caveat. The quantities \(q=a/r_h\) and \(\nu=\Omega_Hr_h\) agree only at leading slow-spin order.
+
+A new task, [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955), covers perturbative spin-uniformity. Wu--Lü, PRD 111, 104026 (2025), find rotation-dependent divergences in first-order quadratic-curvature thermodynamic corrections across ensembles, while cautioning that these may be perturbative artifacts rather than nonexistence in the full nonlinear theory. Therefore the Ma--Lü spin-series truncation error and coupling truncation error \(O(\epsilon_R^2)\) must be tracked separately. The metric/gauge comparison and thermodynamic matching remain open.
