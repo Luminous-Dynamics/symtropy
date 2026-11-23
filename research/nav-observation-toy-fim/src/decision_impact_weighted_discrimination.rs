@@ -23,6 +23,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::active_evidence_reliability::AdmittedAcquisitionReliability;
+use crate::active_evidence_reliability_planner::ReliableActiveEvidencePlan;
 use crate::decision_relevant_discrimination::{
     DecisionProjectionDisposition, DecisionRelevantDiscriminationReport,
 };
@@ -90,6 +91,8 @@ pub struct DecisionImpactWeightedAssessment {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReliableDecisionImpactAssessment {
     pub action_id: u64,
+    pub domain_fingerprint_sha256: [u8; SHA256_BYTES],
+    pub acquisition_protocol_sha256: [u8; SHA256_BYTES],
     pub decision_partition_sha256: [u8; SHA256_BYTES],
     pub impact_model_sha256: [u8; SHA256_BYTES],
     pub admitted_acquisition_probability_lower_bound: f64,
@@ -420,17 +423,34 @@ pub fn assess_decision_impact_weighted_discrimination(
     })
 }
 
-/// Compose a consequence-weighted conditional score with an already admitted
-/// valid-acquisition probability interval. The probability contract remains
-/// externally estimated and must be admitted by the existing reliability gate.
+/// Compose a consequence-weighted conditional score with the matching
+/// action-specific record in the #7165 reliability-aware plan. This keeps the
+/// plan's domain/protocol commitments and the admitted record's source/cohort/
+//// method commitments together in the resulting assessment. The probability
+/// method and campaign independence remain externally qualified inputs.
 pub fn apply_acquisition_reliability_to_decision_impact(
     assessment: &DecisionImpactWeightedAssessment,
-    reliability: &AdmittedAcquisitionReliability,
+    reliability_plan: &ReliableActiveEvidencePlan,
 ) -> Result<ReliableDecisionImpactAssessment, DecisionImpactError> {
-    if assessment.action_id == 0 || reliability.action_id == 0 {
+    if assessment.action_id == 0
+        || reliability_plan.expected_domain_fingerprint_sha256.iter().all(|byte| *byte == 0)
+        || reliability_plan.expected_acquisition_protocol_sha256.iter().all(|byte| *byte == 0)
+    {
         return Err(DecisionImpactError::InvalidReport);
     }
-    if assessment.action_id != reliability.action_id {
+
+    let mut matching = reliability_plan
+        .pareto_frontier
+        .iter()
+        .filter(|item| item.conditional.action.action_id == assessment.action_id);
+    let selected = matching
+        .next()
+        .ok_or(DecisionImpactError::ActionIdentityMismatch)?;
+    if matching.next().is_some() {
+        return Err(DecisionImpactError::InvalidReliabilityContract);
+    }
+    let reliability = &selected.reliability;
+    if reliability.action_id != assessment.action_id {
         return Err(DecisionImpactError::ActionIdentityMismatch);
     }
     validate_admitted_reliability(reliability)?;
@@ -446,6 +466,8 @@ pub fn apply_acquisition_reliability_to_decision_impact(
 
     Ok(ReliableDecisionImpactAssessment {
         action_id: assessment.action_id,
+        domain_fingerprint_sha256: reliability_plan.expected_domain_fingerprint_sha256,
+        acquisition_protocol_sha256: reliability_plan.expected_acquisition_protocol_sha256,
         decision_partition_sha256: assessment.decision_partition_sha256,
         impact_model_sha256: assessment.impact_model_sha256,
         admitted_acquisition_probability_lower_bound: reliability.probability_lower_bound,
@@ -513,8 +535,13 @@ fn canonical_class_pair(a: u64, b: u64) -> (u64, u64) {
 mod tests {
     use super::*;
     use crate::active_evidence_reliability::AdmittedAcquisitionReliability;
+    use crate::active_evidence_acquisition::{EvidenceActionAssessment, EvidenceActionKind};
+    use crate::active_evidence_decision_planner::EvidenceActionDecisionAssessment;
+    use crate::active_evidence_reliability_planner::{
+        ReliableActiveEvidencePlan, ReliableEvidenceActionAssessment, ReliableEvidencePlanReason,
+    };
     use crate::decision_relevant_discrimination::{
-        DecisionRelevantPairSeparation, HypothesisDecisionAssignment,
+        DecisionProjectionDisposition, DecisionRelevantPairSeparation, HypothesisDecisionAssignment,
     };
 
     fn report_for_class_sizes(
@@ -562,9 +589,8 @@ mod tests {
         }
         let same_pairs = class_sizes
             .iter()
-            .map(|(_, count)| count * (count.saturating_sub(1)) / 2)
+            .map(|(_, count)| *count * count.saturating_sub(1) / 2)
             .sum::<usize>();
-        let total_pairs = assignments.len() * assignments.len().saturating_sub(1) / 2;
         let separated_count = pairs.iter().filter(|pair| pair.guaranteed_distinguishable).count();
         let ambiguous_count = pairs.len() - separated_count;
 
@@ -625,6 +651,52 @@ mod tests {
             source_manifest_sha256: [0x61; 32],
             calibration_cohort_sha256: [0x62; 32],
             bound_method_sha256: [0x63; 32],
+        }
+    }
+
+    fn reliable_plan(action_id: u64, lower: f64, upper: f64) -> ReliableActiveEvidencePlan {
+        ReliableActiveEvidencePlan {
+            reason: ReliableEvidencePlanReason::BestExpectedDecisionResolution,
+            expected_domain_fingerprint_sha256: [0x11; 32],
+            expected_acquisition_protocol_sha256: [0x22; 32],
+            recommended_action_id: Some(action_id),
+            pareto_frontier: vec![ReliableEvidenceActionAssessment {
+                conditional: EvidenceActionDecisionAssessment {
+                    action: EvidenceActionAssessment {
+                        action_id,
+                        kind: EvidenceActionKind::AcquireCir,
+                        dependency_group_id: 9,
+                        conditional_post_action_protection_level_upper_m: 0.5,
+                        guaranteed_protection_level_reduction_m: 0.5,
+                        worst_case_latency_ns: 100,
+                        worst_case_energy_uj: 200,
+                        reaches_target_if_acquisition_qualifies: false,
+                    },
+                    conditional_protection_level_delta_m: 0.5,
+                    decision_class_count: 2,
+                    same_decision_hypothesis_pair_count: 0,
+                    decision_incompatible_hypothesis_pair_count: 2,
+                    distinguishable_decision_pair_count: 1,
+                    ambiguous_decision_pair_count: 1,
+                    disposition: DecisionProjectionDisposition::DecisionAmbiguityRemains,
+                    minimum_positive_normalized_gap: Some(0.25),
+                    outcome_model_sha256: [0x21; 32],
+                    normalization_sha256: [0x31; 32],
+                    separated_decision_hypothesis_pairs: vec![(1, 2)],
+                    unresolved_decision_hypothesis_pairs: vec![(1, 3)],
+                },
+                reliability: reliability(action_id, lower, upper),
+                expected_decision_pair_yield_lower_bound: lower,
+                expected_decision_pair_yield_upper_bound: upper,
+                expected_protection_level_reduction_lower_bound_m: lower * 0.5,
+                expected_protection_level_reduction_upper_bound_m: upper * 0.5,
+            }],
+            reliability_rejections: Vec::new(),
+            hypothesis_inventory_sha256: Some([0x41; 32]),
+            decision_partition_sha256: Some([0x44; 32]),
+            decision_assignments: None,
+            conditional_target_reached: false,
+            authority_transition_not_authorized_by_plan: true,
         }
     }
 
@@ -771,7 +843,7 @@ mod tests {
         // One of two hypothesis pairs is distinguishable: conditional score 0.5.
         let result = apply_acquisition_reliability_to_decision_impact(
             &conditional,
-            &reliability(7, 0.5, 0.8),
+            &reliable_plan(7, 0.5, 0.8),
         )
         .unwrap();
         assert_eq!(result.expected_resolved_impact_fraction_lower_bound, 0.25);
@@ -790,11 +862,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            apply_acquisition_reliability_to_decision_impact(&conditional, &reliability(8, 0.5, 0.8)),
+            apply_acquisition_reliability_to_decision_impact(&conditional, &reliable_plan(8, 0.5, 0.8)),
             Err(DecisionImpactError::ActionIdentityMismatch)
         );
         assert_eq!(
-            apply_acquisition_reliability_to_decision_impact(&conditional, &reliability(7, 0.9, 0.8)),
+            apply_acquisition_reliability_to_decision_impact(&conditional, &reliable_plan(7, 0.9, 0.8)),
             Err(DecisionImpactError::InvalidReliabilityContract)
         );
     }
