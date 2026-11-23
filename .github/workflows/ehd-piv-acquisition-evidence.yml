@@ -1,0 +1,43 @@
+name: EHD-PIV acquisition evidence verifier
+
+on:
+  pull_request:
+    paths:
+      - "tools/ehd-piv-acquisition-evidence/**"
+      - "data/research/ehd_piv_acquisition_manifest_example_v0_1.json"
+      - ".github/workflows/ehd-piv-acquisition-evidence.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/ehd-piv-acquisition-evidence/**"
+      - "data/research/ehd_piv_acquisition_manifest_example_v0_1.json"
+      - ".github/workflows/ehd-piv-acquisition-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ehd-piv-acquisition-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Rust verifier (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Format
+        run: cargo fmt --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml -- --check
+      - name: Unit tests
+        run: cargo test --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/ehd-piv-acquisition-evidence/Cargo.toml --all-targets -- -D warnings
