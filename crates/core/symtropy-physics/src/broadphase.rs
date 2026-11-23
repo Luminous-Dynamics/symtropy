@@ -775,18 +775,8 @@ mod tests {
                 Point::new([0.5, 0.0, 0.0]),
                 Box::new(Sphere::unit()),
             ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(2),
-                Point::new([1.25, 0.0, 0.0]),
-                1.0,
-                1.0,
-            ),
-            RigidBody::<3>::dynamic_sphere(
-                BodyHandle(3),
-                Point::new([3.0, 0.0, 0.0]),
-                1.0,
-                1.0,
-            ),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([1.25, 0.0, 0.0]), 1.0, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(3), Point::new([3.0, 0.0, 0.0]), 1.0, 1.0),
         ];
         // Bodies 0/1 use group 1, so body 2 is filtered from them. Bodies
         // 2/3 share group 2 and still overlap, exercising an accepted pair.
