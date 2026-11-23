@@ -146,7 +146,20 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
+          jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json '
+            . as $input
+            | ($schema[0].required | sort) as $required
+            | (($input | keys | sort) == $required)
+            and all($input.aerial_opportunity_qualifications[];
+              (. | keys | sort) == ["evidence", "max_payload_units", "opportunity_id"]
+              and ((.evidence | keys | sort) == ["aircraft_id", "architecture_configuration_digest", "evidence_class", "evidence_reference", "method_id", "observed_at_seconds", "producer_id", "valid_from_seconds", "valid_until_seconds"])
+            )
+            and all($input.aerial_opportunity_qualifications[]; has("opportunity_id") and (has("aircraft_id") | not) and (has("start_seconds") | not) and (has("mission_duration_seconds") | not) and (has("turnaround_seconds") | not))
+          ' tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
           jq -e --slurpfile schema tools/ev-passenger-cost-frontier/schemas/battery_charge_queue_v0_1.schema.json '
+
             . as $queue
             | ($schema[0].required | sort) as $root_required
             | ($schema[0]["$defs"].job.required | sort) as $job_required
@@ -520,7 +533,7 @@ jobs:
             and all(.architecture_results[]; .claim_ceiling | length > 0)
           ' sustainable-mobility-service-capacity-report.json
           cat sustainable-mobility-service-capacity-report.json
-          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- --legacy \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json \
             > sustainable-mobility-service-quality-report.json
           jq -e '
@@ -551,6 +564,34 @@ jobs:
             and all(.policy_results[]; .claim_ceiling | length > 0)
           ' sustainable-mobility-service-quality-report.json
           cat sustainable-mobility-service-quality-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json \
+            > sustainable-mobility-service-quality-linked-report.json
+          jq -e --slurpfile capacity sustainable-mobility-service-capacity-report.json '
+            .benchmark_id == "SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001"
+            and .horizon_seconds == 28800
+            and .service_quality_is_physical_performance_claim == false
+            and .capacity_source_architecture_id == "fixed_dock4_reference_profile"
+            and .capacity_opportunities_in_source == 38
+            and .capacity_opportunities_qualified == 7
+            and (.capacity_source_report_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.capacity_service_opportunity_digest | test("^sha256:[0-9a-f]{64}$"))
+            and .capacity_architecture_configuration_digest == "sha256:090dc6e97d0cf64936d64749e05a5041a474eb3fe8712fb1247eeaaf09db8024"
+            and (.policy_results | length) == 2
+            and ([.policy_results[] | select(.policy == "first_come_first_served") | .offered_requests, .accepted_requests, .rejected_requests, .completed_on_time, .completed_late, .unserved_requests] == [12,11,1,6,2,3])
+            and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .offered_requests, .accepted_requests, .rejected_requests, .completed_on_time, .completed_late, .unserved_requests] == [12,11,1,7,1,3])
+            and ([.policy_results[] | select(.policy == "first_come_first_served") | .served_by_aerial, .served_by_fallback] == [4,4])
+            and ([.policy_results[] | select(.policy == "earliest_deadline_first") | .served_by_aerial, .served_by_fallback] == [4,4])
+            and all(.policy_results[]; .served_by_aerial + .served_by_fallback == .completed_on_time + .completed_late)
+            and all(.policy_results[].outcomes[] | select(.fulfilment_mode == "aerial");
+              . as $outcome
+              | any($capacity[0].architecture_results[] | select(.architecture_id == "fixed_dock4_reference_profile") | .service_opportunities[];
+                  .opportunity_id == $outcome.opportunity_id and .start_seconds == $outcome.service_start_seconds)
+            )
+            and all(.policy_results[]; .claim_ceiling | length > 0)
+          ' sustainable-mobility-service-quality-linked-report.json
+          cat sustainable-mobility-service-quality-linked-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -596,6 +637,9 @@ jobs:
             docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
             sustainable-mobility-service-capacity-report.json \
             tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_quality.rs \
+            tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json \
+            sustainable-mobility-service-quality-linked-report.json \
             tools/ev-passenger-cost-frontier/src/bin/sustainable_mobility_service_quality_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json \
@@ -644,6 +688,9 @@ jobs:
             mobility-commitment-journal-report.json
             sustainable-mobility-service-capacity-report.json
             sustainable-mobility-service-quality-report.json
+            sustainable-mobility-service-quality-linked-report.json
+            tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json
             docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md
