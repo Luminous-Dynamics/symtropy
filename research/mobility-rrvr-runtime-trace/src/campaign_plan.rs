@@ -617,6 +617,7 @@ mod tests {
                 scenario.faults.swap(0, 1);
                 for (index, fault) in scenario.faults.iter_mut().enumerate() {
                     fault.sequence = index as u32 + 1;
+                    fault.scheduled_simulation_step = (index as u64 + 1) * 100;
                 }
             }
         }
