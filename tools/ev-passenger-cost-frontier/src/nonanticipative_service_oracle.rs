@@ -1836,12 +1836,12 @@ mod tests {
             .expect("high")
             .request_reveals[0]
             .clone();
-        let low = tree
+        let high = tree
             .nodes
             .iter_mut()
-            .find(|node| node.node_id == "low-demand")
-            .expect("low");
-        low.request_reveals.push(repeated);
+            .find(|node| node.node_id == "high-demand")
+            .expect("high");
+        high.request_reveals.push(repeated);
         let errors =
             evaluate_nonanticipative_service_oracle(&tree, &linked_fixture(), &capacity_fixture())
                 .expect_err("same request re-revealed on one path");
