@@ -402,3 +402,14 @@ Added exact-source verifier: verify_ma_lu_equal_spin_thermodynamic_charge_series
 Do not claim total fixed-boundary mass to \(\nu_S^{10}\): the high-order fixed-boundary \(H_2/H_4/H_7\) reparameterization remains open. The \(\nu_S^{10}\) statement applies to the standalone \(\alpha_R\Delta M\) observable after the zero-coupling spin conversion.
 
 The benchmark landscape and scorecard now distinguish Ma–Lü's tenth-order perturbative spin series from Symtropy's current equal-spin metric/row match through \(O(\chi^2)\). Current evidence demonstrates an independent reproduction/qualification step, not a metric-order SOTA win.
+
+## Fixed-charge Gibbs thermodynamic identity — exact equal-spin result through spin tenth order
+
+The publisher's Eqs. (3.20)-(3.26) have been specialized to equal spins in verify_ma_lu_equal_spin_fixed_charge_thermodynamics.py. The exact public script blob SHA-1 is 9fab7f906d066df8b9c1468521d95e0d25f9ea44 and SHA-256 is 012bac1a59e38d7b09782a231e75aef2809a2f9849835ebd1c06d7b86072f5e5; it was replayed locally under Python 3.13.5 / SymPy 1.14.0.
+
+At fixed conserved M,J_a,J_b, the equal-spin Gibbs correction obeys:
+DeltaG = -S0*DeltaT - T0*DeltaS - 2*J0*DeltaOmega.
+
+The exact series residual is zero through spin tenth order (first unchecked coefficient at q^12). Parameter shifts, DeltaT, DeltaS, DeltaOmega and DeltaG specializations pass, along with negative controls for omitting one angular plane and using the wrong entropy prefactor. The publisher Eq. (3.23) entropy prefactor is 9*pi^2*sqrt(mu)/sqrt(2).
+
+Claim ceiling: independent consistency check of the published equal-spin thermodynamic formulas, not a first-principles derivation of the complete differential-form first law from the metric, and not finite coupling.
