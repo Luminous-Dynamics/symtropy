@@ -49,10 +49,10 @@ impl Evidence {
         if self.source_uri.trim().is_empty() {
             return Err("evidence source_uri must not be empty".into());
         }
-        if let Some(digest) = &self.raw_sha256 {
-            if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()) {
-                return Err("raw_sha256 must be exactly 64 hexadecimal characters".into());
-            }
+        if let Some(digest) = &self.raw_sha256
+            && (digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()))
+        {
+            return Err("raw_sha256 must be exactly 64 hexadecimal characters".into());
         }
         Ok(())
     }
