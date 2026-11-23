@@ -543,7 +543,10 @@ pub fn select_exact_contact_subset(
         0,
         &mut current_ids,
         &mut |ids| {
-            if required_ids.iter().any(|required| !ids.iter().any(|id| id == required)) {
+            if required_ids
+                .iter()
+                .any(|required| !ids.iter().any(|id| id.as_str() == *required))
+            {
                 return Ok(());
             }
             let mut candidate =
@@ -598,6 +601,12 @@ pub fn select_greedy_contact_subset(
     }
 
     let mut selected = required_ids;
+    if selected.len() == config.keep {
+        let mut report =
+            evaluate_retained_contact_set(model, &selected, directions, support_floor)?;
+        report.contact_sets_evaluated = 1;
+        return Ok(report);
+    }
     let mut evaluations = 0_u64;
     let mut selected_report = None;
     while selected.len() < config.keep {
@@ -863,6 +872,93 @@ mod tests {
         assert!(
             evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0])).is_err()
         );
+    }
+
+    fn wrench_patch() -> ContactWrenchModel {
+        ContactWrenchModel {
+            contacts: vec![
+                contact("bottom-left", [-1.0, -1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+                contact("bottom-right", [1.0, -1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+                contact("top-left", [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+                contact("top-right", [1.0, 1.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+            ],
+            cone_sides: 8,
+            characteristic_length: 1.0,
+        }
+    }
+
+    fn moment_directions() -> Vec<WrenchDirection> {
+        vec![
+            direction("mx-positive", [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
+            direction("mx-negative", [0.0, 0.0, 0.0, -1.0, 0.0, 0.0]),
+        ]
+    }
+
+    #[test]
+    fn general_exact_selector_preserves_both_moment_extremes() {
+        let report = select_exact_contact_subset(
+            &wrench_patch(),
+            &moment_directions(),
+            1.0e-9,
+            ExactContactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("exact two-contact subset");
+        assert_eq!(report.maximum_normalized_deficit, 0.0);
+        assert!(report.retained_contact_ids.iter().any(|id| id.starts_with("top-")));
+        assert!(report.retained_contact_ids.iter().any(|id| id.starts_with("bottom-")));
+        assert_eq!(report.contact_sets_evaluated, 6);
+        assert_eq!(report.support_evaluations, 24);
+    }
+
+    #[test]
+    fn general_greedy_selector_reports_measured_deficit_against_full_patch() {
+        let report = select_greedy_contact_subset(
+            &wrench_patch(),
+            &moment_directions(),
+            1.0e-9,
+            GreedyContactSelectorConfig {
+                keep: 1,
+                maximum_evaluations: 10,
+            },
+        )
+        .expect("greedy one-contact subset");
+        assert!(report.maximum_normalized_deficit > 0.0);
+        assert_eq!(report.contact_sets_evaluated, 4);
+        assert_eq!(report.support_evaluations, 16);
+    }
+
+    #[test]
+    fn mandatory_minimum_load_contact_cannot_be_removed() {
+        let model = ContactWrenchModel {
+            contacts: vec![
+                contact("mandatory", [0.0; 3], [0.0, 0.0, 1.0], 0.0, 0.0, 0.2, 1.0),
+                contact("optional", [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0, 0.0, 1.0),
+            ],
+            cone_sides: 8,
+            characteristic_length: 1.0,
+        };
+        assert!(evaluate_retained_contact_set(
+            &model,
+            &["optional".into()],
+            &moment_directions(),
+            1.0e-9,
+        )
+        .is_err());
+        let report = select_exact_contact_subset(
+            &model,
+            &moment_directions(),
+            1.0e-9,
+            ExactContactSelectorConfig {
+                keep: 1,
+                maximum_subsets: 10,
+            },
+        )
+        .expect("mandatory-contact feasible subset");
+        assert_eq!(report.retained_contact_ids, vec!["mandatory"]);
+        assert_eq!(report.contact_sets_evaluated, 1);
     }
 
     #[test]
