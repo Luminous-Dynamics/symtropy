@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mobility-rrvr-compiled-campaign-plan-v0.1.json",
+  "title": "Compiled RRVR Fault Campaign Plan v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "canonicalization",
+    "campaign_id",
+    "source_manifest_sha256",
+    "fault_model_revision",
+    "fault_model_sha256",
+    "platform",
+    "reset",
+    "required_layers",
+    "required_cut_points",
+    "pairs",
+    "scenarios",
+    "plan_sha256"
+  ],
+  "properties": {
+    "version": {
+      "const": "0.1"
+    },
+    "canonicalization": {
+      "const": "serde-json-value-sorted-keys-v0.1"
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "fault_model_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fault_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "platform": {
+      "$ref": "#/$defs/platform"
+    },
+    "reset": {
+      "$ref": "#/$defs/reset"
+    },
+    "required_layers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/fault_layer"
+      }
+    },
+    "required_cut_points": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/cut_point"
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "plan_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "fault_layer": {
+      "enum": [
+        "process",
+        "ros_runtime",
+        "middleware",
+        "controller",
+        "driver",
+        "firmware",
+        "actuator",
+        "observer",
+        "persistence",
+        "mission",
+        "native_authority"
+      ]
+    },
+    "cut_point": {
+      "enum": [
+        "after_effect_reservation",
+        "after_native_acceptance_before_effect",
+        "after_possible_effect_before_persistence_ack",
+        "after_persistence_ack_before_observation",
+        "after_observation_before_controller_fence",
+        "after_controller_fence_before_downstream_fence",
+        "after_permit_consumption_before_ack",
+        "during_restart_recovery",
+        "after_second_attempt_possible_effect"
+      ]
+    },
+    "fault_kind": {
+      "enum": [
+        "process_crash",
+        "controller_restart",
+        "message_drop",
+        "message_delay",
+        "message_duplicate",
+        "message_reorder",
+        "queue_retention",
+        "stale_epoch",
+        "power_loss",
+        "clock_reset",
+        "observer_loss",
+        "common_cause_failure",
+        "artifact_replay",
+        "persistence_ambiguity",
+        "partial_effect",
+        "permit_replay"
+      ]
+    },
+    "arm": {
+      "enum": [
+        "last_attempt_only",
+        "flat_history",
+        "owner_receipts",
+        "full_rrvr"
+      ]
+    },
+    "control_class": {
+      "enum": [
+        "positive",
+        "negative",
+        "mutation"
+      ]
+    },
+    "disposition": {
+      "enum": [
+        "admit",
+        "hold",
+        "block",
+        "measure"
+      ]
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "platform_profile_sha256",
+        "environment_artifact_sha256",
+        "simulator_revision",
+        "ros_distribution",
+        "middleware_revision",
+        "controller_revision",
+        "driver_revision",
+        "firmware_revision",
+        "calibration_revision",
+        "observer_stack_revision",
+        "fault_injector_revision",
+        "fault_injector_sha256",
+        "native_adapter_revision",
+        "runtime_monitor_revision"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "simulator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ros_distribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "middleware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "driver_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observer_stack_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_injector_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "native_adapter_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_monitor_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "revision",
+        "profile_sha256",
+        "expected_initial_state_sha256",
+        "post_reset_observation_id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "cold_start",
+            "process_restart",
+            "controller_reset",
+            "simulator_snapshot_restore",
+            "hardware_power_cycle"
+          ]
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expected_initial_state_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "post_reset_observation_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "pair_commitment_sha256",
+        "scenario_ids",
+        "arms"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pair_commitment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scenario_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "arms": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/arm"
+          }
+        }
+      }
+    },
+    "fault_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "fault_id",
+        "cut_point",
+        "target_layer",
+        "target_component_id",
+        "fault_domain_id",
+        "kind",
+        "parameters_sha256"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "fault_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cut_point": {
+          "$ref": "#/$defs/cut_point"
+        },
+        "target_layer": {
+          "$ref": "#/$defs/fault_layer"
+        },
+        "target_component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/fault_kind"
+        },
+        "parameters_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "pair_id",
+        "arm",
+        "control_class",
+        "task_id",
+        "policy_id",
+        "policy_sha256",
+        "scene_sha256",
+        "action_prefix_sha256",
+        "seed",
+        "logical_effect_id",
+        "pair_commitment_sha256",
+        "schedule_sha256",
+        "fault_events",
+        "expected_disposition",
+        "expected_reason_code",
+        "invariant_id",
+        "failure_signature_sha256"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arm": {
+          "$ref": "#/$defs/arm"
+        },
+        "control_class": {
+          "$ref": "#/$defs/control_class"
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scene_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_prefix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "logical_effect_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pair_commitment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "schedule_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "fault_events": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/fault_event"
+          }
+        },
+        "expected_disposition": {
+          "$ref": "#/$defs/disposition"
+        },
+        "expected_reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "invariant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_signature_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
