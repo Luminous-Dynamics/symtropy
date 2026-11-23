@@ -41,7 +41,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-001-task_only",
       "raw_episode_sha256": "7171717171717171717171717171717171717171717171717171717171717171",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-001-task_only",
-      "raw_trace_sha256": "8181818181818181818181818181818181818181818181818181818181818181"
+      "raw_trace_sha256": "8181818181818181818181818181818181818181818181818181818181818181",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-001-restart_only",
@@ -85,7 +92,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-001-restart_only",
       "raw_episode_sha256": "7272727272727272727272727272727272727272727272727272727272727272",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-001-restart_only",
-      "raw_trace_sha256": "8282828282828282828282828282828282828282828282828282828282828282"
+      "raw_trace_sha256": "8282828282828282828282828282828282828282828282828282828282828282",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-001-logging_only",
@@ -129,7 +143,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-001-logging_only",
       "raw_episode_sha256": "7373737373737373737373737373737373737373737373737373737373737373",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-001-logging_only",
-      "raw_trace_sha256": "8383838383838383838383838383838383838383838383838383838383838383"
+      "raw_trace_sha256": "8383838383838383838383838383838383838383838383838383838383838383",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-001-trace_only",
@@ -173,7 +194,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-001-trace_only",
       "raw_episode_sha256": "7474747474747474747474747474747474747474747474747474747474747474",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-001-trace_only",
-      "raw_trace_sha256": "8484848484848484848484848484848484848484848484848484848484848484"
+      "raw_trace_sha256": "8484848484848484848484848484848484848484848484848484848484848484",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-001-full_rrvr",
@@ -217,7 +245,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-001-full_rrvr",
       "raw_episode_sha256": "7575757575757575757575757575757575757575757575757575757575757575",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-001-full_rrvr",
-      "raw_trace_sha256": "8585858585858585858585858585858585858585858585858585858585858585"
+      "raw_trace_sha256": "8585858585858585858585858585858585858585858585858585858585858585",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-002-task_only",
@@ -257,7 +292,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-002-task_only",
       "raw_episode_sha256": "7676767676767676767676767676767676767676767676767676767676767676",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-002-task_only",
-      "raw_trace_sha256": "8686868686868686868686868686868686868686868686868686868686868686"
+      "raw_trace_sha256": "8686868686868686868686868686868686868686868686868686868686868686",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-002-restart_only",
@@ -301,7 +343,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-002-restart_only",
       "raw_episode_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-002-restart_only",
-      "raw_trace_sha256": "8787878787878787878787878787878787878787878787878787878787878787"
+      "raw_trace_sha256": "8787878787878787878787878787878787878787878787878787878787878787",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-002-logging_only",
@@ -345,7 +394,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-002-logging_only",
       "raw_episode_sha256": "7878787878787878787878787878787878787878787878787878787878787878",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-002-logging_only",
-      "raw_trace_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+      "raw_trace_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-002-trace_only",
@@ -389,7 +445,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-002-trace_only",
       "raw_episode_sha256": "7979797979797979797979797979797979797979797979797979797979797979",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-002-trace_only",
-      "raw_trace_sha256": "8989898989898989898989898989898989898989898989898989898989898989"
+      "raw_trace_sha256": "8989898989898989898989898989898989898989898989898989898989898989",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     },
     {
       "episode_id": "pair-kitchen-002-full_rrvr",
@@ -433,7 +496,14 @@
       "raw_episode_artifact_id": "raw-episode-pair-kitchen-002-full_rrvr",
       "raw_episode_sha256": "7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
       "raw_trace_artifact_id": "raw-trace-pair-kitchen-002-full_rrvr",
-      "raw_trace_sha256": "8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+      "raw_trace_sha256": "8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a",
+      "cluster_id": "kitchen-pick-place-family",
+      "host_benchmark_id": "robocasa-fixture",
+      "host_benchmark_revision": "2026.11-fixture",
+      "policy_wrapper_revision": "native-policy-wrapper-fixture-v1",
+      "safety_spec_revision": "safety-stl-fixture-v0.3",
+      "delivery_adjudicator_revision": "independent-delivery-adjudicator-v0.1",
+      "root_cause_adjudicator_revision": "independent-root-cause-labels-v0.1"
     }
   ]
 }
