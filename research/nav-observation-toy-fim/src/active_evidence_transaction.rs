@@ -29,6 +29,8 @@ pub enum EvidenceTransactionDisposition {
     ReadyForIndependentForecastAudit,
     HistoricalReplayOnly,
     TimeAssessmentMissing,
+    EvidenceBindingMissing,
+    EvidenceBindingMismatch,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -164,7 +166,7 @@ pub fn record_selected_evidence_outcome(
                         None,
                         false,
                     ),
-                    Some((policy, input))
+                    Some((_, input))
                         if input.result_id != binding.result_id
                             || input.source_manifest_sha256 != binding.source_manifest_sha256 =>
                     {
