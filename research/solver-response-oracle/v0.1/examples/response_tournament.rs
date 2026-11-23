@@ -42,13 +42,7 @@ fn snapshot(candidate: &str, reduced: bool) -> SolverResponseSnapshot {
         }
         .to_owned(),
         bodies: vec![
-            body(
-                "box",
-                linear_delta,
-                angular_delta,
-                impulse,
-                [0.0, 0.0, 0.5],
-            ),
+            body("box", linear_delta, angular_delta, impulse, [0.0, 0.0, 0.5]),
             body(
                 "ground",
                 [0.0; 3],
