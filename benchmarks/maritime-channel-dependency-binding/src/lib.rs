@@ -1601,6 +1601,8 @@ mod tests {
             result.findings[0].disposition,
             SeparationDisposition::NotApplicable
         );
+        assert!(result.findings[0].left_not_applicable);
+        assert_eq!(result.findings[0].right_known_count, 1);
     }
 
     #[test]
