@@ -17,7 +17,7 @@ For every record:
 - logical_effect_id is stable across the complete chain.
 - attempt_id is unique, and ordinal is contiguous from one.
 - The first attempt has no parent; each later attempt names exactly the immediately preceding attempt.
-- Every evidence receipt is scoped to the exact logical effect, attempt, and authorization boot/controller epochs.
+- Every domain uses the existing OwnerEvidenceRef: its domain, owner, revision, evidence ID, status/verdict, asserted value, exact logical-effect/attempt/boot/controller scope, and raw-artifact identity/digest are carried together. The asserted value must exactly equal the typed outcome; a quiescence assertion also includes the exact target child boot/controller epoch in that value.
 - Evidence IDs cannot be replayed elsewhere in the same lineage.
 - Both boot and controller epochs must strictly increase at each recovery edge.
 
