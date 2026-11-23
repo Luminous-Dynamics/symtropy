@@ -32,7 +32,7 @@ We report:
 - condition number against a case-declared limit;
 - nominal and finite-perturbation robust statuses.
 
-The information matrix is dimensionless and normalized. It is a geometric identifiability/conditioning diagnostic, not a Fisher-information claim under a calibrated noise distribution, and it is not a measurement covariance. The eigenvalues/condition number depend on the declared circle residual model and the sampled contour support.
+The information matrix is dimensionless and normalized. Signed off-diagonal terms are preserved in the fixed-point receipt. It is a geometric identifiability/conditioning diagnostic, not a Fisher-information claim under a calibrated noise distribution, and it is not a measurement covariance. The v0.1 relative-rank tolerance is 1e-7; the condition threshold is case-declared. Eigenvalues and condition number depend on the declared circle residual model and sampled contour support.
 
 ## 3. The paradigm shift
 
