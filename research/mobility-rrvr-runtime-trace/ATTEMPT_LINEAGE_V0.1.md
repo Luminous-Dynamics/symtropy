@@ -8,7 +8,7 @@
 
 The parent runtime projection v0.1 deliberately covers one original attempt and one recovery admission. It does not qualify the physical outcome of the recovery attempt or a second recovery cycle. This module addresses that gap as a separate, bounded reference contract: it consumes owner-issued per-attempt evidence records and verifies a linear history of up to 64 attempts for one stable logical effect.
 
-The key invariant is that a retry is an edge between two distinct attempts, not a repetition of an old command. The old attempt must be proven to have had no physical effect, its persistence result must be definitely not committed, and both the controller queue and every declared downstream execution-holding layer must have confirmed quiescence for the exact new boot/controller epoch.
+The key invariant is that a retry is an edge between two distinct attempts, not a repetition of an old command. The old attempt must be proven to have had no physical effect, its persistence result must be a resolved Committed or DefinitelyNotCommitted state, and both the controller queue and every declared downstream execution-holding layer must have confirmed quiescence for the exact new boot/controller epoch.
 
 ## Attempt-lineage rules
 
@@ -25,7 +25,7 @@ A parent can have a child only when all of these independently scoped facts hold
 
 1. Physical outcome is no_effect, with a confirmed physical-outcome verdict.
 2. Mission resolution is no_effect, with a confirmed mission verdict.
-3. Persistence is definitely_not_committed, with a confirmed persistence verdict.
+3. Persistence is either Committed or DefinitelyNotCommitted, with a confirmed persistence verdict; InFlight and IndeterminateCommit remain blocked.
 4. The controller-queue fence is quiescent, confirmed, and targets the exact child's boot/controller epoch.
 5. The downstream graph is independently reported quiescent, confirmed, and targets that same child epoch.
 
