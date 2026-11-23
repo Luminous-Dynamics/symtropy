@@ -410,3 +410,26 @@ The legacy one-file mode is retained explicitly with the --legacy flag for backw
 
 New dossier: docs/research/MOBILITY_CAPACITY_OPPORTUNITY_RECEIPT_CONSUMPTION_BENCHMARK_V0_1.md. Exact-head CI for this linked-consumer branch is pending; the source currently contains 24 focused tests, but no compile/test claim is made until the new workflow run completes.
 
+
+## Linked service quality: exact assignment oracle and horizon accounting
+
+The linked service-quality evaluator now distinguishes **completed on-time**, **completed late**, **in progress at horizon**, **unserved**, and **rejected after acceptance cutoff**. A service that starts but ends beyond the evaluation horizon has no service_completion_seconds or completed latency. Its projected completion is reported separately and it is not counted as delivered, late-completed or completed-requests/hour.
+
+Run the frozen bounded exact-oracle challenge:
+
+\`\`\`bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin sustainable_mobility_service_quality_screen -- \\
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json \\
+  tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
+\`\`\`
+
+The exact reference is deliberately bounded to at most 8 requests and 8 combined aerial/fallback opportunities, with a 1,000,000-node limit. Above the input bounds it returns not_run_bounds_exceeded; on node exhaustion it returns node_limit_reached. Neither status includes an optimum or policy regret. For an evaluated instance, the objective is lexicographic: maximize on-time completions; maximize total completed-by-horizon services; minimize cumulative lateness; minimize work left in progress at the cut-off; minimize completed-request latency; then apply a canonical ID tie-break. No arbitrary weighted scalar score or service-class weight is introduced.
+
+The two-request/two-opportunity frozen source-receipt challenge yields:
+- FCFS: one on-time and one late completion; 185 seconds cumulative deadline lateness.
+- EDF: two on-time completions; zero deadline lateness.
+- Exact oracle: same outcome as EDF on this tiny instance; FCFS loses one on-time completion and has 185 seconds of lateness excess.
+
+The full 12-request linked fixture has 7 qualified aerial plus 5 fallback opportunities, so the exact oracle explicitly abstains because it exceeds the 8-opportunity bound. The policy comparison remains FCFS vs EDF until a larger exact/DP/MILP baseline is separately qualified.
+
+The linked consumer still re-runs the capacity event simulator and derives aircraft/time/duration/turnaround only from source opportunity receipts. Exact oracle code: src/sustainable_mobility_service_quality.rs; bounded fixture: fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json; full linked fixture: fixtures/sustainable_mobility_service_quality_linked_v0_1.json; dossier: docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md.
