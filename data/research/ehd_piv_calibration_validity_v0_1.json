@@ -134,7 +134,8 @@
     "no authenticated receipt or custody verification",
     "no physical EHD experiment",
     "no physical passivity proof",
-    "no SOTA superiority claim"
+    "no SOTA superiority claim",
+    "no durable persistence or restart-safe replay ledger"
   ],
   "references": {
     "svgp_kan": "https://doi.org/10.1016/j.aitf.2026.100034",
@@ -145,5 +146,10 @@
     "piv_roadmap": "https://doi.org/10.1088/1361-6501/ad774b",
     "holodrops": "https://doi.org/10.5194/amt-19-6973-2026"
   },
-  "v0_tests_authored": 15
+  "v0_tests_authored": 15,
+  "required_production_adapter_controls": [
+    "persist_and_restore_append_only_evidence_ledger",
+    "authenticate_source_and_custody_receipts",
+    "verify_independent_cluster_graph"
+  ]
 }
