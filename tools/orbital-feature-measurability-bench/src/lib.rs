@@ -3,10 +3,8 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::f64::consts::PI;
 
-pub const CORPUS_SCHEMA: &str =
-    "luminous.orbital-feature-measurability.corpus.v0.1";
-pub const RECEIPT_SCHEMA: &str =
-    "luminous.orbital-feature-measurability.receipt.v0.1";
+pub const CORPUS_SCHEMA: &str = "luminous.orbital-feature-measurability.corpus.v0.1";
+pub const RECEIPT_SCHEMA: &str = "luminous.orbital-feature-measurability.receipt.v0.1";
 pub const BENCHMARK_ID: &str = "ORBITAL-FMQ-ANALYTIC-001";
 pub const FEATURE_MODEL: &str = "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS";
 const ANGLE_KEY_SCALE: f64 = 1_000_000.0;
@@ -113,10 +111,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn unique_angle_keys(
-    observations: &[Observation],
-    robust_only: bool,
-) -> Vec<i64> {
+fn unique_angle_keys(observations: &[Observation], robust_only: bool) -> Vec<i64> {
     let mut keys = BTreeSet::new();
     for observation in observations {
         let admitted = if robust_only {
@@ -165,10 +160,7 @@ fn symmetric_eigenvalues(matrix: [[f64; 3]; 3]) -> [f64; 3] {
     let p2 = (matrix[0][0] - q).powi(2)
         + (matrix[1][1] - q).powi(2)
         + (matrix[2][2] - q).powi(2)
-        + 2.0
-            * (matrix[0][1].powi(2)
-                + matrix[0][2].powi(2)
-                + matrix[1][2].powi(2));
+        + 2.0 * (matrix[0][1].powi(2) + matrix[0][2].powi(2) + matrix[1][2].powi(2));
     let p = (p2 / 6.0).sqrt();
     if p <= f64::EPSILON {
         return [q.max(0.0); 3];
@@ -213,10 +205,7 @@ fn quantize_signed(value: f64, scale: f64) -> Result<i64, String> {
     Ok(scaled as i64)
 }
 
-fn diagnostic(
-    case: &FeatureCase,
-    robust_only: bool,
-) -> Result<FeatureDiagnostic, String> {
+fn diagnostic(case: &FeatureCase, robust_only: bool) -> Result<FeatureDiagnostic, String> {
     let angle_keys = unique_angle_keys(&case.observations, robust_only);
     let observation_row_count = case
         .observations
@@ -263,8 +252,7 @@ fn diagnostic(
     let mut information_matrix_q1e9 = [[0_i64; 3]; 3];
     for i in 0..3 {
         for j in 0..3 {
-            information_matrix_q1e9[i][j] =
-                quantize_signed(matrix[i][j], MATRIX_SCALE)?;
+            information_matrix_q1e9[i][j] = quantize_signed(matrix[i][j], MATRIX_SCALE)?;
         }
     }
     let eigenvalues_q1e9 = [
@@ -286,10 +274,8 @@ fn diagnostic(
         eigenvalues_q1e9,
         numerical_rank,
         condition_number_q1e4,
-        max_condition_number_q1e4: quantize_nonnegative(
-            case.max_condition_number,
-            CONDITION_SCALE,
-        )? as u64,
+        max_condition_number_q1e4: quantize_nonnegative(case.max_condition_number, CONDITION_SCALE)?
+            as u64,
     })
 }
 
@@ -362,8 +348,7 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<CorpusReceipt, 
     if corpus.schema != CORPUS_SCHEMA
         || corpus.benchmark_id != BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
-        || corpus.claim_ceiling
-            != "synthetic_2d_circle_geometric_identifiability_only"
+        || corpus.claim_ceiling != "synthetic_2d_circle_geometric_identifiability_only"
         || corpus.cases.len() != 5
     {
         return Err("FEATURE_CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
@@ -442,7 +427,10 @@ mod tests {
         .unwrap();
         assert_eq!(result.nominal.numerical_rank, 3);
         assert_eq!(result.nominal.condition_number_q1e4, Some(20_000));
-        assert_eq!(result.nominal.eigenvalues_q1e9, [500_000_000, 500_000_000, 1_000_000_000]);
+        assert_eq!(
+            result.nominal.eigenvalues_q1e9,
+            [500_000_000, 500_000_000, 1_000_000_000]
+        );
         assert_eq!(result.disposition, CaseDisposition::Feasible);
     }
 
@@ -513,18 +501,30 @@ mod tests {
         let a = evaluate_case(&original).unwrap();
         let b = evaluate_case(&rotated).unwrap();
         assert_eq!(a.nominal.eigenvalues_q1e9, b.nominal.eigenvalues_q1e9);
-        assert_eq!(a.nominal.condition_number_q1e4, b.nominal.condition_number_q1e4);
+        assert_eq!(
+            a.nominal.condition_number_q1e4,
+            b.nominal.condition_number_q1e4
+        );
     }
 
     #[test]
     fn duplicate_observation_ids_are_rejected() {
-        let mut item = case(vec![
-            observation("DUP", 0.0, true, true),
-            observation("DUP", 90.0, true, true),
-            observation("O2", 180.0, true, true),
-        ], 100.0);
-        assert_eq!(validate_case(&item), Err("FEATURE_OBSERVATION_INVALID".to_owned()));
+        let mut item = case(
+            vec![
+                observation("DUP", 0.0, true, true),
+                observation("DUP", 90.0, true, true),
+                observation("O2", 180.0, true, true),
+            ],
+            100.0,
+        );
+        assert_eq!(
+            validate_case(&item),
+            Err("FEATURE_OBSERVATION_INVALID".to_owned())
+        );
         item.case_id.clear();
-        assert_eq!(validate_case(&item), Err("FEATURE_CASE_BOUNDS_INVALID".to_owned()));
+        assert_eq!(
+            validate_case(&item),
+            Err("FEATURE_CASE_BOUNDS_INVALID".to_owned())
+        );
     }
 }
