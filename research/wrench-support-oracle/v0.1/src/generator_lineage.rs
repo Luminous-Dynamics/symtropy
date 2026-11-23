@@ -78,7 +78,9 @@ fn checked_sum(values: &[u64], field: &str) -> Result<u64, OracleError> {
 impl CandidateGenerationCounts {
     pub fn validate(&self) -> Result<CandidateGenerationReport, OracleError> {
         if self.reduction_policy_id.trim().is_empty() {
-            return Err(OracleError::new("reduction policy identity must not be empty"));
+            return Err(OracleError::new(
+                "reduction policy identity must not be empty",
+            ));
         }
         if self.perturbations_requested
             != checked_sum(
@@ -172,7 +174,10 @@ impl CandidateGenerationCounts {
         }
         if self.final_storage_attempted_count
             != checked_sum(
-                &[self.final_storage_stored_count, self.final_storage_dropped_count],
+                &[
+                    self.final_storage_stored_count,
+                    self.final_storage_dropped_count,
+                ],
                 "final storage",
             )?
         {
@@ -186,9 +191,7 @@ impl CandidateGenerationCounts {
                 let capacity = self.final_storage_fixed_capacity.ok_or_else(|| {
                     OracleError::new("fixed-capacity storage requires a capacity")
                 })?;
-                if self.final_storage_stored_count > capacity
-                    || self.final_storage_spill_used
-                {
+                if self.final_storage_stored_count > capacity || self.final_storage_spill_used {
                     return Err(OracleError::new(
                         "fixed-capacity storage overrun or invalid spill report",
                     ));
@@ -209,7 +212,10 @@ impl CandidateGenerationCounts {
 
         if self.diagnostic_events_expected
             != checked_sum(
-                &[self.diagnostic_events_emitted, self.diagnostic_events_dropped],
+                &[
+                    self.diagnostic_events_emitted,
+                    self.diagnostic_events_dropped,
+                ],
                 "diagnostic events",
             )?
         {
