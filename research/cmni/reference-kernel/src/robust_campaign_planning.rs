@@ -1873,4 +1873,257 @@ mod tests {
             ))
         );
     }
+
+    fn randomized_campaign_fixture() -> (
+        Vec<String>,
+        Vec<f64>,
+        Vec<String>,
+        Vec<Vec<f64>>,
+        Vec<RobustCampaignAcquisition>,
+    ) {
+        let states = vec![
+            "state-0".to_owned(),
+            "state-1".to_owned(),
+            "state-2".to_owned(),
+        ];
+        let probabilities = vec![0.4, 0.4, 0.2];
+        let actions = vec![
+            "action-0".to_owned(),
+            "action-1".to_owned(),
+            "action-2".to_owned(),
+        ];
+        let utilities = vec![
+            vec![0.0, 1.0, 0.0],
+            vec![0.0, 0.0, 1.0],
+            vec![1.0, 0.0, 0.0],
+        ];
+        let acquisition = RobustCampaignAcquisition {
+            option_id: "task-driven-sensor".to_owned(),
+            kind: InformationAcquisitionKind::IndependentCalibration,
+            cost: 0.01,
+            outcome_ids: vec![
+                "outcome-0".to_owned(),
+                "outcome-1".to_owned(),
+                "outcome-2".to_owned(),
+            ],
+            dependence_scope_receipt_id: "receipt:randomized-campaign-game-v1".to_owned(),
+            scenarios: vec![
+                scenario(
+                    "dependence-a",
+                    vec![
+                        vec![0.6, 0.2, 0.2],
+                        vec![0.2, 0.6, 0.2],
+                        vec![0.4, 0.2, 0.4],
+                    ],
+                ),
+                scenario(
+                    "dependence-b",
+                    vec![
+                        vec![0.2, 0.4, 0.4],
+                        vec![0.4, 0.4, 0.2],
+                        vec![0.4, 0.2, 0.4],
+                    ],
+                ),
+            ],
+        };
+        (states, probabilities, actions, utilities, vec![acquisition])
+    }
+
+    fn randomized_campaign_policy() -> RandomizedRobustCampaignPolicy {
+        RandomizedRobustCampaignPolicy {
+            campaign: RobustCampaignPlanningPolicy {
+                max_steps: 1,
+                remaining_resource_budget: 0.01,
+                cost_to_utility_rate: 1.0,
+                max_campaign_policy_trees: 100,
+            },
+            max_basis_evaluations: 10_000,
+            feasibility_tolerance: 1.0e-9,
+            duality_gap_tolerance: 1.0e-8,
+        }
+    }
+
+    fn single_stage_action_map(plan: &RobustCampaignPlanNode) -> Option<Vec<Option<String>>> {
+        match plan {
+            RobustCampaignPlanNode::Acquire {
+                outcome_branches, ..
+            } => outcome_branches
+                .iter()
+                .map(|branch| match &branch.continuation {
+                    RobustCampaignContinuation::Stop(stop) => {
+                        Some(stop.terminal_action_id.clone())
+                    }
+                    RobustCampaignContinuation::AcquireSecond { .. } => None,
+                })
+                .collect(),
+            RobustCampaignPlanNode::Stop(_) => None,
+        }
+    }
+
+    #[test]
+    fn randomized_complete_campaign_mixture_strictly_improves_robust_value() {
+        let (states, probabilities, actions, utilities, acquisitions) =
+            randomized_campaign_fixture();
+        let result = plan_randomized_non_anticipative_robust_campaign(
+            &states,
+            &probabilities,
+            &actions,
+            &utilities,
+            -1.0,
+            &acquisitions,
+            randomized_campaign_policy(),
+        )
+        .expect("randomized complete campaign game");
+
+        // Four root stopping policies plus 4^3 complete one-stage acquisition trees.
+        assert_eq!(result.complete_policy_trees_evaluated, 68);
+        assert_eq!(result.scenario_policy_evaluations, 136);
+        assert!((result.deterministic_maximin_net_utility - 0.4).abs() < 1.0e-9);
+        assert!((result.randomized_worst_case_net_utility - 133.0 / 300.0).abs() < 1.0e-9);
+        assert!((result.deterministic_to_randomized_value_gain - 13.0 / 300.0).abs() < 1.0e-9);
+        assert!((result.robust_expected_value_of_campaign - 13.0 / 300.0).abs() < 1.0e-9);
+        assert!((result.primal_game_value - 133.0 / 300.0).abs() < 1.0e-9);
+        assert!((result.dual_game_value - 133.0 / 300.0).abs() < 1.0e-9);
+        assert!(result.primal_dual_gap < 1.0e-9);
+        assert!(result.maximum_complementarity_residual < 1.0e-8);
+        assert_eq!(result.randomized_net_utility_by_scenario.len(), 2);
+        assert!(result.randomized_net_utility_by_scenario.iter().all(|value| {
+            (*value - 133.0 / 300.0).abs() < 1.0e-9
+        }));
+        assert_eq!(result.campaign_policy_mixture.len(), 2);
+
+        let policy_a = result
+            .campaign_policy_mixture
+            .iter()
+            .find(|component| {
+                single_stage_action_map(&component.plan)
+                    == Some(vec![
+                        Some("action-0".to_owned()),
+                        Some("action-0".to_owned()),
+                        Some("action-2".to_owned()),
+                    ])
+            })
+            .expect("first primal campaign tree");
+        let policy_b = result
+            .campaign_policy_mixture
+            .iter()
+            .find(|component| {
+                single_stage_action_map(&component.plan)
+                    == Some(vec![
+                        Some("action-2".to_owned()),
+                        Some("action-0".to_owned()),
+                        Some("action-2".to_owned()),
+                    ])
+            })
+            .expect("second primal campaign tree");
+        assert!((policy_a.probability - 2.0 / 3.0).abs() < 1.0e-9);
+        assert!((policy_b.probability - 1.0 / 3.0).abs() < 1.0e-9);
+        assert!(policy_a.maximum_path_resource_cost <= 0.01);
+        assert!(policy_b.maximum_path_resource_cost <= 0.01);
+        assert!(result.all_mixture_components_pathwise_feasible);
+        assert!((result.maximum_path_resource_cost_in_mixture - 0.01).abs() < 1.0e-12);
+        assert_eq!(result.least_favourable_scenario_mixture.len(), 2);
+        let weight_a = result
+            .least_favourable_scenario_mixture
+            .iter()
+            .find(|weight| weight.scenario_id == "dependence-a")
+            .expect("first dual scenario")
+            .probability;
+        let weight_b = result
+            .least_favourable_scenario_mixture
+            .iter()
+            .find(|weight| weight.scenario_id == "dependence-b")
+            .expect("second dual scenario")
+            .probability;
+        assert!((weight_a - 1.0 / 3.0).abs() < 1.0e-9);
+        assert!((weight_b - 2.0 / 3.0).abs() < 1.0e-9);
+        assert!(!result.formal_certificate);
+    }
+
+    #[test]
+    fn randomized_campaign_does_not_decode_a_hidden_reversed_calibration() {
+        let states = vec!["state-0".to_owned(), "state-1".to_owned()];
+        let probabilities = vec![0.5, 0.5];
+        let actions = vec!["choose-0".to_owned(), "choose-1".to_owned()];
+        let utilities = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        let acquisition = RobustCampaignAcquisition {
+            option_id: "ambiguous-calibration".to_owned(),
+            kind: InformationAcquisitionKind::IndependentCalibration,
+            cost: 0.05,
+            outcome_ids: vec!["reading-0".to_owned(), "reading-1".to_owned()],
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
+            scenarios: vec![
+                scenario("forward", vec![vec![1.0, 0.0], vec![0.0, 1.0]]),
+                scenario("reversed", vec![vec![0.0, 1.0], vec![1.0, 0.0]]),
+            ],
+        };
+        let result = plan_randomized_non_anticipative_robust_campaign(
+            &states,
+            &probabilities,
+            &actions,
+            &utilities,
+            0.0,
+            &[acquisition],
+            RandomizedRobustCampaignPolicy {
+                campaign: RobustCampaignPlanningPolicy {
+                    max_steps: 1,
+                    remaining_resource_budget: 0.05,
+                    cost_to_utility_rate: 1.0,
+                    max_campaign_policy_trees: 32,
+                },
+                max_basis_evaluations: 1_000,
+                feasibility_tolerance: 1.0e-9,
+                duality_gap_tolerance: 1.0e-8,
+            },
+        )
+        .expect("randomized hidden-scenario campaign");
+        assert!((result.deterministic_maximin_net_utility - 0.5).abs() < 1.0e-12);
+        assert!((result.randomized_worst_case_net_utility - 0.5).abs() < 1.0e-12);
+        assert!(result.robust_expected_value_of_campaign.abs() < 1.0e-12);
+        assert_eq!(result.campaign_policy_mixture.len(), 1);
+        assert!(matches!(
+            result.campaign_policy_mixture[0].plan,
+            RobustCampaignPlanNode::Stop(_)
+        ));
+    }
+
+    #[test]
+    fn randomized_campaign_fails_closed_on_basis_or_tree_caps() {
+        let (states, probabilities, actions, utilities, acquisitions) =
+            randomized_campaign_fixture();
+        let mut basis_limited = randomized_campaign_policy();
+        basis_limited.max_basis_evaluations = 1;
+        assert_eq!(
+            plan_randomized_non_anticipative_robust_campaign(
+                &states,
+                &probabilities,
+                &actions,
+                &utilities,
+                -1.0,
+                &acquisitions,
+                basis_limited,
+            ),
+            Err(ModelError::InvalidParameter(
+                "randomized_robust_basis_evaluation_cap_exceeded"
+            ))
+        );
+
+        let mut tree_limited = randomized_campaign_policy();
+        tree_limited.campaign.max_campaign_policy_trees = 10;
+        assert_eq!(
+            plan_randomized_non_anticipative_robust_campaign(
+                &states,
+                &probabilities,
+                &actions,
+                &utilities,
+                -1.0,
+                &acquisitions,
+                tree_limited,
+            ),
+            Err(ModelError::InvalidParameter(
+                "randomized_campaign_tree_cap_exceeded"
+            ))
+        );
+    }
+
 }
