@@ -20,7 +20,10 @@
     "q": "a/r_h",
     "symtropy_spin": "a_S/r_H=Omega_H*r_H=nu"
   },
-  "environment": {"python":"3.13.5","sympy":"1.14.0"},
+  "environment": {
+    "python": "3.13.5",
+    "sympy": "1.14.0"
+  },
   "exact_equal_spin_relations": {
     "chi_times_rh_of_q": "2*q/(q**2 + 1)**2",
     "mu_over_rh2": "(q**2 + 1)**2/2",
@@ -41,6 +44,6 @@
     "ma_lu_eq_50_crosscheck": "mu=r_h^2/2+r_h^4*chi^2/4+9*r_h^6*chi^4/32+O(chi^6) for a=b",
     "ma_lu_eq_6_equal_spin": "Omega_H=a/(r_h^2+a^2)"
   },
-  "source_sha256": "278a692110f02886c62db25319c1c84310e03bc0d08cb682f9a30a4e6c17f512",
+  "source_sha256": "dd04510d0cbe3d79003a57b54e4362b0bda98bb1e8652772cef83d0d454c6ac3",
   "status": "exact_symbolic_parameter_relations_derived"
 }
