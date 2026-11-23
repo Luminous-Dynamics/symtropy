@@ -99,6 +99,8 @@ pub enum EffectTransformV0 {
 pub struct ActionCorrespondenceV0 {
     pub source_action_id: u32,
     pub target_action_id: u32,
+    pub source_action_kind: u16,
+    pub target_action_kind: u16,
     pub effect_transform: EffectTransformV0,
 }
 
@@ -146,6 +148,8 @@ pub enum TransferErrorV0 {
     InvalidParticipantTransform,
     IncidenceMismatch,
     ActionMapNotInjective,
+    ActionKindMapNotInjective,
+    InconsistentActionKindTransform,
     MissingInterventionEvidence,
     DuplicateInterventionEvidence,
     UnmappedInterventionEvidence,
@@ -198,6 +202,8 @@ impl fmt::Display for TransferErrorV0 {
                 "mapped relation participants do not preserve the declared structure"
             }
             Self::ActionMapNotInjective => "action correspondence must be one-to-one",
+            Self::ActionKindMapNotInjective => "distinct source action kinds must map to distinct target kinds",
+            Self::InconsistentActionKindTransform => "one source action kind has inconsistent target kinds or effect transforms",
             Self::MissingInterventionEvidence => "a mapped action has no intervention evidence",
             Self::DuplicateInterventionEvidence => {
                 "intervention evidence contains a duplicate action pair"
@@ -390,6 +396,35 @@ pub fn validate_intervention_correspondence(
         || !ids_are_unique(action_map, |pair| pair.target_action_id)
     {
         return Err(TransferErrorV0::ActionMapNotInjective);
+    }
+
+    let mut action_kind_map = Vec::<(u16, u16, EffectTransformV0)>::new();
+    for mapping in action_map {
+        match action_kind_map
+            .iter()
+            .find(|(source_kind, _, _)| *source_kind == mapping.source_action_kind)
+        {
+            Some((_, target_kind, transform))
+                if *target_kind != mapping.target_action_kind
+                    || *transform != mapping.effect_transform =>
+            {
+                return Err(TransferErrorV0::InconsistentActionKindTransform);
+            }
+            Some(_) => {}
+            None => {
+                if action_kind_map
+                    .iter()
+                    .any(|(_, target_kind, _)| *target_kind == mapping.target_action_kind)
+                {
+                    return Err(TransferErrorV0::ActionKindMapNotInjective);
+                }
+                action_kind_map.push((
+                    mapping.source_action_kind,
+                    mapping.target_action_kind,
+                    mapping.effect_transform,
+                ));
+            }
+        }
     }
 
     if observations.len() < action_map.len() {
@@ -644,11 +679,15 @@ mod tests {
             ActionCorrespondenceV0 {
                 source_action_id: 1,
                 target_action_id: 11,
+                source_action_kind: 1,
+                target_action_kind: 10,
                 effect_transform: EffectTransformV0::Preserve,
             },
             ActionCorrespondenceV0 {
                 source_action_id: 2,
                 target_action_id: 22,
+                source_action_kind: 2,
+                target_action_kind: 20,
                 effect_transform: EffectTransformV0::Negate,
             },
         ];
@@ -678,6 +717,46 @@ mod tests {
 
         assert_eq!(witness.compared_actions, 2);
         assert!(witness.all_declared_effects_match);
+    }
+
+    #[test]
+    fn rejects_inconsistent_transform_for_same_action_kind() {
+        let mut action_map = vec![
+            ActionCorrespondenceV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_action_kind: 1,
+                target_action_kind: 10,
+                effect_transform: EffectTransformV0::Preserve,
+            },
+            ActionCorrespondenceV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_action_kind: 1,
+                target_action_kind: 10,
+                effect_transform: EffectTransformV0::Negate,
+            },
+        ];
+        let observations = vec![
+            InterventionObservationV0 {
+                source_action_id: 1,
+                target_action_id: 11,
+                source_effect: EffectSignV0::Positive,
+                target_effect: EffectSignV0::Positive,
+            },
+            InterventionObservationV0 {
+                source_action_id: 2,
+                target_action_id: 22,
+                source_effect: EffectSignV0::Negative,
+                target_effect: EffectSignV0::Positive,
+            },
+        ];
+
+        action_map[1].effect_transform = EffectTransformV0::Negate;
+        assert_eq!(
+            validate_intervention_correspondence(&action_map, &observations),
+            Err(TransferErrorV0::InconsistentActionKindTransform)
+        );
     }
 
     #[test]
