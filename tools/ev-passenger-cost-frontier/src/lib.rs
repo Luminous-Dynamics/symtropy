@@ -12,3 +12,4 @@ pub mod mobility_recovery_envelope;
 pub mod nonanticipative_service_oracle;
 pub mod sustainable_mobility_service_capacity;
 pub mod sustainable_mobility_service_quality;
+pub mod mobility_service_risk_envelope;
