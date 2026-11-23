@@ -128,31 +128,7 @@ impl AcquisitionAttemptOutcome {
         Ok(())
     }
 
-    fn resolved(self) -> Option<ResolvedAcquisitionOutcome> {
-        match self {
-            Self::QualifiedEvidenceAvailable {
-                payload_sha256,
-                qualification_receipt_sha256,
-            } => Some(ResolvedAcquisitionOutcome::QualifiedEvidenceAvailable {
-                payload_sha256,
-                qualification_receipt_sha256,
-            }),
-            Self::FailedOrTimedOut {
-                failure_reason_sha256,
-            } => Some(ResolvedAcquisitionOutcome::FailedOrTimedOut {
-                failure_reason_sha256,
-            }),
-            Self::AcquiredButInvalid {
-                payload_sha256,
-                invalidity_receipt_sha256,
-            } => Some(ResolvedAcquisitionOutcome::AcquiredButInvalid {
-                payload_sha256,
-                invalidity_receipt_sha256,
-            }),
-            Self::UnknownOrUnreconciled { .. } => None,
-        }
-    }
-}
+
 
 impl ResolvedAcquisitionOutcome {
     fn validate(self, attempt_id: u64) -> Result<(), ActiveEvidenceAttemptError> {
@@ -272,7 +248,6 @@ pub enum ActiveEvidenceAttemptError {
     NavigationStateChangedBeforeOutcome(u64),
     MissingOutcomeCommitment(u64),
     MissingReconciliationCommitment(u64),
-    CannotReconcileUnknownAsUnknown(u64),
     EventSequenceOverflow,
     AttemptCounterOverflow(u64),
 }
@@ -336,9 +311,6 @@ impl fmt::Display for ActiveEvidenceAttemptError {
             }
             Self::MissingReconciliationCommitment(id) => {
                 write!(f, "attempt {id} reconciliation is missing its evidence receipt")
-            }
-            Self::CannotReconcileUnknownAsUnknown(id) => {
-                write!(f, "attempt {id} cannot be reconciled to another unknown outcome")
             }
             Self::EventSequenceOverflow => write!(f, "attempt ledger event sequence overflowed"),
             Self::AttemptCounterOverflow(id) => {
