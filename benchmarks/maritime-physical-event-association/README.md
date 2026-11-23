@@ -14,7 +14,7 @@ This crate does not duplicate any of those. It asks a narrower question: given t
 
 ## Contract
 
-Each side declares a typed time role in the frozen profile. The v0.1 test profile compares a source business-event time with an independent sensor-observation time; each record must carry the role expected by its channel. For this role pair, the independent sensor-observation interval must be no later than the business-event interval: the witness interval's upper bound must be less than or equal to the source interval's lower bound. Equality is allowed. A definitely later sensor interval is rejected; overlapping intervals are preserved as a distinct `TIME_ORDER_UNRESOLVED` result, not mislabeled as an unmatched event. This prevents silently treating repository record time, source publication time, sensor observation time and business-step event time as interchangeable.
+Each side declares a typed time role in the frozen profile. The v0.1 test profile is fixed to a source business-event time and an independent sensor-observation time; unsupported profile role pairings and per-record mismatches are NOT_EVALUABLE. Each record must carry the role expected by its channel. For this role pair, the independent sensor-observation interval must be no later than the business-event interval: the witness interval's upper bound must be less than or equal to the source interval's lower bound. Equality is allowed. A definitely later sensor interval is rejected; overlapping intervals are preserved as a distinct `TIME_ORDER_UNRESOLVED` result, not mislabeled as an unmatched event. This prevents silently treating repository record time, source publication time, sensor observation time and business-step event time as interchangeable.
 
 For EPCIS, GS1 distinguishes the time a sensor observation occurred (`sensorElementList` SensorReport `time`) from the business-step `eventTime`; repository `recordTime` is a repository bookkeeping timestamp, not the time of the physical event. The adapter must preserve those roles and map them to qualified time enclosures upstream. See the GS1 EPCIS 2.0.1 Standard and SensorReport model: https://ref.gs1.org/standards/epcis/2.0.1/ and https://ref.gs1.org/epcis/SensorReport.
 
@@ -45,7 +45,7 @@ This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose
 
 ## Frozen corpus and tests
 
-The file at fixtures/association-v0.1.tsv contains 30 independently declared expected dispositions. Unit tests cover:
+The file at fixtures/association-v0.1.tsv contains 31 independently declared expected dispositions. Unit tests cover:
 - exact and tolerance-bounded associations;
 - physical context mismatches;
 - globally unique matching despite local candidate ambiguity;
