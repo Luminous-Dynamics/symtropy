@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reference geometric-conservation-law (GCL) oracle for linearly moving
 //! axis-aligned cells.
 //!
@@ -60,7 +62,10 @@ pub enum GclError {
     InvalidTolerance,
     InvalidBounds(u64),
     NonFiniteVolume(u64),
-    NonFiniteFaceIntegral { cell_id: u64, axis: usize },
+    NonFiniteFaceIntegral {
+        cell_id: u64,
+        axis: usize,
+    },
     NonFiniteFlux(u64),
     ResidualExceeded {
         cell_id: u64,
@@ -73,29 +78,46 @@ pub enum GclError {
 impl fmt::Display for GclError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ZeroDimensions => write!(f, "moving cell must have at least one spatial dimension"),
+            Self::ZeroDimensions => {
+                write!(f, "moving cell must have at least one spatial dimension")
+            }
             Self::InvalidDuration => write!(f, "moving-cell duration must be finite and positive"),
             Self::InvalidTolerance => write!(f, "GCL tolerances must be finite and non-negative"),
-            Self::InvalidBounds(id) => write!(f, "moving cell {id} has invalid or non-finite bounds"),
-            Self::NonFiniteVolume(id) => write!(f, "moving cell {id} has a non-finite or non-positive volume"),
-            Self::NonFiniteFaceIntegral { cell_id, axis } => {
-                write!(f, "moving cell {cell_id} has a non-finite face integral on axis {axis}")
+            Self::InvalidBounds(id) => {
+                write!(f, "moving cell {id} has invalid or non-finite bounds")
             }
-            Self::NonFiniteFlux(id) => write!(f, "moving cell {id} has a non-finite integrated grid flux"),
-            Self::ResidualExceeded { cell_id, residual, allowed } => write!(
+            Self::NonFiniteVolume(id) => write!(
+                f,
+                "moving cell {id} has a non-finite or non-positive volume"
+            ),
+            Self::NonFiniteFaceIntegral { cell_id, axis } => {
+                write!(
+                    f,
+                    "moving cell {cell_id} has a non-finite face integral on axis {axis}"
+                )
+            }
+            Self::NonFiniteFlux(id) => {
+                write!(f, "moving cell {id} has a non-finite integrated grid flux")
+            }
+            Self::ResidualExceeded {
+                cell_id,
+                residual,
+                allowed,
+            } => write!(
                 f,
                 "moving cell {cell_id} GCL residual {residual} exceeds allowed {allowed}"
             ),
-            Self::InvalidUniformState => write!(f, "uniform state and GCL volumes must be finite; final volume must be positive"),
+            Self::InvalidUniformState => write!(
+                f,
+                "uniform state and GCL volumes must be finite; final volume must be positive"
+            ),
         }
     }
 }
 
 impl Error for GclError {}
 
-fn validate_cell<const N: usize>(
-    cell: &MovingAabb<N>,
-) -> Result<(f64, f64), GclError> {
+fn validate_cell<const N: usize>(cell: &MovingAabb<N>) -> Result<(f64, f64), GclError> {
     if N == 0 {
         return Err(GclError::ZeroDimensions);
     }
@@ -111,16 +133,22 @@ fn validate_cell<const N: usize>(
         let el = cell.end_lower[axis];
         let eu = cell.end_upper[axis];
 
-        if !sl.is_finite() || !su.is_finite() || !el.is_finite() || !eu.is_finite()
-            || su <= sl || eu <= el
+        if !sl.is_finite()
+            || !su.is_finite()
+            || !el.is_finite()
+            || !eu.is_finite()
+            || su <= sl
+            || eu <= el
         {
             return Err(GclError::InvalidBounds(cell.id));
         }
 
         initial_volume *= su - sl;
         final_volume *= eu - el;
-        if !initial_volume.is_finite() || !final_volume.is_finite()
-            || initial_volume <= 0.0 || final_volume <= 0.0
+        if !initial_volume.is_finite()
+            || !final_volume.is_finite()
+            || initial_volume <= 0.0
+            || final_volume <= 0.0
         {
             return Err(GclError::NonFiniteVolume(cell.id));
         }
@@ -262,9 +290,8 @@ pub fn uniform_state_after_mesh_motion<const N: usize>(
         return Err(GclError::InvalidUniformState);
     }
 
-    let value = initial_value
-        * (report.initial_volume + report.integrated_grid_flux)
-        / report.final_volume;
+    let value =
+        initial_value * (report.initial_volume + report.integrated_grid_flux) / report.final_volume;
     if !value.is_finite() {
         return Err(GclError::InvalidUniformState);
     }
@@ -413,12 +440,10 @@ mod tests {
         };
         let fraction = 0.37;
         let blend = |a: f64, b: f64| a + (b - a) * fraction;
-        let middle_lower = std::array::from_fn(|axis| {
-            blend(whole.start_lower[axis], whole.end_lower[axis])
-        });
-        let middle_upper = std::array::from_fn(|axis| {
-            blend(whole.start_upper[axis], whole.end_upper[axis])
-        });
+        let middle_lower =
+            std::array::from_fn(|axis| blend(whole.start_lower[axis], whole.end_lower[axis]));
+        let middle_upper =
+            std::array::from_fn(|axis| blend(whole.start_upper[axis], whole.end_upper[axis]));
 
         let first = MovingAabb {
             id: whole.id,
