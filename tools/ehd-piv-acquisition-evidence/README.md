@@ -19,6 +19,8 @@ Dependencies are exact-version pinned in Cargo.toml. The first clean CI run shou
 - Filesystem verification that rehashes each file before accepting the manifest; symlink path components and path escapes are rejected.
 - Shared-cause connected components computed by union-find. A cohort cannot select only part of a connected dependence component.
 - Pairwise training/model-selection/uncertainty-calibration/sealed-evaluation/out-of-domain cohort disjointness checks across acquisition IDs, dependence components, assets and reference-evidence IDs.
+- Each partition is bound to the source-manifest digest; partitions from different manifests cannot be composed.
+- Complete-cover validation rejects a disjoint cohort set that leaves any dependence component unassigned.
 - A metadata-only reference claim-scope check. Missing reference uncertainty or PIV/reference cross-covariance evidence leaves the claim at residual covariance only.
 
 ## Example use
