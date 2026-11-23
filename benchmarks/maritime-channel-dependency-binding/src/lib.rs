@@ -749,11 +749,10 @@ pub fn assess(profile: &MaritimeProfile, projection: &ClosureProjection) -> Asse
             .push(acceptance.clone());
     }
     let validation_errors = post_validation_errors.into_iter().collect::<Vec<_>>();
-    let disposition = if !validation_errors.is_empty() {
-        ProfileDisposition::ProfileInvalid
-    } else if findings
-        .iter()
-        .any(|finding| finding.disposition == SeparationDisposition::Invalid)
+    let disposition = if !validation_errors.is_empty()
+        || findings
+            .iter()
+            .any(|finding| finding.disposition == SeparationDisposition::Invalid)
     {
         ProfileDisposition::ProfileInvalid
     } else if findings
@@ -886,7 +885,7 @@ mod tests {
                                 .filter(|index| mask & (1u8 << *index) != 0)
                                 .map(|index| {
                                     witness(
-                                        (index + 1) as u8,
+                                        index + 1,
                                         MaritimeDependencyClass::PhysicalAcquisition,
                                         role_binding,
                                         &format!("{prefix}-node-{index}"),
