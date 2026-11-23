@@ -693,6 +693,41 @@
           "$ref": "#/$defs/delivery_observation"
         }
       }
+    },
+    "fault_layer": {
+      "enum": [
+        "process",
+        "ros_runtime",
+        "middleware",
+        "controller",
+        "driver",
+        "firmware",
+        "actuator",
+        "observer",
+        "persistence",
+        "mission",
+        "native_authority"
+      ]
+    },
+    "fault_kind": {
+      "enum": [
+        "process_crash",
+        "controller_restart",
+        "message_drop",
+        "message_delay",
+        "message_duplicate",
+        "message_reorder",
+        "queue_retention",
+        "stale_epoch",
+        "power_loss",
+        "clock_reset",
+        "observer_loss",
+        "common_cause_failure",
+        "artifact_replay",
+        "persistence_ambiguity",
+        "partial_effect",
+        "permit_replay"
+      ]
     }
   }
 }
