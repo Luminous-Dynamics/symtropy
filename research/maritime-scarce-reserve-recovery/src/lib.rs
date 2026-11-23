@@ -81,7 +81,6 @@ const EVALUATOR_MISSINGNESS_CAUSES: [&str; WORLD_COUNT] = [
     "SENSOR_ONLY_FAILURE_RESERVE_READY",
 ];
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum Action {
     ReserveToA,
@@ -1255,8 +1254,14 @@ mod tests {
         let shared = &SENSORS[0];
 
         assert_eq!(shared.outcome_partitions[2], shared.outcome_partitions[5]);
-        assert_eq!(EVALUATOR_MISSINGNESS_CAUSES[2], "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE");
-        assert_eq!(EVALUATOR_MISSINGNESS_CAUSES[5], "SENSOR_ONLY_FAILURE_RESERVE_READY");
+        assert_eq!(
+            EVALUATOR_MISSINGNESS_CAUSES[2],
+            "COMMON_CAUSE_RESERVE_AND_GATEWAY_OUTAGE"
+        );
+        assert_eq!(
+            EVALUATOR_MISSINGNESS_CAUSES[5],
+            "SENSOR_ONLY_FAILURE_RESERVE_READY"
+        );
         assert!(!WORLDS[2].reserve_available);
         assert!(WORLDS[5].reserve_available);
 
@@ -1267,8 +1272,10 @@ mod tests {
             &shared.outcome_partitions,
             shared.mode,
             acquisition_cost(shared).expect("valid shared-source cost"),
-        ).expect("advisory signal remains evaluable");
-        let missing_partition_action = shared_solution.actions_by_partition
+        )
+        .expect("advisory signal remains evaluable");
+        let missing_partition_action = shared_solution
+            .actions_by_partition
             .iter()
             .find(|(partition, _)| *partition == shared.outcome_partitions[2])
             .map(|(_, action)| *action)
