@@ -1538,7 +1538,7 @@
       ],
       "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
       "loss_model_set": {
-        "state": "CURRENT",
+        "state": "STALE",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
         "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
         "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
@@ -1647,7 +1647,7 @@
       ],
       "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
       "loss_model_set": {
-        "state": "CURRENT",
+        "state": "INADEQUATE",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
         "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
         "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
@@ -1756,7 +1756,7 @@
       ],
       "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
       "loss_model_set": {
-        "state": "CURRENT",
+        "state": "OUT_OF_PROFILE",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
         "source_claim_ceiling": "finite-joint-loss-scenario-regret-algebra-only",
         "source_commit": "e5235874e8146f015dbc1e97e16a546ad2f9596f",
@@ -2068,9 +2068,10 @@
         "projection_scale_numerator": 1,
         "projection_scale_denominator": 1,
         "expected_scenario_ids": [
-          "joint_scenario_omission-joint-1"
+          "joint_scenario_omission-joint-1",
+          "joint_scenario_omission-joint-2"
         ],
-        "expected_scenario_ids_sha256": "1f3e3d80dea854cff7b9140c4d17e10697298771593982277590e0a639375b74",
+        "expected_scenario_ids_sha256": "6629db40b648030a308ff28125aa3f2c23faf6d47de8eaa18c14d890feeb8428",
         "projected_scenarios_sha256": "53b7a2cc1f46d2b833ed9c3e07998b047f2d099ce92eb94eca2a54b2626e9709"
       },
       "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
@@ -2131,9 +2132,10 @@
       "world_set_receipt_id": "synthetic-compatible-world-receipt-physical_world_omission",
       "world_set_receipt_sha256": "2a2f12f989069301788d423ea825573d7bb0c0f64721db3558c8955707168e33",
       "expected_world_ids": [
-        "w1"
+        "w1",
+        "w2"
       ],
-      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
+      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
       "loss_model_set": {
         "state": "CURRENT",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
@@ -2726,10 +2728,9 @@
       "world_set_receipt_id": "synthetic-compatible-world-receipt-projected_loss_mismatch",
       "world_set_receipt_sha256": "56ac72f00359fc52c279e03a1702af453cef1fe8aed3dc009afa1d89a7f7893f",
       "expected_world_ids": [
-        "w1",
-        "w2"
+        "w1"
       ],
-      "expected_world_ids_sha256": "20160335f5f43dfcbe98693a5b78280e6d608309f365422eac300a0923bd7b8b",
+      "expected_world_ids_sha256": "c12a6cd66fccc212016c0e4132a23937a860d4028fac3b8fc7907db2af88d59d",
       "loss_model_set": {
         "state": "CURRENT",
         "source_receipt_schema": "luminous.orbital-joint-loss-scenario.receipt.v0.1",
@@ -2744,10 +2745,9 @@
         "projection_scale_numerator": 1000,
         "projection_scale_denominator": 1,
         "expected_scenario_ids": [
-          "projected_loss_mismatch-joint-1",
-          "projected_loss_mismatch-joint-2"
+          "projected_loss_mismatch-joint-1"
         ],
-        "expected_scenario_ids_sha256": "44a8ee25b68ffc4fdccceb21f7b0406630628191e1c6f9703d4c9b5378279c74",
+        "expected_scenario_ids_sha256": "827326e1aa4d8ddac7dbce86a4a954e399d217d6c48f53bd3939e6c3054c5124",
         "projected_scenarios_sha256": "28ed4728bcee935bb56a68cd5d7be38f8c5ee3063347c153ec3ed515fb75ce3d"
       },
       "world_set_receipt_schema": "luminous.orbital-decision-identifiability.receipt.v0.1",
