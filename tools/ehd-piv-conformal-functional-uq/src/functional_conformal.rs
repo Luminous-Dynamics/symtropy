@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Whole-session conformal calibration for integrated field functionals.
 //!
 //! This calibrates the four-component output vector produced by the functional
