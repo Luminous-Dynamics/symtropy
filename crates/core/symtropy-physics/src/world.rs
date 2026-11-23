@@ -419,10 +419,10 @@ impl<const D: usize> PhysicsWorld<D> {
             .ok_or(NetIdAssignmentError::InconsistentBodyIndex { handle })?;
 
         // Reject stale/conflicting reverse-index ownership.
-        if let Some(owner) = self.net_id_map.get(&net_id).copied() {
-            if owner != handle {
-                return Err(NetIdAssignmentError::DuplicateNetId { net_id, owner });
-            }
+        if let Some(owner) = self.net_id_map.get(&net_id).copied()
+            && owner != handle
+        {
+            return Err(NetIdAssignmentError::DuplicateNetId { net_id, owner });
         }
 
         // Public body fields can be changed without updating net_id_map.
@@ -440,10 +440,10 @@ impl<const D: usize> PhysicsWorld<D> {
         // Refuse to build on an already inconsistent mapping. Silently
         // repairing it here would make the operation appear authoritative
         // without proving that the existing state was valid.
-        if let Some(old_id) = body.net_id {
-            if self.net_id_map.get(&old_id).copied() != Some(handle) {
-                return Err(NetIdAssignmentError::InconsistentNetIdIndex { handle });
-            }
+        if let Some(old_id) = body.net_id
+            && self.net_id_map.get(&old_id).copied() != Some(handle)
+        {
+            return Err(NetIdAssignmentError::InconsistentNetIdIndex { handle });
         }
         if self
             .net_id_map
