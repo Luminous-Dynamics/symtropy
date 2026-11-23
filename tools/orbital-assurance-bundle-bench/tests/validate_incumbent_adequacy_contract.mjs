@@ -181,5 +181,10 @@ const stale = corpus.cases.find(item => item.case_id === "loss_model_set_stale")
 if (!stale || stale.world_set_state !== "CURRENT" || stale.loss_model_set.state !== "STALE") {
   throw new Error("loss-model staleness must be independent of world-set currentness");
 }
+const malformedPin = corpus.cases.find(item => item.case_id === "loss_model_source_pin_malformed");
+if (!malformedPin || /^[0-9a-f]{64}$/.test(malformedPin.loss_model_set.source_receipt_sha256)
+  || malformedPin.expected?.trigger_reason !== "upstream world or loss-model receipt pins are malformed") {
+  throw new Error("malformed loss-model source pin negative control is missing");
+}
 process.stdout.write("incumbent-adequacy-corpus-valid: " + corpus.cases.length
   + " cases; exact rational projection and complete joint loss vectors verified\n");
