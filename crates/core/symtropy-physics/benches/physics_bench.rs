@@ -467,8 +467,12 @@ impl BenchStaticBvh {
         }
 
         if let Some(root) = self.root {
+            // Reuse one bounded-depth traversal stack across dynamic bodies so
+            // the query benchmark does not pay one heap allocation per body.
+            let mut stack = Vec::with_capacity(64);
             for (dynamic_index, dynamic_aabb) in &dynamic {
-                let mut stack = vec![root];
+                stack.clear();
+                stack.push(root);
                 while let Some(node_index) = stack.pop() {
                     let node = &self.nodes[node_index];
                     if !oracle_aabbs_overlap(dynamic_aabb, &node.aabb) {
