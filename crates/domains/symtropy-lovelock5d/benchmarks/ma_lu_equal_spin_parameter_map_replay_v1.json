@@ -4,8 +4,8 @@
   "status": "exact_public_source_blob_replayed_locally",
   "script_path": "crates/domains/symtropy-lovelock5d/benchmarks/derive_ma_lu_equal_spin_parameter_map.py",
   "source": {
-    "git_blob_sha1": "956ad645c8b90882441a6a76ba89e11dcac99144",
-    "sha256": "6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c",
+    "git_blob_sha1": "30616c178a051f0a2fd120aba8a9d03dfc8c865e",
+    "sha256": "a015c8572071d109d14995f0743453412bfd90100b49dcf53c8e6e9bd0907efd",
     "exact_bytes_match": true
   },
   "environment": {
@@ -15,17 +15,15 @@
   "execution": {
     "command": "python3 derive_ma_lu_equal_spin_parameter_map.py --output ma_lu_equal_spin_parameter_map_v1.json",
     "checks": {
-      "horizon_relation_exact": true,
-      "angular_velocity_relation_exact": true,
-      "printed_chi_a_over_mu_exact": true,
-      "inverse_q_series_exact_through_nu11": true,
-      "chi_rh_series_exact_through_nu11": true,
-      "eq50_equal_spin_mass_series_through_y4": true,
-      "coupling_coefficient_identity": true
+      "inverse_q_through_nu11": true,
+      "chi_sqrt2_nu_through_nu11": true,
+      "Eq3_9_mass_through_chi6": true,
+      "action_normalization": true
     },
+    "result": "ALL_EXACT_SYMBOLIC_CHECKS_PASS",
     "q_of_nu_h": "nu_h+nu_h^3+2*nu_h^5+5*nu_h^7+14*nu_h^9+42*nu_h^11+O(nu_h^13)",
-    "chi_rh_of_nu_h": "2*nu_h-2*nu_h^3-2*nu_h^5-4*nu_h^7-10*nu_h^9-28*nu_h^11+O(nu_h^13)",
-    "eq50": "mu/r_h^2=1/2+(chi*r_h)^2/4+9*(chi*r_h)^4/32+O((chi*r_h)^6)"
+    "chi": "sqrt(2)*nu_h exactly",
+    "mass_series": "mu/r_h^2=1/2+chi^2/2+5chi^4/8+7chi^6/8+O(chi^8)"
   },
-  "claim_ceiling": "Exact kinematic parameter relations and first-coupling coefficient normalization only. No corrected metric component comparison or finite-coupling EGB result is claimed."
+  "claim_ceiling": "Exact equal-spin MP kinematics, version-of-record spin convention, Eq. (3.9) series and first-coupling normalization only."
 }
