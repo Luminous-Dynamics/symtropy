@@ -18,7 +18,6 @@ const REQUIRED_CLASSES: [&str; 3] = [
     "REGRET_SCORE_CALIBRATION",
 ];
 const MAX_CLAIMS: usize = 128;
-const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -431,7 +430,7 @@ mod tests {
     use super::*;
 
     fn sha(value: &str) -> String {
-        hex_sha256(value.as_bytes())
+        sha256_hex(value.as_bytes())
     }
 
     fn claim(
@@ -528,11 +527,11 @@ mod tests {
         );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.status, "ASSURANCE_COMPOSED_FIXED_EVALUATION");
-        assert_eq!(result.alpha_used.unwrap().numerator, 1);
-        assert_eq!(result.alpha_used.unwrap().denominator, 20);
+        assert_eq!(result.alpha_used.as_ref().unwrap().numerator, 1);
+        assert_eq!(result.alpha_used.as_ref().unwrap().denominator, 20);
         assert_eq!(result.alpha_remaining.unwrap().numerator, 0);
-        assert_eq!(result.joint_lower_confidence.unwrap().numerator, 19);
-        assert_eq!(result.joint_lower_confidence.unwrap().denominator, 20);
+        assert_eq!(result.joint_lower_confidence.as_ref().unwrap().numerator, 19);
+        assert_eq!(result.joint_lower_confidence.as_ref().unwrap().denominator, 20);
         assert!(!result.independence_assumed);
     }
 
