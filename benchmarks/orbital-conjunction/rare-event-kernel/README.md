@@ -48,11 +48,15 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains 188 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, and 16 in `lebedev.rs`, and 9 in `normal_positive_part.rs`, and 11 in `conditional_velocity.rs`, and 6 in `ncdot_sphere.rs`, and 12 in `ncdot_temporal.rs`, and 18 in `ncdot_refinement.rs`, and 8 in `pop_col_energy.rs`, and 10 in `pop_col_adjustment.rs`. The 114-test parent passed exact-head workflow [#252](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45131829615) on `5866e7cd65dc0ff4595726a71e992febe6bcc38b`; the 123-test scalar Gaussian head passed exact-head workflow #270; the conditional model and Ncdot sphere additions require their own exact-head workflows.
+The current authored test corpus contains **205 authored `#[test]` cases**:
+30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`.
 
-- The package also includes a deterministic NASA-style sampled Ncdot refinement controller that replays boundary extension, top-four sampled-peak bisection, zero-rate MD2 fallback, dominant trapezoid-contribution refinement and significant-rate-region spacing. Its outputs are next epochs or explicit stop/budget/resolution dispositions; it does not certify between-sample peak completeness.
-- - A PeakOverlapPos center-of-linearity energy kernel implementing the pinned CARA conditional-velocity relation `v_col = v_u + beta * (r_col - r_u)` and specific orbital energy `0.5 * |v_col|^2 - GM / |r_col|`. It reports kinetic/potential decomposition and uses explicit km, km/s and km³/s² units. This is the energy primitive only, not the 201-point CoL fraction optimizer or full PeakOverlapPos state machine.
-- - A NASA-compatible CoL energy-change limiter with the 201-point [0,1] scan, 10% default relative-energy-change threshold, source `extrema` endpoint/plateau behavior, and bounded midpoint refinement near an initial minimum. It returns the selected fraction, original/proposed/adjusted energy reports, and a replayable scalar-search summary. This does not implement the full iterative PeakOverlapPos state machine.
+The package also includes:
+- A deterministic NASA-style sampled Ncdot refinement controller for boundary extension, top-four sampled peaks, zero-rate MD2 fallback, dominant trapezoid contributions and significant-rate spacing. It does not certify between-sample peak completeness.
+- A PeakOverlapPos center-of-linearity conditional-velocity and specific-energy kernel with explicit km, km/s, km³/s² and km²/s² units.
+- A NASA-compatible CoL energy-change limiter using the 201-point [0,1] scan, source extrema endpoint/plateau behavior, bounded midpoint refinement and a replayable fraction-selection report.
+- A typed PeakOverlapPos convergence controller preserving the source convergence values: strict 1.0, oscillation 0.5, relaxed 0.1–0.35 and not-converged 0.0. It preserves strict/relaxed thresholds, maximum-iteration ordering, CoL-adjustment gating and delayed two-cycle detection. It consumes caller-computed MD2 values and does not independently qualify their covariance metric.
+
 ## Important limitations
 
 - The covariance floor helper checks only the matrix inequality. It does not prove all assumptions of the constrained-mixture finite-variance theorem.
