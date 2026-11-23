@@ -194,10 +194,7 @@ fn validate(corpus: &AssuranceBudgetCorpus) -> Result<(), String> {
                 claim.guarantee_kind.as_str(),
                 "STATISTICAL_GUARANTEE" | "STRUCTURAL_ONLY"
             )
-            || !matches!(
-                claim.claim_scope.as_str(),
-                "FIXED_EVALUATION" | "ANYTIME"
-            )
+            || !matches!(claim.claim_scope.as_str(), "FIXED_EVALUATION" | "ANYTIME")
             || !matches!(
                 claim.evidence_status.as_str(),
                 "admissible" | "indeterminate" | "out_of_scope"
@@ -240,15 +237,12 @@ fn validate(corpus: &AssuranceBudgetCorpus) -> Result<(), String> {
                         ));
                     }
                 }
-                let receipt_id = claim
-                    .claim_receipt_id
-                    .as_deref()
-                    .ok_or_else(|| {
-                        format!("statistical claim {} has no claim receipt", claim.claim_id)
-                    })?;
+                let receipt_id = claim.claim_receipt_id.as_deref().ok_or_else(|| {
+                    format!("statistical claim {} has no claim receipt", claim.claim_id)
+                })?;
                 if !claim_receipts.insert(receipt_id) {
                     return Err(
-                        "statistical claim receipt IDs must not be double-counted".to_owned(),
+                        "statistical claim receipt IDs must not be double-counted".to_owned()
                     );
                 }
             }
@@ -262,7 +256,11 @@ fn validate(corpus: &AssuranceBudgetCorpus) -> Result<(), String> {
                         claim.claim_id
                     ));
                 }
-                if claim.evidence_receipt_id.as_deref().is_none_or(|value| !valid_id(value)) {
+                if claim
+                    .evidence_receipt_id
+                    .as_deref()
+                    .is_none_or(|value| !valid_id(value))
+                {
                     return Err(format!(
                         "structural-only claim {} requires a provenance receipt",
                         claim.claim_id
@@ -291,7 +289,10 @@ fn claim_exclusion_reason(
         return Some("STRUCTURAL_ONLY_NOT_A_STATISTICAL_GUARANTEE".to_owned());
     }
     if claim.evidence_status != "admissible" {
-        return Some(format!("EVIDENCE_{}", claim.evidence_status.to_ascii_uppercase()));
+        return Some(format!(
+            "EVIDENCE_{}",
+            claim.evidence_status.to_ascii_uppercase()
+        ));
     }
     if claim.scope_id != requested_scope_id {
         return Some("SCOPE_ID_MISMATCH".to_owned());
@@ -314,12 +315,10 @@ pub fn evaluate(corpus: &AssuranceBudgetCorpus) -> Result<AssuranceBudgetResult,
     };
     for claim in &claims {
         if claim.guarantee_kind == "STATISTICAL_GUARANTEE" {
-            alpha_allocated = alpha_allocated.checked_add(
-                claim
-                    .alpha
-                    .as_ref()
-                    .ok_or_else(|| format!("statistical claim {} has no alpha", claim.claim_id))?,
-            )?;
+            alpha_allocated =
+                alpha_allocated.checked_add(claim.alpha.as_ref().ok_or_else(|| {
+                    format!("statistical claim {} has no alpha", claim.claim_id)
+                })?)?;
         }
     }
     alpha_allocated = alpha_allocated.canonicalized();
@@ -331,11 +330,8 @@ pub fn evaluate(corpus: &AssuranceBudgetCorpus) -> Result<AssuranceBudgetResult,
     let mut evidence_indeterminate = false;
 
     for claim in &claims {
-        let reason = claim_exclusion_reason(
-            claim,
-            &corpus.requested_scope,
-            &corpus.requested_scope_id,
-        );
+        let reason =
+            claim_exclusion_reason(claim, &corpus.requested_scope, &corpus.requested_scope_id);
         let composable = reason.is_none();
         if !composable {
             noncomposable_claim_ids.push(claim.claim_id.clone());
@@ -371,55 +367,42 @@ pub fn evaluate(corpus: &AssuranceBudgetCorpus) -> Result<AssuranceBudgetResult,
         .map(|claim_class| (*claim_class).to_owned())
         .collect::<Vec<_>>();
 
-    let (status, alpha_used, alpha_remaining, joint_lower_confidence) =
-        if scope_mismatch {
-            (
-                "ASSURANCE_SCOPE_MISMATCH",
-                None,
-                None,
-                None,
-            )
-        } else if evidence_indeterminate || !missing_required_classes.is_empty() {
-            (
-                "ASSURANCE_INDETERMINATE",
-                None,
-                None,
-                None,
-            )
-        } else if alpha_allocated.compare_exact(&corpus.total_alpha)
-            == std::cmp::Ordering::Greater
-        {
-            (
-                "ASSURANCE_BUDGET_EXCEEDED",
-                Some(alpha_allocated.clone()),
-                None,
-                None,
-            )
-        } else {
-            let remaining = corpus
-                .total_alpha
-                .checked_sub(&alpha_allocated)
-                .map_err(|error| format!("alpha remaining underflowed: {error}"))?
-                .canonicalized();
-            let lower_confidence = Rational {
-                numerator: 1,
-                denominator: 1,
-            }
+    let (status, alpha_used, alpha_remaining, joint_lower_confidence) = if scope_mismatch {
+        ("ASSURANCE_SCOPE_MISMATCH", None, None, None)
+    } else if evidence_indeterminate || !missing_required_classes.is_empty() {
+        ("ASSURANCE_INDETERMINATE", None, None, None)
+    } else if alpha_allocated.compare_exact(&corpus.total_alpha) == std::cmp::Ordering::Greater {
+        (
+            "ASSURANCE_BUDGET_EXCEEDED",
+            Some(alpha_allocated.clone()),
+            None,
+            None,
+        )
+    } else {
+        let remaining = corpus
+            .total_alpha
             .checked_sub(&alpha_allocated)
-            .map_err(|error| format!("union-bound confidence underflowed: {error}"))?
+            .map_err(|error| format!("alpha remaining underflowed: {error}"))?
             .canonicalized();
-            let composed_status = if corpus.requested_scope == "ANYTIME" {
-                "ASSURANCE_COMPOSED_ANYTIME"
-            } else {
-                "ASSURANCE_COMPOSED_FIXED_EVALUATION"
-            };
-            (
-                composed_status,
-                Some(alpha_allocated.clone()),
-                Some(remaining),
-                Some(lower_confidence),
-            )
+        let lower_confidence = Rational {
+            numerator: 1,
+            denominator: 1,
+        }
+        .checked_sub(&alpha_allocated)
+        .map_err(|error| format!("union-bound confidence underflowed: {error}"))?
+        .canonicalized();
+        let composed_status = if corpus.requested_scope == "ANYTIME" {
+            "ASSURANCE_COMPOSED_ANYTIME"
+        } else {
+            "ASSURANCE_COMPOSED_FIXED_EVALUATION"
         };
+        (
+            composed_status,
+            Some(alpha_allocated.clone()),
+            Some(remaining),
+            Some(lower_confidence),
+        )
+    };
 
     Ok(AssuranceBudgetResult {
         result: "pass".to_owned(),
@@ -487,7 +470,10 @@ mod tests {
         total_alpha: Rational,
         claims: Vec<AssuranceClaim>,
     ) -> AssuranceBudgetCorpus {
-        let mut ids = claims.iter().map(|item| item.claim_id.clone()).collect::<Vec<_>>();
+        let mut ids = claims
+            .iter()
+            .map(|item| item.claim_id.clone())
+            .collect::<Vec<_>>();
         ids.sort();
         AssuranceBudgetCorpus {
             schema: CORPUS_SCHEMA.to_owned(),
@@ -587,10 +573,7 @@ mod tests {
         );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.status, "ASSURANCE_INDETERMINATE");
-        assert_eq!(
-            result.missing_required_classes,
-            vec!["LOSS_MODEL_COVERAGE"]
-        );
+        assert_eq!(result.missing_required_classes, vec!["LOSS_MODEL_COVERAGE"]);
         assert!(result.joint_lower_confidence.is_none());
     }
 
@@ -671,7 +654,11 @@ mod tests {
         );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.status, "ASSURANCE_COMPOSED_FIXED_EVALUATION");
-        assert!(result.noncomposable_claim_ids.contains(&"transport".to_owned()));
+        assert!(
+            result
+                .noncomposable_claim_ids
+                .contains(&"transport".to_owned())
+        );
         assert_eq!(result.alpha_used.unwrap().numerator, 1);
     }
 
