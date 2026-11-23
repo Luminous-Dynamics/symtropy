@@ -35,7 +35,8 @@
           "case_id",
           "greedy_expected_cost_numerator",
           "exact_expected_cost_numerator",
-          "exact_quality_rejection_numerator"
+          "exact_quality_rejection_numerator",
+          "scarcity_greedy_expected_cost_numerator"
         ],
         "properties": {
           "case_id": {
@@ -51,6 +52,10 @@
             "minimum": 0
           },
           "exact_quality_rejection_numerator": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scarcity_greedy_expected_cost_numerator": {
             "type": "integer",
             "minimum": 0
           }
