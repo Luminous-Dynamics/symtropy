@@ -647,7 +647,7 @@ mod tests {
     }
 
     #[test]
-    fn csv_schema_has_16_columns_and_nine_method_window_rows() {
+    fn csv_schema_has_18_columns_and_twelve_method_window_rows() {
         let output = render_csv();
         let mut lines = output.lines();
         let header = lines.next().expect("CSV header");
