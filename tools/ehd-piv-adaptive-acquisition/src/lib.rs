@@ -145,6 +145,14 @@ pub enum ScheduleDisposition {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObserverRequalificationPhase {
+    NotRequired,
+    BeforeMeasurement,
+    AfterMeasurement,
+    BeforeAndAfter,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AbstentionReason {
     NoAvailableActionCoversRequiredCapabilities,
     MeasurementBudgetInsufficient,
@@ -233,6 +241,10 @@ pub struct ScheduleReport {
     pub total_cost_units: u32,
     pub total_latency_seconds: f64,
     pub observer_requalification_required: bool,
+    /// The orchestration layer must place observer-state qualification at
+    /// these boundaries; a perturbative measurement requires post-assessment,
+    /// while a pre-existing unqualified state requires pre-assessment.
+    pub observer_requalification_phase: ObserverRequalificationPhase,
     pub rejected_subset_counts: RejectedSubsetCounts,
     pub abstention_reason: Option<AbstentionReason>,
     pub claim_boundary: &'static str,
@@ -342,6 +354,7 @@ pub fn schedule_diagnostics(
             total_cost_units: 0,
             total_latency_seconds: 0.0,
             observer_requalification_required: false,
+            observer_requalification_phase: ObserverRequalificationPhase::NotRequired,
             rejected_subset_counts: RejectedSubsetCounts::default(),
             abstention_reason: None,
             claim_boundary: "sentinel continuation only; not a physical validation or thrust authorization",
@@ -357,8 +370,18 @@ pub fn schedule_diagnostics(
                 .map(|index| options[*index].clone())
                 .collect();
             selected_actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
-            let observer_requalification_required = plan.observer_requalification_required
-                || trigger_reasons.contains(&TriggerReason::ObserverStateUnqualified);
+            let before_requalification = trigger_reasons
+                .contains(&TriggerReason::ObserverStateUnqualified);
+            let after_requalification = plan.observer_requalification_required;
+            let observer_requalification_required =
+                before_requalification || after_requalification;
+            let observer_requalification_phase =
+                match (before_requalification, after_requalification) {
+                    (false, false) => ObserverRequalificationPhase::NotRequired,
+                    (true, false) => ObserverRequalificationPhase::BeforeMeasurement,
+                    (false, true) => ObserverRequalificationPhase::AfterMeasurement,
+                    (true, true) => ObserverRequalificationPhase::BeforeAndAfter,
+                };
             Ok(ScheduleReport {
                 disposition: ScheduleDisposition::AcquireDiagnostics,
                 target,
@@ -368,6 +391,7 @@ pub fn schedule_diagnostics(
                 total_cost_units: plan.cost,
                 total_latency_seconds: plan.latency,
                 observer_requalification_required,
+                observer_requalification_phase,
                 rejected_subset_counts: rejected,
                 abstention_reason: None,
                 claim_boundary: "schedules diagnostics only; claims remain blocked until required evidence receipts are reconciled",
@@ -384,6 +408,7 @@ pub fn schedule_diagnostics(
                 total_cost_units: 0,
                 total_latency_seconds: 0.0,
                 observer_requalification_required: false,
+                observer_requalification_phase: ObserverRequalificationPhase::NotRequired,
                 rejected_subset_counts: rejected,
                 abstention_reason: Some(abstention_reason),
                 claim_boundary: "no measurement action authorized by this scheduler; maintain current safe state and retain unresolved evidence status",
@@ -530,7 +555,11 @@ fn evaluate_metric(
 fn target_capabilities(target: EvidenceTarget) -> BTreeSet<DiagnosticCapability> {
     match target {
         EvidenceTarget::SentinelMonitoring => BTreeSet::new(),
-        EvidenceTarget::FieldCovariance => BTreeSet::new(),
+        EvidenceTarget::FieldCovariance => BTreeSet::from([
+            DiagnosticCapability::HighResolutionPiv,
+            DiagnosticCapability::SpatialRegionCoverage,
+            DiagnosticCapability::ReferenceQualification,
+        ]),
         EvidenceTarget::ThreeDimensionalVelocity => BTreeSet::from([
             DiagnosticCapability::VolumetricLpt,
             DiagnosticCapability::IndependentVelocityReference,
@@ -907,6 +936,10 @@ mod tests {
         .unwrap();
         assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
         assert!(report.observer_requalification_required);
+        assert_eq!(
+            report.observer_requalification_phase,
+            ObserverRequalificationPhase::AfterMeasurement
+        );
         assert!(report
             .selected_actions
             .iter()
@@ -951,6 +984,10 @@ mod tests {
             .selected_actions
             .iter()
             .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification));
+        assert_eq!(
+            report.observer_requalification_phase,
+            ObserverRequalificationPhase::BeforeMeasurement
+        );
     }
 
     #[test]
@@ -1061,6 +1098,10 @@ mod tests {
             .selected_actions
             .iter()
             .any(|action| action.kind == DiagnosticKind::ObserverWashoutAndRequalification));
+        assert_eq!(
+            report.observer_requalification_phase,
+            ObserverRequalificationPhase::AfterMeasurement
+        );
     }
 
     #[test]
@@ -1163,6 +1204,25 @@ mod tests {
         assert_eq!(baseline.total_cost_units, permuted.total_cost_units);
         assert_eq!(baseline.total_latency_seconds, permuted.total_latency_seconds);
         assert!(permuted.observer_requalification_required);
+    }
+
+    #[test]
+    fn unqualified_observer_plus_perturbative_diagnostic_requires_before_and_after_checks() {
+        let mut sample = snapshot();
+        sample.observer_state_qualified = false;
+        sample.out_of_domain_score = Some(0.95);
+        let report = schedule_diagnostics(
+            EvidenceTarget::ThreeDimensionalVelocity,
+            &sample,
+            &config(),
+            &catalog(),
+        )
+        .unwrap();
+        assert_eq!(report.disposition, ScheduleDisposition::AcquireDiagnostics);
+        assert_eq!(
+            report.observer_requalification_phase,
+            ObserverRequalificationPhase::BeforeAndAfter
+        );
     }
 
     #[test]
