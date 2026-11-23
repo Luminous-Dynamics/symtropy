@@ -169,6 +169,10 @@
         "action_ids",
         "worlds",
         "world_set_state",
+        "world_set_receipt_schema",
+        "world_set_claim_ceiling",
+        "world_set_source_commit",
+        "world_set_source_case_id",
         "world_set_receipt_id",
         "world_set_receipt_sha256",
         "expected_world_ids",
@@ -286,6 +290,19 @@
         },
         "loss_model_set": {
           "$ref": "#/$defs/lossModelSet"
+        },
+        "world_set_receipt_schema": {
+          "const": "luminous.orbital-decision-identifiability.receipt.v0.1"
+        },
+        "world_set_claim_ceiling": {
+          "const": "exact-finite-world-decision-set-algebra-only"
+        },
+        "world_set_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "world_set_source_case_id": {
+          "$ref": "#/$defs/id"
         }
       }
     },
