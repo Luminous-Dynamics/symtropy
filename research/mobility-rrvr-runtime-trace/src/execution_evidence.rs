@@ -726,7 +726,10 @@ impl ExecutionEvidenceBundle {
                         .as_deref()
                         .filter(|value| nonempty(value))
                         .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    if observer_id == self.platform.fault_injector_id
+                    if observer_id != self.platform.observer_id
+                        || observer_revision != self.platform.observer_stack_revision
+                        || observer_fault_domain_id != self.platform.observer_fault_domain_id
+                        || observer_id == self.platform.fault_injector_id
                         || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
                     {
                         return Err(ExecutionEvidenceError::ObserverNotDistinct);
@@ -788,7 +791,10 @@ impl ExecutionEvidenceBundle {
                         .as_deref()
                         .filter(|value| nonempty(value))
                         .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    if observer_id == self.platform.fault_injector_revision
+                    if observer_id != self.platform.observer_id
+                        || observer_revision != self.platform.observer_stack_revision
+                        || observer_fault_domain_id != self.platform.observer_fault_domain_id
+                        || observer_id == self.platform.fault_injector_id
                         || observer_fault_domain_id == self.platform.fault_injector_fault_domain_id
                     {
                         return Err(ExecutionEvidenceError::ObserverNotDistinct);
@@ -850,7 +856,10 @@ impl ExecutionEvidenceBundle {
                             .as_deref()
                             .filter(|value| nonempty(value))
                             .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                        if observer_id == self.platform.fault_injector_id
+                        if observer_id != self.platform.observer_id
+                            || observer_revision != self.platform.observer_stack_revision
+                            || observer_fault_domain_id != self.platform.observer_fault_domain_id
+                            || observer_id == self.platform.fault_injector_id
                             || observer_fault_domain_id
                                 == self.platform.fault_injector_fault_domain_id
                         {
@@ -1121,6 +1130,28 @@ mod tests {
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ExecutionCoordinateMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_unpinned_observer_identity_or_revision() {
+        let plan = plan();
+        let mut evidence = bundle();
+        evidence.events[0]
+            .delivery_observation
+            .observer_id = Some("unlisted-observer".into());
+        assert_eq!(
+            evidence.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ObserverNotDistinct)
+        );
+
+        let mut revision = bundle();
+        revision.events[0]
+            .delivery_observation
+            .observer_revision = Some("unreviewed-observer".into());
+        assert_eq!(
+            revision.validate_against_plan(&plan),
+            Err(ExecutionEvidenceError::ObserverNotDistinct)
         );
     }
 
