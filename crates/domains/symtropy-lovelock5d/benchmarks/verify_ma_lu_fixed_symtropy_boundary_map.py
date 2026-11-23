@@ -29,8 +29,8 @@ def derive():
     RH_rh=sp.sqrt((1+q**2)*(1+eR*H7))
     nu_h=q/(1+q**2)
     omega_h=nu_h*(1+eR*H2)/(1+eR*(H7+q**2*H4)/(1+q**2))
-    nuS_q=trunc(RH_rh*omega_h,eR,q,6)
-    RH_q=trunc(RH_rh,eR,q,6)
+    nuS_q=trunc(RH_rh*omega_h,eR,q,4)
+    RH_q=trunc(RH_rh,eR,q,4)
 
     zero("nuS(q,eR)",nuS_q-(q-q**3/2-7*eR*q+sp.Rational(5509,90)*eR*q**3))
     zero("RH/rh(q,eR)",RH_q-(1+q**2/2+sp.Rational(5,3)*eR-sp.Rational(503,90)*eR*q**2))
