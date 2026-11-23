@@ -60,6 +60,7 @@
       "additionalProperties": false,
       "required": [
         "world_id",
+        "loss_unit",
         "scope_sha256",
         "feasible_action_ids",
         "losses"
@@ -84,6 +85,9 @@
           "items": {
             "$ref": "#/$defs/worldLoss"
           }
+        },
+        "loss_unit": {
+          "$ref": "#/$defs/id"
         }
       }
     },
