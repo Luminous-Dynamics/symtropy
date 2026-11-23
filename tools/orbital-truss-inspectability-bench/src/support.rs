@@ -52,7 +52,7 @@ pub struct SupportEnvelopeCase {
     pub sensor: SupportSensor,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceSupport {
     pub support_id: String,
