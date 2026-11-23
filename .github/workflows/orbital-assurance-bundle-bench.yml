@@ -6,6 +6,7 @@ on:
       - "research/orbital-assurance-bundle-v0-1"
       - "research/orbital-incumbent-adequacy-v0-1"
       - "research/orbital-incumbent-loss-model-bridge-v0-1"
+      - "research/orbital-loss-model-universe-adequacy-v0-2"
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
@@ -18,6 +19,7 @@ on:
       - "research/orbital-incumbent-adequacy-v0-1"
       - "research/orbital-dependency-graph-adequacy-v0-1"
       - "research/orbital-assurance-bundle-v0-1"
+      - "research/orbital-incumbent-loss-model-bridge-v0-1"
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
@@ -195,6 +197,33 @@ jobs:
       - name: Compare Rust incumbent-adequacy receipt to independent oracle
         run: node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_adequacy.mjs incumbent-decision-adequacy-receipt.json incumbent-decision-adequacy-oracle.json
 
+      - name: Validate loss-model universe corpus contract
+        run: node tools/orbital-assurance-bundle-bench/tests/validate_loss_model_universe.mjs tools/orbital-assurance-bundle-bench/schema/v0.1/loss-model-universe-corpus.schema.json tools/orbital-assurance-bundle-bench/fixtures/v0.1/loss-model-universe-cases.json
+
+      - name: Validate loss-model universe receipt schema JSON
+        run: node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/loss-model-universe-receipt.schema.json", "utf8"))'
+
+      - name: Generate independent loss-model universe adequacy receipt
+        run: |
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin loss-model-universe-adequacy -- tools/orbital-assurance-bundle-bench/fixtures/v0.1/loss-model-universe-cases.json --source-commit "$BENCHMARK_COMMIT" > loss-model-universe-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-loss-model-universe-adequacy.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .evaluation.summary.case_count == 17
+            and .evaluation.summary.closed_cases >= 1
+            and .evaluation.summary.common_mode_model_omission_cases >= 1
+            and .evaluation.summary.unwitnessed_exclusion_cases >= 1
+            and .evaluation.summary.expected_result_mismatches == 0
+          ' loss-model-universe-receipt.json
+
+      - name: Run independent JavaScript loss-model universe oracle
+        run: node tools/orbital-assurance-bundle-bench/tests/loss_model_universe_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/loss-model-universe-cases.json > loss-model-universe-oracle.json
+
+      - name: Compare Rust loss-model universe receipt to independent oracle
+        run: node tools/orbital-assurance-bundle-bench/tests/compare_loss_model_universe.mjs loss-model-universe-receipt.json loss-model-universe-oracle.json
+
       - name: Upload reproducible assurance receipt
         uses: actions/upload-artifact@v4
         with:
@@ -207,5 +236,7 @@ jobs:
             dependency-graph-adequacy-oracle.json
             incumbent-decision-adequacy-receipt.json
             incumbent-decision-adequacy-oracle.json
+            loss-model-universe-receipt.json
+            loss-model-universe-oracle.json
           if-no-files-found: error
           retention-days: 30
