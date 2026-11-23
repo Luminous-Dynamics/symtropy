@@ -80,7 +80,7 @@
           ]
         },
         "receipt": {
-          "$ref": "#/$defs/owner_evidence_ref"
+          "$ref": "#/$defs/regular_owner_evidence_ref"
         }
       }
     },
@@ -103,7 +103,7 @@
           ]
         },
         "receipt": {
-          "$ref": "#/$defs/owner_evidence_ref"
+          "$ref": "#/$defs/regular_owner_evidence_ref"
         }
       }
     },
@@ -123,7 +123,7 @@
           ]
         },
         "receipt": {
-          "$ref": "#/$defs/owner_evidence_ref"
+          "$ref": "#/$defs/regular_owner_evidence_ref"
         }
       }
     },
@@ -154,7 +154,7 @@
           ]
         },
         "receipt": {
-          "$ref": "#/$defs/owner_evidence_ref"
+          "$ref": "#/$defs/regular_owner_evidence_ref"
         }
       }
     },
@@ -362,11 +362,25 @@
             },
             "status": {
               "const": "quorum_qualified"
+            },
+            "claim_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claim_scope_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "observer_quorum": {
+              "$ref": "#/$defs/observer_quorum"
             }
           },
           "required": [
             "domain",
-            "status"
+            "status",
+            "claim_id",
+            "claim_scope_sha256",
+            "observer_quorum"
           ]
         }
       ]
@@ -494,6 +508,42 @@
           "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
+    },
+    "regular_owner_evidence_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/owner_evidence_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "enum": [
+                "persistence",
+                "physical_outcome",
+                "mission_resolution",
+                "controller_queue",
+                "downstream_execution_graph"
+              ]
+            },
+            "claim_id": {
+              "type": "null"
+            },
+            "claim_scope_sha256": {
+              "type": "null"
+            },
+            "observer_quorum": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "domain",
+            "claim_id",
+            "claim_scope_sha256",
+            "observer_quorum"
+          ]
+        }
+      ]
     }
   }
 }
