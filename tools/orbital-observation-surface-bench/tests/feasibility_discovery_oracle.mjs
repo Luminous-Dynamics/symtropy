@@ -327,7 +327,7 @@ function emptyCase(item,status,baseStatus){
     expected_query_ids_sha256:item.query_universe.expected_query_ids_sha256,
     queries_sha256:item.query_universe.queries_sha256,
     no_query_policy_ids:[],query_reports:[],policy_metrics:[],policy_pareto_frontier_ids:[],
-    best_no_query_worst_case_loss:null
+    best_no_query_worst_case_loss:null,clairvoyant_worst_case_loss:null
   };
 }
 function evaluateCase(item){
