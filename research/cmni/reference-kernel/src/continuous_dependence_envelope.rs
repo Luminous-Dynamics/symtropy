@@ -269,11 +269,10 @@ pub(crate) fn validate_witness_within_intervals(
     correlation: &[Vec<f64>],
     intervals: &PairwiseCorrelationIntervalSet,
 ) -> Result<(), ModelError> {
-    for row in 0..correlation.len() {
-        for column in 0..correlation.len() {
-            let interval = intervals.bounds[row][column];
-            let value = correlation[row][column];
-            if value < interval.lower - 1.0e-12 || value > interval.upper + 1.0e-12 {
+    for (row_index, correlation_row) in correlation.iter().enumerate() {
+        for (column_index, value) in correlation_row.iter().enumerate() {
+            let interval = intervals.bounds[row_index][column_index];
+            if *value < interval.lower - 1.0e-12 || *value > interval.upper + 1.0e-12 {
                 return Err(ModelError::InvalidParameter(
                     "continuous_dependence_witness_outside_pairwise_bounds",
                 ));
