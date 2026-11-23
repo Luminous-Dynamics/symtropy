@@ -143,3 +143,13 @@ The branch now adds `src/dynamics.rs`, exposed as `dynamics`, and `DYNAMICS_TRAN
 This is a stronger finite dynamics test than graph correspondence or qualitative effect-sign matching, but it remains a validator for a proposed witness. It does not discover mappings from streams, infer causal mechanisms, authenticate interventions, estimate uncertainty or qualify physical-world transfer. It is not a continuous-time CfC/LTC equivalence test. A continuous extension needs explicit clock transformation, observation delay/sampling, uncertainty, error bounds and held-out rollout / intervention contracts.
 
 **Verification for the combined transfer, acquisition, matching, atlas and dynamics branch:** pending exact-head Rust 1.96 format, tests and strict Clippy.
+
+## Latest exact-head test finding
+
+The focused run on head `2a68852ac613f625abf095d8a6f73f594963f17c` passed `cargo fmt --check` and all **50 unit tests**. Its doctest then failed because the indented mathematical transition equation in the module-level Rust documentation was parsed as a Rust code example. The same run also reported an unused import in `atlas.rs`. No Clippy result was produced because the test command stopped the workflow.
+
+Both narrow issues have been corrected:
+- the equation is now an inline code span, not an executable doctest;
+- the test-only effect-transform import is now scoped to the test module.
+
+Corrected head: `2315e78f5e2886f8367a4619743be5576c1acd5b`. A new exact-head Rust 1.96 run is required before qualification.
