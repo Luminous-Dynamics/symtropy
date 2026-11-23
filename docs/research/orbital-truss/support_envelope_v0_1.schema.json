@@ -21,7 +21,7 @@
       "const": "synthetic"
     },
     "claim_ceiling": {
-      "const": "synthetic_3d_full_support_sensing_envelope_bounds_only_occlusion_not_assessed"
+      "const": "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed"
     },
     "cases": {
       "type": "array",
@@ -48,10 +48,10 @@
         "support_id",
         "center_m",
         "enclosing_ball_radius_m",
-        "enclosing_ball_proven",
+        "enclosing_ball_asserted",
         "outward_normal_unit",
         "normal_cone_half_angle_rad",
-        "normal_cone_proven"
+        "normal_cone_asserted"
       ],
       "properties": {
         "support_id": {
@@ -65,7 +65,7 @@
           "type": "number",
           "exclusiveMinimum": 0
         },
-        "enclosing_ball_proven": {
+        "enclosing_ball_asserted": {
           "type": "boolean"
         },
         "outward_normal_unit": {
@@ -76,7 +76,7 @@
           "minimum": 0,
           "exclusiveMaximum": 3.141592653589793
         },
-        "normal_cone_proven": {
+        "normal_cone_asserted": {
           "type": "boolean"
         }
       }
