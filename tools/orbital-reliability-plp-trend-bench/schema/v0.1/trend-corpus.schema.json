@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-reliability-plp-trend-corpus-v0.1.json",
+  "title": "Orbital PLP trend diagnostic corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-reliability-plp-trend.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-constant-vs-plp-trend-diagnostic-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "event_count",
+        "beta_hat",
+        "likelihood_ratio_statistic",
+        "exact_conditional_p_value",
+        "blockers"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "trend_signal_detected",
+            "no_trend_signal_detected",
+            "indeterminate",
+            "model_not_supported",
+            "rejected"
+          ]
+        },
+        "event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beta_hat": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "likelihood_ratio_statistic": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "exact_conditional_p_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "model_profile",
+        "admissibility_receipt_sha256",
+        "admissibility_source_commit",
+        "exposure_end_seconds",
+        "event_times_seconds",
+        "significance_level",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_profile": {
+          "type": "string"
+        },
+        "admissibility_receipt_sha256": {
+          "type": "string"
+        },
+        "admissibility_source_commit": {
+          "type": "string"
+        },
+        "exposure_end_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_times_seconds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "significance_level": {
+          "type": "number"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    }
+  }
+}
