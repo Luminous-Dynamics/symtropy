@@ -1,0 +1,199 @@
+{
+  "schema_version": "cmni-randomized-complete-campaign-game-v1",
+  "fixture_kind": "analytic_finite_zero_sum_game_over_campaign_trees",
+  "claim_boundary": "Finite synthetic two-scenario game over complete one-stage campaign trees. Not physical data, continuous ambiguity or formal certificate.",
+  "decision_problem": {
+    "state_ids": [
+      "state-0",
+      "state-1",
+      "state-2"
+    ],
+    "state_probabilities": [
+      0.4,
+      0.4,
+      0.2
+    ],
+    "action_ids": [
+      "action-0",
+      "action-1",
+      "action-2"
+    ],
+    "action_utilities_action_major": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "abstention_utility": -1
+  },
+  "acquisition": {
+    "option_id": "task-driven-sensor",
+    "cost": 0.01,
+    "outcome_ids": [
+      "outcome-0",
+      "outcome-1",
+      "outcome-2"
+    ],
+    "dependence_scope_receipt_id": "receipt:randomized-campaign-game-v1",
+    "scenarios": [
+      {
+        "scenario_id": "dependence-a",
+        "likelihoods_state_major": [
+          [
+            0.6,
+            0.2,
+            0.2
+          ],
+          [
+            0.2,
+            0.6,
+            0.2
+          ],
+          [
+            0.4,
+            0.2,
+            0.4
+          ]
+        ]
+      },
+      {
+        "scenario_id": "dependence-b",
+        "likelihoods_state_major": [
+          [
+            0.2,
+            0.4,
+            0.4
+          ],
+          [
+            0.4,
+            0.4,
+            0.2
+          ],
+          [
+            0.4,
+            0.2,
+            0.4
+          ]
+        ]
+      }
+    ]
+  },
+  "policy": {
+    "max_steps": 1,
+    "remaining_resource_budget": 0.01,
+    "cost_to_utility_rate": 1
+  },
+  "expected": {
+    "complete_policy_trees_evaluated": 68,
+    "scenario_policy_evaluations": 136,
+    "deterministic_maximin_net_utility": 0.4,
+    "primal_randomized_tree_mixture": [
+      {
+        "action_ids_by_outcome": [
+          "action-0",
+          "action-0",
+          "action-2"
+        ],
+        "probability": 0.6666666666666666,
+        "scenario_net_utilities": [
+          0.39,
+          0.47
+        ],
+        "maximum_path_resource_cost": 0.01
+      },
+      {
+        "action_ids_by_outcome": [
+          "action-2",
+          "action-0",
+          "action-2"
+        ],
+        "probability": 0.3333333333333333,
+        "scenario_net_utilities": [
+          0.55,
+          0.39
+        ],
+        "maximum_path_resource_cost": 0.01
+      }
+    ],
+    "randomized_net_utility_by_scenario": [
+      0.44333333333333336,
+      0.44333333333333336
+    ],
+    "randomized_worst_case_net_utility": 0.44333333333333336,
+    "deterministic_to_randomized_value_gain": 0.043333333333333335,
+    "prior_best_terminal_utility": 0.4,
+    "robust_expected_value_of_campaign": 0.043333333333333335,
+    "dual_least_favourable_scenario_mixture": [
+      {
+        "scenario_id": "dependence-a",
+        "probability": 0.3333333333333333
+      },
+      {
+        "scenario_id": "dependence-b",
+        "probability": 0.6666666666666666
+      }
+    ],
+    "primal_game_value": 0.44333333333333336,
+    "dual_game_value": 0.44333333333333336,
+    "primal_dual_gap": 0,
+    "maximum_path_cost_in_mixture": 0.01,
+    "pathwise_budget_satisfied": true
+  },
+  "adversarial_controls": {
+    "hidden_calibration_reversal": {
+      "scenarios": [
+        {
+          "scenario_id": "forward",
+          "likelihoods_state_major": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        {
+          "scenario_id": "reversed",
+          "likelihoods_state_major": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected_randomized_worst_case_net_utility": 0.5,
+      "expected_policy": "stop"
+    },
+    "policy_tree_cap": "fail closed before full tree construction",
+    "basis_cap": "fail closed before solver returns a partial game value"
+  },
+  "limits": [
+    "Finite scenarios only",
+    "Finite one- or two-stage deterministic campaign tree set",
+    "Randomization over complete trees chosen before hidden scenario disclosure",
+    "Pareto pruning only for componentwise-dominated scenario payoff vectors",
+    "f64 primal/dual solver and tolerances",
+    "Dependence-scope receipt identifier is not authenticated",
+    "No formal mathematical certificate",
+    "No physical validation"
+  ]
+}

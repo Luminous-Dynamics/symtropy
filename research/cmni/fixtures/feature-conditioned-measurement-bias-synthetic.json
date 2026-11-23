@@ -1,0 +1,58 @@
+{
+  "fixture_type": "synthetic_cmni_feature_conditioned_measurement_bias_v1",
+  "provenance": "fully synthetic physical expected counts, experiment features and bias coefficients; no calibrated detector or experimental observations",
+  "physical_expected_counts": [
+    [
+      100
+    ],
+    [
+      100
+    ]
+  ],
+  "experiment_features": [
+    [
+      0
+    ],
+    [
+      1
+    ]
+  ],
+  "feature_names": [
+    "synthetic_detector_processing_flag"
+  ],
+  "coefficients_by_channel": [
+    [
+      2
+    ]
+  ],
+  "log_bias_by_run": [
+    [
+      0
+    ],
+    [
+      2
+    ]
+  ],
+  "multiplicative_factors": [
+    [
+      1
+    ],
+    [
+      7.38905609893065
+    ]
+  ],
+  "biased_expected_counts": [
+    [
+      100
+    ],
+    [
+      738.905609893065
+    ]
+  ],
+  "limits": [
+    "Coefficients are supplied, not fitted.",
+    "No shrinkage prior or coefficient uncertainty.",
+    "No causal interpretation or raw-observation correction.",
+    "Synthetic forward calculation only."
+  ]
+}

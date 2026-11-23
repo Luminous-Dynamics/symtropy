@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "detector-response-matrix-forward-synthetic-v0",
+  "provenance_kind": "synthetic",
+  "convention": {
+    "matrix_orientation": "rows are measured pulse-height bins; columns are incident true-neutron-energy bins",
+    "value_semantics": "probability per incident neutron, including explicitly modelled geometry/detection efficiency",
+    "column_efficiency": "sum over measured bins for each true-energy column; must be <= 1",
+    "background": "separate measured-bin counts/s",
+    "exposure": "seconds"
+  },
+  "true_energy_bins": [
+    "E0",
+    "E1"
+  ],
+  "measured_pulse_height_bins": [
+    "L0",
+    "L1"
+  ],
+  "response_matrix": [
+    [
+      0.5,
+      0.1
+    ],
+    [
+      0.3,
+      0.6
+    ]
+  ],
+  "column_efficiencies": [
+    0.8,
+    0.7
+  ],
+  "synthetic_incident_spectrum_rate_per_s": [
+    100,
+    50
+  ],
+  "expected_measured_signal_rate_per_s": [
+    55,
+    60
+  ],
+  "synthetic_background_rate_counts_per_s": [
+    2,
+    3
+  ],
+  "exposure_time_s": 10,
+  "expected_total_counts": [
+    570,
+    630
+  ],
+  "limitations": [
+    "Synthetic 2x2 matrix only; not a Geant4, MCNP, DRiFT or experimental response matrix.",
+    "No neutron transport, scintillation light production, proton quenching, energy resolution, PSD, thresholds, pileup or dead time is simulated.",
+    "No inverse/unfolding step is implemented by this fixture."
+  ]
+}
