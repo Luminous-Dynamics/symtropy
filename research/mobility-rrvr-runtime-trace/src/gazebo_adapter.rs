@@ -761,6 +761,25 @@ mod tests {
         CompiledCampaignPlan::compile(&manifest, &digest).unwrap()
     }
 
+    fn world_stats(
+        profile: &GazeboCapabilityProfile,
+        clock_id: &str,
+        iterations: u64,
+        simulation_time_ns: u64,
+    ) -> GazeboWorldStatisticsReceipt {
+        GazeboWorldStatisticsReceipt {
+            topic: profile.world_stats_topic.clone(),
+            message_type: "gz.msgs.WorldStatistics".into(),
+            producer_id: profile.simulator_id.clone(),
+            producer_revision: profile.simulator_revision.clone(),
+            raw_artifact_id: format!("world-stats-{iterations}"),
+            raw_artifact_sha256: "c".repeat(64),
+            clock_id: clock_id.into(),
+            iterations,
+            simulation_time_ns,
+        }
+    }
+
     fn profile(plan: &CompiledCampaignPlan) -> GazeboCapabilityProfile {
         GazeboCapabilityProfile {
             version: GAZEBO_ADAPTER_CONTRACT_VERSION.into(),
@@ -827,6 +846,12 @@ mod tests {
             self.world.simulation_time_ns = 0;
             self.world.state = SimulationState::Paused;
             self.world.state_sha256 = self.initial_state_sha256.clone();
+            self.world.world_statistics = world_stats(
+                &self.profile,
+                &self.world.clock_id,
+                0,
+                0,
+            );
             Ok(())
         }
 
@@ -839,6 +864,12 @@ mod tests {
             self.step_calls.push((steps, method));
             self.world.simulation_step += steps;
             self.world.simulation_time_ns += steps * 10_000_000;
+            self.world.world_statistics = world_stats(
+                &self.profile,
+                &self.world.clock_id,
+                self.world.simulation_step,
+                self.world.simulation_time_ns,
+            );
             Ok(())
         }
 
@@ -866,6 +897,12 @@ mod tests {
                 simulation_time_ns: 500_000_000,
                 state: SimulationState::Playing,
                 state_sha256: "a".repeat(64),
+                world_statistics: world_stats(
+                    &profile,
+                    "sim-clock",
+                    50,
+                    500_000_000,
+                ),
             },
             initial_state_sha256: plan.reset.expected_initial_state_sha256.clone(),
             pause_calls: 0,
@@ -987,6 +1024,7 @@ mod tests {
             simulation_time_ns: 100,
             state: SimulationState::Paused,
             state_sha256: "a".repeat(64),
+            world_statistics: world_stats(&profile, "sim-clock", 10, 100),
         };
         world.world_name = "another-world".into();
         assert_eq!(
@@ -1015,6 +1053,7 @@ mod tests {
             simulation_time_ns: 900,
             state: SimulationState::Paused,
             state_sha256: "a".repeat(64),
+            world_statistics: world_stats(&profile, "sim-clock", 90, 900),
         };
         assert_eq!(world.steps_to(100), Ok(10));
         assert_eq!(
@@ -1042,6 +1081,7 @@ mod tests {
             simulation_time_ns: 0,
             state: SimulationState::Paused,
             state_sha256: plan.reset.expected_initial_state_sha256.clone(),
+            world_statistics: world_stats(&profile, "sim-clock", 0, 0),
         };
         assert_eq!(
             world.validate_reset(&profile, &plan, "world-epoch-1"),
@@ -1063,6 +1103,7 @@ mod tests {
             simulation_time_ns: 0,
             state: SimulationState::Paused,
             state_sha256: plan.reset.expected_initial_state_sha256.clone(),
+            world_statistics: world_stats(&profile, "sim-clock", 0, 0),
         };
         assert_eq!(
             world.validate_reset(&profile, &plan, "world-epoch-1"),
