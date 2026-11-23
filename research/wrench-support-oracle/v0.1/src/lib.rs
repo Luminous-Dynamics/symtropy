@@ -690,6 +690,54 @@ mod tests {
     }
 
     #[test]
+    fn exact_oracle_exposes_a_real_greedy_local_choice_gap() {
+        let source = ContactPatch {
+            points: vec![
+                ContactPoint { id: "p0".into(), position: [-0.8053331255487975, -1.0022880202777662, 0.0] },
+                ContactPoint { id: "p1".into(), position: [-0.00663309450661842, 0.24817392184595977, 0.0] },
+                ContactPoint { id: "p2".into(), position: [-0.9469860377145608, -1.4553152497193032, 0.0] },
+                ContactPoint { id: "p3".into(), position: [-0.0866003133286175, 0.6847299845497847, 0.0] },
+                ContactPoint { id: "p4".into(), position: [1.25580147532063, 0.37660201720639197, 0.0] },
+            ],
+            directions: vec![
+                WrenchDirection { id: "mx-positive".into(), components: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0] },
+                WrenchDirection { id: "mx-negative".into(), components: [0.0, 0.0, 0.0, -1.0, 0.0, 0.0] },
+                WrenchDirection { id: "my-positive".into(), components: [0.0, 0.0, 0.0, 0.0, 1.0, 0.0] },
+                WrenchDirection { id: "my-negative".into(), components: [0.0, 0.0, 0.0, 0.0, -1.0, 0.0] },
+                WrenchDirection { id: "fx-positive".into(), components: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0] },
+                WrenchDirection { id: "fx-negative".into(), components: [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0] },
+                WrenchDirection { id: "fy-positive".into(), components: [0.0, 1.0, 0.0, 0.0, 0.0, 0.0] },
+                WrenchDirection { id: "fy-negative".into(), components: [0.0, -1.0, 0.0, 0.0, 0.0, 0.0] },
+                WrenchDirection { id: "fz-positive".into(), components: [0.0, 0.0, 1.0, 0.0, 0.0, 0.0] },
+            ],
+            friction_coefficient: 0.6,
+            characteristic_length: 1.0,
+            support_floor: 0.1,
+        };
+        let exact = select_exact_subset(
+            &source,
+            ExactSelectorConfig {
+                keep: 3,
+                maximum_subsets: 100,
+            },
+        )
+        .expect("exact subset");
+        let greedy = select_greedy_subset(
+            &source,
+            GreedySelectorConfig {
+                keep: 3,
+                maximum_evaluations: 100,
+            },
+        )
+        .expect("greedy subset");
+        assert_eq!(exact.retained_point_ids, vec!["p2", "p3", "p4"]);
+        assert_eq!(exact.maximum_normalized_deficit, 0.0);
+        assert_eq!(greedy.retained_point_ids, vec!["p1", "p2", "p4"]);
+        assert!(greedy.maximum_normalized_deficit > 0.4);
+        assert!(exact.maximum_normalized_deficit < greedy.maximum_normalized_deficit);
+    }
+
+    #[test]
     fn greedy_evaluation_limit_fails_closed() {
         let result = select_greedy_subset(
             &patch(),
