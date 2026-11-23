@@ -517,6 +517,16 @@ mod tests {
     }
 
     #[test]
+    fn loss_unit_mismatch_abstains() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        assert_eq!(case(&report, "loss_unit_mismatch").disposition, "ABSTAIN");
+        assert_eq!(
+            case(&report, "loss_unit_mismatch").trigger_reason,
+            "LOSS_UNIT_MISMATCH"
+        );
+    }
+
+    #[test]
     fn incomplete_loss_matrix_abstains() {
         let report = evaluate(&fixture()).expect("corpus evaluates");
         assert_eq!(
