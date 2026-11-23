@@ -50,6 +50,47 @@ The ACI update changes the future miscoverage level after an observed miss/succe
 
 The generated numbers are not estimates of DCT performance. Their purpose is falsification of an unjustified coverage claim when time dependence and selected missingness are present.
 
+## Industry comparators and fair comparison protocol
+
+The industry landscape already includes capable local optimization systems. The programme should not compare a synthetic interval-calibration crate directly against a vendor TOS; it should compare each decision layer on matched inputs.
+
+| Comparator | Operational scope | Evidence available | Our fair comparison |
+|---|---|---|---|
+| **Kaleris N4 / Advanced Optimization** | Terminal planning/control across vessel, yard, rail and gate; vendor modules include RTG, terminal-truck and yard optimization | Kaleris/YILPORT Gebze reported a 21% increase in RTG moves per hour over three months with its existing 31-RTG fleet. This is a vendor/operator-reported deployment result, not an independently controlled causal estimate. https://www.porttechnology.org/news/kaleris-n4-platform-delivers-21-increase-in-rtg-productivity-at-yilport-gebze/ | Compare RTG move productivity only after matching yard topology, job mix, shift, fleet, congestion and labor rules. Keep evidence calibration as a separate layer. |
+| **Portchain Quay** | Dedicated berth planning, crane/gang allocation and vessel tracking; KCT announced expanded deployment in 2026 | Product/deployment materials describe berth, crane and gang planning with scenario support. https://portchain.com/portchain-quay/ | Compare berth/crane feasibility, schedule changes, recovery latency and operator acceptance on the same frozen snapshots. |
+| **Tideworks Mainsail 10 + Spinnaker** | Cloud TOS, vessel/yard/gate operation and planning-system integration; POMTOC deployment reported in March 2026 | Vendor announcement describes production go-live and API integration framework. https://tideworks.com/pomtoc-accelerates-terminal-modernization-to-support-regional-trade-growth-with-tideworks-cloud-tos/ | Treat as an integration/execution baseline, not a published CP optimizer result. Compare event semantics, API lifecycle, replay, change audit and fail-closed behavior with permissioned test fixtures. |
+| **INFORM terminal optimization** | Modular AI-supported yard, vehicle, crane and rail optimization | Vendor describes optimization modules and TOS integration. https://www.inform-software.com/industries/ports-terminals | Compare each module's own KPI on matched workloads; do not infer evidence independence from multiple modules sharing a TOS or telemetry source. |
+
+### Required matched baseline matrix
+
+For the DCT reproduction (#7221), compare:
+- deterministic BAP / QCAP reference from the paper;
+- XGBoost point forecast + deterministic schedule;
+- separate Q90/quantile regression intervals;
+- fixed marginal split conformal;
+- fixed joint split conformal;
+- rolling/block conformal;
+- adaptive conformal inference;
+- the paper's SAH-50 scenario averaging baseline;
+- a small-instance exact integrated BAP/QCAP oracle where tractable.
+
+For terminal execution comparisons, keep Kaleris/Portchain/Tideworks/INFORM product scope separate and record version, configuration, interface contract, resource model and input availability. Vendor-reported improvements are useful leads, not independent SOTA rankings.
+
+### Beyond predictive coverage
+
+A wider interval can trivially improve empirical coverage while making schedules worse. Every method must therefore be compared on a joint scorecard:
+- joint arrival/handling coverage and interval width;
+- schedule feasibility and optimality gap where an exact bound exists;
+- vessel waiting, berth idle time, makespan and quay-crane productivity;
+- recovery latency and replan frequency;
+- missed receiver deadlines and cargo displacement;
+- reserve/energy consumption and emissions;
+- false-safe rate: a plan labelled feasible that violates a hard constraint after adjudication;
+- abstention/unknown rate and cost of additional observations;
+- subgroup and temporal-slice coverage under vessel class, berth segment, season and operating regime.
+
+Use matched calibration sample counts and chronological evaluation windows. Report paired seed-level results, uncertainty intervals and timeouts. Never compare a method's 50-vessel result against a competitor's 30-vessel optimum or treat a timeout as a solved objective.
+
 ## Required metrics
 
 Each method/window row emits:
