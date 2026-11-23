@@ -144,8 +144,6 @@ pub enum KernelError {
     InvalidSphereQuadratureTolerance,
     /// Primary/secondary marginal and cross covariance do not form a valid joint covariance.
     InvalidJointCovariance,
-    /// The conditional velocity Schur complement is not positive semidefinite.
-    InvalidConditionalVelocityCovariance,
     /// A NASA DCP sigma is negative or non-finite.
     InvalidDcpSigma,
 }
@@ -210,9 +208,6 @@ impl fmt::Display for KernelError {
             }
             Self::InvalidJointCovariance => {
                 "primary, secondary and cross covariances do not form a positive-semidefinite joint model"
-            }
-            Self::InvalidConditionalVelocityCovariance => {
-                "conditional velocity covariance is not positive semidefinite"
             }
             Self::InvalidDcpSigma => "NASA DCP sigma values must be finite and nonnegative",
         };
