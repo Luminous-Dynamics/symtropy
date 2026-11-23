@@ -10,8 +10,8 @@ from pathlib import Path
 
 CORPUS_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus.v0.2"
 BENCHMARK_ID = "ORBITAL-TRUSS-PLANNING-002"
-RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.4"
-CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.4"
+RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-corpus-receipt.v0.5"
+CASE_RECEIPT_SCHEMA = "luminous.orbital-truss-inspectability.planning-receipt.v0.5"
 CLAIM_CEILING = "synthetic_2d_geometric_observability_and_view_selection_only"
 CASE_COUNT = 8
 MAX_EXACT_VIEWS = 20
@@ -171,7 +171,84 @@ EXP_NEGATIVE_FIXED_1E15 = [
 ]
 
 
-def published_style_k_coverage_greedy(problem):
+def k_coverage_feature_reports(candidate_coverage, selected_coverage):
+    reports = []
+    for candidate, selected in zip(candidate_coverage, selected_coverage):
+        capped = min(selected["required_view_count"], candidate["nominal_view_count"])
+        reports.append({
+            "feature_id": selected["feature_id"],
+            "requested_k": selected["required_view_count"],
+            "available_candidate_views": candidate["nominal_view_count"],
+            "available_robust_candidate_views": candidate["robust_view_count"],
+            "attainable_capped_target": capped,
+            "selected_views": selected["nominal_view_count"],
+            "selected_robust_views": selected["robust_view_count"],
+            "requested_k_met": selected["nominal_view_count"] >= selected["required_view_count"],
+            "attainable_target_met": selected["nominal_view_count"] >= capped,
+            "robust_requested_k_met": selected["robust_view_count"] >= selected["required_view_count"],
+            "required_failure_domains": selected["required_failure_domains"],
+            "selected_nominal_failure_domains": selected["nominal_failure_domain_count"],
+            "selected_robust_failure_domains": selected["robust_failure_domain_count"],
+            "nominal_failure_domain_requirement_met": (
+                selected["nominal_failure_domain_count"] >= selected["required_failure_domains"]
+            ),
+            "robust_failure_domain_requirement_met": (
+                selected["robust_failure_domain_count"] >= selected["required_failure_domains"]
+            ),
+        })
+    return reports
+
+
+def exact_nominal_k_coverage(problem):
+    candidate_coverage = coverage_records(problem, [True] * len(problem["views"]))
+    targets = [
+        min(feature["required_view_count"], row["nominal_view_count"])
+        for feature, row in zip(problem["features"], candidate_coverage)
+    ]
+    order = sorted(
+        range(len(problem["views"])),
+        key=lambda index: problem["views"][index]["view_id"],
+    )
+    subsets_evaluated = 0
+    chosen = None
+    for size in range(len(order) + 1):
+        for indices in itertools.combinations(order, size):
+            selected = [index in indices for index in range(len(problem["views"]))]
+            subsets_evaluated += 1
+            coverage = coverage_records(problem, selected)
+            if all(
+                row["nominal_view_count"] >= target
+                for row, target in zip(coverage, targets)
+            ):
+                chosen = selected
+                break
+        if chosen is not None:
+            break
+    if chosen is None:
+        raise ValueError("NOMINAL_K_CAPPED_TARGET_UNEXPECTEDLY_INFEASIBLE")
+    selected_ids = sorted(
+        view["view_id"]
+        for view, include in zip(problem["views"], chosen)
+        if include
+    )
+    selected_coverage = coverage_records(problem, chosen)
+    feature_coverage = k_coverage_feature_reports(candidate_coverage, selected_coverage)
+    return {
+        "algorithm": "EXACT_NOMINAL_K_COVERAGE_V0_1",
+        "candidate_view_count": len(problem["views"]),
+        "subsets_evaluated": subsets_evaluated,
+        "minimum_cardinality_certified": True,
+        "selected_view_ids": selected_ids,
+        "selected_view_count": len(selected_ids),
+        "requested_k_covered": all(row["requested_k_met"] for row in feature_coverage),
+        "attainable_capped_target_covered": all(
+            row["attainable_target_met"] for row in feature_coverage
+        ),
+        "feature_coverage": feature_coverage,
+    }
+
+
+def published_style_k_coverage_greedy(problem, exact_reference_minimum_view_count):
     """Fixed-point transcription over the paper's nominal binary visibility matrix."""
     all_coverage = coverage_records(problem, [True] * len(problem["views"]))
     attainable = [
@@ -262,31 +339,26 @@ def published_style_k_coverage_greedy(problem):
         if include
     )
     selected_coverage = coverage_records(problem, selected)
-    feature_coverage = []
-    for feature, available, selected_row, capped in zip(
-        problem["features"], all_coverage, selected_coverage, attainable
-    ):
-        feature_coverage.append({
-            "feature_id": feature["feature_id"],
-            "requested_k": feature["required_view_count"],
-            "available_candidate_views": available["nominal_view_count"],
-            "available_robust_candidate_views": available["robust_view_count"],
-            "attainable_capped_target": capped,
-            "selected_views": selected_row["nominal_view_count"],
-            "selected_robust_views": selected_row["robust_view_count"],
-            "requested_k_met": selected_row["nominal_view_count"] >= feature["required_view_count"],
-            "attainable_target_met": selected_row["nominal_view_count"] >= capped,
-            "robust_requested_k_met": selected_row["robust_view_count"] >= feature["required_view_count"],
-            "required_failure_domains": feature["required_failure_domains"],
-            "selected_nominal_failure_domains": selected_row["nominal_failure_domain_count"],
-            "selected_robust_failure_domains": selected_row["robust_failure_domain_count"],
-            "nominal_failure_domain_requirement_met": (
-                selected_row["nominal_failure_domain_count"] >= feature["required_failure_domains"]
-            ),
-            "robust_failure_domain_requirement_met": (
-                selected_row["robust_failure_domain_count"] >= feature["required_failure_domains"]
-            ),
-        })
+    feature_coverage = k_coverage_feature_reports(all_coverage, selected_coverage)
+    requested_k_covered = all(row["requested_k_met"] for row in feature_coverage)
+    attainable_capped_target_covered = all(
+        row["attainable_target_met"] for row in feature_coverage
+    )
+    robust_requested_k_covered = all(row["robust_requested_k_met"] for row in feature_coverage)
+    nominal_failure_domain_requirements_met = all(
+        row["nominal_failure_domain_requirement_met"] for row in feature_coverage
+    )
+    robust_failure_domain_requirements_met = all(
+        row["robust_failure_domain_requirement_met"] for row in feature_coverage
+    )
+    view_count_gap = (
+        len(selected_ids) - exact_reference_minimum_view_count
+        if attainable_capped_target_covered else None
+    )
+    relative_gap_basis_points = (
+        view_count_gap * 10000 // exact_reference_minimum_view_count
+        if view_count_gap is not None and exact_reference_minimum_view_count > 0 else None
+    )
 
     return {
         "algorithm": "PAPER_STYLE_GLOBALLY_INFORMED_GREEDY_K_COVERAGE_V0_2",
@@ -298,15 +370,14 @@ def published_style_k_coverage_greedy(problem):
             len(selected_ids) <= problem["max_selected_views"]
             and total_cost <= problem["max_total_cost_units"]
         ),
-        "requested_k_covered": all(row["requested_k_met"] for row in feature_coverage),
-        "attainable_capped_target_covered": all(row["attainable_target_met"] for row in feature_coverage),
-        "robust_requested_k_covered": all(row["robust_requested_k_met"] for row in feature_coverage),
-        "nominal_failure_domain_requirements_met": all(
-            row["nominal_failure_domain_requirement_met"] for row in feature_coverage
-        ),
-        "robust_failure_domain_requirements_met": all(
-            row["robust_failure_domain_requirement_met"] for row in feature_coverage
-        ),
+        "requested_k_covered": requested_k_covered,
+        "attainable_capped_target_covered": attainable_capped_target_covered,
+        "robust_requested_k_covered": robust_requested_k_covered,
+        "nominal_failure_domain_requirements_met": nominal_failure_domain_requirements_met,
+        "robust_failure_domain_requirements_met": robust_failure_domain_requirements_met,
+        "exact_reference_minimum_view_count": exact_reference_minimum_view_count,
+        "view_count_gap_vs_exact": view_count_gap,
+        "relative_gap_basis_points_vs_exact": relative_gap_basis_points,
         "feature_coverage": feature_coverage,
     }
 
@@ -376,6 +447,10 @@ def solve(problem):
             best_count = plan["selected_view_count"]
             frontier.append(plan)
 
+    nominal_k_exact = exact_nominal_k_coverage(problem)
+    published_k_greedy = published_style_k_coverage_greedy(
+        problem, nominal_k_exact["selected_view_count"]
+    )
     greedy_plan = greedy(problem, True)
     cheapest_plan = greedy(problem, False)
     if optimum is not None:
@@ -397,6 +472,7 @@ def solve(problem):
         "planning_disposition": disposition,
         "candidate_view_count": n,
         "candidate_pool_coverage": all_coverage,
+        "nominal_k_exact": nominal_k_exact,
         "max_selected_views": problem["max_selected_views"],
         "max_total_cost_units": problem["max_total_cost_units"],
         "subsets_evaluated": subsets,
@@ -407,7 +483,7 @@ def solve(problem):
         "pareto_frontier": frontier,
         "greedy_next_best_view": greedy_plan,
         "cheapest_first": cheapest_plan,
-        "published_k_coverage_greedy": published_style_k_coverage_greedy(problem),
+        "published_k_coverage_greedy": published_k_greedy,
         "greedy_cost_gap_units": (
             greedy_plan["total_cost_units"] - optimum_cost
             if optimum is not None and greedy_plan["robustly_covered"] else None
