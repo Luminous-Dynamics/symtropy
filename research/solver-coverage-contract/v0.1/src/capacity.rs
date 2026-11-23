@@ -503,7 +503,7 @@ impl CapacityEvidence {
     /// Deterministic preimage for contact-lineage and temporal capacity evidence.
     pub fn canonical_preimage(&self) -> Vec<u8> {
         let mut out = Vec::new();
-        out.extend_from_slice(b"SYMCOV-CAPACITY\\0");
+        out.extend_from_slice(b"SYMCOV-CAPACITY\0");
 
         let mut lineages = self.manifold_lineages.clone();
         lineages.sort_by(|a, b| a.pair_id.cmp(&b.pair_id));
