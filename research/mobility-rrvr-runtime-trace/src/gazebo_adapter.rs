@@ -140,6 +140,7 @@ impl GazeboCapabilityProfile {
             || !nonempty(&self.world_name)
             || !nonempty(&self.scene_broadcaster_id)
             || !nonempty(&self.scene_broadcaster_revision)
+            || !valid_sha256(&self.scene_broadcaster_sha256)
             || !valid_sha256(&self.world_profile_sha256)
             || !valid_sha256(&self.reset_profile_sha256)
         {
@@ -165,7 +166,11 @@ impl GazeboCapabilityProfile {
         if self.reset_profile_sha256 != plan.reset.profile_sha256 {
             return Err(GazeboAdapterError::ResetProfileMismatch);
         }
-        if !self.scene_broadcaster_loaded {
+        if !self.scene_broadcaster_loaded
+            || self.scene_broadcaster_id != plan.platform.scene_broadcaster_id
+            || self.scene_broadcaster_revision != plan.platform.scene_broadcaster_revision
+            || self.scene_broadcaster_sha256 != plan.platform.scene_broadcaster_sha256
+        {
             return Err(GazeboAdapterError::SceneBroadcasterUnavailable);
         }
 
@@ -393,7 +398,8 @@ mod tests {
             world_profile_sha256: plan.platform.environment_artifact_sha256.clone(),
             reset_profile_sha256: plan.reset.profile_sha256.clone(),
             scene_broadcaster_id: "gz-scene-broadcaster".into(),
-            scene_broadcaster_revision: "scene-broadcaster-fixture-v0.1".into(),
+            scene_broadcaster_revision: plan.platform.scene_broadcaster_revision.clone(),
+            scene_broadcaster_sha256: plan.platform.scene_broadcaster_sha256.clone(),
             scene_broadcaster_loaded: true,
             capabilities: [
                 GazeboCapability::GetSimulatorFeatures,
