@@ -210,7 +210,7 @@
         },
         "worlds": {
           "type": "array",
-          "maxItems": 4096,
+          "maxItems": 16384,
           "items": {
             "$ref": "#/$defs/world"
           }
@@ -278,7 +278,7 @@
         },
         "expected_world_ids": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 4096,
           "uniqueItems": true,
           "items": {
@@ -360,7 +360,7 @@
         },
         "expected_scenario_ids": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 16384,
           "uniqueItems": true,
           "items": {
