@@ -1,0 +1,80 @@
+{
+  "fixture_type": "synthetic_cmni_multifidelity_and_robust_design_v1",
+  "provenance": "fully synthetic paired scalar model outputs and finite scenario utilities; no CMNI forward-model results",
+  "nested_control_variate": {
+    "high_fidelity_paired": [
+      2,
+      4,
+      6
+    ],
+    "low_fidelity_paired": [
+      1,
+      2,
+      3
+    ],
+    "low_fidelity_extra": [
+      4,
+      5,
+      6
+    ],
+    "beta_frozen_from_independent_pilot": 2,
+    "high_fidelity_mean": 4,
+    "low_paired_mean": 2,
+    "low_all_mean": 3.5,
+    "controlled_estimate": 1,
+    "baseline_high_fidelity_variance": 1.3333333333333333,
+    "controlled_variance_estimate": 0.6666666666666666,
+    "variance_reduction_factor": 2,
+    "high_fidelity_evaluations": 3,
+    "low_fidelity_evaluations": 6,
+    "notes": [
+      "beta is treated as fixed and independent of production sample draws",
+      "variance estimate excludes model discrepancy and beta-estimation uncertainty"
+    ]
+  },
+  "robust_design": {
+    "design_utilities_by_nuisance_scenario": [
+      [
+        4,
+        8,
+        2
+      ],
+      [
+        3,
+        3,
+        3
+      ],
+      [
+        5,
+        7,
+        1
+      ]
+    ],
+    "costs": [
+      1,
+      1,
+      0.5
+    ],
+    "worst_case_utilities": [
+      2,
+      3,
+      1
+    ],
+    "worst_case_utility_per_cost": [
+      2,
+      3,
+      2
+    ],
+    "selected_candidate_index": 1,
+    "notes": [
+      "finite-scenario maximin only",
+      "scenario probabilities and omitted nuisance states are not represented"
+    ]
+  },
+  "limits": [
+    "No EIG calculation",
+    "No high/low model discrepancy estimate",
+    "No real solver or simulation costs",
+    "No laboratory observations"
+  ]
+}

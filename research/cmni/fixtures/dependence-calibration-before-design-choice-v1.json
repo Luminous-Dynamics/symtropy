@@ -1,0 +1,69 @@
+{
+  "schema_version": "cmni.source_correlation_calibration_evsi.v1",
+  "benchmark_id": "dependence-calibration-before-design-choice-v1",
+  "status": "synthetic_finite_state_decision_oracle",
+  "states": [
+    {
+      "state_id": "rho-low",
+      "probability": 0.5
+    },
+    {
+      "state_id": "rho-high",
+      "probability": 0.5
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "design-A",
+      "utility_by_state": [
+        0.1,
+        0.8
+      ]
+    },
+    {
+      "action_id": "design-B",
+      "utility_by_state": [
+        0.5,
+        0.5
+      ]
+    }
+  ],
+  "abstention_utility": 0,
+  "acquisition": {
+    "option_id": "shared-source-correlation-calibration",
+    "kind": "IndependentCalibration",
+    "cost": 0.03,
+    "cost_to_utility_rate": 1,
+    "outcome_ids": [
+      "calibration-indicates-low-correlation",
+      "calibration-indicates-high-correlation"
+    ],
+    "likelihoods_state_major": [
+      [
+        0.9,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ]
+    ],
+    "source_qualification_receipt_id": "receipt:independent-calibration-model-v1"
+  },
+  "expected": {
+    "current_best_action": "design-B",
+    "current_expected_utility": 0.5,
+    "expected_utility_after_calibration": 0.615,
+    "expected_value_of_sample_information": 0.115,
+    "expected_value_of_perfect_information": 0.15,
+    "acquisition_cost_in_utility_units": 0.03,
+    "expected_net_benefit_of_sampling": 0.085,
+    "selected_next_step": "acquire shared-source correlation calibration"
+  },
+  "non_claims": [
+    "rho-low and rho-high are discrete synthetic dependence states, not measured correlation values",
+    "the calibration likelihood is assumed known and source-qualified only in the synthetic model",
+    "receipt ID is a placeholder, not an authenticated physical evidence receipt",
+    "not a physical detector calibration or a probability guarantee"
+  ]
+}

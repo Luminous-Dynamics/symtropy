@@ -1,0 +1,77 @@
+{
+  "schema_version": "cmni.two_source_dependence_envelope.v1",
+  "benchmark_id": "interior-source-correlation-extremum-v1",
+  "status": "synthetic_exact_linear_gaussian_oracle",
+  "model": {
+    "prior_parameter_variance": 1,
+    "observation_sensitivities": [
+      2,
+      1
+    ],
+    "independent_observation_noise_variances": [
+      1,
+      1
+    ],
+    "source_standard_deviations": [
+      1,
+      1
+    ],
+    "source_jacobians": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        -1
+      ]
+    ],
+    "admissible_source_correlation": [
+      -0.75,
+      0.75
+    ]
+  },
+  "expected": {
+    "observation_covariance_as_function_of_rho": [
+      [
+        "3 + 2*rho",
+        "0"
+      ],
+      [
+        "0",
+        "3 - 2*rho"
+      ]
+    ],
+    "parameter_information_as_function_of_rho": "(15 - 6*rho) / (9 - 4*rho^2)",
+    "global_minimum_parameter_information": 1.5,
+    "minimum_at_correlation": 0.5,
+    "global_maximum_parameter_information": 2.888888888888889,
+    "maximum_at_correlation": -0.75,
+    "posterior_parameter_variance_bounds": [
+      0.2571428571428571,
+      0.4
+    ],
+    "expected_information_gain_nats_bounds": [
+      0.45814536593707755,
+      0.6790617420765972
+    ],
+    "stationary_correlations_inside_interval": [
+      0.5
+    ]
+  },
+  "assumptions": [
+    "One scalar Gaussian parameter with prior variance one",
+    "Two observations with positive independent noise variance one",
+    "Two shared scalar source blocks, each with known marginal variance one",
+    "Unknown cross-source correlation is restricted to the declared closed interval",
+    "Source Jacobians and observation sensitivities are fixed and known",
+    "The two-source covariance is positive semidefinite for every correlation in [-1,1]"
+  ],
+  "non_claims": [
+    "The fixture does not establish a physical source-correlation interval",
+    "No detector or nuclear-data observations are represented",
+    "The correlation interval itself requires an evidence-backed receipt for a qualified scientific decision",
+    "The module is limited to two observations, two shared scalar sources and one scalar parameter",
+    "No general multivariate partial-identification or SOTA superiority claim is made"
+  ]
+}
