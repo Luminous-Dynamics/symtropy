@@ -919,12 +919,15 @@ mod tests {
 
         let mut changed = receipt(&payload);
         changed.source.clock_generation += 1;
-        assert!(validate_derived_receipt(
-            &changed,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &changed,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1012,12 +1015,15 @@ mod tests {
         let payload = vec![0xA5; 256];
         let mut receipt = receipt(&payload);
         receipt.transcript_parent_head_sha256 = None;
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1092,12 +1098,15 @@ mod tests {
         let mut receipt = receipt(&payload);
         receipt.created_tick = 13;
         receipt.visibility = VisibilityV1::CandidateVisible { delivered_tick: 12 };
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1115,11 +1124,14 @@ mod tests {
         let mut receipt = receipt(&vec![0xA5; 256]);
         receipt.features.byte_length = 255;
         receipt.artifact_content_sha256 = digest(&payload);
-        assert!(validate_derived_receipt(
-            &receipt,
-            &parent(ParentAcquisitionStatusV1::Delivered),
-            &payload,
-            20
-        ).is_err());
+        assert!(
+            validate_derived_receipt(
+                &receipt,
+                &parent(ParentAcquisitionStatusV1::Delivered),
+                &payload,
+                20
+            )
+            .is_err()
+        );
     }
 }
