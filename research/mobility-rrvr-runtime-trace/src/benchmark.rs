@@ -1097,7 +1097,7 @@ mod tests {
         BenchmarkEpisode {
             episode_id: format!("{pair}-{}", arm.as_str()),
             matched_pair_id: pair.to_owned(),
-            cluster_id: "kitchen-pick-place-family".to_owned(),
+            cluster_id: format!("kitchen-pick-place-family-{pair}"),
             arm,
             host_benchmark_id: "robocasa-fixture".to_owned(),
             host_benchmark_revision: "2026.11-fixture".to_owned(),
@@ -1159,11 +1159,13 @@ mod tests {
         }
     }
 
-    fn corpus() -> BenchmarkCorpus {
+    fn corpus_with_pair_count(pair_count: usize) -> BenchmarkCorpus {
         let mut episodes = Vec::new();
-        for (pair, seed) in [("pair-1", 11), ("pair-2", 22)] {
+        for index in 0..pair_count {
+            let pair = format!("pair-{}", index + 1);
+            let seed = 11 + index as u64;
             for arm in REQUIRED_ARMS {
-                episodes.push(episode(pair, arm, seed));
+                episodes.push(episode(&pair, arm, seed));
             }
         }
         BenchmarkCorpus {
@@ -1174,6 +1176,10 @@ mod tests {
         }
     }
 
+    fn corpus() -> BenchmarkCorpus {
+        corpus_with_pair_count(2)
+    }
+
     #[test]
     fn accepts_five_matched_arms_and_emits_reproducible_input_commitments() {
         let corpus = corpus();
@@ -1181,10 +1187,60 @@ mod tests {
         let second = corpus.validate_and_score(&"a".repeat(64)).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.matched_pair_count, 2);
-        assert_eq!(first.scenario_cluster_count, 1);
+        assert_eq!(first.scenario_cluster_count, 2);
         assert_eq!(first.matched_input_commitments.len(), 2);
         assert_eq!(first.arm_summaries.len(), 5);
         assert_eq!(first.paired_comparisons.len(), 4);
+    }
+
+    #[test]
+    fn cluster_bootstrap_fails_closed_below_five_scenario_clusters() {
+        assert_eq!(
+            corpus().cluster_bootstrap(&"a".repeat(64), 1_000),
+            Err(InferenceError::TooFewClusters)
+        );
+    }
+
+    #[test]
+    fn cluster_bootstrap_is_deterministic_and_resamples_matched_clusters() {
+        let corpus = corpus_with_pair_count(6);
+        let first = corpus.cluster_bootstrap(&"b".repeat(64), 1_000).unwrap();
+        let second = corpus.cluster_bootstrap(&"b".repeat(64), 1_000).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.cluster_count, 6);
+        assert_eq!(first.matched_pair_count, 6);
+        assert_eq!(first.replicate_count, 1_000);
+        assert_eq!(first.comparisons.len(), 4);
+        let task_only = first
+            .comparisons
+            .iter()
+            .find(|comparison| comparison.baseline_arm == BenchmarkArm::TaskOnly)
+            .unwrap();
+        assert!(task_only.task_success_delta.is_some());
+        assert!(task_only.safety_delta.is_some());
+        assert!(task_only.recovery_success_delta.is_none());
+        let restart_only = first
+            .comparisons
+            .iter()
+            .find(|comparison| comparison.baseline_arm == BenchmarkArm::RestartOnly)
+            .unwrap();
+        assert_eq!(
+            restart_only
+                .task_success_delta
+                .as_ref()
+                .unwrap()
+                .contributing_cluster_count,
+            6
+        );
+        assert!(restart_only.recovery_success_delta.is_some());
+    }
+
+    #[test]
+    fn cluster_bootstrap_rejects_an_underpowered_resample_count() {
+        assert_eq!(
+            corpus_with_pair_count(6).cluster_bootstrap(&"b".repeat(64), 999),
+            Err(InferenceError::InvalidReplicateCount)
+        );
     }
 
     #[test]
