@@ -269,9 +269,20 @@ fn projected_scenarios_digest(scenarios: &[World]) -> Result<String, String> {
     let mut sorted = scenarios.to_vec();
     for scenario in &mut sorted {
         scenario.feasible_action_ids.sort();
-        scenario
-            .losses
-            .sort_by(|left, right| left.action_id.cmp(&right.action_id));
+        scenario.losses.sort_by(|left, right| {
+            (
+                &left.action_id,
+                left.source_numerator,
+                left.source_denominator,
+                left.loss,
+            )
+                .cmp(&(
+                    &right.action_id,
+                    right.source_numerator,
+                    right.source_denominator,
+                    right.loss,
+                ))
+        });
     }
     sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     let bytes = serde_json::to_vec(&sorted)
