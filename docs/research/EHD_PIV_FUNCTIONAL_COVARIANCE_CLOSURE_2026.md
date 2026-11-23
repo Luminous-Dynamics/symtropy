@@ -57,7 +57,7 @@ The gate establishes mathematical covariance structure only. It does not prove:
 
 ## 4. Manufactured negative controls
 
-The six authored new tests include:
+The six authored new tests include (including a mixed-unit scale-invariance case with independent scale factors spanning 1e-12 to 1e18):
 - rank-deficient PSD matrices;
 - a roundoff-scale negative eigenvalue just within the tolerance;
 - an indefinite symmetric matrix with all four diagonal entries positive;
