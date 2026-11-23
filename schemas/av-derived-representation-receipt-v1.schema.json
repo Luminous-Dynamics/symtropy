@@ -1,0 +1,854 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/av-derived-representation-receipt-v1.schema.json",
+  "title": "AV Derived Representation Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "modality",
+    "representation_kind",
+    "encoder",
+    "source",
+    "source_span",
+    "parent_acquisition_request_id",
+    "parent_acquisition_result_sha256",
+    "features",
+    "artifact_content_sha256",
+    "created_tick",
+    "visibility",
+    "transcript_parent_head_sha256",
+    "causal_parent_artifact_ids",
+    "reproducibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modality": {
+      "enum": [
+        "audio",
+        "video",
+        "audiovisual"
+      ]
+    },
+    "representation_kind": {
+      "enum": [
+        "dsp_features",
+        "hdc_embedding",
+        "learned_embedding",
+        "transcript_alignment",
+        "asr_hypothesis",
+        "visual_features"
+      ]
+    },
+    "encoder": {
+      "$ref": "#/$defs/encoder"
+    },
+    "source": {
+      "$ref": "#/$defs/sourceIdentity"
+    },
+    "source_span": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/audioSourceSpan"
+        },
+        {
+          "$ref": "#/$defs/videoSourceSpan"
+        },
+        {
+          "$ref": "#/$defs/audiovisualSourceSpan"
+        }
+      ]
+    },
+    "parent_acquisition_request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent_acquisition_result_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    },
+    "artifact_content_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "created_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visibility": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/candidateVisible"
+        },
+        {
+          "$ref": "#/$defs/evaluatorOnly"
+        }
+      ]
+    },
+    "transcript_parent_head_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "causal_parent_artifact_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reproducibility": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/bitExact"
+        },
+        {
+          "$ref": "#/$defs/f32Tolerance"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_content_sha256",
+        "clock_domain_id",
+        "clock_generation"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "audioSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_sample",
+        "end_sample",
+        "sample_rate_hz",
+        "channels"
+      ],
+      "properties": {
+        "start_sample": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_sample": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_rate_hz": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "videoSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_frame",
+        "end_frame",
+        "fps_numerator",
+        "fps_denominator"
+      ],
+      "properties": {
+        "start_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_frame": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fps_numerator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fps_denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "audioSourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span_kind",
+        "span"
+      ],
+      "properties": {
+        "span_kind": {
+          "const": "audio_samples"
+        },
+        "span": {
+          "$ref": "#/$defs/audioSpan"
+        }
+      }
+    },
+    "videoSourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span_kind",
+        "span"
+      ],
+      "properties": {
+        "span_kind": {
+          "const": "video_frames"
+        },
+        "span": {
+          "$ref": "#/$defs/videoSpan"
+        }
+      }
+    },
+    "audiovisualSourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span_kind",
+        "span"
+      ],
+      "properties": {
+        "span_kind": {
+          "const": "audiovisual"
+        },
+        "span": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "audio",
+            "video"
+          ],
+          "properties": {
+            "audio": {
+              "$ref": "#/$defs/audioSpan"
+            },
+            "video": {
+              "$ref": "#/$defs/videoSpan"
+            }
+          }
+        }
+      }
+    },
+    "encoder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encoder_id",
+        "encoder_version",
+        "build_sha256",
+        "config_sha256",
+        "basis_seed_identity",
+        "initialization_sha256"
+      ],
+      "properties": {
+        "encoder_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "encoder_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "basis_seed_identity": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initialization_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape",
+        "layout",
+        "element_type",
+        "normalization",
+        "quantization",
+        "byte_length"
+      ],
+      "properties": {
+        "shape": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "layout": {
+          "enum": [
+            "row_major",
+            "column_major",
+            "time_major",
+            "packed_bitstream"
+          ]
+        },
+        "element_type": {
+          "enum": [
+            "f32_le",
+            "f16_le",
+            "i8",
+            "u8",
+            "packed_bits"
+          ]
+        },
+        "normalization": {
+          "enum": [
+            "none",
+            "l2",
+            "per_feature_z_score",
+            "unit_interval"
+          ]
+        },
+        "quantization": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "quantization_kind"
+              ],
+              "properties": {
+                "quantization_kind": {
+                  "const": "none"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "quantization_kind",
+                "bit_width",
+                "scale_nano"
+              ],
+              "properties": {
+                "quantization_kind": {
+                  "const": "symmetric_uniform"
+                },
+                "bit_width": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 8
+                },
+                "scale_nano": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "quantization_kind",
+                "bit_width",
+                "scale_nano",
+                "zero_point"
+              ],
+              "properties": {
+                "quantization_kind": {
+                  "const": "affine_uniform"
+                },
+                "bit_width": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 8
+                },
+                "scale_nano": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "zero_point": {
+                  "type": "integer",
+                  "minimum": -128,
+                  "maximum": 255
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "quantization_kind",
+                "bit_order"
+              ],
+              "properties": {
+                "quantization_kind": {
+                  "const": "binary"
+                },
+                "bit_order": {
+                  "enum": [
+                    "most_significant_first",
+                    "least_significant_first"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "candidateVisible": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "delivered_tick"
+      ],
+      "properties": {
+        "visibility": {
+          "const": "candidate_visible"
+        },
+        "delivered_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "evaluatorOnly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "sealed_tick"
+      ],
+      "properties": {
+        "visibility": {
+          "const": "evaluator_only"
+        },
+        "sealed_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "bitExact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "const": "bit_exact"
+        }
+      }
+    },
+    "f32Tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "tolerance_ppm"
+      ],
+      "properties": {
+        "mode": {
+          "const": "f32_absolute_tolerance"
+        },
+        "tolerance_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "modality": {
+            "const": "audio"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_span": {
+            "$ref": "#/$defs/audioSourceSpan"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "modality": {
+            "const": "video"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_span": {
+            "$ref": "#/$defs/videoSourceSpan"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "modality": {
+            "const": "audiovisual"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_span": {
+            "$ref": "#/$defs/audiovisualSourceSpan"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visibility": {
+            "properties": {
+              "visibility": {
+                "const": "candidate_visible"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "transcript_parent_head_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visibility": {
+            "properties": {
+              "visibility": {
+                "const": "evaluator_only"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "transcript_parent_head_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "const": "hdc_embedding"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "encoder": {
+            "properties": {
+              "basis_seed_identity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "initialization_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "enum": [
+              "transcript_alignment",
+              "asr_hypothesis"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "modality": {
+            "const": "audio"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "const": "visual_features"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "modality": {
+            "enum": [
+              "video",
+              "audiovisual"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reproducibility": {
+            "properties": {
+              "mode": {
+                "const": "f32_absolute_tolerance"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "enum": [
+                  "f32_le",
+                  "f16_le"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "i8"
+              },
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "symmetric_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "required": [
+                  "bit_width",
+                  "scale_nano"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "packed_bits"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "layout": {
+                "const": "packed_bitstream"
+              },
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "binary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "layout": {
+                "const": "packed_bitstream"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "packed_bits"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "symmetric_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "const": "i8"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "features": {
+            "properties": {
+              "quantization": {
+                "properties": {
+                  "quantization_kind": {
+                    "const": "affine_uniform"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "enum": [
+                  "i8",
+                  "u8"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

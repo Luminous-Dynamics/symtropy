@@ -1,0 +1,48 @@
+name: AV derived representation receipt contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/av-derived-representation-receipt.yml"
+      - "research/av-derived-representation-receipt-v0/**"
+      - "schemas/av-derived-representation-receipt-v1.schema.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-derived-representation-receipt-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head:
+    if: github.event.pull_request.head.ref == 'research/av-derived-representation-receipt-v0'
+    name: Exact-head derived representation receipt contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Validate JSON Schema syntax
+        run: python3 -m json.tool schemas/av-derived-representation-receipt-v1.schema.json > /dev/null
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/av-derived-representation-receipt-v0/Cargo.toml -- --check
+
+      - name: Run Rust unit and adversarial tests
+        run: cargo test --manifest-path research/av-derived-representation-receipt-v0/Cargo.toml --locked
+
+      - name: Run Clippy with warnings as errors
+        run: cargo clippy --manifest-path research/av-derived-representation-receipt-v0/Cargo.toml --all-targets --locked -- -D warnings
