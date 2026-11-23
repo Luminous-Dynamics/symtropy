@@ -198,12 +198,12 @@ fn calibrate(method: Method, calibration: &[Schedule]) -> Option<CallBands> {
             let alpha = method.target_alpha_milli();
             let mut quantiles = [0; SCHEDULE_SIZE];
 
-            for call_index in 0..SCHEDULE_SIZE {
+            for (call_index, quantile) in quantiles.iter_mut().enumerate() {
                 let scores = calibration
                     .iter()
                     .map(|schedule| schedule.calls[call_index].joint_score())
                     .collect::<Vec<_>>();
-                quantiles[call_index] = split_conformal_quantile(&scores, alpha)?;
+                *quantile = split_conformal_quantile(&scores, alpha)?;
             }
 
             Some(CallBands { quantiles })
