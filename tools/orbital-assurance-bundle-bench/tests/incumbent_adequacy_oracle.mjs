@@ -94,10 +94,12 @@ function evaluateCase(item) {
   const assessments = [];
 
   for (const world of item.worlds) {
-    if (!validId(world.world_id) || worldIds.has(world.world_id) || !validSha(world.scope_sha256)) {
+    if (!validId(world.world_id) || worldIds.has(world.world_id)
+      || !validId(world.loss_unit) || !validSha(world.scope_sha256)) {
       return invalidInput(item, "world identity is duplicate, empty or malformed");
     }
     worldIds.add(world.world_id);
+    if (world.loss_unit !== item.loss_unit) return abstain(item, "LOSS_UNIT_MISMATCH", threshold);
     if (world.scope_sha256 !== item.scope_sha256) return abstain(item, "SCOPE_MISMATCH", threshold);
     if (world.feasible_action_ids.length === 0) {
       return abstain(item, "NO_FEASIBLE_ACTION_IN_WORLD", threshold);
