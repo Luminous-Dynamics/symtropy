@@ -337,7 +337,13 @@ impl IntervalContextIndex {
             return;
         }
         self.max_upper = vec![i64::MIN; self.by_lower.len().saturating_mul(4).max(1)];
-        Self::build_node(&self.by_lower, &mut self.max_upper, 1, 0, self.by_lower.len());
+        Self::build_node(
+            &self.by_lower,
+            &mut self.max_upper,
+            1,
+            0,
+            self.by_lower.len(),
+        );
     }
 
     fn build_node(
@@ -387,8 +393,7 @@ struct IntervalQuery<'a> {
 impl IntervalQuery<'_> {
     fn visit(&mut self, node: usize, start: usize, end: usize) {
         self.nodes_visited += 1;
-        if start >= self.lower_limit
-            || i128::from(self.index.max_upper[node]) < self.minimum_upper
+        if start >= self.lower_limit || i128::from(self.index.max_upper[node]) < self.minimum_upper
         {
             return;
         }
@@ -440,8 +445,7 @@ fn candidate_graph_interval_indexed(
             .partition_point(|(lower, _, _)| *lower <= source_event.event_time.upper);
         let minimum_upper =
             i128::from(source_event.event_time.lower) - i128::from(profile.max_interval_gap);
-        let (mut possible_witnesses, nodes_visited) =
-            context.query(lower_limit, minimum_upper);
+        let (mut possible_witnesses, nodes_visited) = context.query(lower_limit, minimum_upper);
         index_nodes_visited += nodes_visited;
         possible_witnesses.sort_unstable();
 
@@ -1609,7 +1613,11 @@ mod tests {
         }
         for index in 0..96 {
             let box_id = format!("BOX-{}", next() % 5);
-            let kind = if next() % 2 == 0 { "GATE_IN" } else { "GATE_OUT" };
+            let kind = if next() % 2 == 0 {
+                "GATE_IN"
+            } else {
+                "GATE_OUT"
+            };
             let facility = format!("SITE-{}", next() % 3);
             let operation = format!("OP-{}", next() % 4);
             let lower = (next() % 800) as i64;
