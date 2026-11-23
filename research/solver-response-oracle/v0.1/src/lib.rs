@@ -575,11 +575,19 @@ mod tests {
         ];
         let full = snapshot("full", bodies.clone());
         let reduced = snapshot("reduced", bodies);
-        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales())
-            .expect("valid comparison");
+        let result = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([0.0, 1.0, 0.0])]),
+            scales(),
+        )
+        .expect("valid comparison");
         assert_eq!(result.maximum_generalized_velocity_error, 0.0);
         assert_eq!(result.maximum_generalized_impulse_error, 0.0);
-        assert_eq!(result.probe_set_digest, "test-common-full-patch-probe-set-001");
+        assert_eq!(
+            result.probe_set_digest,
+            "test-common-full-patch-probe-set-001"
+        );
         assert_eq!(result.characteristic_length, 1.0);
         assert_eq!(result.velocity_scale, 1.0);
         assert_eq!(result.impulse_scale, 1.0);
@@ -600,8 +608,13 @@ mod tests {
         );
         let (mut reduced, _) = zero_pair();
         reduced.candidate_set_digest = "reduced".to_owned();
-        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 2.0, 0.0])]), scales())
-            .expect("valid comparison");
+        let result = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([0.0, 2.0, 0.0])]),
+            scales(),
+        )
+        .expect("valid comparison");
         assert!((result.maximum_contact_normal_velocity_error - 1.0).abs() < 1.0e-12);
         assert_eq!(result.maximum_contact_tangent_velocity_error, 0.0);
     }
@@ -616,8 +629,13 @@ mod tests {
             ],
         );
         let (reduced, _) = zero_pair();
-        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales())
-            .expect("valid comparison");
+        let result = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([0.0, 1.0, 0.0])]),
+            scales(),
+        )
+        .expect("valid comparison");
         assert!((result.maximum_contact_normal_velocity_error - 1.0).abs() < 1.0e-12);
         assert!((result.maximum_generalized_velocity_error - 1.0).abs() < 1.0e-12);
     }
@@ -654,7 +672,8 @@ mod tests {
         reversed_full.bodies.reverse();
         let mut reversed_reduced = reduced.clone();
         reversed_reduced.bodies.reverse();
-        let reversed_probes = probe_set(probes.probes.clone().into_iter().rev().collect::<Vec<_>>());
+        let reversed_probes =
+            probe_set(probes.probes.clone().into_iter().rev().collect::<Vec<_>>());
         let second = compare_responses(
             &reversed_full,
             &reversed_reduced,
@@ -694,8 +713,13 @@ mod tests {
         reduced.solver_iterations = 12;
         reduced.solver_rows_submitted = 3;
         reduced.solver_termination = SolverTermination::IterationLimit;
-        let result = compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales())
-            .expect("valid response comparison");
+        let result = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+            scales(),
+        )
+        .expect("valid response comparison");
         assert_eq!(result.full_work_consumed_units, 100);
         assert_eq!(result.reduced_work_consumed_units, 72);
         assert_eq!(result.full_solver_iterations, 10);
@@ -713,14 +737,30 @@ mod tests {
     fn work_unit_schema_must_match() {
         let (full, mut reduced) = zero_pair();
         reduced.work_unit_schema_digest = "different-unit-schema".to_owned();
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn consumed_work_cannot_exceed_budget() {
         let (full, mut reduced) = zero_pair();
         reduced.work_consumed_units = reduced.work_budget_units + 1;
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -739,17 +779,41 @@ mod tests {
     fn mismatched_problem_identity_is_rejected() {
         let (full, mut reduced) = zero_pair();
         reduced.solver_config_digest = "different-solver".to_owned();
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
         reduced.solver_config_digest = full.solver_config_digest.clone();
         reduced.initial_state_digest = "other-state".to_owned();
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn body_sets_must_match() {
         let (full, _) = zero_pair();
         let reduced = snapshot("reduced", vec![body("a", [0.0; 3], [0.0; 3], [0.0; 3])]);
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -768,7 +832,15 @@ mod tests {
                 body("b", [0.0; 3], [0.0; 3], [0.0; 3]),
             ],
         );
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales()).is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -782,7 +854,10 @@ mod tests {
     #[test]
     fn invalid_probe_and_non_positive_scales_are_rejected() {
         let (full, reduced) = zero_pair();
-        assert!(compare_responses(&full, &reduced, &probe_set(vec![probe([0.0; 3])]), scales()).is_err());
+        assert!(
+            compare_responses(&full, &reduced, &probe_set(vec![probe([0.0; 3])]), scales())
+                .is_err()
+        );
         assert!(
             compare_responses(
                 &full,
@@ -813,10 +888,20 @@ mod tests {
                 body("b", [0.0; 3], [0.0; 3], [0.0; 3]),
             ],
         );
-        let unit =
-            compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 1.0, 0.0])]), scales()).expect("unit");
-        let scaled = compare_responses(&full, &reduced, &probe_set(vec![probe([0.0, 17.0, 0.0])]), scales())
-            .expect("scaled");
+        let unit = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([0.0, 1.0, 0.0])]),
+            scales(),
+        )
+        .expect("unit");
+        let scaled = compare_responses(
+            &full,
+            &reduced,
+            &probe_set(vec![probe([0.0, 17.0, 0.0])]),
+            scales(),
+        )
+        .expect("scaled");
         assert_eq!(
             unit.maximum_contact_normal_velocity_error,
             scaled.maximum_contact_normal_velocity_error
