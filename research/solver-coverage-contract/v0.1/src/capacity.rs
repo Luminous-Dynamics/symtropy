@@ -632,10 +632,7 @@ impl CapacityEvidence {
                 ));
             }
             let report = lineage.validate()?;
-            manifold_pairs = checked_sum(
-                &[manifold_pairs, 1],
-                "capacity.manifold_pairs",
-            )?;
+            manifold_pairs = checked_sum(&[manifold_pairs, 1], "capacity.manifold_pairs")?;
             geometric_points_generated = checked_sum(
                 &[geometric_points_generated, report.generated_points],
                 "capacity.geometric_points_generated",
