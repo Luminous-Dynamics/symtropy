@@ -497,13 +497,12 @@ fn validate_case(case: &TreeCase) -> Result<(), String> {
         *group_counts
             .entry(scenario.information_set_id.as_str())
             .or_default() += 1;
-        if let Some(previous) = groups.insert(
+        let previous = groups.insert(
             scenario.information_set_id.as_str(),
             &scenario.observations,
-        ) {
-            if previous != &scenario.observations {
-                return Err(fail("same_information_set_has_different_observations"));
-            }
+        );
+        if previous.is_some_and(|value| value != &scenario.observations) {
+            return Err(fail("same_information_set_has_different_observations"));
         }
         for route_id in &scenario.observations.failed_route_ids {
             if !route_ids.contains(route_id.as_str()) {
@@ -795,7 +794,7 @@ mod tests {
             let (plan, _) = exact_policy(case).unwrap();
             for (id, scenarios) in information_groups(case) {
                 assert!(scenarios.iter().all(|scenario| {
-                    plan.recourse_by_information_set.get(&id).is_some()
+                    plan.recourse_by_information_set.contains_key(&id)
                         && scenario.information_set_id == id
                 }));
             }
