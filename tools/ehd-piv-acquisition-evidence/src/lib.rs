@@ -183,6 +183,14 @@ fn validate_sha256(value: &str, field: &'static str) -> Result<(), EvidenceError
     }
 }
 
+fn is_reserved_windows_component(component: &str) -> bool {
+    let stem = component.split('.').next().unwrap_or_default().to_ascii_lowercase();
+    matches!(stem.as_str(), "con" | "prn" | "aux" | "nul")
+        || (1..=9).any(|number| {
+            stem == format!("com{number}") || stem == format!("lpt{number}")
+        })
+}
+
 fn validate_relative_path(value: &str) -> Result<PathBuf, EvidenceError> {
     if value.is_empty()
         || value.starts_with('/')
@@ -195,7 +203,13 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, EvidenceError> {
 
     let mut path = PathBuf::new();
     for component in value.split('/') {
-        if component.is_empty() || component == "." || component == ".." {
+        if component.is_empty()
+            || component == "."
+            || component == ".."
+            || component.ends_with('.')
+            || component.ends_with(' ')
+            || is_reserved_windows_component(component)
+        {
             return Err(EvidenceError::InvalidRelativePath(value.to_owned()));
         }
         path.push(component);
@@ -227,6 +241,8 @@ impl AcquisitionManifest {
         }
 
         let mut asset_ids = HashSet::new();
+        // Windows filesystems are commonly case-insensitive; reject ASCII-case
+        // collisions consistently on every host rather than passing only on Linux.
         let mut paths = HashSet::new();
         let mut acquisition_ids = BTreeSet::new();
 
@@ -246,7 +262,7 @@ impl AcquisitionManifest {
             if !asset_ids.insert(asset.asset_id.as_str()) {
                 return Err(EvidenceError::DuplicateAssetId(asset.asset_id.clone()));
             }
-            if !paths.insert(asset.relative_path.as_str()) {
+            if !paths.insert(asset.relative_path.to_ascii_lowercase()) {
                 return Err(EvidenceError::DuplicateRelativePath(asset.relative_path.clone()));
             }
             acquisition_ids.insert(asset.acquisition_id.as_str());
@@ -266,7 +282,7 @@ impl AcquisitionManifest {
             }
         }
 
-        let mut edge_ids = HashSet::new();
+        let mut edge_ids: HashSet<(String, String, String)> = HashSet::new();
         let mut cause_kinds: BTreeMap<&str, &str> = BTreeMap::new();
         for edge in &self.dependency_edges {
             non_empty(&edge.acquisition_id, "dependency_edge.acquisition_id")?;
@@ -286,12 +302,16 @@ impl AcquisitionManifest {
             } else {
                 cause_kinds.insert(edge.shared_cause_id.as_str(), edge.shared_cause_kind.as_str());
             }
-            let key = format!(
-                "{}{}{}{}{}",
-                edge.acquisition_id, 0 as char, edge.shared_cause_id, 0 as char, edge.shared_cause_kind
+            let key = (
+                edge.acquisition_id.clone(),
+                edge.shared_cause_id.clone(),
+                edge.shared_cause_kind.clone(),
             );
             if !edge_ids.insert(key.clone()) {
-                return Err(EvidenceError::DuplicateDependencyEdge(key));
+                return Err(EvidenceError::DuplicateDependencyEdge(format!(
+                    "{}/{}/{}",
+                    key.0, key.1, key.2
+                )));
             }
         }
 
