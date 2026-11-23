@@ -396,7 +396,7 @@ fn oracle_route<'a>(case: &'a Case) -> Option<&'a Route> {
     })
 }
 
-fn failed_route<'a>(case: &'a Case, route: &Route) -> Option<&'static str> {
+fn failed_route(case: &Case, route: &Route) -> Option<&'static str> {
     if case
         .evaluator_only
         .failed_common_cause_group_ids
@@ -706,7 +706,7 @@ mod tests {
         let mut grouped: BTreeMap<&str, u64> = BTreeMap::new();
         for route in &case.route_candidates {
             if let Some(previous) = grouped.insert(
-                &route.common_cause_group_id,
+                route.common_cause_group_id.as_str(),
                 route.common_cause_failure_probability_ppm,
             ) {
                 assert_eq!(previous, route.common_cause_failure_probability_ppm);
