@@ -396,8 +396,7 @@ pub fn validate_drag_trajectory(
 
             let drag_weight = sample.integrated_drag_weight_kg;
             let mut speed_squared = 0.0_f64;
-            for component in 0..3 {
-                let velocity = sample.relative_velocity_m_s[component];
+            for (component, velocity) in sample.relative_velocity_m_s.iter().copied().enumerate() {
                 expected_neutral[component].add(drag_weight * velocity);
                 speed_squared += velocity * velocity;
             }
