@@ -237,7 +237,6 @@ fn validate_owner_evidence(
     expected_domain: OwnerEvidenceDomain,
     expected_asserted_value: &str,
     expected_scope: &EvidenceScope,
-    evidence_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
     if evidence.scope != *expected_scope {
         return Err(LineageError::EvidenceScopeMismatch);
@@ -262,17 +261,12 @@ fn validate_owner_evidence(
     {
         return Err(LineageError::InvalidEvidenceReceipt);
     }
-
-    if !evidence_ids.insert(evidence.evidence_id.clone()) {
-        return Err(LineageError::DuplicateEvidenceIdentity);
-    }
     Ok(())
 }
 
 fn validate_attempt_evidence(
     logical_effect_id: &str,
     attempt: &AttemptRecord,
-    evidence_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
     let scope = evidence_scope(logical_effect_id, attempt);
 
@@ -281,21 +275,18 @@ fn validate_attempt_evidence(
         OwnerEvidenceDomain::Persistence,
         persistence_value(attempt.persistence.outcome),
         &scope,
-        evidence_ids,
     )?;
     validate_owner_evidence(
         &attempt.physical_outcome.receipt,
         OwnerEvidenceDomain::PhysicalOutcome,
         physical_value(attempt.physical_outcome.outcome),
         &scope,
-        evidence_ids,
     )?;
     validate_owner_evidence(
         &attempt.mission_resolution.receipt,
         OwnerEvidenceDomain::MissionResolution,
         mission_value(attempt.mission_resolution.outcome),
         &scope,
-        evidence_ids,
     )?;
 
     for fence in [
@@ -314,7 +305,6 @@ fn validate_attempt_evidence(
             attempt.controller_queue_fence.target_epoch,
         ),
         &scope,
-        evidence_ids,
     )?;
     validate_owner_evidence(
         &attempt.downstream_quiescence.receipt,
@@ -324,7 +314,6 @@ fn validate_attempt_evidence(
             attempt.downstream_quiescence.target_epoch,
         ),
         &scope,
-        evidence_ids,
     )?;
 
     match attempt.physical_outcome.outcome {
@@ -358,18 +347,24 @@ fn validate_attempt_evidence(
     Ok(())
 }
 
+#[derive(Default)]
+struct ObserverValidationContext {
+    fault_profile_revision: String,
+    operational_owner_ids: BTreeSet<String>,
+    operational_evidence_ids: BTreeSet<String>,
+    observer_evidence_ids: BTreeSet<String>,
+    claim_ids: BTreeSet<String>,
+    artifact_ids: BTreeSet<String>,
+    artifact_hashes: BTreeSet<String>,
+    observation_ids: BTreeSet<String>,
+}
+
 fn validate_observer_claim<'a>(
     evidence: &'a OwnerEvidenceRef,
     expected_domain: OwnerEvidenceDomain,
     expected_asserted_value: &str,
     expected_scope: &EvidenceScope,
-    fault_profile_revision: &str,
-    evidence_ids: &mut BTreeSet<String>,
-    claim_ids: &mut BTreeSet<String>,
-    artifact_ids: &mut BTreeSet<String>,
-    artifact_hashes: &mut BTreeSet<String>,
-    observation_ids: &mut BTreeSet<String>,
-    operational_owner_ids: &BTreeSet<String>,
+    context: &mut ObserverValidationContext,
 ) -> Result<&'a ObserverQuorumProof, LineageError> {
     let claim_id = evidence
         .claim_id
@@ -400,21 +395,26 @@ fn validate_observer_claim<'a>(
         || !nonempty(&evidence.evidence_id)
         || !nonempty(&evidence.raw_artifact_id)
         || !valid_sha256(&evidence.raw_artifact_sha256)
-        || operational_owner_ids.contains(&evidence.owner_id)
+        || context.operational_owner_ids.contains(&evidence.owner_id)
         || quorum
             .members
             .iter()
-            .any(|member| operational_owner_ids.contains(&member.observer_id))
-        || quorum.fault_model_revision != fault_profile_revision
+            .any(|member| context.operational_owner_ids.contains(&member.observer_id))
+        || quorum.fault_model_revision != context.fault_profile_revision
         || claim_scope_sha256 != expected_claim_scope_sha256.as_str()
     {
         return Err(LineageError::ObserverClaimMismatch);
     }
 
-    if !evidence_ids.insert(evidence.evidence_id.clone())
-        || !claim_ids.insert(claim_id.to_owned())
-        || !artifact_ids.insert(evidence.raw_artifact_id.clone())
-        || !artifact_hashes.insert(evidence.raw_artifact_sha256.clone())
+    if context.operational_evidence_ids.contains(&evidence.evidence_id)
+        || !context
+            .observer_evidence_ids
+            .insert(evidence.evidence_id.clone())
+        || !context.claim_ids.insert(claim_id.to_owned())
+        || !context.artifact_ids.insert(evidence.raw_artifact_id.clone())
+        || !context
+            .artifact_hashes
+            .insert(evidence.raw_artifact_sha256.clone())
     {
         return Err(LineageError::ObserverClaimMismatch);
     }
@@ -424,9 +424,13 @@ fn validate_observer_claim<'a>(
     }
 
     for member in &quorum.members {
-        if !artifact_ids.insert(member.raw_artifact_id.clone())
-            || !artifact_hashes.insert(member.raw_artifact_sha256.clone())
-            || !observation_ids.insert(member.observation_id.clone())
+        if !context.artifact_ids.insert(member.raw_artifact_id.clone())
+            || !context
+                .artifact_hashes
+                .insert(member.raw_artifact_sha256.clone())
+            || !context
+                .observation_ids
+                .insert(member.observation_id.clone())
         {
             return Err(LineageError::ObserverQuorumUnqualified);
         }
@@ -435,44 +439,23 @@ fn validate_observer_claim<'a>(
 }
 
 fn validate_attempt_observer_assurance(
-    fault_profile_revision: &str,
     logical_effect_id: &str,
     attempt: &AttemptRecord,
     require_downstream_quiescence: bool,
-    evidence_ids: &mut BTreeSet<String>,
-    claim_ids: &mut BTreeSet<String>,
-    artifact_ids: &mut BTreeSet<String>,
-    artifact_hashes: &mut BTreeSet<String>,
-    observation_ids: &mut BTreeSet<String>,
+    context: &mut ObserverValidationContext,
 ) -> Result<(), LineageError> {
     let assurance = attempt
         .observer_assurance
         .as_ref()
         .ok_or(LineageError::MissingObserverAssurance)?;
     let scope = evidence_scope(logical_effect_id, attempt);
-    let operational_owner_ids: BTreeSet<String> = [
-        &attempt.persistence.receipt.owner_id,
-        &attempt.physical_outcome.receipt.owner_id,
-        &attempt.mission_resolution.receipt.owner_id,
-        &attempt.controller_queue_fence.receipt.owner_id,
-        &attempt.downstream_quiescence.receipt.owner_id,
-    ]
-    .iter()
-    .map(|owner_id| owner_id.as_str().to_owned())
-    .collect();
 
     let physical = validate_observer_claim(
         &assurance.physical_outcome,
         OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
         physical_value(attempt.physical_outcome.outcome),
         &scope,
-        fault_profile_revision,
-        evidence_ids,
-        claim_ids,
-        artifact_ids,
-        artifact_hashes,
-        observation_ids,
-        &operational_owner_ids,
+        context,
     )?;
 
     match &assurance.downstream_quiescence {
@@ -482,13 +465,7 @@ fn validate_attempt_observer_assurance(
                 OwnerEvidenceDomain::DownstreamObserverQuorum,
                 "quiescent",
                 &scope,
-                fault_profile_revision,
-                evidence_ids,
-                claim_ids,
-                artifact_ids,
-                artifact_hashes,
-                observation_ids,
-                &operational_owner_ids,
+                context,
             )?;
             if !observer_proofs_are_independent(physical, downstream) {
                 return Err(LineageError::ObserverQuorumUnqualified);
@@ -503,15 +480,10 @@ fn validate_attempt_observer_assurance(
 }
 
 fn validate_recovery_handoff(
-    fault_profile_revision: &str,
     logical_effect_id: &str,
     parent: &AttemptRecord,
     child: &AttemptRecord,
-    evidence_ids: &mut BTreeSet<String>,
-    claim_ids: &mut BTreeSet<String>,
-    artifact_ids: &mut BTreeSet<String>,
-    artifact_hashes: &mut BTreeSet<String>,
-    observation_ids: &mut BTreeSet<String>,
+    context: &mut ObserverValidationContext,
 ) -> Result<(), LineageError> {
     if parent.physical_outcome.outcome != PhysicalOutcome::NoEffect
         || parent.physical_outcome.receipt.status != OwnerEvidenceStatus::Confirmed
@@ -521,17 +493,7 @@ fn validate_recovery_handoff(
         return Err(LineageError::ParentOutcomeNotRetryable);
     }
 
-    validate_attempt_observer_assurance(
-        fault_profile_revision,
-        logical_effect_id,
-        parent,
-        true,
-        evidence_ids,
-        claim_ids,
-        artifact_ids,
-        artifact_hashes,
-        observation_ids,
-    )?;
+    validate_attempt_observer_assurance(logical_effect_id, parent, true, context)?;
 
     if !matches!(
         parent.persistence.outcome,
@@ -586,13 +548,12 @@ impl AttemptLineageRecording {
         }
 
         let mut attempt_ids = BTreeSet::new();
-        let mut evidence_ids = BTreeSet::new();
-        let mut claim_ids = BTreeSet::new();
-        let mut observer_artifact_ids = BTreeSet::new();
-        let mut observer_artifact_hashes = BTreeSet::new();
-        let mut observer_observation_ids = BTreeSet::new();
-        // Observer artifacts must be different from all owner-supplied operational
-        // receipts, not merely from one another.
+        let mut context = ObserverValidationContext {
+            fault_profile_revision: self.fault_profile_revision.clone(),
+            ..ObserverValidationContext::default()
+        };
+        // Pre-index operational owners, receipts and raw artifacts so observer
+        // evidence cannot reuse a subject owner's identity or artifact.
         for attempt in &self.attempts {
             for receipt in [
                 &attempt.persistence.receipt,
@@ -601,8 +562,17 @@ impl AttemptLineageRecording {
                 &attempt.controller_queue_fence.receipt,
                 &attempt.downstream_quiescence.receipt,
             ] {
-                observer_artifact_ids.insert(receipt.raw_artifact_id.clone());
-                observer_artifact_hashes.insert(receipt.raw_artifact_sha256.clone());
+                if !context
+                    .operational_evidence_ids
+                    .insert(receipt.evidence_id.clone())
+                    || !context.artifact_ids.insert(receipt.raw_artifact_id.clone())
+                    || !context
+                        .artifact_hashes
+                        .insert(receipt.raw_artifact_sha256.clone())
+                {
+                    return Err(LineageError::InvalidEvidenceReceipt);
+                }
+                context.operational_owner_ids.insert(receipt.owner_id.clone());
             }
         }
         let mut applied_attempt_count = 0usize;
@@ -637,34 +607,24 @@ impl AttemptLineageRecording {
                     return Err(LineageError::EpochNotMonotonic);
                 }
                 validate_recovery_handoff(
-                    &self.fault_profile_revision,
                     &self.logical_effect_id,
                     parent,
                     attempt,
-                    &mut evidence_ids,
-                    &mut claim_ids,
-                    &mut observer_artifact_ids,
-                    &mut observer_artifact_hashes,
-                    &mut observer_observation_ids,
+                    &mut context,
                 )?;
             }
 
-            validate_attempt_evidence(&self.logical_effect_id, attempt, &mut evidence_ids)?;
+            validate_attempt_evidence(&self.logical_effect_id, attempt)?;
 
             if index + 1 == self.attempts.len()
                 && (attempt.physical_outcome.receipt.status == OwnerEvidenceStatus::Confirmed
                     || attempt.observer_assurance.is_some())
             {
                 validate_attempt_observer_assurance(
-                    &self.fault_profile_revision,
                     &self.logical_effect_id,
                     attempt,
                     false,
-                    &mut evidence_ids,
-                    &mut claim_ids,
-                    &mut observer_artifact_ids,
-                    &mut observer_artifact_hashes,
-                    &mut observer_observation_ids,
+                    &mut context,
                 )?;
             }
 
