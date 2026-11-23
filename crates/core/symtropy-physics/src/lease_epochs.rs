@@ -283,6 +283,12 @@ impl LeaseReadSet {
         let current = current.canonicalized();
         let mut reasons = RevocationReasons::default();
 
+        let world_generation_current =
+            captured.scene.world_generation == current.scene.world_generation;
+        if !world_generation_current {
+            reasons.insert(RevocationReason::WorldGenerationChanged);
+        }
+
         let identities_current = captured.body_a.identity == current.body_a.identity
             && captured.body_b.identity == current.body_b.identity;
 
@@ -355,8 +361,6 @@ impl LeaseReadSet {
             reasons.insert(RevocationReason::SolverProfileChanged);
         }
 
-        let world_generation_current =
-            captured.scene.world_generation == current.scene.world_generation;
         let scene_structure_current = world_generation_current
             && captured.scene.membership == current.scene.membership
             && captured.scene.topology == current.scene.topology;
@@ -383,7 +387,8 @@ impl LeaseReadSet {
         let horizon_eligible =
             geometry_lease_eligible && scene_discovery_current && motion_bounds_current;
 
-        let current_step_semantics_changed = !material_current || !callback_current;
+        let current_step_semantics_changed =
+            !material_current || !callback_current || !solver_profile_current;
 
         let solver_state_reusable = geometry_lease_eligible
             && solver_profile_current
@@ -420,6 +425,7 @@ pub enum RevocationReason {
     SceneReceiptStale = 7,
     SolverProfileChanged = 8,
     CertificateProfileChanged = 9,
+    WorldGenerationChanged = 10,
 }
 
 /// Compact, allocation-free set of stable revocation reasons.
@@ -427,7 +433,7 @@ pub enum RevocationReason {
 pub struct RevocationReasons(u32);
 
 impl RevocationReasons {
-    const ALL: [RevocationReason; 10] = [
+    const ALL: [RevocationReason; 11] = [
         RevocationReason::BodyIdentityChanged,
         RevocationReason::ShapeOrTopologyChanged,
         RevocationReason::TransformDiscontinuity,
@@ -438,6 +444,7 @@ impl RevocationReasons {
         RevocationReason::SceneReceiptStale,
         RevocationReason::SolverProfileChanged,
         RevocationReason::CertificateProfileChanged,
+        RevocationReason::WorldGenerationChanged,
     ];
 
     pub const fn is_empty(self) -> bool {
@@ -661,6 +668,7 @@ mod tests {
         assert!(!result.horizon_eligible);
         assert!(!result.scene_discovery_current);
         assert!(!result.solver_state_reusable);
+        assert!(result.current_step_semantics_changed);
         assert!(
             result
                 .reasons
@@ -741,6 +749,27 @@ mod tests {
             result
                 .reasons
                 .contains(RevocationReason::BodyIdentityChanged)
+        );
+    }
+
+
+    #[test]
+    fn world_generation_change_revokes_all_old_pair_evidence() {
+        let base = snapshot();
+        let captured = LeaseReadSet::capture(base);
+        let mut changed = base;
+        changed.scene.world_generation = Epoch::from_raw(1);
+
+        let result = captured.revalidate(changed);
+
+        assert!(!result.geometry_lease_eligible);
+        assert!(!result.horizon_eligible);
+        assert!(!result.scene_discovery_current);
+        assert!(!result.solver_state_reusable);
+        assert!(
+            result
+                .reasons
+                .contains(RevocationReason::WorldGenerationChanged)
         );
     }
 
