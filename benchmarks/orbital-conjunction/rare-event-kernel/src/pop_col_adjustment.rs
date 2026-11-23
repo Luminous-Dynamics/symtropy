@@ -625,7 +625,10 @@ mod tests {
             PopColAdjustmentStatus::OriginalCenterNonnegativeEnergy
         );
         assert_eq!(result.adjustment_fraction, 1.0);
-        assert_eq!(result.adjusted_col_position_km, input.proposed_overlap_position_km);
+        assert_eq!(
+            result.adjusted_col_position_km,
+            input.proposed_overlap_position_km
+        );
         assert_eq!(result.proposed_relative_energy_change, None);
     }
 
@@ -749,4 +752,3 @@ mod tests {
         );
     }
 }
-
