@@ -768,10 +768,15 @@ mod tests {
         let (full, mut reduced) = zero_pair();
         reduced.work_budget_units += 1;
         assert!(
-            compare_responses(&full, &reduced, &probe_set(vec![probe([1.0, 0.0, 0.0])]), scales())
-                .expect_err("unequal work must fail")
-                .reason
-                .contains("work budgets")
+            compare_responses(
+                &full,
+                &reduced,
+                &probe_set(vec![probe([1.0, 0.0, 0.0])]),
+                scales()
+            )
+            .expect_err("unequal work must fail")
+            .reason
+            .contains("work budgets")
         );
     }
 
