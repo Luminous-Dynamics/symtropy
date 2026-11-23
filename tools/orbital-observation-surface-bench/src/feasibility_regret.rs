@@ -916,14 +916,14 @@ mod tests {
     #[test]
     fn static_admissibility_indeterminate_blocks_global_regret() {
         let mut corpus = fixture();
-        let case = &mut corpus.cases[0];
-        let action = case
+        let decision_case = &mut corpus.cases[0];
+        let action = decision_case
             .actions
             .iter_mut()
             .find(|item| item.action_id == "conditional")
             .expect("conditional action exists");
         action.eligibility_status = "indeterminate".to_owned();
-        for scenario in &mut case.scenario_manifest.scenarios {
+        for scenario in &mut decision_case.scenario_manifest.scenarios {
             let outcome = scenario
                 .action_outcomes
                 .get_mut("conditional")
@@ -931,8 +931,8 @@ mod tests {
             outcome.feasibility_status = "indeterminate".to_owned();
             outcome.loss = None;
         }
-        case.scenario_manifest.scenarios_sha256 =
-            digest_scenarios(&case.scenario_manifest.scenarios)
+        decision_case.scenario_manifest.scenarios_sha256 =
+            digest_scenarios(&decision_case.scenario_manifest.scenarios)
                 .expect("scenario rows can be re-digested");
         let evaluation = evaluate(&corpus).expect("indeterminate evidence is an explicit result");
         assert_eq!(
