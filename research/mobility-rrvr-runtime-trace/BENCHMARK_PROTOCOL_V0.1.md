@@ -173,3 +173,16 @@ A passing scorer demonstrates corpus structural validity and deterministic metri
 ## 10. Protocol and oracle identity locks
 
 Each episode now carries the host benchmark ID/revision, native policy-wrapper revision, safety-specification revision, independent delivery-adjudicator revision and root-cause-adjudicator revision. These are part of the matched-input commitment: two arms cannot be compared if they quietly use different host protocols or oracle versions. A scenario-cluster ID is also required and reported separately from the number of matched pairs so later inferential analysis can avoid counting repeated episodes from one scenario family as independent clusters.
+
+
+## 11. Cluster-aware inference mode v0.1
+
+The scorer provides an optional nonparametric percentile bootstrap over scenario clusters:
+
+    cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_benchmark_score -- benchmark-corpus.json benchmark-report.json --bootstrap-replicates 1000
+
+It requires at least five distinct declared clusters and between 1,000 and 200,000 replicates. A corpus with fewer than five clusters can still be scored descriptively, but inferential mode rejects it.
+
+For each resample, the implementation draws the same number of clusters as observed, with replacement. Every matched pair and its five arms remain together inside the sampled cluster. Pair-level task/safety/recovery deltas are first averaged within each cluster, then clusters are equally weighted, avoiding larger clusters dominating merely because they contribute more episodes. The fixed resampling seed is derived from the benchmark version, exact source-corpus digest and replicate count. The report contains paired full-RRVR-minus-baseline point estimates and nearest-rank 95% percentile intervals for task success, safety and recovery success.
+
+This is a percentile cluster bootstrap, not a hierarchical model or BCa interval. Five clusters is an execution floor, not evidence of adequate power or independent population sampling. The CI corpus has six synthetic clusters solely to exercise the code; those intervals are not empirical results. The researcher must justify that clusters represent meaningful independent sampling units and report sensitivity to cluster definitions, task/platform strata, exclusions and predeclared endpoints. When clusters share a controller, simulator build, task template or fault-generation seed, that dependence must be reflected in the cluster design.
