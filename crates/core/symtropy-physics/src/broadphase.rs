@@ -707,6 +707,31 @@ mod tests {
     }
 
     #[test]
+    fn invalid_union_propagates_unbounded_envelope_and_empty_is_identity() {
+        let invalid = Aabb {
+            min: SVector::from([f64::NAN, 0.0, 0.0]),
+            max: SVector::from([f64::NAN, 1.0, 1.0]),
+        };
+        let near = Aabb {
+            min: SVector::zeros(),
+            max: SVector::from_element(1.0),
+        };
+        let far = Aabb {
+            min: SVector::from([1.0e100, 1.0e100, 1.0e100]),
+            max: SVector::from([1.0e100 + 1.0e90, 1.0e100 + 1.0e90, 1.0e100 + 1.0e90]),
+        };
+
+        let propagated = invalid.union(&near);
+        assert!(propagated.is_valid_finite());
+        assert!(propagated.overlaps(&near));
+        assert!(propagated.overlaps(&far));
+
+        let empty = Aabb::<3>::empty();
+        assert!(empty.union(&near).overlaps(&near));
+        assert!(near.union(&empty).overlaps(&near));
+    }
+
+    #[test]
     fn unpruned_fallback_still_respects_filters_and_static_static_exclusion() {
         let mut invalid_dynamic =
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
