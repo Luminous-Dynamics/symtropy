@@ -44,6 +44,8 @@ pub struct CompiledPlatformBinding {
     pub firmware_revision: String,
     pub calibration_revision: String,
     pub observer_stack_revision: String,
+    pub required_delivery_observer_quorum: usize,
+    pub observer_profiles: Vec<crate::fault_campaign::ObserverProfile>,
     pub fault_injector_id: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
@@ -346,6 +348,10 @@ impl CompiledCampaignPlan {
             firmware_revision: manifest.platform.firmware_revision.clone(),
             calibration_revision: manifest.platform.calibration_revision.clone(),
             observer_stack_revision: manifest.platform.observer_stack_revision.clone(),
+            required_delivery_observer_quorum: manifest
+                .platform
+                .required_delivery_observer_quorum,
+            observer_profiles: manifest.platform.observer_profiles.clone(),
             fault_injector_id: manifest.platform.fault_injector_id.clone(),
             fault_injector_revision: manifest.platform.fault_injector_revision.clone(),
             fault_injector_sha256: manifest.platform.fault_injector_sha256.clone(),
