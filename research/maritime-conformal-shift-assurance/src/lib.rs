@@ -686,6 +686,22 @@ mod tests {
     }
 
     #[test]
+    fn partial_identification_bounds_contain_latent_coverage_for_every_method_and_window() {
+        for report in evaluate_suite() {
+            for metrics in report.windows {
+                let lower = metrics.identified_joint_coverage_lower_pct();
+                let latent = metrics.latent_joint_coverage_pct();
+                let upper = metrics.identified_joint_coverage_upper_pct();
+                let expected_width = percentage(metrics.missing, metrics.total);
+
+                assert!(lower <= latent, "lower {lower} exceeds latent {latent}");
+                assert!(latent <= upper, "latent {latent} exceeds upper {upper}");
+                assert!((upper - lower - expected_width).abs() < 1e-9);
+            }
+        }
+    }
+
+    #[test]
     fn csv_rows_match_the_declared_schema() {
         let output = render_csv();
         let mut lines = output.lines();
