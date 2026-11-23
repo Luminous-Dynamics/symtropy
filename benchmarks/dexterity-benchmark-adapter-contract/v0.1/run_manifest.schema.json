@@ -1,0 +1,1036 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/symtropy/dexterity-benchmark-run/v0.1",
+  "title": "DexArena and Bench2Dex normalized run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_kind",
+    "benchmark",
+    "protocol",
+    "run",
+    "policies",
+    "coverage",
+    "native_metrics",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "evidence_kind": {
+      "enum": [
+        "synthetic_fixture",
+        "paper_baseline",
+        "official_submission",
+        "third_party_result",
+        "reproduced_run",
+        "smoke_test"
+      ]
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "source_url",
+        "code_commit",
+        "task_contract_digest",
+        "data_access_status"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "enum": [
+            "DexArena",
+            "Bench2Dex"
+          ]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "code_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "leaderboard_snapshot_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "leaderboard_snapshot_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "data_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_manifest_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "task_contract_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "data_access_status": {
+          "enum": [
+            "public_metadata_only",
+            "access_not_requested",
+            "access_requested_pending",
+            "terms_accepted",
+            "not_required"
+          ]
+        },
+        "licence_review_status": {
+          "enum": [
+            "not_reviewed",
+            "code_only_reviewed",
+            "data_terms_reviewed",
+            "approved_for_execution"
+          ]
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluation_track",
+        "reset_mode",
+        "episode_budget_per_unit",
+        "policy_frozen",
+        "task_ids",
+        "channels"
+      ],
+      "properties": {
+        "evaluation_track": {
+          "enum": [
+            "stage_execution",
+            "cross_scene",
+            "long_horizon",
+            "native_multichannel"
+          ]
+        },
+        "reset_mode": {
+          "enum": [
+            "stage_reset",
+            "cross_scene_frozen_policy",
+            "one_reset_sequence",
+            "benchmark_native",
+            "mixed_explicit"
+          ]
+        },
+        "episode_budget_per_unit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_frozen": {
+          "type": "boolean"
+        },
+        "task_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "scene_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "end_effector_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "embodiment_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "aggregation_specification": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "status",
+        "actual_episode_count",
+        "environment_revision",
+        "controller_config_digest",
+        "asset_manifest_digest"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "metadata_only",
+            "failed"
+          ]
+        },
+        "actual_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "environment_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_config_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "asset_manifest_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "observation_preprocessing_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seed_manifest_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "execution_budget_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "protocol_deviations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "all_failures_retained": {
+          "type": "boolean"
+        }
+      }
+    },
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "checkpoint_digest",
+          "training_data_scope"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "checkpoint_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "training_data_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fine_tuned_on_target_benchmark": {
+            "type": "boolean"
+          },
+          "observation_contract_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{64})?$"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_task_count",
+        "evaluated_task_count",
+        "expected_episode_count",
+        "completed_episode_count",
+        "failed_episode_count",
+        "unattempted_stage_count",
+        "omitted_task_ids",
+        "exclusion_reasons"
+      ],
+      "properties": {
+        "expected_task_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluated_task_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unattempted_stage_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted_task_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "exclusion_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "native_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_name",
+          "value",
+          "unit",
+          "aggregation",
+          "scope"
+        ],
+        "properties": {
+          "metric_name": {
+            "enum": [
+              "SR",
+              "LSCR",
+              "Eff",
+              "stage_success",
+              "cross_scene_success",
+              "long_horizon_success",
+              "other_native"
+            ]
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "numerator": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "denominator": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_ids"
+            ],
+            "properties": {
+              "task_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "channel": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "embodiment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "end_effector": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "variation_value": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "variation_kind": {
+            "enum": [
+              "none",
+              "scene_standard_deviation",
+              "episode_standard_deviation",
+              "seed_standard_deviation",
+              "confidence_interval_half_width"
+            ]
+          },
+          "variation_confidence_level": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          }
+        }
+      }
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task_id",
+          "episode_id",
+          "policy_id",
+          "channel",
+          "evaluation_mode",
+          "outcome_status",
+          "native_success",
+          "inter_stage_reset_count"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "episode_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evaluation_mode": {
+            "enum": [
+              "stage_reset",
+              "cross_scene_frozen_policy",
+              "one_reset_sequence",
+              "local_restored",
+              "inherited_handoff"
+            ]
+          },
+          "outcome_status": {
+            "enum": [
+              "success",
+              "failure",
+              "ambiguous",
+              "not_attempted"
+            ]
+          },
+          "native_success": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "native_stage_completed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "stage_index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "inter_stage_reset_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "retries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "steps_to_completion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "expert_steps_reference": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "predecessor_skill_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predecessor_transition_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predecessor_terminal_state_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{64})?$"
+          },
+          "start_state_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{64})?$"
+          },
+          "end_state_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{64})?$"
+          },
+          "failure_category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "log_digest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([0-9a-f]{64})?$"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_kind": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "evidence_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "run": {
+            "properties": {
+              "status": {
+                "const": "metadata_only"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "benchmark": {
+            "properties": {
+              "benchmark_id": {
+                "const": "DexArena"
+              }
+            }
+          },
+          "protocol": {
+            "properties": {
+              "evaluation_track": {
+                "const": "long_horizon"
+              }
+            }
+          }
+        },
+        "required": [
+          "benchmark",
+          "protocol"
+        ]
+      },
+      "then": {
+        "properties": {
+          "protocol": {
+            "properties": {
+              "reset_mode": {
+                "const": "one_reset_sequence"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "benchmark": {
+            "properties": {
+              "benchmark_id": {
+                "const": "Bench2Dex"
+              }
+            }
+          }
+        },
+        "required": [
+          "benchmark"
+        ]
+      },
+      "then": {
+        "properties": {
+          "native_metrics": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "SR"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "LSCR"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "metric_name": {
+                      "const": "Eff"
+                    }
+                  },
+                  "required": [
+                    "metric_name"
+                  ]
+                },
+                "minContains": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "evaluation_mode": {
+                  "const": "one_reset_sequence"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "one_reset_sequence"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "inter_stage_reset_count": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "evaluation_mode": {
+                  "const": "inherited_handoff"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "inherited_handoff"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "required": [
+                  "predecessor_skill_id",
+                  "predecessor_transition_id",
+                  "predecessor_terminal_state_digest"
+                ],
+                "properties": {
+                  "predecessor_skill_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "predecessor_transition_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "predecessor_terminal_state_digest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "evaluation_mode": {
+                  "const": "local_restored"
+                }
+              },
+              "required": [
+                "evaluation_mode"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "evaluation_mode": {
+                    "const": "local_restored"
+                  }
+                },
+                "required": [
+                  "evaluation_mode"
+                ]
+              },
+              "then": {
+                "required": [
+                  "start_state_digest"
+                ],
+                "properties": {
+                  "start_state_digest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "const": "success"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "const": "success"
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "const": "failure"
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "const": "failure"
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcomes": {
+            "contains": {
+              "properties": {
+                "outcome_status": {
+                  "enum": [
+                    "ambiguous",
+                    "not_attempted"
+                  ]
+                }
+              },
+              "required": [
+                "outcome_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "outcomes"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "if": {
+                "properties": {
+                  "outcome_status": {
+                    "enum": [
+                      "ambiguous",
+                      "not_attempted"
+                    ]
+                  }
+                },
+                "required": [
+                  "outcome_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "native_success": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

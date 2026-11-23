@@ -1,0 +1,158 @@
+{
+  "schema_version": "0.1.0",
+  "evidence_kind": "synthetic_fixture",
+  "benchmark": {
+    "benchmark_id": "Bench2Dex",
+    "source_url": "https://bench2dex.github.io/Bench2Dex-Leaderboard/",
+    "code_commit": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "leaderboard_snapshot_url": "https://bench2dex.github.io/Bench2Dex-Leaderboard/",
+    "leaderboard_snapshot_date": "2026-11-19",
+    "data_revision": null,
+    "data_manifest_digest": null,
+    "task_contract_digest": "b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3",
+    "data_access_status": "public_metadata_only",
+    "licence_review_status": "not_reviewed"
+  },
+  "protocol": {
+    "evaluation_track": "native_multichannel",
+    "reset_mode": "benchmark_native",
+    "episode_budget_per_unit": 50,
+    "policy_frozen": true,
+    "task_ids": [
+      "baking-tray-prep"
+    ],
+    "channels": [
+      "rgb",
+      "depth",
+      "proprio",
+      "tactile"
+    ],
+    "scene_ids": [],
+    "end_effector_ids": [
+      "sharpa"
+    ],
+    "embodiment_ids": [
+      "iiwa7"
+    ],
+    "aggregation_specification": "Synthetic fixture; native SR/LSCR/Eff definitions preserved, four-channel task mean"
+  },
+  "run": {
+    "run_id": "bench2dex-synthetic-001",
+    "status": "metadata_only",
+    "actual_episode_count": 1,
+    "environment_revision": "synthetic-env",
+    "controller_config_digest": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+    "asset_manifest_digest": "d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2",
+    "observation_preprocessing_digest": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2",
+    "seed_manifest_digest": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2",
+    "execution_budget_seconds": null,
+    "protocol_deviations": [
+      "synthetic fixture, not comparable to reference 50-episode protocol"
+    ],
+    "all_failures_retained": true
+  },
+  "policies": [
+    {
+      "policy_id": "synthetic-policy",
+      "checkpoint_digest": "2323232323232323232323232323232323232323232323232323232323232323",
+      "training_data_scope": "synthetic-only",
+      "fine_tuned_on_target_benchmark": false,
+      "observation_contract_digest": "2424242424242424242424242424242424242424242424242424242424242424"
+    }
+  ],
+  "coverage": {
+    "expected_task_count": 1,
+    "evaluated_task_count": 1,
+    "expected_episode_count": 1,
+    "completed_episode_count": 1,
+    "failed_episode_count": 0,
+    "unattempted_stage_count": 0,
+    "omitted_task_ids": [],
+    "exclusion_reasons": []
+  },
+  "native_metrics": [
+    {
+      "metric_name": "SR",
+      "value": 0,
+      "unit": "fraction",
+      "numerator": 0,
+      "denominator": 1,
+      "aggregation": "stable successes / episodes; synthetic",
+      "scope": {
+        "task_ids": [
+          "baking-tray-prep"
+        ],
+        "channel": "rgb",
+        "embodiment": "iiwa7",
+        "end_effector": "sharpa"
+      },
+      "variation_value": null,
+      "variation_kind": "none",
+      "variation_confidence_level": null
+    },
+    {
+      "metric_name": "LSCR",
+      "value": 0,
+      "unit": "fraction",
+      "numerator": 0,
+      "denominator": 1,
+      "aggregation": "dependency-valid latched stage completions / eligible stages; synthetic",
+      "scope": {
+        "task_ids": [
+          "baking-tray-prep"
+        ],
+        "channel": "rgb",
+        "embodiment": "iiwa7",
+        "end_effector": "sharpa"
+      },
+      "variation_value": null,
+      "variation_kind": "none",
+      "variation_confidence_level": null
+    },
+    {
+      "metric_name": "Eff",
+      "value": 1,
+      "unit": "ratio",
+      "numerator": null,
+      "denominator": null,
+      "aggregation": "expert completion steps / policy steps conditional on success; synthetic",
+      "scope": {
+        "task_ids": [
+          "baking-tray-prep"
+        ],
+        "channel": "rgb",
+        "embodiment": "iiwa7",
+        "end_effector": "sharpa"
+      },
+      "variation_value": null,
+      "variation_kind": "none",
+      "variation_confidence_level": null
+    }
+  ],
+  "outcomes": [
+    {
+      "task_id": "baking-tray-prep",
+      "episode_id": "b2d-episode-001",
+      "policy_id": "synthetic-policy",
+      "channel": "rgb",
+      "stage_id": "preparation",
+      "evaluation_mode": "stage_reset",
+      "outcome_status": "failure",
+      "native_success": false,
+      "native_stage_completed": false,
+      "stage_index": 0,
+      "inter_stage_reset_count": 0,
+      "attempts": 1,
+      "retries": 0,
+      "steps_to_completion": null,
+      "expert_steps_reference": null,
+      "predecessor_skill_id": null,
+      "predecessor_transition_id": null,
+      "predecessor_terminal_state_digest": null,
+      "start_state_digest": "2525252525252525252525252525252525252525252525252525252525252525",
+      "end_state_digest": null,
+      "failure_category": "synthetic-control",
+      "log_digest": "2626262626262626262626262626262626262626262626262626262626262626"
+    }
+  ]
+}
