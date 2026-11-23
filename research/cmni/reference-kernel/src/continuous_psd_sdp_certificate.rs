@@ -18,7 +18,7 @@
 
 use crate::continuous_dependence_envelope::{
     validate_pairwise_interval_set, validate_witness_within_intervals,
-    PairwiseCorrelationIntervalSet,
+    CorrelationCoefficientBounds, PairwiseCorrelationIntervalSet,
 };
 use crate::multisource_dependence_design::{
     canonicalize_and_validate_correlation_matrix, minimum_symmetric_eigenvalue, validate_candidate,
@@ -259,18 +259,20 @@ pub fn verify_continuous_dependence_sdp_certificate(
         (1.0 - observation_dual[observation_count][observation_count]).abs();
     let mut stationarity_scale = 1.0_f64.max(observation_dual_dimension as f64);
 
-    for source_index in 0..source_count {
-        let source_column: Vec<f64> = (0..observation_count)
-            .map(|observation| candidate.source_jacobians[observation][source_index])
+    for (source_index, dual_row) in correlation_dual.iter().enumerate() {
+        let source_column: Vec<f64> = candidate
+            .source_jacobians
+            .iter()
+            .map(|row| row[source_index])
             .collect();
         let diagonal_coefficient = candidate.source_standard_deviations[source_index].powi(2)
             * quadratic_form(&source_column, &observation_dual_block);
-        let residual = -diagonal_coefficient - correlation_dual[source_index][source_index]
+        let residual = -diagonal_coefficient - dual_row[source_index]
             + certificate.diagonal_equality_multipliers[source_index];
         maximum_stationarity_residual = maximum_stationarity_residual.max(residual.abs());
         stationarity_scale = stationarity_scale
             .max(diagonal_coefficient.abs())
-            .max(correlation_dual[source_index][source_index].abs())
+            .max(dual_row[source_index].abs())
             .max(certificate.diagonal_equality_multipliers[source_index].abs());
     }
 
@@ -310,13 +312,12 @@ pub fn verify_continuous_dependence_sdp_certificate(
     }
 
     let mut observation_m0_inner_product = 0.0;
-    for observation in 0..observation_count {
-        observation_m0_inner_product += candidate.independent_observation_noise_variances
-            [observation]
-            * observation_dual[observation][observation];
+    for (observation, dual_row) in observation_dual.iter().take(observation_count).enumerate() {
+        observation_m0_inner_product +=
+            candidate.independent_observation_noise_variances[observation] * dual_row[observation];
         observation_m0_inner_product += 2.0
             * candidate.observation_sensitivities[observation]
-            * observation_dual[observation][observation_count];
+            * dual_row[observation_count];
     }
     let diagonal_multiplier_sum = certificate
         .diagonal_equality_multipliers
@@ -375,19 +376,19 @@ fn build_observation_covariance(
     let observation_count = candidate.observation_sensitivities.len();
     let source_count = candidate.source_standard_deviations.len();
     let mut covariance = vec![vec![0.0; observation_count]; observation_count];
-    for row in 0..observation_count {
-        for column in 0..observation_count {
-            covariance[row][column] = if row == column {
+    for (row, covariance_row) in covariance.iter_mut().enumerate() {
+        for (column, covariance_value) in covariance_row.iter_mut().enumerate() {
+            *covariance_value = if row == column {
                 candidate.independent_observation_noise_variances[row]
             } else {
                 0.0
             };
-            for source_row in 0..source_count {
-                for source_column in 0..source_count {
+            for (source_row, correlation_row) in correlation.iter().enumerate() {
+                for (source_column, correlation_value) in correlation_row.iter().enumerate() {
                     let source_covariance = candidate.source_standard_deviations[source_row]
-                        * correlation[source_row][source_column]
+                        * correlation_value
                         * candidate.source_standard_deviations[source_column];
-                    covariance[row][column] += candidate.source_jacobians[row][source_row]
+                    *covariance_value += candidate.source_jacobians[row][source_row]
                         * source_covariance
                         * candidate.source_jacobians[column][source_column];
                 }
