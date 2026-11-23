@@ -530,7 +530,10 @@ mod tests {
     #[test]
     fn future_event_published_before_occurrence_is_not_evaluable() {
         assert_eq!(
-            evaluate(&known_case("future_dated_record_published_before_occurrence")).disposition,
+            evaluate(&known_case(
+                "future_dated_record_published_before_occurrence"
+            ))
+            .disposition,
             Disposition::NotEvaluable
         );
     }
