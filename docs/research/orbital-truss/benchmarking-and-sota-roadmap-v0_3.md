@@ -18,7 +18,7 @@ The goal is to quantify when centre sampling is adequate, when it misses boundar
 
 The preceding #6925 exact head was c2d94e06da4665200e0ca1fd802aad5d44e09ec9. Its four checks passed: dedicated inspectability workflow and repository CI on Ubuntu, Windows and macOS. It remains a draft PR. The exact planner and independent Python oracle comparisons cover synthetic 2D candidate matrices.
 
-The new support-envelope increment is separate and remains synthetic. Its upper/lower bounds use fixed-point output units to make Rust and Python receipts exactly comparable. CERTIFIED_WITHIN_SENSING_ENVELOPE never implies unoccluded visibility; every receipt says occlusion_status=NOT_ASSESSED and may_count_toward_full_support_coverage=false.
+The new support-envelope increment is separate and remains synthetic. Its upper/lower bounds use fixed-point output units to make Rust and Python receipts exactly comparable. CONDITIONAL_WITHIN_SENSING_ENVELOPE never implies unoccluded visibility; every receipt says occlusion_status=NOT_ASSESSED and may_count_toward_full_support_coverage=false.
 
 ## 3. Research comparison
 
@@ -54,7 +54,7 @@ Metrics remain separate: requested-k attainment; attainable capped-target attain
 
 ## 5. Prospective targets
 
-- Zero false CERTIFIED_WITHIN_SENSING_ENVELOPE cases in frozen adversarial controls.
+- Zero false CONDITIONAL_WITHIN_SENSING_ENVELOPE cases in frozen adversarial controls.
 - Zero false-clear occlusion cases before any full-support visibility claim.
 - Exact independent receipt agreement for every frozen support fixture.
 - Rigid-frame invariance and monotonicity under support-radius/normal-cone enlargement.
