@@ -127,6 +127,9 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     if !valid_profile(profile) {
         return CaptureReport::with_disposition(Disposition::NotEvaluable);
     }
+    if case.as_of < profile.window_start {
+        return CaptureReport::with_disposition(Disposition::NotEvaluable);
+    }
 
     let Some(reference) = case.reference.as_ref() else {
         return CaptureReport::with_disposition(Disposition::NotIdentifiable);
@@ -148,12 +151,13 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     }
 
     let mut expected = BTreeMap::new();
+    let mut seen_reference_ids = BTreeSet::new();
     for event in &reference.events {
         if event.event_id.trim().is_empty()
             || event.event_class != profile.event_class
             || event.event_time < profile.window_start
             || event.event_time >= profile.window_end
-            || expected.contains_key(&event.event_id)
+            || !seen_reference_ids.insert(event.event_id.clone())
         {
             return CaptureReport::with_disposition(Disposition::NotEvaluable);
         }
@@ -383,6 +387,12 @@ mod tests {
                 event.published_at = 15;
                 case(Some(r), vec![event])
             }
+            "as_of_before_window_start" => CaptureCase {
+                profile: Some(profile()),
+                reference: Some(reference(&[])),
+                captured_events: vec![],
+                as_of: -1,
+            },
             _ => panic!("unknown fixture case: {case_id}"),
         }
     }
@@ -401,7 +411,7 @@ mod tests {
             assert_eq!(actual.disposition.as_str(), fields[1], "case {}", fields[0]);
             count += 1;
         }
-        assert_eq!(count, 14);
+        assert_eq!(count, 17);
     }
 
     #[test]
@@ -521,6 +531,14 @@ mod tests {
     fn future_event_published_before_occurrence_is_not_evaluable() {
         assert_eq!(
             evaluate(&known_case("future_dated_record_published_before_occurrence")).disposition,
+            Disposition::NotEvaluable
+        );
+    }
+
+    #[test]
+    fn as_of_before_capture_window_is_not_evaluable() {
+        assert_eq!(
+            evaluate(&known_case("as_of_before_window_start")).disposition,
             Disposition::NotEvaluable
         );
     }
