@@ -239,7 +239,7 @@ function evaluateCase(item){
     };
   });
   const publicMetrics=metrics.map(({_wait,_robust,...metric})=>metric);
-  const frontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&!dominates(other,candidate))).map(m=>m.action_id);
+  const frontier=metrics.filter(candidate=>!metrics.some(other=>other.action_id!==candidate.action_id&&dominates(other,candidate))).map(m=>m.action_id);
   return {
     case_id:item.case_id,status:"ROBUST_FEASIBLE_DECISION_SET_AVAILABLE",
     compatible_world_set_receipt_id:item.compatible_world_set.source_receipt_id,
