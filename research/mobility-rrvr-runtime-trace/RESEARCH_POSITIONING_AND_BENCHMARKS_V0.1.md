@@ -40,6 +40,61 @@ These are SafeVLA's own leaderboard quantities, not RRVR results. RRVR should pr
 
 Source: [SafeVLA-Bench leaderboard](https://safevla.org/leaderboard), including its definitions of SR, safety, SBU and VSI; leaderboard snapshot dated 26 September 2026.
 
+### Emerging evaluation gap: recovery state, safety, and evidence continuity
+
+Three 2026 results make the correct RRVR position clearer:
+
+1. **Policy recovery is now a benchmark dimension.** RoboRecover constructs execution-induced intermediate states by replaying action prefixes, then evaluates whether a policy can continue the original task. Its 2,000-scenario RoboTwin/LIBERO corpus is a strong policy substrate. It does not, by itself, answer whether a previous physical operation was durably reconciled, whether a stale command remained in a driver queue, or whether a new attempt was independently authorized. RRVR should overlay the same recovery points rather than create a competing policy score.
+2. **Safety is not task success.** SafeVLA-Bench reports SR, Safety, successful-but-unsafe (SBU) and violation severity separately. Its September 2026 leaderboard includes RoboCasa-365 Xiaomi-Robotics-1 at 81.9% SR, 50.1% Safety and 37.7% SBU; on LIBERO, VLA-Adapter reports 97.6% SR and 82.0% Safety. These are not RRVR comparisons; they demonstrate why a single completion metric cannot stand in for a safety verdict.
+3. **Fuzzing needs repeatable execution and diagnosable failures.** The July 2026 ROS-based robotics fuzzing survey screened 92 works and says results remain difficult to compare because tested ROS layers and failure definitions differ. It finds more visible progress in input modeling, feedback and oracle construction than in repeatable execution and diagnosable failure analysis. That is a direct opening for exact replay bundles and causal minimization—but only if RRVR reports the tested ROS/system layer and its evidence scope instead of flattening package crashes, middleware failures, simulator faults and physical-task failures into one category.
+
+The November 16, 2026 long-horizon manipulation survey adds a complementary measurement argument: binary task success can hide partial completion, error propagation, recovery cost and horizon-dependent degradation. RRVR should preserve an attempt-by-attempt physical-effect ledger and report how uncertainty, blocked progress and recovery cost accumulate over the complete physical interaction horizon.
+
+### Proposed RRVR diagnostic evidence package
+
+Every benchmark failure should produce a replayable package containing:
+
+- immutable run/episode ID, logical-effect ID, attempt ancestry and exact boot/controller epochs;
+- simulator, ROS distribution, middleware/DDS, controller, driver, firmware, calibration and model/config revisions;
+- exact injection schedule, random seed, event clock model and declared observation loss/reordering;
+- per-owner receipt IDs, scopes, raw artifact IDs/digests and the applicable fault-model revision;
+- the exact safety/recovery invariant, TLA action/state witness, and three-valued verdict;
+- minimized trace with the failure signature preserved, retained happens-before ancestors, the number of oracle calls, and a deterministic replay result;
+- explicit claim ceiling: simulated, model-checked, HIL, physical, independently reviewed, or not established.
+
+A minimized trace is not enough if it changes the failure. The minimizer must keep the exact invariant/property, violation class and witness event (or an explicitly defined equivalent signature), and the output must replay under the frozen oracle/configuration. Report:
+- **Replay-complete rate:** fraction of discovered failures reproduced from the published bundle in a clean environment;
+- **Signature-preserving reduction:** original events versus retained events, only for reductions that preserve the exact failure signature;
+- **Minimization determinism:** identical minimized bundle over repeated oracle runs;
+- **Diagnosis yield:** fraction of bundles that localize the failing layer/owner without manual reconstruction;
+- **Oracle budget:** calls, wall time and resource use per minimized failure.
+
+These are diagnostic-quality metrics, not safety scores. A benchmark may not claim "reproducible" merely because an event log exists.
+
+### Instrumentation and comparability
+
+ROS 2 REP 2014 recommends a grey-box, non-functional benchmarking approach that measures both individual nodes and complete computational graphs, using LTTng/ros2_tracing for architecture-neutral runtime instrumentation. RRVR should adopt that measurement discipline and add the semantic boundaries REP 2014 does not itself define: durable effect identity, per-attempt owner receipts, downstream physical command holders and independent physical observation. Publish raw traces and instrumentation overhead against a tracing-disabled baseline.
+
+Use a layered fault taxonomy so each result is comparable only to evidence at the same level:
+
+| Layer | Representative failures | Required evidence |
+|---|---|---|
+| Package/process | crash, restart, duplicate process | process/boot epoch and durable owner state |
+| ROS graph/runtime | executor delay, callback loss, lifecycle transition | node, callback, topic/service/action and clock trace |
+| Middleware/network | DDS partition, reconnect, duplicate/reordered delivery | transport identity, sequence and delivery receipts |
+| Controller/driver | queue retention, stale accepted command, watchdog reset | per-layer queue/epoch receipt and hardware counter |
+| Firmware/actuator | buffered command after host restart, latch/drive state | device-owned state/receipt and injected fault observation |
+| Physical task | partial contact, object moved, effect already applied | independent physical observer and mission predicate |
+
+A Confirmed result at one row must not be promoted to a claim about a lower or higher row without the corresponding receipt. In particular, a ROS topic being quiet is not proof that firmware has no buffered motion command, and a controller reporting "stopped" is not proof that a physical effect did not occur.
+
+Sources:
+- [RoboRecover, arXiv:2609.28952](https://arxiv.org/abs/2609.28952), 24 September 2026.
+- [SafeVLA-Bench leaderboard](https://safevla.org/leaderboard.html), snapshot 26 September 2026.
+- [Yang et al., A Survey of Fuzzing for ROS-Based Robotic Systems](https://doi.org/10.3390/app16147250), Applied Sciences 16(14), 7250, published 20 July 2026.
+- [Zheng et al., Long-horizon embodied manipulation: a survey of methods, trends, and challenges](https://doi.org/10.1007/s44336-026-00048-x), published 16 November 2026.
+- [ROS 2 REP 2014: Methodology for benchmarking performance in ROS 2](https://reps.openrobotics.org/rep-2014/).
+
 ### Prior art: receipt-gated effectuation is not a new claim
 
 The October 2026 Internet-Draft [A Permit to Effect Once Is Not a Permit to Effect Permanently](https://datatracker.ietf.org/doc/html/draft-das-safety-first-execution-finality-00) already discusses staged physical effectuation, single-use authority, receipts, anti-replay, independent observation and recovery from indeterminate/partial/conflicting outcomes. It is an active individual Internet-Draft with intended status Experimental, not an IETF-endorsed standard; the draft itself says it has no formal standing in the IETF standards process and expires 4 April 2027.
