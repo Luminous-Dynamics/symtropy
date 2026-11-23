@@ -1,0 +1,306 @@
+{
+  "version": "0.1",
+  "logical_effect_id": "logical-effect-rrvr-0001",
+  "attempts": [
+    {
+      "attempt_id": "attempt-1",
+      "ordinal": 1,
+      "parent_attempt_id": null,
+      "authorized_epoch": {
+        "boot_epoch": 1,
+        "controller_epoch": 1
+      },
+      "persistence": {
+        "outcome": "definitely_not_committed",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "persistence-owner-attempt-1",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-1-persistence-evidence",
+          "raw_artifact_id": "attempt-1-persistence-raw",
+          "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          }
+        }
+      },
+      "physical_outcome": {
+        "outcome": "no_effect",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "physical-outcome-owner-attempt-1",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-1-physical-outcome-evidence",
+          "raw_artifact_id": "attempt-1-physical-outcome-raw",
+          "raw_artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          }
+        }
+      },
+      "mission_resolution": {
+        "outcome": "no_effect",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "mission-resolution-owner-attempt-1",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-1-mission-resolution-evidence",
+          "raw_artifact_id": "attempt-1-mission-resolution-raw",
+          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          }
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "quiescent",
+        "verdict": "confirmed",
+        "target_epoch": {
+          "boot_epoch": 2,
+          "controller_epoch": 2
+        },
+        "receipt": {
+          "owner_id": "controller-queue-owner-attempt-1",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-1-controller-queue-evidence",
+          "raw_artifact_id": "attempt-1-controller-queue-raw",
+          "raw_artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          }
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "quiescent",
+        "verdict": "confirmed",
+        "target_epoch": {
+          "boot_epoch": 2,
+          "controller_epoch": 2
+        },
+        "receipt": {
+          "owner_id": "downstream-graph-owner-attempt-1",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-1-downstream-graph-evidence",
+          "raw_artifact_id": "attempt-1-downstream-graph-raw",
+          "raw_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-1",
+            "subject_boot_epoch": 1,
+            "subject_controller_epoch": 1
+          }
+        }
+      }
+    },
+    {
+      "attempt_id": "attempt-2",
+      "ordinal": 2,
+      "parent_attempt_id": "attempt-1",
+      "authorized_epoch": {
+        "boot_epoch": 2,
+        "controller_epoch": 2
+      },
+      "persistence": {
+        "outcome": "definitely_not_committed",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "persistence-owner-attempt-2",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-2-persistence-evidence",
+          "raw_artifact_id": "attempt-2-persistence-raw",
+          "raw_artifact_sha256": "18181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818181818",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          }
+        }
+      },
+      "physical_outcome": {
+        "outcome": "no_effect",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "physical-outcome-owner-attempt-2",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-2-physical-outcome-evidence",
+          "raw_artifact_id": "attempt-2-physical-outcome-raw",
+          "raw_artifact_sha256": "19191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919191919",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          }
+        }
+      },
+      "mission_resolution": {
+        "outcome": "no_effect",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "mission-resolution-owner-attempt-2",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-2-mission-resolution-evidence",
+          "raw_artifact_id": "attempt-2-mission-resolution-raw",
+          "raw_artifact_sha256": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          }
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "quiescent",
+        "verdict": "confirmed",
+        "target_epoch": {
+          "boot_epoch": 3,
+          "controller_epoch": 3
+        },
+        "receipt": {
+          "owner_id": "controller-queue-owner-attempt-2",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-2-controller-queue-evidence",
+          "raw_artifact_id": "attempt-2-controller-queue-raw",
+          "raw_artifact_sha256": "15151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515151515",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          }
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "quiescent",
+        "verdict": "confirmed",
+        "target_epoch": {
+          "boot_epoch": 3,
+          "controller_epoch": 3
+        },
+        "receipt": {
+          "owner_id": "downstream-graph-owner-attempt-2",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-2-downstream-graph-evidence",
+          "raw_artifact_id": "attempt-2-downstream-graph-raw",
+          "raw_artifact_sha256": "16161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-2",
+            "subject_boot_epoch": 2,
+            "subject_controller_epoch": 2
+          }
+        }
+      }
+    },
+    {
+      "attempt_id": "attempt-3",
+      "ordinal": 3,
+      "parent_attempt_id": "attempt-2",
+      "authorized_epoch": {
+        "boot_epoch": 3,
+        "controller_epoch": 3
+      },
+      "persistence": {
+        "outcome": "committed",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "persistence-owner-attempt-3",
+          "owner_revision": "persistence-adapter-v0.1",
+          "evidence_id": "attempt-3-persistence-evidence",
+          "raw_artifact_id": "attempt-3-persistence-raw",
+          "raw_artifact_sha256": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          }
+        }
+      },
+      "physical_outcome": {
+        "outcome": "applied",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "physical-outcome-owner-attempt-3",
+          "owner_revision": "physical-outcome-adapter-v0.1",
+          "evidence_id": "attempt-3-physical-outcome-evidence",
+          "raw_artifact_id": "attempt-3-physical-outcome-raw",
+          "raw_artifact_sha256": "23232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          }
+        }
+      },
+      "mission_resolution": {
+        "outcome": "effect_predicate_satisfied",
+        "verdict": "confirmed",
+        "receipt": {
+          "owner_id": "mission-resolution-owner-attempt-3",
+          "owner_revision": "mission-resolution-adapter-v0.1",
+          "evidence_id": "attempt-3-mission-resolution-evidence",
+          "raw_artifact_id": "attempt-3-mission-resolution-raw",
+          "raw_artifact_sha256": "24242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          }
+        }
+      },
+      "controller_queue_fence": {
+        "outcome": "unknown",
+        "verdict": "insufficient_evidence",
+        "target_epoch": null,
+        "receipt": {
+          "owner_id": "controller-queue-owner-attempt-3",
+          "owner_revision": "controller-queue-adapter-v0.1",
+          "evidence_id": "attempt-3-controller-queue-evidence",
+          "raw_artifact_id": "attempt-3-controller-queue-raw",
+          "raw_artifact_sha256": "1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          }
+        }
+      },
+      "downstream_quiescence": {
+        "outcome": "unknown",
+        "verdict": "insufficient_evidence",
+        "target_epoch": null,
+        "receipt": {
+          "owner_id": "downstream-graph-owner-attempt-3",
+          "owner_revision": "downstream-graph-adapter-v0.1",
+          "evidence_id": "attempt-3-downstream-graph-evidence",
+          "raw_artifact_id": "attempt-3-downstream-graph-raw",
+          "raw_artifact_sha256": "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020",
+          "scope": {
+            "logical_effect_id": "logical-effect-rrvr-0001",
+            "attempt_id": "attempt-3",
+            "subject_boot_epoch": 3,
+            "subject_controller_epoch": 3
+          }
+        }
+      }
+    }
+  ]
+}
