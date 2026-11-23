@@ -50,6 +50,7 @@ pub struct Case {
     pub worlds: Vec<World>,
     pub world_set_state: String,
     pub domain_closure_state: String,
+    pub dependency_graph_state: String,
     pub model_family_state: String,
     pub evidence_state: String,
     pub materiality_margin: i64,
@@ -132,6 +133,10 @@ fn valid_gate_states(case: &Case) -> bool {
         && matches!(
             case.domain_closure_state.as_str(),
             "CLOSED_WITHIN_DECLARED_SCOPE" | "OPEN" | "STALE" | "INADEQUATE"
+        )
+        && matches!(
+            case.dependency_graph_state.as_str(),
+            "COMPLETE_WITHIN_DECLARED_GRAMMAR" | "INADEQUATE" | "STALE" | "INDETERMINATE"
         )
         && matches!(case.model_family_state.as_str(), "ADEQUATE" | "INADEQUATE")
         && matches!(
@@ -233,6 +238,15 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
     if case.domain_closure_state == "INADEQUATE" || case.model_family_state == "INADEQUATE" {
         return abstain(case, "MODEL_FAMILY_INADEQUATE", Some(retention_threshold));
+    }
+    if case.dependency_graph_state == "INADEQUATE" {
+        return abstain(case, "DEPENDENCY_GRAPH_INADEQUATE", Some(retention_threshold));
+    }
+    if case.dependency_graph_state == "STALE" {
+        return abstain(case, "STALE_DEPENDENCY_GRAPH", Some(retention_threshold));
+    }
+    if case.dependency_graph_state == "INDETERMINATE" {
+        return abstain(case, "INDETERMINATE_DEPENDENCY_GRAPH", Some(retention_threshold));
     }
     if case.evidence_state == "STALE" {
         return abstain(case, "STALE_EVIDENCE", Some(retention_threshold));
@@ -501,6 +515,19 @@ mod tests {
             "NO_SURVIVING_WORLDS"
         );
         assert_eq!(case(&report, "no_surviving_worlds").disposition, "ABSTAIN");
+    }
+
+    #[test]
+    fn inadequate_dependency_graph_blocks_retention() {
+        let report = evaluate(&fixture()).expect("corpus evaluates");
+        assert_eq!(
+            case(&report, "dependency_graph_inadequate").disposition,
+            "ABSTAIN"
+        );
+        assert_eq!(
+            case(&report, "dependency_graph_inadequate").trigger_reason,
+            "DEPENDENCY_GRAPH_INADEQUATE"
+        );
     }
 
     #[test]
