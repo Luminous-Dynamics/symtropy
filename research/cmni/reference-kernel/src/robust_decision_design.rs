@@ -507,7 +507,7 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             .iter()
             .zip(game.maximizing_policy_mixture.probabilities.iter())
         {
-            if *probability <= policy.feasibility_tolerance {
+            if *probability <= 0.0 {
                 continue;
             }
             for (scenario_index, utility) in payoff_matrix[*policy_index].iter().enumerate() {
@@ -527,7 +527,7 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             .support
             .iter()
             .zip(game.minimizing_scenario_mixture.probabilities.iter())
-            .filter(|(_, probability)| **probability > policy.feasibility_tolerance)
+            .filter(|(_, probability)| **probability > 0.0)
             .map(|(scenario_index, probability)| LeastFavourableScenarioWeight {
                 scenario_id: expected_scenario_ids[*scenario_index].clone(),
                 probability: *probability,
@@ -538,6 +538,13 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             .iter()
             .copied()
             .fold(f64::INFINITY, f64::min);
+        let deterministic_to_randomized_value_gain =
+            randomized_robust_value - deterministic_robust_value;
+        if deterministic_to_randomized_value_gain < -policy.feasibility_tolerance {
+            return Err(ModelError::InvalidParameter(
+                "randomized_robust_value_below_deterministic_baseline",
+            ));
+        }
         let robust_evsi = randomized_robust_value - prior_best.expected_utility;
         let clairvoyant_upper = clairvoyant_by_scenario
             .iter()
@@ -606,8 +613,7 @@ pub fn rank_designs_by_randomized_robust_decision_value(
             prior_best_expected_utility: prior_best.expected_utility,
             deterministic_robust_post_information_utility: deterministic_robust_value,
             randomized_robust_post_information_utility: randomized_robust_value,
-            deterministic_to_randomized_value_gain: randomized_robust_value
-                - deterministic_robust_value,
+            deterministic_to_randomized_value_gain,
             robust_expected_value_of_sample_information: robust_evsi,
             clairvoyant_post_information_utility_upper_bound: clairvoyant_upper,
             non_anticipativity_gap,
@@ -726,10 +732,29 @@ fn solve_finite_zero_sum_game(
         ));
     }
 
-    let (maximizing_policy_mixture, primal_bases) =
-        enumerate_primal_game_strategy(payoffs, feasibility_tolerance)?;
-    let (minimizing_scenario_mixture, dual_bases) =
-        enumerate_dual_game_strategy(payoffs, feasibility_tolerance)?;
+    let payoff_scale = payoffs
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(1.0_f64, f64::max);
+    let normalized_payoffs = payoffs
+        .iter()
+        .map(|row| row.iter().map(|value| value / payoff_scale).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    let (mut maximizing_policy_mixture, primal_bases) =
+        enumerate_primal_game_strategy(&normalized_payoffs, feasibility_tolerance)?;
+    let (mut minimizing_scenario_mixture, dual_bases) =
+        enumerate_dual_game_strategy(&normalized_payoffs, feasibility_tolerance)?;
+    maximizing_policy_mixture.value = robust_policy_value(
+        payoffs,
+        &maximizing_policy_mixture.support,
+        &maximizing_policy_mixture.probabilities,
+    );
+    minimizing_scenario_mixture.value = dual_scenario_value(
+        payoffs,
+        &minimizing_scenario_mixture.support,
+        &minimizing_scenario_mixture.probabilities,
+    );
     let basis_evaluations = primal_bases
         .checked_add(dual_bases)
         .ok_or(ModelError::InvalidParameter(
@@ -1579,6 +1604,115 @@ mod tests {
         assert!(score.robust_expected_value_of_sample_information.abs() < 1.0e-12);
         assert!(score.net_robust_decision_value.unwrap() < 0.0);
         assert_eq!(result.recommended_candidate_id, None);
+    }
+
+    fn randomized_fixture() -> (
+        RobustDecisionProblem,
+        RobustDecisionDesignCandidate,
+    ) {
+        (
+            RobustDecisionProblem {
+                state_ids: vec![
+                    "state-0".to_owned(),
+                    "state-1".to_owned(),
+                    "state-2".to_owned(),
+                ],
+                action_ids: vec![
+                    "action-0".to_owned(),
+                    "action-1".to_owned(),
+                    "action-2".to_owned(),
+                ],
+                state_probabilities: vec![0.4, 0.4, 0.2],
+                action_utilities: vec![
+                    vec![0.0, 1.0, 0.0],
+                    vec![0.0, 0.0, 1.0],
+                    vec![1.0, 0.0, 0.0],
+                ],
+            },
+            RobustDecisionDesignCandidate {
+                candidate_id: "strict-randomization-improvement".to_owned(),
+                outcome_ids: vec![
+                    "outcome-0".to_owned(),
+                    "outcome-1".to_owned(),
+                    "outcome-2".to_owned(),
+                ],
+                resource_cost: 0.01,
+                dependence_scope_receipt_id: "receipt:randomized-policy-game-v1".to_owned(),
+                scenarios: vec![
+                    RobustDecisionLikelihoodScenario {
+                        scenario_id: "dependence-a".to_owned(),
+                        outcome_likelihoods: vec![
+                            vec![0.6, 0.2, 0.2],
+                            vec![0.2, 0.6, 0.2],
+                            vec![0.4, 0.2, 0.4],
+                        ],
+                    },
+                    RobustDecisionLikelihoodScenario {
+                        scenario_id: "dependence-b".to_owned(),
+                        outcome_likelihoods: vec![
+                            vec![0.2, 0.4, 0.4],
+                            vec![0.4, 0.4, 0.2],
+                            vec![0.4, 0.2, 0.4],
+                        ],
+                    },
+                ],
+            },
+        )
+    }
+
+    fn randomized_policy() -> RandomizedRobustDecisionPolicy {
+        RandomizedRobustDecisionPolicy {
+            remaining_resource_budget: 1.0,
+            cost_to_utility_rate: 1.0,
+            max_policy_evaluations: 100,
+            max_basis_evaluations: 5_000,
+            feasibility_tolerance: 1.0e-9,
+            duality_gap_tolerance: 1.0e-8,
+        }
+    }
+
+    #[test]
+    fn randomized_policy_strictly_improves_the_finite_robust_game_value() {
+        let (problem, candidate) = randomized_fixture();
+        let result = rank_designs_by_randomized_robust_decision_value(
+            &problem,
+            &[candidate],
+            randomized_policy(),
+        )
+        .expect("finite randomized robust decision game");
+        let score = &result.scores[0];
+
+        assert!((score.deterministic_robust_post_information_utility - 0.4).abs() < 1.0e-10);
+        assert!((score.randomized_robust_post_information_utility - 34.0 / 75.0).abs() < 1.0e-9);
+        assert!((score.deterministic_to_randomized_value_gain - 4.0 / 75.0).abs() < 1.0e-9);
+        assert!((score.robust_expected_value_of_sample_information - 4.0 / 75.0).abs() < 1.0e-9);
+        assert!((score.net_robust_decision_value.unwrap() - 13.0 / 300.0).abs() < 1.0e-9);
+        assert!((score.primal_game_value - score.dual_game_value).abs() < 1.0e-9);
+        assert!(score.primal_dual_gap < 1.0e-9);
+        assert!(score.maximum_complementarity_residual < 1.0e-8);
+        assert!((score.randomized_policy_expected_utilities_by_scenario[0] - 34.0 / 75.0).abs() < 1.0e-9);
+        assert!((score.randomized_policy_expected_utilities_by_scenario[1] - 34.0 / 75.0).abs() < 1.0e-9);
+        assert_eq!(score.randomized_policy_mixture.len(), 2);
+        assert_eq!(score.least_favourable_scenario_mixture.len(), 2);
+        assert!(!score.formal_certificate);
+        assert!(score.primal_dual_verified_within_tolerance);
+    }
+
+    #[test]
+    fn randomized_game_fails_closed_when_basis_budget_is_exceeded() {
+        let (problem, candidate) = randomized_fixture();
+        let mut limits = randomized_policy();
+        limits.max_basis_evaluations = 10;
+        assert_eq!(
+            rank_designs_by_randomized_robust_decision_value(
+                &problem,
+                &[candidate],
+                limits,
+            ),
+            Err(ModelError::InvalidParameter(
+                "randomized_robust_basis_evaluation_cap_exceeded"
+            ))
+        );
     }
 
     #[test]
