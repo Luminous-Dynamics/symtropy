@@ -813,7 +813,11 @@ fn unique_scenario_node<'a>(
 
 // Independent path replay: deliberately does not call the optimizer's action-cost,
 // action-enumeration or completed-state transition helpers.
-fn replay_scenario(case: &PolicyCase, policy: &PolicyForest, scenario_index: usize) -> Result<u64, String> {
+fn replay_scenario(
+    case: &PolicyCase,
+    policy: &PolicyForest,
+    scenario_index: usize,
+) -> Result<u64, String> {
     let scenario = case
         .scenarios
         .get(scenario_index)
@@ -864,13 +868,19 @@ fn replay_scenario(case: &PolicyCase, policy: &PolicyForest, scenario_index: usi
                 .find(|candidate| candidate.resource_id == assignment.resource_id)
                 .ok_or_else(|| fail("replay_assignment_unknown_resource"))?;
 
-            if observation.failed_resource_ids.contains(&assignment.resource_id)
-                || observation.unknown_resource_ids.contains(&assignment.resource_id)
+            if observation
+                .failed_resource_ids
+                .contains(&assignment.resource_id)
+                || observation
+                    .unknown_resource_ids
+                    .contains(&assignment.resource_id)
             {
                 return Err(fail("replay_assignment_uses_failed_or_unknown_resource"));
             }
 
-            let used = resource_use.entry(assignment.resource_id.clone()).or_default();
+            let used = resource_use
+                .entry(assignment.resource_id.clone())
+                .or_default();
             *used = used
                 .checked_add(1)
                 .ok_or_else(|| fail("replay_resource_use_overflow"))?;
@@ -878,8 +888,8 @@ fn replay_scenario(case: &PolicyCase, policy: &PolicyForest, scenario_index: usi
                 return Err(fail("replay_time_indexed_resource_capacity_exceeded"));
             }
 
-            let completion_period = u64::try_from(period + 1)
-                .map_err(|_| fail("replay_period_conversion_overflow"))?;
+            let completion_period =
+                u64::try_from(period + 1).map_err(|_| fail("replay_period_conversion_overflow"))?;
             let due_period = u64::try_from(job.due_period)
                 .map_err(|_| fail("replay_due_period_conversion_overflow"))?;
             let late_periods = completion_period.saturating_sub(due_period);
