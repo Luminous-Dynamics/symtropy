@@ -112,6 +112,16 @@
       "payload_units": 1,
       "service_class": "standard",
       "allowed_mode": "fallback_only"
+    },
+    {
+      "request_id": "request-late-completion",
+      "arrival_seconds": 14500,
+      "accept_by_seconds": 14500,
+      "deadline_seconds": 15200,
+      "required_service_seconds": 600,
+      "payload_units": 1,
+      "service_class": "standard",
+      "allowed_mode": "aerial_only"
     }
   ],
   "aerial_opportunities": [
@@ -159,6 +169,15 @@
       "turnaround_seconds": 45,
       "capacity_reference": "synthetic://6909/dock4/slot-05",
       "max_payload_units": 100
+    },
+    {
+      "opportunity_id": "aerial-late-completion-01",
+      "aircraft_id": "aircraft-01",
+      "start_seconds": 15000,
+      "max_service_duration_seconds": 600,
+      "max_payload_units": 100,
+      "turnaround_seconds": 45,
+      "capacity_reference": "synthetic://6909/dock4/slot-06"
     }
   ],
   "fallback_opportunities": [
@@ -269,7 +288,7 @@
     {
       "window_id": "flight-window-unknown-permission",
       "start_seconds": 10800,
-      "end_seconds": 28800,
+      "end_seconds": 14400,
       "weather_state": "go",
       "permission_state": "unknown",
       "evidence": {
@@ -281,6 +300,24 @@
         "evidence_class": "synthetic",
         "observed_at_seconds": 10790,
         "valid_from_seconds": 10790,
+        "valid_until_seconds": 14400
+      }
+    },
+    {
+      "window_id": "flight-window-late-clear",
+      "start_seconds": 14400,
+      "end_seconds": 28800,
+      "weather_state": "go",
+      "permission_state": "approved",
+      "evidence": {
+        "site_id": "single-service-site-v01",
+        "site_configuration_digest": "sha256:service-site-v01",
+        "producer_id": "fixture-generator",
+        "method_id": "synthetic-request-window-v0.1",
+        "evidence_reference": "synthetic://service-quality/clear-late",
+        "evidence_class": "synthetic",
+        "observed_at_seconds": 14390,
+        "valid_from_seconds": 14390,
         "valid_until_seconds": 28800
       }
     }
