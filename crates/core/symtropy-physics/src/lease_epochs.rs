@@ -213,6 +213,158 @@ pub struct ProfileRevisions {
     pub solver: Epoch,
 }
 
+
+/// A supported mutation of one body's lease dependencies.
+///
+/// This enum is the deterministic mapping input for the pure revision
+/// transition below. Runtime world APIs must call the matching transition
+/// whenever they own the mutation. Public/unobservable mutation paths must
+/// return Untracked rather than pretending that no dependency changed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BodyMutation {
+    ColliderGeometryChanged,
+    PoseDiscontinuity,
+    CollisionFilterChanged,
+    MaterialChanged,
+    MaterialAndMotionBoundsChanged,
+    CallbackPolicyChanged,
+    CallbackAndMotionBoundsChanged,
+    MotionBoundsChanged,
+    Untracked,
+}
+
+/// A supported mutation of scene-level discovery dependencies.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SceneMutation {
+    BodyMembershipChanged,
+    TopologyOrProviderChanged,
+    PairFilterPolicyChanged,
+    MotionBoundsChanged,
+    WorldGenerationChanged,
+    Untracked,
+}
+
+/// A supported change to a proof or solver profile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProfileMutation {
+    GeometryCertificateChanged,
+    MotionModelChanged,
+    SolverProfileChanged,
+    Untracked,
+}
+
+/// Why a pure revision transition could not produce a current snapshot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RevisionMutationError {
+    UntrackedMutation,
+    EpochOverflow,
+}
+
+impl From<EpochOverflow> for RevisionMutationError {
+    fn from(_: EpochOverflow) -> Self {
+        Self::EpochOverflow
+    }
+}
+
+fn next_epoch(epoch: Epoch) -> Result<Epoch, RevisionMutationError> {
+    Ok(epoch.checked_next()?)
+}
+
+/// Apply the exact dependency revisions associated with one body mutation.
+///
+/// The input is copied and the updated snapshot is returned, so a failed
+/// transition cannot partially mutate caller-owned state. The caller must
+/// replace its authoritative snapshot only on success. Untracked mutation
+/// explicitly fails and must disable dependent reuse.
+pub fn advance_body_revisions(
+    mut revisions: BodyRevisions,
+    mutation: BodyMutation,
+) -> Result<BodyRevisions, RevisionMutationError> {
+    match mutation {
+        BodyMutation::ColliderGeometryChanged => {
+            revisions.geometry = next_epoch(revisions.geometry)?;
+        }
+        BodyMutation::PoseDiscontinuity => {
+            revisions.pose_discontinuity = next_epoch(revisions.pose_discontinuity)?;
+        }
+        BodyMutation::CollisionFilterChanged => {
+            revisions.filter = next_epoch(revisions.filter)?;
+        }
+        BodyMutation::MaterialChanged => {
+            revisions.material = next_epoch(revisions.material)?;
+        }
+        BodyMutation::MaterialAndMotionBoundsChanged => {
+            let material = next_epoch(revisions.material)?;
+            let motion_bound = next_epoch(revisions.motion_bound)?;
+            revisions.material = material;
+            revisions.motion_bound = motion_bound;
+        }
+        BodyMutation::CallbackPolicyChanged => {
+            revisions.callback = next_epoch(revisions.callback)?;
+        }
+        BodyMutation::CallbackAndMotionBoundsChanged => {
+            let callback = next_epoch(revisions.callback)?;
+            let motion_bound = next_epoch(revisions.motion_bound)?;
+            revisions.callback = callback;
+            revisions.motion_bound = motion_bound;
+        }
+        BodyMutation::MotionBoundsChanged => {
+            revisions.motion_bound = next_epoch(revisions.motion_bound)?;
+        }
+        BodyMutation::Untracked => return Err(RevisionMutationError::UntrackedMutation),
+    }
+
+    Ok(revisions)
+}
+
+/// Apply the exact revision transition associated with a scene mutation.
+pub fn advance_scene_revisions(
+    mut revisions: SceneRevisions,
+    mutation: SceneMutation,
+) -> Result<SceneRevisions, RevisionMutationError> {
+    match mutation {
+        SceneMutation::BodyMembershipChanged => {
+            revisions.membership = next_epoch(revisions.membership)?;
+        }
+        SceneMutation::TopologyOrProviderChanged => {
+            revisions.topology = next_epoch(revisions.topology)?;
+        }
+        SceneMutation::PairFilterPolicyChanged => {
+            revisions.filter = next_epoch(revisions.filter)?;
+        }
+        SceneMutation::MotionBoundsChanged => {
+            revisions.motion_bound = next_epoch(revisions.motion_bound)?;
+        }
+        SceneMutation::WorldGenerationChanged => {
+            revisions.world_generation = next_epoch(revisions.world_generation)?;
+        }
+        SceneMutation::Untracked => return Err(RevisionMutationError::UntrackedMutation),
+    }
+
+    Ok(revisions)
+}
+
+/// Apply the exact revision transition associated with a proof/profile change.
+pub fn advance_profile_revisions(
+    mut revisions: ProfileRevisions,
+    mutation: ProfileMutation,
+) -> Result<ProfileRevisions, RevisionMutationError> {
+    match mutation {
+        ProfileMutation::GeometryCertificateChanged => {
+            revisions.geometry_certificate = next_epoch(revisions.geometry_certificate)?;
+        }
+        ProfileMutation::MotionModelChanged => {
+            revisions.motion_model = next_epoch(revisions.motion_model)?;
+        }
+        ProfileMutation::SolverProfileChanged => {
+            revisions.solver = next_epoch(revisions.solver)?;
+        }
+        ProfileMutation::Untracked => return Err(RevisionMutationError::UntrackedMutation),
+    }
+
+    Ok(revisions)
+}
+
 /// Complete revision snapshot needed to evaluate one two-body contact lease.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LeaseRevisionSnapshot {
@@ -748,6 +900,115 @@ mod tests {
                 .reasons
                 .contains(RevocationReason::WorldGenerationChanged)
         );
+    }
+
+    #[test]
+    fn material_only_mutation_advances_no_geometry_or_motion_bound_revision() {
+        let before = BodyRevisions::default();
+        let after = advance_body_revisions(before, BodyMutation::MaterialChanged).unwrap();
+
+        assert_eq!(after.geometry, before.geometry);
+        assert_eq!(after.pose_discontinuity, before.pose_discontinuity);
+        assert_eq!(after.filter, before.filter);
+        assert_eq!(after.material.get(), before.material.get() + 1);
+        assert_eq!(after.callback, before.callback);
+        assert_eq!(after.motion_bound, before.motion_bound);
+    }
+
+    #[test]
+    fn material_that_changes_motion_assumptions_advances_both_dependencies() {
+        let before = BodyRevisions::default();
+        let after =
+            advance_body_revisions(before, BodyMutation::MaterialAndMotionBoundsChanged).unwrap();
+
+        assert_eq!(after.material.get(), before.material.get() + 1);
+        assert_eq!(after.motion_bound.get(), before.motion_bound.get() + 1);
+        assert_eq!(after.geometry, before.geometry);
+    }
+
+    #[test]
+    fn callback_policy_mutations_declare_motion_bound_effect_separately() {
+        let before = BodyRevisions::default();
+        let policy_only =
+            advance_body_revisions(before, BodyMutation::CallbackPolicyChanged).unwrap();
+        assert_eq!(policy_only.callback.get(), 1);
+        assert_eq!(policy_only.motion_bound, before.motion_bound);
+
+        let force_affecting =
+            advance_body_revisions(before, BodyMutation::CallbackAndMotionBoundsChanged).unwrap();
+        assert_eq!(force_affecting.callback.get(), 1);
+        assert_eq!(force_affecting.motion_bound.get(), 1);
+    }
+
+    #[test]
+    fn each_scene_mutation_advances_only_its_owned_revision() {
+        let before = SceneRevisions::default();
+
+        let membership =
+            advance_scene_revisions(before, SceneMutation::BodyMembershipChanged).unwrap();
+        assert_eq!(membership.membership.get(), 1);
+        assert_eq!(membership.topology, before.topology);
+        assert_eq!(membership.filter, before.filter);
+
+        let topology =
+            advance_scene_revisions(before, SceneMutation::TopologyOrProviderChanged).unwrap();
+        assert_eq!(topology.topology.get(), 1);
+        assert_eq!(topology.membership, before.membership);
+
+        let filters =
+            advance_scene_revisions(before, SceneMutation::PairFilterPolicyChanged).unwrap();
+        assert_eq!(filters.filter.get(), 1);
+        assert_eq!(filters.motion_bound, before.motion_bound);
+
+        let reset =
+            advance_scene_revisions(before, SceneMutation::WorldGenerationChanged).unwrap();
+        assert_eq!(reset.world_generation.get(), 1);
+        assert_eq!(reset.membership, before.membership);
+    }
+
+    #[test]
+    fn profile_mutations_advance_only_the_matching_profile_revision() {
+        let before = ProfileRevisions::default();
+
+        let geometry =
+            advance_profile_revisions(before, ProfileMutation::GeometryCertificateChanged)
+                .unwrap();
+        assert_eq!(geometry.geometry_certificate.get(), 1);
+        assert_eq!(geometry.motion_model, before.motion_model);
+        assert_eq!(geometry.solver, before.solver);
+
+        let solver =
+            advance_profile_revisions(before, ProfileMutation::SolverProfileChanged).unwrap();
+        assert_eq!(solver.solver.get(), 1);
+        assert_eq!(solver.geometry_certificate, before.geometry_certificate);
+    }
+
+    #[test]
+    fn untracked_mutations_fail_instead_of_preserving_stale_revisions() {
+        assert_eq!(
+            advance_body_revisions(BodyRevisions::default(), BodyMutation::Untracked),
+            Err(RevisionMutationError::UntrackedMutation)
+        );
+        assert_eq!(
+            advance_scene_revisions(SceneRevisions::default(), SceneMutation::Untracked),
+            Err(RevisionMutationError::UntrackedMutation)
+        );
+        assert_eq!(
+            advance_profile_revisions(ProfileRevisions::default(), ProfileMutation::Untracked),
+            Err(RevisionMutationError::UntrackedMutation)
+        );
+    }
+
+    #[test]
+    fn multi_dependency_overflow_returns_no_partially_advanced_snapshot() {
+        let before = BodyRevisions {
+            material: Epoch::from_raw(u64::MAX),
+            ..BodyRevisions::default()
+        };
+        let result =
+            advance_body_revisions(before, BodyMutation::MaterialAndMotionBoundsChanged);
+        assert_eq!(result, Err(RevisionMutationError::EpochOverflow));
+        assert_eq!(before.motion_bound, Epoch::ZERO);
     }
 
     #[test]
