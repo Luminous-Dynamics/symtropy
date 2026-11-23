@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod coverage;
 pub mod lebedev;
+pub mod normal_positive_part;
 pub mod residual;
 pub mod sequential;
 pub mod stats;
@@ -43,6 +44,9 @@ pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
+pub use normal_positive_part::{
+    GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use stats::{WeightedEventAccumulator, WeightedEventSummary};
@@ -122,6 +126,8 @@ pub enum KernelError {
     ZeroSphereIntegrand,
     /// Sphere quadrature absolute and relative tolerances are invalid.
     InvalidSphereQuadratureTolerance,
+    /// A standard deviation for a one-dimensional Gaussian is negative.
+    InvalidNormalScale,
 }
 
 impl fmt::Display for KernelError {
@@ -172,6 +178,7 @@ impl fmt::Display for KernelError {
             Self::InvalidSphereQuadratureTolerance => {
                 "sphere quadrature tolerances must be finite, nonnegative and not both zero"
             }
+            Self::InvalidNormalScale => "normal standard deviation must be nonnegative and finite",
         };
         f.write_str(message)
     }
