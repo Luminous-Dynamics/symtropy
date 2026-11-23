@@ -28,13 +28,13 @@ Validation rejects incomplete or non-injective maps, unknown identifiers, relati
 
 This version deliberately requires a total correspondence over the supplied finite structures. Partial analogies and substructure scopes need an explicit scope contract in a later revision; they must not be smuggled in by omitting inconvenient relations.
 
-## Behavioral correspondence
+## Qualitative intervention-effect correspondence
 
 A structural map does not imply that causal behavior transfers.
 
-The separate intervention validator accepts a precommitted action mapping and an expected qualitative effect transform (`Preserve` or `Negate`). It compares that mapping with the evaluator-provided intervention observations. Missing evidence is an error; contradictory evidence rejects the proposed transfer. An empty mapping returns an explicitly unqualified result.
+The separate intervention validator accepts a precommitted action mapping and an expected qualitative effect transform (`Preserve` or `Negate`). It compares that mapping with the supplied qualitative effect observations. Missing evidence is an error; contradictory evidence rejects the proposed effect mapping. Its result field, `all_declared_effects_match`, means only that every supplied qualitative observation matches the declared transform. An empty mapping returns `false` and is not qualified.
 
-The caller must freeze the proposed action/effect mapping before disclosing held-out intervention outcomes. This Rust function cannot enforce that temporal custody rule, authenticate intervention execution, or prove that observations are independent.
+The caller must freeze the proposed action/effect mapping before disclosing held-out intervention outcomes. This Rust function cannot enforce that temporal custody rule, authenticate intervention execution, establish intervention validity, quantify effect uncertainty, or prove that observations are independent. Matching qualitative signs are not, by themselves, a causal-transfer result.
 
 ## What this establishes—and what it does not
 
