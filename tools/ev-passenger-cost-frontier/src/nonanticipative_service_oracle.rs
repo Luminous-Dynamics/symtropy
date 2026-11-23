@@ -939,7 +939,7 @@ fn clairvoyant_scenario_score(
             permission_state: node.permission_state,
         };
         for (opportunity_index, opportunity) in opportunities.iter().enumerate() {
-            if node.available_opportunity_ids.iter().any(|id| id == &opportunity.opportunity_id) {
+            if final_available_ids.contains(opportunity.opportunity_id.as_str()) {
                 for (request_index, _) in requests.iter().enumerate() {
                     if pair_eligible(
                         request_index,
