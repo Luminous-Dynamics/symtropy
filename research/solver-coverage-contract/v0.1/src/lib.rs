@@ -325,6 +325,8 @@ pub struct CoverageReport {
     pub not_converged_rows: u64,
     pub execution_aborted_rows: u64,
     pub required_rows_solved: bool,
+    /// False when aggregate family counts cannot attribute a produced value to a specific row.
+    pub row_attribution_complete: bool,
     /// True only when every required observable and required row was produced/solved.
     pub complete_for_declared_required_work: bool,
 }
@@ -435,6 +437,28 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
         return Err(ValidationError::new("row_coverage", "row-family record count mismatch"));
     }
 
+    let mut row_attribution_complete = true;
+    for (key, spec) in &specs {
+        let result = results.get(key).expect("all result keys checked");
+        if result.disposition != ObservableDisposition::Produced {
+            continue;
+        }
+        if let Some(family) = spec.row_family {
+            let rows = row_records.get(&family).expect("row family checked above");
+            if rows.requested_rows > 0 && rows.solved_rows == 0 {
+                return Err(ValidationError::new(
+                    format!("observable_results[{}:{}]", key.entity_id, key.observable_id),
+                    "cannot report a row-linked value as Produced when no requested rows in its family were solved",
+                ));
+            }
+            if rows.solved_rows != rows.requested_rows {
+                // Aggregate-only counts cannot prove which specific row produced this value.
+                // Keep protocol completeness, but expose attribution uncertainty explicitly.
+                row_attribution_complete = false;
+            }
+        }
+    }
+
     let mut requested_observables = 0;
     let mut required_observables = 0;
     let mut produced_observables = 0;
@@ -480,6 +504,7 @@ pub fn validate_receipt(receipt: &CoverageReceipt) -> Result<CoverageReport, Val
         not_converged_rows,
         execution_aborted_rows,
         required_rows_solved,
+        row_attribution_complete,
         complete_for_declared_required_work,
     })
 }
