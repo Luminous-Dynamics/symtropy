@@ -11,7 +11,6 @@
 //! receipts, or authorize actuators. The caller must preserve the filtration:
 //! decision before truth, sealed full-episode truth after decision.
 
-use std::collections::BTreeMap;
 use std::fmt;
 
 const SHA256_BYTES: usize = 32;
@@ -112,7 +111,7 @@ pub enum RollingAbstentionReason {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RollingFeasibilityWitness {
     pub window_start: u64,
-    pub first_seen_at: u64,
+    pub first_occurrence_at: u64,
     pub candidate_miss: bool,
     pub certified_miss_sum: f64,
     pub allowed_miss_sum: f64,
@@ -248,7 +247,6 @@ pub struct AnytimeRollingCoveragePolicy {
     missed_episode_count: u64,
     abstention_count: u64,
     prefixes: Vec<PrefixSnapshot>,
-    first_seen_at_by_start: BTreeMap<u64, u64>,
     last_window_length: u64,
     last_window_start: u64,
     last_certified_rolling_sum: f64,
@@ -286,7 +284,6 @@ impl AnytimeRollingCoveragePolicy {
             missed_episode_count: 0,
             abstention_count: 0,
             prefixes: vec![PrefixSnapshot::zero()],
-            first_seen_at_by_start: BTreeMap::new(),
             last_window_length: 0,
             last_window_start: 0,
             last_certified_rolling_sum: 0.0,
@@ -335,9 +332,6 @@ impl AnytimeRollingCoveragePolicy {
             .checked_add(1)
             .ok_or(RollingWindowError::CounterOverflow)?;
         let (window_length, window_start) = self.config.window_rule.window_at(t)?;
-        let mut next_first_seen = self.first_seen_at_by_start.clone();
-        next_first_seen.entry(window_start).or_insert(t);
-
         let allowance = self.config.target_miscoverage * self.last_window_length as f64;
         let eta = self.config.target_miscoverage
             + self.config.learning_rate_gamma
@@ -356,12 +350,21 @@ impl AnytimeRollingCoveragePolicy {
         };
 
         if eta > 0.0 {
-            let candidate_starts = next_first_seen
-                .range(window_start..t)
-                .map(|(start, first_seen)| (*start, *first_seen))
-                .collect::<Vec<_>>();
+            // The feasibility check covers all future rolling windows
+            // that may contain episode t. For a predeclared monotone window
+            // rule, every integer start in [s_t,t) occurs eventually, except
+            // the full-history proportional rule (theta=1), which always starts
+            // at zero. The number of starts is therefore known without scanning
+            // an unbounded future horizon.
+            let candidate_count = match self.config.window_rule {
+                RollingWindowRule::Proportional {
+                    numerator,
+                    denominator,
+                } if numerator == denominator => 1,
+                _ => window_length as usize,
+            };
 
-            if candidate_starts.len() > self.config.maximum_feasibility_starts {
+            if candidate_count > self.config.maximum_feasibility_starts {
                 disposition = RollingWindowDisposition::Abstain(
                     RollingAbstentionReason::FeasibilityBudgetExceeded,
                 );
@@ -377,12 +380,17 @@ impl AnytimeRollingCoveragePolicy {
                     previous.miss_count as f64 / previous.bounded_count as f64
                 };
 
-                for (start, first_seen) in candidate_starts {
+                for start in window_start..t {
+                    let Some(first_occurrence_at) =
+                        first_time_with_window_start(self.config.window_rule, start)?
+                    else {
+                        continue;
+                    };
                     let prefix = *self
                         .prefixes
                         .get(start as usize)
                         .ok_or(RollingWindowError::HistoryIndexUnavailable)?;
-                    let smallest_window_length = t.max(first_seen) - start;
+                    let smallest_window_length = t.max(first_occurrence_at) - start;
                     let allowed_miss_sum =
                         self.config.target_miscoverage * smallest_window_length as f64;
 
@@ -427,7 +435,7 @@ impl AnytimeRollingCoveragePolicy {
 
                         witnesses.push(RollingFeasibilityWitness {
                             window_start: start,
-                            first_seen_at: first_seen,
+                            first_occurrence_at,
                             candidate_miss,
                             certified_miss_sum,
                             allowed_miss_sum,
@@ -454,7 +462,6 @@ impl AnytimeRollingCoveragePolicy {
             feasibility_witnesses: witnesses,
         };
 
-        self.first_seen_at_by_start = next_first_seen;
         self.pending_decision = Some(decision.clone());
         Ok(decision)
     }
@@ -680,6 +687,78 @@ impl AnytimeRollingCoveragePolicy {
             confidence_level: 1.0 - self.config.confidence_error_probability,
             next_requested_miscoverage_level: next_level,
         })
+    }
+}
+
+/// First episode index u for which the predeclared window rule starts at s.
+/// The value may be greater than the current horizon; the rolling feasibility
+/// check must include these not-yet-observed future windows.
+fn first_time_with_window_start(
+    rule: RollingWindowRule,
+    start: u64,
+) -> Result<Option<u64>, RollingWindowError> {
+    rule.validate()?;
+    match rule {
+        RollingWindowRule::Fixed { length } => {
+            if start == 0 {
+                Ok(Some(1))
+            } else {
+                Ok(Some(
+                    start
+                        .checked_add(length)
+                        .ok_or(RollingWindowError::ArithmeticOverflow)?,
+                ))
+            }
+        }
+        RollingWindowRule::Proportional {
+            numerator,
+            denominator,
+        } => {
+            let remaining = denominator - numerator;
+            if remaining == 0 {
+                return Ok((start == 0).then_some(1));
+            }
+            if start == 0 {
+                return Ok(Some(1));
+            }
+            // For k_u=ceil(u*n/d), s_u=u-k_u=floor(u*(d-n)/d).
+            // The first u with s_u=s is ceil(s*d/(d-n)).
+            let product = (start as u128)
+                .checked_mul(denominator as u128)
+                .ok_or(RollingWindowError::ArithmeticOverflow)?;
+            let divisor = remaining as u128;
+            let quotient = product / divisor;
+            let remainder = product % divisor;
+            let rounded = quotient
+                .checked_add(u128::from(remainder != 0))
+                .ok_or(RollingWindowError::ArithmeticOverflow)?;
+            let first = u64::try_from(rounded)
+                .map_err(|_| RollingWindowError::ArithmeticOverflow)?;
+            Ok(Some(first.max(1)))
+        }
+        RollingWindowRule::Polynomial { beta } => {
+            if start == 0 {
+                return Ok(Some(1));
+            }
+            // s_u=u-ceil(u^beta) is monotone and advances by zero or one
+            // for beta in (1/2,1), so lower-bound search finds its first hit.
+            let mut high = 1_u64;
+            while rule.window_at(high)?.1 < start {
+                high = high
+                    .checked_mul(2)
+                    .ok_or(RollingWindowError::ArithmeticOverflow)?;
+            }
+            let mut low = 1_u64;
+            while low < high {
+                let middle = low + (high - low) / 2;
+                if rule.window_at(middle)?.1 < start {
+                    low = middle + 1;
+                } else {
+                    high = middle;
+                }
+            }
+            Ok((rule.window_at(low)?.1 == start).then_some(low))
+        }
     }
 }
 
