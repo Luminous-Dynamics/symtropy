@@ -229,8 +229,8 @@ jobs:
           assert rust == oracle
           assert rust["expected_outcome_matches"] == rust["case_count"] == 13
           by_id = {case["case_id"]: case for case in rust["cases"]}
-          assert by_id["SE-001-WHOLE-SUPPORT-PASS"]["status"] == "CERTIFIED_WITHIN_SENSING_ENVELOPE"
-          assert by_id["SE-004-ALL-SUPPORT-OUTSIDE-FOV"]["status"] == "PROVEN_OUTSIDE_SENSING_ENVELOPE"
+          assert by_id["SE-001-WHOLE-SUPPORT-PASS"]["status"] == "CONDITIONAL_WITHIN_SENSING_ENVELOPE"
+          assert by_id["SE-004-ALL-SUPPORT-OUTSIDE-FOV"]["status"] == "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE"
           assert by_id["SE-005-FOV-BOUND-INDETERMINATE"]["status"] == "INDETERMINATE"
           assert all(not case["full_support_visibility_certified"] for case in rust["cases"])
           assert all(case["precondition_proofs_verified_independently"] is False for case in rust["cases"])
