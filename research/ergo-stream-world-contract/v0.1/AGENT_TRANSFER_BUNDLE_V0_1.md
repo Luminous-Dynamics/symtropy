@@ -1,0 +1,104 @@
+# ErgoStream Agent Transfer Bundle v0.1
+
+**Schema:** `schemas/agent_transfer_bundle_v0.schema.json`  
+**Example:** `examples/agent_transfer_bundle_v0.example.json`  
+**Composition:** Symthaea #11060 / #11171 · Symtropy #5990 / #7171 / #7193
+
+## Purpose
+
+This bundle adds a typed, independently replayable structural/dynamics-transfer sidecar without changing the existing blind `AgentView` / `AgentAction` JSONL protocol or the strict `AgentSubmission` v0 schema.
+
+It is designed to be attached to an existing submission as a second, versioned artifact. The learner does not obtain a new episode runner, evaluator handle, hidden seed, or alternate model DSL.
+
+## Binding and freeze order
+
+The bundle's `agent_submission_binding` records:
+- the base AgentSubmission protocol version;
+- the digest of the exact serialized submission frame;
+- source and target episode IDs;
+- source and target evidence-prefix SHA-256 digests.
+
+The owner must verify that:
+1. the submission digest resolves to the exact already-received Submit frame;
+2. each episode ID exists in the trusted episode owner;
+3. each evidence-prefix hash matches the public view actually delivered for that episode;
+4. `structural_transfer.source/target` repeat the same episode IDs and evidence-prefix hashes as the bundle binding;
+5. structural snapshot evidence IDs resolve to observations available in the corresponding public prefix;
+6. no evidence ID, node, relation, transition or prediction cites future or evaluator-only information.
+
+The learner freezes the complete bundle before the evaluator releases hidden target transitions, holdout structural probes or intervention outcomes. The evaluator records a custody receipt over the bundle bytes/digest and runner identity; timestamps supplied by the learner are not proof of precommitment.
+
+The existing AgentSubmission v0 is not mutated. A future change to the base JSONL protocol requires an explicit new protocol version and compatibility review.
+
+## Structural proposal
+
+`structural_transfer` references the standalone scoped proposal schema. Each source and target side now carries:
+- episode ID and evidence-prefix digest;
+- a finite node snapshot and relation snapshot;
+- the public evidence IDs supporting each node and relation;
+- selected and explicitly excluded nodes/relations;
+- a declared map kind (currently isomorphism, induced embedding, or subgraph embedding);
+- node, relation-kind and relation-instance correspondences;
+- assumptions, alternatives, unresolved state and counterexample evidence IDs.
+
+The evaluator reconstructs the selected structures from these snapshots, validates IDs and evidence references, validates complete scope partitions, then calls the finite scoped witness. It must not accept a map because the learner's own serialized witness says it passed.
+
+The snapshots are candidate-authored structural interpretations of public observations. Their evidence references establish provenance linkage, not that the inferred nodes/relations are objectively true.
+
+## Dynamics proposal
+
+The optional `dynamics_transfer` currently supports only `deterministic_transition_commutation`. It contains:
+- source and target state/action scopes, including excluded IDs;
+- total state mappings and action mappings with action-kind IDs;
+- candidate-predicted target transitions for source transitions;
+- explicit assumptions and an unresolved flag.
+
+It deliberately does **not** include the evaluator's actual hidden target transitions. The candidate freezes target successor predictions; after freeze, the trusted evaluator compares them with its owner-side transitions through `validate_dynamics_correspondence` or a stricter scope-specific adapter.
+
+The current Rust finite dynamics validator expects complete deterministic source and target transition systems and total one-to-one state/action maps. It does not implement nondeterministic simulation, bisimulation, quotient dynamics or approximate/continuous transfer.
+
+## Decision value and prospective forecasts
+
+Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
+- immutable forecast before execution;
+- evidence-prefix and operation identity;
+- prospective decision-value prediction distinct from information gain;
+- predicted resource cost, latency and downside;
+- a separate outcome receipt after execution.
+
+The current structural/dynamics bundle is a hypothesis artifact, not proof that the action chosen to acquire it had positive decision value. The finite #13418 / PR #13407 decision-value oracle is a useful Stage-A known-answer control, not a general research-policy callable.
+
+## Existing policy / model ownership
+
+- #11060 remains the blind episode wire format, finite worlds and baseline runner.
+- #11171 remains the real Symthaea research-policy adapter owner.
+- #5990 remains owner-side episode custody.
+- #6027/#6065 remain the bounded typed model DSL / ScientificModel path.
+- #7171/#7193 remain the finite structural/dynamics witness and paired-world scoring owners.
+
+Keep the bundle optional and sidecar-versioned until these owners approve the adapter contract. Do not add a second JSONL runner, scheduler, posterior engine, model AST, evidence ledger or truth store.
+
+## Validation limits
+
+JSON Schema validation is necessary but not sufficient. The evaluator must additionally check:
+- source/target episode and prefix binding consistency across the bundle and nested proposal;
+- unique IDs and complete selected/excluded partitions;
+- participant references and selected relation scope;
+- evidence IDs exist in their claimed episode prefix;
+- node/relation snapshots are derived only from public observations;
+- maps cover precisely the selected scope;
+- predicted target transitions are frozen before hidden outcomes;
+- all actual target transition checks are performed owner-side.
+
+An in-process schema/type boundary is not an OS sandbox. Learner/evaluator separation must continue to use the existing trusted process/episode owner.
+
+## Reproduction / static checks
+
+- Parse `agent_transfer_bundle_v0.schema.json` and `agent_transfer_bundle_v0.example.json` as JSON.
+- Validate the example against the schema using a Draft 2020-12 validator.
+- Cross-check bundle and nested source/target episode/prefix bindings.
+- Cross-check snapshot IDs against selected/excluded scope partitions.
+- Resolve every evidence reference against the owner-issued public episode prefix.
+- Preserve exact artifact digests in the owner receipt.
+
+The current example demonstrates a source/target induced embedding and two frozen target transition predictions. It is an illustrative wire artifact, not an executed AgentView/AgentAction integration or a causal-transfer result.
