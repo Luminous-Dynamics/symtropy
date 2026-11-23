@@ -22,7 +22,7 @@ use std::fmt;
 use crate::anisotropic_episode_tube::{
     AnisotropicCalibrationEpisode2d, AnisotropicEmptyEpisodeSet2d,
     AnisotropicEpisodeAbstention, AnisotropicEpisodeConformalFamily2d,
-    AnisotropicEpisodeFamilyConfig, AnisotropicEpisodeSetError,
+    AnisotropicEpisodeFamilyConfig, AnisotropicEpisodeRadius2d, AnisotropicEpisodeSetError,
     AnisotropicEpisodeSetOutcome2d, AnisotropicEpisodeTube2d,
 };
 
@@ -83,6 +83,10 @@ pub enum CampaignBlockCalibrationError {
     InvalidBlockIdentity,
     DuplicateBlockId(u64),
     DuplicateBlockIndependenceGroup(u64),
+    CalibrationBlockIdOverlapsMemberEpisode(u64),
+    EvaluationBlockOverlapsCalibrationMember(u64),
+    EvaluationMemberOverlapsCalibrationBlock(u64),
+    TruthMemberIdentityMismatch { expected: u64, observed: u64 },
     MissingBlockManifestCommitment(u64),
     EmptyBlock(u64),
     InvalidMemberEpisodeIdentity(u64),
@@ -111,6 +115,10 @@ impl fmt::Display for CampaignBlockCalibrationError {
             Self::InvalidBlockIdentity => write!(f, "block and independence-group IDs must be nonzero"),
             Self::DuplicateBlockId(id) => write!(f, "duplicate campaign block ID: {id}"),
             Self::DuplicateBlockIndependenceGroup(id) => write!(f, "duplicate campaign independence-group ID: {id}"),
+            Self::CalibrationBlockIdOverlapsMemberEpisode(id) => write!(f, "campaign block ID overlaps a member episode ID: {id}"),
+            Self::EvaluationBlockOverlapsCalibrationMember(id) => write!(f, "evaluation block ID overlaps a calibration member episode ID: {id}"),
+            Self::EvaluationMemberOverlapsCalibrationBlock(id) => write!(f, "evaluation member episode ID overlaps a calibration block ID: {id}"),
+            Self::TruthMemberIdentityMismatch { expected, observed } => write!(f, "truth member episode ID {observed} does not match predicted member {expected}"),
             Self::MissingBlockManifestCommitment(id) => write!(f, "campaign block {id} is missing its source-manifest commitment"),
             Self::EmptyBlock(id) => write!(f, "campaign block {id} has no member episodes"),
             Self::InvalidMemberEpisodeIdentity(id) => write!(f, "member episode {id} has a zero identity or dependency group"),
@@ -256,6 +264,10 @@ impl CampaignBlockAnisotropicConformalFamily2d {
             });
         }
 
+        if let Some(overlap) = block_ids.intersection(&member_episode_ids).next() {
+            return Err(CampaignBlockCalibrationError::CalibrationBlockIdOverlapsMemberEpisode(*overlap));
+        }
+
         let base_family = AnisotropicEpisodeConformalFamily2d::fit(&flattened_blocks, config)
             .map_err(CampaignBlockCalibrationError::BaseFamily)?;
 
@@ -302,6 +314,11 @@ impl CampaignBlockAnisotropicConformalFamily2d {
         if prediction.block_id == 0 || prediction.independence_group_id == 0 {
             return Err(CampaignBlockCalibrationError::InvalidEvaluationBlockIdentity);
         }
+        if self.calibration_member_episode_ids.contains(&prediction.block_id) {
+            return Err(CampaignBlockCalibrationError::EvaluationBlockOverlapsCalibrationMember(
+                prediction.block_id,
+            ));
+        }
         if self.calibration_block_ids.contains(&prediction.block_id)
             || self.seen_evaluation_block_ids.contains(&prediction.block_id)
         {
@@ -331,6 +348,11 @@ impl CampaignBlockAnisotropicConformalFamily2d {
         for member in &prediction.member_episodes {
             if member.episode_id == 0 {
                 return Err(CampaignBlockCalibrationError::InvalidMemberEpisodeIdentity(
+                    member.episode_id,
+                ));
+            }
+            if self.calibration_block_ids.contains(&member.episode_id) {
+                return Err(CampaignBlockCalibrationError::EvaluationMemberOverlapsCalibrationBlock(
                     member.episode_id,
                 ));
             }
@@ -417,8 +439,15 @@ impl CampaignBlockAnisotropicConformalFamily2d {
         Ok(outcome)
     }
 
-    pub fn base_family(&self) -> &AnisotropicEpisodeConformalFamily2d {
-        &self.base_family
+    /// Select the campaign-block order statistic without exposing a route that
+    /// can accidentally build per-trajectory sets from the underlying family.
+    pub fn select_radius(
+        &self,
+        requested_miscoverage: f64,
+    ) -> Result<Result<AnisotropicEpisodeRadius2d, AnisotropicEpisodeAbstention>, CampaignBlockCalibrationError> {
+        self.base_family
+            .select_radius(requested_miscoverage)
+            .map_err(CampaignBlockCalibrationError::BaseFamily)
     }
 }
 
@@ -505,9 +534,10 @@ fn flatten_truth_members(
 
     for (span, truth) in spans.iter().zip(truth_members) {
         if span.episode_id != truth.episode_id {
-            return Err(CampaignBlockCalibrationError::EvaluationEpisodeReused(
-                truth.episode_id,
-            ));
+            return Err(CampaignBlockCalibrationError::TruthMemberIdentityMismatch {
+                expected: span.episode_id,
+                observed: truth.episode_id,
+            });
         }
         if truth.truth_positions_m.len() != span.position_count() {
             return Err(CampaignBlockCalibrationError::EvaluationTrajectoryLengthMismatch(
@@ -632,7 +662,7 @@ mod tests {
         let family = CampaignBlockAnisotropicConformalFamily2d::fit(
             &calibration_blocks(), config()
         ).unwrap();
-        let selected = family.base_family().select_radius(0.5).unwrap().unwrap();
+        let selected = family.select_radius(0.5).unwrap().unwrap();
         // Block 101 has max score 2; block 102 has 1; block 103 has 1.5.
         assert!((selected.normalized_radius - 2.0).abs() < 1.0e-12);
         assert_eq!(selected.calibration_episode_count, 3);
@@ -664,8 +694,8 @@ mod tests {
 
         assert_eq!(first.calibration_unit_count(), 2);
         assert_eq!(second.calibration_unit_count(), 2);
-        let first_radius = first.base_family().select_radius(0.5).unwrap().unwrap().normalized_radius;
-        let second_radius = second.base_family().select_radius(0.5).unwrap().unwrap().normalized_radius;
+        let first_radius = first.select_radius(0.5).unwrap().unwrap().normalized_radius;
+        let second_radius = second.select_radius(0.5).unwrap().unwrap().normalized_radius;
         assert!((first_radius - second_radius).abs() < 1.0e-12);
     }
 
