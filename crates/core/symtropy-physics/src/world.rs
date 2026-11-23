@@ -2070,6 +2070,30 @@ mod box_box_sat_tests {
     use super::*;
 
     #[test]
+    fn high_dimensional_contact_builder_spills_without_panicking_or_truncating() {
+        let contacts = (0..16)
+            .map(|index| {
+                (
+                    SVector::<f64, 4>::from([index as f64, 0.0, 0.0, 0.0]),
+                    0.25,
+                )
+            })
+            .collect::<Vec<_>>();
+        let manifold = PhysicsWorld::<4>::manifold_from_contacts(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::<f64, 4>::from([1.0, 0.0, 0.0, 0.0]),
+            contacts,
+        )
+        .expect("non-empty contact set should produce a manifold");
+
+        assert_eq!(manifold.points.len(), 16);
+        assert!(manifold.points.spilled());
+        assert_eq!(manifold.points[15].position[0], 15.0);
+        assert!(manifold.points.iter().all(|point| point.depth == 0.25));
+    }
+
+    #[test]
     fn face_to_face_p2_2_regression() {
         // Same configuration as the reverted `epa_3d_boxes_face_to_face_p2_2_regression`
         // (SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md P2.2): two half-extent-0.5 boxes
