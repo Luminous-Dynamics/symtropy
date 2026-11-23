@@ -68,7 +68,7 @@ Do not convert an unknown operation into an empty dependency set. Unknown means 
 
 ## 5. Frozen challenge corpus
 
-Seven synthetic cases:
+Nine synthetic cases:
 1. Complete graph positive control.
 2. Missing graph edge while the consumer still declares the input.
 3. Common-mode omission: graph and consumer declarations omit the same required parent.
@@ -76,8 +76,10 @@ Seven synthetic cases:
 5. Extra edge / over-approximation.
 6. Unsupported transformation, which must yield model inadequacy.
 7. Producer/consumer scope mismatch.
+8. Ambiguous required artifact source (two producers with the same required artifact type), which must not be treated as a uniquely resolved dependency.
+9. A declared dependency cycle, which must fail closed before grammar matching.
 
-The Rust suite includes a row-order permutation property. A separately authored JavaScript implementation independently derives obligations from the operation grammar and compares the complete output to the Rust receipt.
+The Rust suite includes explicit ambiguous-producer and cycle controls, plus a row-order permutation property. A separately authored JavaScript implementation independently derives obligations from the operation grammar and compares the complete output to the Rust receipt.
 
 ## 6. Metrics and prospective gates
 
