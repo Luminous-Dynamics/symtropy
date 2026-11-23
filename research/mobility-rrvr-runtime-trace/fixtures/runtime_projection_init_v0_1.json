@@ -253,7 +253,7 @@
           "claim_scope_sha256": null,
           "observer_quorum": null,
           "raw_artifact_id": "initial-artifact-9",
-          "raw_artifact_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+          "raw_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "asserted_value": "absent"
         }
       ]
