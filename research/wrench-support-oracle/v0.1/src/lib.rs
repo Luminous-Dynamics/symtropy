@@ -140,6 +140,16 @@ fn validate_patch(
         }
     }
 
+    let reference_z = points[0].position[2];
+    for point in &points[1..] {
+        let tolerance = 1.0e-10 * 1.0_f64.max(reference_z.abs()).max(point.position[2].abs());
+        if (point.position[2] - reference_z).abs() > tolerance {
+            return Err(OracleError::new(
+                "all contact points must lie on one plane parallel to XY",
+            ));
+        }
+    }
+
     let mut directions = patch.directions.clone();
     directions.sort_by(|left, right| left.id.cmp(&right.id));
     let mut direction_ids = BTreeSet::new();
@@ -796,6 +806,20 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn non_coplanar_points_are_rejected_by_shared_normal_model() {
+        let mut source = patch();
+        source.points[0].position[2] = 0.25;
+        assert!(select_exact_subset(
+            &source,
+            ExactSelectorConfig {
+                keep: 2,
+                maximum_subsets: 100,
+            }
+        )
+        .is_err());
     }
 
     #[test]
