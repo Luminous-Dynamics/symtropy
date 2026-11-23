@@ -42,7 +42,11 @@ impl std::fmt::Display for NetIdAssignmentError {
                 write!(formatter, "body index for {handle:?} is inconsistent")
             }
             Self::DuplicateNetId { net_id, owner } => {
-                write!(formatter, "NetId({}) is already owned by {owner:?}", net_id.0)
+                write!(
+                    formatter,
+                    "NetId({}) is already owned by {owner:?}",
+                    net_id.0
+                )
             }
             Self::InconsistentNetIdIndex { handle } => {
                 write!(formatter, "NetId index for {handle:?} is inconsistent")
