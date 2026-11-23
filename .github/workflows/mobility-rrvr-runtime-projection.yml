@@ -492,7 +492,7 @@ jobs:
           fi
           echo "Expected negative control rejected: delivery signature mismatch."
 
-      - name: Score matched RRVR evidence and recovery benchmark
+      - name: Score matched RRVR evidence, recovery and cluster-bootstrap benchmark
         shell: bash
         run: |
           set -euo pipefail
@@ -500,14 +500,16 @@ jobs:
           CORPUS="$ROOT/fixtures/benchmark_matched_arms_v0_1.json"
           SCHEMA="$ROOT/schemas/benchmark_corpus_v0_1.schema.json"
           REPORT="$RUNNER_TEMP/rrvr-benchmark-report.json"
+          REPLAY_REPORT="$RUNNER_TEMP/rrvr-benchmark-replay-report.json"
           BAD="$RUNNER_TEMP/rrvr-benchmark-unmatched.json"
+          UNDERPOWERED="$RUNNER_TEMP/rrvr-benchmark-underpowered.json"
 
           jq empty "$SCHEMA"
-          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$CORPUS" "$REPORT" > /dev/null
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$CORPUS" "$REPORT" --bootstrap-replicates 1000 > /dev/null
           jq -e '
             .version == "0.1"
-            and .matched_pair_count == 2
-            and .scenario_cluster_count == 1
+            and .matched_pair_count == 6
+            and .scenario_cluster_count == 6
             and (.arm_summaries | length == 5)
             and (.paired_comparisons | length == 4)
             and ([.arm_summaries[].arm] | sort == ["full_rrvr","logging_only","restart_only","task_only","trace_only"])
@@ -517,9 +519,26 @@ jobs:
               and .false_confirmed_count == 1
               and .median_trace_reduction_ppm == 625000)
             and (.arm_summaries[] | select(.arm == "task_only") |
-              .safety_scored_count == 2
-              and .sbu_rate_all_episodes_ppm == 500000)
+              .safety_scored_count == 6
+              and .sbu_rate_all_episodes_ppm == 833333)
           ' "$REPORT"
+
+          jq -e '
+            .version == "0.1"
+            and .cluster_count == 6
+            and .matched_pair_count == 6
+            and .replicate_count == 1000
+            and (.bootstrap_seed_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.comparisons | length == 4)
+            and ([.comparisons[].task_success_delta] | all(. != null))
+            and ([.comparisons[].safety_delta] | all(. != null))
+            and ([.comparisons[] | select(.baseline_arm == "task_only") | .recovery_success_delta] | all(. == null))
+            and ([.comparisons[] | select(.baseline_arm != "task_only") | .recovery_success_delta] | all(. != null))
+            and ([.comparisons[].task_success_delta | .lower_95_ppm <= .upper_95_ppm] | all)
+          ' "$REPORT.bootstrap.json"
+
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$CORPUS" "$REPLAY_REPORT" --bootstrap-replicates 1000 > /dev/null
+          cmp "$REPORT.bootstrap.json" "$REPLAY_REPORT.bootstrap.json"
 
           jq '.episodes[1].seed = (.episodes[1].seed + 1)' "$CORPUS" > "$BAD"
           set +e
@@ -531,6 +550,17 @@ jobs:
             exit 1
           fi
           echo "Expected negative control rejected: unmatched pair inputs."
+
+          jq '.episodes |= map(select(.matched_pair_id == "pair-kitchen-001" or .matched_pair_id == "pair-kitchen-002"))' "$CORPUS" > "$UNDERPOWERED"
+          set +e
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_benchmark_score -- "$UNDERPOWERED" "$RUNNER_TEMP/rrvr-underpowered.json" --bootstrap-replicates 1000 > "$RUNNER_TEMP/rrvr-benchmark-underpowered.log" 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "RRVR benchmark inference accepted fewer than five scenario clusters."
+            exit 1
+          fi
+          echo "Expected inference gate rejected: fewer than five scenario clusters."
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --all-targets --locked -- -D warnings
