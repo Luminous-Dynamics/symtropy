@@ -4,7 +4,7 @@
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere, Transform};
-use symtropy_physics::broadphase::{self, Aabb, BroadphasePair, StaticBroadphase};
+use symtropy_physics::broadphase::{self, BroadphasePair, StaticBroadphase};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 use symtropy_physics::{BodyHandle, BodyType, PhysicsWorld, RigidBody};
@@ -252,8 +252,56 @@ fn static_heavy_broadphase_scene(static_count: usize, moving_count: usize) -> Ve
     bodies
 }
 
+#[derive(Clone, Copy)]
+struct OracleAabb {
+    min: SVector<f64, 3>,
+    max: SVector<f64, 3>,
+}
+
+// This fixture-specific reference deliberately computes a HyperBox AABB by
+// transforming all eight vertices. It does not call support_aabb or
+// Aabb::from_body, so a support-map/AABB bug cannot be shared by the oracle.
+fn oracle_hyperbox_aabb(body: &RigidBody<3>) -> OracleAabb {
+    let cube = body
+        .collider
+        .as_any()
+        .downcast_ref::<HyperBox<3>>()
+        .expect("static-heavy oracle fixture uses HyperBox colliders");
+    assert_eq!(cube.half_extents, [0.5; 3]);
+
+    let mut min = SVector::<f64, 3>::from_element(f64::INFINITY);
+    let mut max = SVector::<f64, 3>::from_element(f64::NEG_INFINITY);
+
+    for corner in 0..8 {
+        let local = Point::new(std::array::from_fn(|axis| {
+            if corner & (1 << axis) == 0 {
+                -cube.half_extents[axis]
+            } else {
+                cube.half_extents[axis]
+            }
+        }));
+        let world = body.transform.transform_point(&local).0;
+
+        for axis in 0..3 {
+            min[axis] = min[axis].min(world[axis]);
+            max[axis] = max[axis].max(world[axis]);
+        }
+    }
+
+    OracleAabb { min, max }
+}
+
+fn oracle_aabbs_overlap(a: &OracleAabb, b: &OracleAabb) -> bool {
+    for axis in 0..3 {
+        if a.max[axis] < b.min[axis] || a.min[axis] > b.max[axis] {
+            return false;
+        }
+    }
+    true
+}
+
 fn exhaustive_aabb_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
-    let aabbs: Vec<_> = bodies.iter().map(Aabb::from_body).collect();
+    let aabbs: Vec<_> = bodies.iter().map(oracle_hyperbox_aabb).collect();
     let mut pairs = Vec::new();
 
     for i in 0..bodies.len() {
@@ -267,7 +315,7 @@ fn exhaustive_aabb_pair_oracle(bodies: &[RigidBody<3>]) -> Vec<BroadphasePair> {
 
             let filters_allow_pair = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
-            if !filters_allow_pair || !aabbs[i].overlaps(&aabbs[j]) {
+            if !filters_allow_pair || !oracle_aabbs_overlap(&aabbs[i], &aabbs[j]) {
                 continue;
             }
 
