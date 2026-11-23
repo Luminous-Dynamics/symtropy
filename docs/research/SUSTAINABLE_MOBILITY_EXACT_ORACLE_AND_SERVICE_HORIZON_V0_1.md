@@ -3,7 +3,7 @@
 **Parent:** [SUSTAINABLE-MOBILITY-SERVICE-QUALITY-001 #6921](https://github.com/Luminous-Dynamics/symtropy/issues/6921)  
 **Capacity source:** [SUSTAINABLE-MOBILITY-SERVICE-CAPACITY-001 #6909](https://github.com/Luminous-Dynamics/symtropy/issues/6909)  
 **Branch:** research/mobility-service-quality-exact-oracle-v0-1  
-**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and exact policy-gap reporting implemented; CI verification pending for the expanded 12×16 bound.
+**Status:** bitmask dynamic-programming assignment oracle, horizon accounting and exact policy-gap reporting implemented; exact-head Actions verified for the 12×16 bound.
 
 ## 1. Why this increment matters
 
@@ -68,7 +68,14 @@ It contains two requests and two aerial opportunities derived from the fixed Doc
 
 The total completed-request latency for the exact/EDF outcome is 825 seconds. FCFS has the same total latency on this small instance, but misses one additional on-time deadline and accumulates 185 seconds of lateness. This illustrates why service latency, deadline success and service completion must remain separate.
 
-The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). It is now within the DP bound and receives an exact assignment optimum plus component-wise FCFS/EDF regret on the same event-derived opportunity set. Instances beyond 12 requests or 16 opportunities return not_run_bounds_exceeded; instances crossing the transition ceiling return transition_limit_reached and carry no optimum/regret.
+The full linked benchmark fixture has 12 requests and 12 combined qualified service opportunities (7 aerial + 5 fallback). The DP completed in 768 transitions against its 1,000,000 cap. The exact assignment score is 7 on-time + 1 late (8 completed), zero in-progress, 170 seconds cumulative lateness and 6,715 seconds total completed-request latency. The exact policy gaps are:
+
+| Policy | On-time gap | Completed gap | Lateness excess | Latency excess | In-progress excess |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FCFS | 1 | 0 | 185 s | 0 s | 0 |
+| EDF | 0 | 0 | 0 s | 0 s | 0 |
+
+Instances beyond 12 requests or 16 opportunities return not_run_bounds_exceeded; instances crossing the transition ceiling return transition_limit_reached and carry no optimum/regret.
 
 ## 4. Horizon semantics
 
@@ -135,4 +142,4 @@ The full matched tournament should add nonanticipative rolling-horizon MPC, scen
 
 ## 7. Claim boundary
 
-A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45208705994](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45208705994) at `177ff299e86aedf27fc37146ce644dc582270b74` passed strict schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/exact-oracle assertions and artifact upload for the earlier 8×8 recursive version. The current 12×16 bitmask DP revision is a subsequent change and requires its own exact-head run; 30 focused Rust test definitions are now present. Clippy is not included, and physical/field evidence remains a separate qualification.
+A passing exact-oracle test demonstrates exhaustive optimality only for the declared finite synthetic input and the stated lexicographic objective. It does not prove field demand, aircraft reliability, real weather calibration, customer outcomes, flight legality, battery safety, grid interconnection, commercial economics or superiority over published ADP/RL methods. Exact-head Actions run [#45210669154](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45210669154) at `d70c8a0536bf0ae8219a2c664403126f84865e40` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic legacy/linked/full-exact/tiny-exact assertions and artifact upload. Test binaries reported 223 passed, 0 failed; the service-quality module contains 30 focused Rust test definitions. Clippy is not included, and physical/field evidence remains a separate qualification.
