@@ -1,0 +1,52 @@
+name: EHD-PIV Calibration Validity
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/ehd-piv-calibration-validity/**"
+      - "docs/research/EHD_PIV_CALIBRATION_VALIDITY_2026.md"
+      - "data/research/ehd_piv_calibration_validity_v0_1.json"
+      - ".github/workflows/ehd-piv-calibration-validity.yml"
+  push:
+    branches: ["main", "research/ehd-piv-calibration-validity-v0-1"]
+    paths:
+      - "tools/ehd-piv-calibration-validity/**"
+      - "docs/research/EHD_PIV_CALIBRATION_VALIDITY_2026.md"
+      - "data/research/ehd_piv_calibration_validity_v0_1.json"
+      - ".github/workflows/ehd-piv-calibration-validity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ehd-piv-calibration-validity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Rust 1.96 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Verify Formatting
+        run: cargo fmt --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml -- --check
+
+      - name: Run Tests
+        run: cargo test --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml
+
+      - name: Run Strict Clippy
+        run: cargo clippy --manifest-path tools/ehd-piv-calibration-validity/Cargo.toml --all-targets -- -D warnings
