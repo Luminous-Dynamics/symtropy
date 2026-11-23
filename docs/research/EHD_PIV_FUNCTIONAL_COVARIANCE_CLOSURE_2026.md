@@ -69,6 +69,8 @@ The full existing propagation tests continue to exercise local covariance, share
 
 ## 5. Validation status
 
+The shared CI also compiles the EHD reference audit and runs format/test/Clippy for the standalone UQ-005 crate on three operating systems. The covariance guard must be assessed at its exact PR head; an unrelated base failure is not evidence for or against the PSD invariant.
+
 The source change is authored on a branch stacked on UQ-005. Six new tests (16 total in the functional module) are authored; the existing spatial tests remain unchanged. The authoring environment has no Cargo/rustc/rustfmt, so formatting, compilation, execution and Clippy have not been claimed. The exact-head hosted CI is the next executable check.
 
 No physical PIV cohort, empirical covariance fit, integrated mass-flow benchmark, EHD force balance or thrust measurement is claimed by this software invariant.
