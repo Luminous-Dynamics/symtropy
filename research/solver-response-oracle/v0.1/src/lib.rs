@@ -19,7 +19,9 @@ pub struct ResponseError {
 
 impl ResponseError {
     fn new(reason: impl Into<String>) -> Self {
-        Self { reason: reason.into() }
+        Self {
+            reason: reason.into(),
+        }
     }
 }
 
@@ -131,27 +133,15 @@ fn cross(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
 }
 
 fn subtract(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] - right[0],
-        left[1] - right[1],
-        left[2] - right[2],
-    ]
+    [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
 }
 
 fn add(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
-    [
-        left[0] + right[0],
-        left[1] + right[1],
-        left[2] + right[2],
-    ]
+    [left[0] + right[0], left[1] + right[1], left[2] + right[2]]
 }
 
 fn multiply(value: [f64; 3], scalar: f64) -> [f64; 3] {
-    [
-        value[0] * scalar,
-        value[1] * scalar,
-        value[2] * scalar,
-    ]
+    [value[0] * scalar, value[1] * scalar, value[2] * scalar]
 }
 
 fn body_index(snapshot: &SolverResponseSnapshot) -> Result<BodyIndex<'_>, ResponseError> {
@@ -164,11 +154,15 @@ fn body_index(snapshot: &SolverResponseSnapshot) -> Result<BodyIndex<'_>, Respon
         ("warm start", &snapshot.warm_start_digest),
     ] {
         if digest.trim().is_empty() {
-            return Err(ResponseError::new(format!("{label} digest must be non-empty")));
+            return Err(ResponseError::new(format!(
+                "{label} digest must be non-empty"
+            )));
         }
     }
     if snapshot.bodies.is_empty() {
-        return Err(ResponseError::new("solver snapshot must contain at least one body"));
+        return Err(ResponseError::new(
+            "solver snapshot must contain at least one body",
+        ));
     }
 
     let mut bodies = BTreeMap::new();
@@ -204,14 +198,14 @@ fn validate_pair<'a, 'b>(
         return Err(ResponseError::new("solver configuration digests differ"));
     }
     if full.work_budget_units != reduced.work_budget_units {
-        return Err(ResponseError::new("equal-work comparison requires matching work budgets"));
+        return Err(ResponseError::new(
+            "equal-work comparison requires matching work budgets",
+        ));
     }
 
     let full_bodies = body_index(full)?;
     let reduced_bodies = body_index(reduced)?;
-    if full_bodies.len() != reduced_bodies.len()
-        || !full_bodies.keys().eq(reduced_bodies.keys())
-    {
+    if full_bodies.len() != reduced_bodies.len() || !full_bodies.keys().eq(reduced_bodies.keys()) {
         return Err(ResponseError::new(
             "full and reduced snapshots must contain the same body IDs",
         ));
@@ -245,10 +239,7 @@ fn validate_probes(
                 "each probe must reference two distinct bodies present in both snapshots",
             ));
         }
-        if !finite(&probe.lever_arm_a)
-            || !finite(&probe.lever_arm_b)
-            || !finite(&probe.normal)
-        {
+        if !finite(&probe.lever_arm_a) || !finite(&probe.lever_arm_b) || !finite(&probe.normal) {
             return Err(ResponseError::new("contact probe geometry must be finite"));
         }
         let normal_norm = norm(probe.normal);
@@ -271,13 +262,10 @@ fn point_delta_velocity(body: &BodyResponse, lever_arm: [f64; 3]) -> [f64; 3] {
     )
 }
 
-fn update_maximum(
-    current: f64,
-    current_witness: &str,
-    value: f64,
-    witness: &str,
-) -> (f64, String) {
-    if value > current || (value == current && (current_witness.is_empty() || witness < current_witness)) {
+fn update_maximum(current: f64, current_witness: &str, value: f64, witness: &str) -> (f64, String) {
+    if value > current
+        || (value == current && (current_witness.is_empty() || witness < current_witness))
+    {
         (value, witness.to_owned())
     } else {
         (current, current_witness.to_owned())
@@ -415,7 +403,9 @@ pub fn compare_responses(
 
     let rms_contact_velocity_error = rms_accumulator / (probes.len() as f64).sqrt();
     if !rms_contact_velocity_error.is_finite() {
-        return Err(ResponseError::new("RMS contact response error is non-finite"));
+        return Err(ResponseError::new(
+            "RMS contact response error is non-finite",
+        ));
     }
 
     Ok(ResponseComparison {
@@ -493,7 +483,10 @@ mod tests {
             body("a", [0.0; 3], [0.0; 3], [0.0; 3]),
             body("b", [0.0; 3], [0.0; 3], [0.0; 3]),
         ];
-        (snapshot("full", bodies.clone()), snapshot("reduced", bodies))
+        (
+            snapshot("full", bodies.clone()),
+            snapshot("reduced", bodies),
+        )
     }
 
     #[test]
@@ -579,23 +572,48 @@ mod tests {
         let mut reversed_reduced = reduced.clone();
         reversed_reduced.bodies.reverse();
         let reversed_probes = probes.into_iter().rev().collect::<Vec<_>>();
-        let second = compare_responses(&reversed_full, &reversed_reduced, &reversed_probes, scales())
-            .expect("second");
-        assert_eq!(first.maximum_generalized_velocity_error, second.maximum_generalized_velocity_error);
-        assert_eq!(first.maximum_generalized_impulse_error, second.maximum_generalized_impulse_error);
-        assert_eq!(first.maximum_contact_normal_velocity_error, second.maximum_contact_normal_velocity_error);
-        assert_eq!(first.maximum_contact_tangent_velocity_error, second.maximum_contact_tangent_velocity_error);
-        assert!((first.rms_contact_velocity_error - second.rms_contact_velocity_error).abs() < 1.0e-12);
-        assert_eq!(first.normal_velocity_witness_contact, second.normal_velocity_witness_contact);
+        let second = compare_responses(
+            &reversed_full,
+            &reversed_reduced,
+            &reversed_probes,
+            scales(),
+        )
+        .expect("second");
+        assert_eq!(
+            first.maximum_generalized_velocity_error,
+            second.maximum_generalized_velocity_error
+        );
+        assert_eq!(
+            first.maximum_generalized_impulse_error,
+            second.maximum_generalized_impulse_error
+        );
+        assert_eq!(
+            first.maximum_contact_normal_velocity_error,
+            second.maximum_contact_normal_velocity_error
+        );
+        assert_eq!(
+            first.maximum_contact_tangent_velocity_error,
+            second.maximum_contact_tangent_velocity_error
+        );
+        assert!(
+            (first.rms_contact_velocity_error - second.rms_contact_velocity_error).abs() < 1.0e-12
+        );
+        assert_eq!(
+            first.normal_velocity_witness_contact,
+            second.normal_velocity_witness_contact
+        );
     }
 
     #[test]
     fn unequal_work_budgets_are_rejected() {
         let (full, mut reduced) = zero_pair();
         reduced.work_budget_units += 1;
-        assert!(compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales())
-            .expect_err("unequal work must fail")
-            .reason.contains("work budgets"));
+        assert!(
+            compare_responses(&full, &reduced, &[probe([1.0, 0.0, 0.0])], scales())
+                .expect_err("unequal work must fail")
+                .reason
+                .contains("work budgets")
+        );
     }
 
     #[test]
@@ -638,13 +656,18 @@ mod tests {
     fn invalid_probe_and_non_positive_scales_are_rejected() {
         let (full, reduced) = zero_pair();
         assert!(compare_responses(&full, &reduced, &[probe([0.0; 3])], scales()).is_err());
-        assert!(compare_responses(
-            &full,
-            &reduced,
-            &[probe([1.0, 0.0, 0.0])],
-            ResponseScales { velocity_scale: 0.0, ..scales() },
-        )
-        .is_err());
+        assert!(
+            compare_responses(
+                &full,
+                &reduced,
+                &[probe([1.0, 0.0, 0.0])],
+                ResponseScales {
+                    velocity_scale: 0.0,
+                    ..scales()
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -665,9 +688,8 @@ mod tests {
         );
         let unit =
             compare_responses(&full, &reduced, &[probe([0.0, 1.0, 0.0])], scales()).expect("unit");
-        let scaled =
-            compare_responses(&full, &reduced, &[probe([0.0, 17.0, 0.0])], scales())
-                .expect("scaled");
+        let scaled = compare_responses(&full, &reduced, &[probe([0.0, 17.0, 0.0])], scales())
+            .expect("scaled");
         assert_eq!(
             unit.maximum_contact_normal_velocity_error,
             scaled.maximum_contact_normal_velocity_error
