@@ -106,6 +106,8 @@ pub struct FlightEnergyCandidate {
     pub bms_firmware_digest: String,
     pub route_profile_digest: String,
     pub measurement_boundary: EnergyMeasurementBoundary,
+    pub available_energy_measurement_boundary: EnergyMeasurementBoundary,
+    pub reserve_measurement_boundary: EnergyMeasurementBoundary,
     pub mission_start_unix_ms: u64,
     pub mission_end_unix_ms: u64,
     pub payload_mass_g: u32,
@@ -265,12 +267,12 @@ fn validate_operating_envelope(
         || envelope.gust_abs_max_milli_mps > MAX_WIND_MILLI_MPS
         || envelope.ambient_temperature_min_milli_c
             > envelope.ambient_temperature_max_milli_c
-        || envelope.ambient_temperature_min_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
-        || envelope.ambient_temperature_max_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
+        || envelope.ambient_temperature_min_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
+        || envelope.ambient_temperature_max_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
         || envelope.battery_temperature_min_milli_c
             > envelope.battery_temperature_max_milli_c
-        || envelope.battery_temperature_min_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
-        || envelope.battery_temperature_max_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
+        || envelope.battery_temperature_min_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
+        || envelope.battery_temperature_max_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
         || envelope.state_of_health_min_permille == 0
         || envelope.state_of_health_min_permille > 1_000
     {
@@ -359,16 +361,18 @@ pub fn evaluate_flight_energy_envelope(
         || candidate.bms_firmware_digest != model.bms_firmware_digest
         || candidate.route_profile_digest != model.route_profile_digest
         || candidate.measurement_boundary != model.measurement_boundary
+        || candidate.available_energy_measurement_boundary != model.measurement_boundary
+        || candidate.reserve_measurement_boundary != model.measurement_boundary
         || candidate.mission_start_unix_ms <= input.decision_time_unix_ms
         || candidate.mission_end_unix_ms <= candidate.mission_start_unix_ms
         || candidate.mission_end_unix_ms - candidate.mission_start_unix_ms
-            > u64::from(model.mission_duration_seconds) * 1_000
+            != u64::from(model.mission_duration_seconds) * 1_000
         || candidate.payload_mass_g > MAX_PAYLOAD_G
         || candidate.headwind_milli_mps.unsigned_abs() > MAX_WIND_MILLI_MPS
         || candidate.crosswind_abs_milli_mps > MAX_WIND_MILLI_MPS
         || candidate.gust_abs_milli_mps > MAX_WIND_MILLI_MPS
-        || candidate.ambient_temperature_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
-        || candidate.battery_temperature_milli_c.abs() > MAX_TEMPERATURE_MILLI_C
+        || candidate.ambient_temperature_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
+        || candidate.battery_temperature_milli_c.unsigned_abs() > MAX_TEMPERATURE_MILLI_C as u32
         || candidate.state_of_health_permille == 0
         || candidate.state_of_health_permille > 1_000
         || candidate.available_energy_lower_bound_wh > MAX_ENERGY_WH
@@ -490,6 +494,19 @@ pub fn evaluate_flight_energy_envelope(
         all_synthetic &= evidence.evidence_class == EvidenceClass::Synthetic;
     }
 
+    let mut evidence_references = BTreeSet::new();
+    for evidence in [
+        &model.model_evidence,
+        &model.aircraft_configuration_evidence,
+        &model.pack_configuration_evidence,
+        &model.bms_configuration_evidence,
+        &model.route_profile_evidence,
+    ] {
+        if !evidence_references.insert(evidence.evidence_reference.as_str()) {
+            add_error(&mut errors, "flight_energy_evidence_reference_replayed");
+        }
+    }
+
     let candidate_evidence = [
         (
             &candidate.payload_evidence,
@@ -523,6 +540,9 @@ pub fn evaluate_flight_energy_envelope(
         ),
     ];
     for (evidence, asset, digest) in candidate_evidence {
+        if !evidence_references.insert(evidence.evidence_reference.as_str()) {
+            add_error(&mut errors, "flight_energy_evidence_reference_replayed");
+        }
         if !evidence_covers(
             evidence,
             asset,
