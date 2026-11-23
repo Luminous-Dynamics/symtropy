@@ -42,7 +42,10 @@ function abstain(item, reason, threshold) {
 function validGateStates(item) {
   return ["CURRENT", "STALE", "UNAVAILABLE"].includes(item.world_set_state)
     && ["CLOSED_WITHIN_DECLARED_SCOPE", "OPEN", "STALE", "INADEQUATE"].includes(item.domain_closure_state)
-    && ["COMPLETE_WITHIN_DECLARED_GRAMMAR", "INADEQUATE", "STALE", "INDETERMINATE"].includes(item.dependency_graph_state)
+    && ["GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR", "MISSING_DEPENDENCY_EDGE",
+      "COMMON_MODE_DEPENDENCY_OMISSION", "CONSUMER_MANIFEST_OMISSION", "UNDECLARED_DEPENDENCY_EDGE",
+      "DEPENDENCY_MODEL_INADEQUATE", "DEPENDENCY_SOURCE_UNAVAILABLE", "DEPENDENCY_SCOPE_MISMATCH",
+      "INVALID_GRAPH", "STALE", "INDETERMINATE"].includes(item.dependency_graph_state)
     && ["ADEQUATE", "INADEQUATE"].includes(item.model_family_state)
     && ["CURRENT", "STALE", "CONTRADICTED", "INDETERMINATE"].includes(item.evidence_state);
 }
@@ -84,7 +87,9 @@ function evaluateCase(item) {
   if (item.domain_closure_state === "INADEQUATE" || item.model_family_state === "INADEQUATE") {
     return abstain(item, "MODEL_FAMILY_INADEQUATE", threshold);
   }
-  if (item.dependency_graph_state === "INADEQUATE") {
+  if (item.dependency_graph_state !== "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+    && item.dependency_graph_state !== "STALE"
+    && item.dependency_graph_state !== "INDETERMINATE") {
     return abstain(item, "DEPENDENCY_GRAPH_INADEQUATE", threshold);
   }
   if (item.dependency_graph_state === "STALE") {
