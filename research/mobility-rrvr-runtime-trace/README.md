@@ -179,3 +179,19 @@ The first transport-neutral adapter core now validates an exact Gazebo capabilit
 The campaign/compiled plan pin the simulator build, ROS distribution, Simulation Interfaces package revision, SceneBroadcaster ID/revision/binary digest, environment and reset profile. The capability profile must advertise GetSimulatorFeatures, ResetSimulation, state query/update, entity query and one discrete step interface (StepSimulation or SimulateSteps). Missing SceneBroadcaster or a mismatched plugin/API build fails closed.
 
 The transport trait has no live ROS client implementation yet. The CLI validates a captured capability profile only; it does not contact Gazebo, reset/step a world, or inject a fault. Mock tests exercise the orchestration, and the actual ROS 2 service/action client remains the next integration.
+
+
+## Matched evidence and recovery benchmark v0.1
+
+The executable benchmark overlay preserves native task and safety outcomes and compares five matched arms: task-only, restart-only, logging-only, trace-only and full RRVR. The scorer rejects unmatched policy/task/scene/action-prefix/seed/platform/environment/fault-schedule inputs before computing rates and paired differences.
+
+- Scorer: src/benchmark.rs
+- CLI: src/bin/rrvr_benchmark_score.rs
+- Schema: schemas/benchmark_corpus_v0_1.schema.json
+- Fixture: fixtures/benchmark_matched_arms_v0_1.json
+- Protocol: [BENCHMARK_PROTOCOL_V0.1.md](BENCHMARK_PROTOCOL_V0.1.md)
+- Tracking: [#7106](https://github.com/Luminous-Dynamics/symtropy/issues/7106)
+
+Metrics preserve task success and safety separately, add successful-but-unsafe outcomes, recovery success, false Confirmed/Refuted decisions, unknown verdicts, delivery coverage, duplicate effects, blind redispatch, stale post-quiescence execution, false admission, operator interventions, mission/evidence latency, root-cause top-1/top-3 and median trace reduction. Rates use integer parts-per-million and latency quantiles use nearest-rank percentiles.
+
+Version 0.1 reports descriptive matched-pair differences; it does not calculate inferential confidence intervals. The benchmark scorer does not authenticate artifacts or adjudicate physical ground truth. Synthetic fixture metrics are test data, not performance claims.
