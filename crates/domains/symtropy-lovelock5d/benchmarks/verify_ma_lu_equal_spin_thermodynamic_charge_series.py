@@ -96,7 +96,7 @@ def derive() -> dict:
     if sp.factor(wrong_chi_delta-sp.series(deltaM_nu,nu,0,6).removeO())==0:
         raise AssertionError("negative control failed: missing sqrt(2) accepted")
     wrong_h1=sp.Rational(3,8)*pi*sp.Rational(16,3)
-    if sp.simplify(wrong_h1-2*pi)==0:
+    if sp.factor(wrong_h1-deltaM)==0:
         raise AssertionError("negative control failed: omitted H1 spin term accepted")
 
     return {
