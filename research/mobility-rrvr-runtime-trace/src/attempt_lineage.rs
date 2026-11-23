@@ -3,14 +3,17 @@
 
 //! Multi-attempt physical-effect lineage validation.
 //!
-//! v0.1 of the runtime projection covers one old attempt and one recovery
+//! The runtime projection v0.1 covers one original attempt and one recovery
 //! admission. This module validates a longer, linear attempt history without
 //! issuing recovery authority or replacing any owner of persistence, mission,
-//! queue, observer, or native permit state.
+//! queue, observer, or native permit state. Every typed outcome is bound to
+//! the same existing OwnerEvidenceRef that carries its owner, verdict, scope,
+//! asserted value and raw-artifact commitment.
 
 use crate::{
-    EvidenceScope, ObserverQuorumProof, OwnerEvidenceDomain, OwnerEvidenceStatus,
-    claim_scope_digest, observer_proofs_are_independent, observer_quorum_is_qualified,
+    EvidenceScope, ObserverQuorumProof, OwnerEvidenceDomain, OwnerEvidenceRef,
+    OwnerEvidenceStatus, claim_scope_digest, observer_proofs_are_independent,
+    observer_quorum_is_qualified,
 };
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -63,48 +66,33 @@ pub struct EpochPair {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct EvidenceReceipt {
-    pub owner_id: String,
-    pub owner_revision: String,
-    pub evidence_id: String,
-    pub raw_artifact_id: String,
-    pub raw_artifact_sha256: String,
-    pub scope: EvidenceScope,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct PersistenceEvidence {
     pub outcome: PersistenceOutcome,
-    pub verdict: OwnerEvidenceStatus,
-    pub receipt: EvidenceReceipt,
+    pub receipt: OwnerEvidenceRef,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct PhysicalOutcomeEvidence {
     pub outcome: PhysicalOutcome,
-    pub verdict: OwnerEvidenceStatus,
-    pub receipt: EvidenceReceipt,
+    pub receipt: OwnerEvidenceRef,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct MissionResolutionEvidence {
     pub outcome: MissionOutcome,
-    pub verdict: OwnerEvidenceStatus,
-    pub receipt: EvidenceReceipt,
+    pub receipt: OwnerEvidenceRef,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct FenceEvidence {
     pub outcome: FenceOutcome,
-    pub verdict: OwnerEvidenceStatus,
     /// The new boot/controller epoch for which the old path is quiescent.
-    /// It is null when no qualified fence receipt is being asserted.
+    /// It is null when the evidence does not assert quiescence for a child.
     pub target_epoch: Option<EpochPair>,
-    pub receipt: EvidenceReceipt,
+    pub receipt: OwnerEvidenceRef,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -128,7 +116,7 @@ pub struct AttemptRecord {
     pub mission_resolution: MissionResolutionEvidence,
     pub controller_queue_fence: FenceEvidence,
     pub downstream_quiescence: FenceEvidence,
-    /// Required for any attempt that is used as the parent of a retry edge.
+    /// Required when this attempt is used as the parent of a retry edge.
     pub observer_assurance: Option<AttemptObserverAssurance>,
 }
 
@@ -183,36 +171,96 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn validate_receipt(
-    receipt: &EvidenceReceipt,
-    logical_effect_id: &str,
-    attempt: &AttemptRecord,
+fn persistence_value(outcome: PersistenceOutcome) -> &'static str {
+    match outcome {
+        PersistenceOutcome::DefinitelyNotCommitted => "definitely_not_committed",
+        PersistenceOutcome::Committed => "committed",
+        PersistenceOutcome::InFlight => "in_flight",
+        PersistenceOutcome::IndeterminateCommit => "indeterminate_commit",
+    }
+}
+
+fn physical_value(outcome: PhysicalOutcome) -> &'static str {
+    match outcome {
+        PhysicalOutcome::NotObserved => "not_observed",
+        PhysicalOutcome::Applied => "applied",
+        PhysicalOutcome::NoEffect => "no_effect",
+        PhysicalOutcome::Partial => "partial",
+        PhysicalOutcome::Unknown => "unknown",
+        PhysicalOutcome::Disputed => "disputed",
+    }
+}
+
+fn mission_value(outcome: MissionOutcome) -> &'static str {
+    match outcome {
+        MissionOutcome::NoEffect => "no_effect",
+        MissionOutcome::EffectPredicateSatisfied => "effect_predicate_satisfied",
+        MissionOutcome::Unresolved => "unresolved",
+    }
+}
+
+fn fence_value(outcome: FenceOutcome, target_epoch: Option<EpochPair>) -> String {
+    match target_epoch {
+        Some(target) => format!(
+            "{};target_boot_epoch={};target_controller_epoch={}",
+            match outcome {
+                FenceOutcome::Quiescent => "quiescent",
+                FenceOutcome::Active => "active",
+                FenceOutcome::Unknown => "unknown",
+            },
+            target.boot_epoch,
+            target.controller_epoch
+        ),
+        None => format!(
+            "{};target_epoch=none",
+            match outcome {
+                FenceOutcome::Quiescent => "quiescent",
+                FenceOutcome::Active => "active",
+                FenceOutcome::Unknown => "unknown",
+            }
+        ),
+    }
+}
+
+fn evidence_scope(logical_effect_id: &str, attempt: &AttemptRecord) -> EvidenceScope {
+    EvidenceScope {
+        logical_effect_id: logical_effect_id.to_owned(),
+        attempt_id: attempt.attempt_id.clone(),
+        subject_boot_epoch: attempt.authorized_epoch.boot_epoch,
+        subject_controller_epoch: attempt.authorized_epoch.controller_epoch,
+    }
+}
+
+fn validate_owner_evidence(
+    evidence: &OwnerEvidenceRef,
+    expected_domain: OwnerEvidenceDomain,
+    expected_asserted_value: &str,
+    expected_scope: &EvidenceScope,
     evidence_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
-    if [
-        receipt.owner_id.as_str(),
-        receipt.owner_revision.as_str(),
-        receipt.evidence_id.as_str(),
-        receipt.raw_artifact_id.as_str(),
-    ]
-    .iter()
-    .any(|value| !nonempty(value))
-        || !valid_sha256(&receipt.raw_artifact_sha256)
+    if evidence.domain != expected_domain
+        || evidence.asserted_value != expected_asserted_value
+        || evidence.scope != *expected_scope
+        || !nonempty(&evidence.owner_id)
+        || !nonempty(&evidence.owner_revision)
+        || !nonempty(&evidence.evidence_id)
+        || !nonempty(&evidence.raw_artifact_id)
+        || !valid_sha256(&evidence.raw_artifact_sha256)
+        || evidence.claim_id.is_some()
+        || evidence.claim_scope_sha256.is_some()
+        || evidence.observer_quorum.is_some()
+        || matches!(
+            evidence.status,
+            OwnerEvidenceStatus::NotApplicable
+                | OwnerEvidenceStatus::QuorumQualified
+                | OwnerEvidenceStatus::QuorumNotQualified
+        )
     {
         return Err(LineageError::InvalidEvidenceReceipt);
     }
 
-    if !evidence_ids.insert(receipt.evidence_id.clone()) {
+    if !evidence_ids.insert(evidence.evidence_id.clone()) {
         return Err(LineageError::DuplicateEvidenceIdentity);
-    }
-
-    let scope = &receipt.scope;
-    if scope.logical_effect_id != logical_effect_id
-        || scope.attempt_id != attempt.attempt_id
-        || scope.subject_boot_epoch != attempt.authorized_epoch.boot_epoch
-        || scope.subject_controller_epoch != attempt.authorized_epoch.controller_epoch
-    {
-        return Err(LineageError::EvidenceScopeMismatch);
     }
     Ok(())
 }
@@ -222,43 +270,71 @@ fn validate_attempt_evidence(
     attempt: &AttemptRecord,
     evidence_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
-    for receipt in [
+    let scope = evidence_scope(logical_effect_id, attempt);
+
+    validate_owner_evidence(
         &attempt.persistence.receipt,
+        OwnerEvidenceDomain::Persistence,
+        persistence_value(attempt.persistence.outcome),
+        &scope,
+        evidence_ids,
+    )?;
+    validate_owner_evidence(
         &attempt.physical_outcome.receipt,
+        OwnerEvidenceDomain::PhysicalOutcome,
+        physical_value(attempt.physical_outcome.outcome),
+        &scope,
+        evidence_ids,
+    )?;
+    validate_owner_evidence(
         &attempt.mission_resolution.receipt,
-        &attempt.controller_queue_fence.receipt,
-        &attempt.downstream_quiescence.receipt,
+        OwnerEvidenceDomain::MissionResolution,
+        mission_value(attempt.mission_resolution.outcome),
+        &scope,
+        evidence_ids,
+    )?;
+
+    for fence in [
+        &attempt.controller_queue_fence,
+        &attempt.downstream_quiescence,
     ] {
-        validate_receipt(receipt, logical_effect_id, attempt, evidence_ids)?;
+        if (fence.outcome == FenceOutcome::Quiescent) != fence.target_epoch.is_some() {
+            return Err(LineageError::FenceEpochMismatch);
+        }
+    }
+    validate_owner_evidence(
+        &attempt.controller_queue_fence.receipt,
+        OwnerEvidenceDomain::ControllerQueue,
+        &fence_value(
+            attempt.controller_queue_fence.outcome,
+            attempt.controller_queue_fence.target_epoch,
+        ),
+        &scope,
+        evidence_ids,
+    )?;
+    validate_owner_evidence(
+        &attempt.downstream_quiescence.receipt,
+        OwnerEvidenceDomain::DownstreamExecutionGraph,
+        &fence_value(
+            attempt.downstream_quiescence.outcome,
+            attempt.downstream_quiescence.target_epoch,
+        ),
+        &scope,
+        evidence_ids,
+    )?;
+
+    if attempt.physical_outcome.outcome == PhysicalOutcome::Applied
+        && attempt.physical_outcome.receipt.status != OwnerEvidenceStatus::Confirmed
+    {
+        return Err(LineageError::OutcomeVerdictMismatch);
+    }
+    if attempt.physical_outcome.outcome == PhysicalOutcome::NoEffect
+        && attempt.mission_resolution.outcome == MissionOutcome::EffectPredicateSatisfied
+        && attempt.mission_resolution.receipt.status == OwnerEvidenceStatus::Confirmed
+    {
+        return Err(LineageError::MissionOutcomeMismatch);
     }
 
-    match attempt.physical_outcome.outcome {
-        PhysicalOutcome::Applied => {
-            if attempt.physical_outcome.verdict != OwnerEvidenceStatus::Confirmed {
-                return Err(LineageError::OutcomeVerdictMismatch);
-            }
-            if attempt.mission_resolution.outcome != MissionOutcome::EffectPredicateSatisfied
-                || attempt.mission_resolution.verdict != OwnerEvidenceStatus::Confirmed
-            {
-                return Err(LineageError::MissionOutcomeMismatch);
-            }
-        }
-        PhysicalOutcome::NoEffect => {
-            if attempt.mission_resolution.outcome == MissionOutcome::EffectPredicateSatisfied
-                && attempt.mission_resolution.verdict == OwnerEvidenceStatus::Confirmed
-            {
-                return Err(LineageError::MissionOutcomeMismatch);
-            }
-        }
-        PhysicalOutcome::NotObserved
-        | PhysicalOutcome::Partial
-        | PhysicalOutcome::Unknown
-        | PhysicalOutcome::Disputed => {
-            if attempt.mission_resolution.outcome != MissionOutcome::Unresolved {
-                return Err(LineageError::MissionOutcomeMismatch);
-            }
-        }
-    }
     Ok(())
 }
 
@@ -346,13 +422,7 @@ fn validate_attempt_observer_assurance(
         .observer_assurance
         .as_ref()
         .ok_or(LineageError::MissingObserverAssurance)?;
-
-    let scope = EvidenceScope {
-        logical_effect_id: logical_effect_id.to_owned(),
-        attempt_id: attempt.attempt_id.clone(),
-        subject_boot_epoch: attempt.authorized_epoch.boot_epoch,
-        subject_controller_epoch: attempt.authorized_epoch.controller_epoch,
-    };
+    let scope = evidence_scope(logical_effect_id, attempt);
 
     let physical = validate_observer_claim(
         &assurance.physical_outcome,
@@ -397,9 +467,9 @@ fn validate_recovery_handoff(
     observation_ids: &mut BTreeSet<String>,
 ) -> Result<(), LineageError> {
     if parent.physical_outcome.outcome != PhysicalOutcome::NoEffect
-        || parent.physical_outcome.verdict != OwnerEvidenceStatus::Confirmed
+        || parent.physical_outcome.receipt.status != OwnerEvidenceStatus::Confirmed
         || parent.mission_resolution.outcome != MissionOutcome::NoEffect
-        || parent.mission_resolution.verdict != OwnerEvidenceStatus::Confirmed
+        || parent.mission_resolution.receipt.status != OwnerEvidenceStatus::Confirmed
     {
         return Err(LineageError::ParentOutcomeNotRetryable);
     }
@@ -418,7 +488,7 @@ fn validate_recovery_handoff(
     if !matches!(
         parent.persistence.outcome,
         PersistenceOutcome::DefinitelyNotCommitted | PersistenceOutcome::Committed
-    ) || parent.persistence.verdict != OwnerEvidenceStatus::Confirmed
+    ) || parent.persistence.receipt.status != OwnerEvidenceStatus::Confirmed
     {
         return Err(LineageError::PersistenceUnresolved);
     }
@@ -426,7 +496,7 @@ fn validate_recovery_handoff(
     let target = child.authorized_epoch;
     let controller = &parent.controller_queue_fence;
     if controller.outcome != FenceOutcome::Quiescent
-        || controller.verdict != OwnerEvidenceStatus::Confirmed
+        || controller.receipt.status != OwnerEvidenceStatus::Confirmed
     {
         return Err(LineageError::ControllerFenceUnqualified);
     }
@@ -436,7 +506,7 @@ fn validate_recovery_handoff(
 
     let downstream = &parent.downstream_quiescence;
     if downstream.outcome != FenceOutcome::Quiescent
-        || downstream.verdict != OwnerEvidenceStatus::Confirmed
+        || downstream.receipt.status != OwnerEvidenceStatus::Confirmed
     {
         return Err(LineageError::DownstreamFenceUnqualified);
     }
@@ -449,10 +519,10 @@ fn validate_recovery_handoff(
 impl AttemptLineageRecording {
     /// Validate a complete, ordered attempt chain.
     ///
-    /// A successful result means only that the supplied records are internally
-    /// consistent and every retry edge has the required owner-evidence shape.
-    /// It does not authenticate receipts, infer missing physical observations,
-    /// or authorize a native action.
+    /// A successful result means only that supplied owner records are
+    /// internally consistent and every retry edge has the required evidence
+    /// shape. It does not authenticate owners/artifacts, infer missing physical
+    /// observations, or authorize a native action.
     pub fn validate(&self) -> Result<LineageSummary, LineageError> {
         if self.version != ATTEMPT_LINEAGE_VERSION
             || !nonempty(&self.logical_effect_id)
@@ -519,7 +589,9 @@ impl AttemptLineageRecording {
 
             validate_attempt_evidence(&self.logical_effect_id, attempt, &mut evidence_ids)?;
 
-            if attempt.physical_outcome.outcome == PhysicalOutcome::Applied {
+            if attempt.physical_outcome.outcome == PhysicalOutcome::Applied
+                && attempt.physical_outcome.receipt.status == OwnerEvidenceStatus::Confirmed
+            {
                 applied_attempt_count += 1;
             }
         }
@@ -559,6 +631,27 @@ mod tests {
         assert_eq!(summary.applied_attempt_count, 1);
         assert_eq!(summary.head_attempt_id, "attempt-3");
         assert_eq!(summary.head_outcome, PhysicalOutcome::Applied);
+    }
+
+    #[test]
+    fn rejects_typed_outcome_changed_without_matching_owner_assertion() {
+        let mut recording = valid_recording();
+        recording.attempts[0].physical_outcome.outcome = PhysicalOutcome::Applied;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::InvalidEvidenceReceipt)
+        );
+    }
+
+    #[test]
+    fn rejects_owner_assertion_from_another_evidence_domain() {
+        let mut recording = valid_recording();
+        recording.attempts[0].physical_outcome.receipt.domain =
+            OwnerEvidenceDomain::Persistence;
+        assert_eq!(
+            recording.validate(),
+            Err(LineageError::InvalidEvidenceReceipt)
+        );
     }
 
     #[test]
@@ -740,6 +833,8 @@ mod tests {
     fn refuses_retry_after_indeterminate_persistence() {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::IndeterminateCommit;
+        recording.attempts[0].persistence.receipt.asserted_value =
+            "indeterminate_commit".into();
         assert_eq!(
             recording.validate(),
             Err(LineageError::PersistenceUnresolved)
@@ -747,17 +842,18 @@ mod tests {
     }
 
     #[test]
-    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect()
-    {
+    fn accepts_resolved_committed_persistence_when_physical_and_mission_outcomes_confirm_no_effect() {
         let mut recording = valid_recording();
         recording.attempts[0].persistence.outcome = PersistenceOutcome::Committed;
+        recording.attempts[0].persistence.receipt.asserted_value = "committed".into();
         assert!(recording.validate().is_ok());
     }
 
     #[test]
     fn refuses_retry_when_no_effect_is_not_confirmed() {
         let mut recording = valid_recording();
-        recording.attempts[0].physical_outcome.verdict = OwnerEvidenceStatus::InsufficientEvidence;
+        recording.attempts[0].physical_outcome.receipt.status =
+            OwnerEvidenceStatus::InsufficientEvidence;
         assert_eq!(
             recording.validate(),
             Err(LineageError::ParentOutcomeNotRetryable)
@@ -765,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    fn refuses_retry_after_applied_partial_unknown_or_disputed_outcome() {
+    fn refuses_retry_after_applied_partial_unknown_disputed_or_not_observed_outcome() {
         for outcome in [
             PhysicalOutcome::Applied,
             PhysicalOutcome::Partial,
@@ -775,12 +871,8 @@ mod tests {
         ] {
             let mut recording = valid_recording();
             recording.attempts[0].physical_outcome.outcome = outcome;
-            recording.attempts[0].mission_resolution.outcome =
-                if outcome == PhysicalOutcome::Applied {
-                    MissionOutcome::EffectPredicateSatisfied
-                } else {
-                    MissionOutcome::Unresolved
-                };
+            recording.attempts[0].physical_outcome.receipt.asserted_value =
+                physical_value(outcome).into();
             assert!(
                 recording.validate().is_err(),
                 "outcome {outcome:?} must not have a descendant"
@@ -809,10 +901,13 @@ mod tests {
         assert_eq!(regressed.validate(), Err(LineageError::EpochNotMonotonic));
 
         let mut wrong_fence = valid_recording();
-        wrong_fence.attempts[0].downstream_quiescence.target_epoch = Some(EpochPair {
+        let wrong_target = EpochPair {
             boot_epoch: 2,
             controller_epoch: 9,
-        });
+        };
+        wrong_fence.attempts[0].downstream_quiescence.target_epoch = Some(wrong_target);
+        wrong_fence.attempts[0].downstream_quiescence.receipt.asserted_value =
+            fence_value(FenceOutcome::Quiescent, Some(wrong_target));
         assert_eq!(
             wrong_fence.validate(),
             Err(LineageError::FenceEpochMismatch)
@@ -822,7 +917,10 @@ mod tests {
     #[test]
     fn refuses_replayed_receipt_identity_and_cross_attempt_scope() {
         let mut duplicate = valid_recording();
-        duplicate.attempts[1].mission_resolution.receipt.evidence_id = duplicate.attempts[0]
+        duplicate.attempts[1]
+            .mission_resolution
+            .receipt
+            .evidence_id = duplicate.attempts[0]
             .physical_outcome
             .receipt
             .evidence_id
@@ -847,7 +945,7 @@ mod tests {
     #[test]
     fn refuses_unqualified_controller_or_downstream_fence() {
         let mut controller = valid_recording();
-        controller.attempts[0].controller_queue_fence.verdict =
+        controller.attempts[0].controller_queue_fence.receipt.status =
             OwnerEvidenceStatus::InsufficientEvidence;
         assert_eq!(
             controller.validate(),
@@ -856,6 +954,9 @@ mod tests {
 
         let mut downstream = valid_recording();
         downstream.attempts[1].downstream_quiescence.outcome = FenceOutcome::Active;
+        downstream.attempts[1].downstream_quiescence.target_epoch = None;
+        downstream.attempts[1].downstream_quiescence.receipt.asserted_value =
+            fence_value(FenceOutcome::Active, None);
         assert_eq!(
             downstream.validate(),
             Err(LineageError::DownstreamFenceUnqualified)
