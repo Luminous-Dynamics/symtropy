@@ -121,3 +121,10 @@ The checked-in profile is explicitly a **synthetic contract fixture**: it carrie
 ## Independent world iteration witness
 
 A successful StepSimulation service/action response is not treated as proof that the requested iteration occurred. The transport must also supply a pinned Gazebo world-statistics receipt from the exact world stats topic. The adapter compares the message type, producer/build, topic, clock, iterations and sim_time with the world snapshot. A mismatch between service-control result and published world statistics fails closed. The topic path, raw artifact ID and digest are carried as measurement evidence; this closes the control/measurement distinction but does not authenticate the telemetry producer.
+
+
+## Fresh world-statistics samples and reset epochs
+
+A WorldStatistics record is not just an iteration counter. Each captured sample is tagged by the adapter with the current world epoch, simulation clock ID, collector monotonic-clock ID and receive timestamp. After reset, the first stats sample must be a new artifact in the new world epoch and later on the same collector clock. After a discrete step, the adapter must observe a newer stats artifact whose iterations and sim_time match the requested step. A stale sample from a previous epoch or an old message cached by the transport is rejected even when its numeric iteration count happens to match.
+
+The WorldStats stream is documented as throttled to 5 Hz on the server API, so a live transport must wait for the next matching sample using a bounded telemetry timeout. The timeout is only for observing telemetry; physics advances only through the explicit step interface. No wall-clock sleep or stale cached message can count as a step receipt. The synthetic test transport advances its collector clock deterministically; it is not a live Gazebo proof.
