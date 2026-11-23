@@ -42,6 +42,7 @@ function abstain(item, reason, threshold) {
 function validGateStates(item) {
   return ["CURRENT", "STALE", "UNAVAILABLE"].includes(item.world_set_state)
     && ["CLOSED_WITHIN_DECLARED_SCOPE", "OPEN", "STALE", "INADEQUATE"].includes(item.domain_closure_state)
+    && ["COMPLETE_WITHIN_DECLARED_GRAMMAR", "INADEQUATE", "STALE", "INDETERMINATE"].includes(item.dependency_graph_state)
     && ["ADEQUATE", "INADEQUATE"].includes(item.model_family_state)
     && ["CURRENT", "STALE", "CONTRADICTED", "INDETERMINATE"].includes(item.evidence_state);
 }
@@ -82,6 +83,15 @@ function evaluateCase(item) {
   if (item.domain_closure_state === "STALE") return abstain(item, "STALE_DOMAIN_CLOSURE", threshold);
   if (item.domain_closure_state === "INADEQUATE" || item.model_family_state === "INADEQUATE") {
     return abstain(item, "MODEL_FAMILY_INADEQUATE", threshold);
+  }
+  if (item.dependency_graph_state === "INADEQUATE") {
+    return abstain(item, "DEPENDENCY_GRAPH_INADEQUATE", threshold);
+  }
+  if (item.dependency_graph_state === "STALE") {
+    return abstain(item, "STALE_DEPENDENCY_GRAPH", threshold);
+  }
+  if (item.dependency_graph_state === "INDETERMINATE") {
+    return abstain(item, "INDETERMINATE_DEPENDENCY_GRAPH", threshold);
   }
   if (item.evidence_state === "STALE") return abstain(item, "STALE_EVIDENCE", threshold);
   if (item.evidence_state === "CONTRADICTED") return abstain(item, "CONTRADICTED_EVIDENCE", threshold);
