@@ -51,7 +51,10 @@ The no-observation baseline must choose one action feasible in all worlds. Its m
 | shared_tos_signal | Advisory only; shared gateway | 1 kWh | 0 ticks | 71 service_units | -1 service_unit |
 | independent_field_inspection | Independent observation candidate | 2 kWh | 1 tick | 5 service_units | 65 service_units |
 | unknown_dependency_feed | Not admissible | 0 kWh | 0 ticks | NA | NA |
+| potentially_correlated_feed | Not admissible as independent | 0 kWh | 0 ticks | NA | NA |
+| revoked_dependency_feed | Revoked | 0 kWh | 0 ticks | NA | NA |
 | ambiguous_event_camera | Not admissible | 0 kWh | 0 ticks | NA | NA |
+| unmatched_event_receipt | Not admissible | 0 kWh | 0 ticks | NA | NA |
 | stale_field_sensor | Not admissible | 0 kWh | 0 ticks | NA | NA |
 | overbudget_independent_audit | Above budget | 4 kWh | 2 ticks | NA | NA (12 cost units > 8 budget) |
 
