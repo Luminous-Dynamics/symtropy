@@ -724,7 +724,7 @@ mod tests {
     #[test]
     fn parent_time_cannot_move_backwards() {
         let mut input = fixture();
-        input.nodes.iter_mut().find(|node| node.node_id == "blind-a").unwrap().decision_time_seconds = 0;
+        input.nodes.iter_mut().find(|node| node.node_id == "revealed-a").unwrap().decision_time_seconds = 50;
         let errors = evaluate_nonanticipative_policy(&input)
             .expect_err("a child decision cannot precede its parent");
         assert!(errors
