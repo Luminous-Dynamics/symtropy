@@ -170,7 +170,7 @@ pub enum DimensionInventory {
 pub struct RoleClosure {
     pub role_id: String,
     pub role_binding_node_id: String,
-    pub dimensions: BTreeMap<FaultDomainDimension, DimensionInventory>,
+    pub dimensions: BTreeMap<StageDimension, DimensionInventory>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -494,7 +494,7 @@ fn validate_profile_and_projection(
             if role.role_id != *role_id || role.role_binding_node_id.trim().is_empty() {
                 errors.insert(ValidationError::InvalidRoleBinding);
             }
-            for (dimension, inventory) in &role.dimensions {
+            for (stage_dimension, inventory) in &role.dimensions {
                 match inventory {
                     DimensionInventory::Complete(witnesses) if witnesses.is_empty() => {
                         errors.insert(ValidationError::EmptyInventory);
@@ -519,7 +519,7 @@ fn validate_profile_and_projection(
                     }
                 };
                 for witness in witnesses {
-                    if witness.class.canonical_dimension() != *dimension {
+                    if witness.class.canonical_dimension() != stage_dimension.dimension {
                         errors.insert(ValidationError::DimensionClassMismatch);
                     }
                     if !validate_path(&role.role_binding_node_id, witness) {
@@ -545,9 +545,9 @@ fn validate_profile_and_projection(
 
 fn witnesses_for(
     role: &RoleClosure,
-    dimension: FaultDomainDimension,
+    stage_dimension: StageDimension,
 ) -> Option<&DimensionInventory> {
-    role.dimensions.get(&dimension)
+    role.dimensions.get(&stage_dimension)
 }
 
 fn assess_obligation(
@@ -580,8 +580,8 @@ fn assess_obligation(
         return finding;
     };
     let (Some(left_inventory), Some(right_inventory)) = (
-        witnesses_for(left, obligation.dimension),
-        witnesses_for(right, obligation.dimension),
+        witnesses_for(left, obligation),
+        witnesses_for(right, obligation),
     ) else {
         finding.disposition = SeparationDisposition::Incomplete;
         finding
@@ -831,9 +831,9 @@ mod tests {
             dimension,
         }]);
         let mut left_dimensions = BTreeMap::new();
-        left_dimensions.insert(dimension, left);
+        left_dimensions.insert(StageDimension { stage: MaritimeStage::Detection, dimension }, left);
         let mut right_dimensions = BTreeMap::new();
-        right_dimensions.insert(dimension, right);
+        right_dimensions.insert(StageDimension { stage: MaritimeStage::Detection, dimension }, right);
         let projection = ClosureProjection {
             schema: CLOSURE_SCHEMA.to_owned(),
             graph_schema_version: "lex-net-030-v1".to_owned(),
@@ -1401,7 +1401,7 @@ mod tests {
         });
         for role in projection.roles.values_mut() {
             role.dimensions.insert(
-                runtime,
+                StageDimension { stage: MaritimeStage::Transport, dimension: runtime },
                 DimensionInventory::Complete(vec![witness(
                     if role.role_id == "source" { 5 } else { 6 },
                     MaritimeDependencyClass::GatewayRuntime,
@@ -1432,6 +1432,64 @@ mod tests {
         assert_eq!(
             result.findings[1].disposition,
             SeparationDisposition::SeparatedForProfile
+        );
+    }
+
+    #[test]
+    fn same_dimension_is_evaluated_against_distinct_stage_inventories() {
+        let dimension = FaultDomainDimension::SourceEvidenceLineage;
+        let (mut profile, mut projection) = projection(
+            DimensionInventory::Complete(vec![witness(
+                1,
+                MaritimeDependencyClass::MeasurementQualification,
+                "source-binding",
+                "shared-clock-detection",
+                "edge-detection-source",
+            )]),
+            DimensionInventory::Complete(vec![witness(
+                1,
+                MaritimeDependencyClass::MeasurementQualification,
+                "witness-binding",
+                "shared-clock-detection",
+                "edge-detection-witness",
+            )]),
+            dimension,
+        );
+        let persistence = StageDimension {
+            stage: MaritimeStage::PersistenceRetrieval,
+            dimension,
+        };
+        profile.obligations.insert(persistence);
+        projection.roles.get_mut("source").unwrap().dimensions.insert(
+            persistence,
+            DimensionInventory::Complete(vec![witness(
+                2,
+                MaritimeDependencyClass::PersistenceRetrieval,
+                "source-binding",
+                "source-object-store",
+                "edge-persistence-source",
+            )]),
+        );
+        projection.roles.get_mut("witness").unwrap().dimensions.insert(
+            persistence,
+            DimensionInventory::Complete(vec![witness(
+                3,
+                MaritimeDependencyClass::PersistenceRetrieval,
+                "witness-binding",
+                "witness-archive",
+                "edge-persistence-witness",
+            )]),
+        );
+        let result = assess(&profile, &projection);
+        assert_eq!(result.findings.len(), 2);
+        assert_eq!(result.findings[0].disposition, SeparationDisposition::Shared);
+        assert_eq!(
+            result.findings[1].disposition,
+            SeparationDisposition::SeparatedForProfile
+        );
+        assert_eq!(
+            result.disposition,
+            ProfileDisposition::ProfileObligationsNotMet
         );
     }
 
