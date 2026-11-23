@@ -273,6 +273,17 @@ fn nonempty(value: &str) -> bool {
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
 }
+fn owner_evidence_by_domain(
+    snapshot: &RuntimeSnapshot,
+    domain: OwnerEvidenceDomain,
+) -> Result<&OwnerEvidenceRef, ProjectionError> {
+    snapshot
+        .owner_evidence
+        .iter()
+        .find(|evidence| evidence.domain == domain)
+        .ok_or(ProjectionError::MissingOwnerEvidence)
+}
+
 fn str_field<'a>(state: &'a Value, key: &'static str) -> Result<&'a str, ProjectionError> {
     state
         .get(key)
