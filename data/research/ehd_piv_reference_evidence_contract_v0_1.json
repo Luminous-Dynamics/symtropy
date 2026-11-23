@@ -112,8 +112,9 @@
       "reject_parent_or_current_components": true,
       "reject_windows_drive_or_stream_colon": true,
       "reject_symlink_components": true,
-      "reject_case_insensitive_path_collisions": true,
-      "reject_windows_reserved_components": true
+      "reject_case_insensitive_path_collisions": false,
+      "reject_windows_reserved_components": true,
+      "reject_ascii_case_insensitive_path_collisions": true
     }
   },
   "protocol_fingerprint": {
@@ -275,7 +276,7 @@
     "manifest_verification": "manifest_digest_then_rehash_every_file_before_processing",
     "cohort_partition": "union_find_dependency_components_and_pairwise_disjoint_roles",
     "reference_claim_gate": "metadata_eligibility_only_not_authentication_or_deconvolution",
-    "authored_negative_control_count": 15,
+    "authored_negative_control_count": 19,
     "dedicated_workflow": ".github/workflows/ehd-piv-acquisition-evidence.yml",
     "filesystem_threat_model": "symlink_and_path_escape_rejection; not race_hardened_against_concurrent_local_adversary",
     "validation_state": {
