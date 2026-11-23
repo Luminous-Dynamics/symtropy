@@ -187,6 +187,7 @@ jobs:
             and .attempts[0].downstream_quiescence.target_epoch == .attempts[1].authorized_epoch
             and .attempts[1].controller_queue_fence.target_epoch == .attempts[2].authorized_epoch
             and .attempts[1].downstream_quiescence.target_epoch == .attempts[2].authorized_epoch
+            and ([.. | objects | select(has("raw_artifact_sha256")) | .raw_artifact_sha256] | all(type == "string" and test("^[a-fA-F0-9]{64}$")))
           ' "$FIXTURE"
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml -- --check
