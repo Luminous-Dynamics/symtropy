@@ -528,8 +528,6 @@ fn determine_abstention(rejected: &RejectedIlluminationCounts) -> EventPlanAbste
         EventPlanAbstention::ParticleDensityExceedsAllValidatedModes
     } else if rejected.spatial_coverage_insufficient > 0 {
         EventPlanAbstention::SpatialCoverageUnavailable
-    } else if rejected.unavailable > 0 || rejected.missing_receipt > 0 {
-        EventPlanAbstention::NoAvailableCalibratedIlluminationMode
     } else {
         EventPlanAbstention::NoAvailableCalibratedIlluminationMode
     }
