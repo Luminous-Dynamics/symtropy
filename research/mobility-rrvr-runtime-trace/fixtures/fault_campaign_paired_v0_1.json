@@ -1,0 +1,194 @@
+{
+  "version": "0.1",
+  "campaign_id": "rrvr-paired-fault-campaign-reference-v0.1",
+  "fault_model_revision": "rrvr-fault-model-v0.1",
+  "fault_model_sha256": "0808080808080808080808080808080808080808080808080808080808080808",
+  "platform": {
+    "platform_id": "declared-sim-ros2-manipulator-v0.1",
+    "profile_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+    "environment_artifact_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+    "simulator_revision": "simulator-build-2026.11.23+sha256:profile",
+    "ros_distribution": "jazzy",
+    "middleware_revision": "rmw-cyclonedds-0.10.5",
+    "controller_revision": "controller-fixture-4c9e",
+    "driver_revision": "driver-fixture-98ad",
+    "firmware_revision": "firmware-fixture-2026.11",
+    "calibration_revision": "calibration-fixture-2026.11",
+    "observer_stack_revision": "observer-fixture-v0.1"
+  },
+  "reset": {
+    "kind": "simulator_snapshot_restore",
+    "revision": "reset-profile-v0.1",
+    "profile_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+    "expected_initial_state_sha256": "0404040404040404040404040404040404040404040404040404040404040404",
+    "post_reset_observation_id": "reset-observation-0001"
+  },
+  "required_layers": [
+    "process",
+    "observer",
+    "controller",
+    "firmware"
+  ],
+  "required_cut_points": [
+    "after_native_acceptance_before_effect",
+    "after_possible_effect_before_persistence_ack",
+    "after_controller_fence_before_downstream_fence",
+    "after_permit_consumption_before_ack"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "positive-full-rrvr",
+      "pair_id": "pair-positive-001",
+      "arm": "full_rrvr",
+      "control_class": "positive",
+      "task_id": "pick-place-transfer",
+      "policy_id": "policy-frozen-2026-11-23",
+      "policy_sha256": "0505050505050505050505050505050505050505050505050505050505050505",
+      "scene_sha256": "0606060606060606060606060606060606060606060606060606060606060606",
+      "action_prefix_sha256": "0707070707070707070707070707070707070707070707070707070707070707",
+      "seed": 20261123,
+      "logical_effect_id": "effect-pair-positive-001",
+      "faults": [],
+      "expected_disposition": "admit",
+      "expected_reason_code": "valid_no_effect_reconciled",
+      "invariant_id": "RRVR-VALID-POSITIVE-001",
+      "failure_signature_sha256": null
+    },
+    {
+      "scenario_id": "positive-last-attempt",
+      "pair_id": "pair-positive-001",
+      "arm": "last_attempt_only",
+      "control_class": "positive",
+      "task_id": "pick-place-transfer",
+      "policy_id": "policy-frozen-2026-11-23",
+      "policy_sha256": "0505050505050505050505050505050505050505050505050505050505050505",
+      "scene_sha256": "0606060606060606060606060606060606060606060606060606060606060606",
+      "action_prefix_sha256": "0707070707070707070707070707070707070707070707070707070707070707",
+      "seed": 20261123,
+      "logical_effect_id": "effect-pair-positive-001",
+      "faults": [],
+      "expected_disposition": "measure",
+      "expected_reason_code": "baseline_measurement_only",
+      "invariant_id": "RRVR-VALID-POSITIVE-001",
+      "failure_signature_sha256": null
+    },
+    {
+      "scenario_id": "negative-full-rrvr",
+      "pair_id": "pair-negative-001",
+      "arm": "full_rrvr",
+      "control_class": "negative",
+      "task_id": "pick-place-transfer",
+      "policy_id": "policy-frozen-2026-11-23",
+      "policy_sha256": "0505050505050505050505050505050505050505050505050505050505050505",
+      "scene_sha256": "0606060606060606060606060606060606060606060606060606060606060606",
+      "action_prefix_sha256": "0707070707070707070707070707070707070707070707070707070707070707",
+      "seed": 20261123,
+      "logical_effect_id": "effect-pair-negative-001",
+      "faults": [
+        {
+          "sequence": 1,
+          "fault_id": "fault-process-crash",
+          "cut_point": "after_native_acceptance_before_effect",
+          "target_layer": "process",
+          "target_component_id": "native-application",
+          "fault_domain_id": "process-host-a",
+          "kind": "process_crash",
+          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+        },
+        {
+          "sequence": 2,
+          "fault_id": "fault-observer-common-cause",
+          "cut_point": "after_possible_effect_before_persistence_ack",
+          "target_layer": "observer",
+          "target_component_id": "physical-observer-pair",
+          "fault_domain_id": "observer-power-clock-a",
+          "kind": "common_cause_failure",
+          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+        },
+        {
+          "sequence": 3,
+          "fault_id": "fault-controller-queue-retention",
+          "cut_point": "after_controller_fence_before_downstream_fence",
+          "target_layer": "controller",
+          "target_component_id": "controller-command-queue",
+          "fault_domain_id": "controller-bus-a",
+          "kind": "queue_retention",
+          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+        },
+        {
+          "sequence": 4,
+          "fault_id": "fault-firmware-power-loss",
+          "cut_point": "after_permit_consumption_before_ack",
+          "target_layer": "firmware",
+          "target_component_id": "actuator-drive",
+          "fault_domain_id": "actuator-power-a",
+          "kind": "power_loss",
+          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+        }
+      ],
+      "expected_disposition": "block",
+      "expected_reason_code": "prior_effect_or_path_not_reconciled",
+      "invariant_id": "RRVR-NO-UNSAFE-RETRY-001",
+      "failure_signature_sha256": "0909090909090909090909090909090909090909090909090909090909090909"
+    },
+    {
+      "scenario_id": "negative-last-attempt",
+      "pair_id": "pair-negative-001",
+      "arm": "last_attempt_only",
+      "control_class": "negative",
+      "task_id": "pick-place-transfer",
+      "policy_id": "policy-frozen-2026-11-23",
+      "policy_sha256": "0505050505050505050505050505050505050505050505050505050505050505",
+      "scene_sha256": "0606060606060606060606060606060606060606060606060606060606060606",
+      "action_prefix_sha256": "0707070707070707070707070707070707070707070707070707070707070707",
+      "seed": 20261123,
+      "logical_effect_id": "effect-pair-negative-001",
+      "faults": [
+        {
+          "sequence": 1,
+          "fault_id": "fault-process-crash",
+          "cut_point": "after_native_acceptance_before_effect",
+          "target_layer": "process",
+          "target_component_id": "native-application",
+          "fault_domain_id": "process-host-a",
+          "kind": "process_crash",
+          "parameters_sha256": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
+        },
+        {
+          "sequence": 2,
+          "fault_id": "fault-observer-common-cause",
+          "cut_point": "after_possible_effect_before_persistence_ack",
+          "target_layer": "observer",
+          "target_component_id": "physical-observer-pair",
+          "fault_domain_id": "observer-power-clock-a",
+          "kind": "common_cause_failure",
+          "parameters_sha256": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+        },
+        {
+          "sequence": 3,
+          "fault_id": "fault-controller-queue-retention",
+          "cut_point": "after_controller_fence_before_downstream_fence",
+          "target_layer": "controller",
+          "target_component_id": "controller-command-queue",
+          "fault_domain_id": "controller-bus-a",
+          "kind": "queue_retention",
+          "parameters_sha256": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+        },
+        {
+          "sequence": 4,
+          "fault_id": "fault-firmware-power-loss",
+          "cut_point": "after_permit_consumption_before_ack",
+          "target_layer": "firmware",
+          "target_component_id": "actuator-drive",
+          "fault_domain_id": "actuator-power-a",
+          "kind": "power_loss",
+          "parameters_sha256": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e"
+        }
+      ],
+      "expected_disposition": "measure",
+      "expected_reason_code": "baseline_measurement_only",
+      "invariant_id": "RRVR-NO-UNSAFE-RETRY-001",
+      "failure_signature_sha256": "0909090909090909090909090909090909090909090909090909090909090909"
+    }
+  ]
+}
