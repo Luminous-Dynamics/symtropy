@@ -28,7 +28,10 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 && args.len() != 5 {
         return Err(
-            "usage: rrvr_campaign_verify <compiled-plan.json> <source-manifest.json> <expected-plan-sha256> [report.json]"
+            concat!(
+                "usage: rrvr_campaign_verify <compiled-plan.json> <source-manifest.json> ",
+                "<expected-plan-sha256> [report.json]"
+            )
                 .to_owned(),
         );
     }
@@ -60,7 +63,13 @@ fn run() -> Result<(), String> {
         return Err("compiled plan bytes are not in the declared canonical encoding".to_owned());
     }
     if !plan.plan_sha256.eq_ignore_ascii_case(expected_plan_sha256) {
-        return Err("compiled plan digest does not match the externally pinned expected digest".to_owned());
+        return Err(
+            concat!(
+                "compiled plan digest does not match the externally pinned ",
+                "expected digest"
+            )
+            .to_owned()
+        );
     }
 
     let report = json!({
@@ -77,7 +86,11 @@ fn run() -> Result<(), String> {
         "native_authority_created": false,
         "platform_inventory_authenticated": false,
         "physical_safety_established": false,
-        "claim_note": "PASS means the plan is canonically encoded and its commitments match the supplied source manifest and external digest pin. It does not authenticate the plan publisher, execute an injector, or establish physical safety."
+        "claim_note": concat!(
+            "PASS means the plan is canonically encoded and its commitments match the supplied ",
+            "source manifest and external digest pin. It does not authenticate the plan publisher, ",
+            "execute an injector, or establish physical safety."
+        )
     });
     let report_bytes = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("serialize plan verification report: {error}"))?;
