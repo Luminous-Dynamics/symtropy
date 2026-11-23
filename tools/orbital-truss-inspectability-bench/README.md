@@ -208,7 +208,7 @@ For larger candidate pools this subset oracle is not intended to scale; use a so
 
 ## Support-envelope certificate v0.1 — distinct from centre-ray visibility
 
-A first implementation increment for #7136 adds an enclosing-ball certificate for the entire declared support. Given a proven support ball and a proven normal cone, it derives conservative distance, ray-direction, FOV, incidence and GSD bounds. Results are fixed-point encoded for exact cross-language comparison. The 13-case corpus covers an envelope pass, provable whole-support failures, conservative-bound indeterminacy, missing support/normal proof, sensor-inside-support and malformed axis input.
+A first implementation increment for #7136 adds an enclosing-ball certificate for the entire declared support. Given a input-asserted support ball and a input-asserted normal cone, it derives conservative distance, ray-direction, FOV, incidence and GSD bounds. Results are fixed-point encoded for exact cross-language comparison. The 13-case corpus covers an envelope pass, provable whole-support failures, conservative-bound indeterminacy, missing support/normal proof, sensor-inside-support and malformed axis input.
 
 This is deliberately not a full-visibility certificate. Occlusion remains NOT_ASSESSED; even CERTIFIED_WITHIN_SENSING_ENVELOPE has full_support_visibility_certified=false and may_count_toward_full_support_coverage=false. A subsequent increment must add conservative support-ray/occlusion reasoning and explicit tangency, blocker, target-cell and partial-support semantics.
 
@@ -218,3 +218,6 @@ Reproduce:
     python3 tools/orbital-truss-inspectability-bench/tests/support_envelope_reference_oracle.py docs/research/orbital-truss/fixtures/support-envelope-v0_1.json <40-hex-source-commit>
 
 The certificate proves only that the entire declared enclosing support lies inside the idealized range/FOV/incidence/GSD envelope. It does not prove unoccluded rays, physical calibration, sensor performance or defect detection.
+
+
+**Input-precondition limitation:** enclosing_ball_asserted=true and normal_cone_asserted=true are caller assertions. This evaluator validates the provided numeric parameters but does not independently prove that the ball encloses the support or that the normal cone encloses every surface normal. Every certificate therefore reports precondition_proofs_verified_independently=false. A future evidence adapter must bind each assertion to a separately verified geometry/support proof before any stronger claim is made.
