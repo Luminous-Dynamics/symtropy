@@ -18,9 +18,10 @@ use crate::active_evidence_acquisition::{
 };
 use crate::decision_relevant_discrimination::{
     DecisionProjectionDisposition, DecisionRelevantDiscriminationReport,
+    HypothesisDecisionAssignment,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceActionDecisionAssessment {
     pub action: EvidenceActionAssessment,
     /// Positive values narrow the caller-supplied conditional protection bound.
@@ -34,6 +35,12 @@ pub struct EvidenceActionDecisionAssessment {
     pub disposition: DecisionProjectionDisposition,
     /// Diagnostic only; not comparable across different feature normalizations.
     pub minimum_positive_normalized_gap: Option<f64>,
+    /// Exact action-specific model and feature-semantics commitments.
+    pub outcome_model_sha256: [u8; 32],
+    pub normalization_sha256: [u8; 32],
+    /// Exact cross-decision pairs separated and left overlapping by this action.
+    pub separated_decision_hypothesis_pairs: Vec<(u64, u64)>,
+    pub unresolved_decision_hypothesis_pairs: Vec<(u64, u64)>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,6 +60,8 @@ pub struct ActiveEvidenceDecisionPlan {
     pub conditional_target_reached: bool,
     pub hypothesis_inventory_sha256: Option<[u8; 32]>,
     pub decision_partition_sha256: Option<[u8; 32]>,
+    /// Frozen hypothesis-to-decision mapping shared by every action report.
+    pub decision_assignments: Option<Vec<HypothesisDecisionAssignment>>,
     /// Always true: this plan cannot authorize an operating-mode transition.
     pub authority_transition_not_authorized_by_plan: bool,
 }
@@ -104,7 +113,11 @@ impl std::error::Error for ActiveEvidenceDecisionError {}
 struct ValidatedDecisionReport {
     inventory_sha256: [u8; 32],
     partition_sha256: [u8; 32],
+    outcome_model_sha256: [u8; 32],
+    normalization_sha256: [u8; 32],
     assignments: BTreeMap<u64, u64>,
+    separated_pairs: Vec<(u64, u64)>,
+    unresolved_pairs: Vec<(u64, u64)>,
     hypothesis_count: usize,
     decision_class_count: usize,
     same_decision_pair_count: usize,
@@ -205,6 +218,8 @@ fn validate_decision_report(
     let mut distinguishable = 0_usize;
     let mut ambiguous = 0_usize;
     let mut minimum_positive_gap: Option<f64> = None;
+    let mut separated_pairs = Vec::new();
+    let mut unresolved_pairs = Vec::new();
 
     for pair in &report.decision_pair_separations {
         if pair.lower_hypothesis_id == 0
@@ -234,6 +249,7 @@ fn validate_decision_report(
             return Err(invalid());
         }
 
+        let pair_id = (pair.lower_hypothesis_id, pair.upper_hypothesis_id);
         if pair.guaranteed_distinguishable {
             distinguishable = distinguishable.checked_add(1).ok_or_else(invalid)?;
             minimum_positive_gap = Some(
@@ -241,8 +257,10 @@ fn validate_decision_report(
                     current.min(pair.normalized_outcome_gap)
                 }),
             );
+            separated_pairs.push(pair_id);
         } else {
             ambiguous = ambiguous.checked_add(1).ok_or_else(invalid)?;
+            unresolved_pairs.push(pair_id);
         }
     }
 
@@ -269,7 +287,11 @@ fn validate_decision_report(
     Ok(ValidatedDecisionReport {
         inventory_sha256: report.hypothesis_inventory_sha256,
         partition_sha256: report.decision_partition_sha256,
+        outcome_model_sha256: report.outcome_model_sha256,
+        normalization_sha256: report.normalization_sha256,
         assignments,
+        separated_pairs,
+        unresolved_pairs,
         hypothesis_count: report.hypothesis_count,
         decision_class_count: report.decision_class_count,
         same_decision_pair_count: report.same_decision_hypothesis_pair_count,
@@ -312,6 +334,7 @@ pub fn plan_active_evidence_with_decision_relevance(
             conditional_target_reached: true,
             hypothesis_inventory_sha256: None,
             decision_partition_sha256: None,
+            decision_assignments: None,
             authority_transition_not_authorized_by_plan: true,
         });
     }
@@ -388,10 +411,17 @@ pub fn plan_active_evidence_with_decision_relevance(
         .ok_or(ActiveEvidenceDecisionError::MissingDecisionReport(
             resource_feasible[0].action_id,
         ))?;
-    let (partition_digest, _) = common_partition
+    let (partition_digest, partition_assignment_map) = common_partition
         .ok_or(ActiveEvidenceDecisionError::MissingDecisionReport(
             resource_feasible[0].action_id,
         ))?;
+    let decision_assignments: Vec<HypothesisDecisionAssignment> = partition_assignment_map
+        .into_iter()
+        .map(|(hypothesis_id, decision_class_id)| HypothesisDecisionAssignment {
+            hypothesis_id,
+            decision_class_id,
+        })
+        .collect();
 
     let mut assessments = Vec::with_capacity(resource_feasible.len());
     for candidate in &resource_feasible {
@@ -437,6 +467,10 @@ pub fn plan_active_evidence_with_decision_relevance(
             ambiguous_decision_pair_count: validated.ambiguous_pair_count,
             disposition: validated.disposition,
             minimum_positive_normalized_gap: validated.minimum_positive_gap,
+            outcome_model_sha256: validated.outcome_model_sha256,
+            normalization_sha256: validated.normalization_sha256,
+            separated_decision_hypothesis_pairs: validated.separated_pairs.clone(),
+            unresolved_decision_hypothesis_pairs: validated.unresolved_pairs.clone(),
         });
     }
 
@@ -453,7 +487,7 @@ pub fn plan_active_evidence_with_decision_relevance(
                 && dominates_decision_assessment(other, candidate)
         });
         if !dominated {
-            pareto_frontier.push(*candidate);
+            pareto_frontier.push(candidate.clone());
         }
     }
 
@@ -531,6 +565,7 @@ pub fn plan_active_evidence_with_decision_relevance(
         conditional_target_reached: selected.action.reaches_target_if_acquisition_qualifies,
         hypothesis_inventory_sha256: Some(inventory_digest),
         decision_partition_sha256: Some(partition_digest),
+        decision_assignments: Some(decision_assignments),
         authority_transition_not_authorized_by_plan: true,
     })
 }
