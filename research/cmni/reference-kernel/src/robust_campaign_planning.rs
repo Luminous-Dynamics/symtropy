@@ -177,9 +177,6 @@ pub fn plan_non_anticipative_robust_campaign(
     validate_policy(policy)?;
     let (scenario_ids, dependence_scope_receipt_id) =
         validate_acquisition_family(acquisitions, state_ids.len())?;
-    for acquisition in acquisitions {
-        validate_acquisition(acquisition, state_ids.len(), &scenario_ids)?;
-    }
 
     let action_count = action_ids.len();
     let terminal_choice_count = action_count
@@ -1058,6 +1055,77 @@ mod tests {
             }
             other => panic!("expected adaptive acquisition tree, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn one_stage_campaign_matches_the_deterministic_robust_decision_oracle() {
+        let states = vec!["state-0".to_owned(), "state-1".to_owned()];
+        let probabilities = vec![0.5, 0.5];
+        let actions = vec!["choose-0".to_owned(), "choose-1".to_owned()];
+        let utilities = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        let option = RobustCampaignAcquisition {
+            option_id: "sensor".to_owned(),
+            kind: InformationAcquisitionKind::IndependentCalibration,
+            cost: 0.05,
+            outcome_ids: vec!["reading-0".to_owned(), "reading-1".to_owned()],
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
+            scenarios: vec![
+                scenario(
+                    "dependence-a",
+                    vec![vec![0.8, 0.2], vec![0.2, 0.8]],
+                ),
+                scenario(
+                    "dependence-b",
+                    vec![vec![0.8, 0.2], vec![0.2, 0.8]],
+                ),
+            ],
+        };
+        let campaign = plan_non_anticipative_robust_campaign(
+            &states,
+            &probabilities,
+            &actions,
+            &utilities,
+            0.0,
+            &[option.clone()],
+            &RobustCampaignPlanningPolicy {
+                max_steps: 1,
+                remaining_resource_budget: 0.05,
+                cost_to_utility_rate: 1.0,
+                max_campaign_policy_trees: 32,
+            },
+        )
+        .expect("one-stage campaign oracle");
+        let candidate = crate::RobustDecisionDesignCandidate {
+            candidate_id: "sensor".to_owned(),
+            outcome_ids: option.outcome_ids.clone(),
+            resource_cost: option.cost,
+            dependence_scope_receipt_id: RECEIPT.to_owned(),
+            scenarios: option
+                .scenarios
+                .iter()
+                .map(|scenario| crate::RobustDecisionLikelihoodScenario {
+                    scenario_id: scenario.scenario_id.clone(),
+                    outcome_likelihoods: scenario.outcome_likelihoods.clone(),
+                })
+                .collect(),
+        };
+        let decision = crate::rank_designs_by_robust_decision_value(
+            &crate::RobustDecisionProblem {
+                state_ids: states,
+                action_ids: actions,
+                state_probabilities: probabilities,
+                action_utilities: utilities,
+            },
+            &[candidate],
+            crate::RobustDecisionDesignPolicy {
+                remaining_resource_budget: 0.05,
+                cost_to_utility_rate: 1.0,
+                max_policy_evaluations: 16,
+            },
+        )
+        .expect("one-stage robust decision oracle");
+        let decision_utility = decision.scores[0].robust_post_information_utility;
+        assert!((campaign.worst_case_net_utility + 0.05 - decision_utility).abs() < 1.0e-12);
     }
 
     #[test]
