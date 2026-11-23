@@ -314,20 +314,17 @@ mod tests {
     #[test]
     fn candidate_admission_drop_is_not_best_n_reduction() {
         let mut counts = baseline();
-        counts.perturbations_requested = 10;
-        counts.perturbations_valid = 10;
-        counts.support_queries_completed = 10;
+        counts.perturbations_requested = 9;
+        counts.perturbations_valid = 9;
+        counts.support_queries_completed = 9;
         counts.candidate_admission_limit = 5;
         counts.candidate_admission_capacity_rejected = 2;
         counts.support_candidates_admitted = 4;
         counts.candidate_pool_count_before_reduction = 5;
-        counts.perturbations_requested = 9;
-        counts.perturbations_valid = 9;
-        counts.support_queries_completed = 9;
         counts.best_n_reduced_count = 1;
         let report = counts.validate().expect("admission loss explicit");
-        assert_eq!(report.support_queries_attempted, 10);
-        assert_eq!(report.best_n_reduced_count, 2);
+        assert_eq!(report.support_queries_attempted, 9);
+        assert_eq!(report.best_n_reduced_count, 1);
         assert!(!report.evidence_complete);
     }
 
@@ -355,6 +352,9 @@ mod tests {
         let mut counts = baseline();
         counts.support_candidates_admitted = 7;
         counts.candidate_pool_count_before_reduction = 8;
+        counts.perturbations_requested = 10;
+        counts.perturbations_valid = 10;
+        counts.support_queries_completed = 10;
         counts.best_n_output_count = 4;
         counts.best_n_reduced_count = 4;
         let report = counts.validate().expect("best-N reduction");
