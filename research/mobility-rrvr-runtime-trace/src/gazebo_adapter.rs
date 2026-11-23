@@ -49,6 +49,7 @@ pub struct GazeboCapabilityProfile {
     pub version: String,
     pub simulator_id: String,
     pub simulator_revision: String,
+    pub gazebo_release: String,
     pub ros_distribution: String,
     pub simulation_interfaces_revision: String,
     pub world_name: String,
@@ -161,6 +162,7 @@ impl GazeboCapabilityProfile {
         if self.version != GAZEBO_ADAPTER_CONTRACT_VERSION
             || !nonempty(&self.simulator_id)
             || !nonempty(&self.simulator_revision)
+            || !nonempty(&self.gazebo_release)
             || !nonempty(&self.ros_distribution)
             || !nonempty(&self.simulation_interfaces_revision)
             || !nonempty(&self.world_name)
@@ -181,6 +183,9 @@ impl GazeboCapabilityProfile {
         }
         if self.ros_distribution != plan.platform.ros_distribution {
             return Err(GazeboAdapterError::RosDistributionMismatch);
+        }
+        if self.gazebo_release != plan.platform.gazebo_release {
+            return Err(GazeboAdapterError::PlatformRevisionMismatch);
         }
         if self.simulation_interfaces_revision != plan.platform.simulation_interfaces_revision {
             return Err(GazeboAdapterError::PlatformRevisionMismatch);
@@ -785,6 +790,7 @@ mod tests {
             version: GAZEBO_ADAPTER_CONTRACT_VERSION.into(),
             simulator_id: plan.platform.platform_id.clone(),
             simulator_revision: plan.platform.simulator_revision.clone(),
+            gazebo_release: plan.platform.gazebo_release.clone(),
             ros_distribution: plan.platform.ros_distribution.clone(),
             simulation_interfaces_revision: plan.platform.simulation_interfaces_revision.clone(),
             world_name: "rrvr-reference-world".into(),
