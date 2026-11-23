@@ -23,9 +23,12 @@ pub use decision_value::{
 
 mod robust_decision_design;
 pub use robust_decision_design::{
-    rank_designs_by_robust_decision_value, RobustDecisionDesignCandidate,
-    RobustDecisionDesignPolicy, RobustDecisionDesignRanking, RobustDecisionDesignScore,
-    RobustDecisionLikelihoodScenario, RobustDecisionProblem,
+    rank_designs_by_randomized_robust_decision_value, rank_designs_by_robust_decision_value,
+    LeastFavourableScenarioWeight, RandomizedDecisionPolicyComponent,
+    RandomizedRobustDecisionDesignRanking, RandomizedRobustDecisionDesignScore,
+    RandomizedRobustDecisionPolicy, RobustDecisionDesignCandidate, RobustDecisionDesignPolicy,
+    RobustDecisionDesignRanking, RobustDecisionDesignScore, RobustDecisionLikelihoodScenario,
+    RobustDecisionProblem,
 };
 
 mod design_decision;
