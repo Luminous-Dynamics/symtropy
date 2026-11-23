@@ -54,6 +54,7 @@ fn run() -> Result<(), String> {
         "suite_revision": report.suite_revision,
         "source_corpus_sha256": source_corpus_sha256,
         "matched_pair_count": report.matched_pair_count,
+        "scenario_cluster_count": report.scenario_cluster_count,
         "arm_count": report.arm_summaries.len(),
         "paired_comparison_count": report.paired_comparisons.len(),
         "report_sha256": digest_hex(&output),
