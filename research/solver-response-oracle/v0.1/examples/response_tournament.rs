@@ -2,8 +2,8 @@
 //! Deterministic synthetic smoke tournament for the response comparator.
 
 use solver_response_oracle::{
-    BodyResponse, ContactProbe, ContactProbeSet, ResponseScales, SolverResponseSnapshot, SolverTermination,
-    compare_responses,
+    BodyResponse, ContactProbe, ContactProbeSet, ResponseScales, SolverResponseSnapshot,
+    SolverTermination, compare_responses,
 };
 
 fn body(
@@ -66,22 +66,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let probes = ContactProbeSet {
         digest: "full-patch-contact-probes-smoke-001".to_owned(),
         probes: vec![
-        ContactProbe {
-            contact_id: "corner-left".to_owned(),
-            body_a_id: "box".to_owned(),
-            body_b_id: "ground".to_owned(),
-            lever_arm_a: [-0.5, 0.0, 0.0],
-            lever_arm_b: [0.0; 3],
-            normal: [0.0, 1.0, 0.0],
-        },
-        ContactProbe {
-            contact_id: "corner-right".to_owned(),
-            body_a_id: "box".to_owned(),
-            body_b_id: "ground".to_owned(),
-            lever_arm_a: [0.5, 0.0, 0.0],
-            lever_arm_b: [0.0; 3],
-            normal: [0.0, 1.0, 0.0],
-        },
+            ContactProbe {
+                contact_id: "corner-left".to_owned(),
+                body_a_id: "box".to_owned(),
+                body_b_id: "ground".to_owned(),
+                lever_arm_a: [-0.5, 0.0, 0.0],
+                lever_arm_b: [0.0; 3],
+                normal: [0.0, 1.0, 0.0],
+            },
+            ContactProbe {
+                contact_id: "corner-right".to_owned(),
+                body_a_id: "box".to_owned(),
+                body_b_id: "ground".to_owned(),
+                lever_arm_a: [0.5, 0.0, 0.0],
+                lever_arm_b: [0.0; 3],
+                normal: [0.0, 1.0, 0.0],
+            },
         ],
     };
     let report = compare_responses(
