@@ -17,9 +17,10 @@ A 90% interval for each vessel does not imply that all vessel calls in a multi-v
 
 Dependence changes the exact probability, but the logical point remains: per-call marginal coverage is not a schedule-level guarantee.
 
-Two distinct ways to address the problem are tested:
+Three approaches are compared, including two calibration sizes for the Bonferroni method:
 1. **Schedule-maximum conformal score**: calibrate one score per entire historical schedule, where that score is the maximum normalized arrival/handling residual across all 25 calls. This directly calibrates the schedule as the exchangeable unit.
-2. **Bonferroni family-wise allocation**: allocate total alpha 0.10 across 25 vessel calls, i.e. alpha 0.004 per call. If each marginal guarantee is valid, the union bound provides at least 90% schedule coverage without assuming independence.
+2. **Bonferroni family-wise allocation at n=120**: allocate total alpha 0.10 across 25 vessel calls, i.e. alpha 0.004 per call. At 120 calibration schedules no finite split-conformal quantile exists.
+3. **Bonferroni family-wise allocation at n=249**: the same alpha 0.004 per call, but with the minimum calibration count needed for a finite split-conformal order statistic. If each per-call guarantee is valid, the union bound provides at least 90% schedule coverage without assuming independence.
 
 The benchmark also includes ordinary per-vessel joint 90% split conformal as a deliberately insufficient baseline.
 
@@ -39,7 +40,7 @@ k = ceil(121 * 0.996) = 121 > 120
 
 There is **no finite distribution-free split-conformal quantile** at that sample size. The benchmark reports `NO_FINITE_SAMPLE_QUANTILE` instead of inventing a bound.
 
-The minimum calibration sample count for alpha 0.004 is 249:
+The minimum calibration sample count for alpha 0.004 is 249. The benchmark now evaluates this second sample-size arm as well as the 120-schedule no-finite-quantile arm:
 - n=248 gives k=249 > n;
 - n=249 gives k=249, which is finite.
 
@@ -50,7 +51,8 @@ The schedule-maximum method calibrates one score per whole schedule at alpha 0.1
 | Method | Calibration unit | Target |
 |---|---|---|
 | PER_VESSEL_JOINT_90 | One vessel call at a time | 90% per-call joint arrival/handling coverage |
-| BONFERRONI_SCHEDULE_90 | One vessel call at a time | 0.4% miscoverage per call; 90% schedule family-wise lower bound |
+| BONFERRONI_SCHEDULE_90_N120 | One vessel call at a time | 0.4% per-call miscoverage; no finite quantile with 120 calibration schedules |
+| BONFERRONI_SCHEDULE_90_N249 | One vessel call at a time | 0.4% per-call miscoverage; 90% schedule family-wise lower bound when per-call assumptions hold |
 | SCHEDULE_MAX_JOINT_90 | Whole schedule maximum across all 25 calls | 90% simultaneous whole-schedule coverage |
 
 Every call has two uncertainty dimensions:
@@ -61,21 +63,21 @@ The vessel joint score is the maximum of the two normalized absolute residuals. 
 
 ## Frozen synthetic experiment
 
-- 120 calibration schedules, each containing 25 vessel calls.
+- 120 calibration schedules for ordinary per-vessel and schedule-maximum methods; 249 calibration schedules for the finite Bonferroni arm. Each schedule contains 25 vessel calls.
 - 120 test schedules in each of three regimes: stationary, temporal drift and burst-tail.
 - Deterministic SplitMix64 seeds.
 - Heterogeneous call positions with different residual scales.
 - Burst regime injects a large residual in one call in selected schedules.
-- The test reports both per-call coverage and whole-schedule simultaneous coverage.
-- The Bonferroni method intentionally has no finite quantile at 120 calibration schedules; the receipt records this rather than converting it to a false schedule guarantee.
+- The test reports both per-call coverage and whole-schedule simultaneous coverage, with a 95% Wilson interval calculated over the 120 whole-schedule test units (not 3,000 clustered call outcomes).
+- Bonferroni at n=120 intentionally has no finite quantile; Bonferroni at n=249 is evaluated with a finite quantile. Both appear separately in the 12-row receipt.
 
 These are synthetic structural results, not DCT performance estimates or calibrated operational probabilities.
 
 ## Required evaluation
 
 A schedule-level uncertainty set must be evaluated against:
-- whole-schedule simultaneous coverage;
-- per-call coverage;
+- whole-schedule simultaneous coverage with a 95% Wilson interval over schedules;
+- per-call coverage (descriptive; not an independent-sample confidence interval);
 - interval widths and efficiency;
 - schedule-level false-safe hard-constraint claims;
 - berth/quay-crane/yard feasibility;
