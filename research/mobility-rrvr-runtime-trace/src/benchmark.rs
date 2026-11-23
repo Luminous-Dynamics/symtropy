@@ -977,8 +977,8 @@ mod tests {
 
     #[test]
     fn rejects_different_adjudicator_or_safety_protocol_within_a_pair() {
-        let mut corpus = corpus();
-        let full = corpus
+        let mut adjudicator_corpus = corpus();
+        let full = adjudicator_corpus
             .episodes
             .iter_mut()
             .find(|episode| {
@@ -987,7 +987,7 @@ mod tests {
             .unwrap();
         full.delivery_adjudicator_revision = "different-adjudicator-v2".into();
         assert_eq!(
-            corpus.validate_and_score(&"a".repeat(64)),
+            adjudicator_corpus.validate_and_score(&"a".repeat(64)),
             Err(BenchmarkError::IncomparableMatchedInputs)
         );
 
