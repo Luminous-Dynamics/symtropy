@@ -8,6 +8,10 @@ const EMBEDDED_CORPUS: &str =
     include_str!("../../../fixtures/manufacturing/mfg_route_policy_cases_v0_1.json");
 const EMBEDDED_ANSWERS: &str =
     include_str!("../../../fixtures/manufacturing/mfg_route_policy_known_answers_v0_1.json");
+const EMBEDDED_CASE_SCHEMA: &str =
+    include_str!("../../../schemas/manufacturing/mfg_route_policy_case_v0_1.schema.json");
+const EMBEDDED_ANSWER_SCHEMA: &str =
+    include_str!("../../../schemas/manufacturing/mfg_route_policy_known_answers_v0_1.schema.json");
 const PPM: u64 = 1_000_000;
 const POLICIES: [&str; 5] = [
     "cheapest_admissible",
@@ -168,6 +172,20 @@ struct FamilySummary {
     on_time_count: usize,
     mean_expected_regret_units_micros: u64,
     mean_realized_cost_units: u64,
+}
+
+fn validate_json_schema(instance_text: &str, schema_text: &str) -> Result<(), String> {
+    let instance: serde_json::Value = serde_json::from_str(instance_text)
+        .map_err(|error| format!("schema_instance_parse_error:{error}"))?;
+    let schema: serde_json::Value = serde_json::from_str(schema_text)
+        .map_err(|error| format!("schema_document_parse_error:{error}"))?;
+    let validator = jsonschema::draft202012::options()
+        .offline()
+        .build(&schema)
+        .map_err(|error| format!("draft_2020_12_schema_compile_error:{error}"))?;
+    validator
+        .validate(&instance)
+        .map_err(|error| format!("draft_2020_12_instance_validation_error:{error}"))
 }
 
 fn fail(message: impl Into<String>) -> String {
@@ -558,6 +576,7 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 }
 
 fn verify_known_answers(corpus: &Corpus) -> Result<(), String> {
+    validate_json_schema(EMBEDDED_ANSWERS, EMBEDDED_ANSWER_SCHEMA)?;
     let answers: AnswerFile = serde_json::from_str(EMBEDDED_ANSWERS)
         .map_err(|error| format!("known_answer_fixture_parse_error:{error}"))?;
     if answers.schema_id
@@ -616,6 +635,7 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("corpus_read_error:{error}"))?,
         _ => return Err(fail("usage: mfg-route-policy-benchmark [corpus.json]")),
     };
+    validate_json_schema(&content, EMBEDDED_CASE_SCHEMA)?;
     let corpus: Corpus = serde_json::from_str(&content)
         .map_err(|error| format!("corpus_parse_error:{error}"))?;
     verify_known_answers(&corpus)?;
@@ -644,6 +664,25 @@ mod tests {
 
     fn corpus() -> Corpus {
         serde_json::from_str(EMBEDDED_CORPUS).expect("frozen corpus parses")
+    }
+
+    #[test]
+    fn draft_2020_12_schema_accepts_corpus_and_rejects_unknown_fields() {
+        let schema: serde_json::Value =
+            serde_json::from_str(EMBEDDED_CASE_SCHEMA).expect("schema parses");
+        let validator = jsonschema::draft202012::options()
+            .offline()
+            .build(&schema)
+            .expect("Draft 2020-12 validator builds offline");
+        let instance: serde_json::Value =
+            serde_json::from_str(EMBEDDED_CORPUS).expect("corpus parses");
+        assert!(validator.is_valid(&instance));
+        let mut tampered = instance;
+        tampered.as_object_mut().unwrap().insert(
+            "unrecognized_property".into(),
+            serde_json::Value::Bool(true),
+        );
+        assert!(!validator.is_valid(&tampered));
     }
 
     #[test]
