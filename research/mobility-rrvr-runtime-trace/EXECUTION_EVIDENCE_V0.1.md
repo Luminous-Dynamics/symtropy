@@ -116,3 +116,8 @@ The validator now checks chronology across the ordered fault schedule, not only 
 ## Simulator-control versus world-state evidence
 
 The step-service/action receipt proves only what the control endpoint returned. The simulator transport must additionally capture a receipt from the pinned Gazebo world-statistics topic, including source build, raw artifact digest, clock, iterations and sim_time. The adapter refuses to accept a cut point until the observed statistics agree with the requested step and the world-state snapshot. The current reference is a synthetic test contract, not a live Gazebo stream. See GAZEBO_ADAPTER_V0.1.md.
+
+
+## World-statistics freshness evidence
+
+Every fault event now includes a distinct WorldStatistics observation artifact. The reset receipt also commits the initial WorldStatistics artifact, topic/message type, collector-clock identity and monotonic receive time. Per-event samples must use the same collector clock, carry the exact run/world epoch and simulation clock, report the planned iterations/sim_time, and have a strictly increasing receive timestamp after reset and each preceding event. This rejects stale/replayed samples that merely match a target iteration numerically. The collector monotonic clock is separate from the simulator clock; both identities are preserved in the final bundle.
