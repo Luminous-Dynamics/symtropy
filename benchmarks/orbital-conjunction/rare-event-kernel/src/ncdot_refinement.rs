@@ -229,9 +229,7 @@ pub fn decide_ncdot_refinement(
             significant_region_sample_count,
         );
     }
-    if rates[0] > maximum_rate * rate_cutoff
-        && epochs[0] > snapshot.lower_time_limit_seconds
-    {
+    if rates[0] > maximum_rate * rate_cutoff && epochs[0] > snapshot.lower_time_limit_seconds {
         let target = (epochs[0] - expansion_step).max(snapshot.lower_time_limit_seconds);
         return make_decision(
             snapshot,
@@ -310,9 +308,8 @@ pub fn decide_ncdot_refinement(
             }
             if index == 0 {
                 if epochs[0] > snapshot.lower_time_limit_seconds {
-                    integration_insertions.push(
-                        (epochs[0] - expansion_step).max(snapshot.lower_time_limit_seconds),
-                    );
+                    integration_insertions
+                        .push((epochs[0] - expansion_step).max(snapshot.lower_time_limit_seconds));
                 }
                 integration_insertions.push(midpoint(epochs[0], epochs[1])?);
             } else if index == count - 1 {
@@ -364,10 +361,13 @@ pub fn decide_ncdot_refinement(
         significant_indices.push(last + 1);
     }
 
-    let first_epoch = epochs[*significant_indices.first().expect("nonempty significant indices")];
-    let last_epoch = epochs[*significant_indices.last().expect("nonempty significant indices")];
-    let maximum_spacing =
-        (last_epoch - first_epoch) / significant_region_sample_count as f64;
+    let first_epoch = epochs[*significant_indices
+        .first()
+        .expect("nonempty significant indices")];
+    let last_epoch = epochs[*significant_indices
+        .last()
+        .expect("nonempty significant indices")];
+    let maximum_spacing = (last_epoch - first_epoch) / significant_region_sample_count as f64;
     if !maximum_spacing.is_finite() || maximum_spacing <= 0.0 {
         return Err(KernelError::InvalidNcdotRefinementSnapshot);
     }
@@ -432,8 +432,7 @@ fn zero_rate_refinement(
         midpoint(epochs[middle], epochs[far])?
     } else {
         let difference = (md2[near] - md2[middle]).abs();
-        let minimum_converged = difference
-            < policy.zero_rate_absolute_md2_tolerance
+        let minimum_converged = difference < policy.zero_rate_absolute_md2_tolerance
             || difference < policy.zero_rate_relative_md2_tolerance * minimum_md2;
         let gap_converged = near_gap
             < policy.zero_rate_max_near_gap_fraction * (epochs[epochs.len() - 1] - epochs[0]);
@@ -488,7 +487,10 @@ fn trapezoidal_node_weights(epochs: &[f64]) -> Result<Vec<f64>, KernelError> {
         weights.push(0.5 * (pair[0] + pair[1]));
     }
     weights.push(0.5 * intervals[intervals.len() - 1]);
-    if weights.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    if weights
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err(KernelError::NumericalOverflow);
     }
     Ok(weights)
@@ -498,9 +500,8 @@ fn initial_expansion_step(
     snapshot: &NcdotRefinementSnapshot,
     policy: NcdotRefinementPolicy,
 ) -> Result<f64, KernelError> {
-    let sampled_half_width =
-        0.5 * (snapshot.epochs_seconds[snapshot.epochs_seconds.len() - 1]
-            - snapshot.epochs_seconds[0]);
+    let sampled_half_width = 0.5
+        * (snapshot.epochs_seconds[snapshot.epochs_seconds.len() - 1] - snapshot.epochs_seconds[0]);
     let refinement_divisor = (policy.maximum_refinements as f64 / 3.0).max(1.0);
     let lower_scale = snapshot.lower_time_limit_seconds.abs() / refinement_divisor;
     let upper_scale = snapshot.upper_time_limit_seconds.abs() / refinement_divisor;
@@ -568,7 +569,10 @@ fn make_decision(
         {
             continue;
         }
-        if snapshot.epochs_seconds.binary_search_by(|value| value.total_cmp(&candidate)).is_ok()
+        if snapshot
+            .epochs_seconds
+            .binary_search_by(|value| value.total_cmp(&candidate))
+            .is_ok()
         {
             continue;
         }
@@ -578,7 +582,9 @@ fn make_decision(
             candidate >= snapshot.lower_time_limit_seconds && candidate < first_epoch;
         let is_upper_extension =
             candidate <= snapshot.upper_time_limit_seconds && candidate > last_epoch;
-        let left = snapshot.epochs_seconds.partition_point(|value| *value < candidate);
+        let left = snapshot
+            .epochs_seconds
+            .partition_point(|value| *value < candidate);
         let is_between = left > 0
             && left < snapshot.epochs_seconds.len()
             && snapshot.epochs_seconds[left - 1] < candidate
@@ -696,7 +702,10 @@ fn validate_snapshot(snapshot: &NcdotRefinementSnapshot) -> Result<(), KernelErr
         .epochs_seconds
         .iter()
         .any(|epoch| !epoch.is_finite())
-        || snapshot.epochs_seconds.windows(2).any(|pair| pair[1] <= pair[0])
+        || snapshot
+            .epochs_seconds
+            .windows(2)
+            .any(|pair| pair[1] <= pair[0])
     {
         return Err(KernelError::NonIncreasingTemporalEpochs);
     }
@@ -752,13 +761,25 @@ mod tests {
 
     #[test]
     fn zero_gamma_uses_nasas_one_e_minus_six_floor() {
-        assert_eq!(nasa_rate_cutoff(0.0).unwrap(), nasa_rate_cutoff(1.0e-6).unwrap());
-        assert_eq!(nasa_rate_cutoff(1.0e-7).unwrap(), nasa_rate_cutoff(1.0e-6).unwrap());
+        assert_eq!(
+            nasa_rate_cutoff(0.0).unwrap(),
+            nasa_rate_cutoff(1.0e-6).unwrap()
+        );
+        assert_eq!(
+            nasa_rate_cutoff(1.0e-7).unwrap(),
+            nasa_rate_cutoff(1.0e-6).unwrap()
+        );
     }
 
     #[test]
     fn boundary_rate_maximum_extends_lower_horizon_before_peak_refinement() {
-        let input = snapshot(&[-10.0, 0.0, 10.0], &[10.0, 4.0, 1.0], &[3.0, 2.0, 3.0], -40.0, 40.0);
+        let input = snapshot(
+            &[-10.0, 0.0, 10.0],
+            &[10.0, 4.0, 1.0],
+            &[3.0, 2.0, 3.0],
+            -40.0,
+            40.0,
+        );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
         assert_eq!(result.reason, NcdotRefinementReason::ExtendLowerBoundary);
         assert_eq!(result.inserted_epochs_seconds, vec![-20.0]);
@@ -766,7 +787,13 @@ mod tests {
 
     #[test]
     fn upper_boundary_rate_maximum_extends_upper_horizon_before_peak_refinement() {
-        let input = snapshot(&[-10.0, 0.0, 10.0], &[1.0, 4.0, 10.0], &[3.0, 2.0, 3.0], -40.0, 40.0);
+        let input = snapshot(
+            &[-10.0, 0.0, 10.0],
+            &[1.0, 4.0, 10.0],
+            &[3.0, 2.0, 3.0],
+            -40.0,
+            40.0,
+        );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
         assert_eq!(result.reason, NcdotRefinementReason::ExtendUpperBoundary);
         assert_eq!(result.inserted_epochs_seconds, vec![20.0]);
@@ -809,7 +836,10 @@ mod tests {
             10.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
-        assert_eq!(result.reason, NcdotRefinementReason::RefineDominantIntegrationContributions);
+        assert_eq!(
+            result.reason,
+            NcdotRefinementReason::RefineDominantIntegrationContributions
+        );
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0, 5.0]);
     }
 
@@ -850,7 +880,10 @@ mod tests {
             10.0,
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
-        assert_eq!(result.reason, NcdotRefinementReason::RefineZeroRateMd2Minimum);
+        assert_eq!(
+            result.reason,
+            NcdotRefinementReason::RefineZeroRateMd2Minimum
+        );
         assert_eq!(result.inserted_epochs_seconds, vec![-5.0]);
     }
 
@@ -865,7 +898,10 @@ mod tests {
         );
         let result = decide_ncdot_refinement(&input, policy(), 0).unwrap();
         assert_eq!(result.disposition, NcdotRefinementDisposition::Stop);
-        assert_eq!(result.reason, NcdotRefinementReason::NoAdditionalSampledRefinement);
+        assert_eq!(
+            result.reason,
+            NcdotRefinementReason::NoAdditionalSampledRefinement
+        );
     }
 
     #[test]
@@ -894,7 +930,9 @@ mod tests {
     #[test]
     fn top_four_peak_selection_is_deterministic_and_excludes_the_fifth_peak() {
         let epochs = (0..13).map(|index| index as f64).collect::<Vec<_>>();
-        let rates = vec![0.0, 10.0, 0.0, 9.0, 0.0, 8.0, 0.0, 7.0, 0.0, 6.0, 0.0, 0.0, 0.0];
+        let rates = vec![
+            0.0, 10.0, 0.0, 9.0, 0.0, 8.0, 0.0, 7.0, 0.0, 6.0, 0.0, 0.0, 0.0,
+        ];
         let md2 = vec![10.0; epochs.len()];
         let input = snapshot(&epochs, &rates, &md2, 0.0, 12.0);
         let first = decide_ncdot_refinement(&input, policy(), 1).unwrap();
@@ -915,8 +953,14 @@ mod tests {
         );
         let at_limit = decide_ncdot_refinement(&input, policy(), 250).unwrap();
         let beyond_limit = decide_ncdot_refinement(&input, policy(), 251).unwrap();
-        assert_ne!(at_limit.disposition, NcdotRefinementDisposition::BudgetExceeded);
-        assert_eq!(beyond_limit.disposition, NcdotRefinementDisposition::BudgetExceeded);
+        assert_ne!(
+            at_limit.disposition,
+            NcdotRefinementDisposition::BudgetExceeded
+        );
+        assert_eq!(
+            beyond_limit.disposition,
+            NcdotRefinementDisposition::BudgetExceeded
+        );
     }
 
     #[test]
@@ -929,15 +973,18 @@ mod tests {
             1.0 + 2.0 * f64::EPSILON,
         );
         let result = decide_ncdot_refinement(&input, policy(), 1).unwrap();
-        assert_eq!(
-            result,
-            Err(KernelError::NcdotRefinementResolutionLimit)
-        );
+        assert_eq!(result, Err(KernelError::NcdotRefinementResolutionLimit));
     }
 
     #[test]
     fn invalid_policy_and_mismatched_snapshot_shapes_fail_closed() {
-        let input = snapshot(&[-1.0, 0.0, 1.0], &[0.0, 1.0, 0.0], &[2.0, 0.0, 2.0], -1.0, 1.0);
+        let input = snapshot(
+            &[-1.0, 0.0, 1.0],
+            &[0.0, 1.0, 0.0],
+            &[2.0, 0.0, 2.0],
+            -1.0,
+            1.0,
+        );
         let invalid = NcdotRefinementPolicy {
             peak_relative_drop_tolerance: f64::NAN,
             ..policy()
