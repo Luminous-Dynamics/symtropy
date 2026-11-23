@@ -357,6 +357,11 @@ def solve(problem):
     excess = selected_count - dual["lower_bound_ceiling"]
     lower = dual["lower_bound_ceiling"]
     relative = ((excess * 10_000 + lower - 1) // lower) if lower > 0 else None
+    dual["minimum_cardinality_optimum_certified"] = (
+        dual["dual_constraints_verified"]
+        and capped
+        and dual["lower_bound_ceiling"] == selected_count
+    )
     return {
         "schema": RECEIPT_SCHEMA,
         "benchmark_id": BENCHMARK_ID,
