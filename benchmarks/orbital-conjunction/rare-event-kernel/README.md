@@ -48,8 +48,8 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains **233 authored `#[test]` cases**:
-30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `pop_outer_convergence.rs`.
+The current authored test corpus contains **234 authored `#[test]` cases**:
+30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 16 in `pop_outer_convergence.rs`.
 
 The package also includes:
 - A deterministic NASA-style sampled Ncdot refinement controller for boundary extension, top-four sampled peaks, zero-rate MD2 fallback, dominant trapezoid contributions and significant-rate spacing. It does not certify between-sample peak completeness.
@@ -74,4 +74,4 @@ The package also includes:
 - The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. It does not reproduce the 3D-Nc collision-rate integrand, PeakOverlapPos solver or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
 - The proposal density must be the complete mixture density, including all defensive components.
 - The space-time partition prototype is limited to a synthetic two-hemisphere surface split and caller-supplied constant rational integrand enclosures. It verifies partition completeness and contribution accounting only; it does not construct arbitrary sphere patches, enclose the physical Ncdot integrand, propagate trajectory/covariance intervals, or provide outward floating-point arithmetic or a qualified Nc bound.
-- The outer POP convergence gate is a decision-policy replay component conditional on caller-supplied epoch outputs. It does not independently validate the POP calculations, covariance/Mahalanobis metrics, Ncdot values, temporal refinement process, or the physical adequacy of the source model.
+- The outer POP convergence gate is a decision-policy replay component conditional on caller-supplied epoch outputs. It does not independently validate the POP calculations, covariance/Mahalanobis metrics, Ncdot values, temporal refinement process, or the physical adequacy of the source model. NASA's first-order MS2eff surface approximation can be negative; the implementation preserves finite negative values and does not clamp them.
