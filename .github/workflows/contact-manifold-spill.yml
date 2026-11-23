@@ -1,0 +1,35 @@
+name: Contact Manifold Spill
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "Cargo.lock"
+      - ".github/workflows/contact-manifold-spill.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "Cargo.lock"
+      - ".github/workflows/contact-manifold-spill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 physics-crate checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --package symtropy-physics -- --check
+      - name: Run physics crate tests
+        run: cargo test --package symtropy-physics --locked
+      - name: Run strict physics crate Clippy
+        run: cargo clippy --package symtropy-physics --locked --all-targets -- -D warnings
