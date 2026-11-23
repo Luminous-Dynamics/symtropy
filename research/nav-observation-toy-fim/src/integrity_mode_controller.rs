@@ -66,13 +66,16 @@ pub struct IntegrityModePolicy {
 pub struct IntegrityEvidenceFrame {
     /// Strictly increasing caller-defined evidence epoch.
     pub epoch_id: u64,
-    /// Identity of the complete observation set used for this epoch.
-    pub observation_set_id: u64,
+    /// Strictly increasing source-ledger sequence for the complete observation set.
+    pub observation_set_sequence_id: u64,
     /// Independence/dependency group used to qualify recovery evidence.
     ///
     /// A recovery streak must use a distinct group for every qualifying epoch.
     pub dependency_group_id: u64,
-    /// Digest of the source-complete evidence receipt for this epoch.
+    /// Strictly increasing sequence of the source-complete evidence receipt.
+    pub evidence_receipt_sequence_id: u64,
+    /// Digest of the source-complete evidence receipt; the canonical receipt
+    /// must include epoch_id and evidence_receipt_sequence_id.
     pub evidence_receipt_sha256: [u8; SHA256_BYTES],
     pub solution_available: bool,
     pub source_complete: bool,
@@ -119,7 +122,7 @@ impl std::error::Error for IntegrityModeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct RecoveryIdentity {
-    observation_set_id: u64,
+    observation_set_sequence_id: u64,
     dependency_group_id: u64,
     evidence_receipt_sha256: [u8; SHA256_BYTES],
 }
@@ -129,7 +132,8 @@ pub struct IntegrityModeController {
     policy: IntegrityModePolicy,
     mode: IntegrityMode,
     last_epoch_id: Option<u64>,
-    last_observation_set_id: Option<u64>,
+    last_observation_set_sequence_id: Option<u64>,
+    last_evidence_receipt_sequence_id: Option<u64>,
     last_evidence_receipt_sha256: Option<[u8; SHA256_BYTES]>,
     recovery_identities: Vec<RecoveryIdentity>,
 }
@@ -147,7 +151,8 @@ impl IntegrityModeController {
             policy,
             mode: IntegrityMode::Unknown,
             last_epoch_id: None,
-            last_observation_set_id: None,
+            last_observation_set_sequence_id: None,
+            last_evidence_receipt_sequence_id: None,
             last_evidence_receipt_sha256: None,
             recovery_identities: Vec::new(),
         })
@@ -195,11 +200,15 @@ impl IntegrityModeController {
         }
 
         self.last_epoch_id = Some(frame.epoch_id);
-        let previous_observation_set_id = self.last_observation_set_id;
+        let previous_observation_set_sequence_id = self.last_observation_set_sequence_id;
+        let previous_evidence_receipt_sequence_id = self.last_evidence_receipt_sequence_id;
         let previous_evidence_receipt_sha256 = self.last_evidence_receipt_sha256;
 
-        if frame.observation_set_id != 0 {
-            self.last_observation_set_id = Some(frame.observation_set_id);
+        if frame.observation_set_sequence_id != 0 {
+            self.last_observation_set_sequence_id = Some(frame.observation_set_sequence_id);
+        }
+        if frame.evidence_receipt_sequence_id != 0 {
+            self.last_evidence_receipt_sequence_id = Some(frame.evidence_receipt_sequence_id);
         }
         if frame.evidence_receipt_sha256.iter().any(|byte| *byte != 0) {
             self.last_evidence_receipt_sha256 = Some(frame.evidence_receipt_sha256);
@@ -297,7 +306,7 @@ impl IntegrityModeController {
             );
         }
 
-        if frame.observation_set_id == 0 {
+        if frame.observation_set_sequence_id == 0 {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
@@ -315,7 +324,9 @@ impl IntegrityModeController {
             );
         }
 
-        if frame.evidence_receipt_sha256.iter().all(|byte| *byte == 0) {
+        if frame.evidence_receipt_sequence_id == 0
+            || frame.evidence_receipt_sha256.iter().all(|byte| *byte == 0)
+        {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
@@ -324,7 +335,9 @@ impl IntegrityModeController {
             );
         }
 
-        if previous_observation_set_id == Some(frame.observation_set_id) {
+        if previous_observation_set_sequence_id
+            .is_some_and(|previous| frame.observation_set_sequence_id <= previous)
+        {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
@@ -333,7 +346,10 @@ impl IntegrityModeController {
             );
         }
 
-        if previous_evidence_receipt_sha256 == Some(frame.evidence_receipt_sha256) {
+        if previous_evidence_receipt_sequence_id
+            .is_some_and(|previous| frame.evidence_receipt_sequence_id <= previous)
+            || previous_evidence_receipt_sha256 == Some(frame.evidence_receipt_sha256)
+        {
             return self.transition(
                 previous_mode,
                 IntegrityMode::Unknown,
@@ -363,13 +379,13 @@ impl IntegrityModeController {
         }
 
         let recovery_identity = RecoveryIdentity {
-            observation_set_id: frame.observation_set_id,
+            observation_set_sequence_id: frame.observation_set_sequence_id,
             dependency_group_id: frame.dependency_group_id,
             evidence_receipt_sha256: frame.evidence_receipt_sha256,
         };
 
         if self.recovery_identities.iter().any(|identity| {
-            identity.observation_set_id == recovery_identity.observation_set_id
+            identity.observation_set_sequence_id == recovery_identity.observation_set_sequence_id
                 || identity.dependency_group_id == recovery_identity.dependency_group_id
                 || identity.evidence_receipt_sha256
                     == recovery_identity.evidence_receipt_sha256
@@ -445,8 +461,9 @@ mod tests {
     fn frame(epoch: u64, group: u64, pl: f64) -> IntegrityEvidenceFrame {
         IntegrityEvidenceFrame {
             epoch_id: epoch,
-            observation_set_id: 1_000 + epoch,
+            observation_set_sequence_id: 1_000 + epoch,
             dependency_group_id: group,
+            evidence_receipt_sequence_id: epoch,
             evidence_receipt_sha256: [epoch as u8; SHA256_BYTES],
             solution_available: true,
             source_complete: true,
@@ -611,7 +628,7 @@ mod tests {
         assert_eq!(first.current_mode, IntegrityMode::Normal);
 
         replay.epoch_id = 5;
-        replay.observation_set_id += 1;
+        replay.observation_set_sequence_id += 1;
         let replayed_receipt = controller.observe(replay);
         assert_eq!(replayed_receipt.current_mode, IntegrityMode::Unknown);
         assert_eq!(
@@ -639,7 +656,7 @@ mod tests {
         );
 
         let mut missing_observation = frame(2, 2, 0.1);
-        missing_observation.observation_set_id = 0;
+        missing_observation.observation_set_sequence_id = 0;
         assert_eq!(
             controller.observe(missing_observation).reason,
             IntegrityModeReason::InvalidObservationSetIdentity
@@ -663,7 +680,7 @@ mod tests {
         qualify_normal(&mut controller, 1);
 
         let mut next = frame(4, 104, 0.1);
-        next.observation_set_id = 1_003;
+        next.observation_set_sequence_id = 1_003;
         let result = controller.observe(next);
         assert_eq!(result.current_mode, IntegrityMode::Unknown);
         assert_eq!(
