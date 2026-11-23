@@ -290,6 +290,8 @@ fn validate_reset(
         || !nonempty(&receipt.producer_revision)
         || !nonempty(&receipt.raw_artifact_id)
         || !valid_sha256(&receipt.raw_artifact_sha256)
+        || !nonempty(&receipt.clock_id)
+        || receipt.simulation_step != 0
         || receipt.run_id != bundle.run_id
         || receipt.run_epoch != bundle.run_epoch
         || receipt.world_epoch != bundle.world_epoch
@@ -299,6 +301,9 @@ fn validate_reset(
         || (bundle.reset.status == ResetStatus::Confirmed
             && receipt.observed_initial_state_sha256
                 != plan.reset.expected_initial_state_sha256)
+        || (bundle.reset.status == ResetStatus::Rejected
+            && receipt.observed_initial_state_sha256
+                == plan.reset.expected_initial_state_sha256)
     {
         return Err(ExecutionEvidenceError::InvalidResetReceipt);
     }
