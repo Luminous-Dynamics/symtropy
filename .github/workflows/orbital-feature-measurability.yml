@@ -62,8 +62,8 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic Rust receipt replay
         run: |
-          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin orbital-feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-a.json
-          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin orbital-feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-b.json
+          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-b.json
           cmp /tmp/fmq-rust-a.json /tmp/fmq-rust-b.json
           jq -e '
             .schema == "luminous.orbital-feature-measurability.receipt.v0.1" and

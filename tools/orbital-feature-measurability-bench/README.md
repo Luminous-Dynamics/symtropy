@@ -13,7 +13,7 @@ Run:
     cargo fmt --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml -- --check
     cargo test --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml
     cargo clippy --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --all-targets -- -D warnings
-    cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin orbital-feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json <40-hex-source-commit>
+    cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json <40-hex-source-commit>
     python3 tools/orbital-feature-measurability-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json <40-hex-source-commit>
 
 See [#7043](https://github.com/Luminous-Dynamics/symtropy/issues/7043) and [the research protocol](../../docs/research/orbital-truss/feature-measurement-quality-v0_1.md).
