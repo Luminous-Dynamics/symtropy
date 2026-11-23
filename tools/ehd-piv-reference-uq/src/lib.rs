@@ -230,10 +230,8 @@ pub struct ReferenceCovarianceReport {
 pub fn evaluate_reference_covariance(
     input: &ReferenceCovarianceInput,
 ) -> Result<ReferenceCovarianceReport, ReferenceUqError> {
-    let residual_minimum = validate_covariance(
-        &input.residual_covariance_m2_s2,
-        CovarianceKind::Residual,
-    )?;
+    let residual_minimum =
+        validate_covariance(&input.residual_covariance_m2_s2, CovarianceKind::Residual)?;
     let evidence_gaps = reference_evidence_gaps(&input.reference_assessment);
 
     if !evidence_gaps.is_empty() {
@@ -257,10 +255,8 @@ pub fn evaluate_reference_covariance(
         });
     }
 
-    let reference_minimum = validate_covariance(
-        &input.reference_covariance_m2_s2,
-        CovarianceKind::Reference,
-    )?;
+    let reference_minimum =
+        validate_covariance(&input.reference_covariance_m2_s2, CovarianceKind::Reference)?;
     validate_finite_matrix(
         &input.piv_reference_cross_covariance_m2_s2,
         CovarianceKind::JointPivReference,
@@ -275,7 +271,11 @@ pub fn evaluate_reference_covariance(
                 + input.piv_reference_cross_covariance_m2_s2[column][row];
         }
     }
-    if !piv_covariance.iter().flatten().all(|value| value.is_finite()) {
+    if !piv_covariance
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite())
+    {
         return Err(ReferenceUqError::NonFiniteDerivedCovariance);
     }
 
@@ -292,10 +292,8 @@ pub fn evaluate_reference_covariance(
         &input.reference_covariance_m2_s2,
         &input.piv_reference_cross_covariance_m2_s2,
     );
-    let (maximum_error, tolerance) = reconstruction_error(
-        &input.residual_covariance_m2_s2,
-        &reconstructed,
-    );
+    let (maximum_error, tolerance) =
+        reconstruction_error(&input.residual_covariance_m2_s2, &reconstructed);
     if maximum_error > tolerance {
         return Err(ReferenceUqError::ReconstructionClosureFailure {
             maximum_absolute_error: maximum_error,
@@ -455,11 +453,7 @@ fn validate_finite_matrix<const N: usize>(
     for row in 0..N {
         for column in 0..N {
             if !matrix[row][column].is_finite() {
-                return Err(ReferenceUqError::NonFiniteCovariance {
-                    kind,
-                    row,
-                    column,
-                });
+                return Err(ReferenceUqError::NonFiniteCovariance { kind, row, column });
             }
         }
     }
@@ -515,18 +509,9 @@ fn validate_covariance<const N: usize>(
             if !upper_normalized.is_finite() || !lower_normalized.is_finite() {
                 return Err(ReferenceUqError::NonFiniteDerivedCovariance);
             }
-            let scale = upper_normalized
-                .abs()
-                .max(lower_normalized.abs())
-                .max(1.0);
-            if (upper_normalized - lower_normalized).abs()
-                > SYMMETRY_RELATIVE_TOLERANCE * scale
-            {
-                return Err(ReferenceUqError::AsymmetricCovariance {
-                    kind,
-                    row,
-                    column,
-                });
+            let scale = upper_normalized.abs().max(lower_normalized.abs()).max(1.0);
+            if (upper_normalized - lower_normalized).abs() > SYMMETRY_RELATIVE_TOLERANCE * scale {
+                return Err(ReferenceUqError::AsymmetricCovariance { kind, row, column });
             }
             let normalized = upper_normalized * 0.5 + lower_normalized * 0.5;
             correlation[row][column] = normalized;
@@ -612,11 +597,7 @@ fn minimum_eigenvalue_symmetric<const N: usize>(
         .fold(f64::INFINITY, f64::min))
 }
 
-fn build_joint_covariance(
-    piv: &Matrix3,
-    reference: &Matrix3,
-    piv_reference: &Matrix3,
-) -> Matrix6 {
+fn build_joint_covariance(piv: &Matrix3, reference: &Matrix3, piv_reference: &Matrix3) -> Matrix6 {
     let mut joint = [[0.0_f64; 6]; 6];
     for row in 0..3 {
         for column in 0..3 {
@@ -876,21 +857,9 @@ mod tests {
 
     #[test]
     fn cross_covariance_orientation_is_preserved() {
-        let piv = [
-            [0.04, 0.002, 0.0],
-            [0.002, 0.09, 0.0],
-            [0.0, 0.0, 0.16],
-        ];
-        let reference = [
-            [0.01, 0.001, 0.0],
-            [0.001, 0.02, 0.0],
-            [0.0, 0.0, 0.03],
-        ];
-        let cross = [
-            [0.004, 0.001, 0.0],
-            [0.003, 0.005, 0.0],
-            [0.0, 0.0, 0.006],
-        ];
+        let piv = [[0.04, 0.002, 0.0], [0.002, 0.09, 0.0], [0.0, 0.0, 0.16]];
+        let reference = [[0.01, 0.001, 0.0], [0.001, 0.02, 0.0], [0.0, 0.0, 0.03]];
+        let cross = [[0.004, 0.001, 0.0], [0.003, 0.005, 0.0], [0.0, 0.0, 0.006]];
         let input = input_from_components(piv, reference, cross);
         let report = evaluate_reference_covariance(&input).unwrap();
         assert_matrix_close(&report.piv_covariance_m2_s2.unwrap(), &piv, 1.0e-12);
@@ -903,11 +872,7 @@ mod tests {
             [0.003, 0.09, 0.002],
             [0.001, 0.002, 0.16],
         ];
-        let reference = [
-            [0.01, 0.001, 0.0],
-            [0.001, 0.02, 0.001],
-            [0.0, 0.001, 0.03],
-        ];
+        let reference = [[0.01, 0.001, 0.0], [0.001, 0.02, 0.001], [0.0, 0.001, 0.03]];
         let cross = [
             [0.002, 0.0005, 0.0],
             [0.0002, 0.004, 0.0003],
