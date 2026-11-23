@@ -2711,8 +2711,7 @@ mod deterministic_bulk_insertion_tests {
         let mut world = PhysicsWorld::<3>::default();
         world.next_handle = usize::MAX;
 
-        let result =
-            world.add_bodies_deterministic(vec![(NetId(44), dynamic_body(0.0))]);
+        let result = world.add_bodies_deterministic(vec![(NetId(44), dynamic_body(0.0))]);
 
         assert!(result.unwrap_err().contains("space exhausted"));
         assert_eq!(world.body_count(), 0);
@@ -2727,8 +2726,7 @@ mod deterministic_bulk_insertion_tests {
         let existing = world.add_sphere(Point::origin(), 0.5, 1.0);
         world.next_handle = existing.0;
 
-        let result =
-            world.add_bodies_deterministic(vec![(NetId(45), dynamic_body(2.0))]);
+        let result = world.add_bodies_deterministic(vec![(NetId(45), dynamic_body(2.0))]);
 
         assert!(result.unwrap_err().contains("not greater than live handle"));
         assert_eq!(world.body_count(), 1);
