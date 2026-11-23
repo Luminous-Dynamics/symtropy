@@ -1,0 +1,23 @@
+{
+  "version": "0.1",
+  "simulator_id": "declared-sim-ros2-manipulator-v0.1",
+  "simulator_revision": "simulator-build-2026.11.23+sha256:profile",
+  "ros_distribution": "jazzy",
+  "simulation_interfaces_revision": "simulation_interfaces-fixture-v0.1",
+  "world_name": "rrvr-reference-world",
+  "world_profile_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+  "reset_profile_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+  "scene_broadcaster_id": "gz::sim::systems::SceneBroadcaster",
+  "scene_broadcaster_revision": "gazebo-build-2026.11.23",
+  "scene_broadcaster_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "scene_broadcaster_loaded": true,
+  "capabilities": [
+    "get_simulator_features",
+    "reset_simulation",
+    "step_simulation",
+    "get_simulation_state",
+    "set_simulation_state",
+    "get_entities",
+    "get_entity_state"
+  ]
+}

@@ -13,6 +13,7 @@ pub mod attempt_lineage;
 pub mod campaign_plan;
 pub mod execution_evidence;
 pub mod fault_campaign;
+pub mod gazebo_adapter;
 
 use serde::Deserialize;
 use serde_json::{Value, json};

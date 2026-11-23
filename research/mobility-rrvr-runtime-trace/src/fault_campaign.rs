@@ -212,11 +212,24 @@ impl FaultKind {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ObserverProfile {
+    pub observer_id: String,
+    pub revision: String,
+    pub binary_sha256: String,
+    pub common_cause_domains: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlatformProfile {
     pub platform_id: String,
     pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
+    pub scene_broadcaster_id: String,
+    pub scene_broadcaster_revision: String,
+    pub scene_broadcaster_sha256: String,
+    pub simulation_interfaces_revision: String,
     pub fault_injector_id: String,
     pub fault_injector_revision: String,
     pub fault_injector_sha256: String,
@@ -231,6 +244,8 @@ pub struct PlatformProfile {
     pub firmware_revision: String,
     pub calibration_revision: String,
     pub observer_stack_revision: String,
+    pub required_delivery_observer_quorum: usize,
+    pub observer_profiles: Vec<ObserverProfile>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -325,6 +340,7 @@ pub enum CampaignError {
     MissingRequiredLayer,
     MissingRequiredCutPoint,
     DuplicateOperationalIdentity,
+    InvalidObserverProfile,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -368,6 +384,7 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
         platform.native_adapter_revision.as_str(),
         platform.runtime_monitor_revision.as_str(),
         platform.ros_distribution.as_str(),
+        platform.simulation_interfaces_revision.as_str(),
         platform.middleware_revision.as_str(),
         platform.controller_revision.as_str(),
         platform.driver_revision.as_str(),
@@ -381,7 +398,31 @@ fn validate_platform(platform: &PlatformProfile) -> Result<(), CampaignError> {
     }
     require_sha256(&platform.profile_sha256)?;
     require_sha256(&platform.environment_artifact_sha256)?;
+    require_sha256(&platform.scene_broadcaster_sha256)?;
     require_sha256(&platform.fault_injector_sha256)?;
+    if platform.required_delivery_observer_quorum < 2
+        || platform.required_delivery_observer_quorum > 32
+        || platform.observer_profiles.len() < platform.required_delivery_observer_quorum
+        || platform.observer_profiles.len() > 32
+    {
+        return Err(CampaignError::InvalidObserverProfile);
+    }
+    let mut observer_ids = BTreeSet::new();
+    for observer in &platform.observer_profiles {
+        if !nonempty(&observer.observer_id)
+            || !nonempty(&observer.revision)
+            || observer.common_cause_domains.is_empty()
+            || observer.common_cause_domains.len() > 32
+            || observer
+                .common_cause_domains
+                .iter()
+                .any(|domain| !nonempty(domain))
+            || !observer_ids.insert(observer.observer_id.as_str())
+        {
+            return Err(CampaignError::InvalidObserverProfile);
+        }
+        require_sha256(&observer.binary_sha256)?;
+    }
     Ok(())
 }
 

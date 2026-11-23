@@ -106,3 +106,10 @@ The next engineering increment is a simulator adapter that emits injection recei
 Each planned fault now includes its scheduled simulation step, target revision and target-profile digest, plus an expected delivery-signature SHA-256. The platform binding pins the fault-injector ID/revision/binary digest/fault domain and native-adapter ID/revision. These fields are included in the fault schedule digest, pair commitment and top-level plan hash.
 
 A later adapter must emit the separate execution bundle described in [EXECUTION_EVIDENCE_V0.1.md](EXECUTION_EVIDENCE_V0.1.md). It must not write execution receipts back into the plan. Unknown delivery or dispatch outcomes cannot be converted into a new injection without reconciliation.
+
+
+## Gazebo/ROS simulation platform bindings
+
+The platform digest now includes the ROS 2 Simulation Interfaces package revision and the exact SceneBroadcaster system ID, build revision and binary digest. The Gazebo capability preflight compares these values, plus simulator build, ROS distribution, environment/world profile and reset profile, against the captured capability report. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
+
+The preflight CLI is deliberately offline and labelled as a captured-profile check. A real simulator transport must discover the live feature set and verify state/reset behavior before any event can be scheduled.
