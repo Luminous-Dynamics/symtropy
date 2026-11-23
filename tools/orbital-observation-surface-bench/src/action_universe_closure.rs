@@ -189,8 +189,9 @@ fn digest_action_payloads(actions: &[ActionWitness]) -> Result<String, String> {
         .map(|action| (action.action_id.clone(), action.payload_sha256.clone()))
         .collect::<Vec<_>>();
     pairs.sort();
-    let bytes = serde_json::to_vec(&pairs)
-        .map_err(|error| format!("failed to serialize canonical action payload inventory: {error}"))?;
+    let bytes = serde_json::to_vec(&pairs).map_err(|error| {
+        format!("failed to serialize canonical action payload inventory: {error}")
+    })?;
     Ok(sha256_hex(&bytes))
 }
 
@@ -233,24 +234,39 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
         || case.exclusions.len() > MAX_EXCLUSIONS
         || case.enumerators.len() > MAX_ENUMERATORS
     {
-        return Err(format!("case {} has invalid scope identity or exceeds finite bounds", case.case_id));
+        return Err(format!(
+            "case {} has invalid scope identity or exceeds finite bounds",
+            case.case_id
+        ));
     }
 
     let expected_partitions = unique_ids("planned partition", &case.expected_partition_ids, false)?;
     if digest_ids(&case.expected_partition_ids)? != case.expected_partition_ids_sha256 {
-        return Err(format!("case {} planned partition digest mismatch", case.case_id));
+        return Err(format!(
+            "case {} planned partition digest mismatch",
+            case.case_id
+        ));
     }
     let expected_actions = unique_ids("planned action", &case.expected_action_ids, false)?;
     if digest_ids(&case.expected_action_ids)? != case.expected_action_ids_sha256 {
-        return Err(format!("case {} planned action digest mismatch", case.case_id));
+        return Err(format!(
+            "case {} planned action digest mismatch",
+            case.case_id
+        ));
     }
     let expected_exclusions = unique_ids("planned exclusion", &case.expected_exclusion_ids, true)?;
     if digest_ids(&case.expected_exclusion_ids)? != case.expected_exclusion_ids_sha256 {
-        return Err(format!("case {} planned exclusion digest mismatch", case.case_id));
+        return Err(format!(
+            "case {} planned exclusion digest mismatch",
+            case.case_id
+        ));
     }
 
     if !valid_sha256(&case.expected_action_payloads_sha256) {
-        return Err(format!("case {} action payload digest is invalid", case.case_id));
+        return Err(format!(
+            "case {} action payload digest is invalid",
+            case.case_id
+        ));
     }
     let mut action_ids = BTreeSet::new();
     for action in &case.actions {
@@ -260,7 +276,10 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
             || !valid_id(&action.positive_witness_receipt_id)
             || !action_ids.insert(action.action_id.clone())
         {
-            return Err(format!("case {} contains an invalid or duplicate action witness", case.case_id));
+            return Err(format!(
+                "case {} contains an invalid or duplicate action witness",
+                case.case_id
+            ));
         }
     }
 
@@ -274,7 +293,10 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
             )
             || !partition_ids.insert(partition.partition_id.clone())
         {
-            return Err(format!("case {} contains an invalid or duplicate partition row", case.case_id));
+            return Err(format!(
+                "case {} contains an invalid or duplicate partition row",
+                case.case_id
+            ));
         }
         unique_ids("partition action", &partition.action_ids, true)?;
         unique_ids("partition exclusion", &partition.exclusion_ids, true)?;
@@ -286,7 +308,10 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
             || !valid_id(&exclusion.partition_id)
             || !exclusion_ids.insert(exclusion.exclusion_id.clone())
         {
-            return Err(format!("case {} contains an invalid or duplicate exclusion witness", case.case_id));
+            return Err(format!(
+                "case {} contains an invalid or duplicate exclusion witness",
+                case.case_id
+            ));
         }
     }
 
@@ -301,7 +326,10 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
             || !valid_id(&enumerator.execution_receipt_id)
             || !enumerator_ids.insert(enumerator.enumerator_id.clone())
         {
-            return Err(format!("case {} contains an invalid or duplicate enumerator receipt", case.case_id));
+            return Err(format!(
+                "case {} contains an invalid or duplicate enumerator receipt",
+                case.case_id
+            ));
         }
         unique_ids("enumerator dependency", &enumerator.dependency_ids, true)?;
         unique_ids("enumerated action", &enumerator.action_ids, true)?;
@@ -310,7 +338,10 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
     // Recompute the payload digest even for negative controls. A stale digest is an input
     // integrity failure, distinct from an enumerator that legitimately disagrees.
     if digest_action_payloads(&case.actions)? != case.expected_action_payloads_sha256 {
-        return Err(format!("case {} action payload inventory digest mismatch", case.case_id));
+        return Err(format!(
+            "case {} action payload inventory digest mismatch",
+            case.case_id
+        ));
     }
     let _ = (expected_partitions, expected_actions, expected_exclusions);
     Ok(())
@@ -319,21 +350,53 @@ fn validate_case(case: &ClosureCase) -> Result<(), String> {
 fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     validate_case(case)?;
 
-    let expected_partitions = case.expected_partition_ids.iter().cloned().collect::<BTreeSet<_>>();
-    let observed_partitions = case.partitions.iter().map(|row| row.partition_id.clone()).collect::<BTreeSet<_>>();
+    let expected_partitions = case
+        .expected_partition_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let observed_partitions = case
+        .partitions
+        .iter()
+        .map(|row| row.partition_id.clone())
+        .collect::<BTreeSet<_>>();
     let missing_partition_ids = set_difference(&expected_partitions, &observed_partitions);
     let extra_partition_ids = set_difference(&observed_partitions, &expected_partitions);
 
-    let expected_actions = case.expected_action_ids.iter().cloned().collect::<BTreeSet<_>>();
-    let observed_actions = case.actions.iter().map(|row| row.action_id.clone()).collect::<BTreeSet<_>>();
+    let expected_actions = case
+        .expected_action_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let observed_actions = case
+        .actions
+        .iter()
+        .map(|row| row.action_id.clone())
+        .collect::<BTreeSet<_>>();
     let action_inventory_matches = expected_actions == observed_actions;
 
-    let expected_exclusions = case.expected_exclusion_ids.iter().cloned().collect::<BTreeSet<_>>();
-    let observed_exclusions = case.exclusions.iter().map(|row| row.exclusion_id.clone()).collect::<BTreeSet<_>>();
+    let expected_exclusions = case
+        .expected_exclusion_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let observed_exclusions = case
+        .exclusions
+        .iter()
+        .map(|row| row.exclusion_id.clone())
+        .collect::<BTreeSet<_>>();
     let exclusion_inventory_matches = expected_exclusions == observed_exclusions;
 
-    let action_by_id = case.actions.iter().map(|row| (row.action_id.as_str(), row)).collect::<BTreeMap<_, _>>();
-    let exclusion_by_id = case.exclusions.iter().map(|row| (row.exclusion_id.as_str(), row)).collect::<BTreeMap<_, _>>();
+    let action_by_id = case
+        .actions
+        .iter()
+        .map(|row| (row.action_id.as_str(), row))
+        .collect::<BTreeMap<_, _>>();
+    let exclusion_by_id = case
+        .exclusions
+        .iter()
+        .map(|row| (row.exclusion_id.as_str(), row))
+        .collect::<BTreeMap<_, _>>();
     let mut partition_semantics_valid = true;
     let mut unwitnessed_exclusion_ids = Vec::new();
 
@@ -341,8 +404,13 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
         if partition.classification == "indeterminate" {
             partition_semantics_valid = false;
         }
-        let listed_actions = partition.action_ids.iter().cloned().collect::<BTreeSet<_>>();
-        let witnessed_actions = case.actions
+        let listed_actions = partition
+            .action_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let witnessed_actions = case
+            .actions
             .iter()
             .filter(|action| action.partition_id == partition.partition_id)
             .map(|action| action.action_id.clone())
@@ -353,7 +421,10 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
         if partition.classification == "present" && witnessed_actions.is_empty() {
             partition_semantics_valid = false;
         }
-        if matches!(partition.classification.as_str(), "excluded" | "not_applicable") {
+        if matches!(
+            partition.classification.as_str(),
+            "excluded" | "not_applicable"
+        ) {
             if partition.exclusion_ids.is_empty() {
                 partition_semantics_valid = false;
                 unwitnessed_exclusion_ids.extend(
@@ -383,8 +454,15 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
         }
     }
 
-    let action_partition_ids = case.actions.iter().map(|action| action.partition_id.as_str()).collect::<BTreeSet<_>>();
-    if action_partition_ids.iter().any(|partition_id| !observed_partitions.contains(*partition_id)) {
+    let action_partition_ids = case
+        .actions
+        .iter()
+        .map(|action| action.partition_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if action_partition_ids
+        .iter()
+        .any(|partition_id| !observed_partitions.contains(*partition_id))
+    {
         partition_semantics_valid = false;
     }
 
@@ -399,13 +477,26 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     for left_index in 0..case.enumerators.len() {
         let left = &case.enumerators[left_index];
         for right in case.enumerators.iter().skip(left_index + 1) {
-            let left_dependencies = left.dependency_ids.iter().cloned()
-                .chain(std::iter::once(format!("registry:{}", left.source_registry_id)))
+            let left_dependencies = left
+                .dependency_ids
+                .iter()
+                .cloned()
+                .chain(std::iter::once(format!(
+                    "registry:{}",
+                    left.source_registry_id
+                )))
                 .collect::<BTreeSet<_>>();
-            let right_dependencies = right.dependency_ids.iter().cloned()
-                .chain(std::iter::once(format!("registry:{}", right.source_registry_id)))
+            let right_dependencies = right
+                .dependency_ids
+                .iter()
+                .cloned()
+                .chain(std::iter::once(format!(
+                    "registry:{}",
+                    right.source_registry_id
+                )))
                 .collect::<BTreeSet<_>>();
-            common_dependencies.extend(left_dependencies.intersection(&right_dependencies).cloned());
+            common_dependencies
+                .extend(left_dependencies.intersection(&right_dependencies).cloned());
         }
     }
 
@@ -416,7 +507,11 @@ fn evaluate_case(case: &ClosureCase) -> Result<CaseResult, String> {
     let mut registries = BTreeSet::new();
     let mut enumerator_scope_matches = true;
     for enumerator in &case.enumerators {
-        let ids = enumerator.action_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let ids = enumerator
+            .action_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
         let matched = ids == expected_actions;
         enumerator_sets.push(ids);
         methods.insert(enumerator.method_id.clone());
@@ -518,7 +613,12 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
     };
     let all_closed = summary.closed_within_declared_scope_cases == cases.len();
     Ok(Evaluation {
-        result: if all_closed { "pass" } else { "adversarial-controls-detected" }.to_owned(),
+        result: if all_closed {
+            "pass"
+        } else {
+            "adversarial-controls-detected"
+        }
+        .to_owned(),
         evidence_class: "synthetic".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
         summary,
@@ -533,29 +633,47 @@ mod tests {
     use super::*;
 
     fn fixture() -> Corpus {
-        serde_json::from_str(include_str!("../fixtures/v0.1/action-universe-closure-cases.json"))
-            .expect("action-closure fixture parses")
+        serde_json::from_str(include_str!(
+            "../fixtures/v0.1/action-universe-closure-cases.json"
+        ))
+        .expect("action-closure fixture parses")
     }
 
     #[test]
     fn detects_shared_registry_common_cause() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        let case = result.cases.iter().find(|case| case.case_id == "shared_registry").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "shared_registry")
+            .unwrap();
         assert_eq!(case.status, "COMMON_CAUSE_UNRESOLVED");
-        assert!(case.common_dependency_ids.iter().any(|item| item == "registry:catalogue-main"));
+        assert!(
+            case.common_dependency_ids
+                .iter()
+                .any(|item| item == "registry:catalogue-main")
+        );
     }
 
     #[test]
     fn detects_enumerator_disagreement() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        let case = result.cases.iter().find(|case| case.case_id == "enumerator_disagreement").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "enumerator_disagreement")
+            .unwrap();
         assert_eq!(case.status, "ENUMERATOR_DISAGREEMENT");
     }
 
     #[test]
     fn detects_planned_partition_omission() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        let case = result.cases.iter().find(|case| case.case_id == "partition_omitted").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "partition_omitted")
+            .unwrap();
         assert_eq!(case.status, "PARTITION_OMITTED");
         assert_eq!(case.missing_partition_ids, vec!["partition-c".to_owned()]);
     }
@@ -563,7 +681,11 @@ mod tests {
     #[test]
     fn detects_unwitnessed_negative_space() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        let case = result.cases.iter().find(|case| case.case_id == "unwitnessed_exclusion").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "unwitnessed_exclusion")
+            .unwrap();
         assert_eq!(case.status, "NEGATIVE_SPACE_UNWITNESSED");
         assert_eq!(case.unwitnessed_exclusion_ids, vec!["exclude-c".to_owned()]);
     }
@@ -571,14 +693,34 @@ mod tests {
     #[test]
     fn detects_scope_drift_and_stale_enumerator_snapshots() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        assert_eq!(result.cases.iter().find(|case| case.case_id == "scope_drift").unwrap().status, "SCOPE_DRIFT");
-        assert_eq!(result.cases.iter().find(|case| case.case_id == "stale_enumerator").unwrap().status, "STALE_SNAPSHOT");
+        assert_eq!(
+            result
+                .cases
+                .iter()
+                .find(|case| case.case_id == "scope_drift")
+                .unwrap()
+                .status,
+            "SCOPE_DRIFT"
+        );
+        assert_eq!(
+            result
+                .cases
+                .iter()
+                .find(|case| case.case_id == "stale_enumerator")
+                .unwrap()
+                .status,
+            "STALE_SNAPSHOT"
+        );
     }
 
     #[test]
     fn closes_only_a_bounded_fully_witnessed_scope() {
         let result = evaluate(&fixture()).expect("fixture evaluates");
-        let case = result.cases.iter().find(|case| case.case_id == "bounded_closed").unwrap();
+        let case = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "bounded_closed")
+            .unwrap();
         assert_eq!(case.status, "CLOSED_WITHIN_DECLARED_SCOPE");
         assert!(!case.physical_qualification_granted);
         assert!(!case.authority_granted);
@@ -589,6 +731,11 @@ mod tests {
         let result = evaluate(&fixture()).expect("fixture evaluates");
         assert!(!result.physical_qualification_granted);
         assert!(!result.authority_granted);
-        assert!(result.cases.iter().all(|case| !case.physical_qualification_granted && !case.authority_granted));
+        assert!(
+            result
+                .cases
+                .iter()
+                .all(|case| !case.physical_qualification_granted && !case.authority_granted)
+        );
     }
 }
