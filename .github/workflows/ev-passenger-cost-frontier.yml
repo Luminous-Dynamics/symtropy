@@ -588,7 +588,7 @@ jobs:
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json \
             sustainable-mobility-service-quality-report.json \
-            tools/ev-passenger-cost-frontier/Cargo.toml \
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md \
             tools/ev-passenger-cost-frontier/Cargo.toml \
             docs/research/MOBILITY_COMMITMENT_JOURNAL_BENCHMARK_V0_1.md \
             docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
@@ -634,6 +634,7 @@ jobs:
             sustainable-mobility-service-quality-report.json
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json
+            docs/research/SUSTAINABLE_MOBILITY_SERVICE_QUALITY_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_capacity_v0_1.schema.json
             docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md
