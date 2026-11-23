@@ -334,8 +334,8 @@ pub struct OverflowObservation {
     pub flag_lifetime: OverflowFlagLifetime,
     pub observed_before_step: bool,
     pub observed_after_step: bool,
-    /// A backend-provided per-step or reset-epoch increment, when available.
-    pub new_overflow_count: Option<u64>,
+    /// Backend-provided overflow-count delta across this exact observed step.
+    pub overflow_count_delta: Option<u64>,
     pub source_semantics_id: String,
 }
 
@@ -449,7 +449,6 @@ impl CapacityEvidence {
         let mut overflow_occurred_this_step = 0_u64;
         let mut overflow_not_attributable_to_step = 0_u64;
         for observation in &self.overflow_observations {
-            observation.validate()?;
             let key = (
                 observation.scope_kind,
                 observation.scope_id.as_str(),
