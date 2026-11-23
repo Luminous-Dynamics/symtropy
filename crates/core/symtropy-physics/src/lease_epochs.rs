@@ -213,7 +213,6 @@ pub struct ProfileRevisions {
     pub solver: Epoch,
 }
 
-
 /// A supported mutation of one body's lease dependencies.
 ///
 /// This enum is the deterministic mapping input for the pure revision
@@ -968,8 +967,7 @@ mod tests {
         assert_eq!(filters.filter.get(), 1);
         assert_eq!(filters.motion_bound, before.motion_bound);
 
-        let reset =
-            advance_scene_revisions(before, SceneMutation::WorldGenerationChanged).unwrap();
+        let reset = advance_scene_revisions(before, SceneMutation::WorldGenerationChanged).unwrap();
         assert_eq!(reset.world_generation.get(), 1);
         assert_eq!(reset.membership, before.membership);
     }
@@ -978,8 +976,7 @@ mod tests {
     fn body_type_and_constraint_mutations_invalidate_the_right_scene_layers() {
         let before = SceneRevisions::default();
 
-        let body_type =
-            advance_scene_revisions(before, SceneMutation::BodyTypeChanged).unwrap();
+        let body_type = advance_scene_revisions(before, SceneMutation::BodyTypeChanged).unwrap();
         assert_eq!(body_type.topology.get(), 1);
         assert_eq!(body_type.membership, before.membership);
 
@@ -994,8 +991,7 @@ mod tests {
         let before = ProfileRevisions::default();
 
         let geometry =
-            advance_profile_revisions(before, ProfileMutation::GeometryCertificateChanged)
-                .unwrap();
+            advance_profile_revisions(before, ProfileMutation::GeometryCertificateChanged).unwrap();
         assert_eq!(geometry.geometry_certificate.get(), 1);
         assert_eq!(geometry.motion_model, before.motion_model);
         assert_eq!(geometry.solver, before.solver);
@@ -1028,8 +1024,7 @@ mod tests {
             material: Epoch::from_raw(u64::MAX),
             ..BodyRevisions::default()
         };
-        let result =
-            advance_body_revisions(before, BodyMutation::MaterialAndMotionBoundsChanged);
+        let result = advance_body_revisions(before, BodyMutation::MaterialAndMotionBoundsChanged);
         assert_eq!(result, Err(RevisionMutationError::EpochOverflow));
         assert_eq!(before.motion_bound, Epoch::ZERO);
     }
