@@ -8,7 +8,10 @@
 //! issuing recovery authority or replacing any owner of persistence, mission,
 //! queue, observer, or native permit state.
 
-use crate::{EvidenceScope, OwnerEvidenceStatus};
+use crate::{
+    EvidenceScope, ObserverQuorumProof, OwnerEvidenceDomain, OwnerEvidenceStatus,
+    claim_scope_digest, observer_proofs_are_independent, observer_quorum_is_qualified,
+};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
@@ -116,6 +119,8 @@ pub struct AttemptRecord {
     pub mission_resolution: MissionResolutionEvidence,
     pub controller_queue_fence: FenceEvidence,
     pub downstream_quiescence: FenceEvidence,
+    /// Required for any attempt that is used as the parent of a retry edge.
+    pub observer_assurance: Option<AttemptObserverAssurance>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -123,6 +128,7 @@ pub struct AttemptRecord {
 pub struct AttemptLineageRecording {
     pub version: String,
     pub logical_effect_id: String,
+    pub fault_profile_revision: String,
     pub attempts: Vec<AttemptRecord>,
 }
 
@@ -146,6 +152,9 @@ pub enum LineageError {
     ControllerFenceUnqualified,
     DownstreamFenceUnqualified,
     FenceEpochMismatch,
+    MissingObserverAssurance,
+    ObserverQuorumUnqualified,
+    ObserverClaimMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -244,7 +253,67 @@ fn validate_attempt_evidence(
     Ok(())
 }
 
+fn validate_attempt_observer_assurance(
+    fault_profile_revision: &str,
+    logical_effect_id: &str,
+    attempt: &AttemptRecord,
+) -> Result<(), LineageError> {
+    let assurance = attempt
+        .observer_assurance
+        .as_ref()
+        .ok_or(LineageError::MissingObserverAssurance)?;
+
+    if !nonempty(&assurance.physical_outcome_claim_id)
+        || !nonempty(&assurance.downstream_quiescence_claim_id)
+        || assurance.physical_outcome_claim_id == assurance.downstream_quiescence_claim_id
+        || assurance.physical_outcome_asserted_value != "no_effect"
+        || assurance.downstream_quiescence_asserted_value != "quiescent"
+        || assurance.physical_outcome_quorum.fault_model_revision != fault_profile_revision
+        || assurance.downstream_quiescence_quorum.fault_model_revision != fault_profile_revision
+    {
+        return Err(LineageError::ObserverClaimMismatch);
+    }
+
+    let scope = EvidenceScope {
+        logical_effect_id: logical_effect_id.to_owned(),
+        attempt_id: attempt.attempt_id.clone(),
+        subject_boot_epoch: attempt.authorized_epoch.boot_epoch,
+        subject_controller_epoch: attempt.authorized_epoch.controller_epoch,
+    };
+
+    if assurance.physical_outcome_claim_scope_sha256
+        != claim_scope_digest(
+            OwnerEvidenceDomain::PhysicalOutcomeObserverQuorum,
+            &assurance.physical_outcome_claim_id,
+            &assurance.physical_outcome_asserted_value,
+            &scope,
+        )
+        || assurance.downstream_quiescence_claim_scope_sha256
+            != claim_scope_digest(
+                OwnerEvidenceDomain::DownstreamObserverQuorum,
+                &assurance.downstream_quiescence_claim_id,
+                &assurance.downstream_quiescence_asserted_value,
+                &scope,
+            )
+    {
+        return Err(LineageError::ObserverClaimMismatch);
+    }
+
+    if observer_quorum_is_qualified(&assurance.physical_outcome_quorum) != Ok(true)
+        || observer_quorum_is_qualified(&assurance.downstream_quiescence_quorum) != Ok(true)
+        || !observer_proofs_are_independent(
+            &assurance.physical_outcome_quorum,
+            &assurance.downstream_quiescence_quorum,
+        )
+    {
+        return Err(LineageError::ObserverQuorumUnqualified);
+    }
+    Ok(())
+}
+
 fn validate_recovery_handoff(
+    fault_profile_revision: &str,
+    logical_effect_id: &str,
     parent: &AttemptRecord,
     child: &AttemptRecord,
 ) -> Result<(), LineageError> {
@@ -255,6 +324,8 @@ fn validate_recovery_handoff(
     {
         return Err(LineageError::ParentOutcomeNotRetryable);
     }
+
+    validate_attempt_observer_assurance(fault_profile_revision, logical_effect_id, parent)?;
 
     if !matches!(
         parent.persistence.outcome,
@@ -295,7 +366,10 @@ impl AttemptLineageRecording {
     /// It does not authenticate receipts, infer missing physical observations,
     /// or authorize a native action.
     pub fn validate(&self) -> Result<LineageSummary, LineageError> {
-        if self.version != ATTEMPT_LINEAGE_VERSION || !nonempty(&self.logical_effect_id) {
+        if self.version != ATTEMPT_LINEAGE_VERSION
+            || !nonempty(&self.logical_effect_id)
+            || !nonempty(&self.fault_profile_revision)
+        {
             return Err(LineageError::InvalidHeader);
         }
         if self.attempts.is_empty() {
@@ -338,7 +412,12 @@ impl AttemptLineageRecording {
                 {
                     return Err(LineageError::EpochNotMonotonic);
                 }
-                validate_recovery_handoff(parent, attempt)?;
+                validate_recovery_handoff(
+                    &self.fault_profile_revision,
+                    &self.logical_effect_id,
+                    parent,
+                    attempt,
+                )?;
             }
 
             validate_attempt_evidence(&self.logical_effect_id, attempt, &mut evidence_ids)?;
