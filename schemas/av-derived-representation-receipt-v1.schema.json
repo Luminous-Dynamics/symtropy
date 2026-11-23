@@ -395,7 +395,7 @@
                 "bit_width": {
                   "type": "integer",
                   "minimum": 2,
-                  "maximum": 32
+                  "maximum": 8
                 },
                 "scale_nano": {
                   "type": "integer",
@@ -419,7 +419,7 @@
                 "bit_width": {
                   "type": "integer",
                   "minimum": 2,
-                  "maximum": 32
+                  "maximum": 8
                 },
                 "scale_nano": {
                   "type": "integer",
@@ -607,6 +607,95 @@
         "properties": {
           "transcript_parent_head_sha256": {
             "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "const": "hdc_embedding"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "encoder": {
+            "properties": {
+              "basis_seed_identity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "initialization_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "enum": [
+              "transcript_alignment",
+              "asr_hypothesis"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "modality": {
+            "const": "audio"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "representation_kind": {
+            "const": "visual_features"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "modality": {
+            "enum": [
+              "video",
+              "audiovisual"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reproducibility": {
+            "properties": {
+              "mode": {
+                "const": "f32_absolute_tolerance"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "features": {
+            "properties": {
+              "element_type": {
+                "enum": [
+                  "f32_le",
+                  "f16_le"
+                ]
+              }
+            }
           }
         }
       }
