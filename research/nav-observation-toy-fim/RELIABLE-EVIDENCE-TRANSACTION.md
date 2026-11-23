@@ -28,12 +28,14 @@ The new reliable-plan entry point:
 2. Finds the exact selected action's admitted reliability record in that plan's Pareto frontier.
 3. Projects the selected conditional assessment into the common transaction interface without discarding the full reliability record.
 4. Requires the attempt request to match the selected action.
-5. Starts and consumes exactly one attempt in the consume-once ledger.
-6. Binds the qualified outcome to the exact action ID, attempt ID, result ID, source manifest digest, payload digest and qualification-receipt digest.
-7. Requires the time-validity input's result ID and source-manifest digest to match that same evidence binding.
-8. Stages only a temporally applicable decision-epoch nowcast for a later independent posterior audit.
+5. Verifies the attempt's exact domain fingerprint and acquisition-protocol digest match the domain/protocol under which the reliability interval was admitted.
+6. Starts and consumes exactly one attempt in the consume-once ledger.
+7. Binds the qualified outcome to the exact action ID, attempt ID, result ID, source manifest digest, payload digest and qualification-receipt digest.
+8. Requires the time-validity input's result ID and source-manifest digest to match that same evidence binding.
+9. Stages only a temporally applicable decision-epoch nowcast for a later independent posterior audit.
 
-The transaction report preserves:
+The transaction report preserves the exact reliability contract's domain/protocol binding in addition to:
+- admitted domain and acquisition-protocol digests;
 - probability lower and upper bounds;
 - confidence-error probability;
 - independent campaign-block count;
@@ -41,7 +43,7 @@ The transaction report preserves:
 - empirical success fraction;
 - source-manifest, calibration-cohort and bound-method commitments.
 
-It does not reduce this provenance to one scalar confidence value.
+It does not reduce this provenance to one scalar confidence value. A domain or protocol mismatch is rejected before the attempt ledger is mutated.
 
 ## Result and authority boundary
 
