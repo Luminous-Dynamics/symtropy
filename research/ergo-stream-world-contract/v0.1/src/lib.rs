@@ -159,7 +159,9 @@ impl WorldV0 {
                     channel_id: 0,
                     symbol: symbol_permutation[base_symbol as usize],
                 });
-                tick = tick.checked_add(time_scale).ok_or(WorldError::TimeOverflow)?;
+                tick = tick
+                    .checked_add(time_scale)
+                    .ok_or(WorldError::TimeOverflow)?;
             }
 
             let end_frame = frames.len();
@@ -335,10 +337,7 @@ fn boundary_metrics(
     )
 }
 
-fn equivalence_metrics(
-    matched: &[MatchedCandidate],
-    truth: &[TruthSpan],
-) -> CountMetricsV0 {
+fn equivalence_metrics(matched: &[MatchedCandidate], truth: &[TruthSpan]) -> CountMetricsV0 {
     let mut true_positive = 0;
     let mut false_positive = 0;
     let mut false_negative = 0;
@@ -346,8 +345,7 @@ fn equivalence_metrics(
     for (left_index, left) in matched.iter().enumerate() {
         for right in matched.iter().skip(left_index + 1) {
             let predicted_same = left.predicted_cluster == right.predicted_cluster;
-            let actual_same =
-                truth[left.truth_index].class_id == truth[right.truth_index].class_id;
+            let actual_same = truth[left.truth_index].class_id == truth[right.truth_index].class_id;
 
             match (predicted_same, actual_same) {
                 (true, true) => true_positive += 1,
@@ -388,8 +386,7 @@ mod tests {
     use super::*;
 
     fn world() -> WorldV0 {
-        WorldV0::generate(0x5EED, 64, [0, 1, 2, 3], 3, 2)
-            .expect("known-valid fixture parameters")
+        WorldV0::generate(0x5EED, 64, [0, 1, 2, 3], 3, 2).expect("known-valid fixture parameters")
     }
 
     #[test]
@@ -444,11 +441,17 @@ mod tests {
     fn exact_oracle_recovers_unit_and_motif_structure() {
         let generated = world();
         let report = generated.evaluate(&exact_snapshot(&generated));
-        assert_eq!(report.unit_boundaries.true_positive, generated.truth_units.len());
+        assert_eq!(
+            report.unit_boundaries.true_positive,
+            generated.truth_units.len()
+        );
         assert_eq!(report.unit_boundaries.false_positive, 0);
         assert_eq!(report.unit_boundaries.false_negative, 0);
         assert_eq!(report.unit_equivalence.f1, Some(1.0));
-        assert_eq!(report.motif_boundaries.true_positive, generated.truth_motifs.len());
+        assert_eq!(
+            report.motif_boundaries.true_positive,
+            generated.truth_motifs.len()
+        );
         assert_eq!(report.motif_boundaries.false_positive, 0);
         assert_eq!(report.motif_boundaries.false_negative, 0);
         assert_eq!(report.motif_equivalence.f1, Some(1.0));
@@ -496,7 +499,10 @@ mod tests {
         let report = generated.evaluate(&snapshot);
         assert_eq!(report.unit_boundaries.true_positive, 0);
         assert_eq!(report.unit_boundaries.false_positive, 1);
-        assert_eq!(report.unit_boundaries.false_negative, generated.truth_units.len());
+        assert_eq!(
+            report.unit_boundaries.false_negative,
+            generated.truth_units.len()
+        );
     }
 
     #[test]
@@ -505,7 +511,10 @@ mod tests {
         let mut snapshot = exact_snapshot(&generated);
         snapshot.units.push(snapshot.units[0]);
         let report = generated.evaluate(&snapshot);
-        assert_eq!(report.unit_boundaries.true_positive, generated.truth_units.len());
+        assert_eq!(
+            report.unit_boundaries.true_positive,
+            generated.truth_units.len()
+        );
         assert_eq!(report.unit_boundaries.false_positive, 1);
     }
 
@@ -521,7 +530,9 @@ mod tests {
     fn invalid_prefix_is_rejected_without_exposing_future_frames() {
         let generated = world();
         assert_eq!(
-            generated.policy_view(generated.frames.len() + 1).unwrap_err(),
+            generated
+                .policy_view(generated.frames.len() + 1)
+                .unwrap_err(),
             WorldError::PrefixOutOfRange
         );
     }
