@@ -205,7 +205,6 @@ pub struct LiveEvidence {
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
-    AbstainOutOfEnvelope,
     AbstainInsufficientEvidence,
 }
 
@@ -656,11 +655,6 @@ impl CalibrationSupervisor {
             FailureAction::IndependentDiagnosticRequired => {
                 Disposition::IndependentDiagnosticRequired { reason }
             }
-            FailureAction::AbstainOutOfEnvelope => {
-                Disposition::AbstainOutOfEnvelope {
-                    feature: String::new(),
-                }
-            }
             FailureAction::AbstainInsufficientEvidence => {
                 Disposition::AbstainInsufficientEvidence { reason }
             }
@@ -773,6 +767,77 @@ mod tests {
             supervisor.observe(&sample),
             Disposition::IndependentDiagnosticRequired {
                 reason: Reason::ObserverIntervention
+            }
+        );
+    }
+
+    #[test]
+    fn measurement_identity_changes_require_independent_diagnostics() {
+        let cases: [(&str, fn(&mut Fingerprints), Reason); 6] = [
+            (
+                "acquisition",
+                |value| value.acquisition_protocol.push_str("-changed"),
+                Reason::AcquisitionChanged,
+            ),
+            (
+                "instrument",
+                |value| value.instrument.push_str("-changed"),
+                Reason::InstrumentChanged,
+            ),
+            (
+                "calibration",
+                |value| value.calibration.push_str("-changed"),
+                Reason::CalibrationChanged,
+            ),
+            (
+                "clock",
+                |value| value.clock.push_str("-changed"),
+                Reason::ClockChanged,
+            ),
+            (
+                "reference",
+                |value| value.reference_graph.push_str("-changed"),
+                Reason::ReferenceChanged,
+            ),
+            (
+                "observer",
+                |value| value.observer_state.push_str("-changed"),
+                Reason::ObserverChanged,
+            ),
+        ];
+
+        for (index, (_name, mutate, reason)) in cases.into_iter().enumerate() {
+            let mut supervisor =
+                CalibrationSupervisor::new(certificate()).expect("valid fixture");
+            let mut sample = evidence(&format!("identity-{index}"), 11);
+            mutate(&mut sample.fingerprints);
+            assert_eq!(
+                supervisor.observe(&sample),
+                Disposition::IndependentDiagnosticRequired { reason }
+            );
+        }
+    }
+
+    #[test]
+    fn expired_certificate_requires_recalibration() {
+        let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
+        assert_eq!(
+            supervisor.observe(&evidence("expired", 111)),
+            Disposition::RecalibrationRequired {
+                reason: Reason::CertificateStale
+            }
+        );
+    }
+
+    #[test]
+    fn non_finite_scope_feature_abstains() {
+        let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
+        let mut sample = evidence("non-finite", 11);
+        sample.features.insert("velocity".into(), f64::NAN);
+        assert_eq!(
+            supervisor.observe(&sample),
+            Disposition::AbstainInsufficientEvidence {
+                reason: Reason::FeatureNonFinite
             }
         );
     }
