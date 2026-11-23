@@ -236,7 +236,7 @@ mod tests {
             // of the sphere direction.
             let report =
                 integrate_ncdot_sphere(inputs, &rule, config()).expect("isotropic sphere integral");
-            let pointwise = 1.0 / (2.0 * PI).sqrt() * (-0.5 * 4.0).exp();
+            let pointwise = 1.0 / (2.0 * PI).sqrt() * (-0.5_f64 * 4.0).exp();
             let expected_sphere_integral = 4.0 * PI * pointwise;
             let expected_rate = 4.0 * expected_sphere_integral;
 
@@ -274,7 +274,7 @@ mod tests {
         let mut inputs = template();
         inputs.log_position_density_normalizer = 2_000.0;
         let report = integrate_ncdot_sphere(inputs, &rule, config()).expect("underflowing rate");
-        assert_eq!(report.pointwise_underflow_count, rule.node_count());
+        assert_eq!(report.pointwise_underflow_count, rule.nodes().len());
         assert!(report.log_sphere_integral.is_finite());
         assert!(report.log_instantaneous_collision_rate.is_finite());
         assert_eq!(report.sphere_integral, 0.0);
@@ -305,7 +305,7 @@ mod tests {
         assert_eq!(diagnostics.significant_node_count, 1);
         assert!(!diagnostics.adequacy_satisfied);
         assert!(diagnostics.maximum_node_integral_fraction > 0.5);
-        assert_eq!(report.zero_dispersion_limit_count, rule.node_count());
+        assert_eq!(report.zero_dispersion_limit_count, rule.nodes().len());
     }
 
     #[test]
