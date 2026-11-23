@@ -103,7 +103,7 @@ A projection PASS establishes only that a supplied recording satisfies this crat
 
 ## Multi-attempt lineage extension v0.1
 
-The separate attempt-lineage validator now checks a linear chain of up to 64 attempts for one stable logical effect. Every retry edge must join the preceding attempt's confirmed NoEffect physical outcome, confirmed NoEffect mission resolution, definitely-not-committed persistence result, controller-queue fence, and downstream-quiescence receipt to the exact new boot/controller epoch.
+The separate attempt-lineage validator now checks a linear chain of up to 64 attempts for one stable logical effect. Every retry edge must join the preceding attempt's confirmed NoEffect physical outcome, confirmed NoEffect mission resolution, resolved committed-or-not-committed persistence result, controller-queue fence, and downstream-quiescence receipt to the exact new boot/controller epoch.
 
 The validator does not issue permits or replace owner authority. It is intentionally a separate contract because the pinned v0.1 TLA projection remains limited to one original attempt and one recovery admission. See [ATTEMPT_LINEAGE_V0.1.md](ATTEMPT_LINEAGE_V0.1.md) for the exact semantics, claim ceiling, negative controls, and next formal-refinement step.
 
