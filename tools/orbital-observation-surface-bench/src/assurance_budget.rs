@@ -597,10 +597,7 @@ mod tests {
         );
         let result = evaluate(&input).unwrap();
         assert_eq!(result.status, "ASSURANCE_INDETERMINATE");
-        assert_eq!(
-            result.missing_required_classes,
-            vec!["LOSS_MODEL_COVERAGE"]
-        );
+        assert_eq!(result.missing_required_classes, vec!["LOSS_MODEL_COVERAGE"]);
     }
 
     #[test]
