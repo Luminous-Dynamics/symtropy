@@ -760,13 +760,10 @@ impl ExecutionEvidenceBundle {
                             || member.observer_binary_sha256 != profile.binary_sha256
                             || member.common_cause_domains != profile.common_cause_domains
                             || member.observer_id == self.platform.fault_injector_id
-                            || member
-                                .common_cause_domains
-                                .iter()
-                                .any(|domain| {
-                                    domain == &self.platform.fault_injector_fault_domain_id
-                                        || !common_cause_domains.insert(domain.as_str())
-                                })
+                            || member.common_cause_domains.iter().any(|domain| {
+                                domain == &self.platform.fault_injector_fault_domain_id
+                                    || !common_cause_domains.insert(domain.as_str())
+                            })
                         {
                             return Err(ExecutionEvidenceError::ObserverNotDistinct);
                         }
@@ -1105,8 +1102,7 @@ mod tests {
     fn rejects_unpinned_observer_binary_or_revision() {
         let plan = plan();
         let mut evidence = bundle();
-        evidence.events[0].delivery_observation.members[0].observer_binary_sha256 =
-            "c".repeat(64);
+        evidence.events[0].delivery_observation.members[0].observer_binary_sha256 = "c".repeat(64);
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::ObserverNotDistinct)
@@ -1141,10 +1137,8 @@ mod tests {
     fn rejects_observed_signature_that_does_not_match_planned_delivery() {
         let plan = plan();
         let mut evidence = bundle();
-        evidence.events[0]
-            .delivery_observation
-            .members[0]
-            .observed_fault_signature_sha256 = "f".repeat(64);
+        evidence.events[0].delivery_observation.members[0].observed_fault_signature_sha256 =
+            "f".repeat(64);
         assert_eq!(
             evidence.validate_against_plan(&plan),
             Err(ExecutionEvidenceError::DeliverySignatureMismatch)
