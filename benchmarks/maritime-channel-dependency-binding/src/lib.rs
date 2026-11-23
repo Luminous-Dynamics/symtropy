@@ -80,7 +80,7 @@ pub enum MaritimeDependencyClass {
 }
 
 impl MaritimeDependencyClass {
-    pub const fn applies_to_stage(self, stage: MaritimeStage) -> bool {
+    pub fn applies_to_stage(self, stage: MaritimeStage) -> bool {
         match self {
             Self::PhysicalAcquisition
             | Self::PhysicalSensorOrReader
