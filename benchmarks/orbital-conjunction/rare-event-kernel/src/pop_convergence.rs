@@ -155,8 +155,7 @@ pub fn decide_peak_overlap_convergence(
     }
     let acceleration_iteration =
         ((0.25 * config.maximum_iterations as f64).round() as usize).min(25);
-    let averaging_iteration =
-        ((0.35 * config.maximum_iterations as f64).round() as usize).min(35);
+    let averaging_iteration = ((0.35 * config.maximum_iterations as f64).round() as usize).min(35);
     let oscillation_iteration =
         ((0.15 * config.maximum_iterations as f64).round() as usize).min(15);
 
@@ -197,9 +196,7 @@ pub fn decide_peak_overlap_convergence(
 
     let adjustment_on_current_iteration =
         observation.last_col_adjustment_iteration == Some(observation.iteration);
-    if current_vs_previous_md2 <= config.strict_md2_tolerance
-        && !adjustment_on_current_iteration
-    {
+    if current_vs_previous_md2 <= config.strict_md2_tolerance && !adjustment_on_current_iteration {
         return Ok(decision(
             PeakOverlapConvergenceStatus::Strict,
             PeakOverlapConvergenceReason::StrictMd2Satisfied,
@@ -276,26 +273,26 @@ pub fn decide_peak_overlap_convergence(
         ));
     }
 
-    let (active_md2_cutoff, omfrc, schedule_fraction) =
-        if observation.iteration > averaging_iteration {
-            (config.relaxed_md2_tolerance, 0.0, None)
-        } else if observation.iteration <= acceleration_iteration {
-            (config.strict_md2_tolerance, 1.0, None)
-        } else {
-            // For a valid integer iteration, this branch implies
-            // averaging_iteration > acceleration_iteration.
-            let denominator = averaging_iteration - acceleration_iteration;
-            if denominator == 0 {
-                return Err(KernelError::InvalidPeakOverlapConvergenceConfig);
-            }
-            let fraction = (observation.iteration - acceleration_iteration) as f64
-                / denominator as f64;
-            let relaxed_fraction = 1.0 - fraction;
-            let cutoff = (relaxed_fraction * config.strict_md2_tolerance.ln()
-                + fraction * config.relaxed_md2_tolerance.ln())
-            .exp();
-            (cutoff, relaxed_fraction, Some(fraction))
-        };
+    let (active_md2_cutoff, omfrc, schedule_fraction) = if observation.iteration
+        > averaging_iteration
+    {
+        (config.relaxed_md2_tolerance, 0.0, None)
+    } else if observation.iteration <= acceleration_iteration {
+        (config.strict_md2_tolerance, 1.0, None)
+    } else {
+        // For a valid integer iteration, this branch implies
+        // averaging_iteration > acceleration_iteration.
+        let denominator = averaging_iteration - acceleration_iteration;
+        if denominator == 0 {
+            return Err(KernelError::InvalidPeakOverlapConvergenceConfig);
+        }
+        let fraction = (observation.iteration - acceleration_iteration) as f64 / denominator as f64;
+        let relaxed_fraction = 1.0 - fraction;
+        let cutoff = (relaxed_fraction * config.strict_md2_tolerance.ln()
+            + fraction * config.relaxed_md2_tolerance.ln())
+        .exp();
+        (cutoff, relaxed_fraction, Some(fraction))
+    };
 
     if current_vs_previous_md2 <= active_md2_cutoff {
         let convergence_code = 0.1 + omfrc / 4.0;
@@ -392,8 +389,7 @@ mod tests {
     #[test]
     fn default_configuration_reproduces_pinned_iteration_boundaries() {
         let value = config();
-        let result =
-            decide_peak_overlap_convergence(observation(1, 1.0), value).unwrap();
+        let result = decide_peak_overlap_convergence(observation(1, 1.0), value).unwrap();
         assert_eq!(result.acceleration_iteration, 25);
         assert_eq!(result.averaging_iteration, 35);
         assert_eq!(result.oscillation_iteration, 15);
@@ -405,8 +401,7 @@ mod tests {
             maximum_iterations: 1,
             ..config()
         };
-        let result =
-            decide_peak_overlap_convergence(observation(0, 100.0), value).unwrap();
+        let result = decide_peak_overlap_convergence(observation(0, 100.0), value).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::CoppolaOneStep);
         assert_eq!(result.source_convergence_code, 1.0);
     }
@@ -424,17 +419,18 @@ mod tests {
 
     #[test]
     fn initial_iteration_does_not_require_previous_md2() {
-        let result =
-            decide_peak_overlap_convergence(observation(0, 0.0), config()).unwrap();
+        let result = decide_peak_overlap_convergence(observation(0, 0.0), config()).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::NotConverged);
-        assert_eq!(result.reason, PeakOverlapConvergenceReason::InitialIteration);
+        assert_eq!(
+            result.reason,
+            PeakOverlapConvergenceReason::InitialIteration
+        );
         assert_eq!(result.source_convergence_code, 0.0);
     }
 
     #[test]
     fn strict_tolerance_returns_numeric_one_when_no_adjustment_occurred() {
-        let result =
-            decide_peak_overlap_convergence(observation(1, 0.5e-12), config()).unwrap();
+        let result = decide_peak_overlap_convergence(observation(1, 0.5e-12), config()).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::Strict);
         assert_eq!(result.source_convergence_code, 1.0);
         assert_eq!(result.active_md2_cutoff, Some(1.0e-12));
@@ -486,7 +482,10 @@ mod tests {
         input.current_vs_two_back_md2 = Some(0.0);
         let result = decide_peak_overlap_convergence(input, config()).unwrap();
         assert_eq!(result.status, PeakOverlapConvergenceStatus::NotConverged);
-        assert_eq!(result.reason, PeakOverlapConvergenceReason::OscillationCheckNotYetEligible);
+        assert_eq!(
+            result.reason,
+            PeakOverlapConvergenceReason::OscillationCheckNotYetEligible
+        );
         assert_eq!(result.current_vs_two_back_md2, None);
     }
 
@@ -500,7 +499,10 @@ mod tests {
 
         input.iteration = 21;
         let after_two = decide_peak_overlap_convergence(input, config()).unwrap();
-        assert_eq!(after_two.status, PeakOverlapConvergenceStatus::OscillationResolved);
+        assert_eq!(
+            after_two.status,
+            PeakOverlapConvergenceStatus::OscillationResolved
+        );
     }
 
     #[test]
@@ -530,11 +532,17 @@ mod tests {
         input.last_col_adjustment_iteration = Some(20);
         input.current_vs_two_back_md2 = Some(0.2e-12);
         let not_yet_eligible = decide_peak_overlap_convergence(input, config()).unwrap();
-        assert_eq!(not_yet_eligible.status, PeakOverlapConvergenceStatus::NotConverged);
+        assert_eq!(
+            not_yet_eligible.status,
+            PeakOverlapConvergenceStatus::NotConverged
+        );
 
         input.iteration = 23;
         let result = decide_peak_overlap_convergence(input, config()).unwrap();
-        assert_eq!(result.status, PeakOverlapConvergenceStatus::OscillationResolved);
+        assert_eq!(
+            result.status,
+            PeakOverlapConvergenceStatus::OscillationResolved
+        );
         assert_eq!(result.source_convergence_code, 0.5);
     }
 
@@ -546,7 +554,6 @@ mod tests {
             Err(KernelError::InvalidPeakOverlapConvergenceObservation)
         );
     }
-
 
     #[test]
     fn future_col_adjustment_iteration_is_rejected() {
