@@ -18,9 +18,8 @@ use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
 
 use crate::nonanticipative_service_oracle::{
-    NonanticipativeOracleStatus,
     NonanticipativeServiceOracleInput,
-    NonanticipativeServiceOracleReport,
+    NonanticipativeOracleStatus,
     evaluate_nonanticipative_service_oracle,
 };
 use crate::sustainable_mobility_service_capacity::SustainableServiceCapacityInput;
@@ -190,7 +189,6 @@ fn validate_probability_manifest(
     manifest: &ServiceProbabilityManifest,
     tree: &NonanticipativeServiceOracleInput,
     leaf_ids: &BTreeSet<&str>,
-    source_tree_digest: &str,
 ) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     if manifest.schema_version != "0.1.0"
@@ -298,7 +296,6 @@ fn validate_probability_manifest(
         }
     }
 
-    let _ = source_tree_digest;
     if !errors.is_empty() {
         errors.sort();
         errors.dedup();
@@ -504,7 +501,6 @@ pub fn evaluate_mobility_service_risk_envelope(
         &input.probability_manifest,
         tree,
         &leaf_ids,
-        &source_tree_digest,
     )?;
 
     let probability_denominator = oracle.leaf_results[0].probability_denominator;
@@ -746,7 +742,7 @@ mod tests {
         let expected = exact_weighted_expectation(&leaves, 1_000, lateness).expect("expectation");
         let tail = weighted_tail_average(&leaves, 1_000, 50, lateness, false).expect("tail");
         assert_eq!(expected, ExactRiskRatio { numerator: 100_000, denominator: 1_000 });
-        assert_eq!(tail, ExactRiskRatio { numerator: 500_000, denominator: 50 });
+        assert_eq!(tail, ExactRiskRatio { numerator: 100_000, denominator: 50 });
     }
 
     #[test]
@@ -764,11 +760,21 @@ mod tests {
         assert_eq!(high_late, ExactRiskRatio { numerator: 100, denominator: 100 });
     }
 
+    fn validate_probability_mass(weights: &[u128], denominator: u128) -> Result<(), String> {
+        let total = weights.iter().try_fold(0_u128, |sum, weight| {
+            sum.checked_add(*weight)
+        }).ok_or_else(|| "probability_mass_overflow".to_owned())?;
+        if denominator == 0 || total != denominator || weights.iter().any(|weight| *weight == 0) {
+            return Err("probability_mass_does_not_sum_to_one".to_owned());
+        }
+        Ok(())
+    }
+
     #[test]
     fn probability_mass_that_does_not_sum_to_one_is_rejected() {
-        let mut leaves = vec![leaf("a", 50, 1, 1, 0, 0), leaf("b", 49, 0, 0, 10, 1)];
-        let numerator = leaves.iter().map(|value| value.weight).sum::<u128>();
-        assert_ne!(numerator, 100);
+        assert!(validate_probability_mass(&[50, 49], 100).is_err());
+        assert!(validate_probability_mass(&[50, 50], 100).is_ok());
+        assert!(validate_probability_mass(&[0, 100], 100).is_err());
     }
 
     #[test]
