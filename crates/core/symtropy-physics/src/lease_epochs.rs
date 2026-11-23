@@ -237,8 +237,10 @@ pub enum BodyMutation {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SceneMutation {
     BodyMembershipChanged,
+    BodyTypeChanged,
     TopologyOrProviderChanged,
     PairFilterPolicyChanged,
+    ConstraintSetChanged,
     MotionBoundsChanged,
     WorldGenerationChanged,
     Untracked,
@@ -326,11 +328,17 @@ pub fn advance_scene_revisions(
         SceneMutation::BodyMembershipChanged => {
             revisions.membership = next_epoch(revisions.membership)?;
         }
+        SceneMutation::BodyTypeChanged => {
+            revisions.topology = next_epoch(revisions.topology)?;
+        }
         SceneMutation::TopologyOrProviderChanged => {
             revisions.topology = next_epoch(revisions.topology)?;
         }
         SceneMutation::PairFilterPolicyChanged => {
             revisions.filter = next_epoch(revisions.filter)?;
+        }
+        SceneMutation::ConstraintSetChanged => {
+            revisions.motion_bound = next_epoch(revisions.motion_bound)?;
         }
         SceneMutation::MotionBoundsChanged => {
             revisions.motion_bound = next_epoch(revisions.motion_bound)?;
@@ -964,6 +972,21 @@ mod tests {
             advance_scene_revisions(before, SceneMutation::WorldGenerationChanged).unwrap();
         assert_eq!(reset.world_generation.get(), 1);
         assert_eq!(reset.membership, before.membership);
+    }
+
+    #[test]
+    fn body_type_and_constraint_mutations_invalidate_the_right_scene_layers() {
+        let before = SceneRevisions::default();
+
+        let body_type =
+            advance_scene_revisions(before, SceneMutation::BodyTypeChanged).unwrap();
+        assert_eq!(body_type.topology.get(), 1);
+        assert_eq!(body_type.membership, before.membership);
+
+        let constraints =
+            advance_scene_revisions(before, SceneMutation::ConstraintSetChanged).unwrap();
+        assert_eq!(constraints.motion_bound.get(), 1);
+        assert_eq!(constraints.topology, before.topology);
     }
 
     #[test]
