@@ -1,0 +1,2888 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-route-tree-known-answers-v0.1",
+  "benchmark_id": "MFG-ROUTE-TREE-OPT-001",
+  "evidence_class": "synthetic",
+  "answer_count": 120,
+  "answers": [
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-01",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-02",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-03",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-04",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-05",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-06",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-07",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-08",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-09",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-10",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9000000,
+      "exact_expected_cost_numerator": 9000000,
+      "clairvoyant_lower_bound_numerator": 9000000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-11",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10500000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-12",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8100000,
+      "exact_expected_cost_numerator": 8100000,
+      "clairvoyant_lower_bound_numerator": 8100000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-13",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-14",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-15",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-16",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-17",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-18",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-19",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-NOMINAL-AND-LOCAL-OUTAGE-20",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-01",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-02",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-03",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-04",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-05",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-06",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-07",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-08",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-09",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-10",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9000000,
+      "exact_expected_cost_numerator": 9000000,
+      "clairvoyant_lower_bound_numerator": 9000000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-11",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10500000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-12",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8100000,
+      "exact_expected_cost_numerator": 8100000,
+      "clairvoyant_lower_bound_numerator": 8100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-13",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-14",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-15",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-16",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-17",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-18",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-19",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-SUPPLIER-VARIABILITY-20",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-01",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-02",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-03",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-04",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-05",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-06",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-07",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-08",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-09",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-10",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9000000,
+      "exact_expected_cost_numerator": 9000000,
+      "clairvoyant_lower_bound_numerator": 9000000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-11",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10500000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-12",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8100000,
+      "exact_expected_cost_numerator": 8100000,
+      "clairvoyant_lower_bound_numerator": 8100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-13",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-14",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-15",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-16",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-17",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-18",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-19",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-COMMON-CAUSE-OUTAGE-20",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-01",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-02",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-03",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-04",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-05",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-06",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-07",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-08",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-09",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-10",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9000000,
+      "exact_expected_cost_numerator": 9000000,
+      "clairvoyant_lower_bound_numerator": 9000000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-11",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10500000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-12",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8100000,
+      "exact_expected_cost_numerator": 8100000,
+      "clairvoyant_lower_bound_numerator": 8100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-13",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9600000,
+      "exact_expected_cost_numerator": 9600000,
+      "clairvoyant_lower_bound_numerator": 9600000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-14",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-15",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9500000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-16",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8600000,
+      "exact_expected_cost_numerator": 8600000,
+      "clairvoyant_lower_bound_numerator": 8600000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-17",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10100000,
+      "exact_expected_cost_numerator": 10100000,
+      "clairvoyant_lower_bound_numerator": 10100000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-18",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 8500000,
+      "exact_expected_cost_numerator": 8500000,
+      "clairvoyant_lower_bound_numerator": 8500000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-19",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 10000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 10000000
+    },
+    {
+      "case_id": "TREE-MAINTENANCE-CALIBRATION-20",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 9100000,
+      "exact_expected_cost_numerator": 9100000,
+      "clairvoyant_lower_bound_numerator": 9100000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-01",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17100000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10050000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-02",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17000000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-03",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17000000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-04",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16100000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9050000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-05",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17600000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10550000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-06",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 9250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-07",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17500000,
+      "exact_expected_cost_numerator": 11500000,
+      "clairvoyant_lower_bound_numerator": 10750000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-08",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16600000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 9550000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-09",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16600000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 9550000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-10",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16500000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 9750000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-11",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 18000000,
+      "exact_expected_cost_numerator": 12000000,
+      "clairvoyant_lower_bound_numerator": 11250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-12",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 15600000,
+      "exact_expected_cost_numerator": 9000000,
+      "clairvoyant_lower_bound_numerator": 8550000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-13",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17100000,
+      "exact_expected_cost_numerator": 10500000,
+      "clairvoyant_lower_bound_numerator": 10050000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-14",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17000000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-15",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17000000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-16",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16100000,
+      "exact_expected_cost_numerator": 9500000,
+      "clairvoyant_lower_bound_numerator": 9050000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-17",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17600000,
+      "exact_expected_cost_numerator": 11000000,
+      "clairvoyant_lower_bound_numerator": 10550000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-18",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16000000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 9250000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-19",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 17500000,
+      "exact_expected_cost_numerator": 11500000,
+      "clairvoyant_lower_bound_numerator": 10750000
+    },
+    {
+      "case_id": "TREE-QUALITY-INSPECTION-UNCERTAINTY-20",
+      "greedy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "REGIONAL-FDM",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "HUB-FDM",
+        "recourse_by_information_set": {
+          "local-down": "JOB-SHOP-CNC",
+          "nominal": "HUB-FDM",
+          "regional-down": "HUB-FDM",
+          "shared-domain-down": "JOB-SHOP-CNC"
+        }
+      },
+      "greedy_expected_cost_numerator": 16600000,
+      "exact_expected_cost_numerator": 10000000,
+      "clairvoyant_lower_bound_numerator": 9550000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-01",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42200000,
+      "exact_expected_cost_numerator": 41000000,
+      "clairvoyant_lower_bound_numerator": 41000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-02",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42800000,
+      "exact_expected_cost_numerator": 42000000,
+      "clairvoyant_lower_bound_numerator": 42000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-03",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "OEM-SUPPLY",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42400000,
+      "exact_expected_cost_numerator": 40000000,
+      "clairvoyant_lower_bound_numerator": 40000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-04",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 40600000,
+      "exact_expected_cost_numerator": 39800000,
+      "clairvoyant_lower_bound_numerator": 39800000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-05",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 43200000,
+      "exact_expected_cost_numerator": 42000000,
+      "clairvoyant_lower_bound_numerator": 42000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-06",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 40800000,
+      "exact_expected_cost_numerator": 40000000,
+      "clairvoyant_lower_bound_numerator": 40000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-07",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "OEM-SUPPLY",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 43400000,
+      "exact_expected_cost_numerator": 41600000,
+      "clairvoyant_lower_bound_numerator": 41600000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-08",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 41600000,
+      "exact_expected_cost_numerator": 40800000,
+      "clairvoyant_lower_bound_numerator": 40800000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-09",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 41200000,
+      "exact_expected_cost_numerator": 40000000,
+      "clairvoyant_lower_bound_numerator": 40000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-10",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 41800000,
+      "exact_expected_cost_numerator": 41000000,
+      "clairvoyant_lower_bound_numerator": 41000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-11",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 44400000,
+      "exact_expected_cost_numerator": 43200000,
+      "clairvoyant_lower_bound_numerator": 43200000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-12",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 39600000,
+      "exact_expected_cost_numerator": 38800000,
+      "clairvoyant_lower_bound_numerator": 38800000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-13",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42200000,
+      "exact_expected_cost_numerator": 41000000,
+      "clairvoyant_lower_bound_numerator": 41000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-14",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42800000,
+      "exact_expected_cost_numerator": 42000000,
+      "clairvoyant_lower_bound_numerator": 42000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-15",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "OEM-SUPPLY",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 42400000,
+      "exact_expected_cost_numerator": 40000000,
+      "clairvoyant_lower_bound_numerator": 40000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-16",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 40600000,
+      "exact_expected_cost_numerator": 39800000,
+      "clairvoyant_lower_bound_numerator": 39800000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-17",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 43200000,
+      "exact_expected_cost_numerator": 42000000,
+      "clairvoyant_lower_bound_numerator": 42000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-18",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 40800000,
+      "exact_expected_cost_numerator": 40000000,
+      "clairvoyant_lower_bound_numerator": 40000000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-19",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "OEM-SUPPLY",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 43400000,
+      "exact_expected_cost_numerator": 41600000,
+      "clairvoyant_lower_bound_numerator": 41600000
+    },
+    {
+      "case_id": "TREE-DEMAND-SURGE-CAPACITY-20",
+      "greedy_plan": {
+        "primary_route_id": "JOB-SHOP-CNC",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "exact_policy_plan": {
+        "primary_route_id": "OEM-SUPPLY",
+        "recourse_by_information_set": {
+          "local-down": "OEM-SUPPLY",
+          "nominal": "JOB-SHOP-CNC",
+          "regional-down": "OEM-SUPPLY",
+          "shared-domain-down": null
+        }
+      },
+      "greedy_expected_cost_numerator": 41600000,
+      "exact_expected_cost_numerator": 40800000,
+      "clairvoyant_lower_bound_numerator": 40800000
+    }
+  ]
+}
