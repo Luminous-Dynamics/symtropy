@@ -752,6 +752,71 @@ mod tests {
     }
 
     #[test]
+    fn finite_identity_set_panel_matches_independent_profile_oracle() {
+        // Independent finite oracle over all non-empty subsets of a four-ID
+        // universe and all Complete/Partial combinations. The oracle is
+        // expressed directly as set intersection/completeness, not by calling
+        // the production assessment helpers.
+        let dimension = FaultDomainDimension::InputAcquisition;
+        let mut checked_cases = 0usize;
+        for left_mask in 1u8..16 {
+            for right_mask in 1u8..16 {
+                for left_partial in [false, true] {
+                    for right_partial in [false, true] {
+                        let ids = |mask: u8, role_binding: &str, prefix: &str| {
+                            (0..4)
+                                .filter(|index| mask & (1 << index) != 0)
+                                .map(|index| {
+                                    witness(
+                                        (index + 1) as u8,
+                                        MaritimeDependencyClass::PhysicalAcquisition,
+                                        role_binding,
+                                        &format!("{prefix}-node-{index}"),
+                                        &format!("{prefix}-edge-{index}"),
+                                    )
+                                })
+                                .collect::<Vec<_>>()
+                        };
+                        let left_ids = ids(left_mask, "source-binding", "source");
+                        let right_ids = ids(right_mask, "witness-binding", "witness");
+                        let left_set: BTreeSet<_> =
+                            left_ids.iter().map(|item| item.identity).collect();
+                        let right_set: BTreeSet<_> =
+                            right_ids.iter().map(|item| item.identity).collect();
+                        let expected = if !left_set.is_disjoint(&right_set) {
+                            SeparationDisposition::Shared
+                        } else if left_partial || right_partial {
+                            SeparationDisposition::Incomplete
+                        } else {
+                            SeparationDisposition::SeparatedForProfile
+                        };
+                        let left_inventory = if left_partial {
+                            DimensionInventory::Partial(left_ids)
+                        } else {
+                            DimensionInventory::Complete(left_ids)
+                        };
+                        let right_inventory = if right_partial {
+                            DimensionInventory::Partial(right_ids)
+                        } else {
+                            DimensionInventory::Complete(right_ids)
+                        };
+                        let (profile, projection) =
+                            projection(left_inventory, right_inventory, dimension);
+                        let actual = assess(&profile, &projection);
+                        assert_eq!(
+                            actual.findings[0].disposition,
+                            expected,
+                            "left={left_mask:04b} right={right_mask:04b} left_partial={left_partial} right_partial={right_partial}"
+                        );
+                        checked_cases += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(checked_cases, 900);
+    }
+
+    #[test]
     fn physical_acquisition_maps_to_owner_input_acquisition_dimension() {
         assert_eq!(
             MaritimeDependencyClass::PhysicalAcquisition.canonical_dimension(),
