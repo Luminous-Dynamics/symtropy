@@ -17,6 +17,58 @@
 //! implementation. Those paths need shape-/transform-specific interval
 //! evaluation before a broadphase bound may claim to enclose a collider.
 
+use nalgebra::{SMatrix, SVector};
+
+/// Outward enclosure of an axis-aligned box after an affine map.
+///
+/// The matrix coefficients and translation components are treated as the
+/// exact represented binary64 inputs. For every real input point inside the
+/// represented local AABB, the exact affine image is enclosed by the returned
+/// finite world AABB, provided the interval arithmetic profile documented by
+/// this module is upheld.
+///
+/// This function does not prove that the supplied matrix is itself a
+/// conservative enclosure of a higher-level rotor or transform computation.
+/// It only certifies the affine map defined by the supplied binary64 matrix
+/// and translation.
+pub fn transform_aabb_affine_outward<const D: usize>(
+    matrix: &SMatrix<f64, D, D>,
+    translation: &SVector<f64, D>,
+    local_min: &SVector<f64, D>,
+    local_max: &SVector<f64, D>,
+) -> Result<(SVector<f64, D>, SVector<f64, D>), IntervalError> {
+    if matrix.iter().any(|value| !value.is_finite())
+        || translation.iter().any(|value| !value.is_finite())
+        || local_min.iter().any(|value| !value.is_finite())
+        || local_max.iter().any(|value| !value.is_finite())
+    {
+        return Err(IntervalError::NonFiniteInput);
+    }
+
+    if (0..D).any(|axis| local_min[axis] > local_max[axis]) {
+        return Err(IntervalError::ReversedEndpoints);
+    }
+
+    let mut world_min = SVector::<f64, D>::zeros();
+    let mut world_max = SVector::<f64, D>::zeros();
+
+    for output_axis in 0..D {
+        let mut image = Interval::point(translation[output_axis])?;
+
+        for input_axis in 0..D {
+            let coefficient = Interval::point(matrix[(output_axis, input_axis)])?;
+            let coordinate = Interval::new(local_min[input_axis], local_max[input_axis])?;
+            let contribution = coefficient.checked_mul_outward(coordinate)?;
+            image = image.checked_add_outward(contribution)?;
+        }
+
+        world_min[output_axis] = image.lower();
+        world_max[output_axis] = image.upper();
+    }
+
+    Ok((world_min, world_max))
+}
+
 /// Failure to construct or evaluate a finite interval.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IntervalError {
@@ -260,6 +312,116 @@ mod tests {
         assert_eq!(
             Interval::new(2.0, 1.0),
             Err(IntervalError::ReversedEndpoints)
+        );
+    }
+
+    #[test]
+    fn affine_aabb_identity_contains_represented_box_endpoints() {
+        let matrix = SMatrix::<f64, 3, 3>::identity();
+        let translation = SVector::from([10.0, -3.0, 0.25]);
+        let local_min = SVector::from([-2.0, -1.0, 0.0]);
+        let local_max = SVector::from([4.0, 5.0, 2.0]);
+
+        let (world_min, world_max) =
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
+                .unwrap();
+
+        for axis in 0..3 {
+            assert!(world_min[axis] <= local_min[axis] + translation[axis]);
+            assert!(world_max[axis] >= local_max[axis] + translation[axis]);
+            assert!(world_min[axis].is_finite());
+            assert!(world_max[axis].is_finite());
+        }
+    }
+
+    #[test]
+    fn affine_aabb_encloses_all_transformed_corners_with_rotation_and_shear() {
+        let matrix = SMatrix::<f64, 3, 3>::from_row_slice(&[
+            0.0, -1.0, 0.25,
+            1.0, 0.0, 0.5,
+            0.125, -0.25, 1.0,
+        ]);
+        let translation = SVector::from([1.25, -2.5, 0.75]);
+        let local_min = SVector::from([-2.0, -0.5, 1.0]);
+        let local_max = SVector::from([3.0, 2.0, 4.0]);
+
+        let (world_min, world_max) =
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
+                .unwrap();
+
+        // Enumerate all 2^3 vertices independently of the interval row
+        // accumulation. This checks the affine hull's corners, which attain
+        // every coordinate extremum for a linear map over a box.
+        for corner in 0..8 {
+            let point = SVector::<f64, 3>::from_fn(|axis, _| {
+                if corner & (1 << axis) == 0 {
+                    local_min[axis]
+                } else {
+                    local_max[axis]
+                }
+            });
+            let transformed = matrix * point + translation;
+            for axis in 0..3 {
+                assert!(
+                    world_min[axis] <= transformed[axis],
+                    "axis {axis}: lower {} > corner {}",
+                    world_min[axis],
+                    transformed[axis]
+                );
+                assert!(
+                    transformed[axis] <= world_max[axis],
+                    "axis {axis}: corner {} > upper {}",
+                    transformed[axis],
+                    world_max[axis]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn affine_aabb_handles_negative_coefficients_and_degenerate_axes() {
+        let matrix = SMatrix::<f64, 2, 2>::from_row_slice(&[-2.0, 0.0, 0.5, -1.0]);
+        let translation = SVector::from([0.0, 3.0]);
+        let local_min = SVector::from([1.0, 2.0]);
+        let local_max = SVector::from([1.0, 2.0]);
+
+        let (world_min, world_max) =
+            transform_aabb_affine_outward(&matrix, &translation, &local_min, &local_max)
+                .unwrap();
+
+        let point = matrix * local_min + translation;
+        for axis in 0..2 {
+            assert!(world_min[axis] <= point[axis]);
+            assert!(point[axis] <= world_max[axis]);
+        }
+    }
+
+    #[test]
+    fn affine_aabb_fails_open_on_invalid_inputs_and_overflow() {
+        let identity = SMatrix::<f64, 2, 2>::identity();
+        let zero = SVector::<f64, 2>::zeros();
+        let one = SVector::<f64, 2>::from_element(1.0);
+
+        let mut nan_matrix = identity;
+        nan_matrix[(0, 1)] = f64::NAN;
+        assert_eq!(
+            transform_aabb_affine_outward(&nan_matrix, &zero, &zero, &one),
+            Err(IntervalError::NonFiniteInput)
+        );
+
+        let reversed_min = SVector::from([2.0, 0.0]);
+        let reversed_max = SVector::from([1.0, 1.0]);
+        assert_eq!(
+            transform_aabb_affine_outward(&identity, &zero, &reversed_min, &reversed_max),
+            Err(IntervalError::ReversedEndpoints)
+        );
+
+        let huge = SMatrix::<f64, 2, 2>::from_element(f64::MAX);
+        let huge_min = SVector::<f64, 2>::from_element(1.0);
+        let huge_max = SVector::<f64, 2>::from_element(2.0);
+        assert_eq!(
+            transform_aabb_affine_outward(&huge, &zero, &huge_min, &huge_max),
+            Err(IntervalError::ArithmeticOverflow)
         );
     }
 
