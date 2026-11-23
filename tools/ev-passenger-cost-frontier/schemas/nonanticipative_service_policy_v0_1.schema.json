@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/nonanticipative_service_policy_v0_1.schema.json",
+  "title": "Nonanticipative Service Policy Certificate v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "site_id",
+    "root_node_id",
+    "probability_denominator",
+    "nodes",
+    "scenarios",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "NONANTICIPATIVE-SERVICE-POLICY-001"
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "root_node_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "probability_denominator": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "released_at_seconds",
+        "accept_by_seconds",
+        "required_service_seconds",
+        "payload_units"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "released_at_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accept_by_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_service_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "payload_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "opportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opportunity_id",
+        "start_seconds",
+        "end_seconds",
+        "max_service_duration_seconds",
+        "max_payload_units"
+      ],
+      "properties": {
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_service_duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "max_payload_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "holdAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "const": "hold"
+        }
+      }
+    },
+    "assignAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "request_id",
+        "opportunity_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "assign"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "opportunity_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "action": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/holdAction"
+        },
+        {
+          "$ref": "#/$defs/assignAction"
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "parent_node_id",
+        "decision_time_seconds",
+        "information_set_digest",
+        "observation_digest",
+        "available_requests",
+        "available_opportunities",
+        "action"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decision_time_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_set_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "observation_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "available_requests": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/request"
+          }
+        },
+        "available_opportunities": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/opportunity"
+          }
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "terminal_node_id",
+        "weight_numerator"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weight_numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      }
+    }
+  }
+}
