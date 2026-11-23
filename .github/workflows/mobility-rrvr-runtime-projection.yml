@@ -204,6 +204,9 @@ jobs:
             and (.fault_model_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.platform.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.platform.environment_artifact_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.platform.fault_injector_revision | length > 0)
+            and (.platform.native_adapter_revision | length > 0)
             and (.reset.profile_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.reset.expected_initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
             and (.scenarios | length == 4)
@@ -212,7 +215,7 @@ jobs:
             and ([.scenarios[] | select(.arm == "full_rrvr" and (.control_class == "negative" or .control_class == "mutation") and (.expected_disposition == "hold" or .expected_disposition == "block"))] | length == 1)
             and ([.scenarios[] | select(.arm == "last_attempt_only" and .expected_disposition == "measure")] | length == 2)
             and ([.scenarios[].faults[]] | length == 8)
-            and ([.scenarios[].faults[].parameters_sha256] | all(test("^[a-fA-F0-9]{64}$")))
+            and ([.scenarios[].faults[].parameters_sha256] | map(test("^[a-fA-F0-9]{64}$")) | all)
           ' "$FIXTURE"
 
       - name: Check formatting
@@ -238,6 +241,8 @@ jobs:
             and .full_rrvr_positive_count == 1
             and .full_rrvr_negative_count == 1
             and .coverage_complete == true
+            and (.fault_injector_sha256 | test("^[a-fA-F0-9]{64}$"))
+            and (.native_adapter_revision | length > 0)
             and .fault_injection_executed == false
             and .platform_inventory_authenticated == false
             and .owner_evidence_authenticated == false
