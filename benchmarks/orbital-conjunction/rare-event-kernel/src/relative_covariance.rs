@@ -616,9 +616,7 @@ mod tests {
         let expected_regression = [[0.25, 0.0, 0.0], [0.0, 0.2, 0.0], [0.0, 0.0, 0.2]];
         for (i, expected_row) in expected_regression.iter().enumerate() {
             for (j, expected) in expected_row.iter().enumerate() {
-                assert!(
-                    (result.conditional_velocity_regression[i][j] - expected).abs() < 1.0e-14
-                );
+                assert!((result.conditional_velocity_regression[i][j] - expected).abs() < 1.0e-14);
             }
         }
         assert!((result.conditional_velocity_covariance[0][0] - 1.0).abs() < 1.0e-14);
