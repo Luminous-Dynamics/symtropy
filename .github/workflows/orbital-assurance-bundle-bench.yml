@@ -58,7 +58,7 @@ jobs:
           actual_commit="$(git rev-parse HEAD)"
           test "$actual_commit" = "$BENCHMARK_COMMIT"
           set +e
-          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- \
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin orbital-assurance-bundle-bench -- \
             tools/orbital-assurance-bundle-bench/fixtures/v0.1/assurance-cases.json \
             --source-commit "$actual_commit" > orbital-assurance-bundle-receipt.json
           replay_status=$?
