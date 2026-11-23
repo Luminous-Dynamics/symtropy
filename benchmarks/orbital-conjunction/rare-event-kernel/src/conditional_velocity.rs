@@ -675,7 +675,7 @@ mod tests {
 
         let expected_dr = [0.6, 0.0, 0.0];
         let expected_mean = -0.1 + 0.1 * 0.6;
-        let expected_variance = 1.0;
+        let expected_variance: f64 = 1.0;
         let expected_md2 = 0.6_f64.powi(2) / 4.0;
         let expected_speed =
             gaussian_negative_part_expectation(expected_mean, expected_variance.sqrt())
