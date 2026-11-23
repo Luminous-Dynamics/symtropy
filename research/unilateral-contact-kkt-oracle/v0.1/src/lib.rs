@@ -133,6 +133,8 @@ pub struct QpValidationReport {
 #[derive(Clone, Debug, PartialEq)]
 pub struct KktCertificate {
     pub globally_optimal_within_declared_qp: bool,
+    /// True only when the full KKT vector also has zero impulse on every omitted contact.
+    pub retained_subset_is_globally_optimal: bool,
     pub maximum_primal_violation: f64,
     pub maximum_dual_violation: f64,
     pub maximum_complementarity_residual: f64,
@@ -768,13 +770,15 @@ fn verify_validated_kkt(
         }
     }
 
-    let passes = primal_violation <= tolerances.impulse_absolute
+    let full_kkt_passes = primal_violation <= tolerances.impulse_absolute
         && dual_violation <= tolerances.gradient_absolute
-        && complementarity <= tolerances.complementarity_absolute
-        && maximum_omitted_impulse <= tolerances.impulse_absolute;
+        && complementarity <= tolerances.complementarity_absolute;
+    let retained_subset_passes =
+        full_kkt_passes && maximum_omitted_impulse <= tolerances.impulse_absolute;
 
     Ok(KktCertificate {
-        globally_optimal_within_declared_qp: passes,
+        globally_optimal_within_declared_qp: full_kkt_passes,
+        retained_subset_is_globally_optimal: retained_subset_passes,
         maximum_primal_violation: primal_violation,
         maximum_dual_violation: dual_violation,
         maximum_complementarity_residual: complementarity,
@@ -830,7 +834,7 @@ pub fn adaptive_refine(
             .map(str::to_owned)
             .collect::<Vec<_>>();
 
-        if certificate.globally_optimal_within_declared_qp {
+        if certificate.retained_subset_is_globally_optimal {
             rounds.push(RefinementRound {
                 round_index,
                 retained_contact_ids: retained_sorted,
@@ -1013,6 +1017,36 @@ mod tests {
         assert_eq!(report.final_impulses[0].normal_impulse, 1.0);
         assert_eq!(report.final_impulses[1].normal_impulse, 0.0);
         assert_eq!(report.final_certificate.gradient, vec![0.0, 0.0]);
+        assert!(report.final_certificate.retained_subset_is_globally_optimal);
+    }
+
+    #[test]
+    fn verifier_distinguishes_full_kkt_from_reduced_subset_support() {
+        let problem = qp(
+            &["kept", "omitted"],
+            vec![vec![1.0, 0.0], vec![0.0, 1.0]],
+            vec![-1.0, -1.0],
+        );
+        let full_solution = vec![
+            ContactImpulse {
+                contact_id: "kept".to_owned(),
+                normal_impulse: 1.0,
+            },
+            ContactImpulse {
+                contact_id: "omitted".to_owned(),
+                normal_impulse: 1.0,
+            },
+        ];
+        let certificate = verify_full_patch_kkt(
+            &problem,
+            &full_solution,
+            &strings(&["kept"]),
+            NumericTolerances::default(),
+        )
+        .expect("full KKT verification");
+        assert!(certificate.globally_optimal_within_declared_qp);
+        assert!(!certificate.retained_subset_is_globally_optimal);
+        assert_eq!(certificate.maximum_omitted_impulse, 1.0);
     }
 
     #[test]
