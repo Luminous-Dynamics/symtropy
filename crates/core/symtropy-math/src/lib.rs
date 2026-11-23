@@ -45,7 +45,7 @@ pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
 pub use point::Point;
 pub use rotor::Rotor;
-pub use shape::Shape;
+pub use shape::{LocalAabb, Shape};
 pub use sphere::Sphere;
 pub use transform::Transform;
 
