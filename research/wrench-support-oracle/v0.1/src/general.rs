@@ -131,8 +131,8 @@ fn validate_model(model: &ContactWrenchModel) -> Result<Vec<[f64; 3]>, OracleErr
 
     if !minimum_total.is_finite()
         || !maximum_total.is_finite()
-        || minimum_total > 1.0 + 1.0e-12
-        || maximum_total < 1.0 - 1.0e-12
+        || minimum_total > 1.0
+        || maximum_total < 1.0
     {
         return Err(OracleError::new(
             "normal-load bounds cannot allocate the fixed unit total load",
