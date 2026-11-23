@@ -23,7 +23,7 @@ use crate::sustainable_mobility_service_capacity::{
     SustainableServiceCapacityInput, evaluate_sustainable_service_capacity,
 };
 use crate::sustainable_mobility_service_quality::{
-    EvidenceClass, FallbackMode, FallbackServiceOpportunity, FlightEvidence, FulfilmentMode,
+    EvidenceClass, FallbackMode, FlightEvidence, FulfilmentMode,
     LinkedServiceQualityInput, PermissionState, RequestDisposition, ServiceRequest, WeatherState,
     evaluate_linked_service_quality,
 };
@@ -1294,8 +1294,6 @@ pub fn evaluate_nonanticipative_service_oracle(
                 start_seconds: receipt.start_seconds,
                 max_service_duration_seconds: receipt.mission_duration_seconds,
                 max_payload_units: qualification.max_payload_units,
-                aircraft_or_resource_id: receipt.aircraft_id.clone(),
-                source_receipt_id: observation.receipt_id.clone(),
             };
             if observation.weather_state == WeatherState::Go
                 && observation.permission_state == PermissionState::Approved
