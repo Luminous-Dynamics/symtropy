@@ -292,6 +292,7 @@ fn validate_reset(
         || receipt.reset_profile_sha256 != plan.reset.profile_sha256
         || receipt.expected_initial_state_sha256 != plan.reset.expected_initial_state_sha256
         || receipt.observed_initial_state_sha256 != plan.reset.expected_initial_state_sha256
+        || receipt.producer_revision != plan.platform.simulator_revision
     {
         return Err(ExecutionEvidenceError::InvalidResetReceipt);
     }
@@ -451,6 +452,11 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.producer_id != self.platform.native_adapter_id
+                        || receipt.producer_revision != self.platform.native_adapter_revision
+                    {
+                        return Err(ExecutionEvidenceError::InvalidReceipt);
+                    }
                     Some(target_id)
                 }
                 TargetResolutionStatus::NotResolved => {
@@ -485,6 +491,11 @@ impl ExecutionEvidenceBundle {
                     expected,
                     resolved_target.unwrap_or(&expected.target_component_id),
                 )?;
+                if receipt.producer_id != self.platform.native_adapter_id
+                    || receipt.producer_revision != self.platform.native_adapter_revision
+                {
+                    return Err(ExecutionEvidenceError::InvalidReceipt);
+                }
                 register_receipt(
                     receipt,
                     &mut evidence_ids,
@@ -519,6 +530,11 @@ impl ExecutionEvidenceBundle {
                         expected,
                         resolved_target.expect("resolved target checked"),
                     )?;
+                    if receipt.producer_id != self.platform.native_adapter_id
+                        || receipt.producer_revision != self.platform.native_adapter_revision
+                    {
+                        return Err(ExecutionEvidenceError::InvalidReceipt);
+                    }
                     register_receipt(
                         receipt,
                         &mut evidence_ids,
@@ -544,6 +560,11 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.producer_id != self.platform.native_adapter_id
+                        || receipt.producer_revision != self.platform.native_adapter_revision
+                    {
+                        return Err(ExecutionEvidenceError::InvalidReceipt);
+                    }
                     register_receipt(
                         receipt,
                         &mut evidence_ids,
@@ -563,6 +584,11 @@ impl ExecutionEvidenceBundle {
                             expected,
                             target_id,
                         )?;
+                        if receipt.producer_id != self.platform.native_adapter_id
+                            || receipt.producer_revision != self.platform.native_adapter_revision
+                        {
+                            return Err(ExecutionEvidenceError::InvalidReceipt);
+                        }
                         register_receipt(
                             receipt,
                             &mut evidence_ids,
@@ -592,6 +618,11 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.producer_id != self.platform.fault_injector_id
+                        || receipt.producer_revision != self.platform.fault_injector_revision
+                    {
+                        return Err(ExecutionEvidenceError::InvalidReceipt);
+                    }
                     if receipt.simulation_step != expected.scheduled_simulation_step {
                         return Err(ExecutionEvidenceError::ExecutionCoordinateMismatch);
                     }
@@ -617,6 +648,11 @@ impl ExecutionEvidenceBundle {
                         expected,
                         target_id,
                     )?;
+                    if receipt.producer_id != self.platform.fault_injector_id
+                        || receipt.producer_revision != self.platform.fault_injector_revision
+                    {
+                        return Err(ExecutionEvidenceError::InvalidReceipt);
+                    }
                     register_receipt(
                         receipt,
                         &mut evidence_ids,
@@ -636,6 +672,11 @@ impl ExecutionEvidenceBundle {
                             expected,
                             target_id,
                         )?;
+                        if receipt.producer_id != self.platform.fault_injector_id
+                            || receipt.producer_revision != self.platform.fault_injector_revision
+                        {
+                            return Err(ExecutionEvidenceError::InvalidReceipt);
+                        }
                         register_receipt(
                             receipt,
                             &mut evidence_ids,
@@ -670,7 +711,7 @@ impl ExecutionEvidenceBundle {
                         .as_deref()
                         .filter(|value| nonempty(value))
                         .ok_or(ExecutionEvidenceError::ObserverNotDistinct)?;
-                    if observer_id == self.platform.fault_injector_revision
+                    if observer_id == self.platform.fault_injector_id
                         || observer_fault_domain_id
                             == self.platform.fault_injector_fault_domain_id
                     {
@@ -680,7 +721,9 @@ impl ExecutionEvidenceBundle {
                         .observed_fault_signature_sha256
                         .as_deref()
                         .ok_or(ExecutionEvidenceError::DeliverySignatureMismatch)?;
-                    if signature != expected.expected_delivery_signature_sha256 {
+                    if !valid_sha256(signature)
+                        || signature != expected.expected_delivery_signature_sha256
+                    {
                         return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
                     }
                     let receipt = observation
@@ -741,7 +784,9 @@ impl ExecutionEvidenceBundle {
                         .observed_fault_signature_sha256
                         .as_deref()
                         .ok_or(ExecutionEvidenceError::DeliverySignatureMismatch)?;
-                    if signature == expected.expected_delivery_signature_sha256 {
+                    if !valid_sha256(signature)
+                        || signature == expected.expected_delivery_signature_sha256
+                    {
                         return Err(ExecutionEvidenceError::DeliverySignatureMismatch);
                     }
                     let receipt = observation
