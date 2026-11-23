@@ -406,12 +406,16 @@ fn validate_observer_claim<'a>(
         return Err(LineageError::ObserverClaimMismatch);
     }
 
-    if context.operational_evidence_ids.contains(&evidence.evidence_id)
+    if context
+        .operational_evidence_ids
+        .contains(&evidence.evidence_id)
         || !context
             .observer_evidence_ids
             .insert(evidence.evidence_id.clone())
         || !context.claim_ids.insert(claim_id.to_owned())
-        || !context.artifact_ids.insert(evidence.raw_artifact_id.clone())
+        || !context
+            .artifact_ids
+            .insert(evidence.raw_artifact_id.clone())
         || !context
             .artifact_hashes
             .insert(evidence.raw_artifact_sha256.clone())
@@ -572,7 +576,9 @@ impl AttemptLineageRecording {
                 {
                     return Err(LineageError::InvalidEvidenceReceipt);
                 }
-                context.operational_owner_ids.insert(receipt.owner_id.clone());
+                context
+                    .operational_owner_ids
+                    .insert(receipt.owner_id.clone());
             }
         }
         let mut applied_attempt_count = 0usize;
@@ -606,12 +612,7 @@ impl AttemptLineageRecording {
                 {
                     return Err(LineageError::EpochNotMonotonic);
                 }
-                validate_recovery_handoff(
-                    &self.logical_effect_id,
-                    parent,
-                    attempt,
-                    &mut context,
-                )?;
+                validate_recovery_handoff(&self.logical_effect_id, parent, attempt, &mut context)?;
             }
 
             validate_attempt_evidence(&self.logical_effect_id, attempt)?;
