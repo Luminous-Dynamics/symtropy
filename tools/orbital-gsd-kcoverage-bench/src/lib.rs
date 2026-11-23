@@ -27,22 +27,42 @@ pub struct Vec3 {
 
 impl Vec3 {
     fn from_array(value: [f64; 3]) -> Self {
-        Self { x: value[0], y: value[1], z: value[2] }
+        Self {
+            x: value[0],
+            y: value[1],
+            z: value[2],
+        }
     }
-    fn array(self) -> [f64; 3] { [self.x, self.y, self.z] }
+    fn array(self) -> [f64; 3] {
+        [self.x, self.y, self.z]
+    }
     fn add(self, other: Self) -> Self {
-        Self { x: self.x + other.x, y: self.y + other.y, z: self.z + other.z }
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
     }
     fn sub(self, other: Self) -> Self {
-        Self { x: self.x - other.x, y: self.y - other.y, z: self.z - other.z }
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+        }
     }
     fn scale(self, scalar: f64) -> Self {
-        Self { x: self.x * scalar, y: self.y * scalar, z: self.z * scalar }
+        Self {
+            x: self.x * scalar,
+            y: self.y * scalar,
+            z: self.z * scalar,
+        }
     }
     fn dot(self, other: Self) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
-    fn norm(self) -> f64 { self.dot(self).sqrt() }
+    fn norm(self) -> f64 {
+        self.dot(self).sqrt()
+    }
     fn normalized(self) -> Option<Self> {
         let norm = self.norm();
         (norm.is_finite() && norm > 1.0e-12).then(|| self.scale(1.0 / norm))
@@ -87,7 +107,11 @@ pub struct GsdCase {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum Disposition { Feasible, Infeasible, Indeterminate }
+pub enum Disposition {
+    Feasible,
+    Infeasible,
+    Indeterminate,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SurfacePatch {
@@ -179,14 +203,20 @@ impl Grid {
     fn from_input(input: &GridInput) -> Result<Self, String> {
         if !input.voxel_size_m.is_finite()
             || input.voxel_size_m <= 0.0
-            || input.dimensions.iter().any(|dimension| *dimension == 0 || *dimension > 128)
+            || input
+                .dimensions
+                .iter()
+                .any(|dimension| *dimension == 0 || *dimension > 128)
             || input.origin_m.iter().any(|value| !value.is_finite())
         {
             return Err("GRID_BOUNDS_INVALID".to_owned());
         }
         let mut occupied = BTreeSet::new();
         for cell in &input.occupied_cells {
-            if cell.iter().zip(input.dimensions).any(|(index, dimension)| *index >= dimension)
+            if cell
+                .iter()
+                .zip(input.dimensions)
+                .any(|(index, dimension)| *index >= dimension)
                 || !occupied.insert((cell[0], cell[1], cell[2]))
             {
                 return Err("GRID_OCCUPANCY_INVALID_OR_DUPLICATE".to_owned());
@@ -213,15 +243,18 @@ impl Grid {
                     [cell[0] as isize, cell[1] as isize, cell[2] as isize],
                     delta,
                 );
-                if next.iter().enumerate().any(|(axis, value)| {
-                    *value < 0 || *value >= padded[axis] as isize
-                }) {
+                if next
+                    .iter()
+                    .enumerate()
+                    .any(|(axis, value)| *value < 0 || *value >= padded[axis] as isize)
+                {
                     continue;
                 }
                 let original = [next[0] - 1, next[1] - 1, next[2] - 1];
-                let inside_original = original.iter().enumerate().all(|(axis, value)| {
-                    *value >= 0 && *value < input.dimensions[axis] as isize
-                });
+                let inside_original = original
+                    .iter()
+                    .enumerate()
+                    .all(|(axis, value)| *value >= 0 && *value < input.dimensions[axis] as isize);
                 if inside_original
                     && occupied.contains(&(
                         original[0] as usize,
@@ -244,7 +277,9 @@ impl Grid {
             for y in 0..input.dimensions[1] {
                 for z in 0..input.dimensions[2] {
                     let cell = (x, y, z);
-                    if occupied.contains(&cell) { continue; }
+                    if occupied.contains(&cell) {
+                        continue;
+                    }
                     if exterior_padded.contains(&(x + 1, y + 1, z + 1)) {
                         exterior.insert(cell);
                     } else {
@@ -273,13 +308,12 @@ impl Grid {
     }
 
     fn is_occupied(&self, cell: [isize; 3]) -> bool {
-        cell.iter().enumerate().all(|(axis, index)| {
-            *index >= 0 && *index < self.dimensions[axis] as isize
-        }) && self.occupied.contains(&(
-            cell[0] as usize,
-            cell[1] as usize,
-            cell[2] as usize,
-        ))
+        cell.iter()
+            .enumerate()
+            .all(|(axis, index)| *index >= 0 && *index < self.dimensions[axis] as isize)
+            && self
+                .occupied
+                .contains(&(cell[0] as usize, cell[1] as usize, cell[2] as usize))
     }
 
     fn surface_patches(&self) -> Result<Vec<SurfacePatch>, String> {
@@ -289,27 +323,40 @@ impl Grid {
             let mut normals = Vec::new();
             for (delta, normal) in FACE_NEIGHBOURS {
                 let neighbour = plus([x as isize, y as isize, z as isize], delta);
-                if self.is_occupied(neighbour) { continue; }
-                let inside_original = neighbour.iter().enumerate().all(|(axis, value)| {
-                    *value >= 0 && *value < self.dimensions[axis] as isize
-                });
+                if self.is_occupied(neighbour) {
+                    continue;
+                }
+                let inside_original = neighbour
+                    .iter()
+                    .enumerate()
+                    .all(|(axis, value)| *value >= 0 && *value < self.dimensions[axis] as isize);
                 let is_exterior = !inside_original
                     || self.exterior.contains(&(
                         neighbour[0] as usize,
                         neighbour[1] as usize,
                         neighbour[2] as usize,
                     ));
-                if is_exterior { normals.push(normal); }
+                if is_exterior {
+                    normals.push(normal);
+                }
             }
-            if normals.is_empty() { continue; }
+            if normals.is_empty() {
+                continue;
+            }
 
             let summed = normals.iter().fold(
-                Vec3 { x: 0.0, y: 0.0, z: 0.0 },
-                |acc, normal| acc.add(Vec3 {
-                    x: normal[0] as f64,
-                    y: normal[1] as f64,
-                    z: normal[2] as f64,
-                }),
+                Vec3 {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                |acc, normal| {
+                    acc.add(Vec3 {
+                        x: normal[0] as f64,
+                        y: normal[1] as f64,
+                        z: normal[2] as f64,
+                    })
+                },
             );
 
             if summed.norm() <= 1.0e-9 {
@@ -331,7 +378,9 @@ impl Grid {
                     });
                 }
             } else {
-                let normal = summed.normalized().ok_or_else(|| "SURFACE_NORMAL_ZERO".to_owned())?;
+                let normal = summed
+                    .normalized()
+                    .ok_or_else(|| "SURFACE_NORMAL_ZERO".to_owned())?;
                 patches.push(SurfacePatch {
                     feature_id: feature_id(cell),
                     cell,
@@ -351,7 +400,9 @@ impl Grid {
     fn ray_occluded(&self, origin: Vec3, target: Vec3, target_cell: [usize; 3]) -> bool {
         let segment = target.sub(origin);
         let distance = segment.norm();
-        let Some(direction) = segment.normalized() else { return true; };
+        let Some(direction) = segment.normalized() else {
+            return true;
+        };
         let tolerance = self.voxel_size * 3.0_f64.sqrt() / 2.0;
         let end_t = (distance - tolerance).max(0.0);
 
@@ -388,10 +439,16 @@ impl Grid {
         ];
         let mut t = 0.0;
         for _ in 0..1024 {
-            if t > end_t { break; }
-            if self.is_occupied(cell) && cell != target { return true; }
+            if t > end_t {
+                break;
+            }
+            if self.is_occupied(cell) && cell != target {
+                return true;
+            }
             let next_t = t_max.iter().copied().fold(f64::INFINITY, f64::min);
-            if !next_t.is_finite() || next_t > end_t { break; }
+            if !next_t.is_finite() || next_t > end_t {
+                break;
+            }
             let tied_axes = (0..3)
                 .filter(|axis| (t_max[*axis] - next_t).abs() <= 1.0e-10)
                 .collect::<Vec<_>>();
@@ -399,9 +456,13 @@ impl Grid {
             for mask in 1..(1_usize << tied_axes.len()) {
                 let mut neighbour = cell;
                 for (bit, axis) in tied_axes.iter().enumerate() {
-                    if mask & (1 << bit) != 0 { neighbour[*axis] += step[*axis]; }
+                    if mask & (1 << bit) != 0 {
+                        neighbour[*axis] += step[*axis];
+                    }
                 }
-                if self.is_occupied(neighbour) && neighbour != target { return true; }
+                if self.is_occupied(neighbour) && neighbour != target {
+                    return true;
+                }
             }
             for axis in tied_axes {
                 cell[axis] += step[axis];
@@ -447,8 +508,8 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
     }
-    let case: GsdCase = serde_json::from_slice(bytes)
-        .map_err(|error| format!("CASE_PARSE_FAILED:{error}"))?;
+    let case: GsdCase =
+        serde_json::from_slice(bytes).map_err(|error| format!("CASE_PARSE_FAILED:{error}"))?;
     validate_case(&case)?;
     let grid = Grid::from_input(&case.grid)?;
     let camera = &case.camera;
@@ -473,7 +534,9 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         let centre = grid.centre(surface.cell);
         let position = centre.add(normal.scale(perpendicular));
         let optical = normal.scale(-1.0);
-        if grid.ray_occluded(position, centre, surface.cell) { continue; }
+        if grid.ray_occluded(position, centre, surface.cell) {
+            continue;
+        }
 
         let mut visible_features = Vec::new();
         for target in &surfaces {
@@ -485,15 +548,29 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
             let target_centre = grid.centre(target.cell);
             let to_target = target_centre.sub(position);
             let distance = to_target.norm();
-            if distance <= 1.0e-12 || distance > slant_range + 1.0e-10 { continue; }
-            let Some(deviation) = normal.angle(target_normal) else { continue; };
-            if deviation > camera.max_oblique_angle_rad + 1.0e-10 { continue; }
-            let Some(fov_angle) = optical.angle(to_target) else { continue; };
-            if fov_angle > camera.horizontal_fov_rad * 0.5 + 1.0e-10 { continue; }
-            let gsd = distance * fov_scale
-                / (f64::from(camera.horizontal_pixel_count) * deviation.cos());
-            if gsd > camera.gsd_max_m_per_pixel + 1.0e-12 { continue; }
-            if grid.ray_occluded(position, target_centre, target.cell) { continue; }
+            if distance <= 1.0e-12 || distance > slant_range + 1.0e-10 {
+                continue;
+            }
+            let Some(deviation) = normal.angle(target_normal) else {
+                continue;
+            };
+            if deviation > camera.max_oblique_angle_rad + 1.0e-10 {
+                continue;
+            }
+            let Some(fov_angle) = optical.angle(to_target) else {
+                continue;
+            };
+            if fov_angle > camera.horizontal_fov_rad * 0.5 + 1.0e-10 {
+                continue;
+            }
+            let gsd =
+                distance * fov_scale / (f64::from(camera.horizontal_pixel_count) * deviation.cos());
+            if gsd > camera.gsd_max_m_per_pixel + 1.0e-12 {
+                continue;
+            }
+            if grid.ray_occluded(position, target_centre, target.cell) {
+                continue;
+            }
             visible_features.push(target.feature_id.clone());
         }
         visible_features.sort();
@@ -546,7 +623,10 @@ pub fn evaluate_bytes(bytes: &[u8], source_commit: &str) -> Result<GsdReceipt, S
         source_input_sha256: sha256(bytes),
         evidence_class: "synthetic".to_owned(),
         claim_ceiling: case.claim_ceiling.clone(),
-        disposition: if feature_coverage.iter().all(|feature| feature.candidate_view_count > 0) {
+        disposition: if feature_coverage
+            .iter()
+            .all(|feature| feature.candidate_view_count > 0)
+        {
             Disposition::Feasible
         } else {
             Disposition::Infeasible
@@ -603,9 +683,18 @@ mod tests {
 
     #[test]
     fn thin_wall_keeps_opposing_exterior_face_normals() {
-        let surfaces = Grid::from_input(&fixture().grid).unwrap().surface_patches().unwrap();
-        let first = surfaces.iter().find(|surface| surface.feature_id == "V-5-2-2-N0").unwrap();
-        let second = surfaces.iter().find(|surface| surface.feature_id == "V-5-2-2-N1").unwrap();
+        let surfaces = Grid::from_input(&fixture().grid)
+            .unwrap()
+            .surface_patches()
+            .unwrap();
+        let first = surfaces
+            .iter()
+            .find(|surface| surface.feature_id == "V-5-2-2-N0")
+            .unwrap();
+        let second = surfaces
+            .iter()
+            .find(|surface| surface.feature_id == "V-5-2-2-N1")
+            .unwrap();
         assert_ne!(first.normal_q1e6, second.normal_q1e6);
         assert_eq!(first.normal_source, "EXTERIOR_FACE_MULTI_NORMAL");
     }
@@ -620,19 +709,26 @@ mod tests {
             / fov_scale;
         let h = range * case.camera.max_oblique_angle_rad.cos();
         let nadir = h * fov_scale / f64::from(case.camera.horizontal_pixel_count);
-        let expected = case.camera.gsd_max_m_per_pixel
-            * case.camera.max_oblique_angle_rad.cos().powi(2);
+        let expected =
+            case.camera.gsd_max_m_per_pixel * case.camera.max_oblique_angle_rad.cos().powi(2);
         assert!((nadir - expected).abs() < 1.0e-12);
     }
 
     #[test]
     fn generated_candidate_views_observe_their_source_feature() {
         let receipt = evaluate_bytes(
-            include_bytes!("../../../docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json"),
+            include_bytes!(
+                "../../../docs/research/orbital-gsd-kcoverage/fixtures/voxel-visibility-v0_1.json"
+            ),
             &"0".repeat(40),
-        ).unwrap();
+        )
+        .unwrap();
         for candidate in &receipt.candidate_views {
-            assert!(candidate.visible_feature_ids.contains(&candidate.source_feature_id));
+            assert!(
+                candidate
+                    .visible_feature_ids
+                    .contains(&candidate.source_feature_id)
+            );
         }
         assert!(receipt.visible_relation_count >= receipt.candidate_view_count);
         assert!(!receipt.authority_granted);

@@ -14,5 +14,8 @@ fn main() {
             process::exit(1);
         }
     };
-    println!("{}", serde_json::to_string_pretty(&receipt).expect("receipt serializes"));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&receipt).expect("receipt serializes")
+    );
 }
