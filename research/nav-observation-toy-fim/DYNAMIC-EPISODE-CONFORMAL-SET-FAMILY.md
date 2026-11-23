@@ -57,7 +57,7 @@ The sequential policies use eta chosen before the current truth is observed:
 - [#6976](https://github.com/Luminous-Dynamics/symtropy/pull/6976) selects an adaptive running-average level or abstains, based on the certified upper miss sum and theorem buffer.
 - [#6977](https://github.com/Luminous-Dynamics/symtropy/pull/6977) selects an adaptive rolling-window level only after both-outcome prospective feasibility across every affected future window.
 
-This module can construct a tube for a positive eta within its supported domain. A nonpositive eta, eta>=1, non-finite eta, or insufficient conformal rank produces an abstention. The caller must record that as an abstention, not as a hit. No clipping of eta occurs.
+This module maps levels without clipping: a non-finite or nonpositive eta produces an unbounded/unsupported abstention; (0<eta<1) selects the finite-sample radius; and (eta>=1) produces an explicit empty bounded set (coverage zero, whole-episode miss one). The empty set is important for the sequential ACI feedback loop: treating eta>=1 as an abstention would feed a false zero miss back into the policy and could drive eta upward indefinitely. A rank that exceeds the calibration cohort for (0<eta<1) also produces an unbounded/unsupported abstention. The caller must record these three outcomes distinctly.
 
 Importantly, constructing a tube at a requested eta is not proof that the running or rolling theorem holds. The overall sequential claim still requires:
 1. eta is selected using only prior completed episodes;
@@ -73,6 +73,7 @@ Importantly, constructing a tube at a requested eta is not proof that the runnin
 - No environment-conditional or dependence-adjusted calibration is implemented here.
 - No source signature, receipt hashing or trusted time verification is implemented.
 - The family does not persist a sequence ledger; the caller/controller must enforce monotonic decision and episode IDs.
+- The empty bounded set for eta>=1 intentionally records a miss for every finite truth trajectory; it is not a fail-safe abstention.
 - Adaptive/rolling policies are not yet joined into a single runtime issuer. Their integration must preserve one shared policy sequence, receipt and outcome contract.
 - Real Bregar, IDLab, outdoor or MILUV trajectory data have not been admitted or scored in this module.
 - This is not a PHMI, physical availability or safety qualification.
