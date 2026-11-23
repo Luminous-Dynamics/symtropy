@@ -195,7 +195,7 @@ struct CallBands {
 fn calibrate(method: Method, calibration: &[Schedule]) -> Option<CallBands> {
     match method {
         Method::PerVesselJoint90 | Method::BonferroniSchedule90 => {
-            let alpha = method.alpha_per_call_milli();
+            let alpha = method.target_alpha_milli();
             let mut quantiles = [0; SCHEDULE_SIZE];
 
             for call_index in 0..SCHEDULE_SIZE {
@@ -332,8 +332,8 @@ impl MethodReport {
 }
 
 fn evaluate_suite() -> Vec<MethodReport> {
-    let calibration = generate_calibration(0x25C_A11_2026);
-    let windows = generate_test_windows(0x25C_7E57_2026);
+    let calibration = generate_calibration(0x0025_CA11_2026);
+    let windows = generate_test_windows(0x025C_E572_2026);
 
     Method::ALL
         .iter()
@@ -352,7 +352,7 @@ fn evaluate_suite() -> Vec<MethodReport> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "method,calibration_unit,window,calibration_schedules,alpha_per_call_milli,test_schedules,covered_schedules,whole_schedule_coverage_pct,covered_calls,total_calls,per_call_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,quantile_min,quantile_max,status\n",
+        "method,calibration_unit,window,calibration_schedules,target_alpha_milli,test_schedules,covered_schedules,whole_schedule_coverage_pct,covered_calls,total_calls,per_call_coverage_pct,mean_arrival_interval_width_hours,mean_handling_interval_width_hours,quantile_min,quantile_max,status\n",
     );
 
     for report in evaluate_suite() {
@@ -402,7 +402,7 @@ pub fn render_csv() -> String {
                 report.method.calibration_unit(),
                 window.id(),
                 CALIBRATION_SCHEDULES,
-                report.method.alpha_per_call_milli(),
+                report.method.target_alpha_milli(),
                 metrics.total_schedules,
                 covered_schedules,
                 whole_schedule_coverage,
