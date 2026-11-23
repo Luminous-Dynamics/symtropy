@@ -1,0 +1,286 @@
+{
+  "schema": "luminous.orbital-truss-inspectability.planning-corpus.v0.1",
+  "benchmark_id": "ORBITAL-TRUSS-PLANNING-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_2d_geometric_observability_and_view_selection_only",
+  "cases": [
+    {
+      "case_id": "OP-001-GREEDY-TRAP",
+      "expected_candidate_geometry_disposition": "FEASIBLE",
+      "expected_planning_disposition": "FEASIBLE",
+      "problem": {
+        "case_id": "OP-001-GREEDY-TRAP",
+        "coordinate_frame_id": "ABSTRACT-SET-COVER-MATRIX",
+        "features": [
+          {
+            "feature_id": "F1",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F2",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F3",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F4",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F5",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F6",
+            "required_failure_domains": 1
+          }
+        ],
+        "views": [
+          {
+            "view_id": "VIEW-A",
+            "failure_domain_id": "DOMAIN-A",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "F1",
+              "F2",
+              "F3",
+              "F4"
+            ],
+            "robust_feature_ids": [
+              "F1",
+              "F2",
+              "F3",
+              "F4"
+            ]
+          },
+          {
+            "view_id": "VIEW-B",
+            "failure_domain_id": "DOMAIN-B",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "F1",
+              "F2",
+              "F5"
+            ],
+            "robust_feature_ids": [
+              "F1",
+              "F2",
+              "F5"
+            ]
+          },
+          {
+            "view_id": "VIEW-C",
+            "failure_domain_id": "DOMAIN-C",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "F3",
+              "F4",
+              "F6"
+            ],
+            "robust_feature_ids": [
+              "F3",
+              "F4",
+              "F6"
+            ]
+          }
+        ],
+        "max_selected_views": 3,
+        "max_total_cost_units": 3
+      }
+    },
+    {
+      "case_id": "OP-002-BUDGET-HOLD",
+      "expected_candidate_geometry_disposition": "FEASIBLE",
+      "expected_planning_disposition": "BUDGET_INFEASIBLE",
+      "problem": {
+        "case_id": "OP-002-BUDGET-HOLD",
+        "coordinate_frame_id": "ABSTRACT-SET-COVER-MATRIX",
+        "features": [
+          {
+            "feature_id": "JOINT-1",
+            "required_failure_domains": 2
+          }
+        ],
+        "views": [
+          {
+            "view_id": "VIEW-A",
+            "failure_domain_id": "DOMAIN-A",
+            "cost_units": 2,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": [
+              "JOINT-1"
+            ]
+          },
+          {
+            "view_id": "VIEW-B",
+            "failure_domain_id": "DOMAIN-B",
+            "cost_units": 2,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": [
+              "JOINT-1"
+            ]
+          }
+        ],
+        "max_selected_views": 2,
+        "max_total_cost_units": 3
+      }
+    },
+    {
+      "case_id": "OP-003-DOMAIN-COLLAPSE",
+      "expected_candidate_geometry_disposition": "INFEASIBLE",
+      "expected_planning_disposition": "INFEASIBLE",
+      "problem": {
+        "case_id": "OP-003-DOMAIN-COLLAPSE",
+        "coordinate_frame_id": "ABSTRACT-SET-COVER-MATRIX",
+        "features": [
+          {
+            "feature_id": "JOINT-1",
+            "required_failure_domains": 2
+          }
+        ],
+        "views": [
+          {
+            "view_id": "VIEW-A",
+            "failure_domain_id": "SHARED-CALIBRATION",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": [
+              "JOINT-1"
+            ]
+          },
+          {
+            "view_id": "VIEW-B",
+            "failure_domain_id": "SHARED-CALIBRATION",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": [
+              "JOINT-1"
+            ]
+          }
+        ],
+        "max_selected_views": 2,
+        "max_total_cost_units": 2
+      }
+    },
+    {
+      "case_id": "OP-004-ROBUSTNESS-ABSTAIN",
+      "expected_candidate_geometry_disposition": "INDETERMINATE",
+      "expected_planning_disposition": "INDETERMINATE",
+      "problem": {
+        "case_id": "OP-004-ROBUSTNESS-ABSTAIN",
+        "coordinate_frame_id": "ABSTRACT-SET-COVER-MATRIX",
+        "features": [
+          {
+            "feature_id": "JOINT-1",
+            "required_failure_domains": 2
+          }
+        ],
+        "views": [
+          {
+            "view_id": "VIEW-A",
+            "failure_domain_id": "DOMAIN-A",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": [
+              "JOINT-1"
+            ]
+          },
+          {
+            "view_id": "VIEW-B",
+            "failure_domain_id": "DOMAIN-B",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "JOINT-1"
+            ],
+            "robust_feature_ids": []
+          }
+        ],
+        "max_selected_views": 2,
+        "max_total_cost_units": 2
+      }
+    },
+    {
+      "case_id": "OP-005-COST-COUNT-PARETO",
+      "expected_candidate_geometry_disposition": "FEASIBLE",
+      "expected_planning_disposition": "FEASIBLE",
+      "problem": {
+        "case_id": "OP-005-COST-COUNT-PARETO",
+        "coordinate_frame_id": "ABSTRACT-SET-COVER-MATRIX",
+        "features": [
+          {
+            "feature_id": "F1",
+            "required_failure_domains": 1
+          },
+          {
+            "feature_id": "F2",
+            "required_failure_domains": 1
+          }
+        ],
+        "views": [
+          {
+            "view_id": "VIEW-A",
+            "failure_domain_id": "DOMAIN-A",
+            "cost_units": 4,
+            "nominal_feature_ids": [
+              "F1",
+              "F2"
+            ],
+            "robust_feature_ids": [
+              "F1",
+              "F2"
+            ]
+          },
+          {
+            "view_id": "VIEW-B",
+            "failure_domain_id": "DOMAIN-B",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "F1"
+            ],
+            "robust_feature_ids": [
+              "F1"
+            ]
+          },
+          {
+            "view_id": "VIEW-C",
+            "failure_domain_id": "DOMAIN-C",
+            "cost_units": 1,
+            "nominal_feature_ids": [
+              "F2"
+            ],
+            "robust_feature_ids": [
+              "F2"
+            ]
+          },
+          {
+            "view_id": "VIEW-D",
+            "failure_domain_id": "DOMAIN-D",
+            "cost_units": 3,
+            "nominal_feature_ids": [
+              "F1",
+              "F2"
+            ],
+            "robust_feature_ids": [
+              "F1",
+              "F2"
+            ]
+          }
+        ],
+        "max_selected_views": 4,
+        "max_total_cost_units": 6
+      }
+    }
+  ]
+}
