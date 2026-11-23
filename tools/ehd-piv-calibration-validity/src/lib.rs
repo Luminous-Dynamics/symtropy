@@ -573,7 +573,7 @@ impl CalibrationSupervisor {
                 );
             }
             return Disposition::QualifiedWithWarning {
-                reason: Reason::CovariateShiftUnsupported,
+                reason: Reason::CovariateShiftWeightedSupportAdmitted,
             };
         }
 
