@@ -135,22 +135,20 @@ fn valid_gate_states(case: &Case) -> bool {
     ) && matches!(
         case.domain_closure_state.as_str(),
         "CLOSED_WITHIN_DECLARED_SCOPE" | "OPEN" | "STALE" | "INADEQUATE"
-    )
-        && matches!(
-            case.dependency_graph_state.as_str(),
-            "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
-                | "MISSING_DEPENDENCY_EDGE"
-                | "COMMON_MODE_DEPENDENCY_OMISSION"
-                | "CONSUMER_MANIFEST_OMISSION"
-                | "UNDECLARED_DEPENDENCY_EDGE"
-                | "DEPENDENCY_MODEL_INADEQUATE"
-                | "DEPENDENCY_SOURCE_UNAVAILABLE"
-                | "DEPENDENCY_SCOPE_MISMATCH"
-                | "INVALID_GRAPH"
-                | "STALE"
-                | "INDETERMINATE"
-        )
-        && matches!(case.model_family_state.as_str(), "ADEQUATE" | "INADEQUATE")
+    ) && matches!(
+        case.dependency_graph_state.as_str(),
+        "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR"
+            | "MISSING_DEPENDENCY_EDGE"
+            | "COMMON_MODE_DEPENDENCY_OMISSION"
+            | "CONSUMER_MANIFEST_OMISSION"
+            | "UNDECLARED_DEPENDENCY_EDGE"
+            | "DEPENDENCY_MODEL_INADEQUATE"
+            | "DEPENDENCY_SOURCE_UNAVAILABLE"
+            | "DEPENDENCY_SCOPE_MISMATCH"
+            | "INVALID_GRAPH"
+            | "STALE"
+            | "INDETERMINATE"
+    ) && matches!(case.model_family_state.as_str(), "ADEQUATE" | "INADEQUATE")
         && matches!(
             case.evidence_state.as_str(),
             "CURRENT" | "STALE" | "CONTRADICTED" | "INDETERMINATE"
