@@ -180,7 +180,7 @@
       "case_id": "SE-005-FOV-BOUND-INDETERMINATE",
       "coordinate_frame_id": "SUPPORT-TEST-FRAME",
       "length_unit": "METRE",
-      "expected_status": "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+      "expected_status": "INDETERMINATE",
       "support": {
         "support_id": "SUPPORT-SE-005-FOV-BOUND-INDETERMINATE",
         "center_m": [
@@ -223,7 +223,7 @@
       "case_id": "SE-006-INCIDENCE-BOUND-INDETERMINATE",
       "coordinate_frame_id": "SUPPORT-TEST-FRAME",
       "length_unit": "METRE",
-      "expected_status": "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+      "expected_status": "INDETERMINATE",
       "support": {
         "support_id": "SUPPORT-SE-006-INCIDENCE-BOUND-INDETERMINATE",
         "center_m": [
@@ -309,7 +309,7 @@
       "case_id": "SE-008-GSD-BOUND-INDETERMINATE",
       "coordinate_frame_id": "SUPPORT-TEST-FRAME",
       "length_unit": "METRE",
-      "expected_status": "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+      "expected_status": "INDETERMINATE",
       "support": {
         "support_id": "SUPPORT-SE-008-GSD-BOUND-INDETERMINATE",
         "center_m": [
