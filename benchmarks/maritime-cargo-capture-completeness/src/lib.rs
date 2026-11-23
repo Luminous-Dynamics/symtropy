@@ -153,11 +153,12 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
             || event.event_class != profile.event_class
             || event.event_time < profile.window_start
             || event.event_time >= profile.window_end
-            || expected
-                .insert(event.event_id.clone(), event.event_time)
-                .is_some()
+            || expected.contains_key(&event.event_id)
         {
             return CaptureReport::with_disposition(Disposition::NotEvaluable);
+        }
+        if event.event_time <= case.as_of {
+            expected.insert(event.event_id.clone(), event.event_time);
         }
     }
 
@@ -167,8 +168,19 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
         if event.event_class != profile.event_class
             || event.event_time < profile.window_start
             || event.event_time >= profile.window_end
-            || event.published_at > case.as_of
         {
+            continue;
+        }
+        if event.published_at < event.event_time {
+            return CaptureReport::with_disposition(Disposition::NotEvaluable);
+        }
+        if event.event_time > case.as_of {
+            if event.published_at <= case.as_of {
+                return CaptureReport::with_disposition(Disposition::NotEvaluable);
+            }
+            continue;
+        }
+        if event.published_at > case.as_of {
             continue;
         }
 
@@ -358,6 +370,19 @@ mod tests {
                 captured_events: vec![captured("e1")],
                 as_of: 20,
             },
+            "future_event_not_yet_occurred" => {
+                let mut r = reference(&["e1"]);
+                r.events[0].event_time = 30;
+                case(Some(r), vec![])
+            }
+            "future_dated_record_published_before_occurrence" => {
+                let mut r = reference(&["e1"]);
+                r.events[0].event_time = 30;
+                let mut event = captured("e1");
+                event.event_time = 30;
+                event.published_at = 15;
+                case(Some(r), vec![event])
+            }
             _ => panic!("unknown fixture case: {case_id}"),
         }
     }
@@ -481,6 +506,22 @@ mod tests {
         assert_eq!(
             evaluate(&known_case("missing_profile")).disposition,
             Disposition::Unknown
+        );
+    }
+
+    #[test]
+    fn future_reference_events_are_not_missing_before_they_occur() {
+        assert_eq!(
+            evaluate(&known_case("future_event_not_yet_occurred")).disposition,
+            Disposition::QualifiedWithinDeclaredEnvelope
+        );
+    }
+
+    #[test]
+    fn future_event_published_before_occurrence_is_not_evaluable() {
+        assert_eq!(
+            evaluate(&known_case("future_dated_record_published_before_occurrence")).disposition,
+            Disposition::NotEvaluable
         );
     }
 }
