@@ -30,7 +30,9 @@ Tie-breaks are deterministic: minimum residual, then fewest active points, then 
 
 A spatially good manifold can still be temporally poor if its selected points shift the center of pressure and the warm-started impulses are redistributed without preserving the old moment. Conversely, reusing stale points can be wrong after contact topology or normal changes. A full production algorithm must record whether old state was reused, transported, clamped or invalidated.
 
-The oracle is designed to compare:
+The oracle now includes the current scalar-cache baseline: scale the previous total normal impulse by 0.8, then distribute it equally across all new manifold points. The result reports both normal-force attenuation and the induced moment/center-of-pressure error. It can be compared against exact non-negative CoP-preserving redistribution on identical old/new contact sets.
+
+The wider programme is designed to compare:
 - current total-normal-impulse cache plus equal distribution;
 - nearest-point/contact recycling;
 - feature-ID and normal-frame matching;
@@ -41,13 +43,15 @@ It does not assert that wrench transfer is always the correct physical choice. S
 
 ## Tests
 
-The unit suite covers:
+The unit suite contains 11 tests and covers:
 - exact preservation when old CoP lies inside the new contact hull;
 - closest-hull projection when old CoP lies outside;
 - a triangle interior barycentric allocation;
 - one-point collapse;
 - contact/source ordering invariance;
 - exact total-normal-impulse conservation;
+- current equal-distribution warm-start residual in force and moment;
+- invalid warm-start scaling;
 - invalid, duplicate and non-finite input rejection;
 - zero-impulse undefined-CoP rejection.
 
