@@ -74,15 +74,20 @@ fn normalize(value: [f64; 3]) -> Result<[f64; 3], OracleError> {
     Ok([value[0] / norm, value[1] / norm, value[2] / norm])
 }
 
-fn tangent_basis(normal: [f64; 3]) -> Result<([f64; 3], [f64; 3]), OracleError> {
-    let reference = if normal[0].abs() <= normal[1].abs() && normal[0].abs() <= normal[2].abs() {
-        [1.0, 0.0, 0.0]
-    } else if normal[1].abs() <= normal[2].abs() {
-        [0.0, 1.0, 0.0]
-    } else {
-        [0.0, 0.0, 1.0]
-    };
-    let tangent_u = normalize(cross(normal, reference))?;
+fn tangent_basis(
+    normal: [f64; 3],
+    tangent_u_hint: [f64; 3],
+) -> Result<([f64; 3], [f64; 3]), OracleError> {
+    if !tangent_u_hint.iter().all(|value| value.is_finite()) {
+        return Err(OracleError::new("tangent-u hint must be finite"));
+    }
+    let projection = dot(tangent_u_hint, normal);
+    let projected_hint = [
+        tangent_u_hint[0] - normal[0] * projection,
+        tangent_u_hint[1] - normal[1] * projection,
+        tangent_u_hint[2] - normal[2] * projection,
+    ];
+    let tangent_u = normalize(projected_hint)?;
     let tangent_v = normalize(cross(normal, tangent_u))?;
     Ok((tangent_u, tangent_v))
 }
@@ -300,6 +305,33 @@ mod tests {
         min_normal_fraction: f64,
         max_normal_fraction: f64,
     ) -> ContactFrame {
+        let tangent_u_hint = if normal[1].abs() < 0.9 {
+            [0.0, 1.0, 0.0]
+        } else {
+            [1.0, 0.0, 0.0]
+        };
+        contact_with_tangent(
+            id,
+            position,
+            normal,
+            tangent_u_hint,
+            friction_u,
+            friction_v,
+            min_normal_fraction,
+            max_normal_fraction,
+        )
+    }
+
+    fn contact_with_tangent(
+        id: &str,
+        position: [f64; 3],
+        normal: [f64; 3],
+        tangent_u_hint: [f64; 3],
+        friction_u: f64,
+        friction_v: f64,
+        min_normal_fraction: f64,
+        max_normal_fraction: f64,
+    ) -> ContactFrame {
         ContactFrame {
             id: id.into(),
             position,
@@ -346,7 +378,7 @@ mod tests {
     #[test]
     fn anisotropic_friction_follows_material_tangent_hint() {
         let model = ContactWrenchModel {
-            contacts: vec![contact(
+            contacts: vec![contact_with_tangent(
                 "c0",
                 [0.0; 3],
                 [0.0, 0.0, 1.0],
@@ -466,6 +498,28 @@ mod tests {
         let result_b = evaluate_support(&first, &direction).unwrap();
         assert!((result_a.support_value - result_b.support_value).abs() < 1.0e-12);
         assert_eq!(result_a.allocations, result_b.allocations);
+    }
+
+    #[test]
+    fn tangent_hint_parallel_to_normal_is_rejected() {
+        let model = ContactWrenchModel {
+            contacts: vec![contact_with_tangent(
+                "c0",
+                [0.0; 3],
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 2.0],
+                0.2,
+                0.7,
+                0.0,
+                1.0,
+            )],
+            cone_sides: 8,
+            characteristic_length: 1.0,
+        };
+        assert!(
+            evaluate_support(&model, &direction("fx", [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+                .is_err()
+        );
     }
 
     #[test]
