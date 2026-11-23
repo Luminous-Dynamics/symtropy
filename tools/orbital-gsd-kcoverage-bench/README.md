@@ -33,3 +33,18 @@ Paper: Bin Khalid and Yeum, arXiv:2610.36450 (27 October 2026). The paper evalua
 The companion source-admission manifest is at `docs/research/orbital-gsd-kcoverage/source-admission-v0_1.json`. The paper provides its GSD equation, maximum obliquity and derived range, but the current admitted source record does not yet pin both horizontal FOV and horizontal pixel width, nor the exact mapping of its two rendered models to a versioned dataset file. The synthetic fixture therefore carries explicit test-only FOV/pixel values. A synthetic workflow PASS is not a source-faithful reproduction.
 
 The upstream example repository is GPL-3.0; the linked Mendeley datasets separately state CC BY 4.0. This crate contains an independent implementation and no copied upstream code. Dataset file mapping and SHA-256 digests remain admission blockers until verified.
+
+
+## Source-admissible tangent-frame augmentation
+
+The candidate augmenter constructs deterministic local tangent frames for initially under-covered surface patches and explores the declared tilt/azimuth set. A requested angle is not sufficient to admit a candidate: the source patch must remain geometrically observable. Each generated direction is rejected when its angle to the source patch's outward normal exceeds `max_oblique_angle_rad`; candidates are also rejected if their source ray is occluded or the source patch does not survive the complete distance/FOV/GSD/occlusion visibility test.
+
+The receipt accounts for every declared augmentation angle pair:
+
+- `augmentation_candidate_attempt_count`
+- `augmented_candidate_view_count`
+- `augmentation_rejected_max_oblique_count`
+- `augmentation_rejected_source_occlusion_count`
+- `augmentation_rejected_source_visibility_count`
+
+The sum of accepted plus rejected candidates must equal attempted candidates. The independent Python oracle reconstructs these counters and the workflow asserts that every accepted candidate sees its source feature and respects the obliquity limit. This prevents a “viewpoint for feature X” from entering the candidate pool when it cannot actually inspect X.
