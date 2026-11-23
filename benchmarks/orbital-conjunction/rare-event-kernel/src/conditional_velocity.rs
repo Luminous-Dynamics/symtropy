@@ -130,7 +130,7 @@ pub struct ConditionalDirectionReport {
     pub mahalanobis_distance_squared: f64,
     /// Log of the unnormalised Ncdot sphere integrand.
     pub log_integrand: f64,
-    /// Ncdot sphere integrand in f64; may underflow to zero.
+    /// Ncdot sphere integrand in f64; may underflow to zero or overflow to infinity.
     pub integrand: f64,
     /// True when the integrand underflowed despite a finite log value.
     pub integrand_underflowed: bool,
