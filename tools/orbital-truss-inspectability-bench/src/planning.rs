@@ -619,7 +619,7 @@ pub fn solve(problem: &PlanningProblem) -> Result<PlanningReceipt, String> {
 
     let mut pareto_frontier = Vec::new();
     let mut best_count = usize::MAX;
-    for (_, plan) in &search.results.best_by_cost {
+    for plan in search.results.best_by_cost.values() {
         if plan.selected_view_count < best_count {
             best_count = plan.selected_view_count;
             pareto_frontier.push(plan.clone());
