@@ -31,6 +31,16 @@ pub enum EvidenceTransactionDisposition {
     TimeAssessmentMissing,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct QualifiedEvidenceBinding {
+    pub action_id: u64,
+    pub attempt_id: u64,
+    pub result_id: u64,
+    pub source_manifest_sha256: [u8; 32],
+    pub payload_sha256: [u8; 32],
+    pub qualification_receipt_sha256: [u8; 32],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceTransactionReport {
     pub action_id: u64,
@@ -40,6 +50,7 @@ pub struct EvidenceTransactionReport {
     pub hypothesis_inventory_sha256: [u8; 32],
     pub decision_partition_sha256: [u8; 32],
     pub disposition: EvidenceTransactionDisposition,
+    pub qualified_evidence_binding: Option<QualifiedEvidenceBinding>,
     pub time_report: Option<NavigationTimeValidityReport>,
     pub eligible_for_independent_posterior_audit: bool,
     /// Always false. The posterior/fault-envelope owner must perform the update.
@@ -54,6 +65,8 @@ pub enum EvidenceTransactionError {
     PlanMissingInventoryOrDecisionPartition,
     PlanMissingDecisionAssignments,
     AttemptDoesNotMatchRecommendedAction,
+    EvidenceBindingMissing,
+    EvidenceBindingMismatch,
     AttemptLedger(ActiveEvidenceAttemptError),
     TimeValidity(NavigationTimeValidityError),
 }
@@ -65,6 +78,8 @@ impl fmt::Display for EvidenceTransactionError {
             Self::PlanMissingInventoryOrDecisionPartition => write!(f, "decision-aware plan is missing its inventory or decision-partition commitment"),
             Self::PlanMissingDecisionAssignments => write!(f, "decision-aware plan is missing frozen hypothesis-to-decision assignments"),
             Self::AttemptDoesNotMatchRecommendedAction => write!(f, "attempt action does not match the plan's recommendation"),
+            Self::EvidenceBindingMissing => write!(f, "qualified acquisition is missing its payload/receipt/source binding"),
+            Self::EvidenceBindingMismatch => write!(f, "payload, receipt, result, attempt, action or source-manifest bindings do not match"),
             Self::AttemptLedger(error) => write!(f, "attempt ledger rejected transition: {error}"),
             Self::TimeValidity(error) => write!(f, "time-validity assessment failed: {error}"),
         }
@@ -86,6 +101,7 @@ pub fn record_selected_evidence_outcome(
     request: EvidenceAttemptRequest,
     outcome: AcquisitionAttemptOutcome,
     observed_navigation_state_sha256: [u8; 32],
+    evidence_binding: Option<QualifiedEvidenceBinding>,
     time_assessment: Option<(NavigationTimeValidityPolicy, NavigationTimeValidityInput)>,
 ) -> Result<EvidenceTransactionReport, EvidenceTransactionError> {
     let selected_action_id = plan.recommended_action_id
@@ -106,30 +122,74 @@ pub fn record_selected_evidence_outcome(
     ledger.record_outcome(request.attempt_id, outcome, observed_navigation_state_sha256)
         .map_err(EvidenceTransactionError::AttemptLedger)?;
 
-    let (disposition, time_report, audit_eligible) = match outcome {
+    let (disposition, qualified_evidence_binding, time_report, audit_eligible) = match outcome {
         AcquisitionAttemptOutcome::FailedOrTimedOut { .. } =>
-            (EvidenceTransactionDisposition::AcquisitionFailed, None, false),
+            (EvidenceTransactionDisposition::AcquisitionFailed, None, None, false),
         AcquisitionAttemptOutcome::AcquiredButInvalid { .. } =>
-            (EvidenceTransactionDisposition::AcquiredEvidenceInvalid, None, false),
+            (EvidenceTransactionDisposition::AcquiredEvidenceInvalid, None, None, false),
         AcquisitionAttemptOutcome::UnknownOrUnreconciled { .. } =>
-            (EvidenceTransactionDisposition::ReconciliationRequired, None, false),
-        AcquisitionAttemptOutcome::QualifiedEvidenceAvailable { .. } => {
-            match time_assessment {
-                None => (EvidenceTransactionDisposition::TimeAssessmentMissing, None, false),
-                Some((policy, input)) => {
-                    let report = evaluate_navigation_time_validity(policy, input)
-                        .map_err(EvidenceTransactionError::TimeValidity)?;
-                    let (stage, eligible) = match report.disposition {
-                        NavigationTimeDisposition::DecisionEpochNowcastApplicable =>
-                            (EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit, true),
-                        NavigationTimeDisposition::FutureEpochPredictionApplicable =>
-                            (EvidenceTransactionDisposition::ReadyForIndependentForecastAudit, false),
-                        NavigationTimeDisposition::HistoricalEventTimeOnly =>
-                            (EvidenceTransactionDisposition::HistoricalReplayOnly, false),
-                        other => (EvidenceTransactionDisposition::TemporallyInapplicable(other), false),
-                    };
-                    (stage, Some(report), eligible)
+            (EvidenceTransactionDisposition::ReconciliationRequired, None, None, false),
+        AcquisitionAttemptOutcome::QualifiedEvidenceAvailable {
+            payload_sha256,
+            qualification_receipt_sha256,
+        } => {
+            match evidence_binding {
+                None => (
+                    EvidenceTransactionDisposition::EvidenceBindingMissing,
+                    None,
+                    None,
+                    false,
+                ),
+                Some(binding)
+                    if binding.action_id != request.action_id
+                        || binding.attempt_id != request.attempt_id
+                        || binding.result_id == 0
+                        || binding.payload_sha256 != payload_sha256
+                        || binding.qualification_receipt_sha256 != qualification_receipt_sha256
+                        || binding.source_manifest_sha256.iter().all(|byte| *byte == 0)
+                        || binding.payload_sha256.iter().all(|byte| *byte == 0)
+                        || binding.qualification_receipt_sha256.iter().all(|byte| *byte == 0) =>
+                {
+                    (
+                        EvidenceTransactionDisposition::EvidenceBindingMismatch,
+                        None,
+                        None,
+                        false,
+                    )
                 }
+                Some(binding) => match time_assessment {
+                    None => (
+                        EvidenceTransactionDisposition::TimeAssessmentMissing,
+                        Some(binding),
+                        None,
+                        false,
+                    ),
+                    Some((policy, input))
+                        if input.result_id != binding.result_id
+                            || input.source_manifest_sha256 != binding.source_manifest_sha256 =>
+                    {
+                        (
+                            EvidenceTransactionDisposition::EvidenceBindingMismatch,
+                            Some(binding),
+                            None,
+                            false,
+                        )
+                    }
+                    Some((policy, input)) => {
+                        let report = evaluate_navigation_time_validity(policy, input)
+                            .map_err(EvidenceTransactionError::TimeValidity)?;
+                        let (stage, eligible) = match report.disposition {
+                            NavigationTimeDisposition::DecisionEpochNowcastApplicable =>
+                                (EvidenceTransactionDisposition::ReadyForIndependentPosteriorAudit, true),
+                            NavigationTimeDisposition::FutureEpochPredictionApplicable =>
+                                (EvidenceTransactionDisposition::ReadyForIndependentForecastAudit, false),
+                            NavigationTimeDisposition::HistoricalEventTimeOnly =>
+                                (EvidenceTransactionDisposition::HistoricalReplayOnly, false),
+                            other => (EvidenceTransactionDisposition::TemporallyInapplicable(other), false),
+                        };
+                        (stage, Some(binding), Some(report), eligible)
+                    }
+                },
             }
         }
     };
@@ -142,6 +202,7 @@ pub fn record_selected_evidence_outcome(
         hypothesis_inventory_sha256: inventory,
         decision_partition_sha256: partition,
         disposition,
+        qualified_evidence_binding,
         time_report,
         eligible_for_independent_posterior_audit: audit_eligible,
         posterior_updated: false,
