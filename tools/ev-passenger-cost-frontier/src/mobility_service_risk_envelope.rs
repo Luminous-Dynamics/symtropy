@@ -49,6 +49,7 @@ pub struct ServiceProbabilityManifest {
     pub probability_basis: ProbabilityBasis,
     pub probability_source_reference: String,
     pub scenario_tree_revision: String,
+    pub scenario_tree_digest: String,
     pub scenario_tree_reference: String,
     pub scenario_tree_benchmark_id: String,
     pub expected_leaf_node_ids: Vec<String>,
@@ -202,6 +203,7 @@ fn validate_probability_manifest(
     manifest: &ServiceProbabilityManifest,
     tree: &NonanticipativeServiceOracleInput,
     leaf_ids: &BTreeSet<&str>,
+    source_tree_digest: &str,
 ) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
     if manifest.schema_version != "0.1.0"
@@ -213,6 +215,7 @@ fn validate_probability_manifest(
             .scenario_tree_revision
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit())
+        || !valid_sha256(&manifest.scenario_tree_digest)
         || manifest.scenario_tree_reference.trim().is_empty()
         || manifest.scenario_tree_benchmark_id != tree.benchmark_id
         || manifest.geography.trim().is_empty()
@@ -240,6 +243,9 @@ fn validate_probability_manifest(
     }
     if &expected != leaf_ids {
         add_error(&mut errors, "probability_manifest_leaf_coverage_mismatch");
+    }
+    if manifest.scenario_tree_digest != source_tree_digest {
+        add_error(&mut errors, "probability_manifest_scenario_tree_digest_mismatch");
     }
 
     match manifest.probability_basis {
@@ -553,7 +559,12 @@ pub fn evaluate_mobility_service_risk_envelope(
         return Err(vec!["upstream_oracle_leaf_id_duplicate".to_owned()]);
     }
 
-    validate_probability_manifest(&input.probability_manifest, tree, &leaf_ids)?;
+    validate_probability_manifest(
+        &input.probability_manifest,
+        tree,
+        &leaf_ids,
+        &source_tree_digest,
+    )?;
 
     let probability_denominator = oracle.leaf_results[0].probability_denominator;
     if probability_denominator == 0
@@ -906,6 +917,23 @@ mod tests {
         assert!(validate_probability_mass(&[50, 49], 100).is_err());
         assert!(validate_probability_mass(&[50, 50], 100).is_ok());
         assert!(validate_probability_mass(&[0, 100], 100).is_err());
+    }
+
+    #[test]
+    fn probability_manifest_must_bind_exact_canonical_tree_digest() {
+        let mut risk = risk_fixture();
+        risk.probability_manifest.scenario_tree_digest =
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
+        let errors = evaluate_mobility_service_risk_envelope(
+            &tree_fixture(),
+            &service_fixture(),
+            &capacity_fixture(),
+            &risk,
+        )
+        .expect_err("a probability set must be bound to the exact tree contents");
+        assert!(errors
+            .iter()
+            .any(|error| error == "probability_manifest_scenario_tree_digest_mismatch"));
     }
 
     #[test]
