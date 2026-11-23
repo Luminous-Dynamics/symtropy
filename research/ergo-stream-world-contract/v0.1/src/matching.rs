@@ -14,8 +14,7 @@ use std::fmt;
 use super::transfer::{
     NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
     RelationKindCorrespondenceV0, RelationOrientationV0, StructuralCorrespondenceV0,
-    StructuralTransferWitnessV0, StructureV0, TransferErrorV0,
-    validate_structural_correspondence,
+    StructuralTransferWitnessV0, StructureV0, TransferErrorV0, validate_structural_correspondence,
 };
 
 type NodeSignatureV0 = Vec<(u8, usize, usize)>;
