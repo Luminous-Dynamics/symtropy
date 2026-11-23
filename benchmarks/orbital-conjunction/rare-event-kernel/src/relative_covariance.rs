@@ -618,7 +618,8 @@ mod tests {
         for i in 0..3 {
             for j in 0..3 {
                 assert!(
-                    (result.conditional_velocity_regression[i][j] - expected_regression[i][j]).abs()
+                    (result.conditional_velocity_regression[i][j] - expected_regression[i][j])
+                        .abs()
                         < 1.0e-14
                 );
             }
