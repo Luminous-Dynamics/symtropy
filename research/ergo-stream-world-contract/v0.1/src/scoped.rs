@@ -188,11 +188,7 @@ fn validate_scope_partition(
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
-    let selected_relations = scope
-        .relation_ids
-        .iter()
-        .copied()
-        .collect::<BTreeSet<_>>();
+    let selected_relations = scope.relation_ids.iter().copied().collect::<BTreeSet<_>>();
     let excluded_relations = scope
         .excluded_relation_ids
         .iter()
@@ -293,15 +289,17 @@ fn scoped_structure(structure: &StructureV0, scope: &StructureScopeV0) -> Struct
 }
 
 fn ids_unique(ids: &[u32]) -> bool {
-    ids.iter().enumerate().all(|(index, id)| !ids[index + 1..].contains(id))
+    ids.iter()
+        .enumerate()
+        .all(|(index, id)| !ids[index + 1..].contains(id))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::transfer::{
-        NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
-        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0, NodeV0,
+        NodeCorrespondenceV0, NodeV0, ParticipantTransformV0, RelationCorrespondenceV0,
+        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0,
     };
 
     fn source_and_target() -> (StructureV0, StructureV0) {
