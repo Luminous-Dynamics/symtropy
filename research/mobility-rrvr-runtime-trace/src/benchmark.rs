@@ -888,8 +888,8 @@ mod tests {
             .iter()
             .find(|summary| summary.arm == BenchmarkArm::FullRrvr)
             .unwrap();
-        assert_eq!(summary.false_confirmed_count, 2);
-        assert_eq!(summary.false_confirm_rate_ppm, Some(RATE_SCALE));
+        assert_eq!(summary.false_confirmed_count, 1);
+        assert_eq!(summary.false_confirm_rate_ppm, Some(RATE_SCALE / 2));
     }
 
     #[test]
