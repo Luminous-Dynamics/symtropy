@@ -465,7 +465,14 @@ fn worst_case_tv_expectation(
         }
         let receiver = receiver_order[receiver_cursor];
         let donor = donor_order[donor_cursor];
-        if receiver == donor || metric(&leaves[receiver]) == metric(&leaves[donor]) {
+        let receiver_value = metric(&leaves[receiver]);
+        let donor_value = metric(&leaves[donor]);
+        let donor_is_strictly_better = if minimize {
+            donor_value > receiver_value
+        } else {
+            donor_value < receiver_value
+        };
+        if receiver == donor || !donor_is_strictly_better {
             break;
         }
         let room = denominator - mass[receiver];
@@ -892,6 +899,15 @@ mod tests {
             full,
             ExactRiskRatio {
                 numerator: 0,
+                denominator: 100
+            }
+        );
+        let partial = worst_case_tv_expectation(&leaves, 100, 20, on_time, true)
+            .expect("partial ambiguity radius");
+        assert_eq!(
+            partial,
+            ExactRiskRatio {
+                numerator: 140,
                 denominator: 100
             }
         );
