@@ -185,30 +185,48 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
   }
   const totalCost=addCost(queryCost,actionCost);
   const scenarios=baseInfo.scenarios;
+  const classRegretByOutcome=new Map();
+  // A non-anticipative class comparator chooses one common action for all worlds
+  // sharing the same public result. It cannot inspect the hidden scenario.
+  for(const [outcomeId,worlds] of Object.entries(classes)){
+    const rows=classScenarios(scenarios,worlds);
+    const options=classOptions[outcomeId];
+    let bestWorst=null,selectedWorst=null;
+    for(const candidateId of options){
+      let worstForAction=null;
+      for(const scenario of rows){
+        const candidate=scenario.action_outcomes[candidateId];
+        if(candidate.feasibility_status!=="feasible"||candidate.loss===null)
+          fail("class comparator not feasible throughout outcome class");
+        const value=rat(candidate.loss,"outcome class loss");
+        if(worstForAction===null||cmpR(value,worstForAction)>0) worstForAction=value;
+      }
+      if(worstForAction===null) fail("empty outcome class");
+      if(candidateId===branches[outcomeId]) selectedWorst=worstForAction;
+      if(bestWorst===null||cmpR(worstForAction,bestWorst)<0) bestWorst=worstForAction;
+    }
+    if(bestWorst===null||selectedWorst===null) fail("missing selected or comparator action");
+    classRegretByOutcome.set(outcomeId,subR(selectedWorst,bestWorst,"outcome-class minimax regret"));
+  }
+
   const perScenario=[];
   for(const scenario of scenarios){
     const outcomeId=observations[scenario.world_id];
     const actionId=branches[outcomeId];
     if(!actionId) fail("policy missing observed outcome branch "+outcomeId);
     const row=scenario.action_outcomes[actionId];
-    if(row.feasibility_status!=="feasible"||row.loss===null) fail("policy action infeasible in scenario "+scenario.scenario_id);
+    if(row.feasibility_status!=="feasible"||row.loss===null)
+      fail("policy action infeasible in scenario "+scenario.scenario_id);
     const loss=rat(row.loss,"policy loss");
-    const wsBest=scenarioBest(scenario);
-    const options=classOptions[outcomeId];
-    let classBest=null;
-    for(const candidateId of options){
-      const candidate=scenario.action_outcomes[candidateId];
-      if(candidate.feasibility_status!=="feasible"||candidate.loss===null) fail("class comparator not feasible");
-      const value=rat(candidate.loss,"class comparator");
-      if(classBest===null||cmpR(value,classBest)<0) classBest=value;
-    }
-    if(classBest===null) fail("empty outcome-class comparator");
+    const wsBest=bestScenarioLoss(scenario);
+    const classRegret=classRegretByOutcome.get(outcomeId);
+    if(!classRegret) fail("missing outcome-class regret");
     perScenario.push({
       scenario_id:scenario.scenario_id,world_id:scenario.world_id,loss_model_id:scenario.loss_model_id,
       observed_outcome_id:outcomeId,selected_action_id:actionId,loss:jsonR(loss),
       wait_and_see_regret:jsonR(subR(loss,wsBest,"wait and see")),
-      outcome_class_regret:jsonR(subR(loss,classBest,"outcome class")),
-      _loss:loss,_ws:subR(loss,wsBest,"wait and see"),_class:subR(loss,classBest,"outcome class")
+      outcome_class_regret:jsonR(classRegret),
+      _loss:loss,_ws:subR(loss,wsBest,"wait and see"),_class:classRegret
     });
   }
   const maxKey=key=>perScenario.reduce((best,row)=>cmpR(row[key],best)>0?row[key]:best,perScenario[0][key]);
@@ -227,6 +245,7 @@ function buildPolicy(base,queryId,queryCost,observations,classes,classOptions,br
     per_scenario:publicRows
   };
 }
+
 function enumerate(choices){
   const output=[];
   function rec(index,current){
@@ -244,6 +263,7 @@ function enumerate(choices){
 function paretoDominates(a,b){
   const dims=[
     cmpR(rat(a.worst_case_loss,"loss"),rat(b.worst_case_loss,"loss")),
+    cmpR(rat(a.worst_case_wait_and_see_regret,"wait-and-see regret"),rat(b.worst_case_wait_and_see_regret,"wait-and-see regret")),
     cmpR(rat(a.worst_case_outcome_class_regret,"class regret"),rat(b.worst_case_outcome_class_regret,"class regret")),
     a.total_cost_upper_bound.reference_trials-b.total_cost_upper_bound.reference_trials,
     a.total_cost_upper_bound.exposure_micro_units-b.total_cost_upper_bound.exposure_micro_units,
