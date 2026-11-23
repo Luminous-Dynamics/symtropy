@@ -1,0 +1,2145 @@
+{
+  "schema": "luminous.orbital-dependency-graph-adequacy.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-dependency-graph-adequacy-only",
+  "cases": [
+    {
+      "case_id": "baseline_complete",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "missing_graph_edge",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "MISSING_DEPENDENCY_EDGE",
+        "missing_dependency_edges": [
+          "domain_oracle->query_policy#artifact-domain-oracle"
+        ],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "common_mode_omission",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "COMMON_MODE_DEPENDENCY_OMISSION",
+        "missing_dependency_edges": [
+          "domain_oracle->query_policy#artifact-domain-oracle"
+        ],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "consumer_manifest_omission",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "CONSUMER_MANIFEST_OMISSION",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "extra_edge",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration",
+            "artifact-campaign"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        },
+        {
+          "parent_node_id": "unrelated_campaign",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-campaign"
+        }
+      ],
+      "expected": {
+        "disposition": "UNDECLARED_DEPENDENCY_EDGE",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": [
+          "unrelated_campaign->decision_frontier#artifact-campaign"
+        ]
+      }
+    },
+    {
+      "case_id": "unknown_transform",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "unsupported_new_operation",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "DEPENDENCY_MODEL_INADEQUATE",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "scope_mismatch",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "DEPENDENCY_SCOPE_MISMATCH",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "ambiguous_dependency_source",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle_shadow",
+          "artifact_id": "artifact-domain-oracle-shadow",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        }
+      ],
+      "expected": {
+        "disposition": "DEPENDENCY_SOURCE_UNAVAILABLE",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    },
+    {
+      "case_id": "dependency_cycle",
+      "producers": [
+        {
+          "node_id": "domain",
+          "artifact_id": "artifact-domain",
+          "artifact_type": "domain_manifest",
+          "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "closure",
+          "artifact_id": "artifact-closure",
+          "artifact_type": "closure_report",
+          "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "artifact_id": "artifact-domain-oracle",
+          "artifact_type": "domain_oracle_report",
+          "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "artifact_id": "artifact-feasibility",
+          "artifact_type": "feasibility_report",
+          "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "artifact_id": "artifact-query-policy",
+          "artifact_type": "query_policy",
+          "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "artifact_id": "artifact-loss-model",
+          "artifact_type": "loss_model",
+          "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "artifact_id": "artifact-regret",
+          "artifact_type": "regret_report",
+          "content_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "artifact_id": "artifact-calibration",
+          "artifact_type": "calibration",
+          "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "artifact_id": "artifact-decision-frontier",
+          "artifact_type": "decision_frontier",
+          "content_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "artifact_id": "artifact-campaign",
+          "artifact_type": "campaign_coverage",
+          "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "consumers": [
+        {
+          "node_id": "closure",
+          "output_artifact_id": "artifact-closure",
+          "operation": "build_closure",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "domain_oracle",
+          "output_artifact_id": "artifact-domain-oracle",
+          "operation": "build_domain_oracle",
+          "input_artifact_ids": [
+            "artifact-domain"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "feasibility",
+          "output_artifact_id": "artifact-feasibility",
+          "operation": "evaluate_feasibility",
+          "input_artifact_ids": [
+            "artifact-closure",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "query_policy",
+          "output_artifact_id": "artifact-query-policy",
+          "operation": "select_query_policy",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-domain-oracle"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "loss_model",
+          "output_artifact_id": "artifact-loss-model",
+          "operation": "build_loss_model",
+          "input_artifact_ids": [
+            "artifact-closure"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "regret",
+          "output_artifact_id": "artifact-regret",
+          "operation": "compute_regret",
+          "input_artifact_ids": [
+            "artifact-feasibility",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "calibration",
+          "output_artifact_id": "artifact-calibration",
+          "operation": "calibrate_regret",
+          "input_artifact_ids": [
+            "artifact-regret",
+            "artifact-loss-model"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "decision_frontier",
+          "output_artifact_id": "artifact-decision-frontier",
+          "operation": "compose_decision_frontier",
+          "input_artifact_ids": [
+            "artifact-query-policy",
+            "artifact-regret",
+            "artifact-calibration"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "node_id": "unrelated_campaign",
+          "output_artifact_id": "artifact-campaign",
+          "operation": "ingest_campaign",
+          "input_artifact_ids": [],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "declared_edges": [
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "closure",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "domain",
+          "consumer_node_id": "domain_oracle",
+          "artifact_id": "artifact-domain"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "feasibility",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "domain_oracle",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-domain-oracle"
+        },
+        {
+          "parent_node_id": "closure",
+          "consumer_node_id": "loss_model",
+          "artifact_id": "artifact-closure"
+        },
+        {
+          "parent_node_id": "feasibility",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-feasibility"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "regret",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "loss_model",
+          "consumer_node_id": "calibration",
+          "artifact_id": "artifact-loss-model"
+        },
+        {
+          "parent_node_id": "query_policy",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-query-policy"
+        },
+        {
+          "parent_node_id": "regret",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-regret"
+        },
+        {
+          "parent_node_id": "calibration",
+          "consumer_node_id": "decision_frontier",
+          "artifact_id": "artifact-calibration"
+        },
+        {
+          "parent_node_id": "decision_frontier",
+          "consumer_node_id": "query_policy",
+          "artifact_id": "artifact-decision-frontier"
+        }
+      ],
+      "expected": {
+        "disposition": "INVALID_GRAPH",
+        "missing_dependency_edges": [],
+        "extra_dependency_edges": []
+      }
+    }
+  ]
+}

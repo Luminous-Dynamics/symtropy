@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
+pub mod dependency_graph_adequacy;
 pub mod invalidation;
 
 const SCHEMA: &str = "luminous.orbital-assurance-bundle.corpus.v0.1";
