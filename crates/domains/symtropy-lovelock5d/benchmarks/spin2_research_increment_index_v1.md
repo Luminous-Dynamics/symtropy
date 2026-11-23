@@ -320,61 +320,70 @@ The exact local script was run with Python 3.13.5 / mpmath 1.3.0 before publicat
 This is a second numerical quadrature family. It is not an interval enclosure, action-row replay or finite-\(\lambda\) BVP result.
 
 
-## Ma--Lü printed-convention correction and exact kinematic replay (23 November 2026)
+## Ma–Lü source pin and exact first-coupling overlap (23 November 2026)
 
-The published PDF Eq. (10) is \(\chi_a=a/\mu,\chi_b=b/\mu\); the square-root denominator inserted by an earlier extraction reading was incorrect. For equal spins \(q=a/r_h\),
+### Version of record and convention
+
+Canonical source: Ma and Lü, *Quadratic curvature correction to 5D Myers–Perry metric*, JHEP 05 (2026) 081, DOI 10.1007/JHEP05(2026)081, publisher version of record published 8 May 2026. The version-of-record Eqs. (2.8) and (2.9) explicitly include the angular-axis factors \(x^2d\psi^2\), \((1-x^2)d\phi^2\), and define
 \[
-\mu/r_h^2=(1+q^2)^2/2,\qquad
-\nu_h=\Omega_Hr_h=q/(1+q^2),\qquad
-\chi r_h=2q/(1+q^2)^2.
+\chi_a=a/\sqrt{\mu},\qquad \chi_b=b/\sqrt{\mu}.
 \]
-The exact q(\nu_h) and \(\chi r_h(\nu_h)\) series are checked through \(\nu_h^{11}\), and the Eq. (50) mass-parameter series is reproduced through \((\chi r_h)^4\). The corrected exact-source script has Git blob SHA-1 956ad645c8b90882441a6a76ba89e11dcac99144 and SHA-256 6625b02d87bbfc413ad4d4304db53b2597acd007194195bc9e0b6d653389e29c.
-
-## Ma--Lü Ricci-flat source identity and perturbative validity (23 November 2026)
-
-The first-coupling field-equation source identity is now derived: the Gauss--Bonnet Euler tensor and the Riemann-squared Euler tensor reduce to the same algebraic tensor on a Ricci-flat MP background. The Ma--Lü double-divergence term vanishes by the contracted Bianchi identity. With Symtropy's \(R+\alpha_{GB}\mathcal L_{GB}/4\) and Ma--Lü's \(R+\alpha_R Riemann^2\), the matched first-order normalization is \(\alpha_R=\alpha_{GB}/4\), or \(\epsilon_R=\lambda/4\) at the same horizon radius.
-
-Artifacts:
-- ma_lu_ricci_flat_euler_identity_v1.md
-- ma_lu_ricci_flat_euler_identity_v1.json
-
-The Ma--Lü equal-spin kinematic map is now aligned with the printed Eq. (10), \(\chi=a/\mu\). The scale-explicit variable for comparing perturbative spin coefficients is \(\chi r_h\); do not substitute \(\chi=\sqrt2\,\nu_h\) or \(\chi=\nu_h\).
-
-A new task, [#6955](https://github.com/Luminous-Dynamics/symtropy/issues/6955), covers perturbative spin-uniformity. Wu--Lü, PRD 111, 104026 (2025), find rotation-dependent divergences in first-order quadratic-curvature thermodynamic corrections across ensembles, while cautioning that these may be perturbative artifacts rather than nonexistence in the full nonlinear theory. Therefore the Ma--Lü spin-series truncation error and coupling truncation error \(O(\epsilon_R^2)\) must be tracked separately. The metric/gauge comparison and thermodynamic matching remain open.
-
-
-## Fixed Symtropy horizon and physical angular velocity: Ma--Lü parameter conversion (23 November 2026)
-
-The benchmark distinguishes Ma--Lü's Boyer--Lindquist horizon \(r_h\), \(\nu_h=\Omega_Hr_h\), from Symtropy's areal horizon \(R_H\), \(\nu_S=\Omega_HR_H\). At zero coupling, \(R_H^2=r_h^2+a^2\), so the two spins are already different. At first coupling the \(H_7\) orbit-space horizon shift and \(H_2/H_4/H_7\) angular-velocity correction both enter.
-
-With \(\epsilon_S=\alpha_R/R_H^2\), the fixed-boundary conversion is:
+This supersedes the incorrect \(a/\mu\) convention extracted from the earlier arXiv-v1 text. For equal spins and \(q=a/r_h\),
 \[
-R_H/r_h=1+5\epsilon_S/3+\nu_S^2/2+(277/90)\epsilon_S\nu_S^2+\cdots,
+\mu/r_h^2=(1+q^2)^2/2,\quad \nu_h=\Omega_Hr_h=q/(1+q^2),\quad \chi=\sqrt2\,\nu_h.
+\]
+The q(\(\nu_h\)) series is checked through \(\nu_h^{11}\), and the equal-spin Eq. (3.9) mass-parameter expansion through \(\chi^6\).
+
+### First-coupling source identity and parameter conversion
+
+The Ricci-flat MP Euler-tensor identity gives \(\alpha_R=\alpha_{GB}/4\) at first coupling only. This does not imply a generic finite-coupling equivalence. The fixed-Symtropy map separately distinguishes \(\nu_h=\Omega_Hr_h\) and \(\nu_S=\Omega_HR_H\). Its verified first-coupling expansions include
+\[
+R_H/r_h=1+5\epsilon_S/3+\nu_S^2/2+277\epsilon_S\nu_S^2/90+\cdots,
 \]
 \[
-q=\nu_S+\nu_S^3/2+\epsilon_S(7\nu_S-(3619/90)\nu_S^3)+\cdots,
+q=\nu_S+\nu_S^3/2+\epsilon_S(7\nu_S-3619\nu_S^3/90)+\cdots,
 \]
 \[
-a/R_H=\nu_S+(16/3)\epsilon_S\nu_S-(2068/45)\epsilon_S\nu_S^3+\cdots,
+a/R_H=\nu_S+16\epsilon_S\nu_S/3-2068\epsilon_S\nu_S^3/45+\cdots,
 \]
 \[
-\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+(454/45)\epsilon_S\nu_S^2+\cdots,
+\mu/R_H^2=1/2-5\epsilon_S/3+\nu_S^2/2+454\epsilon_S\nu_S^2/45+\cdots,
 \]
 \[
-\chi R_H=2\nu_S-2\nu_S^3+(52/3)\epsilon_S\nu_S-(2344/15)\epsilon_S\nu_S^3+\cdots.
+\chi=\sqrt2(\nu_S-\nu_S^3/2+7\epsilon_S\nu_S-5509\epsilon_S\nu_S^3/90)+\cdots.
 \]
-The converted \(\mu/R_H^2\) is the background MP parameter, not the corrected ADM mass.
+Here \(\epsilon_S=\alpha_R/R_H^2=\lambda_{GB}/4\); the converted \(\mu/R_H^2\) is a background MP parameter, not the corrected ADM mass.
 
-## Exact original-row Ma--Lü overlap (23 November 2026)
+### Full angular block
 
-The fixed-boundary radial/time/fibre-cross-term profiles are
+With \(A=r^2+a^2\), \(D=2\mu a^2/A\), \(G=A(1+\alpha_RH_7)\), and \(\eta=(1-x^2)d\phi+x^2d\psi\), the version-of-record H5/H6 functions reduce to
 \[
-B_{21}=\frac{(R^2-1)(11R^6+11R^4+22R^2+9)}{9R^{10}},\quad
-F_{21}=\frac{(R^2-1)(22R^4-11R^2-35)}{18R^8},
+H_5=H_7-\frac{4a^2x^2}{45}S(r),\qquad
+H_6=H_7-\frac{4a^2(1-x^2)}{45}S(r),
 \]
 \[
-H_{21}=-\frac{(R^2+1)(11R^2+3)}{6R^6}.
+S(r)=165/r^4+330\mu/r^6+150\mu^2/r^8.
 \]
-With the correct MP-connected zeroth-order mode offsets \(c_B=c_H=0\), the four original action-derived rows give exact rational zero: \(E_b=E_f=E_g=E_h=0\). The algebraic \(E_f\) pivot reconstructs \(F_{21}\), and the horizon sensitivity outputs are \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\). These tangent values are not to be substituted for \(c_B,c_H\).
+Direct substitution into all three angular components of Eq. (2.8), including the axis factors, yields
+\[
+ds^2_{\rm ang}=G[d\theta^2+(1-x^2)d\phi^2+x^2d\psi^2]
++D(1+\alpha_RH_4)\eta^2+O(\alpha_R^2,a^4).
+\]
+Independent exact SymPy checks pass for dpsi², dphi², dphi dpsi, axis regularity, and negative controls.
 
-The linear-spin frame-dragging profile also agrees at the \(O(a)\) order used by the even \(O(a^2)\) system. The full angular-diagonal \(H_5,H_6\) components and corrected ADM mass remain open, so the full five-dimensional metric is not yet declared matched.
+### Original Symtropy field rows and ADM mass
+
+On the MP-connected branch, \(c_B=c_H=0\) are the zeroth-order horizon-mode offsets. The fixed-boundary \(B_{21},F_{21},H_{21}\) profiles give exact rational zero in all four original action rows \(E_b,E_f,E_g,E_h\); the positive algebraic \(E_f\) pivot independently reconstructs \(F_{21}\). The sensitivity outputs \(B'_{21}(1)=106/9\), \(H_{21}(1)=-14/3\) are not cB/cH inputs.
+
+Ma–Lü Eq. (3.4) is independently matched at equal spin through \(\chi^2\): \(H_{1,-2}=16/3-188\chi^2/15\), so the 5D Komar prefactor \(3\pi/8\) gives \(\Delta M=2\pi-47\pi\chi^2/10+O(\chi^4)\), equal to the paper.
+
+### Reproduction and claim boundary
+
+Exact public-source local replays:
+- equal-spin kinematic/parameter script: Git blob SHA-1 30616c178a051f0a2fd120aba8a9d03dfc8c865e;
+- fixed-boundary map: Git blob SHA-1 f6b1d5eb9b084403fc1935d84d419c33c3e1a0b9;
+- asymptotic mass check: Git blob SHA-1 32d91014925518358ad92395ca6aec020d383d6d.
+
+The full angular/fixed-boundary check has an independent local exact SymPy reconstruction; its consolidated public verifier is committed but its exact-blob replay is still pending. The four original rows have an exact local rational evaluation; the latest fixture-driven verifier's exact-blob replay remains pending.
+
+Still open: finite-positive-coupling corrected BVPs, finite-difference convergence of the full boundary map, interval existence/local uniqueness on a branch segment, and separate physical-principal-symbol/strong-hyperbolicity qualification. These first-coupling results are not finite-coupling existence, global uniqueness, or hyperbolicity results.
