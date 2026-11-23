@@ -471,12 +471,14 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.loss_model_set.projection_scale_denominator > MAX_SAFE_INTEGER
         || case.loss_model_set.source_receipt_schema != JOINT_LOSS_RECEIPT_SCHEMA
         || case.loss_model_set.source_claim_ceiling != JOINT_LOSS_CLAIM_CEILING
-        || !supported_projection(case)
     {
         return invalid_input(
             case,
             "upstream world or loss-model receipt pins are malformed",
         );
+    }
+    if !supported_projection(case) {
+        return invalid_input(case, "unsupported loss unit projection contract");
     }
 
     // Source state outranks empty-set semantics: a stale empty set is not evidence
