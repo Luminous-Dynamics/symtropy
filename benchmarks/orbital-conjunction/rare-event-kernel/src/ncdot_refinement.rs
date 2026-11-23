@@ -791,7 +791,7 @@ mod tests {
     fn trapezoidal_dominant_node_refinement_bisects_adjacent_intervals() {
         let input = snapshot(
             &[-10.0, 0.0, 10.0],
-            &[0.0, 100.0, 0.0],
+            &[0.0, 50.0, 100.0],
             &[2.0, 1.0, 2.0],
             -10.0,
             10.0,
@@ -803,14 +803,29 @@ mod tests {
 
     #[test]
     fn significant_rate_spacing_bisects_intervals_that_exceed_the_51_point_limit() {
-        let epochs = [-100.0, -50.0, -25.0, 0.0, 25.0, 50.0, 100.0];
-        let rates = [0.0, 0.2, 0.5, 1.0, 0.5, 0.2, 0.0];
-        let md2 = [10.0, 5.0, 2.0, 0.0, 2.0, 5.0, 10.0];
-        let input = snapshot(&epochs, &rates, &md2, -100.0, 100.0);
+        let mut epochs = (0..101)
+            .map(|index| -10.0 + 0.2 * index as f64)
+            .collect::<Vec<_>>();
+        let mut rates = (0..101)
+            .map(|index| 1.0 - (0.999 / 100.0) * index as f64)
+            .collect::<Vec<_>>();
+        let mut md2 = vec![1.0; 101];
+        epochs.push(110.0);
+        rates.push(0.001);
+        md2.push(2.0);
+        for index in 1..=50 {
+            epochs.push(110.0 + (890.0 / 50.0) * index as f64);
+            rates.push(0.001);
+            md2.push(2.0);
+        }
+        let input = snapshot(&epochs, &rates, &md2, -10.0, 1000.0);
         let result = decide_ncdot_refinement(&input, policy(), 1).unwrap();
         assert_eq!(result.significant_region_sample_count, 51);
-        assert_eq!(result.reason, NcdotRefinementReason::RefineSignificantRateSpacing);
-        assert!(!result.inserted_epochs_seconds.is_empty());
+        assert_eq!(
+            result.reason,
+            NcdotRefinementReason::RefineSignificantRateSpacing
+        );
+        assert!(result.inserted_epochs_seconds.contains(&60.0));
     }
 
     #[test]
@@ -818,7 +833,7 @@ mod tests {
         let input = snapshot(
             &[-10.0, 0.0, 10.0],
             &[0.0, 0.0, 0.0],
-            &[5.0, 1.0, 6.0],
+            &[6.0, 1.0, 5.0],
             -10.0,
             10.0,
         );
@@ -830,9 +845,9 @@ mod tests {
     #[test]
     fn zero_rate_fallback_stops_only_when_md2_and_near_gap_are_converged() {
         let input = snapshot(
-            &[-1.0, 0.0, 1.0],
-            &[0.0, 0.0, 0.0],
-            &[1.0, 1.005, 1.0],
+            &[-10.0, -1.0, 0.0, 1.0, 10.0],
+            &[0.0, 0.0, 0.0, 0.0, 0.0],
+            &[4.0, 1.005, 1.0, 1.005, 4.0],
             -1.0,
             1.0,
         );
@@ -903,8 +918,8 @@ mod tests {
         );
         let result = decide_ncdot_refinement(&input, policy(), 1).unwrap();
         assert_eq!(
-            result.disposition,
-            NcdotRefinementDisposition::ResolutionLimit
+            result,
+            Err(KernelError::NcdotRefinementResolutionLimit)
         );
     }
 
