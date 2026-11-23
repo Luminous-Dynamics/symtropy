@@ -1265,15 +1265,6 @@ fn exact_score_is_better(
     candidate_key < current_key
 }
 
-fn exact_assignment_key(assignments: &[Option<ExactOracleAssignment>]) -> Vec<String> {
-    assignments
-        .iter()
-        .map(|assignment| match assignment {
-            Some(item) => format!("{}=>{}", item.opportunity_id, item.request_id),
-            None => "~".to_owned(),
-        })
-        .collect()
-}
 
 fn exact_policy_gap(
     policy_result: &ServicePolicyResult,
