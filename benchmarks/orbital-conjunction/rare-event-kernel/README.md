@@ -46,7 +46,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus on this branch contains 156 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 11 in `ncdot_pointwise.rs`, 5 in `ncdot_sphere.rs`, 10 in `relative_covariance.rs`, 8 in `static_peak_overlap.rs`, and 8 in `col_energy_guard.rs`. This is the expected test inventory; the stacked CoL-energy-guard branch has not yet passed its exact-head workflow.
+The current authored test corpus on this branch contains 156 authored `#[test]` cases: 30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 11 in `ncdot_pointwise.rs`, 5 in `ncdot_sphere.rs`, 10 in `relative_covariance.rs`, 8 in `static_peak_overlap.rs`, and 8 in `col_energy_guard.rs`. This exact 156-test branch passed workflow [#246](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45121534317) on `e434ce8577fea55af8f50a5725aff3fc4cf16349`: formatting, all tests, strict Clippy with warnings denied, checkout verification and validation identity artifact passed. Artifact SHA-256: `d1b9f9606d63d7aa4db38a07604150088609a11bbdb856813070734d6a6f0b03`.
 
 ## Important limitations
 
