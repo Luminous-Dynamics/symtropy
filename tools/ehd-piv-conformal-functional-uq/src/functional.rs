@@ -549,7 +549,7 @@ pub fn propagate_field_functional_uncertainty(
             // d mass / d rho = u·dA; d mass / dA = rho*u.
             functional_sensitivity[0] += dot(jacobians[sample_index][0], sensitivity.velocity_m_s)
                 + normal_velocity_flux * sensitivity.density_kg_m3
-                + density * dot(velocity, sensitivity.area_vector_m2);
+                + density * dot(velocity, sensitivity.oriented_area_vector_m2);
 
             for momentum_component in 0..3 {
                 let velocity_derivative = dot(
@@ -560,7 +560,7 @@ pub fn propagate_field_functional_uncertainty(
                     velocity[momentum_component] * normal_velocity_flux * sensitivity.density_kg_m3;
                 let area_derivative = density
                     * velocity[momentum_component]
-                    * dot(velocity, sensitivity.area_vector_m2);
+                    * dot(velocity, sensitivity.oriented_area_vector_m2);
                 functional_sensitivity[momentum_component + 1] +=
                     velocity_derivative + density_derivative + area_derivative;
             }
