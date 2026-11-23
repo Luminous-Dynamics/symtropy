@@ -217,6 +217,7 @@ pub struct PlatformProfile {
     pub profile_sha256: String,
     pub environment_artifact_sha256: String,
     pub simulator_revision: String,
+    pub world_stats_topic: String,
     pub scene_broadcaster_id: String,
     pub scene_broadcaster_revision: String,
     pub scene_broadcaster_sha256: String,
