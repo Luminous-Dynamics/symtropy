@@ -1,7 +1,7 @@
 # Non-anticipative robust decision value under source ambiguity
 
 **Status:** finite deterministic-policy reference implementation; exact-head CI pending  
-**Tracking:** [#7032](https://github.com/Luminous-Dynamics/symtropy/issues/7032)  
+**Tracking:** [#7032](https://github.com/Luminous-Dynamics/symtropy/issues/7032) · [draft PR #7034](https://github.com/Luminous-Dynamics/symtropy/pull/7034)  
 **Base:** CMNI integration PR #6455, pinned core head `6b54e2473ab4f1d45c7412beb511e1edf47ffffb`  
 **Scope:** finite scientific states, finite actions/outcomes, finite admitted dependence scenarios
 
