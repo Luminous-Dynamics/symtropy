@@ -65,3 +65,8 @@ The current authored test corpus contains 140 authored `#[test]` cases: 30 in `l
 - The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. It does not reproduce PeakOverlapPos or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
 - The relative covariance adapter consumes already-mapped Cartesian covariance matrices at one common epoch/frame. Its 12×12 PSD check is a mathematical joint-model consistency check, not empirical covariance calibration. It does not implement NASA's equinoctial covariance mapping, PeakOverlapPos expansion, DCP sensitivity transformation, covariance-remediation policy, force model, or covariance-realism validation.
 - The proposal density must be the complete mixture density, including all defensive components.
+
+
+## Pinned NASA escalation regression
+
+The reference-case manifest at [`reference-cases/nasa-cara-omitron-test08-2d3d-escalation.json`](../reference-cases/nasa-cara-omitron-test08-2d3d-escalation.json) pins NASA CARA's Test 08 CDM and test implementation. It records the 2D Foster reference (2.2660816\times10^{-20}) versus Hall 3D-Nc (1.9271201\times10^{-5}), HBR=20 m and 0.1% relative tolerance. This is an explicit escalation/negative control, not a matched estimator comparison: the snapshot 2D-Pc and conjunction-integrated 3D-Nc are distinct quantities.
