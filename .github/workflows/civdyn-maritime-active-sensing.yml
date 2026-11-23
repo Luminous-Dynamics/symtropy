@@ -47,9 +47,9 @@ jobs:
           cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin maritime-active-sensing > /tmp/maritime-active-sensing.csv
           cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin maritime-active-sensing > /tmp/maritime-active-sensing-replay.csv
           cmp /tmp/maritime-active-sensing.csv /tmp/maritime-active-sensing-replay.csv
-          grep -q '^no_observation,EVALUATED,NO_NEW_EVIDENCE,0,0,0,0,0,1,70,false,' /tmp/maritime-active-sensing.csv
-          grep -q '^shared_tos_signal,EVALUATED,ADVISORY_ONLY_NO_INDEPENDENT_CORROBORATION,1,1,0,3,1,2,71,false,' /tmp/maritime-active-sensing.csv
-          grep -q '^independent_field_inspection,EVALUATED,INDEPENDENT_OBSERVATION_CANDIDATE_NOT_DELIVERY_PROOF,2,1,1,3,5,3,5,true,' /tmp/maritime-active-sensing.csv
+          grep -q '^no_observation,EVALUATED,NO_NEW_EVIDENCE,0,0,0,0,0,1,70,0,false,' /tmp/maritime-active-sensing.csv
+          grep -q '^shared_tos_signal,EVALUATED,ADVISORY_ONLY_NO_INDEPENDENT_CORROBORATION,1,1,0,3,1,2,71,-1,false,' /tmp/maritime-active-sensing.csv
+          grep -q '^independent_field_inspection,EVALUATED,INDEPENDENT_OBSERVATION_CANDIDATE_NOT_DELIVERY_PROOF,2,1,1,3,5,3,5,65,true,' /tmp/maritime-active-sensing.csv
           grep -q '^unknown_dependency_feed,BLOCKED_UNKNOWN_DEPENDENCY,' /tmp/maritime-active-sensing.csv
           grep -q '^ambiguous_event_camera,BLOCKED_AMBIGUOUS_ASSOCIATION,' /tmp/maritime-active-sensing.csv
           grep -q '^stale_field_sensor,BLOCKED_STALE_EVIDENCE,' /tmp/maritime-active-sensing.csv
