@@ -48,6 +48,29 @@ A deterministic greedy baseline is also included. It adds one point at a time, m
 
 The evaluate_retained_set function provides the common evaluation path for externally supplied retained IDs, so future Bullet/Jolt/Rapier/Symtropy adapters can be compared on the same candidate set and directions.
 
+## General polyhedral contact-wrench-cone model
+
+The general module supports:
+- arbitrary 3D contact positions and varying contact normals;
+- deterministic local tangent frames;
+- per-contact anisotropic friction semi-axes;
+- an inscribed, equally spaced polyhedral friction cone with a declared ray count;
+- lower and upper per-contact normal-load fractions summing to a feasible fixed unit total load.
+
+For one contact, each friction ray is a force generator with unit normal component. Mapping it to the object frame produces a primitive wrench:
+
+    w_ij = [ f_ij, (r_i cross f_ij) / L ]
+
+For a normalized query direction d, each contact's best ray gives its support per unit normal load. The remaining allocation is a bounded linear program:
+
+    maximize sum_i lambda_i * s_i(d)
+    subject to sum_i lambda_i = 1
+               min_i <= lambda_i <= max_i
+
+The exact optimum is obtained by assigning all lower bounds first, then allocating the remaining load to contacts in descending support order until their upper bounds are reached. This is exact for the finite polyhedral friction generators and stated load bounds.
+
+The cone is an inscribed polygonal approximation of the Coulomb friction ellipse/disk. More rays reduce angular conservatism but increase support-evaluation work. The module reports the chosen ray count; comparisons must hold it fixed or explicitly account for cone-approximation error. No spin friction or rolling-resistance torque is currently modeled.
+
 ## Research baseline and next extensions
 
 Compare on frozen identical candidate sets:
@@ -81,13 +104,19 @@ Sources:
 
 ## Tests
 
-The unit suite contains 17 tests and covers:
+The unit suite contains 25 tests across both models and covers:
 - exact zero deficit for the full set;
 - a known two-point subset preserving both positive and negative moment extrema;
 - greedy agreement with exact selection on a symmetric known-answer patch;
 - exact-vs-greedy objective ordering and greedy evaluation guard;
 - a five-point local-choice counterexample exposing a greedy optimality gap;
 - rejection of non-coplanar points in the shared-normal model;
+- varying contact normals and bounded load allocation;
+- per-contact anisotropic friction;
+- minimum normal-load constraints;
+- friction-polyhedron ray-count convergence;
+- infeasible aggregate load bounds;
+- contact input-order invariance;
 - loss from a one-point subset;
 - input/direction permutation invariance;
 - geometric scale invariance;
