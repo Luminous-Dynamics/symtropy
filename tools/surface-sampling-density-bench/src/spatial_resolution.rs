@@ -164,7 +164,7 @@ fn integer_sqrt(value: u128) -> u128 {
         return value;
     }
     let mut current = value;
-    let mut next = (current + 1) / 2;
+    let mut next = current.div_ceil(2);
     while next < current {
         current = next;
         next = (current + value / current) / 2;
