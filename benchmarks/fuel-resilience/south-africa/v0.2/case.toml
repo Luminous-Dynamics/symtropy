@@ -69,3 +69,65 @@ dispatch_optimisation = "not_implemented_in_v0_2"
 durations_days = [7, 14, 30, 60, 90]
 recovery_tail_days = 30
 interpretation = "Stress-test durations; not forecasts or predictions."
+
+[policy_document_observations.draft_strategic_stocks_policy_2026]
+source_id = "DMPR-GAZETTE-54975-R7691"
+gazette_date = "2026-07-09"
+public_comment_deadline = "2026-08-09"
+consultation_status = "closed"
+legal_status = "draft_policy_not_final_law"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.executive_summary]
+state_days = 90
+private_refined_product_days = 14
+state_storage_focus = "primarily crude at Saldanha Bay"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.section_9_table]
+state_days = 60
+private_days = 21
+crude_share_percent = 70
+refined_product_share_percent = 30
+combined_cover_days_text = "60+ days"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.cabinet_statement_2026_07_01]
+state_days = 60
+long_term_target_days = 90
+basis = "net_imports_crude_and_refined_products"
+status = "cabinet_announcement_of_draft_policy"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.reconciliation]
+status = "unresolved_internal_source_conflict"
+policy = "preserve_all_statements_as_distinct_scenarios; do_not_average_or_select"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.lead_time_claims]
+import_to_port_min_days = 21
+import_to_port_max_days = 42
+offloading_refining_and_inland_movement_min_days = 10
+offloading_refining_and_inland_movement_max_days = 14
+evidence_class = "reported_draft_policy_not_calibrated"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.disruption_cost_arithmetic]
+annual_products_litres_section_3 = 27000000000
+annual_products_litres_section_7_1 = 30000000
+section_3_vs_section_7_1_ratio = 900
+section_7_1_claimed_shortfall_litres = 1200000
+section_7_1_shortfall_20_percent_14_days_at_30m_annual_litres = 230137
+section_7_1_shortfall_20_percent_14_days_at_27bn_annual_litres = 207123288
+section_7_1_claimed_direct_fuel_value_r = 24000000
+section_7_1_itemized_sectoral_and_indirect_losses_r = 8016000000
+section_7_1_stated_sectoral_and_indirect_losses_r = 24000000
+section_7_1_stated_total_cost_r = 48000000
+status = "multiple_internal_unit_and_arithmetic_conflicts"
+policy = "do_not_use_for_economic_impact_calibration"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.pipeline_claims]
+former_pipeline = "700km Durban-Johannesburg Pipeline (DJP)"
+draft_says = "DJP reached end of economic life in 2018 and was replaced by the MPP; the MPP was commissioned in 2012 for petrol and later diesel"
+state_replenishment_days = 60
+commercial_replenishment_days = 45
+capacity_evidence = "draft states sufficient capacity but does not provide an independently qualified machine-readable hydraulic operating envelope"
+policy = "require source_pinned_hydraulic_and_operator_evidence_before_calibration"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.stock_rotation]
+refined_product_rotation_max_days = 90
+evidence_class = "reported_draft_policy"
