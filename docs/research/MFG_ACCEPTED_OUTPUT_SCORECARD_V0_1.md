@@ -28,7 +28,7 @@ A unit is credited as independently accepted only when all three conditions hold
 A unit is credited as independently rejected only when disposition is `REJECTED` with the same independent/admitted conditions. Everything else remains unresolved, including producer-only acceptance claims, unknowns and conflicts. No inference is made that unresolved output is physically defective; it is simply not credited as accepted.
 
 For an episode:
-- **Produced units:** all output units in the declared episode.
+- **Produced units:** the count of distinct product-unit IDs in the declared episode.
 - **Independently accepted units:** the qualified subset above.
 - **Independently rejected units:** independently verified, admitted rejections.
 - **Unresolved units:** produced minus independently accepted minus independently rejected.
@@ -52,7 +52,7 @@ Golden answers are independently written in the known-answer fixture. The Rust e
 
 ## Adversarial invariants
 
-- Duplicate case IDs and duplicate output IDs fail closed.
+- Duplicate case IDs, duplicate output IDs and duplicate product-unit IDs fail closed. Counts derive from unit identities, so the same serial cannot be counted twice under different output records.
 - Outputs outside the declared disturbance/horizon interval fail closed.
 - Disposition cannot predate production; accepted/rejected outcomes require a disposition timestamp.
 - Producer-only, Unknown or Conflicted acceptance claims never count as accepted.
