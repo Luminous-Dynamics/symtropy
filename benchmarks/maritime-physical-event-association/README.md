@@ -14,12 +14,16 @@ This crate does not duplicate any of those. It asks a narrower question: given t
 
 ## Contract
 
+Each side declares a typed time role in the frozen profile. The v0.1 test profile compares a source business-event time with an independent sensor-observation time; each record must carry the role expected by its channel. This prevents silently treating repository record time, source publication time, sensor observation time and business-step event time as interchangeable.
+
+For EPCIS, GS1 distinguishes the time a sensor observation occurred (`sensorElementList` SensorReport `time`) from the business-step `eventTime`; repository `recordTime` is a repository bookkeeping timestamp, not the time of the physical event. The adapter must preserve those roles and map them to qualified time enclosures upstream. See the GS1 EPCIS 2.0.1 Standard and SensorReport model: https://ref.gs1.org/standards/epcis/2.0.1/ and https://ref.gs1.org/epcis/SensorReport.
+
 Candidate edges require exact agreement on:
 - canonical box identity supplied upstream;
 - normalized physical event kind;
 - facility/read point;
 - operation/transport-leg context;
-- qualified event-time enclosures in the same normalized time basis, with interval separation no greater than the declared profile tolerance.
+- qualified event-time enclosures in the same normalized time basis, with interval separation no greater than the declared profile tolerance. The profile digest binds the declared role mapping and tolerance.
 
 Source-local event IDs are never compared across channels. Their only role is to identify each side's records inside the resulting receipt.
 
@@ -40,7 +44,7 @@ This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose
 
 ## Frozen corpus and tests
 
-The file at fixtures/association-v0.1.tsv contains 26 independently declared expected dispositions. Unit tests cover:
+The file at fixtures/association-v0.1.tsv contains 28 independently declared expected dispositions. Unit tests cover:
 - exact and tolerance-bounded associations;
 - physical context mismatches;
 - globally unique matching despite local candidate ambiguity;
@@ -48,7 +52,7 @@ The file at fixtures/association-v0.1.tsv contains 26 independently declared exp
 - unmatched/cardinality mismatch;
 - duplicate local keys and missing revision tokens;
 - malformed profile/source/witness digest strings;
-- unqualified and incomparable time evidence;
+- unqualified and incomparable time evidence, plus source/witness temporal-role mismatch;
 - historical as-of publication cutoff;
 - input permutation invariance;
 - interval widening that exposes a second perfect matching;
