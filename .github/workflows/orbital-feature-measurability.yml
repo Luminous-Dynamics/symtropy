@@ -42,17 +42,17 @@ jobs:
           assert fixture["schema"] == "luminous.orbital-feature-measurability.corpus.v0.1"
           assert fixture["evidence_class"] == "synthetic"
           assert fixture["claim_ceiling"] == "synthetic_2d_circle_geometric_identifiability_only"
-          assert len(fixture["cases"]) == 5
-          assert len({case["case_id"] for case in fixture["cases"]}) == 5
-          assert schema["properties"]["cases"]["minItems"] == 5
-          assert schema["properties"]["cases"]["maxItems"] == 5
+          assert len(fixture["cases"]) == 6
+          assert len({case["case_id"] for case in fixture["cases"]}) == 6
+          assert schema["properties"]["cases"]["minItems"] == 6
+          assert schema["properties"]["cases"]["maxItems"] == 6
           assert all(case["observations"] for case in fixture["cases"])
           assert all(case["feature_model"] == "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS" for case in fixture["cases"])
           assert all(
               not observation["robustly_observed"] or observation["nominally_observed"]
               for case in fixture["cases"] for observation in case["observations"]
           )
-          print("five frozen analytic feature cases and strict schema validated")
+          print("six frozen analytic feature cases and strict schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml -- --check
@@ -67,7 +67,7 @@ jobs:
           cmp /tmp/fmq-rust-a.json /tmp/fmq-rust-b.json
           jq -e '
             .schema == "luminous.orbital-feature-measurability.receipt.v0.1" and
-            .case_count == 5 and .expected_outcome_matches == 5 and
+            .case_count == 6 and .expected_outcome_matches == 6 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .measurement_uncertainty_estimated == false and
             .probability_of_detection_assessed == false and
@@ -98,7 +98,12 @@ jobs:
           assert robust["robust"]["status"] == "NOT_MEASURABLE"
           rotated = cases["FMQ-005-ROTATED-CARDINAL"]["nominal"]
           assert rotated["eigenvalues_q1e9"] == cardinal["eigenvalues_q1e9"]
-          print("Rust and independent Python oracle agree on all five cases and analytic adversarial properties")
+          even7 = cases["FMQ-006-SEVEN-VIEWS-SAME-COUNT"]["nominal"]
+          assert even7["observation_row_count"] == clustered["observation_row_count"] == 7
+          assert even7["unique_geometric_support_count"] == clustered["unique_geometric_support_count"] == 7
+          assert even7["status"] == "MEASURABLE"
+          assert even7["condition_number_q1e4"] * 50 < clustered["condition_number_q1e4"]
+          print("Rust and independent Python oracle agree on all six cases and matched-count conditioning controls")
           PY
       - name: Retain exact-head evidence
         if: success()

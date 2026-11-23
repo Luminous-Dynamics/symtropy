@@ -57,12 +57,13 @@ That is a stronger objective than maximizing covered area. It should eventually 
 
 ## 4. v0.1 analytic corpus
 
-The frozen corpus has five cases:
+The frozen corpus has six cases:
 - four cardinal contour supports: analytically full-rank, condition number 2;
 - narrow clustered arc: full rank but ill-conditioned;
 - repeated same-direction observations from multiple view IDs/domains: one unique support direction and rank 1;
 - nominal full circle but only two robust directions: robustly underconstrained and indeterminate;
-- rigidly rotated cardinal supports: identical eigenvalue spectrum.
+- rigidly rotated cardinal supports: identical eigenvalue spectrum;
+- matched seven-observation supports: even angular distribution is measurable, while a seven-point clustered arc is ill-conditioned despite the same raw and unique point counts.
 
 The benchmark uses fixed-point serialized diagnostics so an independent standard-library Python implementation can compare complete receipts across platforms. It uses a small symmetric 3x3 eigenvalue solver, relative rank threshold, and explicit conditioning bound.
 
@@ -141,3 +142,8 @@ The feature-identifiability score is only a precondition. A physical measurement
 - **Articulated-arm CMMs:** ASME B89.4.22-2004 (R2024) is the reaffirmed performance-evaluation standard for articulated-arm coordinate measuring machines. Use only when that instrument class is actually in scope; it is not a generic optical scanner profile. https://www.asme.org/codes-standards/find-codes-standards/methods-for-performance-evaluation-of-articulated-arm-coordinate-measuring-machines
 
 An optical 3D CMS acceptance/reverification test does not automatically qualify a particular feature-fitting algorithm, defect inspection method, NDE procedure, or robot trajectory. Keep instrument verification, measurement uncertainty, feature-fitting performance, defect POD and engineering disposition as separate qualification objects.
+
+
+### Matched-count counterexample
+
+The sixth frozen case is the direct control for the central thesis. Two observation sets both contain seven raw rows and seven unique contour angles. One is distributed around the full circle (0°, 51°, 103°, 154°, 206°, 257°, 309°); the other is clustered into a 90° arc (315°, 330°, 345°, 0°, 15°, 30°, 45°). Their counts are equal, but the analytic condition numbers differ by more than 50× in the frozen control, and the clustered set is classified ill-conditioned. This is a deterministic geometric counterexample, not a measured scanner-accuracy result.

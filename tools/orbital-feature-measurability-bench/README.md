@@ -4,7 +4,7 @@
 **Evidence class:** synthetic  
 **Claim ceiling:** synthetic 2D circle geometric identifiability only
 
-This standalone Rust evaluator computes a normalized geometric information matrix for the center-x, center-y and radius parameters of a 2D circular feature, using unique observed contour support angles. It reports nominal and robust rank/conditioning separately. Repeated observations at the same contour angle do not increase unique geometric support or rank.
+This standalone Rust evaluator computes a normalized geometric information matrix for the center-x, center-y and radius parameters of a 2D circular feature, using unique observed contour support angles. It reports nominal and robust rank/conditioning separately. The six-case corpus includes a matched seven-observation comparison: evenly distributed contour support is measurable, while the same number of samples clustered in one arc is ill-conditioned. Repeated observations at the same contour angle do not increase unique geometric support or rank.
 
 The matrix is dimensionless and is not a calibrated statistical Fisher-information model or measurement covariance. No sensor noise model, calibration, GUM uncertainty, feature-fitting error, POD or physical qualification is implemented.
 

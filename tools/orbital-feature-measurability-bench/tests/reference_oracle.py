@@ -181,7 +181,7 @@ def main():
         or corpus.get("benchmark_id") != BENCHMARK_ID
         or corpus.get("evidence_class") != "synthetic"
         or corpus.get("claim_ceiling") != CLAIM_CEILING
-        or len(corpus.get("cases", [])) != 5
+        or len(corpus.get("cases", [])) != 6
     ):
         raise SystemExit("FEATURE_CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID")
     cases = [evaluate(case) for case in corpus["cases"]]

@@ -247,6 +247,74 @@
       "expected_nominal_status": "MEASURABLE",
       "expected_robust_status": "MEASURABLE",
       "expected_disposition": "FEASIBLE"
+    },
+    {
+      "case_id": "FMQ-006-SEVEN-VIEWS-SAME-COUNT",
+      "feature_id": "HOLE-6",
+      "feature_model": "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS",
+      "max_condition_number": 100,
+      "relative_rank_tolerance": 1e-7,
+      "observations": [
+        {
+          "observation_id": "O0",
+          "view_id": "VIEW-0",
+          "failure_domain_id": "DOMAIN-0",
+          "contour_angle_deg": 0,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O1",
+          "view_id": "VIEW-1",
+          "failure_domain_id": "DOMAIN-1",
+          "contour_angle_deg": 51,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O2",
+          "view_id": "VIEW-2",
+          "failure_domain_id": "DOMAIN-2",
+          "contour_angle_deg": 103,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O3",
+          "view_id": "VIEW-3",
+          "failure_domain_id": "DOMAIN-3",
+          "contour_angle_deg": 154,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O4",
+          "view_id": "VIEW-4",
+          "failure_domain_id": "DOMAIN-4",
+          "contour_angle_deg": 206,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O5",
+          "view_id": "VIEW-5",
+          "failure_domain_id": "DOMAIN-5",
+          "contour_angle_deg": 257,
+          "nominally_observed": true,
+          "robustly_observed": true
+        },
+        {
+          "observation_id": "O6",
+          "view_id": "VIEW-6",
+          "failure_domain_id": "DOMAIN-6",
+          "contour_angle_deg": 309,
+          "nominally_observed": true,
+          "robustly_observed": true
+        }
+      ],
+      "expected_nominal_status": "MEASURABLE",
+      "expected_robust_status": "MEASURABLE",
+      "expected_disposition": "FEASIBLE"
     }
   ]
 }

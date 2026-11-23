@@ -349,7 +349,7 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<CorpusReceipt, 
         || corpus.benchmark_id != BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
         || corpus.claim_ceiling != "synthetic_2d_circle_geometric_identifiability_only"
-        || corpus.cases.len() != 5
+        || corpus.cases.len() != 6
     {
         return Err("FEATURE_CORPUS_IDENTITY_OR_CLAIM_CEILING_INVALID".to_owned());
     }
@@ -504,6 +504,43 @@ mod tests {
         assert_eq!(
             a.nominal.condition_number_q1e4,
             b.nominal.condition_number_q1e4
+        );
+    }
+
+    #[test]
+    fn equal_view_count_can_have_very_different_feature_conditioning() {
+        let evenly_distributed = case(
+            [0.0, 51.0, 103.0, 154.0, 206.0, 257.0, 309.0]
+                .iter()
+                .enumerate()
+                .map(|(index, angle)| {
+                    observation(&format!("E{index}"), *angle, true, true)
+                })
+                .collect(),
+            100.0,
+        );
+        let clustered = case(
+            [315.0, 330.0, 345.0, 0.0, 15.0, 30.0, 45.0]
+                .iter()
+                .enumerate()
+                .map(|(index, angle)| {
+                    observation(&format!("C{index}"), *angle, true, true)
+                })
+                .collect(),
+            100.0,
+        );
+
+        let even = evaluate_case(&evenly_distributed).unwrap();
+        let arc = evaluate_case(&clustered).unwrap();
+        assert_eq!(even.nominal.observation_row_count, 7);
+        assert_eq!(arc.nominal.observation_row_count, 7);
+        assert_eq!(even.nominal.unique_geometric_support_count, 7);
+        assert_eq!(arc.nominal.unique_geometric_support_count, 7);
+        assert_eq!(even.nominal.status, QualityStatus::Measurable);
+        assert_eq!(arc.nominal.status, QualityStatus::IllConditioned);
+        assert!(
+            arc.nominal.condition_number_q1e4.unwrap()
+                > even.nominal.condition_number_q1e4.unwrap() * 50
         );
     }
 
