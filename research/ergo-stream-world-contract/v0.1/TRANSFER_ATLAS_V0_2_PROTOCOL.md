@@ -38,6 +38,34 @@ ErgoStream is a cross-repository research/qualification layer, not another learn
 
 The tiny fixtures in Symtropy #7173 are contract-conformance tests only. The confirmatory world corpus should be layered onto these owners rather than implemented as a second simulator or process protocol.
 
+### Transfer-map semantics: from isomorphism to scoped morphisms
+
+The v0.1 validator deliberately accepts only total, one-to-one, relation-preserving correspondences over the supplied finite structures. Keep this strict contract as a conformance floor. Do not weaken it into silent partial matching.
+
+The v0.2 protocol should make the *kind* of transfer explicit:
+
+| Map kind | Meaning | Required evidence / scope |
+|---|---|---|
+| **Isomorphism** | Bijective correspondence preserving all declared relations | Complete source and target scope; exact inverse and incidence checks |
+| **Embedding** | Injective map of a source substructure into a declared target region | Explicit source scope and target region; no claim that unmatched target context is irrelevant |
+| **Homomorphism** | Relation-preserving map that may identify multiple source entities | Declare which distinctions are collapsed and prove the relevant relation semantics survive |
+| **Quotient / coarse-graining** | Partition of fine states/entities into abstract equivalence classes | Partition, abstraction map, induced relations, and observables preserved at the coarse level |
+| **Simulation** | Every in-scope source transition is matched by a target transition | Directionality and action/state map; does not imply reverse behavior |
+| **Bisimulation** | Source and target mutually simulate each other over the declared scope | Both-direction transition coverage; stronger than one-way simulation |
+| **Approximate simulation / bisimulation** | Dynamics correspond within declared error bounds | Norm, tolerance, horizon, state/action support and uncertainty must be fixed before holdout |
+| **Conjugacy / semiconjugacy** | Continuous dynamics commute exactly or approximately under state/action/time maps | Explicit time map, flow support, event/reset semantics and trajectory-level validation |
+
+Every candidate map must carry:
+- correspondence kind and version;
+- source scope and target scope;
+- mapped and intentionally unmapped nodes / relations / states / actions;
+- assumptions and applicability conditions;
+- relation / action / time transformation;
+- uncertainty and alternative mappings;
+- counterexamples and known non-transfer boundaries.
+
+The evaluator must score the declared map kind, not silently upgrade an embedding to an isomorphism or a one-way simulation to a bisimulation. An omitted source relation must remain explicitly omitted, unsupported or unresolved. This is the main route from toy graph identity toward meaningful cross-domain transfer without turning partial overlap into an overclaim.
+
 ## 2. Evaluation custody and episode contract
 
 ### Owner / evaluator process
