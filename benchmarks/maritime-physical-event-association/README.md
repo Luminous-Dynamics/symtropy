@@ -40,7 +40,7 @@ Disposition:
 
 The evaluator uses a maximum bipartite matching, then constructs the alternating directed graph. A directed cycle proves that an alternative perfect matching exists. Only an acyclic alternating graph permits UNIQUELY_ASSOCIATED. The tests compare this algorithm with an exhaustive enumerator for every 3×3 bipartite graph (512 graphs).
 
-This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose observation channel emits multiple records for one physical operation must be consolidated by their source/capture owner or handled under a separately qualified future profile. The matcher does not silently deduplicate them.
+This is intentionally a one-to-one v0.1 cardinality profile. Event classes whose observation channel emits multiple records for one physical operation must be consolidated by their source/capture owner or handled under a separately qualified future profile. The matcher does not silently deduplicate them. A zero-by-zero snapshot has a vacuously unique empty matching only when both upstream channels are already qualified; that result does **not** establish that no physical event occurred or that either channel is complete. Capture completeness remains #6971's proposition.
 
 ## Frozen corpus and tests
 
@@ -63,6 +63,23 @@ The file at fixtures/association-v0.1.tsv contains 28 independently declared exp
     cargo fmt --manifest-path benchmarks/maritime-physical-event-association/Cargo.toml -- --check
     cargo test --manifest-path benchmarks/maritime-physical-event-association/Cargo.toml --locked
     cargo clippy --manifest-path benchmarks/maritime-physical-event-association/Cargo.toml --locked --all-targets -- -D warnings
+
+## Algorithm and scale boundary
+
+The P0 implementation currently:
+- constructs the candidate graph with a straightforward pairwise scan, O(V_s × V_w) candidate checks;
+- finds a maximum matching with augmenting-path DFS, O(V × E) worst-case for the balanced graph;
+- checks uniqueness with an alternating directed graph cycle traversal, O(V + E).
+
+The graph and matching state use O(V + E) memory after edge construction. These are algorithmic bounds for the current implementation, not measured production throughput. The P0 graph sizes are tiny and the exhaustive 3×3 oracle is the correctness reference.
+
+For larger shadow datasets, the next optimization should preserve the exact edge predicate while reducing unnecessary comparisons:
+1. Block only on exact, upstream-normalized canonical box, event kind, facility and operation context. Never use lossy bucketing that can remove a valid interval edge.
+2. Use interval indexes / sweep windows to generate only time-compatible edges.
+3. Evaluate Hopcroft–Karp maximum matching (O(E√V)) against the current DFS matcher, retaining the same alternating-cycle uniqueness test and exhaustive oracle on small graphs.
+4. Publish matched hardware/input profiles, edge density, p50/p95/p99 latency, throughput and peak memory at 10², 10³, 10⁴ and larger events. Do not publish speedup claims until measured.
+
+The 2026 survey/experimental benchmark on heterogeneous entity matching describes representation and semantic heterogeneity as important test dimensions. It is a useful algorithmic baseline, not a freight-specific physical-truth benchmark: https://doi.org/10.1016/j.datak.2026.102575. Symtropy's intended differentiator is not a new general entity-matching algorithm; it is the stricter correspondence contract over canonical cargo identity, typed physical-event semantics, qualified temporal roles, source/witness provenance and explicit refusal when correspondence is non-unique.
 
 ## Benchmark targets
 
