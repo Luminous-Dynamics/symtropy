@@ -1142,7 +1142,7 @@ mod tests {
             &utilities,
             0.0,
             std::slice::from_ref(&option),
-            &RobustCampaignPlanningPolicy {
+            RobustCampaignPlanningPolicy {
                 max_steps: 1,
                 remaining_resource_budget: 0.05,
                 cost_to_utility_rate: 1.0,
@@ -1207,7 +1207,7 @@ mod tests {
             &utilities,
             0.0,
             &[option],
-            &RobustCampaignPlanningPolicy {
+            RobustCampaignPlanningPolicy {
                 max_steps: 1,
                 remaining_resource_budget: 0.1,
                 cost_to_utility_rate: 1.0,
@@ -1239,7 +1239,7 @@ mod tests {
             &utilities,
             0.0,
             &options,
-            &limited,
+            limited,
         )
         .expect("pathwise budget-limited campaign");
         assert!(result.pathwise_budget_satisfied);
@@ -1278,7 +1278,7 @@ mod tests {
             &utilities,
             0.0,
             &[option],
-            &RobustCampaignPlanningPolicy {
+            RobustCampaignPlanningPolicy {
                 max_steps: 2,
                 remaining_resource_budget: 0.1,
                 cost_to_utility_rate: 1.0,
@@ -1350,7 +1350,7 @@ mod tests {
                 &utilities,
                 0.0,
                 &options,
-                &limited,
+                limited,
             ),
             Err(ModelError::InvalidParameter(
                 "robust_campaign_policy_tree_cap_exceeded"
