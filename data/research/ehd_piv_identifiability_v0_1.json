@@ -13,9 +13,10 @@
     "weak_joint_right_singular_directions",
     "physical_nuisance_pairwise_signed_correlation",
     "candidate_acquisition_rank_gain",
-    "candidate_smallest_profiled_physical_sensitivity_gain_per_cost"
+    "candidate_smallest_profiled_physical_sensitivity_gain_per_cost",
+    "dense_covariance_cholesky_whitening_reference"
   ],
-  "authored_manufactured_tests": 19,
+  "authored_manufactured_tests": 23,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
@@ -27,7 +28,8 @@
     "does_not_whiten_correlated_noise_in_v0",
     "does_not_select_an_optimal_acquisition_action_in_v0",
     "candidate_rows_must_be_conditionally_whitened_innovations",
-    "no_full_covariance_cross_block_whitening_or_optimal_design_optimization_in_v0"
+    "no_full_covariance_cross_block_whitening_or_optimal_design_optimization_in_v0",
+    "dense_covariance_whitener_is_bounded_to_512_observation_rows"
   ],
   "additional_controls": [
     "configured_condition_number_threshold",
@@ -53,6 +55,31 @@
       "no automatic sensor actuation",
       "no direct EVSI or functional posterior variance calculation",
       "does_not_authenticate_noise_covariance_or_candidate_sensitivities"
+    ]
+  },
+  "covariance_whitening": {
+    "function": "whiten_sensitivity_with_covariance",
+    "formula": "J_white = L^-1 J, Sigma = L L^T; then J_white^T J_white = J^T Sigma^-1 J",
+    "maximum_observations": 512,
+    "covariance_requirements": [
+      "square",
+      "symmetric_within_declared_tolerance",
+      "finite",
+      "strictly_positive_definite"
+    ],
+    "no_hidden_jitter": true,
+    "no_silent_symmetrization": true,
+    "limits": [
+      "dense_O(n^3)_Cholesky_is_reference_only",
+      "no_block_sparse_or_low_rank_covariance_in_v0",
+      "covariance_provenance_is_caller_supplied"
+    ],
+    "manufactured_tests": [
+      "analytic_correlated_difference_mode",
+      "common_mode_information_reduction_under_positive_correlation",
+      "asymmetric_covariance_rejected",
+      "semidefinite_covariance_rejected_without_jitter",
+      "ragged_covariance_rejected"
     ]
   }
 }
