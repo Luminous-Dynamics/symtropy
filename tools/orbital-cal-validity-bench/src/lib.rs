@@ -298,13 +298,6 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }) {
             return Err("REQUIRED_CONDITION_ENVELOPE_INVALID".to_owned());
         }
-        if scope
-            .check_receipt_sha256
-            .as_deref()
-            .is_some_and(|digest| !valid_sha256(digest))
-        {
-            return Err("CHECK_RECEIPT_DIGEST_INVALID".to_owned());
-        }
         if scope.check_required {
             if scope.check_state == CheckState::NotRequired {
                 return Err("REQUIRED_CHECK_MARKED_NOT_REQUIRED".to_owned());
@@ -319,6 +312,12 @@ fn validate_case(case: &Case) -> Result<(), String> {
             {
                 return Err("REQUIRED_CHECK_RECEIPT_DIGEST_INVALID".to_owned());
             }
+        } else if scope
+            .check_receipt_sha256
+            .as_deref()
+            .is_some_and(|digest| !valid_sha256(digest))
+        {
+            return Err("CHECK_RECEIPT_DIGEST_INVALID".to_owned());
         }
     }
 
