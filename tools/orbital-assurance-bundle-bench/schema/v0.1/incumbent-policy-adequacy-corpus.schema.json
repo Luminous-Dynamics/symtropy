@@ -362,7 +362,7 @@
                 "query_id",
                 "branch_actions",
                 "observation_class_world_ids",
-                "declared_worst_case_loss",
+                "worst_case_loss",
                 "worst_case_wait_and_see_regret",
                 "worst_case_outcome_class_regret",
                 "worst_loss_scenario_ids",
@@ -391,26 +391,6 @@
                   "additionalProperties": {
                     "type": "string",
                     "minLength": 1
-                  }
-                },
-                "declared_worst_case_loss": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "numerator",
-                    "denominator"
-                  ],
-                  "properties": {
-                    "numerator": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 1000000000000
-                    },
-                    "denominator": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 1000000000000
-                    }
                   }
                 },
                 "query_cost": {
@@ -681,6 +661,26 @@
                       "type": "null"
                     }
                   ]
+                },
+                "worst_case_loss": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "denominator": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000000000
+                    }
+                  }
                 }
               }
             }
