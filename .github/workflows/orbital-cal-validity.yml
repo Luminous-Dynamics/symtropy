@@ -44,9 +44,9 @@ jobs:
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
           assert len(fixture["cases"]) == 25
-          assert len({case["case_id"] for case in fixture["cases"]}) == 24
+          assert len({case["case_id"] for case in fixture["cases"]}) == 25
           assert all(case["required_scope_ids"] for case in fixture["cases"])
-          print("16 frozen calibration-validity cases and Draft 2020-12 schema validated")
+          print("25 frozen calibration-validity cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-cal-validity-bench/Cargo.toml -- --check
