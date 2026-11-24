@@ -32,6 +32,8 @@ pub struct ConjunctionPortfolioSnapshot {
     pub catalog_revision_digest: [u8; 32],
     /// Digest of the ephemeris set screened for this inventory.
     pub ephemeris_digest: [u8; 32],
+    /// Digest binding protected-object set and screening time horizon.
+    pub screening_scope_digest: [u8; 32],
     /// Digest binding the definition, units and conditioning of event probability.
     pub risk_semantics_digest: [u8; 32],
     /// True only when the producer declares the inventory complete for its horizon.
@@ -72,6 +74,21 @@ pub enum ActionPortfolioDisposition {
     IncompleteEvidence,
 }
 
+/// A missing or incomplete evidence component in the before/after comparison.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActionPortfolioEvidenceGap {
+    /// The baseline event inventory is not declared complete.
+    BaselineInventoryIncomplete,
+    /// The post-action event inventory is not declared complete.
+    PostActionInventoryIncomplete,
+    /// The baseline ephemeris was not screened against the full catalog.
+    BaselineFullCatalogScreeningMissing,
+    /// The post-action ephemeris was not screened against the full catalog.
+    PostActionFullCatalogScreeningMissing,
+    /// The secondary object is maneuverable but operator coordination is absent.
+    OperatorCoordinationMissing,
+}
+
 /// Exact, replayable comparison of supplied pre- and post-action portfolios.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionPortfolioReport {
@@ -85,6 +102,16 @@ pub struct ActionPortfolioReport {
     pub baseline_catalog_revision_digest: [u8; 32],
     /// Post-action catalog revision.
     pub post_action_catalog_revision_digest: [u8; 32],
+    /// Pre-action ephemeris identity.
+    pub baseline_ephemeris_digest: [u8; 32],
+    /// Post-action ephemeris identity.
+    pub post_action_ephemeris_digest: [u8; 32],
+    /// Screening scope shared by the pre- and post-action inventories.
+    pub screening_scope_digest: [u8; 32],
+    /// True when catalog revision changes make inventory deltas non-causal.
+    pub catalog_revision_changed: bool,
+    /// Explicit reasons why the supplied evidence is incomplete.
+    pub evidence_gaps: Vec<ActionPortfolioEvidenceGap>,
     /// Inclusive Pc threshold used for all post-action events.
     pub threshold: Rational,
     /// Count of events in the baseline inventory.
@@ -120,6 +147,8 @@ pub enum ActionPortfolioError {
     ReceiptIdentityMismatch,
     /// Before and after snapshots use different probability semantics.
     RiskSemanticsMismatch,
+    /// Before and after snapshots cover different objects or screening horizons.
+    ScreeningScopeMismatch,
     /// An event identity is duplicated within one snapshot.
     DuplicateEventIdentity,
     /// An event identity is all zero.
@@ -140,6 +169,7 @@ impl core::fmt::Display for ActionPortfolioError {
             Self::InvalidDigest => "a required action or snapshot digest is invalid",
             Self::ReceiptIdentityMismatch => "action receipt does not match supplied snapshots",
             Self::RiskSemanticsMismatch => "pre- and post-action risk semantics differ",
+            Self::ScreeningScopeMismatch => "pre- and post-action screening scopes differ",
             Self::DuplicateEventIdentity => "event identity is duplicated in a portfolio",
             Self::InvalidEventIdentity => "event identity is invalid",
             Self::InvalidAssessmentDigest => "event assessment digest is invalid",
@@ -180,6 +210,8 @@ pub fn reconcile_action_effects(
         || is_zero_digest(&after.catalog_revision_digest)
         || is_zero_digest(&before.ephemeris_digest)
         || is_zero_digest(&after.ephemeris_digest)
+        || is_zero_digest(&before.screening_scope_digest)
+        || is_zero_digest(&after.screening_scope_digest)
         || is_zero_digest(&before.risk_semantics_digest)
         || is_zero_digest(&after.risk_semantics_digest)
     {
@@ -193,6 +225,9 @@ pub fn reconcile_action_effects(
         || receipt.post_action_ephemeris_digest != after.ephemeris_digest
     {
         return Err(ActionPortfolioError::ReceiptIdentityMismatch);
+    }
+    if before.screening_scope_digest != after.screening_scope_digest {
+        return Err(ActionPortfolioError::ScreeningScopeMismatch);
     }
     if before.risk_semantics_digest != after.risk_semantics_digest {
         return Err(ActionPortfolioError::RiskSemanticsMismatch);
@@ -243,13 +278,24 @@ pub fn reconcile_action_effects(
         }
     }
 
-    let evidence_complete = before.inventory_complete
-        && after.inventory_complete
-        && before.full_catalog_screened
-        && after.full_catalog_screened
-        && (!receipt.secondary_maneuverable || receipt.coordination_digest.is_some());
+    let mut evidence_gaps = Vec::new();
+    if !before.inventory_complete {
+        evidence_gaps.push(ActionPortfolioEvidenceGap::BaselineInventoryIncomplete);
+    }
+    if !after.inventory_complete {
+        evidence_gaps.push(ActionPortfolioEvidenceGap::PostActionInventoryIncomplete);
+    }
+    if !before.full_catalog_screened {
+        evidence_gaps.push(ActionPortfolioEvidenceGap::BaselineFullCatalogScreeningMissing);
+    }
+    if !after.full_catalog_screened {
+        evidence_gaps.push(ActionPortfolioEvidenceGap::PostActionFullCatalogScreeningMissing);
+    }
+    if receipt.secondary_maneuverable && receipt.coordination_digest.is_none() {
+        evidence_gaps.push(ActionPortfolioEvidenceGap::OperatorCoordinationMissing);
+    }
 
-    let disposition = if !evidence_complete {
+    let disposition = if !evidence_gaps.is_empty() {
         ActionPortfolioDisposition::IncompleteEvidence
     } else if !threshold_exceeded_event_ids.is_empty() {
         ActionPortfolioDisposition::ThresholdExceeded
@@ -265,6 +311,11 @@ pub fn reconcile_action_effects(
         post_action_snapshot_digest: after.snapshot_digest,
         baseline_catalog_revision_digest: before.catalog_revision_digest,
         post_action_catalog_revision_digest: after.catalog_revision_digest,
+        baseline_ephemeris_digest: before.ephemeris_digest,
+        post_action_ephemeris_digest: after.ephemeris_digest,
+        screening_scope_digest: before.screening_scope_digest,
+        catalog_revision_changed: before.catalog_revision_digest != after.catalog_revision_digest,
+        evidence_gaps,
         threshold,
         baseline_event_count: baseline.len(),
         post_action_event_count: post_action.len(),
@@ -353,6 +404,7 @@ mod tests {
             snapshot_digest: digest,
             catalog_revision_digest: catalog,
             ephemeris_digest: ephemeris,
+            screening_scope_digest: [10; 32],
             risk_semantics_digest: SEMANTICS,
             inventory_complete: true,
             full_catalog_screened: true,
@@ -403,6 +455,9 @@ mod tests {
         assert_eq!(report.definitely_elevated_event_ids, vec![[11; 32]]);
         assert_eq!(report.new_event_ids, vec![[13; 32]]);
         assert!(report.threshold_exceeded_event_ids.is_empty());
+        assert!(report.catalog_revision_changed);
+        assert_eq!(report.baseline_ephemeris_digest, BEFORE_EPHEMERIS);
+        assert_eq!(report.post_action_ephemeris_digest, AFTER_EPHEMERIS);
     }
 
     #[test]
@@ -462,6 +517,10 @@ mod tests {
             report.disposition,
             ActionPortfolioDisposition::IncompleteEvidence
         );
+        assert_eq!(
+            report.evidence_gaps,
+            vec![ActionPortfolioEvidenceGap::PostActionFullCatalogScreeningMissing]
+        );
 
         let mut incomplete_before = before.clone();
         incomplete_before.inventory_complete = false;
@@ -476,6 +535,10 @@ mod tests {
         assert_eq!(
             report.disposition,
             ActionPortfolioDisposition::IncompleteEvidence
+        );
+        assert_eq!(
+            report.evidence_gaps,
+            vec![ActionPortfolioEvidenceGap::BaselineInventoryIncomplete]
         );
     }
 
@@ -517,6 +580,17 @@ mod tests {
         assert_eq!(
             reconcile_action_effects(&before, &after, action_receipt, rational(1, 10_000)),
             Err(ActionPortfolioError::ReceiptIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn different_screening_scopes_are_not_compared() {
+        let before = snapshot(BEFORE, BEFORE_CATALOG, BEFORE_EPHEMERIS, vec![]);
+        let mut after = snapshot(AFTER, AFTER_CATALOG, AFTER_EPHEMERIS, vec![]);
+        after.screening_scope_digest = [77; 32];
+        assert_eq!(
+            reconcile_action_effects(&before, &after, receipt(), rational(1, 10_000)),
+            Err(ActionPortfolioError::ScreeningScopeMismatch)
         );
     }
 
