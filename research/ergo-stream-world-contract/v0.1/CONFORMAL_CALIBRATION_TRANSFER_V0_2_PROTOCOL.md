@@ -54,6 +54,10 @@ A proposed transport receipt must bind:
 
 Every mutable or learned artifact in the transport path must be frozen before target evaluation outcomes are released. A digest proves identity only after the owner has acquired and verified the bytes; it does not authenticate the truth of the observations.
 
+### Receipt identity and predictor immutability
+
+A transported calibrator is bound to the full owner-issued calibration identity, not just a stratum ID. At prediction time the owner verifies and supplies the same receipt ID, claim type/scope, predictor, preprocessing, score function, calibration cohort, sample-ID set, split manifest, evidence prefix and independent-unit kind. Any mismatch yields the full two-label prediction set and no decision. Signature/custody/revocation verification occurs before this Rust identity reaches the evaluator; digest-shape checking is not signature verification.
+
 ### Mathematical assumptions — declare per method
 
 **Ordinary split conformal** requires exchangeability of independent calibration units and future prediction units within the admitted stratum, plus a fixed predictor/preprocessor/nonconformity score chosen independently of calibration outcomes.
