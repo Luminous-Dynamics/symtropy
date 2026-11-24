@@ -86,6 +86,11 @@ pub struct SourceReceipt {
     pub source_commit: String,
     pub source_case_id: String,
     pub source_scope_id: String,
+    pub source_scope_sha256: String,
+    pub source_decision_cutoff_id: String,
+    pub source_world_set_receipt_id: String,
+    pub source_joint_loss_receipt_id: String,
+    pub policy_payload_sha256: String,
     pub receipt_id: String,
     pub receipt_sha256: String,
     pub state: String,
@@ -153,6 +158,7 @@ pub struct Case {
     pub resource_budget: ActionCost,
     pub expected_joint_scenarios: Vec<JointScenarioIdentity>,
     pub expected_scenario_ids_sha256: String,
+    pub expected_joint_scenarios_sha256: String,
     pub policy_pareto_frontier_ids: Vec<String>,
     pub policies: Vec<PolicySnapshot>,
 }
@@ -250,12 +256,43 @@ fn digest_ids(ids: &[String]) -> Result<String, String> {
 }
 
 fn digest_scenarios(scenarios: &[JointScenarioIdentity]) -> Result<String, String> {
-    let mut ids = scenarios
+    let mut sorted = scenarios.to_vec();
+    sorted.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    let bytes = serde_json::to_vec(&sorted)
+        .map_err(|error| format!("cannot encode canonical joint scenarios: {error}"))?;
+    use sha2::{Digest, Sha256};
+    Ok(Sha256::digest(bytes)
         .iter()
-        .map(|scenario| scenario.scenario_id.clone())
-        .collect::<Vec<_>>();
-    ids.sort();
-    digest_ids(&ids)
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
+}
+
+fn policy_payload_digest(
+    frontier_ids: &[String],
+    policies: &[PolicySnapshot],
+) -> Result<String, String> {
+    #[derive(Serialize)]
+    struct Payload {
+        policy_pareto_frontier_ids: Vec<String>,
+        policies: Vec<PolicySnapshot>,
+    }
+    let mut frontier = frontier_ids.to_vec();
+    frontier.sort();
+    let mut sorted_policies = policies.to_vec();
+    for policy in &mut sorted_policies {
+        policy.per_scenario.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    }
+    sorted_policies.sort_by(|left, right| left.policy_id.cmp(&right.policy_id));
+    let bytes = serde_json::to_vec(&Payload {
+        policy_pareto_frontier_ids: frontier,
+        policies: sorted_policies,
+    })
+    .map_err(|error| format!("cannot encode canonical policy frontier: {error}"))?;
+    use sha2::{Digest, Sha256};
+    Ok(Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 
 fn invalid(case: &Case, reason: &str) -> CaseResult {
@@ -299,6 +336,15 @@ fn validate_source(case: &Case) -> Result<(), String> {
         || source.source_case_id != case.source_policy_case_id
         || !valid_id(&source.source_scope_id)
         || source.source_scope_id != case.decision_scope_id
+        || !valid_sha256(&source.source_scope_sha256)
+        || source.source_scope_sha256 != case.scope_sha256
+        || !valid_id(&source.source_decision_cutoff_id)
+        || source.source_decision_cutoff_id != case.decision_cutoff_id
+        || !valid_id(&source.source_world_set_receipt_id)
+        || source.source_world_set_receipt_id != case.world_set_receipt_id
+        || !valid_id(&source.source_joint_loss_receipt_id)
+        || source.source_joint_loss_receipt_id != case.joint_loss_receipt_id
+        || !valid_sha256(&source.policy_payload_sha256)
         || !valid_id(&source.receipt_id)
         || !valid_sha256(&source.receipt_sha256)
         || source.result != "pass"
@@ -611,8 +657,30 @@ fn evaluate_case(case: &Case) -> CaseResult {
         Ok(digest) => digest,
         Err(_) => return invalid(case, "joint scenario inventory cannot be encoded"),
     };
-    if scenario_digest != case.expected_scenario_ids_sha256 {
-        return invalid(case, "joint scenario inventory digest mismatch");
+    if scenario_digest != case.expected_joint_scenarios_sha256 {
+        return invalid(case, "joint scenario identity mapping digest mismatch");
+    }
+    let scenario_ids = case
+        .expected_joint_scenarios
+        .iter()
+        .map(|item| item.scenario_id.clone())
+        .collect::<Vec<_>>();
+    let scenario_ids_digest = match digest_ids(&scenario_ids) {
+        Ok(digest) => digest,
+        Err(_) => return invalid(case, "joint scenario ID inventory cannot be encoded"),
+    };
+    if scenario_ids_digest != case.expected_scenario_ids_sha256 {
+        return invalid(case, "joint scenario ID inventory digest mismatch");
+    }
+    let payload_digest = match policy_payload_digest(
+        &case.policy_pareto_frontier_ids,
+        &case.policies,
+    ) {
+        Ok(digest) => digest,
+        Err(_) => return invalid(case, "source policy payload cannot be encoded"),
+    };
+    if payload_digest != case.source_receipt.policy_payload_sha256 {
+        return invalid(case, "policy frontier payload digest differs from source receipt pin");
     }
 
     let mut expected_scenarios = BTreeMap::new();
@@ -920,7 +988,7 @@ mod tests {
                 ),
             ],
         };
-        Case {
+        let mut case = Case {
             case_id: "policy-case".to_owned(),
             source_policy_case_id: "discovery-case-1".to_owned(),
             decision_scope_id: "scope-1".to_owned(),
@@ -956,9 +1024,17 @@ mod tests {
             resource_budget: cost(budget_trials, 10, 1_000),
             expected_joint_scenarios: scenarios,
             expected_scenario_ids_sha256: scenario_digest,
+            expected_joint_scenarios_sha256: "0".repeat(64),
             policy_pareto_frontier_ids: vec!["candidate-observable".to_owned()],
             policies: vec![incumbent, candidate],
-        }
+        };
+        case.expected_joint_scenarios_sha256 =
+            digest_scenarios(&case.expected_joint_scenarios).expect("joint scenario digest");
+        case.source_receipt.policy_payload_sha256 = policy_payload_digest(
+            &case.policy_pareto_frontier_ids,
+            &case.policies,
+        ).expect("policy frontier digest");
+        case
     }
 
     #[test]
