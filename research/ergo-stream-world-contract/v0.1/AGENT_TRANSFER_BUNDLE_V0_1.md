@@ -134,3 +134,7 @@ An in-process schema/type boundary is not an OS sandbox. Learner/evaluator separ
 - Preserve exact artifact digests in the owner receipt.
 
 The current example demonstrates a source/target induced embedding and two frozen target transition predictions. The bundle schema references the scoped structural proposal schema by its aligned relative schema ID; both side snapshots and the dynamics state/action snapshots carry evidence IDs. It is an illustrative wire artifact, not an executed AgentView/AgentAction integration or a causal-transfer result.
+
+## Owner-issued split-conformal receipt
+
+The split-conformal quantile and its calibration evidence are never placed in the candidate-authored AgentTransferBundle. The trusted episode/calibration owner issues a separate receipt using `schemas/split_conformal_transfer_receipt_v0.schema.json`. That receipt binds the frozen predictor, preprocessing, score function, calibration cohort, sample-ID manifest, evidence-prefix, evaluator stratum, independent unit, claim scope, alpha, rank and quantile, as well as the custody receipt. A model or cohort change requires a new receipt; a revoked receipt is unusable. See `TRANSFER_CALIBRATION_V0_1.md`.
