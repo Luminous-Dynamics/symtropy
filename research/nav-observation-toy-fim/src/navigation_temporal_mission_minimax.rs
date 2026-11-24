@@ -9,6 +9,10 @@
 
 use core::fmt;
 
+use crate::navigation_tail_risk::{
+    mission_path_loss_distributions, worst_case_cvar, ModelLossDistribution, RobustTailRisk,
+};
+
 pub const PROBABILITY_SCALE: u64 = 1_000_000;
 pub const MAX_ACTIONS: usize = 4;
 pub const MAX_TERMINAL_LOSS: u64 = 1_000_000;
@@ -186,6 +190,7 @@ pub enum PolicyObjective {
     MissionGlobalMinimaxRisk,
     MissionGlobalMinimaxRegret,
     RectangularBranchSwitchingDiagnostic,
+    MissionGlobalRobustCvar,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -230,6 +235,7 @@ pub enum TemporalMinimaxError {
     ZeroAgeNonIdentityTransition { action_id: u64, model_index: usize, cause_index: usize },
     MissingModelCommitment { action_id: u64, model_index: usize, cause_index: usize },
     NoFeasiblePolicy,
+    TailRiskEvaluationFailed,
     ArithmeticOverflow,
 }
 
@@ -673,6 +679,19 @@ fn consider(
 /// common-cause regime are fixed through the mission; only navigation state
 /// transitions between capture and use epochs. The returned policies are
 /// exact over the supplied finite model set and integer probabilities.
+
+/// Exact robust-CVaR policy selected from the same observable finite policy
+/// trees as the mission-global expected-risk planner. The model is held fixed
+/// outside the stochastic mission-path distribution.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TemporalCvarPlan {
+    pub selected_policy: ObservablePolicy,
+    pub tail_risk: RobustTailRisk,
+    pub alpha_ppm: u32,
+    pub policy_trees_evaluated: u64,
+    pub authority_transition_not_authorized_by_plan: bool,
+}
+
 pub fn plan_temporal_mission_minimax(
     problem: &TemporalMinimaxProblem,
     actions: &[TimedJointAction],
@@ -820,6 +839,220 @@ pub fn plan_temporal_mission_minimax(
         authority_transition_not_authorized_by_plan: true,
     })
 }
+
+
+/// Enumerate the complete finite horizon-two observable policy family and
+/// select the policy minimizing worst-case model-conditional mission CVaR.
+///
+/// This deliberately optimizes CVaR separately from expected minimax risk and
+/// minimax regret. Each candidate policy is reconstructed into complete
+/// stochastic mission-path loss distributions independently, then evaluated
+/// for every fixed persistent model. The selected policy cannot inspect model
+/// identity or common-cause state.
+pub fn plan_temporal_mission_cvar(
+    problem: &TemporalMinimaxProblem,
+    actions: &[TimedSensorAction],
+    budget: ResourceVector,
+    alpha_ppm: u32,
+) -> Result<TemporalCvarPlan, TemporalMinimaxError> {
+    let ordered = validate(problem, actions)?;
+    let stop_padding = scale_power(4)?;
+    let mut model_oracles = [u128::MAX; MODEL_COUNT];
+
+    for decision in [TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded] {
+        for model in 0..MODEL_COUNT {
+            let risk = terminal_loss(initial_mass(problem, model), problem, decision)?
+                .checked_mul(stop_padding)
+                .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+            model_oracles[model] = model_oracles[model].min(risk);
+        }
+    }
+
+    let mut roots: Vec<(u64, Vec<Vec<BranchCandidate>>)> = Vec::new();
+    for first_action in &ordered {
+        if !first_action.cost.fits(budget) {
+            continue;
+        }
+        let first_outcomes = [
+            apply_action(0, initial_mass(problem, 0), first_action)?,
+            apply_action(1, initial_mass(problem, 1), first_action)?,
+        ];
+        let mut branches = Vec::with_capacity(OUTCOMES.len());
+        for outcome in OUTCOMES {
+            let index = outcome.index();
+            let first_masses = [
+                first_outcomes[0][index].use_mass,
+                first_outcomes[1][index].use_mass,
+            ];
+            branches.push(build_branch_candidates(
+                outcome,
+                first_masses,
+                first_action,
+                &ordered,
+                problem,
+                budget,
+            )?);
+        }
+        roots.push((first_action.action_id, branches));
+    }
+
+    for model in 0..MODEL_COUNT {
+        let safe = terminal_loss(
+            initial_mass(problem, model),
+            problem,
+            TerminalDecision::DeclareSafe,
+        )?
+        .checked_mul(stop_padding)
+        .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+        let degraded = terminal_loss(
+            initial_mass(problem, model),
+            problem,
+            TerminalDecision::DeclareDegraded,
+        )?
+        .checked_mul(stop_padding)
+        .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+        let mut best = safe.min(degraded);
+        for (_, branches) in &roots {
+            let mut root_loss = 0_u128;
+            for options in branches {
+                let branch = options
+                    .iter()
+                    .map(|option| option.contributions[model])
+                    .min()
+                    .ok_or(TemporalMinimaxError::NoFeasiblePolicy)?;
+                root_loss = root_loss
+                    .checked_add(branch)
+                    .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+            }
+            best = best.min(root_loss);
+        }
+        model_oracles[model] = best;
+    }
+
+    let mut best: Option<(ObservablePolicy, RobustTailRisk)> = None;
+    let mut evaluated = 0_u64;
+
+    for decision in [TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded] {
+        let losses = [
+            terminal_loss(initial_mass(problem, 0), problem, decision)?
+                .checked_mul(stop_padding)
+                .ok_or(TemporalMinimaxError::ArithmeticOverflow)?,
+            terminal_loss(initial_mass(problem, 1), problem, decision)?
+                .checked_mul(stop_padding)
+                .ok_or(TemporalMinimaxError::ArithmeticOverflow)?,
+        ];
+        let policy = make_policy(
+            PolicyObjective::MissionGlobalRobustCvar,
+            None,
+            Some(decision),
+            &[],
+            losses,
+            model_oracles,
+        )?;
+        consider_cvar_policy(
+            problem,
+            actions,
+            policy,
+            alpha_ppm,
+            &mut best,
+        )?;
+        evaluated = evaluated
+            .checked_add(1)
+            .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+    }
+
+    for (root_id, branches) in &roots {
+        for first in &branches[0] {
+            for second in &branches[1] {
+                for third in &branches[2] {
+                    let selected = [first, second, third];
+                    let mut losses = [0_u128; MODEL_COUNT];
+                    for option in &selected {
+                        for model in 0..MODEL_COUNT {
+                            losses[model] = losses[model]
+                                .checked_add(option.contributions[model])
+                                .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+                        }
+                    }
+                    let selected_owned = selected
+                        .iter()
+                        .map(|item| (**item).clone())
+                        .collect::<Vec<_>>();
+                    let policy = make_policy(
+                        PolicyObjective::MissionGlobalRobustCvar,
+                        Some(*root_id),
+                        None,
+                        &selected_owned,
+                        losses,
+                        model_oracles,
+                    )?;
+                    consider_cvar_policy(
+                        problem,
+                        actions,
+                        policy,
+                        alpha_ppm,
+                        &mut best,
+                    )?;
+                    evaluated = evaluated
+                        .checked_add(1)
+                        .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+                }
+            }
+        }
+    }
+
+    let (mut selected_policy, tail_risk) = best.ok_or(TemporalMinimaxError::NoFeasiblePolicy)?;
+    selected_policy.objective = PolicyObjective::MissionGlobalRobustCvar;
+
+    Ok(TemporalCvarPlan {
+        selected_policy,
+        tail_risk,
+        alpha_ppm,
+        policy_trees_evaluated: evaluated,
+        authority_transition_not_authorized_by_plan: true,
+    })
+}
+
+fn consider_cvar_policy(
+    problem: &TemporalMinimaxProblem,
+    actions: &[TimedSensorAction],
+    policy: ObservablePolicy,
+    alpha_ppm: u32,
+    best: &mut Option<(ObservablePolicy, RobustTailRisk)>,
+) -> Result<(), TemporalMinimaxError> {
+    let distributions = mission_path_loss_distributions(problem, actions, &policy)
+        .map_err(|_| TemporalMinimaxError::TailRiskEvaluationFailed)?;
+    let tail = worst_case_cvar(
+        &[
+            ModelLossDistribution {
+                model_id: 0,
+                outcomes: &distributions[0],
+            },
+            ModelLossDistribution {
+                model_id: 1,
+                outcomes: &distributions[1],
+            },
+        ],
+        alpha_ppm,
+    )
+    .map_err(|_| TemporalMinimaxError::TailRiskEvaluationFailed)?;
+
+    let replace = match best.as_ref() {
+        None => true,
+        Some((incumbent_policy, incumbent_tail)) => {
+            match tail.worst_case_cvar.compare(incumbent_tail.worst_case_cvar) {
+                core::cmp::Ordering::Less => true,
+                core::cmp::Ordering::Greater => false,
+                core::cmp::Ordering::Equal => better_risk(&policy, incumbent_policy)?,
+            }
+        }
+    };
+    if replace {
+        *best = Some((policy, tail));
+    }
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {
