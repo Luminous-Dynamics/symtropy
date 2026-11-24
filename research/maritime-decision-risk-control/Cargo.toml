@@ -30,3 +30,7 @@ path = "src/bin/lipschitz_risk_audit.rs"
 [[bin]]
 name = "bernstein-risk-audit"
 path = "src/bin/bernstein_risk_audit.rs"
+
+[[bin]]
+name = "simultaneous-hoeffding-risk-audit"
+path = "src/bin/simultaneous_hoeffding_risk_audit.rs"
