@@ -429,10 +429,7 @@ mod tests {
     #[test]
     fn spearman_rank_correlation_detects_inverse_ordering() {
         assert_eq!(
-            spearman_rank_correlation(
-                &[1.0, 2.0, 3.0, 4.0, 5.0],
-                &[50.0, 40.0, 30.0, 20.0, 10.0],
-            ),
+            spearman_rank_correlation(&[1.0, 2.0, 3.0, 4.0, 5.0], &[50.0, 40.0, 30.0, 20.0, 10.0],),
             Some(-1.0)
         );
     }
