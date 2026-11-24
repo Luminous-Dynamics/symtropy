@@ -188,3 +188,12 @@ The execution-evidence validator also enforces cross-event chronology: fault eve
 Fault delivery confirmation now requires the campaign-pinned minimum observer quorum (at least two profiles), each pinned by observer ID/revision/binary digest and declared common-cause domains. Confirmed/Refuted observations carry separate receipts per observer. The validator rejects shared declared domains between quorum members or with the injector, replayed observer artifacts and unpinned binaries.
 
 The positive four-event bundle carries eight observer receipts: two per fault. The evidence report separates four delivery verdicts from eight supporting observer receipts. This is still fault-model-relative independence, not a claim of physical independence.
+
+
+## Plan-derived Gazebo dispatch composition
+
+dispatch_planned_fault_once now composes the verified plan, exact simulation cut point, target resolution, final world/target rechecks and one idempotent injector dispatch. The function rejects a changed world epoch, clock, iteration, simulation time, world-state digest or target binding before dispatch. An Unknown injector result remains a reconciliation requirement. This is covered by mock-transport regression tests; it is not a live Gazebo run.
+
+The final snapshot/re-resolution narrows a time-of-check/time-of-use window but does not provide an atomic world lock. Gazebo's standard interfaces do not enforce exclusive mutation ownership. A live campaign must isolate and control all world-mutating clients, and must account for documented reset/spawn races, top-level-model-only enumeration, SceneBroadcaster synchronization and the separate /stats step-feedback clock. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
+
+The research positioning has also been updated to acknowledge EAST (October 2026) and existing ROS fault-injection/tracing tools as prior art. RRVR's intended differentiator is cross-restart physical-effect lineage and authority continuity, not generic fault injection or digital-twin safety testing. See [RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md](RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md).
