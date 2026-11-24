@@ -169,8 +169,8 @@ pub fn calibrate(
         return Err(RiskControlError::InvalidTarget);
     }
 
-    let contract = maximum_parameter_contract
-        .ok_or(RiskControlError::MissingMaximumParameterContract)?;
+    let contract =
+        maximum_parameter_contract.ok_or(RiskControlError::MissingMaximumParameterContract)?;
 
     if contract.scope.trim().is_empty() || contract.evidence_ref.trim().is_empty() {
         return Err(RiskControlError::MissingMaximumParameterContract);
@@ -497,7 +497,10 @@ mod tests {
             &valid_revisions(),
         );
 
-        assert_eq!(result, Err(RiskControlError::MissingMaximumParameterContract));
+        assert_eq!(
+            result,
+            Err(RiskControlError::MissingMaximumParameterContract)
+        );
     }
 
     #[test]
