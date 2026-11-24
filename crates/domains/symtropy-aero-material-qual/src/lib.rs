@@ -1,0 +1,784 @@
+//! Semantic checks for AERO-MATERIAL-PROCESS-QUAL-001 v0.1.
+//!
+//! This evaluator checks the referential and partition contract represented by
+//! the synthetic case. It does not implement full JSON Schema Draft 2020-12
+//! validation, measurement validity, material statistics, physical models,
+//! design allowables, part acceptance, airworthiness, or certification.
+
+use serde::Serialize;
+use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
+
+const PROFILE_ID: &str = "aero-material-process-qual-v0.1";
+const CLAIM_CEILING: &str = "synthetic_contract_test_only";
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct Finding {
+    pub code: String,
+    pub entity_id: String,
+    pub detail: String,
+}
+
+impl Finding {
+    fn new(code: &str, entity_id: &str, detail: impl Into<String>) -> Self {
+        Self {
+            code: code.to_owned(),
+            entity_id: entity_id.to_owned(),
+            detail: detail.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct EvaluationReport {
+    pub evaluator_profile: String,
+    pub case_id: Option<String>,
+    pub schema_validation_status: String,
+    pub structurally_complete: bool,
+    pub structural_status: String,
+    pub process_domain_status: String,
+    pub decision_status: String,
+    pub physical_qualification_status: String,
+    pub entity_counts: BTreeMap<String, usize>,
+    pub observation_status_counts: BTreeMap<String, usize>,
+    pub violations: Vec<Finding>,
+    pub blockers: Vec<Finding>,
+    pub capability_gaps: Vec<String>,
+}
+
+fn field_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+    value.get(key).and_then(Value::as_str)
+}
+
+fn push_finding(findings: &mut Vec<Finding>, code: &str, entity_id: &str, detail: &str) {
+    findings.push(Finding::new(code, entity_id, detail));
+}
+
+fn required_array<'a>(
+    root: &'a Value,
+    path: &str,
+    findings: &mut Vec<Finding>,
+) -> Vec<&'a Value> {
+    let mut current = root;
+    for segment in path.split('.') {
+        let Some(next) = current.get(segment) else {
+            push_finding(
+                findings,
+                "MISSING_COLLECTION",
+                path,
+                "Required collection path is absent.",
+            );
+            return Vec::new();
+        };
+        current = next;
+    }
+    match current.as_array() {
+        Some(values) => values.iter().collect(),
+        None => {
+            push_finding(
+                findings,
+                "INVALID_COLLECTION",
+                path,
+                "Required collection is not an array.",
+            );
+            Vec::new()
+        }
+    }
+}
+
+fn index_by_id<'a>(
+    rows: &[&'a Value],
+    kind: &str,
+    findings: &mut Vec<Finding>,
+) -> BTreeMap<String, &'a Value> {
+    let mut index = BTreeMap::new();
+    for (position, row) in rows.iter().enumerate() {
+        let Some(id) = field_str(row, "id") else {
+            push_finding(
+                findings,
+                "MISSING_ID",
+                &format!("{kind}[{position}]"),
+                "Entity requires a string id.",
+            );
+            continue;
+        };
+        if id.trim().is_empty() {
+            push_finding(
+                findings,
+                "BLANK_ID",
+                &format!("{kind}[{position}]"),
+                "Entity id must not be blank.",
+            );
+            continue;
+        }
+        if id != id.trim() {
+            push_finding(
+                findings,
+                "NON_CANONICAL_ID",
+                id,
+                "Entity id has leading or trailing whitespace.",
+            );
+            continue;
+        }
+        if index.contains_key(id) {
+            push_finding(
+                findings,
+                "DUPLICATE_ID",
+                id,
+                &format!("Duplicate identity in {kind}."),
+            );
+        } else {
+            index.insert(id.to_owned(), *row);
+        }
+    }
+    index
+}
+
+fn check_foreign_key(
+    rows: &[&Value],
+    owner_kind: &str,
+    foreign_field: &str,
+    target_kind: &str,
+    target_index: &BTreeMap<String, &Value>,
+    findings: &mut Vec<Finding>,
+) {
+    for (position, row) in rows.iter().enumerate() {
+        let owner_id = field_str(row, "id")
+            .map(str::to_owned)
+            .unwrap_or_else(|| format!("{owner_kind}[{position}]"));
+        match field_str(row, foreign_field) {
+            None => push_finding(
+                findings,
+                "MISSING_REFERENCE",
+                &owner_id,
+                &format!("Missing {foreign_field} reference to {target_kind}."),
+            ),
+            Some(target_id) if !target_index.contains_key(target_id) => push_finding(
+                findings,
+                "DANGLING_REFERENCE",
+                &owner_id,
+                &format!(
+                    "{foreign_field} references unknown {target_kind} identity {target_id}."
+                ),
+            ),
+            Some(_) => {}
+        }
+    }
+}
+
+fn sort_findings(findings: &mut [Finding]) {
+    findings.sort_by(|left, right| {
+        (&left.code, &left.entity_id, &left.detail).cmp(&(
+            &right.code,
+            &right.entity_id,
+            &right.detail,
+        ))
+    });
+}
+
+fn allowed_grouping_level(level: &str) -> bool {
+    matches!(
+        level,
+        "material_lot" | "process_batch" | "panel" | "test_campaign" | "configuration"
+    )
+}
+
+/// Evaluate the v0.1 semantic contract.
+///
+/// The return value is deterministic for record-order permutations. A
+/// structurally complete report is not a decision approval: this profile is
+/// explicitly synthetic-only and always reports the real-world decision gate
+/// as ineligible.
+pub fn evaluate_case(case: &Value) -> EvaluationReport {
+    let mut violations = Vec::new();
+    let mut blockers = Vec::new();
+
+    let case_id = field_str(case, "case_id").map(str::to_owned);
+    if field_str(case, "profile_id") != Some(PROFILE_ID) {
+        push_finding(
+            &mut violations,
+            "PROFILE_ID_MISMATCH",
+            case_id.as_deref().unwrap_or("case"),
+            "Expected the v0.1 AERO material/process profile identifier.",
+        );
+    }
+    if case.get("synthetic_only").and_then(Value::as_bool) != Some(true)
+        || field_str(case, "claim_ceiling") != Some(CLAIM_CEILING)
+        || case
+            .pointer("/known_truth/not_a_physical_model")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        push_finding(
+            &mut violations,
+            "CLAIM_CEILING_VIOLATION",
+            case_id.as_deref().unwrap_or("case"),
+            "v0.1 must remain explicitly synthetic and must not be represented as a physical model.",
+        );
+    }
+
+    let lots = required_array(case, "hierarchy.material_lots", &mut violations);
+    let batches = required_array(case, "hierarchy.process_batches", &mut violations);
+    let panels = required_array(case, "hierarchy.panels", &mut violations);
+    let specimens = required_array(case, "hierarchy.specimens", &mut violations);
+    let campaigns = required_array(case, "hierarchy.test_campaigns", &mut violations);
+    let configurations = required_array(case, "hierarchy.configurations", &mut violations);
+    let observations = required_array(case, "observations", &mut violations);
+    let assignments = required_array(
+        case,
+        "partition_contract.assignments",
+        &mut violations,
+    );
+
+    let lot_index = index_by_id(&lots, "material_lots", &mut violations);
+    let batch_index = index_by_id(&batches, "process_batches", &mut violations);
+    let panel_index = index_by_id(&panels, "panels", &mut violations);
+    let specimen_index = index_by_id(&specimens, "specimens", &mut violations);
+    let campaign_index = index_by_id(&campaigns, "test_campaigns", &mut violations);
+    let configuration_index = index_by_id(&configurations, "configurations", &mut violations);
+    let _observation_index = index_by_id(&observations, "observations", &mut violations);
+
+    check_foreign_key(
+        &batches,
+        "process_batch",
+        "material_lot_id",
+        "material_lot",
+        &lot_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &panels,
+        "panel",
+        "process_batch_id",
+        "process_batch",
+        &batch_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &specimens,
+        "specimen",
+        "panel_id",
+        "panel",
+        &panel_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &specimens,
+        "specimen",
+        "configuration_id",
+        "configuration",
+        &configuration_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &observations,
+        "observation",
+        "specimen_id",
+        "specimen",
+        &specimen_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &observations,
+        "observation",
+        "campaign_id",
+        "test_campaign",
+        &campaign_index,
+        &mut violations,
+    );
+    check_foreign_key(
+        &assignments,
+        "partition_assignment",
+        "specimen_id",
+        "specimen",
+        &specimen_index,
+        &mut violations,
+    );
+
+    let mut observation_status_counts = BTreeMap::from([
+        ("observed".to_owned(), 0usize),
+        ("censored".to_owned(), 0usize),
+        ("excluded".to_owned(), 0usize),
+        ("missing".to_owned(), 0usize),
+    ]);
+    let mut campaigns_by_specimen: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+
+    for observation in &observations {
+        let observation_id = field_str(observation, "id").unwrap_or("observation");
+        let specimen_id = field_str(observation, "specimen_id");
+        let campaign_id = field_str(observation, "campaign_id");
+        if let (Some(specimen_id), Some(campaign_id)) = (specimen_id, campaign_id) {
+            campaigns_by_specimen
+                .entry(specimen_id.to_owned())
+                .or_default()
+                .insert(campaign_id.to_owned());
+        }
+
+        if field_str(observation, "quantity") != Some("response_index")
+            || field_str(observation, "unit") != Some("synthetic_index")
+        {
+            push_finding(
+                &mut violations,
+                "NON_SYNTHETIC_QUANTITY",
+                observation_id,
+                "v0.1 observations must use response_index / synthetic_index.",
+            );
+        }
+
+        match field_str(observation, "status") {
+            Some("observed") => {
+                *observation_status_counts
+                    .get_mut("observed")
+                    .expect("observed counter exists") += 1;
+                if observation.get("value_index").and_then(Value::as_f64).is_none()
+                    || observation
+                        .get("standard_uncertainty_index")
+                        .and_then(Value::as_f64)
+                        .is_none_or(|value| value < 0.0)
+                {
+                    push_finding(
+                        &mut violations,
+                        "INVALID_OBSERVED_VALUE",
+                        observation_id,
+                        "Observed records require a numeric value and non-negative standard uncertainty.",
+                    );
+                }
+            }
+            Some("censored") => {
+                *observation_status_counts
+                    .get_mut("censored")
+                    .expect("censored counter exists") += 1;
+                if observation
+                    .get("censoring_limit_index")
+                    .and_then(Value::as_f64)
+                    .is_none()
+                    || field_str(observation, "reason_code").is_none()
+                {
+                    push_finding(
+                        &mut violations,
+                        "INCOMPLETE_CENSORED_RECORD",
+                        observation_id,
+                        "Censored records require a numeric limit and reason code.",
+                    );
+                }
+            }
+            Some("excluded") => {
+                *observation_status_counts
+                    .get_mut("excluded")
+                    .expect("excluded counter exists") += 1;
+                if field_str(observation, "reason_code").is_none() {
+                    push_finding(
+                        &mut violations,
+                        "EXCLUSION_WITHOUT_REASON",
+                        observation_id,
+                        "Excluded records must retain a reason code.",
+                    );
+                }
+            }
+            Some("missing") => {
+                *observation_status_counts
+                    .get_mut("missing")
+                    .expect("missing counter exists") += 1;
+                if field_str(observation, "reason_code").is_none() {
+                    push_finding(
+                        &mut violations,
+                        "MISSINGNESS_WITHOUT_REASON",
+                        observation_id,
+                        "Missing records must retain a reason code.",
+                    );
+                }
+            }
+            _ => push_finding(
+                &mut violations,
+                "UNKNOWN_OBSERVATION_STATUS",
+                observation_id,
+                "Observation status is outside the v0.1 state set.",
+            ),
+        }
+    }
+
+    for campaign in &campaigns {
+        let campaign_id = field_str(campaign, "id").unwrap_or("campaign");
+        match field_str(campaign, "calibration_state") {
+            Some("active") => {}
+            Some("expired") | Some("unknown") => push_finding(
+                &mut blockers,
+                "CALIBRATION_NOT_DECLARED_ACTIVE",
+                campaign_id,
+                "The campaign's declared calibration state is expired or unknown; linked observations are not eligible for a positive evidence claim.",
+            ),
+            _ => push_finding(
+                &mut violations,
+                "UNKNOWN_CALIBRATION_STATE",
+                campaign_id,
+                "Calibration state is outside the v0.1 state set.",
+            ),
+        }
+    }
+
+    let mut out_of_domain_batches = 0usize;
+    let mut unknown_domain_batches = 0usize;
+    for batch in &batches {
+        let batch_id = field_str(batch, "id").unwrap_or("process_batch");
+        match field_str(batch, "process_state") {
+            Some("in_domain") => {}
+            Some("out_of_domain") => {
+                out_of_domain_batches += 1;
+                push_finding(
+                    &mut blockers,
+                    "PROCESS_OUT_OF_DOMAIN",
+                    batch_id,
+                    "Out-of-domain process state cannot be promoted by a favourable response value.",
+                );
+            }
+            Some("unknown") => {
+                unknown_domain_batches += 1;
+                push_finding(
+                    &mut blockers,
+                    "PROCESS_DOMAIN_UNKNOWN",
+                    batch_id,
+                    "Process-domain applicability is unknown.",
+                );
+            }
+            _ => push_finding(
+                &mut violations,
+                "UNKNOWN_PROCESS_STATE",
+                batch_id,
+                "Process state is outside the v0.1 state set.",
+            ),
+        }
+    }
+
+    let mut assignment_by_specimen = BTreeMap::new();
+    for (position, assignment) in assignments.iter().enumerate() {
+        let owner_id = field_str(assignment, "specimen_id")
+            .unwrap_or("partition_assignment");
+        let Some(specimen_id) = field_str(assignment, "specimen_id") else {
+            continue;
+        };
+        let Some(partition) = field_str(assignment, "partition") else {
+            push_finding(
+                &mut violations,
+                "MISSING_PARTITION",
+                &format!("{owner_id}[{position}]"),
+                "Assignment requires train, holdout, or challenge.",
+            );
+            continue;
+        };
+        if !matches!(partition, "train" | "holdout" | "challenge") {
+            push_finding(
+                &mut violations,
+                "UNKNOWN_PARTITION",
+                specimen_id,
+                "Partition is outside train / holdout / challenge.",
+            );
+            continue;
+        }
+        if assignment_by_specimen
+            .insert(specimen_id.to_owned(), partition.to_owned())
+            .is_some()
+        {
+            push_finding(
+                &mut violations,
+                "DUPLICATE_SPECIMEN_ASSIGNMENT",
+                specimen_id,
+                "A specimen must have exactly one partition assignment.",
+            );
+        }
+    }
+
+    for specimen_id in specimen_index.keys() {
+        if !assignment_by_specimen.contains_key(specimen_id) {
+            push_finding(
+                &mut violations,
+                "UNASSIGNED_SPECIMEN",
+                specimen_id,
+                "Every declared specimen must have exactly one partition assignment.",
+            );
+        }
+    }
+
+    let grouping_levels = case
+        .pointer("/partition_contract/grouping_levels")
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    if grouping_levels.is_empty() {
+        push_finding(
+            &mut violations,
+            "EMPTY_GROUPING_CONTRACT",
+            "partition_contract",
+            "At least one grouping level is required.",
+        );
+    }
+    let mut seen_levels = BTreeSet::new();
+    for level in &grouping_levels {
+        if !allowed_grouping_level(level) {
+            push_finding(
+                &mut violations,
+                "UNKNOWN_GROUPING_LEVEL",
+                level,
+                "Grouping level is not supported by the v0.1 contract.",
+            );
+        }
+        if !seen_levels.insert(level.clone()) {
+            push_finding(
+                &mut violations,
+                "DUPLICATE_GROUPING_LEVEL",
+                level,
+                "Each grouping level must be declared only once.",
+            );
+        }
+    }
+
+    // Build group -> partition memberships from the hierarchy, never from
+    // caller-supplied group labels. Test campaigns are derived from linked
+    // observations, so multiple observations from one specimen remain grouped.
+    let mut group_partitions: BTreeMap<(String, String), String> = BTreeMap::new();
+    for (specimen_id, partition) in &assignment_by_specimen {
+        let Some(specimen) = specimen_index.get(specimen_id) else {
+            continue;
+        };
+        let panel_id = field_str(specimen, "panel_id");
+        let panel = panel_id.and_then(|id| panel_index.get(id).copied());
+        let batch_id = panel.and_then(|value| field_str(value, "process_batch_id"));
+        let batch = batch_id.and_then(|id| batch_index.get(id).copied());
+        let lot_id = batch.and_then(|value| field_str(value, "material_lot_id"));
+        let configuration_id = field_str(specimen, "configuration_id");
+        let campaign_ids = campaigns_by_specimen.get(specimen_id);
+
+        for level in &grouping_levels {
+            let group_ids: Vec<String> = match level.as_str() {
+                "material_lot" => lot_id.map(str::to_owned).into_iter().collect(),
+                "process_batch" => batch_id.map(str::to_owned).into_iter().collect(),
+                "panel" => panel_id.map(str::to_owned).into_iter().collect(),
+                "configuration" => configuration_id.map(str::to_owned).into_iter().collect(),
+                "test_campaign" => campaign_ids
+                    .map(|ids| ids.iter().cloned().collect())
+                    .unwrap_or_default(),
+                _ => Vec::new(),
+            };
+
+            if group_ids.is_empty() && allowed_grouping_level(level) {
+                push_finding(
+                    &mut violations,
+                    "UNRESOLVED_GROUP_MEMBERSHIP",
+                    specimen_id,
+                    &format!(
+                        "Cannot derive declared {level} grouping membership from the lineage graph."
+                    ),
+                );
+            }
+
+            for group_id in group_ids {
+                let key = (level.clone(), group_id.clone());
+                if let Some(existing_partition) = group_partitions.get(&key) {
+                    if existing_partition != partition {
+                        push_finding(
+                            &mut violations,
+                            "SPLIT_GROUP_OVERLAP",
+                            &group_id,
+                            &format!(
+                                "{level} group appears in both {existing_partition} and {partition}."
+                            ),
+                        );
+                    }
+                } else {
+                    group_partitions.insert(key, partition.clone());
+                }
+            }
+        }
+    }
+
+    let mut entity_counts = BTreeMap::new();
+    entity_counts.insert("material_lots".to_owned(), lots.len());
+    entity_counts.insert("process_batches".to_owned(), batches.len());
+    entity_counts.insert("panels".to_owned(), panels.len());
+    entity_counts.insert("specimens".to_owned(), specimens.len());
+    entity_counts.insert("test_campaigns".to_owned(), campaigns.len());
+    entity_counts.insert("configurations".to_owned(), configurations.len());
+    entity_counts.insert("observations".to_owned(), observations.len());
+    entity_counts.insert("partition_assignments".to_owned(), assignments.len());
+
+    let structurally_complete = violations.is_empty();
+    let structural_status = if structurally_complete {
+        "STRUCTURALLY_COMPLETE"
+    } else {
+        "STRUCTURAL_DEFECTS"
+    }
+    .to_owned();
+
+    let process_domain_status = if out_of_domain_batches > 0 {
+        "PARTIALLY_OUT_OF_DOMAIN"
+    } else if unknown_domain_batches > 0 {
+        "INDETERMINATE"
+    } else {
+        "DECLARED_IN_DOMAIN"
+    }
+    .to_owned();
+
+    sort_findings(&mut violations);
+    sort_findings(&mut blockers);
+
+    EvaluationReport {
+        evaluator_profile: "aero-material-process-evaluator-v0.1".to_owned(),
+        case_id,
+        schema_validation_status: "NOT_PERFORMED_BY_THIS_SEMANTIC_EVALUATOR".to_owned(),
+        structurally_complete,
+        structural_status,
+        process_domain_status,
+        decision_status: "NOT_ELIGIBLE_SYNTHETIC_ONLY".to_owned(),
+        physical_qualification_status: "OUT_OF_SCOPE_NOT_CLAIMED".to_owned(),
+        entity_counts,
+        observation_status_counts,
+        violations,
+        blockers,
+        capability_gaps: vec![
+            "INDEPENDENT_SPECIMEN_SOURCE_MATERIAL_IDENTITY_NOT_REPRESENTED".to_owned(),
+            "CALIBRATION_VALIDITY_INTERVAL_AND_MEASUREMENT_TIMESTAMP_NOT_REPRESENTED".to_owned(),
+            "SOURCE_ARTIFACT_DIGEST_AND_BYTE_LENGTH_ARE_OWNED_BY_MY CELIX_PACKET_LAYER".replace(' ', ""),
+            "COUPON_TO_ELEMENT_JOINT_SUBCOMPONENT_TRANSFER_EVIDENCE_NOT_REPRESENTED".to_owned(),
+        ],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::evaluate_case;
+    use serde_json::Value;
+
+    const FIXTURE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
+    );
+
+    fn fixture() -> Value {
+        serde_json::from_str(FIXTURE).expect("synthetic fixture parses")
+    }
+
+    fn has_code(report: &super::EvaluationReport, code: &str) -> bool {
+        report.violations.iter().any(|finding| finding.code == code)
+            || report.blockers.iter().any(|finding| finding.code == code)
+    }
+
+    #[test]
+    fn fixture_is_structurally_complete_but_never_decision_eligible() {
+        let report = evaluate_case(&fixture());
+        assert!(report.structurally_complete, "{:?}", report.violations);
+        assert_eq!(report.structural_status, "STRUCTURALLY_COMPLETE");
+        assert_eq!(report.decision_status, "NOT_ELIGIBLE_SYNTHETIC_ONLY");
+        assert_eq!(
+            report.physical_qualification_status,
+            "OUT_OF_SCOPE_NOT_CLAIMED"
+        );
+        assert_eq!(report.entity_counts["specimens"], 7);
+        assert_eq!(report.observation_status_counts["observed"], 7);
+        assert_eq!(report.observation_status_counts["censored"], 1);
+        assert_eq!(report.observation_status_counts["excluded"], 1);
+        assert_eq!(report.observation_status_counts["missing"], 1);
+        assert!(has_code(&report, "PROCESS_OUT_OF_DOMAIN"));
+        assert!(has_code(&report, "CALIBRATION_NOT_DECLARED_ACTIVE"));
+        assert_eq!(
+            report.schema_validation_status,
+            "NOT_PERFORMED_BY_THIS_SEMANTIC_EVALUATOR"
+        );
+    }
+
+    #[test]
+    fn duplicate_specimen_identity_is_rejected() {
+        let mut case = fixture();
+        case["hierarchy"]["specimens"][1]["id"] =
+            case["hierarchy"]["specimens"][0]["id"].clone();
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "DUPLICATE_ID"));
+    }
+
+    #[test]
+    fn dangling_material_lot_reference_is_rejected() {
+        let mut case = fixture();
+        case["hierarchy"]["process_batches"][0]["material_lot_id"] =
+            Value::String("LOT-DOES-NOT-EXIST".to_owned());
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "DANGLING_REFERENCE"));
+    }
+
+    #[test]
+    fn split_overlap_is_derived_from_hierarchy_not_input_group_labels() {
+        let mut case = fixture();
+        let assignments = case["partition_contract"]["assignments"]
+            .as_array_mut()
+            .expect("assignments array");
+        let assignment = assignments
+            .iter_mut()
+            .find(|entry| entry["specimen_id"] == "SPEC-C1")
+            .expect("SPEC-C1 assignment");
+        assignment["partition"] = Value::String("train".to_owned());
+
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "SPLIT_GROUP_OVERLAP"));
+    }
+
+    #[test]
+    fn missing_specimen_assignment_is_rejected() {
+        let mut case = fixture();
+        case["partition_contract"]["assignments"]
+            .as_array_mut()
+            .expect("assignments array")
+            .retain(|entry| entry["specimen_id"] != "SPEC-D1");
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "UNASSIGNED_SPECIMEN"));
+    }
+
+    #[test]
+    fn non_active_calibration_state_is_a_blocker_not_a_positive_claim() {
+        let mut case = fixture();
+        case["hierarchy"]["test_campaigns"][0]["calibration_state"] =
+            Value::String("unknown".to_owned());
+        let report = evaluate_case(&case);
+        assert!(report.structurally_complete);
+        assert!(has_code(&report, "CALIBRATION_NOT_DECLARED_ACTIVE"));
+        assert_eq!(report.decision_status, "NOT_ELIGIBLE_SYNTHETIC_ONLY");
+    }
+
+    #[test]
+    fn record_order_permutations_produce_identical_reports() {
+        let case = fixture();
+        let baseline = evaluate_case(&case);
+        let mut permuted = case;
+        for path in [
+            "/hierarchy/material_lots",
+            "/hierarchy/process_batches",
+            "/hierarchy/panels",
+            "/hierarchy/specimens",
+            "/hierarchy/test_campaigns",
+            "/hierarchy/configurations",
+            "/observations",
+            "/partition_contract/assignments",
+        ] {
+            permuted
+                .pointer_mut(path)
+                .and_then(Value::as_array_mut)
+                .expect("fixture collection")
+                .reverse();
+        }
+        assert_eq!(baseline, evaluate_case(&permuted));
+    }
+
+    #[test]
+    fn unsupported_independent_lot_identity_is_reported_as_a_capability_gap() {
+        let report = evaluate_case(&fixture());
+        assert!(report.capability_gaps.iter().any(|gap| {
+            gap == "INDEPENDENT_SPECIMEN_SOURCE_MATERIAL_IDENTITY_NOT_REPRESENTED"
+        }));
+    }
+}
