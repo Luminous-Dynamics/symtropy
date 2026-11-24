@@ -312,7 +312,7 @@ Seven tests cover target-extra-behaviour acceptance for simulation, rejection fo
 
 This is finite proposed-relation validation, not learned mapping discovery, continuous-time behavioural equivalence, probabilistic bisimulation or causal-mechanism qualification.
 
-**Verification for simulation/bisimulation plus decision-value and quotient code:** pending an exact-head Rust 1.96 formatting, tests/doctest and strict-Clippy pass.
+**Historical note:** this pending status was superseded by the exact-head qualification recorded below. The current executable source passed formatting, 86 unit tests plus doctests, and strict Clippy on Rust 1.96.0.
 
 ## Latest exact-head qualification — 24 November 2026
 
@@ -325,3 +325,16 @@ The current executable source is at exact commit `9735f9f7ddaabce19b75a96a0e9778
 This current head includes the structural/dynamics witness, Atlas, scoped isomorphism/induced/subgraph embedding, finite quotient congruence, many-to-many simulation/bisimulation, finite EVSI decision-value oracle, and the sidecar schema/example documents. The earlier failed Clippy/test attempts described above are historical and superseded by this successful exact-head run.
 
 Qualification boundary: this is the focused ErgoStream microcosm crate, not repository-wide Linux/Windows/macOS CI. It does not qualify the #11171 production learner adapter, the sealed evaluator process boundary, continuous-time transfer, physical deployment, or external benchmark performance.
+
+## Sidecar consistency audit
+
+The scoped structural, agent transfer bundle and decision-value JSON documents and examples were retrieved and parsed as JSON. Static cross-file checks passed for:
+- the bundle's relative scoped-schema reference;
+- repeated source/target episode and evidence-prefix bindings;
+- complete selected/excluded node and relation partitions for both structural snapshots;
+- behavioural state-scope and action-map coverage against the evidence-backed snapshots;
+- simulation map-kind and response prediction fields;
+- absence of evaluator-owned actual hidden target transitions from the candidate sidecar;
+- two decision-value known-answer experiments.
+
+This was a static consistency audit, not a full Draft 2020-12 validator invocation or a live #11171 episode submission.
