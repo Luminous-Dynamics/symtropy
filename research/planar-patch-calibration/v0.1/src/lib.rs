@@ -928,7 +928,6 @@ pub fn calibrate_planar_patch(
         rank,
         pivot_order,
         pivot_norms,
-        basis,
         coefficients,
     } = pivoted_weighted_least_squares(&columns, &target, config.rank_relative_tolerance)?;
 
