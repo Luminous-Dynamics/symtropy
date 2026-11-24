@@ -2109,6 +2109,19 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
         let evidence = validate_frame_evidence(frame, current_case, epoch, &resources)?;
         refresh_epoch_state(&mut state, current_case, &evidence, epoch)?;
 
+        // The snapshot is the state at this decision cutoff, before this epoch's
+        // policy actions. Prior epochs' transitions have already been applied.
+        let snapshot = make_snapshot(
+            &state,
+            frame,
+            current_case,
+            epoch,
+            previous_snapshot_digest.clone(),
+            &evidence,
+        )?;
+        previous_snapshot_digest = Some(snapshot.snapshot_digest.clone());
+        snapshots.push(snapshot);
+
         let transitions = required_array(step, "transitions", "step", Some(epoch), None)?;
         for transition in transitions {
             let transition_id =
@@ -2138,16 +2151,6 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
             None,
         )?;
         previous_frame_history = Some(current_history.clone());
-        let snapshot = make_snapshot(
-            &state,
-            frame,
-            current_case,
-            epoch,
-            previous_snapshot_digest.clone(),
-            &evidence,
-        )?;
-        previous_snapshot_digest = Some(snapshot.snapshot_digest.clone());
-        snapshots.push(snapshot);
     }
 
     let ledger_digest = digest_value(ledger, None, None)?;
@@ -2426,14 +2429,19 @@ mod tests {
                     {"transition_id": "INSPECT-OP3-E2", "kind": "INSPECTION_RESULT", "operation_id": "OP-3", "method_id": "DIMENSIONAL", "disposition": "ACCEPTED"}
                 ]
             }),
+            json!({
+                "epoch": 3,
+                "decision_frame": frame(3),
+                "transitions": []
+            }),
         ])
     }
 
     #[test]
-    fn three_epoch_replay_reconstructs_precedence_setup_work_and_inspection() {
+    fn decision_snapshots_are_emitted_before_each_epoch_action() {
         let receipt = replay_ledger(&golden_three_epoch_ledger()).unwrap();
         assert_eq!(receipt.status, "VERIFIED");
-        assert_eq!(receipt.snapshots.len(), 3);
+        assert_eq!(receipt.snapshots.len(), 4);
 
         let epoch0 = &receipt.snapshots[0];
         let op2_e0 = epoch0
@@ -2441,13 +2449,11 @@ mod tests {
             .iter()
             .find(|op| op.operation_id == "OP-2")
             .unwrap();
-        assert_eq!(op2_e0.status, "IN_PROCESS");
-        assert_eq!(op2_e0.remaining_processing_ticks, 1);
-        assert_eq!(epoch0.resources[0].current_setup_family, "SETUP-B");
-        assert_eq!(
-            epoch0.resources[0].active_operation_id.as_deref(),
-            Some("OP-2")
-        );
+        assert_eq!(op2_e0.status, "WAITING");
+        assert_eq!(op2_e0.remaining_processing_ticks, 0);
+        assert_eq!(epoch0.resources[0].current_setup_family, "SETUP-A");
+        assert_eq!(epoch0.resources[0].active_operation_id, None);
+        assert!(epoch0.applied_transition_ids.is_empty());
 
         let epoch1 = &receipt.snapshots[1];
         let op2_e1 = epoch1
@@ -2455,27 +2461,57 @@ mod tests {
             .iter()
             .find(|op| op.operation_id == "OP-2")
             .unwrap();
-        assert_eq!(op2_e1.status, "COMPLETED");
-        assert_eq!(epoch1.resources[0].active_operation_id, None);
+        assert_eq!(op2_e1.status, "IN_PROCESS");
+        assert_eq!(op2_e1.remaining_processing_ticks, 1);
+        assert_eq!(epoch1.resources[0].current_setup_family, "SETUP-B");
+        assert_eq!(
+            epoch1.resources[0].active_operation_id.as_deref(),
+            Some("OP-2")
+        );
+        assert!(
+            epoch1
+                .applied_transition_ids
+                .contains(&"START-OP2".to_string())
+        );
 
         let epoch2 = &receipt.snapshots[2];
+        let op2_e2 = epoch2
+            .operations
+            .iter()
+            .find(|op| op.operation_id == "OP-2")
+            .unwrap();
         let op3_e2 = epoch2
             .operations
             .iter()
             .find(|op| op.operation_id == "OP-3")
             .unwrap();
-        assert_eq!(op3_e2.status, "COMPLETED");
-        assert_eq!(op3_e2.quality_disposition.as_deref(), Some("ACCEPTED"));
-        assert_eq!(epoch2.resources[0].current_setup_family, "SETUP-C");
-        assert_eq!(epoch2.inspection_station.capacity_units_used, 1);
+        assert_eq!(op2_e2.status, "COMPLETED");
+        assert_eq!(op3_e2.status, "WAITING");
+        assert_eq!(epoch2.resources[0].current_setup_family, "SETUP-B");
+        assert_eq!(epoch2.resources[0].active_operation_id, None);
+        assert_eq!(epoch2.inspection_station.capacity_units_used, 0);
+
+        let epoch3 = &receipt.snapshots[3];
+        let op3_e3 = epoch3
+            .operations
+            .iter()
+            .find(|op| op.operation_id == "OP-3")
+            .unwrap();
+        assert_eq!(op3_e3.status, "COMPLETED");
+        assert_eq!(op3_e3.quality_disposition.as_deref(), Some("ACCEPTED"));
+        assert_eq!(epoch3.resources[0].current_setup_family, "SETUP-C");
+        assert_eq!(epoch3.inspection_station.capacity_units_used, 1);
+
         assert_ne!(
             receipt.snapshots[0].snapshot_digest,
             receipt.snapshots[1].snapshot_digest
         );
-        assert_eq!(
-            receipt.snapshots[1].previous_snapshot_digest.as_deref(),
-            Some(receipt.snapshots[0].snapshot_digest.as_str())
-        );
+        for index in 1..receipt.snapshots.len() {
+            assert_eq!(
+                receipt.snapshots[index].previous_snapshot_digest.as_deref(),
+                Some(receipt.snapshots[index - 1].snapshot_digest.as_str())
+            );
+        }
     }
 
     #[test]
@@ -2486,13 +2522,13 @@ mod tests {
             {"transition_id": "TICK-OP2-E1", "kind": "PROCESS_TICKS", "operation_id": "OP-2", "resource_id": "RESOURCE-A", "processed_ticks": 1}
         ]);
         let receipt = replay_ledger(&value).unwrap();
-        let op2 = receipt.snapshots[1]
+        let op2 = receipt.snapshots[2]
             .operations
             .iter()
             .find(|operation| operation.operation_id == "OP-2")
             .unwrap();
         assert_eq!(op2.status, "COMPLETED");
-        assert_eq!(receipt.snapshots[1].resources[0].active_operation_id, None);
+        assert_eq!(receipt.snapshots[2].resources[0].active_operation_id, None);
     }
 
     #[test]
