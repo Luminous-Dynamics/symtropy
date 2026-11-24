@@ -73,11 +73,13 @@ pub struct UpstreamGateReceipt {
     pub commitment_epoch_id: String,
     pub site_id: String,
     pub pcc_id: String,
+    pub pcc_bus_id: Option<String>,
     pub asset_id: Option<String>,
     pub asset_configuration_digest: Option<String>,
     pub observed_at_unix_ms: u64,
     pub valid_from_unix_ms: u64,
     pub valid_until_unix_ms: u64,
+    pub recovery_deadline_unix_ms: Option<u64>,
     pub network_model_digest: Option<String>,
     pub topology_digest: Option<String>,
     pub baseline_trace_digest: Option<String>,
@@ -141,6 +143,7 @@ pub struct MobilityNetworkAdapterInput {
     pub decision_cutoff_unix_ms: u64,
     pub horizon_start_unix_ms: u64,
     pub horizon_end_unix_ms: u64,
+    pub required_recovery_by_unix_ms: u64,
     pub maximum_topology_age_ns: u64,
     pub flow_tolerance_mw: f64,
     pub pivot_tolerance: f64,
@@ -283,6 +286,60 @@ fn checked_ms_to_ns(value: u64, field: &str) -> Result<u64, AdapterError> {
         .ok_or_else(|| AdapterError::Arithmetic(format!("{field} milliseconds-to-nanoseconds overflow")))
 }
 
+#[derive(Serialize)]
+struct NetworkModelDigestPayload {
+    network_model_id: String,
+    base_mva: f64,
+    buses: Vec<NetworkBusInput>,
+    branches: Vec<NetworkBranchInput>,
+}
+
+#[derive(Serialize)]
+struct TopologyDigestPayload {
+    topology_id: String,
+    topology_effective_at_ns: u64,
+    bus_ids: Vec<String>,
+    branch_ids: Vec<String>,
+}
+
+fn digest_serializable(value: &impl Serialize, field: &str) -> Result<String, AdapterError> {
+    let bytes = serde_json::to_vec(value).map_err(|error| {
+        AdapterError::Arithmetic(format!("{field} canonical serialization failed: {error}"))
+    })?;
+    Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
+}
+
+/// Hashes the canonical network model payload independently of the declared digest.
+/// Bus and branch order do not affect this value.
+pub fn expected_network_model_digest(network: &NetworkModelInput) -> Result<String, AdapterError> {
+    let mut buses = network.buses.clone();
+    buses.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut branches = network.branches.clone();
+    branches.sort_by(|a, b| a.id.cmp(&b.id));
+    let payload = NetworkModelDigestPayload {
+        network_model_id: network.network_model_id.clone(),
+        base_mva: network.base_mva,
+        buses,
+        branches,
+    };
+    digest_serializable(&payload, "network model")
+}
+
+/// Hashes topology identity and membership separately from line parameters.
+pub fn expected_topology_digest(network: &NetworkModelInput) -> Result<String, AdapterError> {
+    let mut bus_ids: Vec<_> = network.buses.iter().map(|bus| bus.id.clone()).collect();
+    let mut branch_ids: Vec<_> = network.branches.iter().map(|branch| branch.id.clone()).collect();
+    bus_ids.sort();
+    branch_ids.sort();
+    let payload = TopologyDigestPayload {
+        topology_id: network.topology_id.clone(),
+        topology_effective_at_ns: network.topology_effective_at_ns,
+        bus_ids,
+        branch_ids,
+    };
+    digest_serializable(&payload, "network topology")
+}
+
 fn canonical_input_digest(input: &MobilityNetworkAdapterInput) -> Result<String, AdapterError> {
     let mut canonical = input.clone();
     canonical.upstream_receipts.sort_by_key(|receipt| receipt.gate);
@@ -339,6 +396,10 @@ fn validate_receipts(
             || receipt.commitment_epoch_id != input.commitment_epoch_id
             || receipt.site_id != input.site_id
             || receipt.pcc_id != input.pcc_id
+            || receipt
+                .pcc_bus_id
+                .as_deref()
+                .is_some_and(|bus_id| bus_id != input.pcc_bus_id)
         {
             return Err(AdapterError::IdentityMismatch(format!(
                 "{:?} receipt is bound to a different offer, epoch, site or PCC",
@@ -360,8 +421,42 @@ fn validate_receipts(
                         receipt.gate
                     )));
                 }
+                if receipt.gate == GateKind::MobilityFlexibility
+                    && receipt.pcc_bus_id.as_deref() != Some(input.pcc_bus_id.as_str())
+                {
+                    return Err(AdapterError::IdentityMismatch(
+                        "mobility flexibility receipt must bind the exact PCC bus".to_owned(),
+                    ));
+                }
+                if receipt.gate == GateKind::ReserveRecovery {
+                    if receipt.recovery_deadline_unix_ms
+                        != Some(input.required_recovery_by_unix_ms)
+                        || receipt.valid_until_unix_ms < input.required_recovery_by_unix_ms
+                    {
+                        return Err(AdapterError::EvidenceTimeInvalid(
+                            "reserve-recovery receipt does not cover the next required recovery deadline"
+                                .to_owned(),
+                        ));
+                    }
+                } else if receipt.recovery_deadline_unix_ms.is_some() {
+                    return Err(AdapterError::IdentityMismatch(
+                        "only the reserve-recovery receipt may declare a recovery deadline"
+                            .to_owned(),
+                    ));
+                }
             }
             GateKind::PccMetrology => {
+                if receipt.pcc_bus_id.as_deref() != Some(input.pcc_bus_id.as_str()) {
+                    return Err(AdapterError::IdentityMismatch(
+                        "PCC metrology receipt must bind the exact PCC bus".to_owned(),
+                    ));
+                }
+                if receipt.recovery_deadline_unix_ms.is_some() {
+                    return Err(AdapterError::IdentityMismatch(
+                        "PCC metrology receipt must not declare a reserve-recovery deadline"
+                            .to_owned(),
+                    ));
+                }
                 if receipt.asset_id.is_some()
                     && receipt.asset_id.as_deref() != Some(input.asset_id.as_str())
                 {
@@ -484,9 +579,22 @@ fn validate_input(input: &MobilityNetworkAdapterInput) -> Result<(), AdapterErro
             "baseline and flexible trace digests must differ".to_owned(),
         ));
     }
+    let expected_model_digest = expected_network_model_digest(&input.network)?;
+    if input.network.network_model_digest != expected_model_digest {
+        return Err(AdapterError::InvalidDigest(
+            "network-model digest does not match canonical network content".to_owned(),
+        ));
+    }
+    let expected_topology_digest = expected_topology_digest(&input.network)?;
+    if input.network.topology_digest != expected_topology_digest {
+        return Err(AdapterError::InvalidDigest(
+            "topology digest does not match canonical topology membership".to_owned(),
+        ));
+    }
     if input.decision_cutoff_unix_ms == 0
         || input.horizon_start_unix_ms <= input.decision_cutoff_unix_ms
         || input.horizon_end_unix_ms <= input.horizon_start_unix_ms
+        || input.required_recovery_by_unix_ms < input.horizon_end_unix_ms
     {
         return Err(AdapterError::InvalidHorizon(
             "decision cutoff must precede a non-empty offer horizon".to_owned(),
@@ -780,8 +888,11 @@ mod tests {
         gate: GateKind,
         index: usize,
         disposition: GateDisposition,
+        network_model_digest: &str,
+        topology_digest: &str,
     ) -> UpstreamGateReceipt {
         let asset_scoped = gate != GateKind::PccMetrology;
+        let pcc_bus_scoped = matches!(gate, GateKind::MobilityFlexibility | GateKind::PccMetrology);
         UpstreamGateReceipt {
             gate,
             receipt_id: format!("receipt-{index}"),
@@ -792,19 +903,45 @@ mod tests {
             commitment_epoch_id: "commitment-epoch-007".to_owned(),
             site_id: "depot-01".to_owned(),
             pcc_id: "pcc-01".to_owned(),
+            pcc_bus_id: pcc_bus_scoped.then(|| "B".to_owned()),
             asset_id: asset_scoped.then(|| "ess-01".to_owned()),
             asset_configuration_digest: asset_scoped.then(|| sha('f')),
             observed_at_unix_ms: 90_000,
             valid_from_unix_ms: 0,
             valid_until_unix_ms: 4_000_000,
-            network_model_digest: (gate == GateKind::MobilityFlexibility).then(|| sha('1')),
-            topology_digest: (gate == GateKind::MobilityFlexibility).then(|| sha('2')),
+            recovery_deadline_unix_ms: (gate == GateKind::ReserveRecovery).then_some(3_900_000),
+            network_model_digest: (gate == GateKind::MobilityFlexibility)
+                .then(|| network_model_digest.to_owned()),
+            topology_digest: (gate == GateKind::MobilityFlexibility)
+                .then(|| topology_digest.to_owned()),
             baseline_trace_digest: (gate == GateKind::PccMetrology).then(|| sha('3')),
             flexible_trace_digest: (gate == GateKind::PccMetrology).then(|| sha('4')),
         }
     }
 
     fn fixture_input() -> MobilityNetworkAdapterInput {
+        let mut network = NetworkModelInput {
+            network_model_id: "triangle-model-v1".to_owned(),
+            network_model_digest: String::new(),
+            topology_id: "topology-2026-11-24".to_owned(),
+            topology_digest: String::new(),
+            topology_effective_at_ns: 0,
+            base_mva: 100.0,
+            buses: vec![
+                NetworkBusInput { id: "S".to_owned(), slack: true },
+                NetworkBusInput { id: "A".to_owned(), slack: false },
+                NetworkBusInput { id: "B".to_owned(), slack: false },
+            ],
+            branches: vec![
+                NetworkBranchInput { id: "S-A".to_owned(), from_bus: "S".to_owned(), to_bus: "A".to_owned(), reactance_pu: 0.1, normal_limit_mw: 100.0, emergency_limit_mw: 120.0 },
+                NetworkBranchInput { id: "A-B".to_owned(), from_bus: "A".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 40.0, emergency_limit_mw: 60.0 },
+                NetworkBranchInput { id: "S-B".to_owned(), from_bus: "S".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 45.0, emergency_limit_mw: 80.0 },
+            ],
+        };
+        network.network_model_digest = expected_network_model_digest(&network).unwrap();
+        network.topology_digest = expected_topology_digest(&network).unwrap();
+        let model_digest = network.network_model_digest.clone();
+        let topology_digest = network.topology_digest.clone();
         MobilityNetworkAdapterInput {
             schema_version: SCHEMA_VERSION.to_owned(),
             benchmark_id: BENCHMARK_ID.to_owned(),
@@ -820,28 +957,12 @@ mod tests {
             decision_cutoff_unix_ms: 90_000,
             horizon_start_unix_ms: 100_000,
             horizon_end_unix_ms: 3_700_000,
+            required_recovery_by_unix_ms: 3_900_000,
             maximum_topology_age_ns: 4_000_000_000_000,
             flow_tolerance_mw: 1.0e-9,
             pivot_tolerance: 1.0e-12,
             require_n_minus_one: false,
-            network: NetworkModelInput {
-                network_model_id: "triangle-model-v1".to_owned(),
-                network_model_digest: sha('1'),
-                topology_id: "topology-2026-11-24".to_owned(),
-                topology_digest: sha('2'),
-                topology_effective_at_ns: 0,
-                base_mva: 100.0,
-                buses: vec![
-                    NetworkBusInput { id: "S".to_owned(), slack: true },
-                    NetworkBusInput { id: "A".to_owned(), slack: false },
-                    NetworkBusInput { id: "B".to_owned(), slack: false },
-                ],
-                branches: vec![
-                    NetworkBranchInput { id: "S-A".to_owned(), from_bus: "S".to_owned(), to_bus: "A".to_owned(), reactance_pu: 0.1, normal_limit_mw: 100.0, emergency_limit_mw: 120.0 },
-                    NetworkBranchInput { id: "A-B".to_owned(), from_bus: "A".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 40.0, emergency_limit_mw: 60.0 },
-                    NetworkBranchInput { id: "S-B".to_owned(), from_bus: "S".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 45.0, emergency_limit_mw: 80.0 },
-                ],
-            },
+            network,
             intervals: vec![MobilityResponseIntervalInput {
                 start_unix_ms: 100_000,
                 duration_ms: 3_600_000,
@@ -853,11 +974,11 @@ mod tests {
             }],
             n_minus_one_contingencies: vec!["S-A".to_owned(), "A-B".to_owned(), "S-B".to_owned()],
             upstream_receipts: vec![
-                receipt(GateKind::MobilityFlexibility, 0, GateDisposition::Passed),
-                receipt(GateKind::ReserveRecovery, 1, GateDisposition::Passed),
-                receipt(GateKind::CommitmentLease, 2, GateDisposition::Passed),
-                receipt(GateKind::CommitmentJournal, 3, GateDisposition::Passed),
-                receipt(GateKind::PccMetrology, 4, GateDisposition::Passed),
+                receipt(GateKind::MobilityFlexibility, 0, GateDisposition::Passed, &model_digest, &topology_digest),
+                receipt(GateKind::ReserveRecovery, 1, GateDisposition::Passed, &model_digest, &topology_digest),
+                receipt(GateKind::CommitmentLease, 2, GateDisposition::Passed, &model_digest, &topology_digest),
+                receipt(GateKind::CommitmentJournal, 3, GateDisposition::Passed, &model_digest, &topology_digest),
+                receipt(GateKind::PccMetrology, 4, GateDisposition::Passed, &model_digest, &topology_digest),
             ],
             claim_ceiling: "synthetic known-truth adapter fixture only".to_owned(),
         }
@@ -970,6 +1091,50 @@ mod tests {
         assert!(matches!(
             evaluate_mobility_network_adapter(&input),
             Err(AdapterError::IdentityMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn mobility_and_meter_receipts_must_bind_the_exact_pcc_bus() {
+        let mut input = fixture_input();
+        input.upstream_receipts[0].pcc_bus_id = Some("A".to_owned());
+        assert!(matches!(
+            evaluate_mobility_network_adapter(&input),
+            Err(AdapterError::IdentityMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn reserve_recovery_receipt_must_cover_the_next_required_deadline() {
+        let mut input = fixture_input();
+        input.upstream_receipts[1].valid_until_unix_ms = 3_800_000;
+        assert!(matches!(
+            evaluate_mobility_network_adapter(&input),
+            Err(AdapterError::EvidenceTimeInvalid(_))
+        ));
+
+        let mut wrong_deadline = fixture_input();
+        wrong_deadline.upstream_receipts[1].recovery_deadline_unix_ms = Some(3_850_000);
+        assert!(matches!(
+            evaluate_mobility_network_adapter(&wrong_deadline),
+            Err(AdapterError::EvidenceTimeInvalid(_))
+        ));
+    }
+
+    #[test]
+    fn model_and_topology_digests_must_match_canonical_content() {
+        let mut changed_model = fixture_input();
+        changed_model.network.branches[0].reactance_pu = 0.2;
+        assert!(matches!(
+            evaluate_mobility_network_adapter(&changed_model),
+            Err(AdapterError::InvalidDigest(_))
+        ));
+
+        let mut changed_topology = fixture_input();
+        changed_topology.network.topology_effective_at_ns = 1;
+        assert!(matches!(
+            evaluate_mobility_network_adapter(&changed_topology),
+            Err(AdapterError::InvalidDigest(_))
         ));
     }
 
