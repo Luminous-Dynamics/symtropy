@@ -368,6 +368,40 @@ mod tests {
     }
 
     #[test]
+    fn enlarging_a_support_enclosure_cannot_upgrade_a_frustum_result() {
+        let corpus: RectilinearFrustumCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let mut case = corpus.cases[0].clone();
+        let baseline = evaluate_rectilinear_frustum(&case);
+        assert_eq!(baseline.status, FrustumStatus::Within);
+        case.support.enclosing_ball_radius_m = 0.5;
+        let enlarged = evaluate_rectilinear_frustum(&case);
+        assert_ne!(enlarged.status, FrustumStatus::Within);
+        assert!(!enlarged.within_rectilinear_frustum_certified);
+    }
+
+    #[test]
+    fn narrowing_vertical_or_horizontal_fov_cannot_upgrade_a_frustum_result() {
+        let corpus: RectilinearFrustumCorpus = serde_json::from_str(FIXTURE).unwrap();
+        let mut vertical = corpus.cases[0].clone();
+        assert_eq!(
+            evaluate_rectilinear_frustum(&vertical).status,
+            FrustumStatus::Within
+        );
+        vertical.camera.vertical_fov_rad = 0.005;
+        assert_ne!(
+            evaluate_rectilinear_frustum(&vertical).status,
+            FrustumStatus::Within
+        );
+
+        let mut horizontal = corpus.cases[0].clone();
+        horizontal.camera.horizontal_fov_rad = 0.005;
+        assert_ne!(
+            evaluate_rectilinear_frustum(&horizontal).status,
+            FrustumStatus::Within
+        );
+    }
+
+    #[test]
     fn rigid_frame_transform_preserves_margins() {
         let c: RectilinearFrustumCorpus = serde_json::from_str(FIXTURE).unwrap();
         let original = evaluate_rectilinear_frustum(&c.cases[0]);
