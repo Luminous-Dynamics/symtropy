@@ -2357,7 +2357,10 @@ mod tests {
 
         let mut changed_clock = request.clone();
         changed_clock.clock_id = "sim-clock-2".into();
-        assert_ne!(expected, dispatch_request_fingerprint(&changed_clock).unwrap());
+        assert_ne!(
+            expected,
+            dispatch_request_fingerprint(&changed_clock).unwrap()
+        );
     }
 
     #[test]
@@ -2365,17 +2368,57 @@ mod tests {
         let plan = plan();
         let scenario = &plan.scenarios[0];
         let fault = &scenario.fault_events[0];
-        let first = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1");
-        let second = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1");
+        let first = dispatch_idempotency_key(
+            &plan,
+            scenario,
+            fault,
+            "run-1",
+            "epoch-1",
+            "world-epoch-2",
+            "sim-clock-1",
+        );
+        let second = dispatch_idempotency_key(
+            &plan,
+            scenario,
+            fault,
+            "run-1",
+            "epoch-1",
+            "world-epoch-2",
+            "sim-clock-1",
+        );
         assert_eq!(first, second);
         assert_ne!(
             first,
-            dispatch_idempotency_key(&plan, scenario, fault, "run-2", "epoch-1", "world-epoch-2", "sim-clock-1")
+            dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-2",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-1"
+            )
         );
-        let delimiter_left =
-            dispatch_idempotency_key(&plan, scenario, fault, "run/a", "b", "world-epoch-2", "sim-clock-1").unwrap();
-        let delimiter_right =
-            dispatch_idempotency_key(&plan, scenario, fault, "run", "a/b", "world-epoch-2", "sim-clock-1").unwrap();
+        let delimiter_left = dispatch_idempotency_key(
+            &plan,
+            scenario,
+            fault,
+            "run/a",
+            "b",
+            "world-epoch-2",
+            "sim-clock-1",
+        )
+        .unwrap();
+        let delimiter_right = dispatch_idempotency_key(
+            &plan,
+            scenario,
+            fault,
+            "run",
+            "a/b",
+            "world-epoch-2",
+            "sim-clock-1",
+        )
+        .unwrap();
         assert_ne!(delimiter_left, delimiter_right);
         assert_ne!(
             first,
@@ -2405,7 +2448,15 @@ mod tests {
         let mut uncommitted_scenario = scenario.clone();
         uncommitted_scenario.pair_id.push_str("-tampered");
         assert_eq!(
-            dispatch_idempotency_key(&plan, &uncommitted_scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1"),
+            dispatch_idempotency_key(
+                &plan,
+                &uncommitted_scenario,
+                fault,
+                "run-1",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-1"
+            ),
             Err(GazeboAdapterError::InvalidIdempotencyContext)
         );
     }
@@ -2429,8 +2480,16 @@ mod tests {
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1")
-                .unwrap(),
+            idempotency_key: dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-1",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-1",
+            )
+            .unwrap(),
         };
         let mut request = request;
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
@@ -2492,8 +2551,16 @@ mod tests {
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-reconcile", "epoch-1", "world-epoch-2", "sim-clock-1")
-                .unwrap(),
+            idempotency_key: dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-reconcile",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-1",
+            )
+            .unwrap(),
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
         let mut registry = DispatchAttemptRegistry::default();
@@ -2616,8 +2683,16 @@ mod tests {
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1")
-                .unwrap(),
+            idempotency_key: dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-1",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-1",
+            )
+            .unwrap(),
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
         let mut durable = DurableLedgerInjector {
