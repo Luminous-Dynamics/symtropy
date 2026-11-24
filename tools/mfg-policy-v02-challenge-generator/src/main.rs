@@ -914,8 +914,8 @@ fn generate_corpus() -> (Corpus, EvaluatorLabels) {
 }
 
 fn validate_with_schema(instance: &serde_json::Value, schema_source: &str) -> Result<(), String> {
-    let schema: serde_json::Value = serde_json::from_str(schema_source)
-        .map_err(|error| format!("schema_parse:{error}"))?;
+    let schema: serde_json::Value =
+        serde_json::from_str(schema_source).map_err(|error| format!("schema_parse:{error}"))?;
     let validator = jsonschema::draft202012::options()
         .offline()
         .build(&schema)
@@ -1224,10 +1224,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_evaluator_labels(
-    corpus: &Corpus,
-    labels: &EvaluatorLabels,
-) -> Result<(), String> {
+fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Result<(), String> {
     if labels.schema_id != "https://luminousdynamics.io/schemas/mfg-policy-v0.2-evaluator-labels"
         || labels.benchmark_id != corpus.benchmark_id
         || labels.evidence_class != "synthetic_evaluator_only"
@@ -1258,10 +1255,14 @@ fn validate_evaluator_labels(
             return Err("evaluator_case_scope_or_scenario_count_mismatch".into());
         }
 
-        let policy_scenarios: BTreeMap<&str, &Scenario> = case.scenarios.iter()
+        let policy_scenarios: BTreeMap<&str, &Scenario> = case
+            .scenarios
+            .iter()
             .map(|scenario| (scenario.scenario_id.as_str(), scenario))
             .collect();
-        let operation_ids: BTreeSet<&str> = case.jobs.iter()
+        let operation_ids: BTreeSet<&str> = case
+            .jobs
+            .iter()
             .flat_map(|job| &job.operations)
             .map(|operation| operation.operation_id.as_str())
             .collect();
@@ -1288,16 +1289,24 @@ fn validate_evaluator_labels(
             return Err("evaluator_scenario_coverage_mismatch".into());
         }
 
-        let accepted = evaluator_case.scenario_outcomes.iter()
+        let accepted = evaluator_case
+            .scenario_outcomes
+            .iter()
             .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
             .ok_or_else(|| "nominal_accepted_evaluator_label_missing".to_string())?;
-        let rejected = evaluator_case.scenario_outcomes.iter()
+        let rejected = evaluator_case
+            .scenario_outcomes
+            .iter()
             .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
             .ok_or_else(|| "nominal_reject_evaluator_label_missing".to_string())?;
         if accepted.hidden_terminal_quality_outcomes == rejected.hidden_terminal_quality_outcomes
-            || accepted.hidden_terminal_quality_outcomes.iter()
+            || accepted
+                .hidden_terminal_quality_outcomes
+                .iter()
                 .all(|outcome| outcome.disposition == QualityDisposition::Accepted)
-            || !rejected.hidden_terminal_quality_outcomes.iter()
+            || !rejected
+                .hidden_terminal_quality_outcomes
+                .iter()
                 .any(|outcome| outcome.disposition == QualityDisposition::Rejected)
         {
             return Err("paired_hidden_quality_labels_do_not_create_counterfactual".into());
@@ -1313,8 +1322,8 @@ fn validate_evaluator_labels(
 fn build_and_validate() -> Result<(Corpus, EvaluatorLabels), String> {
     let (corpus, labels) = generate_corpus();
 
-    let corpus_value = serde_json::to_value(&corpus)
-        .map_err(|error| format!("corpus_to_json:{error}"))?;
+    let corpus_value =
+        serde_json::to_value(&corpus).map_err(|error| format!("corpus_to_json:{error}"))?;
     validate_schema(&corpus_value)?;
     validate_corpus(&corpus)?;
 
@@ -1481,18 +1490,31 @@ mod tests {
                 case.scenarios[0].observations_by_epoch,
                 case.scenarios[1].observations_by_epoch
             );
-            let evaluator_case = labels.cases.iter()
+            let evaluator_case = labels
+                .cases
+                .iter()
                 .find(|labels| labels.case_id == case.case_id)
                 .expect("matching evaluator sidecar case exists");
-            let accepted = evaluator_case.scenario_outcomes.iter()
+            let accepted = evaluator_case
+                .scenario_outcomes
+                .iter()
                 .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
                 .expect("nominal acceptance label");
-            let rejected = evaluator_case.scenario_outcomes.iter()
+            let rejected = evaluator_case
+                .scenario_outcomes
+                .iter()
                 .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
                 .expect("nominal rejection label");
-            assert_ne!(accepted.hidden_terminal_quality_outcomes, rejected.hidden_terminal_quality_outcomes);
-            assert!(rejected.hidden_terminal_quality_outcomes.iter()
-                .any(|outcome| outcome.disposition == QualityDisposition::Rejected));
+            assert_ne!(
+                accepted.hidden_terminal_quality_outcomes,
+                rejected.hidden_terminal_quality_outcomes
+            );
+            assert!(
+                rejected
+                    .hidden_terminal_quality_outcomes
+                    .iter()
+                    .any(|outcome| outcome.disposition == QualityDisposition::Rejected)
+            );
         }
     }
 
