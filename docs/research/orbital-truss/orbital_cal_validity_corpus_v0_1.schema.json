@@ -102,7 +102,8 @@
           "type": "integer"
         },
         "required_configuration": {
-          "$ref": "#/$defs/Configuration"
+          "$ref": "#/$defs/Configuration",
+          "minProperties": 1
         },
         "certificate_state": {
           "enum": [
@@ -152,7 +153,8 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/ConditionEnvelope"
-          }
+          },
+          "minProperties": 1
         }
       }
     },
@@ -209,6 +211,7 @@
         "acquisition_time_ns",
         "acquisition_uncertainty_ns",
         "event_inventory_complete",
+        "event_inventory_receipt_sha256",
         "required_scope_ids",
         "components",
         "actual_conditions",
@@ -277,6 +280,10 @@
           "additionalProperties": {
             "$ref": "#/$defs/ConditionMeasurement"
           }
+        },
+        "event_inventory_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
         }
       }
     },
