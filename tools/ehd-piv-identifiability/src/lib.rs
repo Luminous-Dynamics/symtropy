@@ -1328,6 +1328,66 @@ pub fn rank_candidate_measurement_actions(
     })
 }
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RawCandidateMeasurementAction {
+    pub id: String,
+    pub cost: f64,
+    /// Raw residual sensitivity rows before whitening.
+    pub sensitivity: Vec<Vec<f64>>,
+    /// Covariance of the candidate residual block.
+    pub covariance: Vec<Vec<f64>>,
+    /// Covariance between candidate residuals and existing residuals:
+    /// candidate rows x existing rows.
+    pub cross_covariance_with_existing: Vec<Vec<f64>>,
+}
+
+/// End-to-end local design ranking from raw residual sensitivity and
+/// covariance blocks. This wrapper:
+/// 1. whitens the baseline with Sigma_00;
+/// 2. computes each candidate's conditional Schur-complement innovation;
+/// 3. passes the correctly whitened innovation rows to the nuisance-profiled
+///    candidate action ranker.
+///
+/// The baseline and each candidate covariance block must be qualified. The
+/// dense reference is bounded by the 512-row whitening implementation.
+pub fn rank_covariance_aware_measurement_actions(
+    parameters: &[ParameterSpec],
+    existing_sensitivity: &[Vec<f64>],
+    existing_covariance: &[Vec<f64>],
+    actions: &[RawCandidateMeasurementAction],
+    config: &IdentifiabilityConfig,
+    symmetry_relative_tolerance: f64,
+) -> Result<MeasurementActionRanking, IdentifiabilityError> {
+    let whitened_baseline = whiten_sensitivity_with_covariance(
+        existing_sensitivity,
+        existing_covariance,
+        symmetry_relative_tolerance,
+    )?;
+    let baseline = IdentifiabilityInput {
+        parameters: parameters.to_vec(),
+        whitened_sensitivity_matrix: whitened_baseline,
+        config: config.clone(),
+    };
+    let mut whitened_actions = Vec::with_capacity(actions.len());
+    for action in actions {
+        let conditional_rows = whiten_conditional_innovation_sensitivities(
+            existing_sensitivity,
+            &action.sensitivity,
+            existing_covariance,
+            &action.covariance,
+            &action.cross_covariance_with_existing,
+            symmetry_relative_tolerance,
+        )?;
+        whitened_actions.push(CandidateMeasurementAction {
+            id: action.id.clone(),
+            cost: action.cost,
+            whitened_conditional_innovation_rows: conditional_rows,
+        });
+    }
+    rank_candidate_measurement_actions(&baseline, &whitened_actions)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1926,4 +1986,49 @@ mod tests {
             Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { .. })
         ));
     }
+    #[test]
+    fn covariance_aware_action_ranker_discounts_correlated_repeat() {
+        let parameters = vec![parameter("flow_velocity", ParameterRole::Physical)];
+        let existing_sensitivity = vec![vec![1.0]];
+        let existing_covariance = vec![vec![1.0]];
+        let actions = vec![
+            RawCandidateMeasurementAction {
+                id: "correlated_repeat".into(),
+                cost: 1.0,
+                sensitivity: vec![vec![1.0]],
+                covariance: vec![vec![1.0]],
+                cross_covariance_with_existing: vec![vec![0.9]],
+            },
+            RawCandidateMeasurementAction {
+                id: "independent_new_view".into(),
+                cost: 1.0,
+                sensitivity: vec![vec![1.0]],
+                covariance: vec![vec![1.0]],
+                cross_covariance_with_existing: vec![vec![0.0]],
+            },
+        ];
+        let ranking = rank_covariance_aware_measurement_actions(
+            &parameters,
+            &existing_sensitivity,
+            &existing_covariance,
+            &actions,
+            &config(),
+            1.0e-12,
+        )
+        .unwrap();
+        assert_eq!(ranking.candidates[0].action_id, "independent_new_view");
+        let correlated = ranking
+            .candidates
+            .iter()
+            .find(|candidate| candidate.action_id == "correlated_repeat")
+            .unwrap();
+        let independent = ranking
+            .candidates
+            .iter()
+            .find(|candidate| candidate.action_id == "independent_new_view")
+            .unwrap();
+        assert!(correlated.smallest_profiled_physical_sensitivity_gain
+            < independent.smallest_profiled_physical_sensitivity_gain);
+    }
+
 }
