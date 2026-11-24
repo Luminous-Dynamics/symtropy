@@ -67,6 +67,10 @@ def evaluate_case(case):
                     joint={"USABLE":"USABLE","UNDEREXPOSED":"UNDEREXPOSED","SATURATED":"SATURATED","INDETERMINATE":"INDETERMINATE"}[rgb_status]
             results.append({
                 "sample_id":sample["sample_id"],
+                "camera_fov":sample["camera_fov"],
+                "projector_fov":sample["projector_fov"],
+                "camera_depth_of_field":sample["camera_depth_of_field"],
+                "camera_line_of_sight":sample["camera_line_of_sight"],
                 "geometry_gate":geometry,
                 "rgb_micro_units":rgb,
                 "rgb_status":rgb_status,
