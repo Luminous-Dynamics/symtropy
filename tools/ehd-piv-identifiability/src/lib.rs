@@ -301,12 +301,14 @@ pub fn analyze_local_identifiability(
     };
     let physical_base_status =
         if unprofiled_physical_max < input.config.minimum_profiled_physical_sensitivity {
-        classify_status(
-            physical_rank,
-            physical_indices.len(),
-            physical_condition_number,
-        )
-    };
+            IdentifiabilityStatus::NoInformativeSensitivity
+        } else {
+            classify_status(
+                physical_rank,
+                physical_indices.len(),
+                physical_condition_number,
+            )
+        };
     let physical_status = set_status_threshold(
         physical_base_status,
         physical_condition_number,
@@ -396,9 +398,7 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
     let row_count = input.whitened_sensitivity_matrix.len();
     let column_count = input.parameters.len();
     if row_count > 65_536 {
-        return Err(IdentifiabilityError::TooManyObservations {
-            count: row_count,
-        });
+        return Err(IdentifiabilityError::TooManyObservations { count: row_count });
     }
     if column_count > 64 {
         return Err(IdentifiabilityError::TooManyParameters {
@@ -481,9 +481,7 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
             field: "minimum_profiled_physical_sensitivity",
         });
     }
-    if !config
-        .physical_nuisance_correlation_threshold
-        .is_finite()
+    if !config.physical_nuisance_correlation_threshold.is_finite()
         || !(0.0..=1.0).contains(&config.physical_nuisance_correlation_threshold)
         || config.physical_nuisance_correlation_threshold == 0.0
     {
@@ -835,7 +833,11 @@ pub fn rank_candidate_measurement_actions(
                 count: augmented_row_count,
             });
         }
-        for (row_index, row) in action.whitened_conditional_innovation_rows.iter().enumerate() {
+        for (row_index, row) in action
+            .whitened_conditional_innovation_rows
+            .iter()
+            .enumerate()
+        {
             if row.len() != baseline.parameters.len() {
                 return Err(IdentifiabilityError::CandidateRaggedSensitivityRow {
                     action_id: action.id.clone(),
@@ -1302,8 +1304,10 @@ mod tests {
         ];
         let ranking = rank_candidate_measurement_actions(&baseline, &actions).unwrap();
         assert_eq!(ranking.candidates[0].action_id, "cheap");
-        assert!(ranking.candidates[0].sensitivity_gain_per_cost
-            > ranking.candidates[1].sensitivity_gain_per_cost);
+        assert!(
+            ranking.candidates[0].sensitivity_gain_per_cost
+                > ranking.candidates[1].sensitivity_gain_per_cost
+        );
     }
 
     #[test]
@@ -1361,5 +1365,4 @@ mod tests {
             Err(IdentifiabilityError::CandidateNonFiniteSensitivity { .. })
         ));
     }
-
 }
