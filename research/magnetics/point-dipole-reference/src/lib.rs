@@ -27,7 +27,7 @@ pub struct MagneticFluxDensityTesla(pub [f64; 3]);
 impl MagneticFluxDensityTesla {
     #[must_use]
     pub fn magnitude(self) -> f64 {
-        dot(self.0, self.0).sqrt()
+        self.0[0].hypot(self.0[1]).hypot(self.0[2])
     }
 }
 
