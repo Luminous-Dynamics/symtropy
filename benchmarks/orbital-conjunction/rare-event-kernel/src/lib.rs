@@ -26,9 +26,9 @@
 
 use core::fmt;
 
+pub mod adaptive_importance_comparison;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod adaptive_importance_sampling;
-pub mod adaptive_importance_comparison;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
