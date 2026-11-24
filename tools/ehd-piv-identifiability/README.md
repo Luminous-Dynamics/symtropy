@@ -41,3 +41,5 @@ A full-rank local Jacobian is not a proof of global/structural identifiability, 
 The current crate contains 14 deterministic tests, including exact and near flow/nuisance confounding, nuisance-only rank deficiency, absent physical sensitivity, parameter scaling, row permutation, underdetermined systems, malformed data and decomposition non-convergence.
 
 The crate currently contains 18 deterministic manufactured tests, including candidate actions that resolve or preserve flow/gain confounding, cost-aware ranking, and nuisance-only actions that receive no physical-information credit.
+
+Condition number is the ratio of largest to smallest nuisance-profiled physical singular values; it is not computed using the unprofiled physical maximum.
