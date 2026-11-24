@@ -18,6 +18,7 @@ fn frozen_cluster_randomization_plan_is_reproducible_and_never_estimates_an_effe
     assert_eq!(report.treated_cluster_count, 4);
     assert_eq!(report.control_cluster_count, 4);
     assert_eq!(report.stratum_count, 2);
+    assert_eq!(report.primary_outcome_unit, "kWh");
     assert!(report.randomization_reproducible);
     assert!(report.declared_pre_registration_precedes_randomization);
     assert!(report.declared_public_randomness_published_after_freeze);
