@@ -132,6 +132,8 @@ pub enum GazeboAdapterError {
     ResetNotVerified,
     ResetAlreadyVerified,
     ResetVerificationMismatch,
+    ResetOutcomeUnknown,
+    ResetOutcomeUnresolved,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -295,14 +297,30 @@ struct GazeboResetVerification {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+struct GazeboResetAttempt {
+    profile: GazeboCapabilityProfile,
+    stepping_method: SteppingMethod,
+    prior_world_epoch: String,
+    clock_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum GazeboResetLifecycle {
+    NotAttempted,
+    DispatchStarted(GazeboResetAttempt),
+    OutcomeUnresolved(GazeboResetAttempt),
+    Verified(GazeboResetVerification),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GazeboAdapterSession {
     pub profile: GazeboCapabilityProfile,
     pub stepping_method: SteppingMethod,
     pub world_epoch: String,
     pub clock_id: String,
-    // Private by design: external callers cannot construct a reset-qualified
-    // session by merely filling its public descriptive fields.
-    reset_verification: Option<GazeboResetVerification>,
+    // Private by design: callers cannot construct reset-qualified state from
+    // descriptive fields, and an ambiguous reset remains non-retryable.
+    reset_lifecycle: GazeboResetLifecycle,
 }
 
 /// Discover and pin the simulator before any reset, step or target mutation.
@@ -339,7 +357,7 @@ pub fn preflight_transport<T: GazeboSimulationTransport>(
         stepping_method,
         world_epoch: snapshot.world_epoch,
         clock_id: snapshot.clock_id,
-        reset_verification: None,
+        reset_lifecycle: GazeboResetLifecycle::NotAttempted,
     })
 }
 
@@ -351,8 +369,15 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
 ) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
-    if session.reset_verification.is_some() {
-        return Err(GazeboAdapterError::ResetAlreadyVerified);
+    match session.reset_lifecycle {
+        GazeboResetLifecycle::NotAttempted => {}
+        GazeboResetLifecycle::Verified(_) => {
+            return Err(GazeboAdapterError::ResetAlreadyVerified);
+        }
+        GazeboResetLifecycle::DispatchStarted(_)
+        | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+            return Err(GazeboAdapterError::ResetOutcomeUnresolved);
+        }
     }
     let live_profile = transport
         .get_simulator_features()
@@ -378,22 +403,96 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
         return Err(GazeboAdapterError::SimulatorNotPaused);
     }
 
-    transport
+    let attempt = GazeboResetAttempt {
+        profile: session.profile.clone(),
+        stepping_method: session.stepping_method,
+        prior_world_epoch: before.world_epoch.clone(),
+        clock_id: before.clock_id.clone(),
+    };
+    session.reset_lifecycle = GazeboResetLifecycle::DispatchStarted(attempt.clone());
+    if transport
         .reset_simulation(&session.profile.world_name)
-        .map_err(|_| GazeboAdapterError::TransportFailure)?;
-    let after = transport
-        .get_world_state(&session.profile.world_name)
-        .map_err(|_| GazeboAdapterError::TransportFailure)?;
-    after.validate_reset(&session.profile, plan, &before.world_epoch)?;
+        .is_err()
+    {
+        session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
+        return Err(GazeboAdapterError::ResetOutcomeUnknown);
+    }
+    let after = match transport.get_world_state(&session.profile.world_name) {
+        Ok(snapshot) => snapshot,
+        Err(_) => {
+            session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
+            return Err(GazeboAdapterError::ResetOutcomeUnknown);
+        }
+    };
+    if let Err(error) = after.validate_reset(&session.profile, plan, &before.world_epoch) {
+        session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
+        return Err(error);
+    }
     if after.clock_id != before.clock_id {
+        session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
         return Err(GazeboAdapterError::InvalidClock);
     }
 
     session.world_epoch = after.world_epoch.clone();
     session.clock_id = after.clock_id.clone();
-    session.reset_verification = Some(GazeboResetVerification {
+    session.reset_lifecycle = GazeboResetLifecycle::Verified(GazeboResetVerification {
         profile: session.profile.clone(),
         stepping_method: session.stepping_method,
+        world_epoch: session.world_epoch.clone(),
+        clock_id: session.clock_id.clone(),
+    });
+    Ok(after)
+}
+
+/// Reconcile an ambiguous reset using read-only state observation. This function
+/// never calls ResetSimulation. It can qualify the reset only when the observed
+/// world proves the planned new epoch and exact initial-state commitment.
+pub fn reconcile_reset<T: GazeboSimulationTransport>(
+    transport: &mut T,
+    plan: &CompiledCampaignPlan,
+    session: &mut GazeboAdapterSession,
+) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+    let attempt = match &session.reset_lifecycle {
+        GazeboResetLifecycle::DispatchStarted(attempt)
+        | GazeboResetLifecycle::OutcomeUnresolved(attempt) => attempt.clone(),
+        GazeboResetLifecycle::NotAttempted => {
+            return Err(GazeboAdapterError::ResetNotVerified);
+        }
+        GazeboResetLifecycle::Verified(_) => {
+            return Err(GazeboAdapterError::ResetAlreadyVerified);
+        }
+    };
+    if session.profile != attempt.profile
+        || session.stepping_method != attempt.stepping_method
+        || session.world_epoch != attempt.prior_world_epoch
+        || session.clock_id != attempt.clock_id
+    {
+        return Err(GazeboAdapterError::ResetVerificationMismatch);
+    }
+    let live_profile = transport
+        .get_simulator_features()
+        .map_err(|_| GazeboAdapterError::ResetOutcomeUnresolved)?;
+    if live_profile != attempt.profile {
+        return Err(GazeboAdapterError::ResetOutcomeUnresolved);
+    }
+    let after = transport
+        .get_world_state(&attempt.profile.world_name)
+        .map_err(|_| GazeboAdapterError::ResetOutcomeUnresolved)?;
+    if after
+        .validate_reset(&attempt.profile, plan, &attempt.prior_world_epoch)
+        .is_err()
+        || after.clock_id != attempt.clock_id
+    {
+        return Err(GazeboAdapterError::ResetOutcomeUnresolved);
+    }
+
+    session.world_epoch = after.world_epoch.clone();
+    session.clock_id = after.clock_id.clone();
+    session.reset_lifecycle = GazeboResetLifecycle::Verified(GazeboResetVerification {
+        profile: attempt.profile,
+        stepping_method: attempt.stepping_method,
         world_epoch: session.world_epoch.clone(),
         clock_id: session.clock_id.clone(),
     });
@@ -923,10 +1022,16 @@ where
 {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
-    let reset_verification = session
-        .reset_verification
-        .as_ref()
-        .ok_or(GazeboAdapterError::ResetNotVerified)?;
+    let reset_verification = match &session.reset_lifecycle {
+        GazeboResetLifecycle::Verified(verification) => verification,
+        GazeboResetLifecycle::NotAttempted => {
+            return Err(GazeboAdapterError::ResetNotVerified);
+        }
+        GazeboResetLifecycle::DispatchStarted(_)
+        | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+            return Err(GazeboAdapterError::ResetOutcomeUnresolved);
+        }
+    };
     if reset_verification.profile != session.profile
         || reset_verification.stepping_method != session.stepping_method
         || reset_verification.world_epoch != session.world_epoch
