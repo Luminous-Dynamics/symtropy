@@ -14,7 +14,7 @@ The event vocabulary is deliberately small:
 - `PROCESS_TICKS`: consumes a positive number of processing ticks on the committed resource;
 - `INSPECTION_RESULT`: records the method and terminal quality disposition for an operation awaiting inspection.
 
-The admission receipt is treated as an assertion to compare, not as the source of feasibility. The replayer independently recomputes operation/resource eligibility, predecessor completion, qualification at the visible cutoff, resource availability/capacity, setup duration, processing duration, and inspection method/capacity before applying a start.
+The admission receipt is treated as an assertion to compare, not as the source of feasibility. Proposals and receipts both carry the SHA-256 digest of the exact serialized decision frame; the replayer recomputes the digest and requires both values to match before applying a start. It independently recomputes operation/resource eligibility, predecessor completion, qualification at the visible cutoff, resource availability/capacity, setup duration, processing duration, and inspection method/capacity.
 
 ## Invocation
 
@@ -55,7 +55,7 @@ The single-lane resource model matches the current v0.2 corpus, whose resource c
 
 ## Validation
 
-The focused workflow runs formatting, adversarial Rust tests, JSON-schema checks for every emitted snapshot/replay receipt, deterministic replay, and strict Clippy. Tests include a three-epoch dependent-operation trace, stale/forged receipt mismatch, duplicate starts, resource double-booking, incomplete predecessor, failure-at-cutoff, future-prefix mutation, invalid processing ticks, and inspection-capacity violations.
+The focused workflow runs formatting, adversarial Rust tests, JSON-schema checks for every emitted snapshot/replay receipt, deterministic replay, and strict Clippy. Eleven tests cover a three-epoch dependent-operation trace, cross-epoch continuation, exact-frame proposal/receipt digest binding, stale/forged receipt mismatch, duplicate starts, resource double-booking, incomplete predecessor, failure-at-cutoff, future-prefix mutation, invalid processing ticks, and inspection-capacity violations.
 
 ## Claim ceiling
 
