@@ -1,0 +1,49 @@
+# Manufacturing Policy v0.2 Independent Action Admission Verifier
+
+**Package:** `mfg-policy-v02-action-admission/0.2.0`  
+**Benchmark:** `MFG-POLICY-V02-CHALLENGE-001`  
+**Related:** [prefix gateway PR #7286](https://github.com/Luminous-Dynamics/symtropy/pull/7286), [challenge corpus PR #7279](https://github.com/Luminous-Dynamics/symtropy/pull/7279), [research issue #7189](https://github.com/Luminous-Dynamics/symtropy/issues/7189)
+
+## Purpose
+
+This crate checks one proposed `START` or `CONTINUE` dispatch against a policy decision frame. It is intentionally independent of the policy that proposed the action. It does not trust the policy's own feasibility flag or claimed processing/setup values.
+
+The result is one of:
+
+- `ADMISSIBLE`: the action passed the modeled single-action checks at this evidence cutoff;
+- `HOLD`: a prerequisite is Unknown, unavailable, or not yet satisfied;
+- `REJECTED`: a hard constraint or identity/eligibility rule is violated.
+
+A structured `HOLD` or `REJECTED` receipt is a successful verification result, not a process failure. Malformed JSON, schema failures, contradictory evidence histories, duplicate identities, or invalid chronology fail closed with a non-zero process exit.
+
+## Verified conditions
+
+- proposal benchmark, case, operation, resource and epoch bind to the exact decision frame;
+- operation and resource identities are unique;
+- the requested action matches the initial operation state (`START` for Waiting; `CONTINUE` for InProcess);
+- a continuation remains on the committed resource and has positive remaining work;
+- the resource is eligible for the operation and advertises the required process capability;
+- the effective qualification disposition is replayed from initial scoped receipts plus only the visible qualification-update prefix;
+- Unknown qualification returns `HOLD`; Blocked qualification returns `REJECTED`;
+- a visible latest resource failure returns `HOLD` until a visible restoration supersedes it;
+- the resource has positive capacity in the current decision epoch;
+- every predecessor is already Completed before a Waiting operation may start;
+- setup duration is independently resolved from the resource's current setup family and the declared transition matrix;
+- required inspection uses the operation's declared method, an applicable method definition and positive inspection capacity after visible capacity events;
+- the receipt is schema-validated and reports verifier-derived processing/setup durations.
+
+The verifier independently checks visible-event identity and chronology, qualification transitions, event scopes and prefix length. It does not use evaluator labels, complete simulator streams, scenario identifiers or future observations.
+
+## Invocation
+
+```text
+mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json>
+```
+
+The proposal schema requires `inspection_method_id` to be either the required method ID or JSON null. It has no field for a caller-supplied feasibility assertion, duration, evidence disposition, or execution authorization.
+
+## Explicit scope ceiling
+
+This is an **action-admissibility reference checker**, not a full schedule verifier. It checks one dispatch in isolation and one capacity unit in the current epoch. It does not yet prove multi-action batch capacity, interval non-overlap, future resource reservation, multi-epoch processing occupancy, global setup sequencing, schedule optimality, objective correctness, product conformity, external evidence authenticity, physical acceptance or production authorization. Those require a separate independent schedule-replay engine and richer temporal semantics.
+
+The receipt must never be interpreted as permission to actuate a machine. A later execution adapter would require its own authority, interlock, idempotency, reconciliation and independent observation controls.
