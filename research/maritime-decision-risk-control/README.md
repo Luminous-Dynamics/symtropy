@@ -508,3 +508,37 @@ The adapter also exposes typed execution wrappers so the calibration-unit label 
 The underlying compatibility matrix APIs remain available for research, but their returned rows do not retain the typed provenance by themselves. Prefer the typed wrapper for any reported claim.
 
 The projection is a software contract, not an operational independence certificate. Cluster metadata, source receipts, exact physical/authority adjudication and operating regime remain caller-supplied evidence.
+
+
+## Source-claim admission and append-only as-of evidence (24 November 2026)
+
+The `source_semantics` module adds a synthetic-first admission gate for the source classes now present in the maritime source catalogue. It prevents four common category errors:
+
+- A DGT vessel update may support a **terminal-reported vessel status**, not independent berth occupancy or a physical cargo movement.
+- A DGT firm berth plan may support a **planned berth window**, not an observed alongside/departure event.
+- Export stack dates and import storage snapshots may support **cargo availability windows** and **reported inventory state**, not proof of loading, gate-out, custody transfer or receiver delivery.
+- A DCSA Port Call conformance report may support **API interoperability conformance**, not source capture completeness or physical truth. A third-party Dues status view remains derived evidence, not an independent witness.
+
+The admission function also requires publication and retrieval times to be available by the requested historical as-of cutoff. A source with unknown publication time, a file retrieved after the cutoff, or a publication/revision that only became available later cannot enter an earlier replay.
+
+### Append-only artifact revisions
+
+`AppendOnlyArtifactLedger` retains each source snapshot as an immutable revision. A new revision must:
+- have a new snapshot ID and the same logical artifact-family identity;
+- name the immediate prior snapshot it supersedes;
+- increase the revision sequence by exactly one;
+- preserve its own raw SHA-256, source revision, publication time and retrieval time.
+
+`latest_available_as_of(family, cutoff)` selects the highest revision that had both been published and retrieved by that cutoff. A later correction cannot rewrite what an analyst could have known at the earlier time. Unknown publication time is preserved but not selected into historical as-of evidence.
+
+This first ledger is an in-memory typed reference implementation and a CI fixture, not yet a durable database, crawler, external source signature verifier or evidence of DGT artifact completeness. Source-owner rights and genuinely independent witnesses still need separate review.
+
+### Run the deterministic source-claim receipt
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin source-claim-admission-audit
+~~~
+
+The receipt exercises 21 synthetic claim cases, including plan-to-actual, vessel-status-to-physical, stack-window-to-loaded, import-storage-to-receiver, third-party-to-independent-witness and DCSA-conformance-to-physical-truth negative controls; publication-time unknown; retrieval/publication after the historical cutoff; missing independence reference, missing physical event time, and missing receiver custody digest; plus positive terminal-notice and receiver-acceptance cases.
+
+No DGT raw XLSX/PDF bytes are bundled in the fixture. The receipt validates the *class/claim contract*, not the truth of a particular vessel or cargo event.

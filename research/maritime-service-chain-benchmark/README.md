@@ -81,3 +81,73 @@ The linked AM/PM export-stack and import-storage XLSX files were discovered by U
 The third-party Dues DGT status page can be useful as a **diagnostic comparator** for source freshness, status normalization and discrepancies, but its own page says it republishes/refreshes terminal files. It is not an independent physical witness and cannot replace the DGT source artifact. [Dues DGT view](https://dues.co.za/ports/durban-gateway-terminal)
 
 This evidence suggests a valuable first real-source engineering task: a strictly read-only, permission-aware, append-only artifact indexer that preserves source-native class, publication time, retrieval time, valid-time scope, revisions and raw digests. The benchmark should measure source revision linkage, false plan-to-actual promotion, as-of replay correctness and disagreements between primary and derived sources. It should not start by trying to schedule vessels or claim improved terminal performance.
+
+
+## Competitive boundary and next-generation benchmark strategy (24 November 2026)
+
+### Do not rebuild the industry's TOS
+
+The public industry baseline is already substantial. Kaleris describes N4 as coordinating vessel, yard, rail, gate and control-room workflows, and its product portfolio includes RTG/RMG optimization, terminal truck dispatch/scheduling and yard intelligence. Those are credible incumbents to compare against, not features we should claim are absent from the market. Vendor capability pages are vendor-published claims, not independent performance evidence.
+
+The DCSA Port Call 2.0.0 specification and conformance framework also establish an existing interoperability contract. Its publisher/subscriber scenarios test GET/POST event exchange, timestamps, move forecasts and schema/business-field validations. Our interface should reuse that contract and conformance tooling rather than invent a new port-call event API. DCSA conformance proves the tested message contract, not that the source sensor captured every physical event or that a delivered container reached its receiver.
+
+The defensible differentiation is an **independent evidence-and-decision assurance layer** that can sit across existing TOSs, ports, carriers, terminals, rail, inland operators and receivers. It should qualify source claims, preserve as-of history, reconcile identities and custody, expose dependence and missingness, run independently checked counterfactuals, and keep unsafe/unauthorized actions blocked. It must not need to own dispatch or replace the TOS.
+
+### Do not confuse the CPPI with terminal or receiver outcomes
+
+The June 2026 World Bank/S&P Global CPPI methodology is a strong external comparator, but it reports at **port level**, not individual terminal level. It uses six vessel timestamps: arrival at anchorage/pilot station, movement to berth, start of cargo operations, end of cargo operations, departure from berth and exit from port limits. The interval between berth departure and port-limit exit is excluded from its vessel-time metric.
+
+Therefore report a CPPI-adjacent port-call result for comparability, but measure DGT or another individual terminal separately, and measure terminal-to-receiver delivery separately again. A better port-level vessel-time score cannot compensate for missed receiver deadlines, unverified custody, service inequity or hidden cargo inventory loss.
+
+### Public benchmark ladder to target
+
+| Layer | Benchmark / comparator | Proposed acceptance target |
+|---|---|---|
+| API interoperability | DCSA Port Call 2.0.0 official conformance scenarios | 100% pass of relevant publisher/subscriber GET/POST, timestamp and move-forecast scenarios; no claims beyond the tested API contract |
+| Source semantics | New source-claim admission CI fixture | Zero plan/status/stack/storage/DCSA/third-party promotions into physical movement or receiver acceptance without the required distinct evidence class |
+| Historical replay | Immutable raw artifact ledger and as-of reconstruction | 100% byte-digest replay; zero use of artifacts published or retrieved after cutoff; every correction retained as a new revision |
+| Identity and custody | Existing container identity, capture-completeness and paired handoff owners | Zero unresolved identity/custody joins presented as complete deliveries; unknown remains unknown |
+| Port-call service | CPPI-adjacent six-timestamp methodology | Like-for-like stratification by vessel size/call size; report port and terminal scopes separately |
+| Container dwell | Current Mendeley Event Log Dwelling Time Dataset v2 | Reproduce published process-mining baseline; explicitly report missing/censored traces and stop metric at terminal gate exit |
+| Optimization | MathProg BAP, DTU BACAP, tandem-QC and yard-crane public suites | Exact agreement on all tractable tiny cases; matched compute budget and optimality gap on larger cases; include simple FCFS/greedy and best published baselines |
+| Decision-risk | #7353/#7359 repeated-sampling and dependence-aware tournaments; #7360 cluster-aware oracle adapter | Expected-risk and high-probability claims remain distinct; calibration uses justified independent units; report abstention and confidence bounds |
+| Physical/authority safety | #7231 exact schedule/authority oracle and typed receipt projection | Zero false-safe and unauthorized-action claims on the frozen synthetic oracle set; unknown physical or authority outcome blocks composition |
+| End-to-end outcome | #3683 coastal-to-inland / terminal-to-receiver composition | Measure receiver-accepted on-time deliveries, tail dwell, total cost/energy/emissions, rehandling, cargo loss, participant service floors and resilience—not throughput alone |
+
+All numeric acceptance goals in this table are proposed qualification targets, not achieved results.
+
+### The paradigm shift: optimize the evidence path as well as the logistics path
+
+The conventional optimization stack is often evaluated on a clean state estimate and its own objective function. We should add an *evidence path* to the comparison:
+
+1. **Observe:** source artifacts carry native owner, semantic class, raw digest, publication time, retrieval time and valid-time scope.
+2. **Reconcile:** identities, corrections, duplicate observations, censored/missing events and common-cause clusters are resolved without silently manufacturing truth.
+3. **Qualify:** an independent oracle assesses physical feasibility, authority, participant/service floors and terminal-to-receiver custody.
+4. **Counterfactually decide:** the TOS/solver alternatives are replayed against frozen inputs and policy revisions, with uncertainty and dependence preserved.
+5. **Execute only within authority:** the decision layer may recommend, constrain or abstain; operational execution remains with the authorized TOS/port/participant.
+6. **Close the loop:** independent observations and receiver acceptance determine realized outcomes; plan, action, reported status and physical realization stay distinct.
+
+This is a stronger and more defensible product proposition than "a better port optimizer": it tests whether an improvement is real, attributable, safe, fair and preserved through final delivery.
+
+### Benchmark datasets and rights corrections
+
+The Mendeley Event Log Dwelling Time Dataset has a current **version 2** record (DOI 10.17632/yvp2b4rtp3.2, published 26 June 2024, CC BY 4.0). It measures container discharge/lift until exit through the terminal main gate, not receiver delivery. Its companion Data in Brief article describes multi-perspective process-mining fields and anonymized data. Do not compare a model trained on this event log directly with current DGT operations without a rights-cleared, regime-aware external validation design.
+
+The AI Port Center Port-Call Data Hub remains a directory and research-problem map for Rotterdam, not one common dataset or blanket licence. Keep every underlying dataset at its own version, provenance, schema and licence. In particular, retain non-commercial limits on the weekly recoverable-robustness dataset.
+
+### Immediate execution order
+
+- First, qualify the DGT artifact semantics and immutable as-of replay before parsing/exporting any operational values.
+- Second, retrieve the CC BY 4.0 dwell-time v2 artifact, inspect the exact files and reproduce event-log process discovery/conformance diagnostics; preserve its 2021 source regime.
+- Third, implement DCSA 2.0.0 publisher/subscriber conformance without replacing source truth or authority.
+- Fourth, add exact small-instance oracles and matched solver baselines across BAP/BACAP/QCSP/YCSP/vehicle routing.
+- Fifth, link operational schedules to independently adjudicated cargo/receiver outcomes and then evaluate the full service-chain objective vector.
+
+Sources:
+- [DCSA Port Call 2.0.0 conformance scenarios](https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-conformance-scenarios)
+- [DCSA Port Call 2.0 implementation guide](https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-implementation-guide)
+- [Kaleris N4 TOS](https://kaleris.com/terminal-operating-system/kaleris-n4-tos/)
+- [Kaleris terminal optimization portfolio](https://kaleris.com/solutions/terminal-operating-system/)
+- [World Bank/S&P Global CPPI methodology, 10 June 2026](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf)
+- [Mendeley Event Log Dwelling Time Dataset v2](https://data.mendeley.com/datasets/yvp2b4rtp3/2)
+- [Data in Brief dataset paper](https://doi.org/10.1016/j.dib.2024.110906)
