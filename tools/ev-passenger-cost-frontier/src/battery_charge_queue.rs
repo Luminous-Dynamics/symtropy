@@ -196,11 +196,7 @@ fn evidence_covers_interval(
     }
 }
 
-fn slot_time_ms(
-    decision_time_unix_ms: u64,
-    slot_duration_seconds: u32,
-    slot: u8,
-) -> Option<u64> {
+fn slot_time_ms(decision_time_unix_ms: u64, slot_duration_seconds: u32, slot: u8) -> Option<u64> {
     let offset_ms = u64::from(slot)
         .checked_mul(u64::from(slot_duration_seconds))?
         .checked_mul(1_000)?;
@@ -262,9 +258,7 @@ impl<'a> ExactChargeSearch<'a> {
             state.selected.push(Some(placement.clone()));
             state.served += 1;
             state.total_wait_slots += u64::from(placement.wait_slots);
-            state.makespan_slot = state
-                .makespan_slot
-                .max(placement.end_slot_exclusive);
+            state.makespan_slot = state.makespan_slot.max(placement.end_slot_exclusive);
             self.search(state);
             state.makespan_slot = previous_makespan;
             state.total_wait_slots -= u64::from(placement.wait_slots);
@@ -374,7 +368,10 @@ pub fn evaluate_battery_charge_queue(
             || charger.configuration_digest.trim().is_empty()
             || charger.capability.max_power_w == 0
             || charger.capability.max_power_w > MAX_CHARGING_POWER_W
-            || charger.capability.supported_pack_configuration_digests.is_empty()
+            || charger
+                .capability
+                .supported_pack_configuration_digests
+                .is_empty()
             || !charger_ids.insert(charger.charger_id.as_str())
         {
             add_error(&mut errors, "charger_identity_or_capability_invalid");
@@ -382,7 +379,10 @@ pub fn evaluate_battery_charge_queue(
         let mut supported = BTreeSet::new();
         for digest in &charger.capability.supported_pack_configuration_digests {
             if digest.trim().is_empty() || !supported.insert(digest.as_str()) {
-                add_error(&mut errors, "charger_supported_configuration_empty_or_duplicate");
+                add_error(
+                    &mut errors,
+                    "charger_supported_configuration_empty_or_duplicate",
+                );
             }
         }
         if !evidence_covers_interval(
@@ -395,7 +395,10 @@ pub fn evaluate_battery_charge_queue(
         ) {
             add_error(
                 &mut errors,
-                format!("charger_capability_evidence_not_admissible:{}", charger.charger_id),
+                format!(
+                    "charger_capability_evidence_not_admissible:{}",
+                    charger.charger_id
+                ),
             );
         }
         if !evidence_covers_interval(
@@ -408,7 +411,10 @@ pub fn evaluate_battery_charge_queue(
         ) {
             add_error(
                 &mut errors,
-                format!("charger_availability_evidence_not_admissible:{}", charger.charger_id),
+                format!(
+                    "charger_availability_evidence_not_admissible:{}",
+                    charger.charger_id
+                ),
             );
         }
     }
@@ -427,12 +433,18 @@ pub fn evaluate_battery_charge_queue(
             || job.release_slot >= job.deadline_slot_exclusive
             || job.deadline_slot_exclusive > input.horizon_slots
         {
-            add_error(&mut errors, format!("charge_job_identity_or_window_invalid:{}", job.job_id));
+            add_error(
+                &mut errors,
+                format!("charge_job_identity_or_window_invalid:{}", job.job_id),
+            );
         }
         if job.pack_state.evidence.asset_id != job.pack_id
             || job.pack_state.evidence.configuration_digest != job.pack_configuration_digest
         {
-            add_error(&mut errors, format!("charge_job_pack_state_binding_mismatch:{}", job.job_id));
+            add_error(
+                &mut errors,
+                format!("charge_job_pack_state_binding_mismatch:{}", job.job_id),
+            );
         }
     }
 
@@ -442,7 +454,10 @@ pub fn evaluate_battery_charge_queue(
         if usize::from(grid_slot.slot) != index
             || grid_slot.evidence.import_cap_w < grid_slot.evidence.non_charging_site_load_w
         {
-            add_error(&mut errors, format!("grid_slot_identity_or_capacity_invalid:{}", grid_slot.slot));
+            add_error(
+                &mut errors,
+                format!("grid_slot_identity_or_capacity_invalid:{}", grid_slot.slot),
+            );
             continue;
         }
         let Some(slot_start) = slot_time_ms(
@@ -469,7 +484,10 @@ pub fn evaluate_battery_charge_queue(
             slot_start,
             slot_end,
         ) {
-            add_error(&mut errors, format!("grid_slot_evidence_not_admissible:{}", grid_slot.slot));
+            add_error(
+                &mut errors,
+                format!("grid_slot_evidence_not_admissible:{}", grid_slot.slot),
+            );
         }
     }
 
@@ -491,7 +509,8 @@ pub fn evaluate_battery_charge_queue(
 
     let mut slot_power_headroom_w = Vec::with_capacity(sorted_grid_slots.len());
     for grid_slot in &sorted_grid_slots {
-        slot_power_headroom_w.push(grid_slot.evidence.import_cap_w - grid_slot.evidence.non_charging_site_load_w);
+        slot_power_headroom_w
+            .push(grid_slot.evidence.import_cap_w - grid_slot.evidence.non_charging_site_load_w);
     }
 
     let mut findings = Vec::new();
@@ -561,7 +580,10 @@ pub fn evaluate_battery_charge_queue(
         if !had_compatible_charger {
             findings.push(format!("no_compatible_charger:{}", job.job_id));
         } else if job_placements.is_empty() {
-            findings.push(format!("no_evidence_valid_deadline_feasible_placement:{}", job.job_id));
+            findings.push(format!(
+                "no_evidence_valid_deadline_feasible_placement:{}",
+                job.job_id
+            ));
         }
         candidates.push(job_placements);
     }
@@ -606,31 +628,42 @@ pub fn evaluate_battery_charge_queue(
             None => {
                 unserved_job_ids.push(jobs[job_index].job_id.clone());
                 if !candidates[job_index].is_empty() {
-                    findings.push(format!("not_selected_due_to_resource_conflict:{}", jobs[job_index].job_id));
+                    findings.push(format!(
+                        "not_selected_due_to_resource_conflict:{}",
+                        jobs[job_index].job_id
+                    ));
                 }
             }
         }
     }
-    assignments.sort_by_key(|assignment| {
-        (
-            assignment.start_slot,
-            assignment.charger_id.as_str(),
-            assignment.job_id.as_str(),
-        )
+    assignments.sort_by(|left, right| {
+        left.start_slot
+            .cmp(&right.start_slot)
+            .then_with(|| left.charger_id.cmp(&right.charger_id))
+            .then_with(|| left.job_id.cmp(&right.job_id))
     });
 
-    let Some(total_declared_grid_input_watt_seconds) = assignments
-        .iter()
-        .try_fold(0_u64, |total, assignment| {
+    let Some(total_declared_grid_input_watt_seconds) =
+        assignments.iter().try_fold(0_u64, |total, assignment| {
             total.checked_add(assignment.declared_grid_input_watt_seconds)
         })
     else {
         return Err(vec!["declared_grid_input_energy_overflow".to_string()]);
     };
-    let all_fixture_evidence_synthetic = input.site_evidence.evidence_class == EvidenceClass::Synthetic
-        && input.chargers.iter().all(|charger| charger.capability.evidence.evidence_class == EvidenceClass::Synthetic && charger.availability_evidence.evidence_class == EvidenceClass::Synthetic)
-        && input.grid_slots.iter().all(|slot| slot.evidence.evidence.evidence_class == EvidenceClass::Synthetic)
-        && input.jobs.iter().all(|job| job.pack_state.evidence.evidence_class == EvidenceClass::Synthetic);
+    let all_fixture_evidence_synthetic = input.site_evidence.evidence_class
+        == EvidenceClass::Synthetic
+        && input.chargers.iter().all(|charger| {
+            charger.capability.evidence.evidence_class == EvidenceClass::Synthetic
+                && charger.availability_evidence.evidence_class == EvidenceClass::Synthetic
+        })
+        && input
+            .grid_slots
+            .iter()
+            .all(|slot| slot.evidence.evidence.evidence_class == EvidenceClass::Synthetic)
+        && input
+            .jobs
+            .iter()
+            .all(|job| job.pack_state.evidence.evidence_class == EvidenceClass::Synthetic);
 
     Ok(BatteryChargeQueueReport {
         schema_version: "0.1.0".to_string(),
@@ -728,7 +761,10 @@ mod tests {
                     DECISION_TIME_MS + 10_000_000,
                 ),
                 max_power_w,
-                supported_pack_configuration_digests: supported.into_iter().map(str::to_string).collect(),
+                supported_pack_configuration_digests: supported
+                    .into_iter()
+                    .map(str::to_string)
+                    .collect(),
             },
             availability_evidence: evidence(
                 id,
@@ -748,8 +784,7 @@ mod tests {
         site_digest: &str,
         slot_duration_seconds: u32,
     ) -> GridSlot {
-        let start = DECISION_TIME_MS
-            + u64::from(slot) * u64::from(slot_duration_seconds) * 1_000;
+        let start = DECISION_TIME_MS + u64::from(slot) * u64::from(slot_duration_seconds) * 1_000;
         let end = start + u64::from(slot_duration_seconds) * 1_000;
         GridSlot {
             slot,
@@ -794,13 +829,28 @@ mod tests {
                 cooling_job("job-d", "pack-d", "cfg-a", 0, 3, 3, 2_500),
             ],
             chargers: vec![
-                charger("charger-1", "charger-config-1", 4_000, vec!["cfg-a", "cfg-b"]),
+                charger(
+                    "charger-1",
+                    "charger-config-1",
+                    4_000,
+                    vec!["cfg-a", "cfg-b"],
+                ),
                 charger("charger-2", "charger-config-2", 3_000, vec!["cfg-a"]),
             ],
             grid_slots: (0..horizon_slots)
-                .map(|slot| grid_slot(slot, 8_000, 1_000, site_id, site_digest, slot_duration_seconds))
+                .map(|slot| {
+                    grid_slot(
+                        slot,
+                        8_000,
+                        1_000,
+                        site_id,
+                        site_digest,
+                        slot_duration_seconds,
+                    )
+                })
                 .collect(),
-            claim_ceiling: "synthetic exact fixed-duration charge block scheduling only".to_string(),
+            claim_ceiling: "synthetic exact fixed-duration charge block scheduling only"
+                .to_string(),
         }
     }
 
@@ -871,8 +921,18 @@ mod tests {
         let mut input = base_input();
         input.jobs[0].pack_state.value = PackState::Quarantined;
         let report = evaluate_battery_charge_queue(&input).unwrap();
-        assert!(!report.assignments.iter().any(|assignment| assignment.job_id == "job-a"));
-        assert!(report.findings.iter().any(|finding| finding == "pack_not_charge_ready:job-a"));
+        assert!(
+            !report
+                .assignments
+                .iter()
+                .any(|assignment| assignment.job_id == "job-a")
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding == "pack_not_charge_ready:job-a")
+        );
     }
 
     #[test]
@@ -880,7 +940,12 @@ mod tests {
         let mut input = base_input();
         input.jobs[0].pack_state.evidence.valid_until_unix_ms = Some(DECISION_TIME_MS - 1);
         let report = evaluate_battery_charge_queue(&input).unwrap();
-        assert!(!report.assignments.iter().any(|assignment| assignment.job_id == "job-a"));
+        assert!(
+            !report
+                .assignments
+                .iter()
+                .any(|assignment| assignment.job_id == "job-a")
+        );
     }
 
     #[test]
@@ -900,7 +965,12 @@ mod tests {
         input.jobs[0].pack_configuration_digest = "unsupported-config".to_string();
         input.jobs[0].pack_state.evidence.configuration_digest = "unsupported-config".to_string();
         let report = evaluate_battery_charge_queue(&input).unwrap();
-        assert!(report.findings.iter().any(|finding| finding == "no_compatible_charger:job-a"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding == "no_compatible_charger:job-a")
+        );
     }
 
     #[test]
@@ -908,7 +978,12 @@ mod tests {
         let mut input = base_input();
         input.jobs[0].requested_power_w = 5_000;
         let report = evaluate_battery_charge_queue(&input).unwrap();
-        assert!(report.findings.iter().any(|finding| finding == "no_compatible_charger:job-a"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding == "no_compatible_charger:job-a")
+        );
     }
 
     #[test]
@@ -923,6 +998,11 @@ mod tests {
         let mut input = base_input();
         input.jobs[0].pack_state.evidence.observed_at_unix_ms = Some(DECISION_TIME_MS + 1);
         let report = evaluate_battery_charge_queue(&input).unwrap();
-        assert!(!report.assignments.iter().any(|assignment| assignment.job_id == "job-a"));
+        assert!(
+            !report
+                .assignments
+                .iter()
+                .any(|assignment| assignment.job_id == "job-a")
+        );
     }
 }

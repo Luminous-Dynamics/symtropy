@@ -165,3 +165,31 @@ The synthetic fixture contains four reservations across three resources. A pack 
 Schema: `schemas/battery_resource_occupancy_v0_1.schema.json`; fixture: `fixtures/battery_resource_occupancy_v0_1.json`; CLI: `src/bin/battery_resource_occupancy_screen.rs`.
 
 **Deliberate scope limit:** this is a static exact assignment and evidence gate, not a multi-period charging/rack queue optimizer, mobile battery-service routing model, degradation model, thermal battery model or aircraft dispatch authorizer. Those are the next layers in #6674. Synthetic fixture passes validate accounting/algorithm semantics only and do not establish real battery capability, flight safety or operational release.
+
+
+## MOBILITY-FLEX-ENVELOPE-001 — time-coupled reserve-first flexibility verifier
+
+The `mobility_flexibility_envelope_screen` binary is the first executable child of [MOBILITY-ENERGY-RESILIENCE-001 #6707](https://github.com/Luminous-Dynamics/symtropy/issues/6707), tracked separately in [#6802](https://github.com/Luminous-Dynamics/symtropy/issues/6802).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_flexibility_envelope_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_flexibility_envelope_v0_1.json
+```
+
+The verifier consumes time-bound site, pack-allocation, charger-queue, PCC-meter, storage-capability and site-connection evidence. The proposal includes both a site/PCC power profile and an explicit per-resource, per-slot allocation; the two must reconcile exactly. For every reserve scenario, it subtracts resource-specific mission, inventory-buffer, safety/outage and uncertainty energy/power reserves. It tests each asset's own cumulative energy and slot power budget before aggregating the resulting trajectory at the PCC. It tests the proposal against:
+- each resource's cumulative residual energy budget across the whole horizon;
+- each resource's residual discharge-power ceiling in every slot;
+- the aggregate horizon budget and aggregate per-slot ceiling as cross-checks;
+- the site load plus the charging schedule at the PCC;
+- import limits, export limits and explicit export-permission evidence;
+- unique reserve receipt IDs within each mutually exclusive scenario.
+
+This closes two gaps: positive aggregate kWh cannot conceal a per-slot kW violation, and one asset's unused energy or power cannot be borrowed to mask another asset's shortfall. Per-resource energy is calculated from each resource/slot interval with upward Wh rounding; per-slot resource dispatch must stay inside that asset's reserve-adjusted power ceiling. The site profile is accepted only when it equals the sum of those resource allocations. Each of the four reserve buckets carries an evidence envelope bound to the exact resource/configuration, horizon and corresponding receipt ID. The per-slot non-charging load is bound to the site-meter receipt; the per-slot charging load is bound to the exact charging-queue report reference. The same reserve receipt cannot be counted twice inside a scenario, and unbound per-slot loads are rejected. A resource must be bound both to its own exact configuration and to the site's exact configuration. Aircraft propulsion packs are rejected as grid resources; bidirectional storage requires independent-test interface evidence. A positive export permission must itself carry non-synthetic, non-unknown evidence; the report still never grants export authority. The v0.1 PCC model has no separate PV-generation, feeder-topology or AC power-flow model; any supplied base-site load must be the declared net non-charging load at the PCC.
+
+The frozen two-asset known answer allocates the site trajectory [2,200, 2,500, 2,000, 800] W as ess-01 [2,000, 1,700, 1,300, 300] W and ess-02 [200, 800, 700, 500] W. In the high-demand/low-renewable scenario, ess-01 has 1,450 Wh residual and uses 1,325 Wh (125 Wh margin); ess-02 has 550 Wh residual and uses all 550 Wh (0 Wh margin). This demonstrates why per-asset—not just pooled—energy and power checks are required. The module includes an independent reference calculation that exhaustively compares the evaluator against 625 four-slot candidate site profiles using a frozen two-asset allocation rule (158 expected feasible, 467 expected rejected). This test passed in exact-head Actions run [#45026367607](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45026367607): the package's Cargo test binaries reported 130 passed, 0 failed; workspace formatting and schema/fixture parsing also passed. The workflow retained the deterministic JSON report as an artifact. Clippy is not yet part of this workflow. The screen is a feasibility verifier, not a schedule optimizer. Its report always sets `dispatch_authority_granted=false` and `export_authority_granted=false`. The frozen fixture uses synthetic data and therefore demonstrates arithmetic and rejection semantics only; it is not a real site capability claim, a metered energy result or permission to discharge/export.
+
+Schema: `schemas/mobility_flexibility_envelope_v0_1.schema.json`; fixture: `fixtures/mobility_flexibility_envelope_v0_1.json`; evaluator: `src/mobility_flexibility_envelope.rs`; CLI: `src/bin/mobility_flexibility_envelope_screen.rs`.
+
+Research dossier: [Mobility-First Grid Flexibility Envelope Benchmark v0.1](../../docs/research/MOBILITY_FLEXIBILITY_ENVELOPE_BENCHMARK_V0_1.md). The v0.1 model does not yet certify post-dispatch recharge/recovery viability, full AC power flow, thermal evolution, degradation, or market deliverability; these are explicit later phases, not implied by a passing synthetic profile.

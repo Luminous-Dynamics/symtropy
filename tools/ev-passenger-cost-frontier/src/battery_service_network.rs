@@ -338,9 +338,7 @@ fn add_finding(
     }
     if next == EligibilityStatus::Blocked {
         *status = EligibilityStatus::Blocked;
-    } else if next == EligibilityStatus::Indeterminate
-        && *status == EligibilityStatus::Eligible
-    {
+    } else if next == EligibilityStatus::Indeterminate && *status == EligibilityStatus::Eligible {
         *status = EligibilityStatus::Indeterminate;
     }
 }
@@ -357,7 +355,10 @@ fn evidence_is_admissible_for_identity(
     let mut complete = true;
     for (field, value) in [
         ("asset_id", evidence.asset_id.as_str()),
-        ("configuration_digest", evidence.configuration_digest.as_str()),
+        (
+            "configuration_digest",
+            evidence.configuration_digest.as_str(),
+        ),
         ("producer_id", evidence.producer_id.as_str()),
         ("method_id", evidence.method_id.as_str()),
         ("evidence_reference", evidence.evidence_reference.as_str()),
@@ -746,12 +747,21 @@ pub fn validate_exclusive_resource_schedule(
             errors.push(format!("duplicate_occupancy_id:{}", interval.occupancy_id));
         }
         if !idempotency_keys.insert(interval.idempotency_key.as_str()) {
-            errors.push(format!("duplicate_resource_idempotency_key:{}", interval.idempotency_key));
+            errors.push(format!(
+                "duplicate_resource_idempotency_key:{}",
+                interval.idempotency_key
+            ));
         }
         if interval.start_unix_ms == 0 || interval.end_unix_ms <= interval.start_unix_ms {
-            errors.push(format!("invalid_half_open_resource_interval:{}", interval.occupancy_id));
+            errors.push(format!(
+                "invalid_half_open_resource_interval:{}",
+                interval.occupancy_id
+            ));
         } else if interval.end_unix_ms <= input.decision_time_unix_ms {
-            errors.push(format!("resource_interval_already_expired:{}", interval.occupancy_id));
+            errors.push(format!(
+                "resource_interval_already_expired:{}",
+                interval.occupancy_id
+            ));
         }
         if !interval_evidence_covers(
             &interval.evidence,
@@ -761,7 +771,10 @@ pub fn validate_exclusive_resource_schedule(
             interval.start_unix_ms,
             interval.end_unix_ms,
         ) {
-            errors.push(format!("resource_interval_evidence_not_admissible:{}", interval.occupancy_id));
+            errors.push(format!(
+                "resource_interval_evidence_not_admissible:{}",
+                interval.occupancy_id
+            ));
         }
     }
 
@@ -919,7 +932,10 @@ pub fn replay_pack_state_journal(
             break;
         }
         if !idempotency_keys.insert(event.idempotency_key.as_str()) {
-            errors.push(format!("duplicate_idempotency_key:{}", event.idempotency_key));
+            errors.push(format!(
+                "duplicate_idempotency_key:{}",
+                event.idempotency_key
+            ));
             break;
         }
         let Some(expected_sequence) = current_sequence.checked_add(1) else {
@@ -933,7 +949,10 @@ pub fn replay_pack_state_journal(
         if event.event_time_unix_ms < last_event_time
             || event.event_time_unix_ms > input.replay_cutoff_unix_ms
         {
-            errors.push(format!("event_time_non_monotonic_or_after_cutoff:{}", event.event_id));
+            errors.push(format!(
+                "event_time_non_monotonic_or_after_cutoff:{}",
+                event.event_id
+            ));
             break;
         }
 
@@ -958,7 +977,10 @@ pub fn replay_pack_state_journal(
         match event.disposition {
             PackTransitionDisposition::Confirmed => {
                 if reconciliation_required {
-                    errors.push(format!("normal_event_blocked_pending_reconciliation:{}", event.event_id));
+                    errors.push(format!(
+                        "normal_event_blocked_pending_reconciliation:{}",
+                        event.event_id
+                    ));
                     break;
                 }
                 if !transition_is_allowed(current_state, event.proposed_to_state) {
@@ -970,7 +992,10 @@ pub fn replay_pack_state_journal(
             }
             PackTransitionDisposition::Timeout | PackTransitionDisposition::OutcomeUnknown => {
                 if reconciliation_required {
-                    errors.push(format!("second_unknown_operation_blocked:{}", event.event_id));
+                    errors.push(format!(
+                        "second_unknown_operation_blocked:{}",
+                        event.event_id
+                    ));
                     break;
                 }
                 reconciliation_required = true;
@@ -979,18 +1004,27 @@ pub fn replay_pack_state_journal(
             }
             PackTransitionDisposition::Reconciled => {
                 if !reconciliation_required {
-                    errors.push(format!("unexpected_reconciliation_without_unknown_outcome:{}", event.event_id));
+                    errors.push(format!(
+                        "unexpected_reconciliation_without_unknown_outcome:{}",
+                        event.event_id
+                    ));
                     break;
                 }
                 if !matches!(
                     event.evidence.evidence_class,
                     EvidenceClass::Measured | EvidenceClass::IndependentTest
                 ) {
-                    errors.push(format!("reconciliation_requires_measured_or_independent_evidence:{}", event.event_id));
+                    errors.push(format!(
+                        "reconciliation_requires_measured_or_independent_evidence:{}",
+                        event.event_id
+                    ));
                     break;
                 }
                 if event.proposed_to_state == PackState::Unknown {
-                    errors.push(format!("reconciliation_state_remains_unknown:{}", event.event_id));
+                    errors.push(format!(
+                        "reconciliation_state_remains_unknown:{}",
+                        event.event_id
+                    ));
                     break;
                 }
                 current_state = event.proposed_to_state;
@@ -1026,7 +1060,8 @@ pub fn replay_pack_state_journal(
         );
         if !latest_evidence_covers_cutoff {
             reconciliation_required = true;
-            findings.push("last_confirmed_pack_state_evidence_expired_at_replay_cutoff".to_string());
+            findings
+                .push("last_confirmed_pack_state_evidence_expired_at_replay_cutoff".to_string());
         }
     }
 
@@ -1041,10 +1076,7 @@ pub fn replay_pack_state_journal(
     })
 }
 
-fn assignment_key(
-    selected: &[Option<usize>],
-    packs: &[BatteryPack],
-) -> Vec<String> {
+fn assignment_key(selected: &[Option<usize>], packs: &[BatteryPack]) -> Vec<String> {
     selected
         .iter()
         .map(|index| match index {
@@ -1065,7 +1097,6 @@ fn is_better(candidate: &SearchBest, current: &SearchBest, packs: &[BatteryPack]
         < assignment_key(&current.selected_pack_indices, packs)
 }
 
-
 pub fn evaluate_battery_service_network(
     input: &BatteryServiceNetworkInput,
 ) -> Result<BatteryServiceNetworkReport, Vec<String>> {
@@ -1083,7 +1114,9 @@ pub fn evaluate_battery_service_network(
         || input.packs.len() > MAX_EXACT_ITEMS
         || input.missions.len() > MAX_EXACT_ITEMS
     {
-        errors.push(format!("exact_v0_1_limit_is_1_to_{MAX_EXACT_ITEMS}_packs_and_missions"));
+        errors.push(format!(
+            "exact_v0_1_limit_is_1_to_{MAX_EXACT_ITEMS}_packs_and_missions"
+        ));
     }
 
     let mut pack_ids = BTreeSet::new();
@@ -1124,13 +1157,10 @@ pub fn evaluate_battery_service_network(
     for mission in &missions {
         let mut mission_candidates = Vec::new();
         for (pack_index, pack) in packs.iter().enumerate() {
-            let evaluation =
-                evaluate_pair(mission, pack, input.dispatch_time_unix_ms);
+            let evaluation = evaluate_pair(mission, pack, input.dispatch_time_unix_ms);
             if evaluation.status == EligibilityStatus::Eligible {
-                mission_candidates.push((
-                    pack_index,
-                    evaluation.energy_margin_wh.unwrap_or_default(),
-                ));
+                mission_candidates
+                    .push((pack_index, evaluation.energy_margin_wh.unwrap_or_default()));
             }
             pair_evaluations.push(evaluation);
         }
@@ -1315,10 +1345,7 @@ mod tests {
         }
     }
 
-    fn input(
-        packs: Vec<BatteryPack>,
-        missions: Vec<MissionDemand>,
-    ) -> BatteryServiceNetworkInput {
+    fn input(packs: Vec<BatteryPack>, missions: Vec<MissionDemand>) -> BatteryServiceNetworkInput {
         BatteryServiceNetworkInput {
             schema_version: "0.1.0".to_string(),
             benchmark_id: "BATTERY-SERVICE-NETWORK-001".to_string(),
@@ -1340,24 +1367,28 @@ mod tests {
         let demand = mission("m1", "uav-a", 1_000, 1_000);
         let result = evaluate_pair(&demand, &battery, DISPATCH_TIME_MS);
         assert_eq!(result.status, EligibilityStatus::Blocked);
-        assert!(result
-            .findings
-            .iter()
-            .any(|finding| finding == "peak_power_below_mission_requirement"));
+        assert!(
+            result
+                .findings
+                .iter()
+                .any(|finding| finding == "peak_power_below_mission_requirement")
+        );
     }
 
     #[test]
     fn unknown_peak_power_is_indeterminate_not_a_pass() {
         let battery = pack("p1", "uav-a", Some(2_000), None);
         let demand = mission("m1", "uav-a", 1_000, 1_000);
-        assert_eq!(pair_status(&battery, &demand), EligibilityStatus::Indeterminate);
+        assert_eq!(
+            pair_status(&battery, &demand),
+            EligibilityStatus::Indeterminate
+        );
     }
 
     #[test]
     fn expired_evidence_window_is_indeterminate() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.usable_energy.evidence.valid_until_unix_ms =
-            Some(DISPATCH_TIME_MS - 1);
+        battery.usable_energy.evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS - 1);
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Indeterminate
@@ -1368,8 +1399,7 @@ mod tests {
     fn future_observation_is_blocked_to_prevent_information_leakage() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
         battery.peak_power.evidence.observed_at_unix_ms = Some(DISPATCH_TIME_MS + 1);
-        battery.peak_power.evidence.valid_until_unix_ms =
-            Some(DISPATCH_TIME_MS + 10_000);
+        battery.peak_power.evidence.valid_until_unix_ms = Some(DISPATCH_TIME_MS + 10_000);
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
@@ -1406,9 +1436,11 @@ mod tests {
             DISPATCH_TIME_MS,
         );
         assert_eq!(evaluation.status, EligibilityStatus::Blocked);
-        assert!(evaluation
-            .findings
-            .contains(&"pack_not_available_for_dispatch_epoch".to_string()));
+        assert!(
+            evaluation
+                .findings
+                .contains(&"pack_not_available_for_dispatch_epoch".to_string())
+        );
     }
 
     #[test]
@@ -1453,8 +1485,7 @@ mod tests {
     #[test]
     fn malformed_evidence_window_is_blocked() {
         let mut battery = pack("p1", "uav-a", Some(2_000), Some(2_000));
-        battery.thermal.evidence.valid_from_unix_ms =
-            Some(DISPATCH_TIME_MS + 5_000);
+        battery.thermal.evidence.valid_from_unix_ms = Some(DISPATCH_TIME_MS + 5_000);
         assert_eq!(
             pair_status(&battery, &mission("m1", "uav-a", 1_000, 1_000)),
             EligibilityStatus::Blocked
@@ -1684,7 +1715,11 @@ mod tests {
             ],
         };
         let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("exclusive_resource_overlap")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("exclusive_resource_overlap"))
+        );
     }
 
     #[test]
@@ -1728,7 +1763,11 @@ mod tests {
             intervals: vec![interval],
         };
         let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("resource_interval_evidence_not_admissible")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("resource_interval_evidence_not_admissible"))
+        );
     }
 
     #[test]
@@ -1746,7 +1785,11 @@ mod tests {
             intervals: vec![interval],
         };
         let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("resource_interval_evidence_not_admissible")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("resource_interval_evidence_not_admissible"))
+        );
     }
 
     #[test]
@@ -1771,7 +1814,11 @@ mod tests {
             intervals: vec![first, second],
         };
         let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("duplicate_resource_idempotency_key")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate_resource_idempotency_key"))
+        );
     }
 
     #[test]
@@ -1795,8 +1842,16 @@ mod tests {
             intervals: vec![expired, zero_length],
         };
         let errors = validate_exclusive_resource_schedule(&input).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("resource_interval_already_expired")));
-        assert!(errors.iter().any(|error| error.contains("invalid_half_open_resource_interval")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("resource_interval_already_expired"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("invalid_half_open_resource_interval"))
+        );
     }
 
     fn journal_input() -> PackStateJournalInput {
@@ -1891,7 +1946,10 @@ mod tests {
         let report = replay_pack_state_journal(&journal).unwrap();
         assert_eq!(report.final_state, PackState::Available);
         assert!(report.reconciliation_required);
-        assert_eq!(report.last_uncertain_event_id, Some("event-timeout".to_string()));
+        assert_eq!(
+            report.last_uncertain_event_id,
+            Some("event-timeout".to_string())
+        );
     }
 
     #[test]
@@ -1918,7 +1976,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("normal_event_blocked_pending_reconciliation")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("normal_event_blocked_pending_reconciliation"))
+        );
     }
 
     #[test]
@@ -1974,7 +2036,9 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("reconciliation_requires_measured_or_independent_evidence")));
+        assert!(errors.iter().any(|error| {
+            error.contains("reconciliation_requires_measured_or_independent_evidence")
+        }));
     }
 
     #[test]
@@ -2001,7 +2065,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("duplicate_idempotency_key")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate_idempotency_key"))
+        );
     }
 
     #[test]
@@ -2018,7 +2086,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("non_contiguous_event_sequence")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("non_contiguous_event_sequence"))
+        );
     }
 
     #[test]
@@ -2035,7 +2107,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("illegal_pack_state_transition")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("illegal_pack_state_transition"))
+        );
     }
 
     #[test]
@@ -2062,7 +2138,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("duplicate_event_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate_event_id"))
+        );
     }
 
     #[test]
@@ -2079,7 +2159,11 @@ mod tests {
             evidence_class: EvidenceClass::Synthetic,
         }));
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("event_time_non_monotonic_or_after_cutoff")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("event_time_non_monotonic_or_after_cutoff"))
+        );
     }
 
     #[test]
@@ -2098,7 +2182,11 @@ mod tests {
         event.evidence.asset_id = "different-pack".to_string();
         journal.events.push(event);
         let errors = replay_pack_state_journal(&journal).unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("event_evidence_not_admissible")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("event_evidence_not_admissible"))
+        );
     }
 
     #[test]
