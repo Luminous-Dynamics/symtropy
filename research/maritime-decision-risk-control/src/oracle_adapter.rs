@@ -1144,6 +1144,48 @@ mod tests {
     }
 
     #[test]
+    fn adapter_aggregates_repeated_same_split_episodes_into_conservative_cluster_means() {
+        let mut data = valid_dataset();
+        let mut repeated = data
+            .episodes
+            .iter()
+            .find(|episode| episode.episode_id == "cal-1")
+            .expect("calibration episode")
+            .clone();
+        repeated.episode_id = "cal-3".to_owned();
+        // The frozen policy order is B, A. Raise both service losses by one
+        // so the two-episode mean is fractional and must round upward.
+        repeated.policy_outcomes[0].service_loss_milli = 251;
+        repeated.policy_outcomes[1].service_loss_milli = 401;
+        data.episodes.push(repeated);
+
+        let bundle =
+            compile_oracle_outcomes(&data).expect("same-split cluster sharing is admissible");
+        assert_eq!(
+            bundle.calibration_dependence_cluster_ids,
+            vec!["weather-1", "weather-2", "weather-1"]
+        );
+
+        let cluster_means = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+            .expect("cluster means");
+        assert_eq!(cluster_means.cluster_ids, vec!["weather-1", "weather-2"]);
+        assert_eq!(cluster_means.schedules_per_cluster, vec![2, 1]);
+        assert_eq!(
+            cluster_means.loss.schedules,
+            vec![vec![401, 251], vec![600, 200]]
+        );
+
+        let hard_means = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
+            .expect("cluster hard-failure means");
+        assert_eq!(
+            hard_means.loss.schedules,
+            vec![vec![0, 0], vec![1_000, 0]]
+        );
+    }
+
+    #[test]
     fn adapter_rejects_reused_dependence_cluster_across_splits() {
         let mut data = valid_dataset();
         data.episodes[1].dependence_cluster_id = "weather-1".to_owned();
