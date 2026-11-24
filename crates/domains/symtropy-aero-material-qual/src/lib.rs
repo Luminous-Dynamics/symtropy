@@ -826,6 +826,9 @@ mod tests {
     const MUTATION_ORACLE: &str = include_str!(
         "../../../../docs/research/aviation/examples/adversarial_material_process_mutations_v0_1.json"
     );
+    const AERO_BASALT_RESOURCE_MAP: &str = include_str!(
+        "../../../../docs/research/aviation/schemas/aero_basalt_resource_map_v0_1.json"
+    );
 
     #[test]
     fn independent_mutation_oracle_matches_expected_dispositions() {
@@ -948,6 +951,108 @@ mod tests {
             "INDETERMINATE_NO_PROCESS_BATCHES"
         );
         assert!(has_code(&report, "EMPTY_REQUIRED_COLLECTION"));
+    }
+
+    #[test]
+    fn aviation_basalt_resource_map_is_consistent_with_generic_contract() {
+        let mapping: Value = serde_json::from_str(AERO_BASALT_RESOURCE_MAP)
+            .expect("aviation BASALT resource map parses");
+        assert_eq!(
+            mapping.pointer("/mapping_profile/id").and_then(Value::as_str),
+            Some("aero-basalt-resource-map-v0.1")
+        );
+        assert_eq!(
+            mapping.pointer("/mapping_profile/synthetic_only").and_then(Value::as_bool),
+            Some(true)
+        );
+
+        let resource_classes = mapping
+            .get("resource_classes")
+            .and_then(Value::as_array)
+            .expect("resource classes");
+        assert!(!resource_classes.is_empty());
+        let valid_change_kinds = [
+            "source_change",
+            "dependency_change",
+            "toolchain_change",
+            "configuration_change",
+            "task_contract_change",
+            "environment_change",
+            "session_change",
+            "other",
+        ];
+        let mut class_names = std::collections::BTreeSet::new();
+        let mut resource_templates = std::collections::BTreeSet::new();
+
+        for resource in resource_classes {
+            let class_name = field_str(resource, "class").expect("resource class name");
+            let template =
+                field_str(resource, "resource_id_template").expect("resource ID template");
+            let change_kind =
+                field_str(resource, "default_change_kind").expect("BASALT change kind");
+            assert!(class_names.insert(class_name.to_owned()), "duplicate {class_name}");
+            assert!(
+                template.starts_with("aero:") && template.ends_with(":{immutable_id}"),
+                "non-canonical resource template {template}"
+            );
+            assert!(
+                resource_templates.insert(template.to_owned()),
+                "duplicate resource ID template {template}"
+            );
+            assert!(
+                valid_change_kinds.contains(&change_kind),
+                "unsupported BASALT change kind {change_kind}"
+            );
+            assert!(
+                field_str(resource, "owner").is_some_and(|owner| !owner.trim().is_empty()),
+                "{class_name}: owner required"
+            );
+            assert!(
+                field_str(resource, "digest_rule").is_some_and(|rule| !rule.trim().is_empty()),
+                "{class_name}: digest rule required"
+            );
+        }
+
+        let evidence_classes = mapping
+            .get("evidence_classes")
+            .and_then(Value::as_array)
+            .expect("evidence classes");
+        assert!(!evidence_classes.is_empty());
+        let valid_evidence_kinds = [
+            "build",
+            "test",
+            "typecheck",
+            "lint",
+            "security",
+            "scope",
+            "regression",
+            "other",
+        ];
+        let mut check_ids = std::collections::BTreeSet::new();
+
+        for evidence in evidence_classes {
+            let check_id = field_str(evidence, "check_id").expect("check id");
+            let kind = field_str(evidence, "basalt_evidence_kind").expect("BASALT evidence kind");
+            assert!(check_id.starts_with("aero."), "non-aviation check ID {check_id}");
+            assert!(check_ids.insert(check_id.to_owned()), "duplicate check ID {check_id}");
+            assert!(
+                valid_evidence_kinds.contains(&kind),
+                "unsupported BASALT evidence kind {kind}"
+            );
+
+            let expected_resources = evidence
+                .get("expected_resource_classes")
+                .and_then(Value::as_array)
+                .expect("expected resource classes");
+            assert!(!expected_resources.is_empty());
+            for expected in expected_resources {
+                let expected = expected.as_str().expect("resource class string");
+                assert!(
+                    class_names.contains(expected),
+                    "{check_id}: unknown resource class {expected}"
+                );
+            }
+        }
     }
 
     #[test]
