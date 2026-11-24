@@ -49,8 +49,9 @@ The snapshots are candidate-authored structural interpretations of public observ
 
 The optional `dynamics_transfer` currently supports only `deterministic_transition_commutation`. It contains:
 - source and target state/action scopes, including excluded IDs;
+- evidence-backed source/target state and action snapshots;
 - total state mappings and action mappings with action-kind IDs;
-- candidate-predicted target transitions for source transitions;
+- source-transition evidence IDs and candidate-predicted target successors;
 - explicit assumptions and an unresolved flag.
 
 It deliberately does **not** include the evaluator's actual hidden target transitions. The candidate freezes target successor predictions; after freeze, the trusted evaluator compares them with its owner-side transitions through `validate_dynamics_correspondence` or a stricter scope-specific adapter.
@@ -101,4 +102,4 @@ An in-process schema/type boundary is not an OS sandbox. Learner/evaluator separ
 - Resolve every evidence reference against the owner-issued public episode prefix.
 - Preserve exact artifact digests in the owner receipt.
 
-The current example demonstrates a source/target induced embedding and two frozen target transition predictions. It is an illustrative wire artifact, not an executed AgentView/AgentAction integration or a causal-transfer result.
+The current example demonstrates a source/target induced embedding and two frozen target transition predictions. The bundle schema references the scoped structural proposal schema by its aligned relative schema ID; both side snapshots and the dynamics state/action snapshots carry evidence IDs. It is an illustrative wire artifact, not an executed AgentView/AgentAction integration or a causal-transfer result.
