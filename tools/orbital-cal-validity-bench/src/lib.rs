@@ -58,6 +58,8 @@ pub struct CalibrationScope {
     pub scope_id: String,
     pub calibration_id: String,
     pub calibration_revision: String,
+    pub certificate_sha256: String,
+    pub check_receipt_sha256: Option<String>,
     pub component_id: String,
     pub valid_from_ns: i64,
     pub valid_until_ns: i64,
@@ -108,6 +110,8 @@ pub struct ScopeResult {
     pub scope_id: String,
     pub calibration_id: String,
     pub calibration_revision: String,
+    pub certificate_sha256: String,
+    pub check_receipt_sha256: Option<String>,
     pub status: ValidityStatus,
     pub reason_codes: Vec<String>,
 }
@@ -148,6 +152,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn valid_text(value: &str) -> bool {
     !value.trim().is_empty()
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn precedence(status: ValidityStatus) -> u8 {
@@ -212,6 +220,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
         if !valid_text(&scope.scope_id)
             || !valid_text(&scope.calibration_id)
             || !valid_text(&scope.calibration_revision)
+            || !valid_sha256(&scope.certificate_sha256)
             || !valid_text(&scope.component_id)
             || scope.valid_until_ns <= scope.valid_from_ns
             || !scope_ids.insert(&scope.scope_id)
@@ -227,6 +236,9 @@ fn validate_case(case: &Case) -> Result<(), String> {
             }
             if scope.max_check_age_ns.is_none() {
                 return Err("REQUIRED_CHECK_MAX_AGE_MISSING".to_owned());
+            }
+            if !scope.check_receipt_sha256.as_deref().is_some_and(valid_sha256) {
+                return Err("REQUIRED_CHECK_RECEIPT_DIGEST_INVALID".to_owned());
             }
         }
     }
@@ -350,6 +362,8 @@ fn evaluate_scope(
         scope_id: scope.scope_id.clone(),
         calibration_id: scope.calibration_id.clone(),
         calibration_revision: scope.calibration_revision.clone(),
+        certificate_sha256: scope.certificate_sha256.clone(),
+        check_receipt_sha256: scope.check_receipt_sha256.clone(),
         status,
         reason_codes: reasons.into_iter().collect(),
     }
@@ -444,10 +458,13 @@ mod tests {
             scope_id: "camera-intrinsics".to_owned(),
             calibration_id: "CAL-CAM-01".to_owned(),
             calibration_revision: "r7".to_owned(),
+            certificate_sha256: "a".repeat(64),
+            check_receipt_sha256: Some("b".repeat(64)),
             component_id: "CAM-01".to_owned(),
             valid_from_ns: 100,
             valid_until_ns: 1000,
             required_configuration: BTreeMap::from([
+                ("sensor_serial".to_owned(), "SENSOR-01".to_owned()),
                 ("lens".to_owned(), "L-1".to_owned()),
                 ("resolution".to_owned(), "1920x1080".to_owned()),
             ]),
@@ -469,6 +486,7 @@ mod tests {
             components: vec![ComponentState {
                 component_id: "CAM-01".to_owned(),
                 configuration: BTreeMap::from([
+                    ("sensor_serial".to_owned(), "SENSOR-01".to_owned()),
                     ("lens".to_owned(), "L-1".to_owned()),
                     ("resolution".to_owned(), "1920x1080".to_owned()),
                 ]),
@@ -601,6 +619,20 @@ mod tests {
         let mut value = case();
         value.required_scope_ids.push("missing".to_owned());
         assert!(evaluate_case(&value).is_err());
+    }
+
+    #[test]
+    fn malformed_certificate_digest_is_rejected() {
+        let mut value = case();
+        value.scopes[0].certificate_sha256 = "not-a-digest".to_owned();
+        assert_eq!(evaluate_case(&value).unwrap_err(), "CALIBRATION_SCOPE_INVALID");
+    }
+
+    #[test]
+    fn malformed_required_check_receipt_digest_is_rejected() {
+        let mut value = case();
+        value.scopes[0].check_receipt_sha256 = Some("bad".to_owned());
+        assert_eq!(validate_case(&value).unwrap_err(), "REQUIRED_CHECK_RECEIPT_DIGEST_INVALID");
     }
 
     #[test]
