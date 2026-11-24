@@ -486,9 +486,9 @@ pub fn mission_path_loss_distributions(
         let decision = policy
             .root_terminal_decision
             .ok_or(TailRiskError::InvalidPolicyTree)?;
-        for model in 0..2 {
+        for (model, distribution) in distributions.iter_mut().enumerate() {
             append_terminal_state_masses(
-                &mut distributions[model],
+                distribution,
                 problem.prior_by_model_ppm[model].map(u128::from),
                 decision,
                 problem,
@@ -519,7 +519,7 @@ pub fn mission_path_loss_distributions(
         }
         seen[first_index] = true;
 
-        for model in 0..2 {
+        for (model, distribution) in distributions.iter_mut().enumerate() {
             let initial = problem.prior_by_model_ppm[model].map(u128::from);
             let first_outcomes = propagate_action(model, initial, first_action)?;
             let first_state_mass = first_outcomes[first_index];
@@ -527,7 +527,7 @@ pub fn mission_path_loss_distributions(
             match &branch.choice {
                 ObservableBranchChoice::Stop { terminal_decision } => {
                     append_terminal_state_masses(
-                        &mut distributions[model],
+                        distribution,
                         first_state_mass,
                         *terminal_decision,
                         problem,
@@ -546,10 +546,12 @@ pub fn mission_path_loss_distributions(
                         .find(|action| action.action_id == *second_action_id)
                         .ok_or(TailRiskError::MissingAction(*second_action_id))?;
                     let second_outcomes = propagate_action(model, first_state_mass, second_action)?;
-                    for second_outcome_index in 0..3 {
+                    for (second_outcome_index, second_outcome_mass) in
+                        second_outcomes.iter().enumerate()
+                    {
                         append_terminal_state_masses(
-                            &mut distributions[model],
-                            second_outcomes[second_outcome_index],
+                            distribution,
+                            *second_outcome_mass,
                             terminal_decisions[second_outcome_index],
                             problem,
                             1,
@@ -599,7 +601,7 @@ fn propagate_action(
 ) -> Result<[[u128; 4]; 3], TailRiskError> {
     let scale = PROBABILITY_SCALE_PPM;
     let mut outcomes = [[0_u128; 4]; 3];
-    for outcome_index in 0..3 {
+    for (outcome_index, outcome_mass) in outcomes.iter_mut().enumerate() {
         let likelihood_for_state = |state: usize| {
             let likelihoods = action.likelihoods[model][state];
             match outcome_index {
@@ -610,8 +612,8 @@ fn propagate_action(
         };
 
         let mut capture = [0_u128; 4];
-        for state in 0..4 {
-            capture[state] = mass[state]
+        for (state, capture_mass) in capture.iter_mut().enumerate() {
+            *capture_mass = mass[state]
                 .checked_mul(likelihood_for_state(state) as u128)
                 .ok_or(TailRiskError::ArithmeticOverflow)?;
         }
@@ -628,13 +630,13 @@ fn propagate_action(
             let inside_to_inside = scale - inside_to_outside;
             let outside_to_outside = scale - outside_to_inside;
 
-            outcomes[outcome_index][inside] = capture[inside]
+            outcome_mass[inside] = capture[inside]
                 .checked_mul(inside_to_inside)
                 .and_then(|value| value.checked_add(
                     capture[outside].checked_mul(outside_to_inside)?,
                 ))
                 .ok_or(TailRiskError::ArithmeticOverflow)?;
-            outcomes[outcome_index][outside] = capture[inside]
+            outcome_mass[outside] = capture[inside]
                 .checked_mul(inside_to_outside)
                 .and_then(|value| value.checked_add(
                     capture[outside].checked_mul(outside_to_outside)?,
@@ -1066,8 +1068,8 @@ mod mission_path_distribution_tests {
         let mut reveal_cause = action(1, 0, 100, 0, 0);
         let reveal_nominal = likelihoods(0, PROBABILITY_SCALE, 0);
         let reveal_shared = likelihoods(0, 0, PROBABILITY_SCALE);
-        for model in 0..2 {
-            reveal_cause.likelihoods[model] = [
+        for likelihood_rows in &mut reveal_cause.likelihoods {
+            *likelihood_rows = [
                 reveal_nominal,
                 reveal_nominal,
                 reveal_shared,
@@ -1078,10 +1080,16 @@ mod mission_path_distribution_tests {
         let mut nominal_specialist = action(2, 0, 100, 0, 0);
         let mut shared_specialist = action(3, 0, 100, 0, 0);
         let uninformative = likelihoods(0, 500_000, 500_000);
-        for model in 0..2 {
-            for state in 0..2 {
-                nominal_specialist.likelihoods[model][2 + state] = uninformative;
-                shared_specialist.likelihoods[model][state] = uninformative;
+        for (nominal_rows, shared_rows) in nominal_specialist
+            .likelihoods
+            .iter_mut()
+            .zip(shared_specialist.likelihoods.iter_mut())
+        {
+            for (nominal_slot, shared_slot) in
+                nominal_rows[2..].iter_mut().zip(shared_rows[..2].iter_mut())
+            {
+                *nominal_slot = uninformative;
+                *shared_slot = uninformative;
             }
         }
 
