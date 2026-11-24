@@ -263,3 +263,9 @@ The known-answer pair contains a higher-information but decision-irrelevant prob
 Five tests currently encode the core exact arithmetic, information/decision divergence, cost dominance, invalid likelihood normalization, incomplete loss table and impossible-outcome semantics. (The current test module has six tests total; future tests should add the duplicate-ID and unknown-reference paths.)
 
 This is an exact one-step finite decision oracle, not an adaptive scheduler, a learned VoC predictor, a causal experiment selector, or an action authority. It is designed to serve as a known-answer baseline for the #11171 research-policy adapter and to complement Symthaea #5476/#5478/#8721 and #13418.
+
+## Decision-value oracle test expansion
+
+The decision-value module now has twelve tests, including adversarial checks for duplicate hypothesis/action/outcome IDs, duplicate likelihood pairs, unknown outcome references, likelihood weights above scale, non-normalized rows, incomplete loss tables, impossible outcomes and cost dominance. The finite EVSI arithmetic remains exact; only the mutual-information diagnostic uses floating point.
+
+**Verification for the decision-value source and its latest tests:** pending exact-head Rust 1.96 formatting, tests/doctest and strict Clippy. This code is newer than the earlier scoped-validator checks.
