@@ -72,6 +72,17 @@ A simulation proposal predicts target responses to observed source transitions; 
 
 The schema models candidate predictions; it does not itself prove the predictions correct. The Rust validator checks finite LTSs, while the trusted evaluator still has to construct the owner-side systems from public and hidden data and verify the custody/freeze order.
 
+## Transfer probability forecasts and explicit abstention
+
+The top-level optional `transfer_forecasts` field lets the learner forecast exact claim qualification:
+- claim ID and claim type;
+- transfer probability in ppm;
+- decision: `assert_transfer`, `reject_transfer` or `abstain`.
+
+It is a probability for the exact scoped claim, not general confidence in an analogy. For example, a valid induced embedding does not entail a valid mechanism transfer.
+
+The trusted evaluator resolves claim IDs and computes calibration after the bundle is frozen. It owns the binary outcome labels, fixed reliability bins and selective-risk confidence thresholds. Do not include evaluator labels or tune thresholds against the sealed confirmatory outcomes. See `TRANSFER_CALIBRATION_V0_1.md`.
+
 ## Decision value and prospective forecasts
 
 Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
