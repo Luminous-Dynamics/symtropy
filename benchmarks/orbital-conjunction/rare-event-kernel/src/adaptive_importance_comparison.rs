@@ -125,6 +125,31 @@ pub struct AdaptiveImportanceComparisonReport {
     pub methods: Vec<AdaptiveImportanceMethodComparison>,
 }
 
+/// Immutable parameters shared by every adapter in a matched receipt comparison.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdaptiveImportanceComparisonConfig {
+    /// Event identity used by every receipt.
+    pub event_digest: [u8; 32],
+    /// Target-measure identity used by every receipt.
+    pub target_measure_digest: [u8; 32],
+    /// Fixed defensive-component identity.
+    pub defensive_component_digest: [u8; 32],
+    /// Defensive mixture weight shared by every receipt and adapter.
+    pub defensive_mixture_weight: f64,
+    /// Overall confidence error probability.
+    pub confidence_alpha: f64,
+    /// Independently known event probability for the synthetic fixture.
+    pub fixture_truth: f64,
+    /// Caller-configured Hedged candidate-mean grid.
+    pub parameter_grid: Vec<f64>,
+    /// Common receipt-count checkpoints.
+    pub checkpoints: Vec<usize>,
+    /// Optional event-probability threshold used for first-decision timing.
+    pub decision_threshold: Option<f64>,
+    /// Number of identical full-stream timing replays.
+    pub timing_repetitions: usize,
+}
+
 /// Validation or adapter failures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdaptiveImportanceComparisonError {
@@ -193,140 +218,96 @@ impl std::error::Error for AdaptiveImportanceComparisonError {}
 /// to the compiler, CPU, operating system and runtime environment.
 pub fn compare_adaptive_importance_sequences(
     receipts: &[AdaptiveImportanceDraw],
-    event_digest: [u8; 32],
-    target_measure_digest: [u8; 32],
-    defensive_component_digest: [u8; 32],
-    defensive_mixture_weight: f64,
-    confidence_alpha: f64,
-    fixture_truth: f64,
-    parameter_grid: Vec<f64>,
-    checkpoints: &[usize],
-    decision_threshold: Option<f64>,
-    timing_repetitions: usize,
+    config: AdaptiveImportanceComparisonConfig,
 ) -> Result<AdaptiveImportanceComparisonReport, AdaptiveImportanceComparisonError> {
     if receipts.is_empty() {
         return Err(AdaptiveImportanceComparisonError::EmptyReceiptStream);
     }
-    if !fixture_truth.is_finite() || !(0.0..=1.0).contains(&fixture_truth) {
+    if !config.fixture_truth.is_finite() || !(0.0..=1.0).contains(&config.fixture_truth) {
         return Err(AdaptiveImportanceComparisonError::InvalidFixtureTruth);
     }
-    if !confidence_alpha.is_finite() || confidence_alpha <= 0.0 || confidence_alpha >= 1.0 {
+    if !config.confidence_alpha.is_finite()
+        || config.confidence_alpha <= 0.0
+        || config.confidence_alpha >= 1.0
+    {
         return Err(AdaptiveImportanceComparisonError::InvalidConfidenceAlpha);
     }
-    if !defensive_mixture_weight.is_finite()
-        || defensive_mixture_weight <= 0.0
-        || defensive_mixture_weight > 1.0
-        || !defensive_mixture_weight.recip().is_finite()
+    if !config.defensive_mixture_weight.is_finite()
+        || config.defensive_mixture_weight <= 0.0
+        || config.defensive_mixture_weight > 1.0
+        || !config.defensive_mixture_weight.recip().is_finite()
     {
         return Err(AdaptiveImportanceComparisonError::InvalidDefensiveMixtureWeight);
     }
-    if is_zero_digest(&event_digest)
-        || is_zero_digest(&target_measure_digest)
-        || is_zero_digest(&defensive_component_digest)
+    if is_zero_digest(&config.event_digest)
+        || is_zero_digest(&config.target_measure_digest)
+        || is_zero_digest(&config.defensive_component_digest)
     {
         return Err(AdaptiveImportanceComparisonError::InvalidIdentity);
     }
-    if checkpoints.is_empty()
-        || checkpoints[0] == 0
-        || checkpoints.last().copied().unwrap_or(0) > receipts.len()
-        || checkpoints.windows(2).any(|pair| pair[0] >= pair[1])
+    if config.checkpoints.is_empty()
+        || config.checkpoints[0] == 0
+        || config.checkpoints.last().copied().unwrap_or(0) > receipts.len()
+        || config.checkpoints.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(AdaptiveImportanceComparisonError::InvalidCheckpoints);
     }
-    if timing_repetitions == 0 {
+    if config.timing_repetitions == 0 {
         return Err(AdaptiveImportanceComparisonError::InvalidTimingRepetitions);
     }
-    if decision_threshold
-        .is_some_and(|threshold| !threshold.is_finite() || !(0.0..=1.0).contains(&threshold))
-    {
+    if config.decision_threshold.is_some_and(|threshold| {
+        !threshold.is_finite() || !(0.0..=1.0).contains(&threshold)
+    }) {
         return Err(AdaptiveImportanceComparisonError::InvalidDecisionThreshold);
     }
     if receipts.iter().any(|draw| {
-        draw.event_digest != event_digest
-            || draw.target_measure_digest != target_measure_digest
-            || draw.defensive_component_digest != defensive_component_digest
-            || draw.defensive_mixture_weight.to_bits() != defensive_mixture_weight.to_bits()
+        draw.event_digest != config.event_digest
+            || draw.target_measure_digest != config.target_measure_digest
+            || draw.defensive_component_digest != config.defensive_component_digest
+            || draw.defensive_mixture_weight.to_bits()
+                != config.defensive_mixture_weight.to_bits()
     }) {
         return Err(AdaptiveImportanceComparisonError::ReceiptScopeMismatch);
     }
 
-    // Validate the grid once before benchmarking any adapter.
-    HedgedCapitalConfidenceSequence::new(confidence_alpha, parameter_grid.clone())
-        .map_err(|_| AdaptiveImportanceComparisonError::InvalidHedgedGrid)?;
+    // Validate the caller-selected grid before benchmarking any adapter.
+    HedgedCapitalConfidenceSequence::new(
+        config.confidence_alpha,
+        config.parameter_grid.clone(),
+    )
+    .map_err(|_| AdaptiveImportanceComparisonError::InvalidHedgedGrid)?;
 
-    let fixed = run_fixed_stake(
-        receipts,
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        defensive_mixture_weight,
-        confidence_alpha,
-        fixture_truth,
-        checkpoints,
-        decision_threshold,
-        timing_repetitions,
-    )?;
-    let prpl = run_prpl_eb(
-        receipts,
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        defensive_mixture_weight,
-        confidence_alpha,
-        fixture_truth,
-        checkpoints,
-        decision_threshold,
-        timing_repetitions,
-    )?;
-    let hedged = run_hedged(
-        receipts,
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        defensive_mixture_weight,
-        confidence_alpha,
-        fixture_truth,
-        parameter_grid,
-        checkpoints,
-        decision_threshold,
-        timing_repetitions,
-    )?;
+    let fixed = run_fixed_stake(receipts, &config)?;
+    let prpl = run_prpl_eb(receipts, &config)?;
+    let hedged = run_hedged(receipts, &config)?;
 
     Ok(AdaptiveImportanceComparisonReport {
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        defensive_mixture_weight,
-        confidence_alpha,
-        fixture_truth,
-        decision_threshold,
+        event_digest: config.event_digest,
+        target_measure_digest: config.target_measure_digest,
+        defensive_component_digest: config.defensive_component_digest,
+        defensive_mixture_weight: config.defensive_mixture_weight,
+        confidence_alpha: config.confidence_alpha,
+        fixture_truth: config.fixture_truth,
+        decision_threshold: config.decision_threshold,
         receipt_count: receipts.len(),
-        checkpoints: checkpoints.to_vec(),
+        checkpoints: config.checkpoints,
         methods: vec![fixed, prpl, hedged],
     })
 }
 
 fn run_fixed_stake(
     receipts: &[AdaptiveImportanceDraw],
-    event_digest: [u8; 32],
-    target_measure_digest: [u8; 32],
-    defensive_component_digest: [u8; 32],
-    mixture_weight: f64,
-    alpha: f64,
-    fixture_truth: f64,
-    checkpoints: &[usize],
-    threshold: Option<f64>,
-    repetitions: usize,
+    config: &AdaptiveImportanceComparisonConfig,
 ) -> Result<AdaptiveImportanceMethodComparison, AdaptiveImportanceComparisonError> {
     let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        mixture_weight,
-        alpha,
+        config.event_digest,
+        config.target_measure_digest,
+        config.defensive_component_digest,
+        config.defensive_mixture_weight,
+        config.confidence_alpha,
     )
     .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
-    let mut snapshots = Vec::with_capacity(checkpoints.len());
+    let mut snapshots = Vec::with_capacity(config.checkpoints.len());
     let mut first_decision = None;
     let mut first_decision_sample_count = None;
     let mut checkpoint_index = 0;
@@ -340,7 +321,7 @@ fn run_fixed_stake(
             .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         validate_summary(summary)?;
         record_decision(
-            threshold,
+            config.decision_threshold,
             summary.lower,
             summary.upper,
             index + 1,
@@ -350,20 +331,20 @@ fn run_fixed_stake(
         record_snapshot(
             index + 1,
             summary,
-            fixture_truth,
-            checkpoints,
+            config.fixture_truth,
+            &config.checkpoints,
             &mut checkpoint_index,
             &mut snapshots,
         );
     }
 
-    let elapsed = median_elapsed(repetitions, || {
+    let elapsed = median_elapsed(config.timing_repetitions, || {
         let mut adapter = AdaptiveImportanceSamplingConfidenceSequence::new(
-            event_digest,
-            target_measure_digest,
-            defensive_component_digest,
-            mixture_weight,
-            alpha,
+            config.event_digest,
+            config.target_measure_digest,
+            config.defensive_component_digest,
+            config.defensive_mixture_weight,
+            config.confidence_alpha,
         )
         .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         for receipt in receipts {
@@ -385,7 +366,7 @@ fn run_fixed_stake(
         first_decision_sample_count,
         first_decision,
         median_elapsed_nanoseconds: elapsed,
-        timing_repetitions: repetitions,
+        timing_repetitions: config.timing_repetitions,
         retained_sample_identity_count: receipts.len(),
         retained_observation_count: receipts.len(),
         candidate_mean_grid_size: 0,
@@ -395,25 +376,17 @@ fn run_fixed_stake(
 
 fn run_prpl_eb(
     receipts: &[AdaptiveImportanceDraw],
-    event_digest: [u8; 32],
-    target_measure_digest: [u8; 32],
-    defensive_component_digest: [u8; 32],
-    mixture_weight: f64,
-    alpha: f64,
-    fixture_truth: f64,
-    checkpoints: &[usize],
-    threshold: Option<f64>,
-    repetitions: usize,
+    config: &AdaptiveImportanceComparisonConfig,
 ) -> Result<AdaptiveImportanceMethodComparison, AdaptiveImportanceComparisonError> {
     let mut sequence = AdaptiveImportanceSamplingPrPlEbSequence::new(
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        mixture_weight,
-        alpha,
+        config.event_digest,
+        config.target_measure_digest,
+        config.defensive_component_digest,
+        config.defensive_mixture_weight,
+        config.confidence_alpha,
     )
     .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
-    let mut snapshots = Vec::with_capacity(checkpoints.len());
+    let mut snapshots = Vec::with_capacity(config.checkpoints.len());
     let mut first_decision = None;
     let mut first_decision_sample_count = None;
     let mut checkpoint_index = 0;
@@ -427,7 +400,7 @@ fn run_prpl_eb(
             .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         validate_summary(summary)?;
         record_decision(
-            threshold,
+            config.decision_threshold,
             summary.lower,
             summary.upper,
             index + 1,
@@ -437,20 +410,20 @@ fn run_prpl_eb(
         record_snapshot(
             index + 1,
             summary,
-            fixture_truth,
-            checkpoints,
+            config.fixture_truth,
+            &config.checkpoints,
             &mut checkpoint_index,
             &mut snapshots,
         );
     }
 
-    let elapsed = median_elapsed(repetitions, || {
+    let elapsed = median_elapsed(config.timing_repetitions, || {
         let mut adapter = AdaptiveImportanceSamplingPrPlEbSequence::new(
-            event_digest,
-            target_measure_digest,
-            defensive_component_digest,
-            mixture_weight,
-            alpha,
+            config.event_digest,
+            config.target_measure_digest,
+            config.defensive_component_digest,
+            config.defensive_mixture_weight,
+            config.confidence_alpha,
         )
         .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         for receipt in receipts {
@@ -472,7 +445,7 @@ fn run_prpl_eb(
         first_decision_sample_count,
         first_decision,
         median_elapsed_nanoseconds: elapsed,
-        timing_repetitions: repetitions,
+        timing_repetitions: config.timing_repetitions,
         retained_sample_identity_count: receipts.len(),
         retained_observation_count: 0,
         candidate_mean_grid_size: 0,
@@ -482,28 +455,19 @@ fn run_prpl_eb(
 
 fn run_hedged(
     receipts: &[AdaptiveImportanceDraw],
-    event_digest: [u8; 32],
-    target_measure_digest: [u8; 32],
-    defensive_component_digest: [u8; 32],
-    mixture_weight: f64,
-    alpha: f64,
-    fixture_truth: f64,
-    parameter_grid: Vec<f64>,
-    checkpoints: &[usize],
-    threshold: Option<f64>,
-    repetitions: usize,
+    config: &AdaptiveImportanceComparisonConfig,
 ) -> Result<AdaptiveImportanceMethodComparison, AdaptiveImportanceComparisonError> {
-    let grid_size = parameter_grid.len();
+    let grid_size = config.parameter_grid.len();
     let mut sequence = AdaptiveImportanceSamplingHedgedSequence::new(
-        event_digest,
-        target_measure_digest,
-        defensive_component_digest,
-        mixture_weight,
-        alpha,
-        parameter_grid.clone(),
+        config.event_digest,
+        config.target_measure_digest,
+        config.defensive_component_digest,
+        config.defensive_mixture_weight,
+        config.confidence_alpha,
+        config.parameter_grid.clone(),
     )
     .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
-    let mut snapshots = Vec::with_capacity(checkpoints.len());
+    let mut snapshots = Vec::with_capacity(config.checkpoints.len());
     let mut first_decision = None;
     let mut first_decision_sample_count = None;
     let mut checkpoint_index = 0;
@@ -517,7 +481,7 @@ fn run_hedged(
             .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         validate_summary(summary)?;
         record_decision(
-            threshold,
+            config.decision_threshold,
             summary.lower,
             summary.upper,
             index + 1,
@@ -527,21 +491,21 @@ fn run_hedged(
         record_snapshot(
             index + 1,
             summary,
-            fixture_truth,
-            checkpoints,
+            config.fixture_truth,
+            &config.checkpoints,
             &mut checkpoint_index,
             &mut snapshots,
         );
     }
 
-    let elapsed = median_elapsed(repetitions, || {
+    let elapsed = median_elapsed(config.timing_repetitions, || {
         let mut adapter = AdaptiveImportanceSamplingHedgedSequence::new(
-            event_digest,
-            target_measure_digest,
-            defensive_component_digest,
-            mixture_weight,
-            alpha,
-            parameter_grid.clone(),
+            config.event_digest,
+            config.target_measure_digest,
+            config.defensive_component_digest,
+            config.defensive_mixture_weight,
+            config.confidence_alpha,
+            config.parameter_grid.clone(),
         )
         .map_err(|_| AdaptiveImportanceComparisonError::AdapterFailure)?;
         for receipt in receipts {
@@ -563,7 +527,7 @@ fn run_hedged(
         first_decision_sample_count,
         first_decision,
         median_elapsed_nanoseconds: elapsed,
-        timing_repetitions: repetitions,
+        timing_repetitions: config.timing_repetitions,
         retained_sample_identity_count: receipts.len(),
         retained_observation_count: 0,
         candidate_mean_grid_size: grid_size,
@@ -670,6 +634,25 @@ mod tests {
             .unwrap()
     }
 
+    fn config(
+        checkpoints: &[usize],
+        decision_threshold: Option<f64>,
+        timing_repetitions: usize,
+    ) -> AdaptiveImportanceComparisonConfig {
+        AdaptiveImportanceComparisonConfig {
+            event_digest: EVENT,
+            target_measure_digest: TARGET,
+            defensive_component_digest: DEFENSIVE,
+            defensive_mixture_weight: MIXTURE_WEIGHT,
+            confidence_alpha: 0.05,
+            fixture_truth: TARGET_EVENT_PROBABILITY,
+            parameter_grid: hedged_grid(),
+            checkpoints: checkpoints.to_vec(),
+            decision_threshold,
+            timing_repetitions,
+        }
+    }
+
     fn adaptive_receipts(horizon: usize, encoded_path: u32) -> (Vec<AdaptiveImportanceDraw>, f64) {
         let mut receipts = Vec::with_capacity(horizon);
         let mut path_probability = 1.0;
@@ -714,16 +697,7 @@ mod tests {
         let (receipts, _) = adaptive_receipts(48, 0b0010_1101_0011_1001);
         let report = compare_adaptive_importance_sequences(
             &receipts,
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            MIXTURE_WEIGHT,
-            0.05,
-            TARGET_EVENT_PROBABILITY,
-            hedged_grid(),
-            &[12, 24, 48],
-            Some(0.5),
-            2,
+            config(&[12, 24, 48], Some(0.5), 2),
         )
         .unwrap();
 
@@ -751,16 +725,7 @@ mod tests {
         let (receipts, _) = adaptive_receipts(96, 0b1010_0101_1001_1100);
         let report = compare_adaptive_importance_sequences(
             &receipts,
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            MIXTURE_WEIGHT,
-            0.05,
-            TARGET_EVENT_PROBABILITY,
-            hedged_grid(),
-            &[24, 48, 96],
-            Some(0.1),
-            1,
+            config(&[24, 48, 96], Some(0.1), 1),
         )
         .unwrap();
 
@@ -778,16 +743,7 @@ mod tests {
         let (receipts, _) = adaptive_receipts(16, 0b0101_0110_1100_0011);
         let report = compare_adaptive_importance_sequences(
             &receipts,
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            MIXTURE_WEIGHT,
-            0.05,
-            TARGET_EVENT_PROBABILITY,
-            hedged_grid(),
-            &[16],
-            None,
-            1,
+            config(&[16], None, 1),
         )
         .unwrap();
 
@@ -812,28 +768,19 @@ mod tests {
     #[test]
     fn exhaustive_adaptive_receipt_paths_cover_all_three_adapters_at_every_time() {
         const HORIZON: u32 = 6;
+        let checkpoints = (1..=HORIZON as usize).collect::<Vec<_>>();
         let mut miss_probability = [0.0_f64; 3];
 
         for encoded_path in 0_u32..(1_u32 << HORIZON) {
             let (receipts, path_probability) = adaptive_receipts(HORIZON as usize, encoded_path);
             let report = compare_adaptive_importance_sequences(
                 &receipts,
-                EVENT,
-                TARGET,
-                DEFENSIVE,
-                MIXTURE_WEIGHT,
-                0.05,
-                TARGET_EVENT_PROBABILITY,
-                hedged_grid(),
-                &[HORIZON as usize],
-                None,
-                1,
+                config(&checkpoints, None, 1),
             )
             .unwrap();
 
             for (index, method) in report.methods.iter().enumerate() {
-                let final_snapshot = method.snapshots.last().unwrap();
-                if !final_snapshot.contains_fixture_truth {
+                if method.snapshots.iter().any(|snapshot| !snapshot.contains_fixture_truth) {
                     miss_probability[index] += path_probability;
                 }
             }
@@ -854,72 +801,26 @@ mod tests {
     #[test]
     fn invalid_receipt_scopes_checkpoints_and_timings_fail_closed() {
         let (receipts, _) = adaptive_receipts(4, 0b1010);
+        let mut mismatched_scope = config(&[4], None, 1);
+        mismatched_scope.event_digest = [99; 32];
         assert_eq!(
-            compare_adaptive_importance_sequences(
-                &receipts,
-                [99; 32],
-                TARGET,
-                DEFENSIVE,
-                MIXTURE_WEIGHT,
-                0.05,
-                TARGET_EVENT_PROBABILITY,
-                hedged_grid(),
-                &[4],
-                None,
-                1,
-            ),
+            compare_adaptive_importance_sequences(&receipts, mismatched_scope),
             Err(AdaptiveImportanceComparisonError::ReceiptScopeMismatch)
         );
 
         let mut duplicate = receipts.clone();
         duplicate[1].sample_id = duplicate[0].sample_id;
         assert_eq!(
-            compare_adaptive_importance_sequences(
-                &duplicate,
-                EVENT,
-                TARGET,
-                DEFENSIVE,
-                MIXTURE_WEIGHT,
-                0.05,
-                TARGET_EVENT_PROBABILITY,
-                hedged_grid(),
-                &[4],
-                None,
-                1,
-            ),
+            compare_adaptive_importance_sequences(&duplicate, config(&[4], None, 1)),
             Err(AdaptiveImportanceComparisonError::AdapterFailure)
         );
 
         assert_eq!(
-            compare_adaptive_importance_sequences(
-                &receipts,
-                EVENT,
-                TARGET,
-                DEFENSIVE,
-                MIXTURE_WEIGHT,
-                0.05,
-                TARGET_EVENT_PROBABILITY,
-                hedged_grid(),
-                &[0],
-                None,
-                1,
-            ),
+            compare_adaptive_importance_sequences(&receipts, config(&[0], None, 1)),
             Err(AdaptiveImportanceComparisonError::InvalidCheckpoints)
         );
         assert_eq!(
-            compare_adaptive_importance_sequences(
-                &receipts,
-                EVENT,
-                TARGET,
-                DEFENSIVE,
-                MIXTURE_WEIGHT,
-                0.05,
-                TARGET_EVENT_PROBABILITY,
-                hedged_grid(),
-                &[4],
-                None,
-                0,
-            ),
+            compare_adaptive_importance_sequences(&receipts, config(&[4], None, 0)),
             Err(AdaptiveImportanceComparisonError::InvalidTimingRepetitions)
         );
     }
