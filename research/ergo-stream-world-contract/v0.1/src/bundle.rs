@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use super::scoped::{
-    ScopedStructuralCandidateV0, ScopedStructuralErrorV0, ScopedStructuralWitnessV0,
+    ScopedStructuralCandidateV0, ScopedTransferErrorV0, ScopedStructuralWitnessV0,
     validate_scoped_structural_correspondence,
 };
 use super::transfer::StructureV0;
@@ -124,7 +124,7 @@ pub enum BundleValidationErrorV0 {
     EmptyEntityEvidence,
     DuplicateEntityEvidenceId,
     UnknownEvidenceReference,
-    ScopedStructuralRejected(ScopedStructuralErrorV0),
+    ScopedStructuralRejected(ScopedTransferErrorV0),
 }
 
 impl fmt::Display for BundleValidationErrorV0 {
@@ -447,8 +447,8 @@ mod tests {
         StructuralMapKindV0, StructureScopeV0,
     };
     use super::super::transfer::{
-        NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
-        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0,
+        NodeCorrespondenceV0, NodeV0, ParticipantTransformV0, RelationCorrespondenceV0,
+        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0, StructuralCorrespondenceV0,
     };
     use super::*;
 
