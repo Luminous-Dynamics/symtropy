@@ -21,7 +21,7 @@ Narrowphase layer:
 
 ## Integration
 
-The library depends on nyu-ccd-query-import and constructs query identity from dataset, scene, time step, query class and query index. Ground truth must already be attached to the imported query. It does not infer oracle labels from the tested algorithm.
+The library depends on nyu-ccd-query-import and constructs query identity from dataset, scene, time step, query class and query index. The import adapter joins algorithm results by that identity, rejects duplicates, missing results and orphan rows, and never joins by array position. Ground truth must already be attached to the imported query; it is never accepted from the tested algorithm output.
 
 The evaluator does not count broadphase box pairs, map query indices to collider pairs, or prove a pruning certificate. The verifier receipt is a declared input and must come from the independently qualified checker (#7307). The score is not a cryptographic attestation. Safe negative certificate-backed prunes can qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives. Safe negative certificate-backed prunes are counted as certified prunes and are allowed to qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives.
 
