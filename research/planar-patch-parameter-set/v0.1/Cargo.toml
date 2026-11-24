@@ -1,0 +1,16 @@
+[package]
+name = "planar-patch-parameter-set"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Feasible ellipsoid parameter intervals under bounded planar patch wrench error"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "parameter_set_tournament"
+path = "examples/parameter_set_tournament.rs"
+
+[workspace]
