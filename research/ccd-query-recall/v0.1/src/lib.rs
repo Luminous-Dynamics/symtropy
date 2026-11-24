@@ -552,13 +552,25 @@ mod tests {
 
         let results = queries
             .iter()
-            .map(|query| {
-                evaluation(
-                    query,
-                    "armadillo-rollers",
-                    CandidateDisposition::Forwarded,
-                    NarrowphaseOutcome::NoCollision,
-                )
+            .enumerate()
+            .map(|(index, query)| {
+                if index == 0 {
+                    evaluation(
+                        query,
+                        "armadillo-rollers",
+                        CandidateDisposition::CertifiedPruned(evidence(
+                            VerificationStatus::AcceptedAndReplayed,
+                        )),
+                        NarrowphaseOutcome::NotRun,
+                    )
+                } else {
+                    evaluation(
+                        query,
+                        "armadillo-rollers",
+                        CandidateDisposition::Forwarded,
+                        NarrowphaseOutcome::NoCollision,
+                    )
+                }
             })
             .collect::<Vec<_>>();
         let score = evaluate_queries(&results).unwrap();
@@ -568,8 +580,10 @@ mod tests {
         assert_eq!(score.counts.oracle_negative_queries, 2);
         assert_eq!(score.counts.candidate_recall_basis_points(), None);
         assert_eq!(score.counts.narrowphase_recall_basis_points(), None);
-        assert_eq!(score.counts.candidate_false_positives, 2);
-        assert_eq!(score.counts.certified_pruned_queries, 0);
+        assert_eq!(score.counts.candidate_false_positives, 1);
+        assert_eq!(score.counts.certified_pruned_queries, 1);
+        assert_eq!(score.counts.accepted_replayed_prune_certificates, 1);
+        assert!(score.counts.correctness_qualified());
     }
 
     #[test]
@@ -621,6 +635,43 @@ mod tests {
         assert_eq!(counts.certified_pruned_oracle_negatives, 1);
         assert_eq!(counts.accepted_replayed_prune_certificates, 2);
         assert!(!counts.correctness_qualified());
+    }
+
+    #[test]
+    fn forwarded_oracle_positive_with_narrowphase_miss_is_not_a_candidate_miss() {
+        let queries = imported_queries_with_labels(&[true]);
+        let result = evaluation(
+            &queries[0],
+            "narrowphase-miss-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+        let score = evaluate_queries(&[result]).unwrap();
+
+        assert_eq!(score.counts.candidate_false_negatives, 0);
+        assert_eq!(score.counts.candidate_recall_basis_points(), Some(10_000));
+        assert_eq!(score.counts.narrowphase_false_negatives, 1);
+        assert_eq!(score.counts.narrowphase_recall_basis_points(), Some(0));
+        assert!(!score.counts.correctness_qualified());
+    }
+
+    #[test]
+    fn safe_negative_certificate_prune_can_still_qualify() {
+        let queries = imported_queries_with_labels(&[false]);
+        let result = evaluation(
+            &queries[0],
+            "safe-negative-prune-scene",
+            CandidateDisposition::CertifiedPruned(evidence(
+                VerificationStatus::AcceptedAndReplayed,
+            )),
+            NarrowphaseOutcome::NotRun,
+        );
+        let score = evaluate_queries(&[result]).unwrap();
+
+        assert_eq!(score.counts.candidate_false_negatives, 0);
+        assert_eq!(score.counts.narrowphase_false_negatives, 0);
+        assert_eq!(score.counts.narrowphase_not_run_queries, 1);
+        assert!(score.counts.correctness_qualified());
     }
 
     #[test]
