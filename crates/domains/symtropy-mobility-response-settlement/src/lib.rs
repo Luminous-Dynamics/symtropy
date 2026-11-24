@@ -677,6 +677,13 @@ fn validate_timelines(
 
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
+        if !evidence_ids.insert(baseline_id.clone())
+            || !evidence_ids.insert(response_id.clone())
+        {
+            return Err(BridgeError::DuplicateEvidence(
+                "baseline or response evidence reference is reused across intervals".to_owned(),
+            ));
+        }
         check_identity(
             string(pcc_intervals.get(index).unwrap(), "/baseline_evidence_id")?,
             &baseline_id,
@@ -749,9 +756,10 @@ fn evaluate_component_flags(
     .into_iter()
     .collect();
     let mut gate_names = BTreeSet::new();
+    let mut all_upstream_gates_passed = true;
     for receipt in upstream {
         if string(receipt, "/disposition")? != "passed" {
-            return Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, false, false));
+            all_upstream_gates_passed = false;
         }
         let gate = string(receipt, "/gate")?;
         if !gate_names.insert(gate) {
@@ -764,6 +772,9 @@ fn evaluate_component_flags(
         return Err(BridgeError::InvalidField(
             "network adapter upstream gate set is not the exact five-gate contract".to_owned(),
         ));
+    }
+    if !all_upstream_gates_passed {
+        return Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, false, false));
     }
     for field in [
         "/actual_metered_delivery_assessed",
@@ -794,7 +805,7 @@ pub fn evaluate_mobility_response_settlement(
 ) -> Result<MobilityResponseSettlementReport, BridgeError> {
     let artifacts = validate_input(input)?;
     validate_report_identities(input)?;
-    let (dispatch_interval_count, _recovery_interval_count) = validate_timelines(input)?;
+    let _interval_counts = validate_timelines(input)?;
     let (grid_response_passed, pcc_metrology_qualified, baseline_qualified, baseline_event_qualified,
         full_request_dc_network_deliverable, required_n_minus_one_passed) =
         evaluate_component_flags(input)?;
@@ -1555,6 +1566,17 @@ mod tests {
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::DuplicateEvidence(_))
+        ));
+    }
+
+    #[test]
+    fn missing_gate_is_detected_even_if_another_gate_failed() {
+        let mut bad = input();
+        bad.mobility_network.report["upstream_receipts"][0]["disposition"] = json!("failed");
+        bad.mobility_network.report["upstream_receipts"].as_array_mut().unwrap().pop();
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad),
+            Err(BridgeError::InvalidField(_))
         ));
     }
 
