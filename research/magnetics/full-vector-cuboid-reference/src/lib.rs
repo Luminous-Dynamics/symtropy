@@ -60,9 +60,9 @@ impl fmt::Display for CuboidFieldError {
             Self::NonPositiveDimension => f.write_str("cuboid half-dimensions must be positive"),
             Self::NonFinitePolarization => f.write_str("polarization contains a non-finite value"),
             Self::NonFiniteObserver => f.write_str("observer position contains a non-finite value"),
-            Self::CoordinatePlaneBoundary => {
-                f.write_str("observer lies exactly on a cuboid coordinate plane; use a one-sided API")
-            }
+            Self::CoordinatePlaneBoundary => f.write_str(
+                "observer lies exactly on a cuboid coordinate plane; use a one-sided API",
+            ),
             Self::NumericalRange => {
                 f.write_str("geometry or observer separation is outside the supported f64 range")
             }
@@ -130,10 +130,7 @@ impl UniformlyPolarizedCuboid {
     ///
     /// Rejects non-finite observers, exact coordinate-plane boundaries,
     /// non-representable normalized geometry, and non-finite field output.
-    pub fn field_at(
-        self,
-        observer: PositionMeters,
-    ) -> Result<FieldVectorTesla, CuboidFieldError> {
+    pub fn field_at(self, observer: PositionMeters) -> Result<FieldVectorTesla, CuboidFieldError> {
         let [x, y, z] = observer.0;
         if !observer.0.iter().all(|value| value.is_finite()) {
             return Err(CuboidFieldError::NonFiniteObserver);
@@ -153,9 +150,7 @@ impl UniformlyPolarizedCuboid {
 
         let half = [a / scale, b / scale, c / scale];
         let point = [x / scale, y / scale, z / scale];
-        if half.iter().any(|value| *value == 0.0)
-            || point.iter().any(|value| !value.is_finite())
-        {
+        if half.iter().any(|value| *value == 0.0) || point.iter().any(|value| !value.is_finite()) {
             return Err(CuboidFieldError::NumericalRange);
         }
 
@@ -382,11 +377,8 @@ mod tests {
     const MU0: f64 = 4.0 * std::f64::consts::PI * 1.0e-7;
 
     fn cuboid(half: [f64; 3], polarization: [f64; 3]) -> UniformlyPolarizedCuboid {
-        UniformlyPolarizedCuboid::new(
-            HalfDimensionsMeters(half),
-            PolarizationTesla(polarization),
-        )
-        .unwrap()
+        UniformlyPolarizedCuboid::new(HalfDimensionsMeters(half), PolarizationTesla(polarization))
+            .unwrap()
     }
 
     fn close_vector(actual: [f64; 3], expected: [f64; 3], tolerance: f64) {
@@ -417,9 +409,7 @@ mod tests {
     #[test]
     fn independent_surface_quadrature_off_axis_interior_known_answer() {
         let magnet = cuboid([0.05, 0.04, 0.03], [0.3, -0.1, 1.2]);
-        let field = magnet
-            .field_at(PositionMeters([0.03, 0.02, 0.01]))
-            .unwrap();
+        let field = magnet.field_at(PositionMeters([0.03, 0.02, 0.01])).unwrap();
         close_vector(
             field.0,
             [
@@ -434,9 +424,7 @@ mod tests {
     #[test]
     fn independent_surface_quadrature_off_axis_exterior_known_answer() {
         let magnet = cuboid([0.05, 0.04, 0.03], [0.3, -0.1, 1.2]);
-        let field = magnet
-            .field_at(PositionMeters([0.1, 0.08, 0.06]))
-            .unwrap();
+        let field = magnet.field_at(PositionMeters([0.1, 0.08, 0.06])).unwrap();
         close_vector(
             field.0,
             [
