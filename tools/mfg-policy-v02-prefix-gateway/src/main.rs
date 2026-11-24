@@ -475,9 +475,16 @@ mod tests {
             "horizon_epochs": 4,
             "decision_visibility_rule": "Static case only; events revealed incrementally.",
             "jobs": [],
-            "resources": [],
+            "resources": [{
+                "resource_id": "RESOURCE-A",
+                "capability_families": ["CUTTING"],
+                "initial_qualifications": [{
+                    "process_family": "CUTTING",
+                    "disposition": "ADMISSIBLE"
+                }]
+            }],
             "setup_transitions": [],
-            "inspection_station": {}
+            "inspection_station": {"station_id": "INSPECTION-01"}
         })
     }
 
@@ -588,6 +595,30 @@ mod tests {
         )
         .unwrap();
         assert_eq!(original, mutated);
+    }
+
+    #[test]
+    fn invalid_resource_reference_in_simulator_stream_fails_closed() {
+        let policy_case = sample_policy_case();
+        let mut stream_case = sample_stream_case();
+        stream_case["scenarios"][0]["observations_by_epoch"][0]["resource_events"][0]
+            ["resource_id"] = Value::from("UNKNOWN-RESOURCE");
+        assert_eq!(
+            validate_stream_case(&policy_case, &stream_case),
+            Err("resource_event_identity_scope_or_chronology_invalid".into())
+        );
+    }
+
+    #[test]
+    fn event_arrival_before_occurrence_fails_closed() {
+        let policy_case = sample_policy_case();
+        let mut stream_case = sample_stream_case();
+        stream_case["scenarios"][0]["observations_by_epoch"][1]["resource_events"][0]
+            ["occurred_at_epoch"] = Value::from(2_u64);
+        assert_eq!(
+            validate_stream_case(&policy_case, &stream_case),
+            Err("resource_event_identity_scope_or_chronology_invalid".into())
+        );
     }
 
     #[test]
