@@ -10,6 +10,7 @@ on:
       - "tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json"
       - "tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs"
       - "tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py"
+      - "tools/orbital-assurance-bundle-bench/tests/compare_anytime_world_set_oracles.mjs"
       - ".github/workflows/orbital-incumbent-sequential-receipt.yml"
   pull_request:
     branches:
@@ -43,10 +44,12 @@ jobs:
       - name: Run independent receipt contract challenge cases
         run: |
           node --check tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs
-          node tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json
+          node tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json > node-anytime-world-set-oracle.json
       - name: Run independent Python exact-arithmetic oracle
         run: |
           python3 --version
           python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py
           python3 tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json > python-anytime-world-set-oracle.json
           python3 -c 'import json; r=json.load(open("python-anytime-world-set-oracle.json", encoding="utf-8")); assert r["result"] == "pass" and r["case_count"] == 26 and r["expected_result_mismatches"] == 0 and r["authority_grants"] == 0'
+          node --check tools/orbital-assurance-bundle-bench/tests/compare_anytime_world_set_oracles.mjs
+          node tools/orbital-assurance-bundle-bench/tests/compare_anytime_world_set_oracles.mjs node-anytime-world-set-oracle.json python-anytime-world-set-oracle.json
