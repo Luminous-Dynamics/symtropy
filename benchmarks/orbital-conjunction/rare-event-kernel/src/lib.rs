@@ -45,14 +45,14 @@ pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
 
-pub use decision_gate::{
-    DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
-    assess_risk_threshold,
-};
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use decision_gate::{
+    DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
+    assess_risk_threshold,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
