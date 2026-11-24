@@ -121,6 +121,10 @@ pub enum GazeboAdapterError {
     ObserverSignatureMismatch,
     ObserverEpochMismatch,
     ObserverStepMismatch,
+    ScenarioNotFound,
+    FaultNotFound,
+    WorldChangedAtCutPoint,
+    TargetBindingChanged,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -720,6 +724,126 @@ pub fn validate_target_binding(
     Ok(())
 }
 
+/// Result of dispatching one fault selected from the verified compiled plan.
+///
+/// The record carries the exact cut-point snapshot and target binding that were
+/// rechecked immediately before dispatch. An Unknown outcome remains a
+/// reconciliation requirement; this type never grants retry or native authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GazeboPlannedDispatchResult {
+    pub request: GazeboDispatchRequest,
+    pub cut_snapshot: GazeboWorldSnapshot,
+    pub target_binding: GazeboTargetBinding,
+    pub outcome: GazeboDispatchOutcome,
+}
+
+/// Execute the plan-to-dispatch boundary for one declared fault event.
+///
+/// Unlike calling the individual step/resolve/dispatch helpers, this function
+/// selects the scenario and fault from the integrity-verified plan, advances to
+/// the exact planned step, resolves the target, then re-reads the world and
+/// target before dispatch. A changed epoch, clock, step, time, world-state digest,
+/// or target binding prevents dispatch. The simulator must still be isolated
+/// from external mutators: Gazebo's standard interfaces do not provide an
+/// exclusive-world lease, so this final recheck narrows but cannot eliminate a
+/// time-of-check/time-of-use race with an uncoordinated external client.
+pub fn dispatch_planned_fault_once<S, I>(
+    simulator: &mut S,
+    injector: &mut I,
+    registry: &mut DispatchAttemptRegistry,
+    plan: &CompiledCampaignPlan,
+    session: &GazeboAdapterSession,
+    scenario_id: &str,
+    fault_id: &str,
+    run_id: &str,
+    run_epoch: &str,
+) -> Result<GazeboPlannedDispatchResult, GazeboAdapterError>
+where
+    S: GazeboSimulationTransport,
+    I: GazeboFaultInjectorTransport,
+{
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCapabilityProfile)?;
+    let scenario = plan
+        .scenarios
+        .iter()
+        .find(|scenario| scenario.scenario_id == scenario_id)
+        .ok_or(GazeboAdapterError::ScenarioNotFound)?;
+    let fault = scenario
+        .fault_events
+        .iter()
+        .find(|fault| fault.fault_id == fault_id)
+        .ok_or(GazeboAdapterError::FaultNotFound)?;
+
+    let cut_snapshot = advance_to_fault_cut(simulator, session, fault)?;
+    let target_binding = resolve_fault_target(simulator, session, fault)?;
+
+    // Close the gap between target resolution and dispatch as far as the
+    // simulator interface permits. The unchanged digest is a state witness,
+    // not a substitute for an enforced exclusive-world lease.
+    let before_dispatch = simulator
+        .get_world_state(&session.profile.world_name)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    before_dispatch.validate_against_profile(&session.profile)?;
+    if before_dispatch.world_epoch != session.world_epoch {
+        return Err(GazeboAdapterError::WrongWorldEpoch);
+    }
+    if before_dispatch.clock_id != session.clock_id {
+        return Err(GazeboAdapterError::InvalidClock);
+    }
+    if before_dispatch.state != SimulationState::Paused {
+        return Err(GazeboAdapterError::SimulatorNotPaused);
+    }
+    if before_dispatch.simulation_step > fault.scheduled_simulation_step {
+        return Err(GazeboAdapterError::SimulationStepOvershoot);
+    }
+    if before_dispatch.simulation_step != fault.scheduled_simulation_step {
+        return Err(GazeboAdapterError::SimulationStepNotReached);
+    }
+    if before_dispatch.simulation_time_ns != cut_snapshot.simulation_time_ns
+        || before_dispatch.state_sha256 != cut_snapshot.state_sha256
+    {
+        return Err(GazeboAdapterError::WorldChangedAtCutPoint);
+    }
+
+    let refreshed_target = simulator
+        .resolve_target(&session.profile.world_name, &fault.target_component_id)
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    validate_target_binding(
+        &refreshed_target,
+        fault,
+        &session.profile.world_name,
+        &session.world_epoch,
+    )?;
+    if refreshed_target != target_binding {
+        return Err(GazeboAdapterError::TargetBindingChanged);
+    }
+
+    let idempotency_key =
+        dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
+    let request = GazeboDispatchRequest {
+        plan_sha256: plan.plan_sha256.clone(),
+        campaign_id: plan.campaign_id.clone(),
+        pair_id: scenario.pair_id.clone(),
+        scenario_id: scenario.scenario_id.clone(),
+        fault_id: fault.fault_id.clone(),
+        fault_sequence: fault.sequence,
+        target_id: target_binding.target_id.clone(),
+        fault_domain_id: fault.fault_domain_id.clone(),
+        scheduled_simulation_step: fault.scheduled_simulation_step,
+        parameters_sha256: fault.parameters_sha256.clone(),
+        idempotency_key,
+    };
+    let outcome = dispatch_fault_once(registry, injector, &request);
+
+    Ok(GazeboPlannedDispatchResult {
+        request,
+        cut_snapshot,
+        target_binding,
+        outcome,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -776,6 +900,7 @@ mod tests {
         reset_calls: usize,
         step_calls: Vec<(u64, SteppingMethod)>,
         target: GazeboTargetBinding,
+        mutate_state_after_target_resolution: bool,
     }
 
     impl GazeboSimulationTransport for MockGazebo {
@@ -825,6 +950,9 @@ mod tests {
             _world_name: &str,
             _logical_component_id: &str,
         ) -> Result<GazeboTargetBinding, Self::Error> {
+            if self.mutate_state_after_target_resolution {
+                self.world.state_sha256 = "b".repeat(64);
+            }
             Ok(self.target.clone())
         }
     }
@@ -858,6 +986,7 @@ mod tests {
                 target_profile_sha256: fault.target_profile_sha256.clone(),
                 fault_domain_id: fault.fault_domain_id.clone(),
             },
+            mutate_state_after_target_resolution: false,
         }
     }
 
@@ -883,6 +1012,88 @@ mod tests {
         ) -> Result<DispatchLedgerResult, Self::Error> {
             Ok(self.lookup)
         }
+    }
+
+    #[test]
+    fn planned_dispatch_is_bound_to_verified_plan_cut_and_target() {
+        let plan = plan();
+        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut simulator = mock_transport(&plan);
+        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        let result = dispatch_planned_fault_once(
+            &mut simulator,
+            &mut injector,
+            &mut registry,
+            &plan,
+            &session,
+            &scenario.scenario_id,
+            &fault.fault_id,
+            "run-001",
+            "run-epoch-001",
+        ).unwrap();
+
+        assert_eq!(result.request.plan_sha256, plan.plan_sha256);
+        assert_eq!(result.request.pair_id, scenario.pair_id);
+        assert_eq!(result.request.scenario_id, scenario.scenario_id);
+        assert_eq!(result.request.fault_id, fault.fault_id);
+        assert_eq!(result.request.target_id, result.target_binding.target_id);
+        assert_eq!(result.request.scheduled_simulation_step, fault.scheduled_simulation_step);
+        assert_eq!(result.cut_snapshot.simulation_step, fault.scheduled_simulation_step);
+        assert!(result.request.idempotency_key.contains("run-001"));
+        assert_eq!(result.outcome, GazeboDispatchOutcome::Unknown { dispatch_id: None });
+        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(simulator.step_calls.len(), 1);
+    }
+
+    #[test]
+    fn planned_dispatch_rejects_world_mutation_after_target_resolution() {
+        let plan = plan();
+        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut simulator = mock_transport(&plan);
+        simulator.mutate_state_after_target_resolution = true;
+        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator, &mut injector, &mut registry, &plan, &session,
+                &scenario.scenario_id, &fault.fault_id, "run-001", "run-epoch-001"
+            ),
+            Err(GazeboAdapterError::WorldChangedAtCutPoint)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+    }
+
+    #[test]
+    fn planned_dispatch_rejects_scenario_or_fault_not_committed_by_plan() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator, &mut injector, &mut registry, &plan, &session,
+                "not-in-plan", "fault-process-crash", "run-001", "run-epoch-001"
+            ),
+            Err(GazeboAdapterError::ScenarioNotFound)
+        );
+        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator, &mut injector, &mut registry, &plan, &session,
+                &scenario.scenario_id, "not-in-plan", "run-001", "run-epoch-001"
+            ),
+            Err(GazeboAdapterError::FaultNotFound)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
     }
 
     #[test]
