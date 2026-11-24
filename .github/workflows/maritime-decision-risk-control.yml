@@ -81,4 +81,15 @@ jobs:
           test "$(wc -l < /tmp/lipschitz-risk.csv)" -eq 7
           head -n 1 /tmp/lipschitz-risk.csv | awk -F, '{ if (NF != 12) exit 1 }'
           awk -F, '$2==10000 { if ($8 >= $7 || $10 != $8) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/lipschitz-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit > /tmp/bernstein-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit > /tmp/bernstein-risk-replay.csv
+          cmp /tmp/bernstein-risk.csv /tmp/bernstein-risk-replay.csv
+          test "$(wc -l < /tmp/bernstein-risk.csv)" -eq 4
+          head -n 1 /tmp/bernstein-risk.csv | awk -F, '{ if (NF != 15) exit 1 }'
+          grep -q "^120,4,200," /tmp/bernstein-risk.csv
+          grep -q "^1200,4,200," /tmp/bernstein-risk.csv
+          grep -q "^50000,4,200," /tmp/bernstein-risk.csv
+          awk -F, '$1==1200 { if ($6 >= $5 || $7 != $6) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/bernstein-risk.csv
+          grep -q "EXPECTED_RISK_BOUND_SYNTHETIC$" /tmp/bernstein-risk.csv
+
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
