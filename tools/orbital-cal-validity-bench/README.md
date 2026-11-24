@@ -18,6 +18,9 @@ The v0.1 evaluator does not calibrate instruments, estimate measurement uncertai
 - An incomplete event inventory cannot produce VALID_WITHIN_SCOPE.
 - Certificate, reference-check and change-event receipts are bound by 64-hex SHA-256 identifiers. These are references, not cryptographic authenticity verification.
 - Required configuration is checked per scope; a mismatch is IDENTITY_MISMATCH and a missing field is INDETERMINATE.
+- Each scope must declare fixed-point operating-condition envelopes (unit, minimum, maximum and maximum age). Actual measurements carry value/time uncertainty, a timestamp and a receipt digest.
+- A fresh, definitely out-of-envelope condition is OUT_OF_SCOPE; uncertainty crossing a limit is INDETERMINATE. Stale condition readings are rejected before their values can substantiate a current out-of-scope claim.
+- Scope results carry the exact condition-measurement receipt digests consumed. The case carries an event-inventory receipt digest.
 - Reference-check HOLD is DRIFT_SUSPECTED; missing/unknown evidence is INDETERMINATE; stale check evidence is EXPIRED.
 - Calibration validity does not imply frustum, visibility, photometric usability, feature measurability, measurement uncertainty or conformity.
 
