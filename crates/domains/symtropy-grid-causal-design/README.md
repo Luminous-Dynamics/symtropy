@@ -6,7 +6,7 @@ A fail-closed pre-registration and cluster-randomization auditor for grid-flexib
 
 This package audits the **experiment design before outcome data are observed**. It is the executable design layer for [GRID-CAUSAL-MV-001 #7347](https://github.com/Luminous-Dynamics/symtropy/issues/7347).
 
-It does not estimate an effect, turn a baseline forecast into a causal claim, infer treatment-on-treated effects, compute ELCC, issue dispatch permissions or authorize settlement/payment.
+It does not estimate an effect, turn a baseline forecast into a causal claim, infer treatment-on-treated effects, compute ELCC, issue dispatch permissions or authorize settlement/payment. The report distinguishes checks over declared values from authentication: source timestamps, the pre-registration document, the interference mapping and the public randomness provider are not authenticated by this crate.
 
 ## v0.1 contract
 
@@ -25,7 +25,7 @@ For each cluster in a stratum the auditor hashes:
 
     experiment_id | seed_reveal | public_randomness_value | stratum_id | cluster_id
 
-It sorts clusters by the resulting SHA-256 rank and assigns the first preregistered `treated_cluster_count` to treatment; the remainder are controls. The revealed seed must match its pre-freeze commitment digest, and the randomness value must match its declared digest. The public randomness source is not authenticated by this crate; source attestation remains an external trust-fabric responsibility.
+It sorts clusters by the resulting SHA-256 rank and assigns the first preregistered `treated_cluster_count` to treatment; the remainder are controls. The revealed seed must match its pre-freeze commitment digest, and the randomness value must match its declared digest. The audit checks declared timestamp ordering and uniqueness of interference-domain IDs in the manifest; it does not authenticate those claims, the pre-registration document or the external randomness provider. Source attestation remains an external trust-fabric responsibility.
 
 ## Run
 
