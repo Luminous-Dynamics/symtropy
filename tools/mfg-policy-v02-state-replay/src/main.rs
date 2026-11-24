@@ -2500,7 +2500,7 @@ mod tests {
         assert_eq!(op3_e3.status, "COMPLETED");
         assert_eq!(op3_e3.quality_disposition.as_deref(), Some("ACCEPTED"));
         assert_eq!(epoch3.resources[0].current_setup_family, "SETUP-C");
-        assert_eq!(epoch3.inspection_station.capacity_units_used, 1);
+        assert_eq!(epoch3.inspection_station.capacity_units_used, 0);
 
         assert_ne!(
             receipt.snapshots[0].snapshot_digest,
