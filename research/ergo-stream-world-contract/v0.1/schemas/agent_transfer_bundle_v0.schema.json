@@ -660,6 +660,7 @@
       "required": [
         "claim_id",
         "claim_type",
+        "claim_scope_sha256",
         "probability_transfer_ppm",
         "decision"
       ],
@@ -688,6 +689,10 @@
             "reject_transfer",
             "abstain"
           ]
+        },
+        "claim_scope_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     }
