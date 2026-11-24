@@ -134,7 +134,7 @@ impl PrPlEbConfidenceSequence {
 
         // Equation (15): lambda_t = min(sqrt(2 log(2/alpha) /
         // (sigma_hat_{t-1}^2 * t * log(1+t))), c).
-        let log_budget = core::f64::consts::LN_2 + 2.0_f64.ln() - self.alpha.ln();
+        let log_budget = 2.0_f64.ln() - self.alpha.ln();
         let denominator = self.predictive_variance * time * time.ln_1p();
         let raw_lambda = (2.0 * log_budget / denominator).sqrt();
         let lambda = raw_lambda.min(self.bet_fraction_cap);
@@ -187,8 +187,10 @@ impl PrPlEbConfidenceSequence {
         let next_time_denominator = time + 1.0;
         let next_predictive_mean = (0.5 + next_sum_observations) / next_time_denominator;
         let next_residual = observation - next_predictive_mean;
+        let previous_residual_sum =
+            self.predictive_variance * (self.sample_count as f64 + 1.0) - 0.25;
         let next_predictive_variance =
-            (0.25 + self.predictive_variance_residual_sum(next_residual, observation, next_sum_observations))
+            (0.25 + previous_residual_sum + next_residual * next_residual)
                 / next_time_denominator;
 
         if !next_predictive_mean.is_finite()
@@ -255,18 +257,6 @@ impl PrPlEbConfidenceSequence {
         self.predictive_variance * (self.sample_count as f64 + 1.0) - 0.25
     }
 
-    fn predictive_variance_residual_sum(
-        &self,
-        next_residual: f64,
-        _observation: f64,
-        _next_sum_observations: f64,
-    ) -> f64 {
-        // The previous estimate encodes (1/4 + sum_{i < t}(X_i - mu_hat_i)^2)/t.
-        // Recover the accumulated squared residuals and add the current term.
-        let previous_residual_sum =
-            self.predictive_variance * (self.sample_count as f64) - 0.25;
-        previous_residual_sum + next_residual * next_residual
-    }
 }
 
 fn next_down(value: f64) -> f64 {
