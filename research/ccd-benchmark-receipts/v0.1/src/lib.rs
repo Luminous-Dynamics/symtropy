@@ -211,6 +211,8 @@ pub struct BenchmarkReceipt {
     pub algorithm: AlgorithmIdentity,
     pub motion_profile: MotionProfile,
     pub precision_profile: String,
+    /// SHA-256 of canonical method parameters, feature flags and relevant runtime settings.
+    pub configuration_sha256: String,
     pub seed: u64,
     pub run_id: String,
     pub status: RunStatus,
@@ -225,6 +227,7 @@ pub enum ReceiptError {
     EmptyBenchmarkIdentity,
     InvalidDatasetIdentity,
     InvalidAlgorithmIdentity,
+    InvalidConfigurationDigest,
     EmptyRunIdentity,
     InvalidEnvironment,
     IncompleteExecution,
@@ -268,6 +271,9 @@ impl BenchmarkReceipt {
         }
         if self.precision_profile.trim().is_empty() || self.run_id.trim().is_empty() {
             errors.push(ReceiptError::EmptyRunIdentity);
+        }
+        if !is_lower_hex(&self.configuration_sha256, 64) {
+            errors.push(ReceiptError::InvalidConfigurationDigest);
         }
         if !self.environment.valid() {
             errors.push(ReceiptError::InvalidEnvironment);
@@ -373,6 +379,7 @@ mod tests {
             },
             motion_profile: MotionProfile::LinearizedTrajectoryOracle,
             precision_profile: "f64".to_owned(),
+            configuration_sha256: "c".repeat(64),
             seed: 42,
             run_id: "run-0001".to_owned(),
             status: RunStatus::Completed,
@@ -529,6 +536,18 @@ mod tests {
         let errors = receipt.validate().unwrap_err();
         assert!(errors.contains(&ReceiptError::InvalidDatasetIdentity));
         assert!(errors.contains(&ReceiptError::InvalidAlgorithmIdentity));
+    }
+
+    #[test]
+    fn rejects_missing_or_malformed_configuration_digest() {
+        let mut receipt = valid_receipt();
+        receipt.configuration_sha256 = "not-a-digest".to_owned();
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::InvalidConfigurationDigest)
+        );
     }
 
     #[test]
