@@ -638,16 +638,17 @@ mod tests {
 
         assert_eq!(queries.len(), 2);
         assert_eq!(labels, vec![false, false]);
-        assert!(queries.iter().all(|query| query.inline_ground_truth() == Some(false)));
+        assert!(
+            queries
+                .iter()
+                .all(|query| query.inline_ground_truth() == Some(false))
+        );
         assert_eq!(pairs.len(), 2);
         assert_eq!((pairs[0].first(), pairs[0].second()), (14175, 30842));
         assert_eq!((pairs[1].first(), pairs[1].second()), (14286, 38673));
 
         // The exact rational lexemes survive import without floating conversion.
-        assert_eq!(
-            queries[0].vertices()[0].x().numerator(),
-            "6896999465383287"
-        );
+        assert_eq!(queries[0].vertices()[0].x().numerator(), "6896999465383287");
         assert_eq!(
             queries[0].vertices()[0].x().denominator(),
             "36028797018963968"
@@ -655,5 +656,4 @@ mod tests {
         assert_eq!(queries[0].row_roles()[0], VertexRole::EdgeAStart0);
         assert_eq!(queries[1].row_roles()[7], VertexRole::EdgeBEnd1);
     }
-
 }
