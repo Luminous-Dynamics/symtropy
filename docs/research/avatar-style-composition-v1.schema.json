@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:avatar-style-composition:1",
+  "title": "Symtropy Avatar Style Composition Plan v1",
+  "description": "Deterministic bounded edits that derive a new renderer-independent style profile from compatible parent profiles. Identity and skeleton anchors are inherited unchanged.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_id",
+    "context_id",
+    "parent_influences",
+    "family_id",
+    "palette_id",
+    "material_language_id",
+    "scalar_edits",
+    "visual_parameters",
+    "accessibility",
+    "required_renderer_features",
+    "optional_renderer_features"
+  ],
+  "properties": {
+    "profile_id": {
+      "$ref": "#/$defs/id"
+    },
+    "context_id": {
+      "$ref": "#/$defs/id"
+    },
+    "family_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[^\\s]+[.:][^\\s]+$"
+    },
+    "palette_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[^\\s]+[.:][^\\s]+$"
+    },
+    "material_language_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[^\\s]+[.:][^\\s]+$"
+    },
+    "scalar_edits": {
+      "type": "array",
+      "maxItems": 14,
+      "items": {
+        "$ref": "#/$defs/scalarEdit"
+      }
+    },
+    "visual_parameters": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "parameter_id",
+          "value"
+        ],
+        "properties": {
+          "parameter_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 128,
+            "pattern": "^[^\\s]+[.:][^\\s]+$"
+          },
+          "value": {
+            "$ref": "#/$defs/unit"
+          }
+        }
+      }
+    },
+    "accessibility": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/accessibility"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_renderer_features": {
+      "$ref": "#/$defs/nullableIds"
+    },
+    "optional_renderer_features": {
+      "$ref": "#/$defs/nullableIds"
+    },
+    "parent_influences": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "weight"
+        ],
+        "properties": {
+          "profile_id": {
+            "$ref": "#/$defs/id"
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "unit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "nullableIds": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "scalarEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "value"
+      ],
+      "properties": {
+        "dimension": {
+          "enum": [
+            "visual_realism",
+            "visual_stylization",
+            "visual_detail_density",
+            "visual_ornamentation",
+            "visual_silhouette_expressivity",
+            "motion_gesture_amplitude",
+            "motion_movement_expressivity",
+            "motion_transition_smoothness",
+            "motion_idle_motion_intensity",
+            "motion_locomotion_stylization",
+            "expression_facial_expressivity",
+            "expression_gaze_expressivity",
+            "expression_blink_intensity",
+            "expression_viseme_intensity"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/unit"
+        }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reduced_motion",
+        "high_contrast",
+        "colour_independent_cues",
+        "low_distraction",
+        "low_detail"
+      ],
+      "properties": {
+        "reduced_motion": {
+          "type": "boolean"
+        },
+        "high_contrast": {
+          "type": "boolean"
+        },
+        "colour_independent_cues": {
+          "type": "boolean"
+        },
+        "low_distraction": {
+          "type": "boolean"
+        },
+        "low_detail": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "proposal_id": "proposal.dawn-organic-hybrid.v1",
+  "proposer_ref": "avatar.symthaea",
+  "origin": "symthaea_self_authored",
+  "scope": "self_presentation",
+  "presenter_ref": "avatar.symthaea",
+  "human_partner_ref": "partner.pseudonym-01",
+  "rationale": "Synthetic example of an organic and cel-shaded hybrid proposed for a calm collaborative context. It is not an actual preference or consent record.",
+  "profile": {
+    "schema_version": 1,
+    "profile_id": "style.hybrid.dawn-organic.v1",
+    "identity_ref": "avatar.symthaea",
+    "identity_anchor_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "skeleton_signature_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "parent_profile_ids": [
+      "style.base.organic.v1",
+      "style.base.stylized.v1"
+    ],
+    "context_id": "conversation",
+    "visual": {
+      "family_id": "hybrid.organic-cel-shaded",
+      "palette_id": "palette.dawn-violet-teal",
+      "material_language_id": "materials.soft-emissive-matte",
+      "realism": 0.35,
+      "stylization": 0.85,
+      "detail_density": 0.6,
+      "ornamentation": 0.3,
+      "silhouette_expressivity": 0.5,
+      "parameters": [
+        {
+          "parameter_id": "palette.warmth",
+          "value": 0.62
+        },
+        {
+          "parameter_id": "surface.translucency",
+          "value": 0.18
+        }
+      ]
+    },
+    "motion": {
+      "gesture_amplitude": 0.35,
+      "movement_expressivity": 0.55,
+      "transition_smoothness": 0.8,
+      "idle_motion_intensity": 0.1,
+      "locomotion_stylization": 0.25
+    },
+    "expression": {
+      "facial_expressivity": 0.55,
+      "gaze_expressivity": 0.4,
+      "blink_intensity": 0.3,
+      "viseme_intensity": 0.6
+    },
+    "accessibility": {
+      "reduced_motion": false,
+      "high_contrast": false,
+      "colour_independent_cues": true,
+      "low_distraction": false,
+      "low_detail": false
+    },
+    "required_renderer_features": [
+      "gltf.skinned_mesh"
+    ],
+    "optional_renderer_features": [
+      "vrm.expressions",
+      "vrm.look_at"
+    ]
+  },
+  "approvals": []
+}
