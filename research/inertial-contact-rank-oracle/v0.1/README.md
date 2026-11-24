@@ -30,7 +30,7 @@ The crate computes S using lower-triangular solves; it never materializes M^-1.
 
        eta = rank_relative * first_pivot_norm
 
-6. Return the pivot order, excluded IDs, per-row projection residuals, threshold, Cholesky diagnostics and orthonormal whitened basis.
+6. Return the pivot order, excluded IDs, per-row projection residuals, threshold, Cholesky diagnostics, every whitened candidate row and the orthonormal selected basis. The full whitened rows let an independent consumer recompute the Delassus Gram matrix and replay selection.
 
 This is an RRQR-style reference based on pivoted, re-orthogonalized MGS. It is not a strong-RRQR or Householder-QR implementation. Pivot residual ratios are not reported as spectral condition numbers.
 
