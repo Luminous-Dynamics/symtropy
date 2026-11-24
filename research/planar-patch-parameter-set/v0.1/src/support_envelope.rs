@@ -4,7 +4,8 @@
 //!
 //! Let beta_i = 1/e_i^2 and q = [v_u, v_v, L * omega_n]. For capacity
 //! c = mu*N, support in physical twist direction [v_u, v_v, omega_n] is
-//! h(beta) = c * sqrt(sum_i(q_i^2 / beta_i)).
+//! h(beta, c) = c * sqrt(sum_i(q_i^2 / beta_i)). The caller supplies an
+//! independent interval for c; correlations with beta are not represented.
 //!
 //! The upper envelope is maximized over joint feasible vertices, not a
 //! Cartesian product of marginal axis intervals. The lower envelope uses
@@ -230,7 +231,9 @@ fn validate_parameter_set(
 /// monotonicity make the vertex maximum the polyhedral supremum. This v0.1
 /// implementation uses floating-point intersections without outward rounding,
 /// so the result is a maximum over reported vertices, not a formal certificate.
-/// The lower value is the Cauchy-Schwarz construction over that representation.
+/// Capacity uncertainty is propagated independently using its lower endpoint
+/// for the lower value and upper endpoint for the vertex maximum. The lower
+/// value uses Cauchy-Schwarz over the reported representation.
 pub fn compute_patch_support_envelope(
     input: &PatchSupportEnvelopeInput<'_>,
     config: SupportEnvelopeConfig,
