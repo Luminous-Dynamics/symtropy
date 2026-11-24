@@ -122,3 +122,26 @@ Conversely, the Minister stated in the National Assembly on 19 May 2026 that sup
 - location-specific delivered service under disruption scenarios.
 
 These categories must not be collapsed into one binary "shortage" label.
+
+
+## 9. New official evidence: strategic stock statements and import structure
+
+The National Assembly Hansard of 25 March 2026 records the Minister's statement that the Strategic Fuel Fund held **eight million barrels** of strategic fuel stock, not being used pending a real crisis. In the same answer, the Minister said approximately **60% of processed products were imported** and 40% processed by domestic refineries and Sasol.
+
+This is an official, dated parliamentary statement, not an independently verified inventory. The answer does not specify crude/refined split, diesel grades, tank locations, quality release, ownership, physical accessibility, measurement date or withdrawal capacity. It must not be turned into diesel litres or days of cover. Keep the 8-million-barrel claim separate from crude imports, refined product stocks, pipeline line-fill and grade-specific usable diesel.
+
+The SARB's 8 September 2026 note later reports that imported refined products supply more than half of domestic fuel demand and that refining capacity has halved over the prior decade. This broadly supports a structural import-dependence claim, but is not directly comparable to the Minister's dated 60/40 statement without harmonising product scope, date and denominator.
+
+## 10. Island View Precinct market-access and capacity-rights evidence
+
+Parliament's 13 August 2026 statement identifies the Island View Precinct (IVP) in Durban as a strategically important liquid-bulk/petroleum terminal complex with 10 port berths and says the majority of South African fuel is imported through it. It reports a supplementary directive for 10% of total IVP capacity to be allocated to new market participants, around 13% of operator capacity committed under existing terminal agreements, and a later-phase objective of approximately 27.8% Black participation through new liquid-bulk terminal development.
+
+These are distinct capacity-access statements, not measured throughput. Do not sum 10%, 13% and 27.8% or treat them as interchangeable quantities. The source itself notes the importance of timely vessel/berth allocation and access to fuel distribution networks, including pipelines.
+
+SAFRB should model legal/contractual entitlement, provider commitment, reservation, scheduling, physical operability and delivered throughput as distinct states. A capacity entitlement is not a physical delivery.
+
+## 11. Domestic capacity restoration is an option, not current production
+
+CEF's 23 September 2026 presentation reports that the Mossel Bay GTL refinery and FA Platform had been offline/on preservation since November 2020. It states the reinstatement business case was completed in August 2026 and describes a phase 1 target of approximately 18,000 barrels/day at an estimated R5.8bn, followed by a phase 2 target of approximately 46,000 barrels/day at an additional estimated R8.5bn. The source wording does not establish whether 46,000 barrels/day is incremental or total phase-2 capacity; SAFRB preserves that ambiguity and does not add the two targets.
+
+CEF also reports material PetroSA liquidity/operational constraints and tighter product-supplier financing requirements. These are project-execution dependencies. No target output enters the current supply balance before funding, feedstock, engineering, construction, commissioning and measured sustained product output are independently evidenced.

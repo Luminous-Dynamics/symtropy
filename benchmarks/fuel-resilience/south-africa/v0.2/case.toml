@@ -158,3 +158,59 @@ source_id = "SPGLOBAL-STOCK-POLICY-STATUS-2026"
 reported_status = "consultation_concluded; Cabinet approval awaited as of 2026-10-15"
 formalization_target = "by_end_2026"
 verification_status = "no_final_policy_instrument_verified_in_sources_reviewed_by_2026-11-24"
+
+[reported_stock_claims.sff_eight_million_barrels_2026_03_25]
+source_id = "MINISTER-STRATEGIC-STOCK-HANSARD-2026-03-25"
+statement_date = "2026-03-25"
+quantity = 8000000
+unit = "barrels"
+issuer_attribution = "Minister of Mineral and Petroleum Resources in National Assembly"
+claim = "Strategic Fuel Fund held eight million barrels of strategic fuel stock, not being used pending a real crisis"
+product_composition = "not specified in cited answer"
+grades = "not specified"
+measurement_timestamp = "not specified"
+quality_release = "not specified"
+physical_accessibility = "not specified"
+evidence_class = "reported_official_statement"
+policy = "do_not_convert_to_diesel_litres_or_days_of_cover"
+
+[reported_supply_structure.minister_2026_03_25]
+source_id = "MINISTER-STRATEGIC-STOCK-HANSARD-2026-03-25"
+imported_processed_products_percent = 60
+domestically_processed_percent = 40
+basis = "Minister's parliamentary statement; exact period/denominator not supplied in answer"
+evidence_class = "reported_official_statement"
+
+[reported_supply_structure.sarb_2026_09]
+source_id = "SARB-REFINERY-CLOSURES-2026"
+refined_product_import_share = "more_than_50_percent"
+refinery_capacity_change = "halved_over_prior_decade"
+basis = "SARB economic note published 2026-09-08"
+evidence_class = "reported_macro_context"
+policy = "do_not_average_with_dated_ministerial_percentage_without_scope_alignment"
+
+[capacity_access.ivp_2026]
+source_id = "IVP-CAPACITY-ACCESS-PARLIAMENT-2026"
+site = "Island View Precinct, Port of Durban"
+berths = 10
+parliament_description = "majority of South African fuel is imported through IVP"
+supplementary_directive_new_market_access_percent = 10
+operator_capacity_commitments_reported_percent = 13
+later_phase_black_participation_target_percent = 27.8
+percentages_are_additive = false
+physical_throughput_measurement = "not provided by source"
+evidence_class = "reported_policy_and_contract_statement"
+policy = "preserve_entitlement_commitment_and_future_target_as_distinct_types"
+
+[capacity_restoration.petrosa_mossel_bay_gtl]
+source_id = "CEF-PETROSA-GTL-RESTORATION-2026"
+status_as_reported = "offline_and_on_preservation_since_2020-11"
+business_case_completion = "2026-08"
+phase_1_target_barrels_per_day = 18000
+phase_1_estimated_investment_r = 5800000000
+phase_2_target_barrels_per_day = 46000
+phase_2_additional_estimated_investment_r = 8500000000
+phase_2_output_interpretation = "ambiguous_total_vs_incremental_in_source_wording"
+current_firm_output_barrels_per_day = 0
+evidence_class = "reported_future_project_target"
+policy = "do_not_count_target_until_commissioning_and_measured_sustained_output"
