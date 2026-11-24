@@ -14,7 +14,7 @@
 //! from one fixture or certify an orbital target distribution.
 
 use std::hint::black_box;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::adaptive_importance_sampling::{
     AdaptiveImportanceSamplingError, BoundedMeanBettingSequence,
@@ -263,7 +263,6 @@ fn run_fixed_stake(
     threshold: Option<f64>,
     repetitions: usize,
 ) -> Result<ConfidenceSequenceMethodBenchmark, ConfidenceSequenceBenchmarkError> {
-    let started = Instant::now();
     let mut sequence = BoundedMeanBettingSequence::new();
     let mut snapshots = Vec::with_capacity(checkpoints.len());
     let mut first_decision = None;
@@ -292,13 +291,13 @@ fn run_fixed_stake(
             checkpoint_index += 1;
         }
     }
-    let first_elapsed = started.elapsed();
-    let elapsed = median_elapsed(first_elapsed, repetitions.saturating_sub(1), || {
+    let elapsed = median_elapsed(repetitions, || {
         let mut sequence = BoundedMeanBettingSequence::new();
         for observation in observations {
             sequence.observe(black_box(*observation))?;
             let interval = sequence.confidence_sequence(alpha)?;
-            black_box(interval.width());
+            black_box(interval.lower);
+            black_box(interval.upper);
         }
         Ok::<(), AdaptiveImportanceSamplingError>(())
     })
@@ -324,7 +323,6 @@ fn run_prpl_eb(
     threshold: Option<f64>,
     repetitions: usize,
 ) -> Result<ConfidenceSequenceMethodBenchmark, ConfidenceSequenceBenchmarkError> {
-    let started = Instant::now();
     let mut sequence = PrPlEbConfidenceSequence::new(alpha)?;
     let mut snapshots = Vec::with_capacity(checkpoints.len());
     let mut first_decision = None;
@@ -353,12 +351,13 @@ fn run_prpl_eb(
             checkpoint_index += 1;
         }
     }
-    let first_elapsed = started.elapsed();
-    let elapsed = median_elapsed(first_elapsed, repetitions.saturating_sub(1), || {
+    let elapsed = median_elapsed(repetitions, || {
         let mut sequence = PrPlEbConfidenceSequence::new(alpha)?;
         for observation in observations {
             sequence.observe(black_box(*observation))?;
-            black_box(sequence.confidence_sequence().upper);
+            let interval = sequence.confidence_sequence();
+            black_box(interval.lower);
+            black_box(interval.upper);
         }
         Ok::<(), PrPlEbError>(())
     })
@@ -386,7 +385,6 @@ fn run_hedged(
     threshold: Option<f64>,
     repetitions: usize,
 ) -> Result<ConfidenceSequenceMethodBenchmark, ConfidenceSequenceBenchmarkError> {
-    let started = Instant::now();
     let mut sequence = HedgedCapitalConfidenceSequence::new(alpha, parameter_grid.clone())?;
     let mut snapshots = Vec::with_capacity(checkpoints.len());
     let mut first_decision = None;
@@ -439,13 +437,11 @@ fn run_hedged(
 }
 
 fn median_elapsed<E>(
-    first: Duration,
-    additional_repetitions: usize,
+    repetitions: usize,
     mut run: impl FnMut() -> Result<(), E>,
 ) -> Result<u128, E> {
-    let mut samples = Vec::with_capacity(additional_repetitions + 1);
-    samples.push(first.as_nanos());
-    for _ in 0..additional_repetitions {
+    let mut samples = Vec::with_capacity(repetitions);
+    for _ in 0..repetitions {
         let started = Instant::now();
         run()?;
         samples.push(started.elapsed().as_nanos());
