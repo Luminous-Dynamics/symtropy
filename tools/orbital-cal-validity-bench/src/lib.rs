@@ -111,6 +111,7 @@ pub struct Case {
     pub acquisition_time_ns: i64,
     pub acquisition_uncertainty_ns: u64,
     pub event_inventory_complete: bool,
+    pub event_inventory_receipt_sha256: String,
     pub required_scope_ids: Vec<String>,
     pub components: Vec<ComponentState>,
     pub actual_conditions: BTreeMap<String, ConditionMeasurement>,
@@ -137,6 +138,7 @@ pub struct ScopeResult {
     pub certificate_sha256: String,
     pub check_receipt_sha256: Option<String>,
     pub calibration_epoch_ns: i64,
+    pub condition_measurement_receipts: BTreeMap<String, String>,
     pub status: ValidityStatus,
     pub reason_codes: Vec<String>,
 }
@@ -148,6 +150,7 @@ pub struct CaseResult {
     pub status: ValidityStatus,
     pub reason_codes: Vec<String>,
     pub event_inventory_complete: bool,
+    pub event_inventory_receipt_sha256: String,
     pub scope_results: Vec<ScopeResult>,
     pub may_enter_geometry_precondition: bool,
 }
@@ -229,6 +232,9 @@ fn validate_case(case: &Case) -> Result<(), String> {
     }
 
     checked_interval(case.acquisition_time_ns, case.acquisition_uncertainty_ns)?;
+    if !valid_sha256(&case.event_inventory_receipt_sha256) {
+        return Err("EVENT_INVENTORY_RECEIPT_DIGEST_INVALID".to_owned());
+    }
 
     let mut component_ids = BTreeSet::new();
     for component in &case.components {
@@ -259,6 +265,8 @@ fn validate_case(case: &Case) -> Result<(), String> {
             || !valid_text(&scope.component_id)
             || scope.calibration_epoch_ns > scope.valid_from_ns
             || scope.valid_until_ns <= scope.valid_from_ns
+            || scope.required_configuration.is_empty()
+            || scope.required_conditions.is_empty()
             || !scope_ids.insert(scope.scope_id.clone())
         {
             return Err("CALIBRATION_SCOPE_INVALID".to_owned());
@@ -459,6 +467,12 @@ fn evaluate_scope(
         }
     }
 
+    let condition_measurement_receipts = scope.required_conditions.keys()
+        .filter_map(|condition_id| {
+            case.actual_conditions.get(condition_id)
+                .map(|measurement| (condition_id.clone(), measurement.receipt_sha256.clone()))
+        })
+        .collect();
     let status = choose_status(&statuses);
     ScopeResult {
         scope_id: scope.scope_id.clone(),
@@ -467,6 +481,7 @@ fn evaluate_scope(
         certificate_sha256: scope.certificate_sha256.clone(),
         check_receipt_sha256: scope.check_receipt_sha256.clone(),
         calibration_epoch_ns: scope.calibration_epoch_ns,
+        condition_measurement_receipts,
         status,
         reason_codes: reasons.into_iter().collect(),
     }
@@ -595,6 +610,7 @@ mod tests {
             acquisition_time_ns: 500,
             acquisition_uncertainty_ns: 2,
             event_inventory_complete: true,
+            event_inventory_receipt_sha256: "f".repeat(64),
             required_scope_ids: vec!["camera-intrinsics".to_owned()],
             components: vec![ComponentState {
                 component_id: "CAM-01".to_owned(),
