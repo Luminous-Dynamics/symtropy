@@ -114,6 +114,17 @@ jobs:
           grep -q ",NO_POSITIVE_ADJUSTED_TARGET$" /tmp/repeated-sampling-risk.csv
           awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==200 { if ($8 <= 0 || $9 >= 2000 || $19=="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
           awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==10 { if ($8 != 0 || $9 != 2000 || $25!="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
+          cargo run --release --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit -- --full > /tmp/repeated-sampling-risk-full.csv
+          cargo run --release --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit -- --full > /tmp/repeated-sampling-risk-full-replay.csv
+          cmp /tmp/repeated-sampling-risk-full.csv /tmp/repeated-sampling-risk-full-replay.csv
+          test "$(wc -l < /tmp/repeated-sampling-risk-full.csv)" -eq 141
+          awk -F, 'NF != 27 { exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          for n in 50 120 500 1200 5000 10000 50000; do
+            awk -F, -v n="$n" '$4==n { count++ } END { if (count != 20) exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          done
+          awk -F, '$2=="SIMULTANEOUS_HOEFFDING" { count++ } END { if (count != 56) exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          grep -q "MARGINAL_EXPECTED_RISK" /tmp/repeated-sampling-risk-full.csv
+          grep -q "FIXED_GRID_HIGH_PROBABILITY" /tmp/repeated-sampling-risk-full.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
@@ -131,6 +142,7 @@ jobs:
             /tmp/bernstein-risk.csv \
             /tmp/simultaneous-risk.csv \
             /tmp/repeated-sampling-risk.csv \
+            /tmp/repeated-sampling-risk-full.csv \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -147,5 +159,6 @@ jobs:
             /tmp/bernstein-risk.csv
             /tmp/simultaneous-risk.csv
             /tmp/repeated-sampling-risk.csv
+            /tmp/repeated-sampling-risk-full.csv
           if-no-files-found: error
           retention-days: 30
