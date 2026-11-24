@@ -129,6 +129,23 @@ Both-label and empty prediction sets are retained as distinct outcomes. A tie at
 
 The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. The predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of the calibration outcomes; the calibration cohort must not be used to fit or select that predictor. Under exchangeability between the independent calibration cohort and future claims within that predeclared admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes.
 
+## Owner-issued calibration receipt
+
+The quantile is not a free-floating number. The owner-side receipt schema is:
+- `schemas/split_conformal_transfer_receipt_v0.schema.json`
+- example: `examples/split_conformal_transfer_receipt_v0.example.json`
+
+The receipt binds the split-conformal calibration artifact to:
+- predictor, preprocessing and score-function digests;
+- exact calibration cohort, sample-ID set, split manifest and evidence-prefix digests;
+- evaluator-assigned stratum and independent-unit kind/count;
+- claim type and claim-scope digest;
+- alpha, calibration count, finite-sample rank, quantile and tie rule;
+- episode-owner custody receipt;
+- active/revoked/expired state, with a revocation reason required when revoked.
+
+The receipt is owner-issued, not candidate-authored. A change to the predictor, preprocessing, score definition, calibration cohort, stratum or scope creates a different receipt and invalidates the old binding. Digests identify artifacts; they do not by themselves prove truthful acquisition, secure custody or exchangeability.
+
 ## Prospective internal targets
 
 These are proposed acceptance targets, not achieved results:
