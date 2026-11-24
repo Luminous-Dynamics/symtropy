@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Photometric RGB Camera-Projector Usability Corpus v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-photometric-usability.rgb-corpus.v0.2"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-PHOTO-RGB-002"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_rgb_range_and_declared_camera_projector_preconditions_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Gate": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "Vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "Mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode_id",
+        "darkness_threshold",
+        "saturation_threshold"
+      ],
+      "properties": {
+        "mode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "darkness_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "saturation_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "Sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "camera_fov",
+        "projector_fov",
+        "camera_depth_of_field",
+        "camera_line_of_sight",
+        "rgb_linear",
+        "rgb_response_asserted"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "camera_fov": {
+          "$ref": "#/$defs/Gate"
+        },
+        "projector_fov": {
+          "$ref": "#/$defs/Gate"
+        },
+        "camera_depth_of_field": {
+          "$ref": "#/$defs/Gate"
+        },
+        "camera_line_of_sight": {
+          "$ref": "#/$defs/Gate"
+        },
+        "rgb_linear": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "rgb_response_asserted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode_id",
+        "summary",
+        "acquisition"
+      ],
+      "properties": {
+        "mode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "enum": [
+            "FULLY_USABLE",
+            "PARTIAL",
+            "NOT_USABLE",
+            "INDETERMINATE"
+          ]
+        },
+        "acquisition": {
+          "type": "string",
+          "enum": [
+            "USABLE",
+            "PARTIAL",
+            "UNUSABLE",
+            "INDETERMINATE"
+          ]
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "camera_id",
+        "projector_id",
+        "samples",
+        "modes",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "camera_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projector_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Sample"
+          }
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Mode"
+          }
+        },
+        "expected": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Expected"
+          }
+        }
+      }
+    }
+  }
+}

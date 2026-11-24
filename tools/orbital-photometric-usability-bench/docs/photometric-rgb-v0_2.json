@@ -1,0 +1,361 @@
+{
+  "schema": "luminous.orbital-photometric-usability.rgb-corpus.v0.2",
+  "benchmark_id": "ORBITAL-PHOTO-RGB-002",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_rgb_range_and_declared_camera_projector_preconditions_only",
+  "cases": [
+    {
+      "case_id": "RGB-001-NORMAL-USABLE",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "FULLY_USABLE",
+          "acquisition": "USABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-002-ONE-CHANNEL-SATURATED",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.91,
+            0.3,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-003-ALL-CHANNELS-DARK",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.01,
+            0.05,
+            0.09
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-004-CAMERA-FOV-FAIL",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "FAIL",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-005-PROJECTOR-FOV-FAIL",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "FAIL",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-006-CAMERA-DOF-FAIL",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "FAIL",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-007-CAMERA-LOS-INDETERMINATE",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "INDETERMINATE",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "INDETERMINATE",
+          "acquisition": "INDETERMINATE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-008-RGB-RESPONSE-UNKNOWN",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": false
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "INDETERMINATE",
+          "acquisition": "INDETERMINATE"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-009-MIXED-SAMPLES-PARTIAL",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "GOOD",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.5,
+            0.4,
+            0.2
+          ],
+          "rgb_response_asserted": true
+        },
+        {
+          "sample_id": "DARK",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.01,
+            0.02,
+            0.03
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "PARTIAL",
+          "acquisition": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "case_id": "RGB-010-INCLUSIVE-THRESHOLD-BOUNDARIES",
+      "camera_id": "CAMERA-A",
+      "projector_id": "PROJECTOR-A",
+      "samples": [
+        {
+          "sample_id": "S1",
+          "camera_fov": "PASS",
+          "projector_fov": "PASS",
+          "camera_depth_of_field": "PASS",
+          "camera_line_of_sight": "PASS",
+          "rgb_linear": [
+            0.1,
+            0.9,
+            0.4
+          ],
+          "rgb_response_asserted": true
+        }
+      ],
+      "modes": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "darkness_threshold": 0.1,
+          "saturation_threshold": 0.9
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "STRUCTURED-LIGHT-A",
+          "summary": "FULLY_USABLE",
+          "acquisition": "USABLE"
+        }
+      ]
+    }
+  ]
+}
