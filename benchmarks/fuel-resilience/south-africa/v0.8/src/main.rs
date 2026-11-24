@@ -46,10 +46,48 @@ fn main() -> Result<(), String> {
             episode.episode_start_unix_s
         );
         println!(
+            "episode_{index}_recovery_candidate_start,{},unix_s",
+            episode
+                .recovery_candidate_start_unix_s
+                .map_or_else(|| "none".into(), |value| value.to_string())
+        );
+        println!(
             "episode_{index}_restoration_latency,{},s",
             episode
                 .restoration_latency_seconds
                 .map_or_else(|| "unconfirmed".into(), |value| value.to_string())
+        );
+        println!(
+            "episode_{index}_confirmed_at,{},unix_s",
+            episode
+                .recovery_confirmed_at_unix_s
+                .map_or_else(|| "unconfirmed".into(), |value| value.to_string())
+        );
+        println!(
+            "episode_{index}_confirmation_delay,{},s",
+            episode
+                .confirmation_delay_seconds
+                .map_or_else(|| "unconfirmed".into(), |value| value.to_string())
+        );
+        println!(
+            "episode_{index}_observed_duration,{},s",
+            episode.observed_duration_seconds
+        );
+        println!(
+            "episode_{index}_confirmed_shortfall_windows,{},count",
+            episode.confirmed_shortfall_windows
+        );
+        println!(
+            "episode_{index}_uncertain_windows,{},count",
+            episode.uncertain_windows
+        );
+        println!(
+            "episode_{index}_critical_shortfall_lower,{},Wh",
+            episode.critical_shortfall_lower_wh
+        );
+        println!(
+            "episode_{index}_critical_shortfall_upper,{},Wh",
+            episode.critical_shortfall_upper_wh
         );
         println!(
             "episode_{index}_right_censored,{},bool",
