@@ -290,6 +290,7 @@ impl GazeboWorldSnapshot {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct GazeboResetVerification {
+    plan_sha256: String,
     profile: GazeboCapabilityProfile,
     stepping_method: SteppingMethod,
     world_epoch: String,
@@ -298,6 +299,7 @@ struct GazeboResetVerification {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct GazeboResetAttempt {
+    plan_sha256: String,
     profile: GazeboCapabilityProfile,
     stepping_method: SteppingMethod,
     prior_world_epoch: String,
@@ -405,6 +407,7 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
     }
 
     let attempt = GazeboResetAttempt {
+        plan_sha256: plan.plan_sha256.clone(),
         profile: session.profile.clone(),
         stepping_method: session.stepping_method,
         prior_world_epoch: before.world_epoch.clone(),
@@ -437,6 +440,7 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
     session.world_epoch = after.world_epoch.clone();
     session.clock_id = after.clock_id.clone();
     session.reset_lifecycle = GazeboResetLifecycle::Verified(GazeboResetVerification {
+        plan_sha256: plan.plan_sha256.clone(),
         profile: session.profile.clone(),
         stepping_method: session.stepping_method,
         world_epoch: session.world_epoch.clone(),
@@ -467,6 +471,7 @@ pub fn reconcile_reset<T: GazeboSimulationTransport>(
     };
     if session.profile != attempt.profile
         || session.stepping_method != attempt.stepping_method
+        || plan.plan_sha256 != attempt.plan_sha256
         || session.world_epoch != attempt.prior_world_epoch
         || session.clock_id != attempt.clock_id
     {
@@ -492,6 +497,7 @@ pub fn reconcile_reset<T: GazeboSimulationTransport>(
     session.world_epoch = after.world_epoch.clone();
     session.clock_id = after.clock_id.clone();
     session.reset_lifecycle = GazeboResetLifecycle::Verified(GazeboResetVerification {
+        plan_sha256: attempt.plan_sha256,
         profile: attempt.profile,
         stepping_method: attempt.stepping_method,
         world_epoch: session.world_epoch.clone(),
@@ -1109,7 +1115,8 @@ where
             return Err(GazeboAdapterError::ResetOutcomeUnresolved);
         }
     };
-    if reset_verification.profile != session.profile
+    if reset_verification.plan_sha256 != plan.plan_sha256
+        || reset_verification.profile != session.profile
         || reset_verification.stepping_method != session.stepping_method
         || reset_verification.world_epoch != session.world_epoch
         || reset_verification.clock_id != session.clock_id
@@ -1437,6 +1444,53 @@ mod tests {
             Err(GazeboAdapterError::ResetNotVerified)
         );
         assert_eq!(simulator.reset_calls, 0);
+        assert!(simulator.step_calls.is_empty());
+        assert_eq!(injector.dispatch_calls, 0);
+    }
+
+    #[test]
+    fn planned_dispatch_rejects_a_different_valid_plan_after_reset() {
+        let plan_a = plan();
+        let mut simulator = mock_transport(&plan_a);
+        let mut session = preflight_transport(&mut simulator, &plan_a).unwrap();
+        reset_and_verify(&mut simulator, &plan_a, &mut session).unwrap();
+
+        let mut manifest: FaultCampaignManifest =
+            serde_json::from_str(include_str!("../fixtures/fault_campaign_paired_v0_1.json"))
+                .unwrap();
+        manifest.campaign_id.push_str("-alternate");
+        let source_bytes = serde_json::to_vec(&manifest).unwrap();
+        let source_digest = Sha256::digest(source_bytes);
+        let source_digest: String = source_digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        let plan_b = CompiledCampaignPlan::compile(&manifest, &source_digest).unwrap();
+        assert_ne!(plan_a.plan_sha256, plan_b.plan_sha256);
+
+        let scenario = plan_b
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan_b,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-plan-substitution",
+                "epoch-plan-substitution"
+            ),
+            Err(GazeboAdapterError::ResetVerificationMismatch)
+        );
         assert!(simulator.step_calls.is_empty());
         assert_eq!(injector.dispatch_calls, 0);
     }
