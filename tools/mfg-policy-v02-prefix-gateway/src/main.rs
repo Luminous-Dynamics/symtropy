@@ -676,17 +676,19 @@ mod tests {
     fn paired_scenario_divergence_is_checked_only_after_it_becomes_visible() {
         let policy_case = sample_policy_case();
         let mut stream_case = sample_stream_case();
-        stream_case["scenarios"][1]["observations_by_epoch"][3]["resource_events"][0]
-            ["source_event_id"] = Value::from("LATE-DIVERGENCE");
+        stream_case["scenarios"][1]["observations_by_epoch"][3]["resource_events"][0]["source_event_id"] =
+            Value::from("LATE-DIVERGENCE");
 
-        assert!(project_prefix(
-            "MFG-POLICY-V02-CHALLENGE-001",
-            &policy_case,
-            &stream_case,
-            0,
-            1,
-        )
-        .is_ok());
+        assert!(
+            project_prefix(
+                "MFG-POLICY-V02-CHALLENGE-001",
+                &policy_case,
+                &stream_case,
+                0,
+                1,
+            )
+            .is_ok()
+        );
         assert_eq!(
             project_prefix(
                 "MFG-POLICY-V02-CHALLENGE-001",
