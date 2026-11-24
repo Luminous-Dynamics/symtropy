@@ -1,63 +1,52 @@
-# Exact discrete mission tail-risk evaluator v0.1
+# Temporal robust CVaR policy optimizer v0.2
 
-**Status:** executable finite mathematical reference. Synthetic inputs only. This is not a physical navigation model, policy optimizer, calibrated probability source, safety case, or authority API.
+**Status:** executable finite mathematical reference, synthetic inputs only. This is not a physical navigation result, calibrated model set, safety argument, or authority API.
 
 ## Implemented
 
-The navigation_tail_risk module adds:
+Building on the exact discrete tail evaluator, this increment adds a separate robust-CVaR policy optimizer over the existing horizon-two observable policy family.
 
-- Exact expected-loss calculation over integer-weighted discrete outcome distributions.
-- Exact upper-tail CVaR using integer PPM confidence levels.
-- Fractional inclusion of a probability atom at the quantile boundary.
-- Overflow-checked arithmetic and reduced rational results.
-- Overflow-safe exact rational comparison using continued fractions.
-- Outer worst-case CVaR across complete, mission-persistent model distributions.
-- Independent reconstruction of full mission-path loss distributions from the existing temporal observable policy tree, including no-action padding, one-stage stop branches, and contingent second actions.
-- A mass-conservation check at the exact two-stage PPM denominator and a mean-loss cross-check against the existing minimax oracle output.
-- Deterministic model ordering and duplicate-identity rejection.
+- Enumerates the same finite non-anticipative policy trees as mission-global minimax expected risk.
+- Reconstructs complete stochastic mission-path loss distributions independently for each fixed mission model.
+- Evaluates CVaR within each model, then selects the policy minimizing the outer worst-case model-conditional CVaR.
+- Uses expected-risk ordering as a deterministic tie-break only when exact CVaR values are equal.
+- Preserves the expected-risk, minimax-regret, and rectangular-switching objectives as separate methods.
+- Does not permit a policy to observe the persistent model or common-cause identity.
+- Keeps authority transitions outside the planner.
 
-The model aggregator evaluates a fixed policy's separate full-mission loss distribution under each candidate model and takes the maximum model-conditional CVaR. It does not average across epistemic models or allow their identity to switch inside a mission.
+The optimizer is bounded by the existing four-action / 70,306 policy-tree envelope. The exact arithmetic remains checked integer PPM and rational arithmetic; an unrepresentable tail calculation fails closed.
 
-## Exact fixture
+## Exact policy-ranking reversal
 
-Two synthetic policies have these distributions:
+The runnable fixture constructs two observations with the same action and resource constraints:
 
-| Policy | Distribution | Expected loss | CVaR 95% |
-|---|---|---:|---:|
-| A | 1% loss 1.00; 99% loss 0 | 0.01 | 0.20 |
-| B | 100% loss 0.02 | 0.02 | 0.02 |
+| Policy action | False-safe | False-degraded | Expected loss | CVaR95 |
+|---|---:|---:|---:|---:|
+| A: rare catastrophic | 900 ppm at loss 100 | 50 ppm at loss 1 | 0.09005 | 1.801 |
+| B: steady small | 0 ppm at loss 100 | 100,000 ppm at loss 1 | 0.1 | 1.0 |
 
-Expected loss prefers A; CVaR95 prefers B. The binary asserts the exact integer fractions rather than printing rounded floating-point values.
+Expected-loss minimax selects A. Robust CVaR95 selects B. The same ranking reversal is reproduced by the policy-tree optimizer using the exact terminal loss distribution under both persistent mission models.
 
-A second demonstration computes the outer worst-case CVaR over a benign and a faulted persistent model. The binary also reconstructs each model's full path-loss distribution from a selected temporal minimax policy, verifies its mean against the solver's exact expected-loss numerator, and computes mission-global worst-case CVaR95.
+These are deliberately constructed finite probabilities and losses, not measured UWB failure frequencies or empirical risk estimates.
 
-## Qualification tests
+## Qualification tests authored
 
-The module contains tests for:
+- All CVaR evaluator metamorphic and malformed-input tests from v0.1.
+- Complete path-loss reconstruction for no-action and contingent second-action policies.
+- Exact equality between reconstructed expected loss and the existing minimax oracle's per-model risk numerators.
+- A policy-ranking reversal where expected-risk and robust-CVaR select different first sensors.
+- Candidate-action order invariance of robust-CVaR objective and selected action.
 
-- exact fractional tail mass;
-- CVaR at alpha zero matching expectation;
-- constant-loss equality;
-- monotonicity in alpha;
-- positive translation and scaling;
-- input-order invariance;
-- outer model maximum and model-set expansion;
-- overflow-safe fraction comparison;
-- empty, zero-mass, invalid-alpha, duplicate-model and arithmetic-overflow rejection;
-- cross-check against an independently expanded integer-atom oracle on small distributions;
-- full mission-path extraction for no-action and contingent multi-action policies;
-- exact reconstruction of model-wise expected loss from the existing mission-minimax policy tree;
-- rejection of missing actions, missing outcome branches and malformed policy trees.
+Exact-head CI is still required. Tests authored are not reported as passed until the relevant workflow is complete.
 
 ## Reproduce
 
 ~~~sh
+cargo test --manifest-path research/nav-observation-toy-fim/Cargo.toml cvar_policy_tests
 cargo test --manifest-path research/nav-observation-toy-fim/Cargo.toml navigation_tail_risk
-cargo run --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin navigation_tail_risk_demo
+cargo run --manifest-path research/nav-observation-toy-fim/Cargo.toml --bin navigation_temporal_cvar_demo
 ~~~
 
-## Limitations and next step
+## Claim boundary and next work
 
-This increment reconstructs path-loss distributions from the existing finite temporal policy tree and evaluates each fixed policy under mission-persistent models. It still does not optimize the policy tree for CVaR; the current minimax planner selects an expected-risk policy and the evaluator reports its tail risk. It does not estimate model-set coverage or prove that supplied probabilities correspond to physical navigation. The next increment should enumerate candidate policy trees and select the robust-CVaR-optimal observable policy, then independently cross-check that selection on tiny exhaustive cases.
-
-No dataset payloads are admitted and no physical campaigns are run by this increment.
+This v0.2 optimizer selects only within the current finite horizon-two policy family and supplied finite candidate models. It does not infer transition-model coverage, calibrate probabilities, address continuous pose state, or establish physical navigation integrity. The next scale-up comparator is an explicitly observable finite-state controller distilled from a recurrent memory policy, independently evaluated against this exact oracle on tractable instances and against persistent joint models at larger scale.
