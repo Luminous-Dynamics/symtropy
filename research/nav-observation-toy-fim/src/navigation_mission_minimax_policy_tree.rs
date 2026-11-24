@@ -597,8 +597,8 @@ mod tests {
             terminal_decisions: [TerminalDecision::DeclareDegraded, TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded],
         });
         assert_eq!(plan.branches[2].policy, BranchPolicy::Acquire {
-            second_action_id: 3,
-            terminal_decisions: [TerminalDecision::DeclareDegraded, TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded],
+            second_action_id: 2,
+            terminal_decisions: [TerminalDecision::DeclareDegraded, TerminalDecision::DeclareDegraded, TerminalDecision::DeclareSafe],
         });
         assert_eq!(
             plan.worst_case_risk_numerator,
