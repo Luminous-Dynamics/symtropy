@@ -50,6 +50,9 @@
       "items": {
         "$ref": "#/$defs/transfer_forecast"
       }
+    },
+    "mechanism_transfer": {
+      "$ref": "#/$defs/mechanism_transfer"
     }
   },
   "$defs": {
@@ -695,6 +698,150 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "mechanism_source_intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_effect",
+        "evidence_ids"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_effect": {
+          "enum": [
+            "negative",
+            "no_change",
+            "positive"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "mechanism_target_prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "predicted_target_effect"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_effect": {
+          "enum": [
+            "negative",
+            "no_change",
+            "positive"
+          ]
+        }
+      }
+    },
+    "mechanism_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_episode_id",
+        "target_episode_id",
+        "source_evidence_prefix_sha256",
+        "target_evidence_prefix_sha256",
+        "action_mappings",
+        "source_interventions",
+        "target_effect_predictions"
+      ],
+      "properties": {
+        "source_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "action_mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/action_mapping"
+          }
+        },
+        "source_interventions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mechanism_source_intervention"
+          }
+        },
+        "target_effect_predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mechanism_target_prediction"
+          }
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "transfer_forecasts": {
+            "contains": {
+              "properties": {
+                "claim_type": {
+                  "const": "mechanism_transfer"
+                }
+              },
+              "required": [
+                "claim_type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "transfer_forecasts"
+        ]
+      },
+      "then": {
+        "required": [
+          "mechanism_transfer"
+        ]
+      }
+    }
+  ]
 }
