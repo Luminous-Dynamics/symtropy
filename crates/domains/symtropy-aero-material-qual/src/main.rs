@@ -9,7 +9,7 @@ fn main() -> ExitCode {
     let program = arguments
         .next()
         .unwrap_or_else(|| "aero-material-qual".into());
-    let Some(input_path) = arguments.next() else {
+    let Some(input_argument) = arguments.next() else {
         eprintln!(
             "Usage: {} <case.json>",
             std::path::Path::new(&program).display()
@@ -21,10 +21,11 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
+    let input_path = std::path::PathBuf::from(input_argument);
     let input = match fs::read_to_string(&input_path) {
         Ok(contents) => contents,
         Err(error) => {
-            eprintln!("Could not read {}: {error}", input_path.to_string_lossy());
+            eprintln!("Could not read {}: {error}", input_path.display());
             return ExitCode::FAILURE;
         }
     };
