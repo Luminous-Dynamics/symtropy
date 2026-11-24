@@ -270,3 +270,73 @@ The business case must not include SAWEM or export revenue merely because an opt
 ## 9. Claim boundary
 
 A green v0.1 fixture means only that a synthetic candidate profile satisfies the supplied finite reserve, power and PCC arithmetic. It does not demonstrate field resilience, real storage availability, a qualified bidirectional aircraft battery, V2G, grid export, interconnection, power quality, islanding, black start, market eligibility, aircraft safety or production readiness.
+
+
+## 10. South African market and service qualification addendum — 24 November 2026
+
+The South African opportunity has become more concrete, but the implementation must distinguish national capacity planning, market participation, technical qualification and a particular asset's deliverable service.
+
+### 10.1 Procurement direction is not a dispatch entitlement
+
+On 7 October 2026, the Department of Electricity and Energy announced the proposed first Section 34 determination under IRP 2025: 4,600 MW of battery energy storage and 5,000 MW of gas-to-power. The later Notice 8021 of 2026 specifies those capacity amounts and that procurement is to occur through fair, equitable, transparent, competitive and cost-effective tender procedures. This is a national procurement direction, not a contract award, a site connection approval or an entitlement for an arbitrary aggregator to export energy.
+
+Sources:
+- [South African Government: 4,600 MW BESS and 5,000 MW gas-to-power announcement, 7 October 2026](https://www.gov.za/news/media-statements/minister-kgosientsho-ramokgopa-prioritises-battery-storage-and-gas-power)
+- [Electricity Regulation Act — Notice 8021 of 2026](https://www.acts.co.za/electricity-regulation-act-2006/n8021_notice_no__8021_of_2026)
+
+### 10.2 Map Symtropy capabilities to actual NTCSA service categories
+
+The NTCSA Reliability Services taxonomy includes reserves, reactive power/voltage control, black start/islanding and energy imbalance. It separately defines Demand Response as a measurable change in electrical demand following a curtailment notice. The SAWEM Market Code Rev 2.3 (February 2026) describes trading in energy and reserves and the scheduling/dispatch of generation and demand-side resources, subject to the Code's qualifying criteria.
+
+Sources:
+- [NTCSA Reliability Services](https://www.ntcsa.co.za/reliability-services/)
+- [NTCSA Demand Response](https://www.ntcsa.co.za/demand-response/)
+- [NTCSA Wholesale Market Code — Rev 2.3, February 2026](https://www.ntcsa.co.za/energy-market-services/wholesale-market-code/)
+
+The engineering model should not collapse these services into a single generic "flexibility" offer:
+
+| Service family | Evidence and model needed | Symtropy treatment |
+|---|---|---|
+| Active-power reserves / energy shifting | Resource-level P and E envelope, response/activation, sustain duration, state-of-charge, availability and recovery trajectory | Extend the existing resource-level trajectory and reserve-recovery gates |
+| Demand response | Verifiable customer/site load baseline, curtailment event, measured load reduction, notification and sustain evidence | Model charging deferral/load curtailment as a distinct service, not as battery discharge |
+| Reactive power / voltage support | Inverter P-Q capability curve, voltage boundary, power factor, thermal derating, connection approval and independent tests | Separate qualification; active-power headroom and battery Wh do not prove reactive capability |
+| Black start / islanding | System-restoration certification, protection settings, grid-forming controls, auxiliary supplies, synchronisation and witnessed commissioning | Exclude from v0.1/v0.2 flexibility claims until a dedicated restoration qualification exists |
+| Energy imbalance / settlement | Interval metering, schedule/dispatch records, validated meter boundary and settlement-grade reconciliation | Treat as a market/accounting interface, not a physical capability inferred by the optimizer |
+
+NTCSA's Instantaneous Demand Response Programme describes a particular product requiring full load response within six seconds, sustained for at least ten minutes, with a 10 MW minimum entry and special metering. These are programme-specific conditions, not generic limits for every reserve product or every battery service. The implementation must ingest the actual product's current qualification and performance rules rather than hard-code one programme's thresholds into the generic flexibility verifier.
+
+Source: [NTCSA Instantaneous Demand Response Programme](https://www.ntcsa.co.za/instantaneous-demand-response-programme/).
+
+### 10.3 Location becomes part of the feasible product
+
+The national storage procurement direction reinforces an important limitation of the existing PCC-only verifier: a site can satisfy its own import/export envelope and still worsen a constrained feeder or transmission interface. The next network-qualified stage must bind each offer to:
+- the actual connection point and effective-dated feeder/substation topology;
+- direction- and time-dependent network headroom;
+- charging and discharging coincidence with local and upstream constraints;
+- a qualified AC power-flow or operator-provided network feasibility result;
+- the exact topology, load-flow case, model version and decision cutoff used for the determination.
+
+A positive site-level flexibility result is not a network-congestion clearance. Where network evidence is absent, stale or outside its declared operating envelope, the offer must remain site-only and must not claim congestion relief or transmission-deliverable reserve.
+
+### 10.4 Updated benchmark requirements
+
+Add the following matched benchmark dimensions to v0.3/v0.4:
+
+| Benchmark | Required reporting |
+|---|---|
+| Response | command/notice-to-measured-response latency, p50/p95/p99, and product-specific threshold failures |
+| Sustain | delivered MW and MWh over the complete contracted interval, not just peak response |
+| Availability | eligible resource-hours / committed resource-hours, with exclusions and failed start rates |
+| Recovery | time to restore each protected reserve, recovery import peak, and second-shock success |
+| Accuracy | scheduled vs independently metered PCC and asset-level power/energy error |
+| Network deliverability | feasible scenarios under the exact effective-dated feeder/transformer topology and contingency set |
+| Degradation | incremental throughput, temperature exposure, efficiency loss and capacity fade under matched duty cycles |
+| Settlement | independently reproducible interval meter, schedule, dispatch, baseline and payment reconciliation |
+
+Keep hard reserve, safety, interconnection and product-qualification requirements outside reward functions. Optimizers may propose offers; they cannot convert an unqualified service into a qualified one.
+
+### 10.5 Commercial boundary
+
+The near-term product remains behind-the-meter self-consumption, measured peak management and site resilience where the actual connection and equipment approvals permit them. Participation in SAWEM, reserve provision, demand response, wheeling, reactive support, black start, or export requires the specific party, asset, site, metering and service qualification mandated by the applicable rules and procurement/contract. No market revenue should enter the business case until those prerequisites have independent evidence.
+
+This addendum changes the research priorities, not the v0.1 claim ceiling: the existing synthetic fixture still proves only its bounded arithmetic and evidence-contract behaviour.
