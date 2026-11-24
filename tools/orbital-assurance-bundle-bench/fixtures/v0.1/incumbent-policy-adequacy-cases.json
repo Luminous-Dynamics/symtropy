@@ -1,1 +1,265 @@
-{"schema":"luminous.orbital-incumbent-policy-adequacy.corpus.v0.1","evidence_class":"synthetic","claim_ceiling":"synthetic-observable-policy-maintenance-algebra-only","cases":[{"case_id":"observable_review","source_policy_case_id":"discovery-observable_review","decision_scope_id":"scope-observable_review","scope_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","decision_cutoff_id":"cutoff-106","world_set_receipt_id":"world-receipt-observable_review","joint_loss_receipt_id":"loss-receipt-observable_review","joint_scenario_manifest_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","source_receipt":{"receipt_schema":"luminous.orbital-feasibility-discovery.receipt.v0.1","claim_ceiling":"finite-passive-query-policy-tree-algebra-only","source_commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","source_case_id":"discovery-observable_review","source_scope_id":"scope-observable_review","source_scope_sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","source_decision_cutoff_id":"cutoff-106","source_world_set_receipt_id":"world-receipt-observable_review","source_joint_loss_receipt_id":"loss-receipt-observable_review","source_joint_scenario_manifest_sha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","policy_payload_sha256":"33ecad310f3b931258af3d0d118ae6d88a398623ac356fdfabe640c56c1c5598","receipt_id":"discovery-receipt-observable_review","receipt_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","state":"CURRENT","result":"pass"},"world_set_state":"CURRENT","loss_model_state":"CURRENT","model_family_state":"ADEQUATE","domain_closure_state":"CLOSED_WITHIN_DECLARED_SCOPE","dependency_graph_state":"GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR","evidence_state":"CURRENT","incumbent_feasibility_state":"FEASIBLE","loss_unit":"loss_micro_units","incumbent_policy_id":"incumbent-static","materiality_margin":{"numerator":2,"denominator":1},"policy_switch_cost":{"reference_trials":1,"exposure_micro_units":2,"elapsed_millis":20},"resource_budget":{"reference_trials":3,"exposure_micro_units":10,"elapsed_millis":1000},"expected_joint_scenarios":[{"scenario_id":"s-A","world_id":"w-A","loss_model_id":"loss-A"},{"scenario_id":"s-B","world_id":"w-B","loss_model_id":"loss-B"}],"expected_scenario_ids_sha256":"4efe19ea1d3286a95bd7933a5edd5045e0816da59c570eabad126c85330e8676","expected_joint_scenarios_sha256":"c12723694bbd84b670c725f3213f0eca76a30a4c38c11f565ff23aa33021f66b","policy_pareto_frontier_ids":["candidate-observable"],"policies":[{"policy_id":"incumbent-static","query_id":null,"branch_actions":{"__NO_QUERY__":"safe"},"declared_worst_case_loss":{"numerator":10,"denominator":1},"query_cost":{"reference_trials":0,"exposure_micro_units":0,"elapsed_millis":0},"branch_action_cost_upper_bound":{"reference_trials":0,"exposure_micro_units":0,"elapsed_millis":0},"total_cost_upper_bound":{"reference_trials":0,"exposure_micro_units":0,"elapsed_millis":0},"per_scenario":[{"scenario_id":"s-A","world_id":"w-A","loss_model_id":"loss-A","observed_outcome_id":"__NO_QUERY__","selected_action_id":"safe","loss":{"numerator":10,"denominator":1}},{"scenario_id":"s-B","world_id":"w-B","loss_model_id":"loss-B","observed_outcome_id":"__NO_QUERY__","selected_action_id":"safe","loss":{"numerator":10,"denominator":1}}]},{"policy_id":"candidate-observable","query_id":"safe-measurement","branch_actions":{"north":"north-action","south":"south-action"},"declared_worst_case_loss":{"numerator":1,"denominator":1},"query_cost":{"reference_trials":1,"exposure_micro_units":5,"elapsed_millis":10},"branch_action_cost_upper_bound":{"reference_trials":1,"exposure_micro_units":0,"elapsed_millis":5},"total_cost_upper_bound":{"reference_trials":2,"exposure_micro_units":5,"elapsed_millis":15},"per_scenario":[{"scenario_id":"s-A","world_id":"w-A","loss_model_id":"loss-A","observed_outcome_id":"north","selected_action_id":"north-action","loss":{"numerator":1,"denominator":1}},{"scenario_id":"s-B","world_id":"w-B","loss_model_id":"loss-B","observed_outcome_id":"south","selected_action_id":"south-action","loss":{"numerator":1,"denominator":1}}]}]}]}
+{
+  "schema": "luminous.orbital-incumbent-policy-adequacy.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-observable-policy-maintenance-algebra-only",
+  "cases": [
+    {
+      "case_id": "observable_review",
+      "source_policy_case_id": "discovery-observable_review",
+      "decision_scope_id": "scope-observable_review",
+      "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "decision_cutoff_id": "cutoff-106",
+      "world_set_receipt_id": "world-receipt-observable_review",
+      "joint_loss_receipt_id": "loss-receipt-observable_review",
+      "joint_scenario_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "source_receipt": {
+        "receipt_schema": "luminous.orbital-feasibility-discovery.receipt.v0.1",
+        "claim_ceiling": "finite-passive-query-policy-tree-algebra-only",
+        "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_case_id": "discovery-observable_review",
+        "source_scope_id": "scope-observable_review",
+        "source_scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "source_decision_cutoff_id": "cutoff-106",
+        "source_world_set_receipt_id": "world-receipt-observable_review",
+        "source_joint_loss_receipt_id": "loss-receipt-observable_review",
+        "source_joint_scenario_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_payload_sha256": "2ebadcf63c1953265715a1ca0c78d189b0d2e1bd0f923c96bce9a3e7735cf581",
+        "receipt_id": "discovery-receipt-observable_review",
+        "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "state": "CURRENT",
+        "result": "pass"
+      },
+      "world_set_state": "CURRENT",
+      "loss_model_state": "CURRENT",
+      "model_family_state": "ADEQUATE",
+      "domain_closure_state": "CLOSED_WITHIN_DECLARED_SCOPE",
+      "dependency_graph_state": "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+      "evidence_state": "CURRENT",
+      "incumbent_feasibility_state": "FEASIBLE",
+      "loss_unit": "loss_micro_units",
+      "incumbent_policy_id": "incumbent-static",
+      "materiality_margin": {
+        "numerator": 2,
+        "denominator": 1
+      },
+      "policy_switch_cost": {
+        "reference_trials": 1,
+        "exposure_micro_units": 2,
+        "elapsed_millis": 20
+      },
+      "resource_budget": {
+        "reference_trials": 3,
+        "exposure_micro_units": 10,
+        "elapsed_millis": 1000
+      },
+      "expected_joint_scenarios": [
+        {
+          "scenario_id": "s-A",
+          "world_id": "w-A",
+          "loss_model_id": "loss-A"
+        },
+        {
+          "scenario_id": "s-B",
+          "world_id": "w-B",
+          "loss_model_id": "loss-B"
+        }
+      ],
+      "expected_scenario_ids_sha256": "4efe19ea1d3286a95bd7933a5edd5045e0816da59c570eabad126c85330e8676",
+      "expected_joint_scenarios_sha256": "c12723694bbd84b670c725f3213f0eca76a30a4c38c11f565ff23aa33021f66b",
+      "policy_pareto_frontier_ids": [
+        "candidate-observable"
+      ],
+      "policies": [
+        {
+          "policy_id": "incumbent-static",
+          "query_id": null,
+          "branch_actions": {
+            "__NO_QUERY__": "safe"
+          },
+          "declared_worst_case_loss": {
+            "numerator": 10,
+            "denominator": 1
+          },
+          "query_cost": {
+            "reference_trials": 0,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 0
+          },
+          "branch_action_cost_upper_bound": {
+            "reference_trials": 0,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 0
+          },
+          "total_cost_upper_bound": {
+            "reference_trials": 0,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 0
+          },
+          "per_scenario": [
+            {
+              "scenario_id": "s-A",
+              "world_id": "w-A",
+              "loss_model_id": "loss-A",
+              "observed_outcome_id": "__NO_QUERY__",
+              "selected_action_id": "safe",
+              "loss": {
+                "numerator": 10,
+                "denominator": 1
+              },
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            },
+            {
+              "scenario_id": "s-B",
+              "world_id": "w-B",
+              "loss_model_id": "loss-B",
+              "observed_outcome_id": "__NO_QUERY__",
+              "selected_action_id": "safe",
+              "loss": {
+                "numerator": 10,
+                "denominator": 1
+              },
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            }
+          ],
+          "observation_class_world_ids": {
+            "__NO_QUERY__": [
+              "w-A",
+              "w-B"
+            ]
+          },
+          "worst_case_wait_and_see_regret": {
+            "numerator": 0,
+            "denominator": 1
+          },
+          "worst_case_outcome_class_regret": {
+            "numerator": 0,
+            "denominator": 1
+          },
+          "worst_loss_reduction_vs_best_no_query": null,
+          "worst_loss_scenario_ids": [
+            "s-A",
+            "s-B"
+          ],
+          "worst_wait_and_see_scenario_ids": [
+            "s-A",
+            "s-B"
+          ],
+          "worst_outcome_class_regret_scenario_ids": [
+            "s-A",
+            "s-B"
+          ]
+        },
+        {
+          "policy_id": "candidate-observable",
+          "query_id": "safe-measurement",
+          "branch_actions": {
+            "north": "north-action",
+            "south": "south-action"
+          },
+          "declared_worst_case_loss": {
+            "numerator": 1,
+            "denominator": 1
+          },
+          "query_cost": {
+            "reference_trials": 1,
+            "exposure_micro_units": 5,
+            "elapsed_millis": 10
+          },
+          "branch_action_cost_upper_bound": {
+            "reference_trials": 1,
+            "exposure_micro_units": 0,
+            "elapsed_millis": 5
+          },
+          "total_cost_upper_bound": {
+            "reference_trials": 2,
+            "exposure_micro_units": 5,
+            "elapsed_millis": 15
+          },
+          "per_scenario": [
+            {
+              "scenario_id": "s-A",
+              "world_id": "w-A",
+              "loss_model_id": "loss-A",
+              "observed_outcome_id": "north",
+              "selected_action_id": "north-action",
+              "loss": {
+                "numerator": 1,
+                "denominator": 1
+              },
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            },
+            {
+              "scenario_id": "s-B",
+              "world_id": "w-B",
+              "loss_model_id": "loss-B",
+              "observed_outcome_id": "south",
+              "selected_action_id": "south-action",
+              "loss": {
+                "numerator": 1,
+                "denominator": 1
+              },
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            }
+          ],
+          "observation_class_world_ids": {
+            "north": [
+              "w-A"
+            ],
+            "south": [
+              "w-B"
+            ]
+          },
+          "worst_case_wait_and_see_regret": {
+            "numerator": 0,
+            "denominator": 1
+          },
+          "worst_case_outcome_class_regret": {
+            "numerator": 0,
+            "denominator": 1
+          },
+          "worst_loss_reduction_vs_best_no_query": null,
+          "worst_loss_scenario_ids": [
+            "s-A",
+            "s-B"
+          ],
+          "worst_wait_and_see_scenario_ids": [
+            "s-A",
+            "s-B"
+          ],
+          "worst_outcome_class_regret_scenario_ids": [
+            "s-A",
+            "s-B"
+          ]
+        }
+      ]
+    }
+  ]
+}
