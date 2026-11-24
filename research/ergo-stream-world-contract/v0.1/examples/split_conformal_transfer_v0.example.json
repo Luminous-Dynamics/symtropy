@@ -1,0 +1,30 @@
+{
+  "schema_version": "ergo-split-conformal-transfer-v0",
+  "calibrator": {
+    "evaluation_stratum_id": 1,
+    "alpha_ppm": 100000,
+    "calibration_count": 19,
+    "quantile_rank": 18,
+    "quantile_nonconformity_ppm": 220000
+  },
+  "prediction_sets": [
+    {
+      "sample_id": 1001,
+      "include_transfer": true,
+      "include_non_transfer": false,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 1002,
+      "include_transfer": true,
+      "include_non_transfer": true,
+      "decision": null
+    },
+    {
+      "sample_id": 1003,
+      "include_transfer": false,
+      "include_non_transfer": true,
+      "decision": "reject_transfer"
+    }
+  ]
+}
