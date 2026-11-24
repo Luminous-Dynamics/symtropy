@@ -123,6 +123,18 @@ Run each method on identical source/target pairs, matched data budgets and the s
 
 Do not tune weights, support thresholds, map thresholds, calibration bins or deferral operating points on confirmatory target labels.
 
+### Adaptive-coverage and delayed-feedback comparators
+
+The transfer tournament must not collapse static, adaptive and time-series calibration into one method family:
+
+- **Adaptive Coverage Policies (AISTATS 2026):** example-dependent coverage policy trained through a leave-one-out / e-value procedure. Benchmark whether difficulty-aware coverage allocation improves prediction-set efficiency at fixed validity requirements. This does not alone handle arbitrary concept shift. https://proceedings.mlr.press/v300/gauthier26a.html
+- **Delayed-feedback ACI (2026):** label delays are explicit, and theoretical/empirical behavior depends on the delay-to-residual-memory relationship. Test fixed, variable, censored and out-of-order labels; update only after an owner-validated outcome matures. https://arxiv.org/abs/2609.07251
+- **Dependence-aware realized-coverage inference (2026):** use functional-dependence bounds and block-based standard errors to quantify uncertainty in *observed* coverage; keep that interval distinct from the conformal prediction-set coverage statement. Include long-memory sensitivity. https://arxiv.org/abs/2609.33868
+- **Drift-detection online conformal (2026):** evaluate abrupt/smooth shift update policies and training-conditional cumulative regret under the paper's independent-stream conditions; do not claim transfer to dependent campaigns without further assumptions. https://arxiv.org/abs/2602.16537
+- **Anytime-valid adaptive observation:** reuse Symtropy #6887 for time-uniform decision sets/e-processes when the learner actively chooses the next probe. A static split-conformal quantile is not valid merely because the adaptively selected observations have unique IDs.
+
+Report separate tracks for static exchangeable calibration, independent-block calibration, adaptive sampling/optional stopping, delayed label feedback, and online distribution drift. A combined system must use the appropriate owner-approved guarantee for each track; it must not relabel a static split-conformal result as online or anytime-valid.
+
 ### Metrics
 
 Publish a vector, not one blended leaderboard score:
