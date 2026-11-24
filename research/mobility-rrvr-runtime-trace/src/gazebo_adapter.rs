@@ -1267,6 +1267,42 @@ mod tests {
     }
 
     #[test]
+    fn planned_dispatch_rechecks_live_simulator_profile_after_reset() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
+        simulator.profile.scene_broadcaster_sha256 = "d".repeat(64);
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-profile-drift",
+                "epoch-profile-drift"
+            ),
+            Err(GazeboAdapterError::InvalidCapabilityProfile)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+    }
+
+    #[test]
     fn reset_verification_is_single_use_and_not_repeatable() {
         let plan = plan();
         let mut simulator = mock_transport(&plan);
