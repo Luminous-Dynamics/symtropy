@@ -44,6 +44,18 @@ PIVtools is the processor/throughput comparator. Its published peak of 117 four-
 
 UQ-010 compares field reconstruction and calibrated uncertainty; it does not claim to replace PIVtools' processing throughput.
 
+### 2.4 Generative neural operators and conditional diffusion (March 2026)
+
+Oommen et al., *Learning turbulent flows with generative models for super resolution and sparse flow reconstruction*, Nature Communications 17, 3707 (9 March 2026), DOI 10.1038/s41467-026-70145-4, adds two important SOTA comparator families:
+
+**Forward operator / spatio-temporal super-resolution and forecasting:** adversarially-trained neural operator (adv-NO). On the paper's 2D Schlieren-jet super-resolution case, the vanilla neural operator has field NRMSE 0.0542 and energy-spectrum NRMSE 0.1601; adv-NO has field NRMSE 0.0662 but energy-spectrum NRMSE 0.0109 at the same reported 0.010 s single-sample inference cost on an H100. This is approximately 14.7× lower spectrum error but slightly worse pointwise field error. The comparison makes the key point: a method can be worse by field NRMSE but much better in multiscale/spectral fidelity. These numbers are task-specific, not universal.
+ 
+For 3D homogeneous-isotropic-turbulence forecasting at (Re_\lambda=90), the same paper reports field NRMSE 0.0326 / spectrum NRMSE 0.0865 for vanilla NO and 0.0265 / 0.0235 for adv-NO. Its reported per-sample inference time is 0.082 s for both on an H100; the diffusion comparator GenCFD is 7.804 s per sample at the same listed parameter count, under the paper's matched setting. The authors also report phase alignment and Q–R velocity-gradient invariant statistics. The paper notes that divergence-penalising a conventional L2-trained NO did not correct spectral bias.
+
+**Inverse sparse-observation reconstruction:** conditional score-based diffusion (EDM) and conditional GAN. The paper uses 3D DNS cylinder-wake data at (Re=11{,}000), with 150 training, 18 validation and 17 test snapshots. Its “zero-shot” result is transfer to unseen masks/layouts within the same geometry, not generalisation to unseen geometries. Inputs are sparse PTV-like velocity observations generated from DNS fields, not raw PIV images. On its full-domain masking test, the conditional diffusion model remains effective at 99% missingness, whereas its conditional GAN baseline fails at the extreme mask. The diffusion model is a strong inverse-problem comparator, but iterative sampling cost, posterior calibration and experiment-to-DNS domain shift must be measured separately.
+
+These methods belong on different lanes: adv-NO is a forward operator surrogate for super-resolution/forecasting; conditional diffusion samples an inverse conditional posterior from partial observations. Do not rank them in one leaderboard unless the estimand, observed information, data, compute budget and inference semantics are matched.
+
 ## 3. Declare the estimand before scoring
 
 The target must be explicit and immutable for each benchmark lane:
@@ -112,6 +124,8 @@ Required baselines, where the data modality supports them:
 - linear Kalman filter and smoother;
 - SVGP-KAN, or a source-faithful reproduction once source code/data are available;
 - covariance-aware GP or reduced-rank GP reconstruction;
+- adversarially trained neural operator (adv-NO) for forward super-resolution/forecasting;
+- conditional score-based diffusion (EDM) and conditional GAN for sparse-observation inverse reconstruction;
 - any Symthaea/Symtropy/HDC/CfC challenger.
 
 All methods must receive the same observations, sensor history, calibration data, train/test partitions, flow metadata, compute budget policy and inference cutoff. Report any additional information privilege (for example, phase, forcing frequency, geometry, auxiliary sensors or future measurements) explicitly. Methods with different privileges belong on separate tracks.
@@ -125,7 +139,7 @@ HDC/CfC is an experimental challenger, not a privileged baseline. It earns credi
 - relative L2 and normalized RMSE;
 - pointwise median, P90, P95 and maximum errors by declared region;
 - profile error and wake/shear-layer position/amplitude;
-- vorticity, divergence, spectra and structure-function error;
+- vorticity, divergence, band-wise energy-spectrum error, high-wavenumber tail-energy retention, structure-function error and Q–R velocity-gradient invariant PDF error when 3D gradients are available;
 - temporal phase, event timing and lag correlation for time-resolved tasks;
 - mean, Reynolds stress, skewness and flatness error only when these are the declared estimands.
 
@@ -138,6 +152,7 @@ HDC/CfC is an experimental challenger, not a privileged baseline. It earns credi
 - uncertainty growth between observation times;
 - CRPS or weighted interval score for scalar predictive marginals;
 - energy score and variogram score for spatial/multivariate predictive distributions;
+- conditional measurement-consistency residual and phase alignment near observed regions for generative posterior samples;
 - interval width or confidence-region volume;
 - cluster-bootstrap confidence intervals and worst-slice reporting.
 
@@ -271,6 +286,7 @@ These are research targets, not achieved results:
 - **Decision-aligned sensing:** choose the next PIV sampling time or sensor placement to minimize expected uncertainty in the engineering quantity, not only field RMSE.
 - **Coverage-aware reconstruction:** jointly evaluate spatial dependence, temporal dependence and whole-field uncertainty rather than attaching independent pixel intervals.
 - **Structure-preserving abstention:** preserve uncertain coherent structures for review rather than deleting them as outliers.
+- **Spectrum-aware and distribution-aware objectives:** evaluate low- and high-wavenumber energy, gradient tails, phase alignment and Q–R statistics separately; never allow adversarial realism to substitute for pointwise measurement consistency or calibrated posterior uncertainty.
 - **Multi-fidelity assimilation:** combine sparse PIV, pressure probes, LPT, hot-wire/LDA, DNS priors and physics models with explicit privilege and covariance accounting.
 - **Observer-aware active learning:** avoid designs where the tracer or sensor perturbs the EHD state enough to invalidate the target regime.
 - **Model-falsification:** include plausible but wrong dynamics, phase drift, unseen frequencies, geometry changes, missing sensors, timing shifts, common-mode calibration errors and nonstationary turbulence.
