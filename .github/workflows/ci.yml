@@ -80,6 +80,14 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
+    - name: Qualify Planar Patch Parameter-Set Oracle
+      run: |
+        cargo fmt --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml -- --check
+        cargo test --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked
+        cargo run --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --example parameter_set_tournament --locked
+        cargo run --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --example patch_support_envelope_tournament --locked
+        cargo clippy --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked --all-targets -- -D warnings
+
     - name: Test Airborne Energy Observability Oracle
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
