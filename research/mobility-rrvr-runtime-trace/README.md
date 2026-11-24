@@ -212,3 +212,8 @@ The Gazebo observer trait no longer receives the expected fault-signature digest
 
 
 This increment advances the payload-conflict and observer-blinding portions of [#7148](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The durable append-only dispatch journal and real injector-side ledger are not implemented by this mock-transport PR.
+
+
+### Reset-qualified dispatch session
+
+Plan-derived dispatch now requires a private reset-verification marker created only by reset_and_verify after exact initial-state, epoch, clock and pause checks. Capability preflight alone is not enough to dispatch. The dispatch path compares the session against the private marker and re-queries the live capability profile; plan, reset, session or profile drift blocks the injector call. The marker is process-local only. After coordinator restart, a concrete adapter must reconcile a durable reset receipt from the #7148 journal rather than reconstructing reset qualification from an epoch string.
