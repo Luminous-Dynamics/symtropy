@@ -785,22 +785,23 @@ mod tests {
     #[test]
     fn whitened_candidate_rows_reconstruct_the_delassus_gram_matrix() {
         let mass = vec![vec![4.0, 0.5], vec![0.5, 2.0]];
-        let jacobian = vec![
-            vec![1.0, 0.0],
-            vec![0.0, 2.0],
-            vec![1.0, 1.0],
-        ];
-        let report = select_inertial_rank_basis(
-            &input(&["a", "b", "c"], mass, jacobian),
-            config(),
-        )
-        .expect("rank report");
+        let jacobian = vec![vec![1.0, 0.0], vec![0.0, 2.0], vec![1.0, 1.0]];
+        let report = select_inertial_rank_basis(&input(&["a", "b", "c"], mass, jacobian), config())
+            .expect("rank report");
         assert_eq!(report.whitened_contact_rows.len(), 3);
 
         let reference_rows = [[1.0, 0.0], [0.0, 2.0], [1.0, 1.0]];
         let determinant = 4.0 * 2.0 - 0.5 * 0.5;
-        for (whitened_i, row_i) in report.whitened_contact_rows.iter().zip(reference_rows.iter()) {
-            for (whitened_j, row_j) in report.whitened_contact_rows.iter().zip(reference_rows.iter()) {
+        for (whitened_i, row_i) in report
+            .whitened_contact_rows
+            .iter()
+            .zip(reference_rows.iter())
+        {
+            for (whitened_j, row_j) in report
+                .whitened_contact_rows
+                .iter()
+                .zip(reference_rows.iter())
+            {
                 let gram = dot(whitened_i, whitened_j).expect("finite whitened gram");
                 let solved = [
                     (2.0 * row_j[0] - 0.5 * row_j[1]) / determinant,
@@ -826,15 +827,9 @@ mod tests {
         let transformed_mass = multiply(&multiply(&transpose(&transform), &mass), &transform);
         let transformed_jacobian = multiply(&jacobian, &transform);
 
-        let original = select_inertial_rank_basis(
-            &input(
-                &["a", "b", "c", "d"],
-                mass,
-                jacobian,
-            ),
-            config(),
-        )
-        .expect("original coordinates");
+        let original =
+            select_inertial_rank_basis(&input(&["a", "b", "c", "d"], mass, jacobian), config())
+                .expect("original coordinates");
         let rebased = select_inertial_rank_basis(
             &input(
                 &["a", "b", "c", "d"],
