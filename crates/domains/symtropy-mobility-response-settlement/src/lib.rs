@@ -1557,7 +1557,16 @@ mod tests {
             "site_requested_response_energy_mwh":0.000005555555555556,
             "maximum_dc_network_deliverable_response_energy_mwh":0.000005555555555556,
             "full_requested_trajectory_dc_deliverable":true,
-            "dc_network_report":{"interval_count":2,"network_deliverable":true,"n_minus_one_required":true,"n_minus_one_feasible_interval_count":2},
+            "dc_network_report":{
+                "interval_count":2,
+                "network_deliverable":true,
+                "n_minus_one_required":true,
+                "n_minus_one_feasible_interval_count":2,
+                "intervals":[
+                    {"interval_start_ns":event_start,"interval_duration_ns":sample,"maximum_network_deliverable_reduction_mw":0.01},
+                    {"interval_start_ns":event_start+sample,"interval_duration_ns":sample,"maximum_network_deliverable_reduction_mw":0.01}
+                ]
+            },
             "upstream_receipts":network_receipts,
             "actual_metered_delivery_assessed":false,
             "adequacy_contribution_computed":false,
@@ -1621,6 +1630,20 @@ mod tests {
         assert!(!report.payment_authorized);
         assert!(!report.market_eligibility_granted);
         assert!(!report.dispatch_authority_granted);
+    }
+
+    #[test]
+    fn dispatch_power_lower_bound_uses_minimum_pcc_baseline_and_network_cap() {
+        let report = evaluate_mobility_response_settlement(&input()).unwrap();
+        assert!((report.minimum_dispatch_interval_lower_bound_kw.unwrap() - 9.8).abs() < 1.0e-9);
+
+        let mut limited = input();
+        limited.mobility_network.report["dc_network_report"]["intervals"][0]
+            ["maximum_network_deliverable_reduction_mw"] = json!(0.009);
+        limited.mobility_network.report["dc_network_report"]["intervals"][1]
+            ["maximum_network_deliverable_reduction_mw"] = json!(0.009);
+        let report = evaluate_mobility_response_settlement(&limited).unwrap();
+        assert!((report.minimum_dispatch_interval_lower_bound_kw.unwrap() - 9.0).abs() < 1.0e-9);
     }
 
     #[test]
