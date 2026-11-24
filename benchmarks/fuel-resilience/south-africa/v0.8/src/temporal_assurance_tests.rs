@@ -130,7 +130,7 @@ fn oracle_episodes(states: &[u8], confirmation_seconds: u64) -> Vec<ExpectedEpis
                 }
             }
             0 | 1 => {
-                let episode = active.get_or_insert_with(|| OracleEpisode {
+                let episode = active.get_or_insert(OracleEpisode {
                     start_index: index,
                     recovery_candidate_index: None,
                     recovery_streak_seconds: 0,
