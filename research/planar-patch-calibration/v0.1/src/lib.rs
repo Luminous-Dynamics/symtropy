@@ -700,7 +700,6 @@ struct LeastSquaresResult {
     rank: usize,
     pivot_order: Vec<usize>,
     pivot_norms: Vec<f64>,
-    basis: Vec<Vec<f64>>,
     coefficients: Option<[f64; 3]>,
 }
 
@@ -818,7 +817,6 @@ fn pivoted_weighted_least_squares(
             rank,
             pivot_order: selected_order,
             pivot_norms,
-            basis,
             coefficients: None,
         });
     }
@@ -864,7 +862,6 @@ fn pivoted_weighted_least_squares(
         rank,
         pivot_order: selected_order,
         pivot_norms,
-        basis,
         coefficients: Some(solution),
     })
 }
