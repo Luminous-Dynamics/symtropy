@@ -2099,6 +2099,29 @@ mod tests {
     }
 
     #[test]
+    fn dispatch_request_fingerprint_matches_cross_language_known_answer() {
+        let request = GazeboDispatchRequest {
+            plan_sha256: "a".repeat(64),
+            campaign_id: "campaign-1".into(),
+            pair_id: "pair-1".into(),
+            scenario_id: "scenario-1".into(),
+            fault_id: "fault-1".into(),
+            fault_sequence: 7,
+            target_id: "gazebo-model-001".into(),
+            fault_domain_id: "injector-domain-1".into(),
+            scheduled_simulation_step: 42,
+            parameters_sha256: "b".repeat(64),
+            payload_sha256: String::new(),
+            idempotency_key: "rrvr/test-vector-001".into(),
+        };
+
+        assert_eq!(
+            dispatch_request_fingerprint(&request).unwrap(),
+            "3dce526b8a70c80126e89afc5088fc8d436e46e0a259eb4584124cd3c293a5b0"
+        );
+    }
+
+    #[test]
     fn idempotency_key_is_stable_and_bound_to_plan_run_and_fault() {
         let plan = plan();
         let scenario = &plan.scenarios[0];
