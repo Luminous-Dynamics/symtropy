@@ -275,7 +275,8 @@ pub fn bernstein_excess_bound_milli(
     calibration_schedules: usize,
     sigma_max_milli: u16,
 ) -> Option<u32> {
-    if parameter_count == 0 || calibration_schedules == 0 || sigma_max_milli > LOSS_BOUND_MILLI / 2 {
+    if parameter_count == 0 || calibration_schedules == 0 || sigma_max_milli > LOSS_BOUND_MILLI / 2
+    {
         return None;
     }
 
