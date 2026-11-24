@@ -533,3 +533,8 @@ For identical plan/run/fault/target fields, vary only the verified simulator wor
 ### Reconciliation-to-dispatch replay controls
 
 For a single registered request, exercise ledger outcomes Accepted, Rejected, NoDispatchProven, Unknown and PayloadConflict. After recording each decision locally, repeat the same dispatch request and require zero additional injector calls; the returned status must preserve the reconciled decision. Reconcile a request with a modified target under the same key and require PayloadConflict. Attempt reconciliation before the journal restores the local request binding and require Unresolved. A new physical retry must use a new attempt identity and must pass RRVR recovery qualification; NoDispatchProven on the old key is not by itself authority to issue a new effect.
+
+
+### Formal plan-binding mutant
+
+The bounded reset model now has a second explicit unsafe mutant in addition to blind reset retry: replace the active campaign after reset verification and then dispatch. The safe invariant DispatchUsesResetPlan requires the dispatched plan identity to equal the plan identity captured by the reset operation. The workflow requires a specific TLC counterexample for the mutant. This gives the reset protocol two independent mutation tests: duplicate reset request under an unknown outcome, and transfer of reset evidence across campaigns.
