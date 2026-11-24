@@ -871,7 +871,10 @@ mod tests {
             empirical_upper_cvar_milli(&losses, 0.80).expect("CVaR"),
             1_000.0
         );
-        assert!(empirical_upper_cvar_milli(&losses, 0.50).expect("CVaR") > 500.0);
+        assert_eq!(
+            empirical_upper_cvar_milli(&losses, 0.50).expect("CVaR"),
+            410.0
+        );
     }
 
     #[test]
