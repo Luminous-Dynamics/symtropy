@@ -1411,11 +1411,7 @@ mod tests {
         let other = pair(1, 3);
         let root = LineageId::root(p.clone());
         let mut l = PairLedger::new([p]).unwrap();
-        for s in [
-            Stage::Eligibility,
-            Stage::TemporalBounds,
-            Stage::Broadphase,
-        ] {
+        for s in [Stage::Eligibility, Stage::TemporalBounds, Stage::Broadphase] {
             l.record(StageEvent {
                 stage: s,
                 input: root.clone(),
