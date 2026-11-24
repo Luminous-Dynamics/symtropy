@@ -52,7 +52,7 @@ Lower is better. The executable clips only exact 0/1 probabilities to one ppm aw
 
 The implementation uses a fixed, evaluator-selected number of equal-width probability bins. For each bin it stores the count, positive count and exact probability sum. The ECE numerator is the sum of absolute differences between total forecast probability mass and observed positive mass within each bin. The denominator is \(N \times 1{,}000{,}000\).
 
-ECE depends on binning and can hide within-bin errors. It is secondary to proper scoring rules and must be reported with the bin count. Never tune bins on the held-out confirmatory cohort.
+ECE depends on binning and can hide within-bin errors. It is secondary to proper scoring rules and must be reported with the bin count. Report sensitivity at 5, 10, 15 and 20 equal-width bins where sample size supports it. Never tune bins on the held-out confirmatory cohort.
 
 ### Uncertainty around empirical risk and coverage
 
@@ -94,7 +94,7 @@ Use the exact same forecast set for all map types and compare:
 - confidence calibration by claim type (structure, dynamics, simulation, bisimulation, mechanism);
 - Brier and log loss;
 - reliability plots / fixed-bin ECE;
-- risk–coverage curves and coverage at predeclared risk ceilings;
+- risk–coverage curves, tie-aware right-step AURC, decision coverage and coverage at predeclared risk ceilings;
 - false-unification rate among high-confidence assertions;
 - abstention rate on non-identifiable and out-of-scope controls;
 - calibration under representation-only shift, semantic/mechanism shift and combined shift;
