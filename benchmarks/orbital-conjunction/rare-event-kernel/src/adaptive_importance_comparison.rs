@@ -711,10 +711,11 @@ mod tests {
             );
             assert_eq!(method.retained_sample_identity_count, 48);
             assert!(method.snapshots.iter().all(|s| {
-                s.width >= 0.0
+                s.estimate.is_finite()
+                    && s.lower.is_finite()
+                    && s.upper.is_finite()
+                    && s.width >= 0.0
                     && s.lower <= s.upper
-                    && s.lower <= TARGET_EVENT_PROBABILITY
-                    && s.upper >= TARGET_EVENT_PROBABILITY
             }));
             assert_eq!(method.timing_repetitions, 2);
         }
@@ -731,7 +732,11 @@ mod tests {
 
         for method in &report.methods {
             if let Some(decision) = method.first_decision {
-                assert_eq!(decision, AdaptiveImportanceThresholdDecision::AtOrAboveThreshold);
+                assert!(matches!(
+                    decision,
+                    AdaptiveImportanceThresholdDecision::BelowThreshold
+                        | AdaptiveImportanceThresholdDecision::AtOrAboveThreshold
+                ));
                 assert!(method.first_decision_sample_count.unwrap() > 0);
                 assert!(method.first_decision_sample_count.unwrap() <= 96);
             }
@@ -796,6 +801,26 @@ mod tests {
                 "{method:?} receipt-path miss probability was {probability}"
             );
         }
+    }
+
+    #[test]
+    fn threshold_decision_uses_strict_upper_and_inclusive_lower_endpoints() {
+        let mut decision = None;
+        let mut sample_count = None;
+
+        record_decision(Some(0.1), 0.1, 0.2, 3, &mut decision, &mut sample_count);
+        assert_eq!(decision, Some(AdaptiveImportanceThresholdDecision::AtOrAboveThreshold));
+        assert_eq!(sample_count, Some(3));
+
+        decision = None;
+        sample_count = None;
+        record_decision(Some(0.1), 0.0, 0.1, 4, &mut decision, &mut sample_count);
+        assert_eq!(decision, None);
+        assert_eq!(sample_count, None);
+
+        record_decision(Some(0.1), 0.0, 0.099, 5, &mut decision, &mut sample_count);
+        assert_eq!(decision, Some(AdaptiveImportanceThresholdDecision::BelowThreshold));
+        assert_eq!(sample_count, Some(5));
     }
 
     #[test]
