@@ -213,9 +213,9 @@ Each dataset declares:
 - an independence-evidence reference describing separation from policy/production feasibility helpers;
 - one declared exchangeability scope and one operating-regime ID;
 - frozen evaluator and loss-contract revisions;
-- a SHA-256-shaped digest for the pre-frozen policy grid.
+- an explicit ordered candidate-policy grid with contiguous parameter indices, immutable policy IDs and revisions, plus an externally supplied SHA-256-shaped digest. Parameter order is preserved exactly; it is not sorted by policy ID.
 
-Each complete scheduling episode declares its unique episode ID, unique dependence-cluster ID, scenario family, regime ID, and Calibration or Evaluation role. Each episode carries exactly one oracle outcome for every candidate policy. Each policy outcome includes policy/evaluator/loss revisions, an authority disposition, physical feasibility disposition, bounded service-loss value, and receipt digest.
+Each complete scheduling episode declares its unique episode ID, unique dependence-cluster ID, scenario family, regime ID, and Calibration or Evaluation role. Each episode carries exactly one oracle outcome for every candidate policy. Each policy outcome includes policy/evaluator/loss revisions, an action class (`NoMutation` or `Mutating`), an authority disposition, physical feasibility disposition, bounded service-loss value, and receipt digest. `NotRequired` is only accepted for `NoMutation`; a `Mutating` action requires `Authorized`.
 
 ### Fail-closed rules
 
@@ -225,13 +225,13 @@ Each complete scheduling episode declares its unique episode ID, unique dependen
 - A reused dependence-cluster ID across any episodes or split roles is rejected. Clustered operations must first be aggregated into one complete schedule-level sampling unit or handled under a separate dependence-aware method.
 - A missing/extra policy candidate, policy revision drift, evaluator revision drift, loss-contract drift, mixed operating regimes, duplicate episode IDs, malformed receipt digest, or out-of-range loss rejects the whole dataset.
 - Calibration and Evaluation matrices remain separate. Evaluation outcomes cannot enter calibration selection through this adapter.
-- Matrices and policy columns are sorted deterministically, so input episode order and policy-outcome order do not change the compiled result.
+- Episode rows are sorted deterministically, while policy columns retain the exact declared CRC parameter order. Input episode order and policy-outcome order do not change the compiled result.
 
-The adapter does **not** prove that the oracle is independent, that the evidence reference is truthful, that an external digest matches the policy-grid contents, or that the declared exchangeability scope holds. Those remain owner/evidence assertions. The adapter also reports empirical upper-tail CVaR by policy and loss axis. These descriptive diagnostics are not finite-sample CVaR guarantees or risk-control certificates. The broader comparison against high-probability LTT/RCPS, stability-based and anytime-valid methods is owned by [#7303](https://github.com/Luminous-Dynamics/symtropy/issues/7303). It does not implement physical feasibility, estimate importance weights, or convert a CRC expected-risk result into an authorization decision.
+The adapter does **not** prove that the oracle is independent, that the evidence reference is truthful, that an external digest matches the policy-grid contents (only its SHA-256 shape is checked), or that the declared exchangeability scope holds. Those remain owner/evidence assertions. The adapter also reports empirical upper-tail CVaR by policy and loss axis. These descriptive diagnostics are not finite-sample CVaR guarantees or risk-control certificates. The broader comparison against high-probability LTT/RCPS, stability-based and anytime-valid methods is owned by [#7303](https://github.com/Luminous-Dynamics/symtropy/issues/7303). It does not implement physical feasibility, estimate importance weights, or convert a CRC expected-risk result into an authorization decision.
 
 The root `crate::LossMatrix` and finite-grid CRC-NM grid can consume the emitted matrices independently for each loss axis. Known-weight shift selection is deliberately not wired to this adapter: a real bounded likelihood ratio must be independently justified, not inferred from these receipts.
 
-The adapter has 16 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
+The adapter has 18 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
 
 ## Important release preconditions
 
