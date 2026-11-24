@@ -204,7 +204,7 @@ Every benchmark result should carry:
 - raw metrics plus aggregate confidence intervals;
 - provenance chain and machine-readable report schema.
 
-An invalid or missing artifact must reduce valid-evidence yield; it must not be silently excluded from the denominator.
+An invalid or missing artifact must reduce valid-evidence yield; it must not be silently excluded from the denominator. Count missing response artifacts, missing ledger receipts and missing physical observations as separate invalidity classes.
 
 ## 9. Research hypotheses that can be falsified
 
