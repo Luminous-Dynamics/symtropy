@@ -18,22 +18,34 @@ This dependency-free Rust reference package composes two research oracles:
    does not combine marginal minima from different vertices, which could
    describe a parameter combination that is not physically feasible.
 
-The upper envelope is the exact supremum over the enumerated complete convex
-polyhedron: the support expression is convex in positive beta, and
-coordinatewise non-increasing, so a non-negative recession direction cannot
-increase its maximum. A vertex with beta_i=0 for an active direction is a
-direct witness of unbounded support.
+For an exact vertex representation of the complete convex feasible
+polyhedron, the support expression is convex in positive beta and
+coordinatewise non-increasing. Its supremum is therefore attained at a
+feasible vertex; a non-negative recession direction cannot increase it. A
+vertex with beta_i=0 for an active direction witnesses unbounded support.
 
-The lower envelope is a rigorous but potentially conservative
-Cauchy-Schwarz bound:
+**Numerical qualification:** v0.1 reports the maximum evaluated over the
+floating-point vertices returned by the current triple-intersection
+enumerator. Exhausting the configured plane-triple loop is not, by itself, a
+proof that every exact vertex was recovered. The implementation does not use
+outward-rounded interval arithmetic for plane intersections or support
+evaluation. The report therefore sets
+upper_bound_is_vertex_maximum=true and outward_rounding_applied=false.
+Do not use this value as a formal hard safety certificate or promotion gate
+until interval/error enclosures and degenerate-intersection coverage are
+qualified.
+
+The lower envelope uses the Cauchy-Schwarz inequality:
 \[
 h(\beta)\ge c\,\frac{\|q\|_1}
 {\sqrt{\max_{\hat\beta\in P}\sum_{i:q_i\ne0}\hat\beta_i}}.
 \]
-The denominator is maximized over *joint vertices*, preserving observed
-correlation. If an active beta axis is unbounded above, the reported safe
-lower bound is zero. The implementation does not call this lower bound the
-exact minimum.
+Its value is conservative only when the reported vertices correctly capture
+the relevant maximum over the complete feasible set. In v0.1 this is an
+analytical bound construction over the reported representation, not an
+outward-enclosed numerical certificate. If an active beta axis is unbounded
+above, the lower bound is safely set to zero. The implementation does not
+call this lower bound the exact minimum.
 
 ## Status and claim ceiling
 
