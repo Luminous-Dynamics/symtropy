@@ -744,6 +744,117 @@ mod tests {
         assert_eq!(result.cvar, r(2, 1));
     }
 
+    fn fixture_corpus() -> Corpus {
+        serde_json::from_str(include_str!("../fixtures/v0.1/cvar-regret-cases.json"))
+            .expect("CVaR fixture corpus must parse")
+    }
+
+    #[test]
+    fn calibrated_fixture_matches_exact_known_answers_and_abstains_without_evidence() {
+        let corpus = fixture_corpus();
+        let result = evaluate(&corpus).expect("CVaR fixture evaluates");
+        assert_eq!(result.result, "pass");
+        assert_eq!(result.summary.case_count, 4);
+        assert_eq!(result.summary.pass_cases, 1);
+        assert_eq!(result.summary.abstain_cases, 3);
+        assert_eq!(result.summary.invalid_input_cases, 0);
+        assert_eq!(result.summary.authority_grants, 0);
+
+        let qualified = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "cvar-case-1")
+            .expect("qualified case exists");
+        assert_eq!(qualified.status, "PASS");
+        let incumbent = qualified
+            .policies
+            .iter()
+            .find(|policy| policy.policy_id == "incumbent-static")
+            .expect("incumbent policy exists");
+        assert_eq!(incumbent.wait_and_see_regret.expected_regret, r(16, 25));
+        assert_eq!(incumbent.wait_and_see_regret.worst_case_regret, r(10, 1));
+        assert_eq!(
+            incumbent
+                .wait_and_see_regret
+                .cvar
+                .iter()
+                .map(|point| point.cvar.clone())
+                .collect::<Vec<_>>(),
+            vec![r(22, 5), r(29, 5), r(10, 1)]
+        );
+
+        let candidate = qualified
+            .policies
+            .iter()
+            .find(|policy| policy.policy_id == "candidate-observable")
+            .expect("candidate policy exists");
+        assert_eq!(candidate.wait_and_see_regret.expected_regret, r(19, 50));
+        assert_eq!(
+            candidate
+                .wait_and_see_regret
+                .cvar
+                .iter()
+                .map(|point| point.cvar.clone())
+                .collect::<Vec<_>>(),
+            vec![r(14, 5), r(18, 5), r(6, 1)]
+        );
+
+        let absent = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "cvar-case-no-probability")
+            .expect("absence case exists");
+        assert_eq!(absent.status, "ABSTAIN");
+        assert_eq!(absent.reason, "PROBABILITY_MODEL_RECEIPT_ABSENT");
+        assert!(!result.authority_granted);
+    }
+
+    #[test]
+    fn non_normalized_probability_receipt_fails_closed() {
+        let mut corpus = fixture_corpus();
+        corpus.cases[0].probability_model.as_mut().unwrap().weights[0].weight = r(1, 2);
+        let result = evaluate(&corpus).expect("invalid case produces a report");
+        assert_eq!(result.result, "fail");
+        assert_eq!(result.summary.invalid_input_cases, 1);
+        assert_eq!(
+            result.cases[0].reason,
+            "probability weights do not sum exactly to one"
+        );
+        assert_eq!(result.summary.authority_grants, 0);
+    }
+
+    #[test]
+    fn probability_model_support_must_match_full_joint_inventory() {
+        let mut corpus = fixture_corpus();
+        corpus.cases[0].probability_model.as_mut().unwrap().weights.pop();
+        let result = evaluate(&corpus).expect("invalid support produces a report");
+        assert_eq!(result.cases[0].status, "INVALID_INPUT");
+        assert_eq!(
+            result.cases[0].reason,
+            "probability weights do not cover the exact joint scenario inventory"
+        );
+    }
+
+    #[test]
+    fn stale_and_unqualified_probability_models_abstain() {
+        let corpus = fixture_corpus();
+        let result = evaluate(&corpus).expect("unqualified cases produce an abstention report");
+        let stale = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "cvar-case-stale-model")
+            .unwrap();
+        let unqualified = result
+            .cases
+            .iter()
+            .find(|case| case.case_id == "cvar-case-unqualified-calibration")
+            .unwrap();
+        assert_eq!(stale.status, "ABSTAIN");
+        assert_eq!(stale.reason, "PROBABILITY_MODEL_NOT_CURRENT");
+        assert_eq!(unqualified.status, "ABSTAIN");
+        assert_eq!(unqualified.reason, "PROBABILITY_CALIBRATION_NOT_QUALIFIED");
+    }
+
     #[test]
     fn weights_must_normalize_exactly() {
         let values = vec![(r(1, 1), r(1, 2)), (r(2, 1), r(1, 4))];
