@@ -437,7 +437,9 @@ pub fn evaluate(
                         .checked_add(window.duration_seconds)
                         .ok_or_else(|| "recovery streak duration overflowed".to_string())?;
                     if episode.recovery_streak_seconds >= restoration_confirmation_seconds {
-                        episodes.push(episode.finish_confirmed(candidate_start, assessment.end_unix_s)?);
+                        episodes.push(
+                            episode.finish_confirmed(candidate_start, assessment.end_unix_s)?,
+                        );
                     } else {
                         active_episode = Some(episode);
                     }
@@ -580,7 +582,10 @@ mod tests {
     #[test]
     fn known_answer_tracks_service_loss_and_sustained_restoration() {
         let certificate = base_case().expect("fixture must evaluate");
-        assert_eq!(certificate.disposition, CertificateDisposition::ConfirmedCriticalServiceShortfall);
+        assert_eq!(
+            certificate.disposition,
+            CertificateDisposition::ConfirmedCriticalServiceShortfall
+        );
         assert_eq!(certificate.windows_total, 4);
         assert_eq!(certificate.guaranteed_windows, 3);
         assert_eq!(certificate.confirmed_shortfall_windows, 1);
@@ -597,7 +602,10 @@ mod tests {
     fn all_windows_above_floor_support_continuity() {
         let windows = vec![window(0, 50, 55), window(1, 60, 65)];
         let result = evaluate(&windows, 7_200).expect("valid windows");
-        assert_eq!(result.disposition, CertificateDisposition::ContinuitySupportedWithinHorizon);
+        assert_eq!(
+            result.disposition,
+            CertificateDisposition::ContinuitySupportedWithinHorizon
+        );
         assert_eq!(result.guaranteed_time_ppm, 1_000_000);
         assert!(result.restoration_episodes.is_empty());
     }
@@ -606,7 +614,10 @@ mod tests {
     fn interval_crossing_floor_is_uncertain_not_guaranteed() {
         let windows = vec![window(0, 45, 55)];
         let result = evaluate(&windows, 3_600).expect("valid interval");
-        assert_eq!(result.disposition, CertificateDisposition::ContinuityNotProven);
+        assert_eq!(
+            result.disposition,
+            CertificateDisposition::ContinuityNotProven
+        );
         assert_eq!(result.uncertain_windows, 1);
         assert_eq!(result.critical_shortfall_lower_wh, 0);
         assert_eq!(result.critical_shortfall_upper_wh, 5);

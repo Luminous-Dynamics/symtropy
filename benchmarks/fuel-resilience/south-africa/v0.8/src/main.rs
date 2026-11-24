@@ -1,4 +1,4 @@
-use safrb_service_continuity::{base_case, CertificateDisposition};
+use safrb_service_continuity::{CertificateDisposition, base_case};
 
 fn main() -> Result<(), String> {
     let certificate = base_case()?;
@@ -7,28 +7,54 @@ fn main() -> Result<(), String> {
     println!("boundary_id,{},label", certificate.boundary_id);
     println!("horizon_seconds,{},s", certificate.horizon_seconds);
     println!("windows_total,{},count", certificate.windows_total);
-    println!("guaranteed_windows,{},count", certificate.guaranteed_windows);
-    println!("confirmed_shortfall_windows,{},count", certificate.confirmed_shortfall_windows);
+    println!(
+        "guaranteed_windows,{},count",
+        certificate.guaranteed_windows
+    );
+    println!(
+        "confirmed_shortfall_windows,{},count",
+        certificate.confirmed_shortfall_windows
+    );
     println!("uncertain_windows,{},count", certificate.uncertain_windows);
-    println!("guaranteed_time_ppm,{},ppm", certificate.guaranteed_time_ppm);
-    println!("critical_shortfall_lower,{},Wh", certificate.critical_shortfall_lower_wh);
-    println!("critical_shortfall_upper,{},Wh", certificate.critical_shortfall_upper_wh);
-    println!("target_shortfall_lower,{},Wh", certificate.target_shortfall_lower_wh);
-    println!("target_shortfall_upper,{},Wh", certificate.target_shortfall_upper_wh);
+    println!(
+        "guaranteed_time_ppm,{},ppm",
+        certificate.guaranteed_time_ppm
+    );
+    println!(
+        "critical_shortfall_lower,{},Wh",
+        certificate.critical_shortfall_lower_wh
+    );
+    println!(
+        "critical_shortfall_upper,{},Wh",
+        certificate.critical_shortfall_upper_wh
+    );
+    println!(
+        "target_shortfall_lower,{},Wh",
+        certificate.target_shortfall_lower_wh
+    );
+    println!(
+        "target_shortfall_upper,{},Wh",
+        certificate.target_shortfall_upper_wh
+    );
     println!("disposition,{:?},label", certificate.disposition);
     if certificate.disposition == CertificateDisposition::ConfirmedCriticalServiceShortfall {
         println!("# Synthetic fixture demonstrates a confirmed critical-service shortfall.");
     }
     for (index, episode) in certificate.restoration_episodes.iter().enumerate() {
-        println!("episode_{index}_start,{},unix_s", episode.episode_start_unix_s);
+        println!(
+            "episode_{index}_start,{},unix_s",
+            episode.episode_start_unix_s
+        );
         println!(
             "episode_{index}_restoration_latency,{},s",
-            episode.restoration_latency_seconds.map_or_else(
-                || "unconfirmed".into(),
-                |value| value.to_string()
-            )
+            episode
+                .restoration_latency_seconds
+                .map_or_else(|| "unconfirmed".into(), |value| value.to_string())
         );
-        println!("episode_{index}_right_censored,{},bool", episode.right_censored);
+        println!(
+            "episode_{index}_right_censored,{},bool",
+            episode.right_censored
+        );
     }
     println!("# Synthetic fixture only; not a physical port or facility measurement.");
     Ok(())
