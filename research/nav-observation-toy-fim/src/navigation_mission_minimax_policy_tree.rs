@@ -833,6 +833,55 @@ mod tests {
         assert!(result.shared_policy.authority_transition_not_authorized_by_plan);
     }
 
+    fn one_shot_model_action(
+        id: u64,
+        model_zero_error_ppb: u64,
+        model_one_error_ppb: u64,
+    ) -> PersistentModelAction {
+        let observation_rows = |error: u64| {
+            [
+                l(0, PROBABILITY_SCALE - error, error),
+                l(0, error, PROBABILITY_SCALE - error),
+                l(0, PROBABILITY_SCALE - error, error),
+                l(0, error, PROBABILITY_SCALE - error),
+            ]
+        };
+        action(
+            id,
+            observation_rows(model_zero_error_ppb),
+            observation_rows(model_one_error_ppb),
+            cost(),
+        )
+    }
+
+    #[test]
+    fn minimax_risk_and_minimax_regret_can_select_different_actions() {
+        let problem = problem(equal_prior(), equal_prior(), 1, 1);
+        let actions = vec![
+            // Model 0 prefers action 2; model 1 slightly prefers action 1.
+            one_shot_model_action(1, 100_000_000, 450_000_000),
+            one_shot_model_action(2, 0, 475_000_000),
+        ];
+        // Only one acquisition fits in the budget.
+        let budget = cost();
+
+        let worst_case = plan_mission_global_minimax(&problem, &actions, budget).unwrap();
+        let minimax_regret =
+            plan_mission_global_minimax_regret(&problem, &actions, budget).unwrap();
+
+        assert_eq!(worst_case.first_action_id, Some(1));
+        assert_eq!(worst_case.worst_case_risk_numerator, 450_000_000_000_000_000_000_000_000);
+        assert_eq!(minimax_regret.shared_policy.first_action_id, Some(2));
+        assert_eq!(minimax_regret.model_aware_oracle_risk_numerators, [
+            0,
+            450_000_000_000_000_000_000_000_000,
+        ]);
+        assert_eq!(
+            minimax_regret.minimax_regret_numerator,
+            25_000_000_000_000_000_000_000_000
+        );
+    }
+
     #[test]
     fn minimax_regret_policy_is_candidate_order_invariant() {
         let problem = problem(equal_prior(), equal_prior(), 1, 1);
