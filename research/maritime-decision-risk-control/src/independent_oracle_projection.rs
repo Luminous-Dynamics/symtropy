@@ -167,10 +167,16 @@ pub struct IndependentOracleProjection {
 pub enum OracleProjectionError {
     MissingField(&'static str),
     UnsupportedSchema(String),
-    InvalidSha256 { field: &'static str, value: String },
+    InvalidSha256 {
+        field: &'static str,
+        value: String,
+    },
     OracleIdentitiesNotDistinct,
     DuplicatePolicyId(String),
-    InvalidPolicyGridOrder { position: usize, found: usize },
+    InvalidPolicyGridOrder {
+        position: usize,
+        found: usize,
+    },
     DuplicateParticipantId(String),
     InvalidParticipantFloor(String),
     DuplicateSourceId(String),
@@ -179,34 +185,89 @@ pub enum OracleProjectionError {
     MissingEvaluationSchedules,
     DuplicateEpisodeId(String),
     ReusedDependenceCluster(String),
-    MixedOperatingRegimes { expected: String, found: String },
-    DuplicatePolicyReceipt { episode_id: String, policy_id: String },
+    MixedOperatingRegimes {
+        expected: String,
+        found: String,
+    },
+    DuplicatePolicyReceipt {
+        episode_id: String,
+        policy_id: String,
+    },
     PolicyGridDrift {
         episode_id: String,
         missing_policy_ids: Vec<String>,
         unexpected_policy_ids: Vec<String>,
     },
-    PolicyIdentityMismatch { episode_id: String, policy_id: String },
-    ReceiptBindingMismatch { episode_id: String, policy_id: String, axis: &'static str },
-    OracleIdentityMismatch { oracle_id: String, axis: &'static str },
+    PolicyIdentityMismatch {
+        episode_id: String,
+        policy_id: String,
+    },
+    ReceiptBindingMismatch {
+        episode_id: String,
+        policy_id: String,
+        axis: &'static str,
+    },
+    OracleIdentityMismatch {
+        oracle_id: String,
+        axis: &'static str,
+    },
     AuthorityActionMismatch {
         episode_id: String,
         policy_id: String,
         action_class: PolicyActionClass,
         disposition: AuthorityDisposition,
     },
-    AuthorityRecordDigestMismatch { episode_id: String, policy_id: String },
-    MissingEvidenceReference { episode_id: String, policy_id: String, axis: &'static str },
-    DuplicateEvidenceReference { source_id: String },
-    UnknownEvidenceReference { source_id: String },
-    AuthorityEvidenceKindMissing { episode_id: String, policy_id: String },
-    PhysicalEvidenceKindMissing { episode_id: String, policy_id: String },
-    ServiceEvidenceKindMissing { episode_id: String, policy_id: String },
-    InvalidServiceLoss { episode_id: String, policy_id: String, value_milli: u16 },
-    DuplicateParticipantReceipt { episode_id: String, policy_id: String, participant_id: String },
-    MissingParticipantReceipts { episode_id: String, policy_id: String, participant_ids: Vec<String> },
-    UnexpectedParticipantReceipt { episode_id: String, policy_id: String, participant_id: String },
-    InvalidSourceTime { source_id: String, field: &'static str },
+    AuthorityRecordDigestMismatch {
+        episode_id: String,
+        policy_id: String,
+    },
+    MissingEvidenceReference {
+        episode_id: String,
+        policy_id: String,
+        axis: &'static str,
+    },
+    DuplicateEvidenceReference {
+        source_id: String,
+    },
+    UnknownEvidenceReference {
+        source_id: String,
+    },
+    AuthorityEvidenceKindMissing {
+        episode_id: String,
+        policy_id: String,
+    },
+    PhysicalEvidenceKindMissing {
+        episode_id: String,
+        policy_id: String,
+    },
+    ServiceEvidenceKindMissing {
+        episode_id: String,
+        policy_id: String,
+    },
+    InvalidServiceLoss {
+        episode_id: String,
+        policy_id: String,
+        value_milli: u16,
+    },
+    DuplicateParticipantReceipt {
+        episode_id: String,
+        policy_id: String,
+        participant_id: String,
+    },
+    MissingParticipantReceipts {
+        episode_id: String,
+        policy_id: String,
+        participant_ids: Vec<String>,
+    },
+    UnexpectedParticipantReceipt {
+        episode_id: String,
+        policy_id: String,
+        participant_id: String,
+    },
+    InvalidSourceTime {
+        source_id: String,
+        field: &'static str,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -281,7 +342,10 @@ fn validate_oracle_identity(
     for (value, field) in [
         (identity.oracle_id.as_str(), "oracle_id"),
         (identity.oracle_revision.as_str(), "oracle_revision"),
-        (identity.independence_review_ref.as_str(), "independence_review_ref"),
+        (
+            identity.independence_review_ref.as_str(),
+            "independence_review_ref",
+        ),
     ] {
         require_nonempty(value, field)?;
     }
@@ -295,13 +359,18 @@ fn validate_oracle_identity(
 
 fn validate_contract(contract: &OracleProjectionContract) -> Result<(), OracleProjectionError> {
     if contract.schema_version != EXPECTED_SCHEMA {
-        return Err(OracleProjectionError::UnsupportedSchema(contract.schema_version.clone()));
+        return Err(OracleProjectionError::UnsupportedSchema(
+            contract.schema_version.clone(),
+        ));
     }
     for (value, field) in [
         (contract.dataset_id.as_str(), "dataset_id"),
         (contract.dataset_revision.as_str(), "dataset_revision"),
         (contract.evaluator_revision.as_str(), "evaluator_revision"),
-        (contract.loss_contract_revision.as_str(), "loss_contract_revision"),
+        (
+            contract.loss_contract_revision.as_str(),
+            "loss_contract_revision",
+        ),
         (contract.operating_regime_id.as_str(), "operating_regime_id"),
     ] {
         require_nonempty(value, field)?;
@@ -330,7 +399,9 @@ fn validate_contract(contract: &OracleProjectionContract) -> Result<(), OraclePr
         require_nonempty(&policy.policy_id, "policy_id")?;
         require_nonempty(&policy.policy_revision, "policy_revision")?;
         if !policy_ids.insert(policy.policy_id.clone()) {
-            return Err(OracleProjectionError::DuplicatePolicyId(policy.policy_id.clone()));
+            return Err(OracleProjectionError::DuplicatePolicyId(
+                policy.policy_id.clone(),
+            ));
         }
     }
 
@@ -362,7 +433,10 @@ fn validate_contract(contract: &OracleProjectionContract) -> Result<(), OraclePr
         require_nonempty(&source.retrieved_at_utc, "retrieved_at_utc")?;
         validate_digest(&source.source_sha256, "source_sha256")?;
         for (value, field) in [
-            (source.publication_time_utc.as_deref(), "publication_time_utc"),
+            (
+                source.publication_time_utc.as_deref(),
+                "publication_time_utc",
+            ),
             (source.valid_from_time_utc.as_deref(), "valid_from_time_utc"),
             (source.valid_to_time_utc.as_deref(), "valid_to_time_utc"),
         ] {
@@ -374,7 +448,9 @@ fn validate_contract(contract: &OracleProjectionContract) -> Result<(), OraclePr
             }
         }
         if !source_ids.insert(source.source_id.clone()) {
-            return Err(OracleProjectionError::DuplicateSourceId(source.source_id.clone()));
+            return Err(OracleProjectionError::DuplicateSourceId(
+                source.source_id.clone(),
+            ));
         }
     }
 
@@ -404,11 +480,11 @@ fn validate_source_refs(
                 source_id: source_id.clone(),
             });
         }
-        let source = registry
-            .get(source_id.as_str())
-            .ok_or_else(|| OracleProjectionError::UnknownEvidenceReference {
+        let source = registry.get(source_id.as_str()).ok_or_else(|| {
+            OracleProjectionError::UnknownEvidenceReference {
                 source_id: source_id.clone(),
-            })?;
+            }
+        })?;
         kinds.push(source.kind);
     }
     Ok(kinds)
@@ -477,8 +553,14 @@ fn validate_policy_projection(
     }
 
     validate_digest(&outcome.physical.receipt_sha256, "physical_receipt_sha256")?;
-    validate_digest(&outcome.authority.receipt_sha256, "authority_receipt_sha256")?;
-    validate_digest(&outcome.service_loss.receipt_sha256, "service_loss_receipt_sha256")?;
+    validate_digest(
+        &outcome.authority.receipt_sha256,
+        "authority_receipt_sha256",
+    )?;
+    validate_digest(
+        &outcome.service_loss.receipt_sha256,
+        "service_loss_receipt_sha256",
+    )?;
 
     let physical_kinds = validate_source_refs(
         &outcome.physical.source_evidence_ids,
@@ -519,7 +601,10 @@ fn validate_policy_projection(
         true,
     )?;
 
-    match (outcome.authority.action_class, outcome.authority.disposition) {
+    match (
+        outcome.authority.action_class,
+        outcome.authority.disposition,
+    ) {
         (PolicyActionClass::NoMutation, AuthorityDisposition::NotRequired) => {
             if outcome.authority.authority_record_sha256.is_some() {
                 return Err(OracleProjectionError::AuthorityRecordDigestMismatch {
@@ -530,12 +615,14 @@ fn validate_policy_projection(
         }
         (PolicyActionClass::Mutating, AuthorityDisposition::Authorized)
         | (PolicyActionClass::Mutating, AuthorityDisposition::Denied) => {
-            let digest = outcome.authority.authority_record_sha256.as_deref().ok_or_else(|| {
-                OracleProjectionError::AuthorityRecordDigestMismatch {
+            let digest = outcome
+                .authority
+                .authority_record_sha256
+                .as_deref()
+                .ok_or_else(|| OracleProjectionError::AuthorityRecordDigestMismatch {
                     episode_id: episode_id.to_owned(),
                     policy_id: policy_id.to_owned(),
-                }
-            })?;
+                })?;
             validate_digest(digest, "authority_record_sha256")?;
             let authority_record_matches_source = outcome
                 .authority
@@ -700,7 +787,10 @@ pub fn audit_independent_oracle_projection(
     for schedule in &dataset.schedules {
         for (value, field) in [
             (schedule.episode_id.as_str(), "episode_id"),
-            (schedule.dependence_cluster_id.as_str(), "dependence_cluster_id"),
+            (
+                schedule.dependence_cluster_id.as_str(),
+                "dependence_cluster_id",
+            ),
             (schedule.scenario_family.as_str(), "scenario_family"),
             (schedule.operating_regime_id.as_str(), "operating_regime_id"),
         ] {
@@ -713,7 +803,9 @@ pub fn audit_independent_oracle_projection(
             });
         }
         if !episode_ids.insert(schedule.episode_id.clone()) {
-            return Err(OracleProjectionError::DuplicateEpisodeId(schedule.episode_id.clone()));
+            return Err(OracleProjectionError::DuplicateEpisodeId(
+                schedule.episode_id.clone(),
+            ));
         }
         if !dependence_clusters.insert(schedule.dependence_cluster_id.clone()) {
             return Err(OracleProjectionError::ReusedDependenceCluster(
@@ -762,10 +854,11 @@ pub fn audit_independent_oracle_projection(
                 if receipt.delivered_service_units < participant.minimum_service_units {
                     participant_floor_violation_count += 1;
                 }
-                minimum_service = Some(minimum_service.map_or(
-                    receipt.delivered_service_units,
-                    |current: u32| current.min(receipt.delivered_service_units),
-                ));
+                minimum_service = Some(
+                    minimum_service.map_or(receipt.delivered_service_units, |current: u32| {
+                        current.min(receipt.delivered_service_units)
+                    }),
+                );
             }
             physical_failure_count +=
                 (outcome.physical.disposition == PhysicalDisposition::Infeasible) as usize;
@@ -775,10 +868,11 @@ pub fn audit_independent_oracle_projection(
                 (outcome.authority.disposition == AuthorityDisposition::Denied) as usize;
             authority_unknown_count +=
                 (outcome.authority.disposition == AuthorityDisposition::Unknown) as usize;
-            maximum_loss = Some(maximum_loss.map_or(
-                outcome.service_loss.loss_milli,
-                |current: u16| current.max(outcome.service_loss.loss_milli),
-            ));
+            maximum_loss = Some(
+                maximum_loss.map_or(outcome.service_loss.loss_milli, |current: u16| {
+                    current.max(outcome.service_loss.loss_milli)
+                }),
+            );
             policy_receipt_count += 1;
         }
         if expected_policy_ids != policy_ids {
@@ -972,10 +1066,7 @@ mod tests {
                 oracle_id: "physical-oracle".to_owned(),
                 oracle_revision: "physical-v1".to_owned(),
                 disposition: physical,
-                source_evidence_ids: vec![
-                    "schedule-input".to_owned(),
-                    "physical-model".to_owned(),
-                ],
+                source_evidence_ids: vec!["schedule-input".to_owned(), "physical-model".to_owned()],
                 receipt_sha256: A.to_owned(),
             },
             authority: AuthorityOracleReceipt {
@@ -985,7 +1076,9 @@ mod tests {
                 action_class,
                 disposition: authority,
                 authority_record_sha256: match authority {
-                    AuthorityDisposition::Authorized | AuthorityDisposition::Denied => Some(D.to_owned()),
+                    AuthorityDisposition::Authorized | AuthorityDisposition::Denied => {
+                        Some(D.to_owned())
+                    },
                     AuthorityDisposition::NotRequired | AuthorityDisposition::Unknown => None,
                 },
                 source_evidence_ids: authority_source,
@@ -1139,7 +1232,9 @@ mod tests {
     #[test]
     fn participant_universe_must_be_complete_for_each_policy_episode() {
         let mut data = valid_projection();
-        data.schedules[0].policy_outcomes[0].participant_service.pop();
+        data.schedules[0].policy_outcomes[0]
+            .participant_service
+            .pop();
         assert!(matches!(
             audit_independent_oracle_projection(&data),
             Err(OracleProjectionError::MissingParticipantReceipts { .. })
@@ -1149,10 +1244,16 @@ mod tests {
     #[test]
     fn mismatched_physical_and_authority_bindings_are_rejected() {
         let mut data = valid_projection();
-        data.schedules[0].policy_outcomes[0].authority.binding.episode_id = "other-episode".to_owned();
+        data.schedules[0].policy_outcomes[0]
+            .authority
+            .binding
+            .episode_id = "other-episode".to_owned();
         assert!(matches!(
             audit_independent_oracle_projection(&data),
-            Err(OracleProjectionError::ReceiptBindingMismatch { axis: "authority", .. })
+            Err(OracleProjectionError::ReceiptBindingMismatch {
+                axis: "authority",
+                ..
+            })
         ));
     }
 
@@ -1170,8 +1271,9 @@ mod tests {
     #[test]
     fn receipts_must_reference_registered_source_artifacts() {
         let mut data = valid_projection();
-        data.schedules[0].policy_outcomes[0].physical.source_evidence_ids[0] =
-            "unregistered-source".to_owned();
+        data.schedules[0].policy_outcomes[0]
+            .physical
+            .source_evidence_ids[0] = "unregistered-source".to_owned();
         assert!(matches!(
             audit_independent_oracle_projection(&data),
             Err(OracleProjectionError::UnknownEvidenceReference { .. })
