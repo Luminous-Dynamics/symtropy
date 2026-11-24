@@ -3,62 +3,86 @@
   "cohort_id": "ergo-transfer-blind-confirmatory-v0-example",
   "outcomes": [
     {
-      "sample_id": 1,
+      "claim_id": "claim-001",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "evaluation_stratum_id": 0,
       "transfer_qualified": true
     },
     {
-      "sample_id": 2,
+      "claim_id": "claim-002",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evaluation_stratum_id": 0,
       "transfer_qualified": true
     },
     {
-      "sample_id": 3,
+      "claim_id": "claim-003",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evaluation_stratum_id": 0,
       "transfer_qualified": false
     },
     {
-      "sample_id": 4,
+      "claim_id": "claim-004",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "evaluation_stratum_id": 1,
       "transfer_qualified": false
     },
     {
-      "sample_id": 5,
+      "claim_id": "claim-005",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "evaluation_stratum_id": 1,
       "transfer_qualified": true
     },
     {
-      "sample_id": 6,
+      "claim_id": "claim-006",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "evaluation_stratum_id": 1,
       "transfer_qualified": false
     },
     {
-      "sample_id": 7,
+      "claim_id": "claim-007",
+      "claim_type": "bisimulation",
+      "claim_scope_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "evaluation_stratum_id": 2,
       "transfer_qualified": true
     },
     {
-      "sample_id": 8,
+      "claim_id": "claim-008",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evaluation_stratum_id": 2,
       "transfer_qualified": false
     },
     {
-      "sample_id": 9,
+      "claim_id": "claim-009",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evaluation_stratum_id": 2,
       "transfer_qualified": true
     },
     {
-      "sample_id": 10,
+      "claim_id": "claim-010",
+      "claim_type": "deterministic_dynamics",
+      "claim_scope_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "evaluation_stratum_id": 3,
       "transfer_qualified": true
     },
     {
-      "sample_id": 11,
+      "claim_id": "claim-011",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "evaluation_stratum_id": 3,
       "transfer_qualified": false
     },
     {
-      "sample_id": 12,
+      "claim_id": "claim-012",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "evaluation_stratum_id": 3,
       "transfer_qualified": true
     }
