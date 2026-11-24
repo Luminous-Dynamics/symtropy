@@ -169,6 +169,18 @@ jobs:
           grep -q "EVENT_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
           grep -q "PUBLICATION_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
           grep -q "PUBLICATION_AFTER_RETRIEVAL" /tmp/dcsa-maturity.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping-replay.csv
+          cmp /tmp/cross-standard-mapping.csv /tmp/cross-standard-mapping-replay.csv
+          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 11
+          head -n 1 /tmp/cross-standard-mapping.csv | awk -F, '{ if (NF != 7) exit 1 }'
+          awk -F, 'NF != 7 { exit 1 }' /tmp/cross-standard-mapping.csv
+          grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP" /tmp/cross-standard-mapping.csv
+          grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION" /tmp/cross-standard-mapping.csv
+          grep -q "CONTEXTUAL" /tmp/cross-standard-mapping.csv
+          grep -q "LOSSY" /tmp/cross-standard-mapping.csv
+          grep -q "NONEXACT_MAPPING_CLAIMS_REVERSIBILITY" /tmp/cross-standard-mapping.csv
+          grep -q "INVALID_SOURCE_PAYLOAD_DIGEST" /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
           cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
@@ -202,6 +214,7 @@ jobs:
             /tmp/source-claim-admission.csv \
             /tmp/epcis-corrections.csv \
             /tmp/dcsa-maturity.csv \
+            /tmp/cross-standard-mapping.csv \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -223,5 +236,6 @@ jobs:
             /tmp/source-claim-admission.csv
             /tmp/epcis-corrections.csv
             /tmp/dcsa-maturity.csv
+            /tmp/cross-standard-mapping.csv
           if-no-files-found: error
           retention-days: 30
