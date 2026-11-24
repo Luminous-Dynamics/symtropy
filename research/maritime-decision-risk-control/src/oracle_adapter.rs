@@ -580,7 +580,7 @@ pub fn compile_oracle_outcomes(
     validate_contract(&dataset.contract)?;
 
     let mut episode_ids = BTreeSet::new();
-    let mut dependence_clusters = BTreeSet::new();
+    let mut dependence_clusters = BTreeMap::new();
     let expected_policy_ids = dataset
         .contract
         .policy_grid
@@ -598,10 +598,16 @@ pub fn compile_oracle_outcomes(
                 episode.episode_id.clone(),
             ));
         }
-        if !dependence_clusters.insert(episode.dependence_cluster_id.clone()) {
-            return Err(OracleAdapterError::ReusedDependenceCluster(
-                episode.dependence_cluster_id.clone(),
-            ));
+        match dependence_clusters.get(&episode.dependence_cluster_id) {
+            Some(existing_role) if *existing_role != episode.role => {
+                return Err(OracleAdapterError::ReusedDependenceCluster(
+                    episode.dependence_cluster_id.clone(),
+                ));
+            }
+            Some(_) => {}
+            None => {
+                dependence_clusters.insert(episode.dependence_cluster_id.clone(), episode.role);
+            }
         }
         if episode.policy_outcomes.is_empty() {
             return Err(OracleAdapterError::EmptyPolicyGrid);
@@ -674,10 +680,20 @@ pub fn compile_oracle_outcomes(
 
         match episode.role {
             DatasetRole::Calibration => {
-                calibration_rows.push((episode.episode_id.clone(), hard_row, service_row))
+                calibration_rows.push((
+                    episode.episode_id.clone(),
+                    episode.dependence_cluster_id.clone(),
+                    hard_row,
+                    service_row,
+                ))
             }
             DatasetRole::Evaluation => {
-                evaluation_rows.push((episode.episode_id.clone(), hard_row, service_row))
+                evaluation_rows.push((
+                    episode.episode_id.clone(),
+                    episode.dependence_cluster_id.clone(),
+                    hard_row,
+                    service_row,
+                ))
             }
         }
     }
@@ -708,16 +724,24 @@ pub fn compile_oracle_outcomes(
     Ok(OracleCalibrationBundle {
         policy_ids,
         policy_revisions,
-        calibration_hard_failure_milli: calibration_rows.iter().map(|row| row.1.clone()).collect(),
-        calibration_service_loss_milli: calibration_rows.iter().map(|row| row.2.clone()).collect(),
-        evaluation_hard_failure_milli: evaluation_rows.iter().map(|row| row.1.clone()).collect(),
-        evaluation_service_loss_milli: evaluation_rows.iter().map(|row| row.2.clone()).collect(),
+        calibration_hard_failure_milli: calibration_rows.iter().map(|row| row.2.clone()).collect(),
+        calibration_service_loss_milli: calibration_rows.iter().map(|row| row.3.clone()).collect(),
+        evaluation_hard_failure_milli: evaluation_rows.iter().map(|row| row.2.clone()).collect(),
+        evaluation_service_loss_milli: evaluation_rows.iter().map(|row| row.3.clone()).collect(),
         oracle_id: dataset.contract.oracle_id.clone(),
         oracle_revision: dataset.contract.oracle_revision.clone(),
         evaluator_revision: dataset.contract.evaluator_revision.clone(),
         loss_contract_revision: dataset.contract.loss_contract_revision.clone(),
         policy_grid_sha256: dataset.contract.policy_grid_sha256.clone(),
         regime_id: dataset.contract.regime_id.clone(),
+        calibration_dependence_cluster_ids: calibration_rows
+            .iter()
+            .map(|row| row.1.clone())
+            .collect(),
+        evaluation_dependence_cluster_ids: evaluation_rows
+            .iter()
+            .map(|row| row.1.clone())
+            .collect(),
     })
 }
 
