@@ -229,3 +229,6 @@ The dispatch idempotency key uses a versioned hash of a canonical, plan-verified
 
 
 The reset marker is bound to the exact compiled plan digest, not only to the simulator/world profile. A session qualified under one plan cannot be reused for another valid campaign on the same simulator. The session is non-cloneable and the raw injector dispatch wrapper is private; use the composed plan-bound dispatch API.
+
+
+The new model/GazeboResetLifecycle.tla is checked with the workflow's pinned TLC tool: the safe lifecycle must satisfy at-most-one reset request and no fault dispatch before verified reset; the unsafe retry config must produce an AtMostOneResetRequest counterexample. This remains a bounded abstract protocol model, not a proof of Gazebo transport behavior or a Rust/TLA refinement result.
