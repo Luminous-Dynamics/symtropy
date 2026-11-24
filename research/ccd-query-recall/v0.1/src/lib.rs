@@ -8,7 +8,7 @@
 //! Query IDs are independent of broadphase box IDs. The evaluator never joins
 //! records by array position.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
 
@@ -194,6 +194,62 @@ impl QueryEvaluation {
             narrowphase,
         ))
     }
+}
+
+/// A tested algorithm's result for one stable query identity. The independent
+/// oracle label is joined later from the imported dataset, never supplied by the
+/// algorithm output.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryRunResult {
+    identity: QueryIdentity,
+    candidate: CandidateDisposition,
+    narrowphase: NarrowphaseOutcome,
+}
+
+impl QueryRunResult {
+    #[must_use]
+    pub fn new(
+        identity: QueryIdentity,
+        candidate: CandidateDisposition,
+        narrowphase: NarrowphaseOutcome,
+    ) -> Self {
+        Self {
+            identity,
+            candidate,
+            narrowphase,
+        }
+    }
+
+    #[must_use]
+    pub fn from_imported(
+        dataset: impl Into<String>,
+        scene: impl Into<String>,
+        time_step: u64,
+        query: &CcdQuery,
+        candidate: CandidateDisposition,
+        narrowphase: NarrowphaseOutcome,
+    ) -> Self {
+        Self::new(
+            QueryIdentity::from_imported(dataset, scene, time_step, query),
+            candidate,
+            narrowphase,
+        )
+    }
+
+    #[must_use]
+    pub fn identity(&self) -> &QueryIdentity {
+        &self.identity
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueryJoinError {
+    DuplicateRunResultIdentity,
+    DuplicateImportedQueryIdentity,
+    MissingRunResult,
+    UnmatchedRunResult,
+    MissingOracleGroundTruth,
+    Evaluation(EvaluationError),
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -406,6 +462,71 @@ pub fn evaluate_queries(
     } else {
         Err(errors)
     }
+}
+
+/// Join algorithm output to imported oracle queries by full stable identity.
+///
+/// The input query list is the denominator. Missing results, duplicate result
+/// IDs and orphan results are hard errors. Record ordering is irrelevant.
+pub fn evaluate_imported_queries(
+    dataset: impl Into<String>,
+    scene: impl Into<String>,
+    time_step: u64,
+    queries: &[CcdQuery],
+    run_results: &[QueryRunResult],
+) -> Result<QueryScore, Vec<QueryJoinError>> {
+    let dataset = dataset.into();
+    let scene = scene.into();
+    let mut by_identity = HashMap::with_capacity(run_results.len());
+    let mut errors = Vec::new();
+
+    for result in run_results {
+        if by_identity
+            .insert(result.identity.clone(), result)
+            .is_some()
+        {
+            errors.push(QueryJoinError::DuplicateRunResultIdentity);
+        }
+    }
+
+    let mut consumed = HashSet::with_capacity(queries.len());
+    let mut evaluations = Vec::with_capacity(queries.len());
+    for query in queries {
+        let identity =
+            QueryIdentity::from_imported(&dataset, &scene, time_step, query);
+        if !consumed.insert(identity.clone()) {
+            errors.push(QueryJoinError::DuplicateImportedQueryIdentity);
+            continue;
+        }
+        let Some(result) = by_identity.get(&identity) else {
+            errors.push(QueryJoinError::MissingRunResult);
+            continue;
+        };
+        let Some(oracle_collision) = query.inline_ground_truth() else {
+            errors.push(QueryJoinError::MissingOracleGroundTruth);
+            continue;
+        };
+        evaluations.push(QueryEvaluation::new(
+            identity,
+            oracle_collision,
+            result.candidate.clone(),
+            result.narrowphase,
+        ));
+    }
+
+    if by_identity.keys().any(|identity| !consumed.contains(identity)) {
+        errors.push(QueryJoinError::UnmatchedRunResult);
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    evaluate_queries(&evaluations).map_err(|evaluation_errors| {
+        evaluation_errors
+            .into_iter()
+            .map(QueryJoinError::Evaluation)
+            .collect()
+    })
 }
 
 fn accumulate_counts(counts: &mut QueryCounts, evaluation: &QueryEvaluation, forwarded: bool) {
