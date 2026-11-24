@@ -24,7 +24,6 @@
       "predicted_upper": 1150,
       "observed_value": 1120,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "ESS-01",
         "configuration_digest": "ess-cfg-1",
@@ -68,7 +67,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "ess-false-safe",
@@ -91,7 +91,6 @@
       "predicted_upper": 1120,
       "observed_value": 900,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "ESS-01",
         "configuration_digest": "ess-cfg-1",
@@ -135,7 +134,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "ess-false-abstain",
@@ -158,7 +158,6 @@
       "predicted_upper": 1150,
       "observed_value": 1080,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "ESS-01",
         "configuration_digest": "ess-cfg-1",
@@ -202,7 +201,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "ess-gate-failed",
@@ -225,7 +225,6 @@
       "predicted_upper": 1150,
       "observed_value": 1080,
       "hard_gate_disposition": "failed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "ESS-01",
         "configuration_digest": "ess-cfg-1",
@@ -269,7 +268,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "ess-gate-unknown",
@@ -292,7 +292,6 @@
       "predicted_upper": 1150,
       "observed_value": 1080,
       "hard_gate_disposition": "unknown",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "ESS-01",
         "configuration_digest": "ess-cfg-1",
@@ -336,7 +335,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "charger-good",
@@ -359,7 +359,6 @@
       "predicted_upper": 250,
       "observed_value": 280,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "CHG-01",
         "configuration_digest": "charger-cfg-1",
@@ -403,7 +402,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "charger-false-safe",
@@ -426,7 +426,6 @@
       "predicted_upper": 270,
       "observed_value": 350,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "CHG-01",
         "configuration_digest": "charger-cfg-1",
@@ -470,7 +469,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     },
     {
       "sample_id": "charger-false-abstain",
@@ -493,7 +493,6 @@
       "predicted_upper": 350,
       "observed_value": 280,
       "hard_gate_disposition": "passed",
-      "service_value_units": 100,
       "forecast_evidence": {
         "asset_id": "CHG-01",
         "configuration_digest": "charger-cfg-1",
@@ -537,7 +536,8 @@
         "observed_at_unix_ms": 900,
         "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
-      }
+      },
+      "candidate_value_proxy_units": 100
     }
   ],
   "claim_ceiling": "Synthetic paired decision replay only; no field qualification or operational authority."
