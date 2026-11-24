@@ -1493,6 +1493,14 @@ mod tests {
                 case.scenarios[0].observations_by_epoch,
                 case.scenarios[1].observations_by_epoch
             );
+            assert_eq!(case.scenarios[0].scenario_id, "NOMINAL-01");
+            assert_eq!(case.scenarios[1].scenario_id, "NOMINAL-02");
+            assert!(
+                case.scenarios.iter().all(|scenario| {
+                    !scenario.scenario_id.contains("ACCEPTED")
+                        && !scenario.scenario_id.contains("REJECT")
+                })
+            );
             let evaluator_case = labels
                 .cases
                 .iter()
