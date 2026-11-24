@@ -44,7 +44,7 @@ jobs:
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
           assert len(fixture["cases"]) == 19
-          assert len({case["case_id"] for case in fixture["cases"]}) == 18
+          assert len({case["case_id"] for case in fixture["cases"]}) == 19
           print("18 frozen acquisition-integrity cases and Draft 2020-12 schema validated")
           PY
       - name: Format
