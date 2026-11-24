@@ -49,7 +49,8 @@ fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), 
         .get("resources")
         .and_then(Value::as_array)
         .ok_or_else(|| fail("policy_resources_missing"))?;
-    let mut capability_by_resource = std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+    let mut capability_by_resource =
+        std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
     for resource in resources {
         let resource_id = required_string(resource, "resource_id", "policy_resource")?;
         let capabilities = resource
@@ -194,10 +195,12 @@ fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), 
                 .and_then(Value::as_array)
                 .ok_or_else(|| fail("qualification_updates_missing"))?;
             for update in updates {
-                let receipt = required_string(update, "evidence_receipt_id", "qualification_update")?;
+                let receipt =
+                    required_string(update, "evidence_receipt_id", "qualification_update")?;
                 let resource_id = required_string(update, "resource_id", "qualification_update")?;
                 let family = required_string(update, "process_family", "qualification_update")?;
-                let previous = required_string(update, "previous_disposition", "qualification_update")?;
+                let previous =
+                    required_string(update, "previous_disposition", "qualification_update")?;
                 let next = required_string(update, "new_disposition", "qualification_update")?;
                 let occurred = update
                     .get("occurred_at_epoch")
@@ -249,9 +252,14 @@ fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), 
                     || event_station != station_id
                     || observed != epoch as u64
                     || occurred > observed
-                    || event.get("available_capacity_units").and_then(Value::as_u64).is_none()
+                    || event
+                        .get("available_capacity_units")
+                        .and_then(Value::as_u64)
+                        .is_none()
                 {
-                    return Err(fail("inspection_event_identity_scope_or_chronology_invalid"));
+                    return Err(fail(
+                        "inspection_event_identity_scope_or_chronology_invalid",
+                    ));
                 }
             }
         }
@@ -265,7 +273,9 @@ fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), 
         .get("observations_by_epoch")
         .is_none_or(|left| scenarios[1].get("observations_by_epoch") != Some(left))
     {
-        return Err(fail("paired_scenarios_must_share_identical_visible_history"));
+        return Err(fail(
+            "paired_scenarios_must_share_identical_visible_history",
+        ));
     }
 
     Ok(())
@@ -601,8 +611,8 @@ mod tests {
     fn invalid_resource_reference_in_simulator_stream_fails_closed() {
         let policy_case = sample_policy_case();
         let mut stream_case = sample_stream_case();
-        stream_case["scenarios"][0]["observations_by_epoch"][0]["resource_events"][0]
-            ["resource_id"] = Value::from("UNKNOWN-RESOURCE");
+        stream_case["scenarios"][0]["observations_by_epoch"][0]["resource_events"][0]["resource_id"] =
+            Value::from("UNKNOWN-RESOURCE");
         assert_eq!(
             validate_stream_case(&policy_case, &stream_case),
             Err("resource_event_identity_scope_or_chronology_invalid".into())
@@ -613,8 +623,8 @@ mod tests {
     fn event_arrival_before_occurrence_fails_closed() {
         let policy_case = sample_policy_case();
         let mut stream_case = sample_stream_case();
-        stream_case["scenarios"][0]["observations_by_epoch"][1]["resource_events"][0]
-            ["occurred_at_epoch"] = Value::from(2_u64);
+        stream_case["scenarios"][0]["observations_by_epoch"][1]["resource_events"][0]["occurred_at_epoch"] =
+            Value::from(2_u64);
         assert_eq!(
             validate_stream_case(&policy_case, &stream_case),
             Err("resource_event_identity_scope_or_chronology_invalid".into())
