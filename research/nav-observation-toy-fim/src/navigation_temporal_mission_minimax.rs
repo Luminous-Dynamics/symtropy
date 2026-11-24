@@ -278,6 +278,9 @@ struct BranchCandidate {
     first_outcome: ActionOutcome,
     choice: ObservableBranchChoice,
     contributions: [u128; MODEL_COUNT],
+    /// For a fixed first-stage generating model, the diagnostic lets the
+    /// transition/observation model switch independently after this branch.
+    rectangular_contributions: [u128; MODEL_COUNT],
     path_resource_use: ResourceVector,
 }
 
@@ -466,6 +469,7 @@ fn build_branch_candidates(
         options.push(BranchCandidate {
             first_outcome,
             choice: ObservableBranchChoice::Stop { terminal_decision: decision },
+            rectangular_contributions: contributions,
             contributions,
             path_resource_use: first_action.cost,
         });
@@ -500,6 +504,32 @@ fn build_branch_candidates(
                 }
                 contributions[model] = total;
             }
+
+            // Rectangular diagnostic: the first-stage model m0 generates the
+            // observed branch and its use-epoch belief. After that branch, a
+            // separate m1 may govern the second action. The policy remains
+            // shared; only the adversarial model may switch at this boundary.
+            let mut rectangular_contributions = [0_u128; MODEL_COUNT];
+            for first_model in 0..MODEL_COUNT {
+                let mut worst_second_model = 0_u128;
+                for second_model in 0..MODEL_COUNT {
+                    let switched_outcomes = apply_action(
+                        second_model,
+                        first_masses[first_model],
+                        second_action,
+                    )?;
+                    let mut switched_loss = 0_u128;
+                    for second_outcome in &switched_outcomes {
+                        let decision = decisions[second_outcome.outcome.index()];
+                        switched_loss = switched_loss.checked_add(
+                            terminal_loss(second_outcome.use_mass, problem, decision)?
+                        ).ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+                    }
+                    worst_second_model = worst_second_model.max(switched_loss);
+                }
+                rectangular_contributions[first_model] = worst_second_model;
+            }
+
             options.push(BranchCandidate {
                 first_outcome,
                 choice: ObservableBranchChoice::Acquire {
@@ -507,6 +537,7 @@ fn build_branch_candidates(
                     terminal_decisions: decisions,
                 },
                 contributions,
+                rectangular_contributions,
                 path_resource_use: path_cost,
             });
         }
@@ -541,11 +572,15 @@ fn make_policy(
     oracles: [u128; MODEL_COUNT],
 ) -> Result<ObservablePolicy, TemporalMinimaxError> {
     let mut branches = Vec::with_capacity(selected.len());
+    let mut rectangular_by_first_model = [0_u128; MODEL_COUNT];
     let mut rectangular = if root_action_id.is_none() { maximum(losses) } else { 0_u128 };
     let mut worst_resources = ResourceVector::default();
     for candidate in selected {
-        rectangular = rectangular.checked_add(maximum(candidate.contributions))
-            .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+        for model in 0..MODEL_COUNT {
+            rectangular_by_first_model[model] = rectangular_by_first_model[model]
+                .checked_add(candidate.rectangular_contributions[model])
+                .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
+        }
         worst_resources = worst_resources.component_max(candidate.path_resource_use);
         branches.push(ObservablePolicyBranch {
             first_outcome: candidate.first_outcome,
@@ -553,6 +588,9 @@ fn make_policy(
             model_loss_contributions: candidate.contributions,
             path_resource_use: candidate.path_resource_use,
         });
+    }
+    if root_action_id.is_some() {
+        rectangular = maximum(rectangular_by_first_model);
     }
     let worst_case = maximum(losses);
     let worst_model = if losses[0] >= losses[1] { 0 } else { 1 };
