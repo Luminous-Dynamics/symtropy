@@ -247,12 +247,14 @@ pub struct MaximumDissipationValidationReport {
     pub characteristic_length_m: f64,
     pub ellipsoid_shape_scales: [f64; 3],
     pub observation_count: usize,
+    pub unique_trial_group_count: usize,
     pub sliding_observation_count: usize,
     pub zero_slip_observation_count: usize,
     pub non_dissipative_observation_count: usize,
     pub maximum_positive_observed_power: Option<f64>,
     pub maximum_normalized_wrench_error: Option<f64>,
     pub weighted_rms_normalized_wrench_error: Option<f64>,
+    pub slip_power_tolerance: f64,
     pub positive_power_tolerance: f64,
     pub maximum_weighted_rms_wrench_error: f64,
     pub status: MaximumDissipationValidationStatus,
@@ -494,6 +496,7 @@ pub fn validate_maximum_dissipation(
         characteristic_length_m: input.characteristic_length_m,
         ellipsoid_shape_scales: input.ellipsoid_shape_scales,
         observation_count: input.observations.len(),
+        unique_trial_group_count: trial_groups.len(),
         sliding_observation_count: sliding_count,
         zero_slip_observation_count: zero_slip_count,
         non_dissipative_observation_count: non_dissipative_count,
@@ -508,6 +511,7 @@ pub fn validate_maximum_dissipation(
             None
         },
         weighted_rms_normalized_wrench_error: weighted_rms,
+        slip_power_tolerance: config.slip_power_tolerance,
         positive_power_tolerance: config.positive_power_tolerance,
         maximum_weighted_rms_wrench_error: config.maximum_weighted_rms_wrench_error,
         status,
@@ -1056,6 +1060,49 @@ mod tests {
         }
     }
 
+    fn direction_observation(
+        id: &str,
+        group: &str,
+        slip: [f64; 3],
+        wrench: [f64; 3],
+        capacity: f64,
+        weight: f64,
+    ) -> MaximumDissipationObservation {
+        MaximumDissipationObservation {
+            observation_id: id.to_owned(),
+            trial_group_id: group.to_owned(),
+            slip_twist: slip,
+            measured_wrench: MeasuredPatchWrench {
+                tangent_u_force: wrench[0],
+                tangent_v_force: wrench[1],
+                normal_torsional_moment: wrench[2],
+            },
+            capacity_scale: capacity,
+            weight,
+        }
+    }
+
+    fn direction_input(
+        observations: Vec<MaximumDissipationObservation>,
+    ) -> MaximumDissipationValidationInput {
+        MaximumDissipationValidationInput {
+            specimen_digest: "specimen-001".to_owned(),
+            patch_geometry_digest: "patch-geometry-001".to_owned(),
+            coordinate_frame_digest: "patch-frame-001".to_owned(),
+            rig_calibration_digest: "rig-calibration-001".to_owned(),
+            observation_profile_digest: "held-out-sliding-profile-001".to_owned(),
+            calibration_parameter_digest: "calibration-parameters-001".to_owned(),
+            held_out_split_digest: "held-out-trials-001".to_owned(),
+            characteristic_length_m: 0.5,
+            ellipsoid_shape_scales: [2.0, 0.5, 0.25],
+            observations,
+        }
+    }
+
+    fn direction_config() -> MaximumDissipationValidationConfig {
+        MaximumDissipationValidationConfig::default()
+    }
+
     fn config() -> CalibrationConfig {
         CalibrationConfig::default()
     }
@@ -1205,6 +1252,119 @@ mod tests {
         for index in 0..3 {
             close(a[index], b[index], 1.0e-10);
         }
+    }
+
+    #[test]
+    fn maximum_dissipation_matches_mixed_slide_and_is_velocity_scale_invariant() {
+        let inverse_root_six = 1.0 / 6.0_f64.sqrt();
+        let predicted = [
+            -4.0 * inverse_root_six,
+            -0.5 * inverse_root_six,
+            -0.25 * inverse_root_six,
+        ];
+        let problem = direction_input(vec![
+            direction_observation("mixed", "mixed-trial", [1.0, 2.0, 4.0], predicted, 1.0, 1.0),
+            direction_observation(
+                "mixed-fast",
+                "mixed-fast-trial",
+                [5.0, 10.0, 20.0],
+                predicted,
+                1.0,
+                2.0,
+            ),
+            direction_observation("pure-u", "u-trial", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
+            direction_observation("pure-v", "v-trial", [0.0, 1.0, 0.0], [0.0, -0.5, 0.0], 1.0, 1.0),
+            direction_observation("pure-spin", "spin-trial", [0.0, 0.0, 1.0], [0.0, 0.0, -0.25], 1.0, 1.0),
+        ]);
+        let report =
+            validate_maximum_dissipation(&problem, direction_config()).expect("direction fit");
+        assert_eq!(
+            report.status,
+            MaximumDissipationValidationStatus::ConsistentWithinTolerance
+        );
+        assert_eq!(report.sliding_observation_count, 5);
+        assert_eq!(report.zero_slip_observation_count, 0);
+        assert_eq!(report.unique_trial_group_count, 5);
+        close(report.weighted_rms_normalized_wrench_error.unwrap(), 0.0, 1.0e-12);
+        close(report.maximum_normalized_wrench_error.unwrap(), 0.0, 1.0e-12);
+        assert_eq!(report.non_dissipative_observation_count, 0);
+        close(report.diagnostics[0].predicted_power.unwrap(), -6.0_f64.sqrt(), 1.0e-12);
+    }
+
+    #[test]
+    fn zero_slip_sticking_samples_are_preserved_but_not_directionally_scored() {
+        let problem = direction_input(vec![
+            direction_observation("stick", "stick-trial", [0.0; 3], [0.2, 0.1, 0.05], 1.0, 1.0),
+            direction_observation("slide", "slide-trial", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
+        ]);
+        let report =
+            validate_maximum_dissipation(&problem, direction_config()).expect("sticking/sliding");
+        assert_eq!(report.sliding_observation_count, 1);
+        assert_eq!(report.zero_slip_observation_count, 1);
+        assert_eq!(
+            report.diagnostics[0].disposition,
+            DirectionObservationDisposition::ZeroSlipStickingSetNotDirectional
+        );
+        assert!(report.diagnostics[0].normalized_wrench_error.is_none());
+        assert_eq!(
+            report.status,
+            MaximumDissipationValidationStatus::ConsistentWithinTolerance
+        );
+    }
+
+    #[test]
+    fn all_zero_slip_trials_return_no_informative_directional_observations() {
+        let problem = direction_input(vec![
+            direction_observation("stick-a", "trial-a", [0.0; 3], [1.0, 0.0, 0.0], 1.0, 1.0),
+            direction_observation("stick-b", "trial-b", [0.0; 3], [0.0, 0.5, 0.0], 1.0, 1.0),
+        ]);
+        let report =
+            validate_maximum_dissipation(&problem, direction_config()).expect("no sliding");
+        assert_eq!(report.sliding_observation_count, 0);
+        assert_eq!(report.zero_slip_observation_count, 2);
+        assert_eq!(
+            report.status,
+            MaximumDissipationValidationStatus::NoInformativeSlidingObservations
+        );
+        assert!(report.weighted_rms_normalized_wrench_error.is_none());
+    }
+
+    #[test]
+    fn wrong_direction_and_positive_measured_power_are_reported_as_inconsistent() {
+        let problem = direction_input(vec![
+            direction_observation("wrong-way", "trial-a", [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], 1.0, 1.0),
+        ]);
+        let report =
+            validate_maximum_dissipation(&problem, direction_config()).expect("wrong direction");
+        assert_eq!(report.status, MaximumDissipationValidationStatus::Inconsistent);
+        assert_eq!(report.non_dissipative_observation_count, 1);
+        close(report.maximum_positive_observed_power.unwrap(), 2.0, 1.0e-12);
+        close(report.maximum_normalized_wrench_error.unwrap(), 2.0, 1.0e-12);
+    }
+
+    #[test]
+    fn maximum_dissipation_validation_rejects_duplicate_ids_and_missing_holdout_identity() {
+        let duplicate = direction_input(vec![
+            direction_observation("same", "trial-a", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
+            direction_observation("same", "trial-b", [0.0, 1.0, 0.0], [0.0, -0.5, 0.0], 1.0, 1.0),
+        ]);
+        assert_eq!(
+            validate_maximum_dissipation(&duplicate, direction_config())
+                .expect_err("duplicate direction IDs")
+                .kind,
+            CalibrationErrorKind::DuplicateObservationId
+        );
+
+        let mut missing = direction_input(vec![
+            direction_observation("slide", "trial-a", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
+        ]);
+        missing.held_out_split_digest.clear();
+        assert_eq!(
+            validate_maximum_dissipation(&missing, direction_config())
+                .expect_err("missing held-out split")
+                .kind,
+            CalibrationErrorKind::InvalidIdentity
+        );
     }
 
     #[test]
