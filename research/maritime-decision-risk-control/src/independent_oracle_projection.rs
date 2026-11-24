@@ -1078,7 +1078,7 @@ mod tests {
                 authority_record_sha256: match authority {
                     AuthorityDisposition::Authorized | AuthorityDisposition::Denied => {
                         Some(D.to_owned())
-                    },
+                    }
                     AuthorityDisposition::NotRequired | AuthorityDisposition::Unknown => None,
                 },
                 source_evidence_ids: authority_source,
