@@ -1,0 +1,49 @@
+name: Manufacturing Policy v0.2 Prefix Gateway
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_scenario_streams.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "tools/mfg-policy-v02-prefix-gateway/**"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-prefix-gateway.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-v02-prefix-gateway
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_scenario_streams.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "tools/mfg-policy-v02-prefix-gateway/**"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-prefix-gateway.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-v02-prefix-gateway/Cargo.toml -- --check
+      - name: Prefix projection and non-anticipativity controls
+        run: cargo test --manifest-path tools/mfg-policy-v02-prefix-gateway/Cargo.toml
+      - name: Generate static policy and simulator stream inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --policy-corpus > "$RUNNER_TEMP/policy.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --scenario-streams > "$RUNNER_TEMP/streams.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-prefix-gateway/Cargo.toml -- "$RUNNER_TEMP/policy.json" "$RUNNER_TEMP/streams.json" CROSSED-BOTTLENECKS-01 0 1 > "$RUNNER_TEMP/decision-frame.json"
+          grep -q '"decision_epoch": 1' "$RUNNER_TEMP/decision-frame.json"
+          ! grep -q '"scenario_id"' "$RUNNER_TEMP/decision-frame.json"
+          ! grep -q '"probability_ppm"' "$RUNNER_TEMP/decision-frame.json"
+          ! grep -q '"observations_by_epoch"' "$RUNNER_TEMP/decision-frame.json"
+          wc -c "$RUNNER_TEMP/decision-frame.json"
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-v02-prefix-gateway/Cargo.toml -- -D warnings
