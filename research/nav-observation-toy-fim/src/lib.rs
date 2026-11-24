@@ -26,6 +26,7 @@ pub mod navigation_common_cause_policy_tree;
 pub mod navigation_joint_latent_policy_tree;
 pub mod navigation_time_aware_policy_tree;
 pub mod navigation_temporal_mission_minimax;
+pub mod navigation_tail_risk;
 pub mod active_evidence_discrimination;
 pub mod active_evidence_decision_planner;
 pub mod active_evidence_reliability_planner;
