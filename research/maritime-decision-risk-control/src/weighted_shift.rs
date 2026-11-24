@@ -144,19 +144,13 @@ fn service_losses(severe: bool) -> [u16; 4] {
 
 pub fn sample_train_episodes(count: usize, seed: u64) -> LossMatrix {
     let mut rng = SplitMix64::new(seed);
-    let severe_regime = (0..count)
-        .map(|_| rng.below(10) == 0)
-        .collect::<Vec<_>>();
+    let severe_regime = (0..count).map(|_| rng.below(10) == 0).collect::<Vec<_>>();
     let hard_failure_loss_milli = severe_regime
         .iter()
         .copied()
         .map(hard_failure_losses)
         .collect();
-    let service_loss_milli = severe_regime
-        .iter()
-        .copied()
-        .map(service_losses)
-        .collect();
+    let service_loss_milli = severe_regime.iter().copied().map(service_losses).collect();
     LossMatrix {
         hard_failure_loss_milli,
         service_loss_milli,
@@ -166,9 +160,7 @@ pub fn sample_train_episodes(count: usize, seed: u64) -> LossMatrix {
 
 pub fn sample_test_episodes(count: usize, seed: u64) -> LossMatrix {
     let mut rng = SplitMix64::new(seed);
-    let severe_regime = (0..count)
-        .map(|_| rng.below(2) == 1)
-        .collect::<Vec<_>>();
+    let severe_regime = (0..count).map(|_| rng.below(2) == 1).collect::<Vec<_>>();
     let hard_failure_loss_milli = severe_regime
         .iter()
         .copied()
@@ -186,11 +178,7 @@ pub fn sample_test_episodes(count: usize, seed: u64) -> LossMatrix {
     }
 }
 
-fn empirical_risk(
-    losses: &[[u16; 4]],
-    weights: Option<&[f64]>,
-    policy_index: usize,
-) -> f64 {
+fn empirical_risk(losses: &[[u16; 4]], weights: Option<&[f64]>, policy_index: usize) -> f64 {
     let total = losses
         .iter()
         .enumerate()
@@ -249,7 +237,11 @@ pub fn select_weighted_policy(
         .severe_regime
         .iter()
         .copied()
-        .map(|severe| exact_importance_weight(Episode { severe_regime: severe }))
+        .map(|severe| {
+            exact_importance_weight(Episode {
+                severe_regime: severe,
+            })
+        })
         .collect::<Vec<_>>();
     if weights.iter().any(|weight| *weight > weight_bound) {
         return Err(ShiftRiskError::WeightExceedsDeclaredBound);
@@ -270,10 +262,7 @@ pub fn select_weighted_policy(
             Some(&weights),
             policy_index,
         );
-        if n / (n + 1.0) * weighted_risk
-            + weight_bound * LOSS_BOUND / (n + 1.0)
-            <= target_alpha
-        {
+        if n / (n + 1.0) * weighted_risk + weight_bound * LOSS_BOUND / (n + 1.0) <= target_alpha {
             selected_policy_index = Some(policy_index);
             selected_weighted_risk = weighted_risk;
             break;
@@ -283,7 +272,7 @@ pub fn select_weighted_policy(
     let selected_policy_index =
         selected_policy_index.ok_or(ShiftRiskError::NoWeightedPolicySelected)?;
     let m = 4.0_f64;
-    let d_w = weight_bound * LOSS_BOUND * ( (2.0 * m).ln() / (2.0 * n) ).sqrt()
+    let d_w = weight_bound * LOSS_BOUND * ((2.0 * m).ln() / (2.0 * n)).sqrt()
         + weight_bound * LOSS_BOUND / (2.0 * (2.0 * n * (2.0 * m).ln()).sqrt());
     let tail_term = (LOSS_BOUND - target_alpha)
         * (-2.0 * n * margin_a * margin_a
@@ -315,13 +304,8 @@ pub fn mean_test_loss(matrix: &LossMatrix, policy_index: usize, service: bool) -
 }
 
 fn render_row(name: &str, calibration: &LossMatrix, test: &LossMatrix) -> String {
-    let weighted = select_weighted_policy(
-        calibration,
-        TARGET_RISK,
-        WEIGHT_BOUND,
-        TERMINAL_MARGIN,
-    )
-    .expect("known-weight synthetic calibration");
+    let weighted = select_weighted_policy(calibration, TARGET_RISK, WEIGHT_BOUND, TERMINAL_MARGIN)
+        .expect("known-weight synthetic calibration");
     let naive = select_unweighted_policy(calibration, TARGET_RISK)
         .expect("unweighted empirical calibration");
     let weighted_test_risk = mean_test_loss(test, weighted.selected_policy_index, false);
@@ -404,13 +388,9 @@ mod tests {
     fn known_weight_selector_changes_policy_and_reduces_target_hard_risk() {
         let calibration = sample_train_episodes(1_200, 0x5745_4947_4854_1200);
         let test = sample_test_episodes(TEST_EPISODES, 0x5745_4947_4854_1201);
-        let weighted = select_weighted_policy(
-            &calibration,
-            TARGET_RISK,
-            WEIGHT_BOUND,
-            TERMINAL_MARGIN,
-        )
-        .expect("weighted selector");
+        let weighted =
+            select_weighted_policy(&calibration, TARGET_RISK, WEIGHT_BOUND, TERMINAL_MARGIN)
+                .expect("weighted selector");
         let naive = select_unweighted_policy(&calibration, TARGET_RISK).expect("naive selector");
         let weighted_risk = mean_test_loss(&test, weighted.selected_policy_index, false);
         let naive_risk = mean_test_loss(&test, naive, false);
@@ -438,20 +418,12 @@ mod tests {
     fn weighted_expected_risk_bound_tightens_with_calibration_size() {
         let small = sample_train_episodes(1_200, 0x5745_4947_4854_1200);
         let large = sample_train_episodes(50_000, 0x5745_4947_4854_5000);
-        let small_result = select_weighted_policy(
-            &small,
-            TARGET_RISK,
-            WEIGHT_BOUND,
-            TERMINAL_MARGIN,
-        )
-        .expect("small weighted fit");
-        let large_result = select_weighted_policy(
-            &large,
-            TARGET_RISK,
-            WEIGHT_BOUND,
-            TERMINAL_MARGIN,
-        )
-        .expect("large weighted fit");
+        let small_result =
+            select_weighted_policy(&small, TARGET_RISK, WEIGHT_BOUND, TERMINAL_MARGIN)
+                .expect("small weighted fit");
+        let large_result =
+            select_weighted_policy(&large, TARGET_RISK, WEIGHT_BOUND, TERMINAL_MARGIN)
+                .expect("large weighted fit");
         assert!(large_result.expected_risk_upper_bound < small_result.expected_risk_upper_bound);
     }
 
