@@ -662,6 +662,35 @@ jobs:
             and ([.on_time_groups[] | select(.stratum_id == "hot_shift") | .holdout_brier_score_millionths] == [330000])
           ' service-prediction-calibration-report.json
           cat service-prediction-calibration-report.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin service_decision_impact_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json \
+            > service-decision-impact-report.json
+          jq -e '
+            .benchmark_id == "SERVICE-DECISION-IMPACT-001"
+            and .record_count == 8
+            and .candidate_admission_count == 6
+            and .operational_admission_count == 4
+            and .hard_gate_blocked_proposal_count == 1
+            and .unsupported_proposal_count == 1
+            and .hard_gate_bypass_attempt_count == 2
+            and .false_safe_proposal_count == 2
+            and .false_safe_admission_count == 2
+            and .false_abstention_count == 2
+            and .decision_flip_count == 4
+            and .replay_defined_count == 6
+            and .avoidable_abstention_value_units == 200
+            and .risk_coverage_group_count == 2
+            and .all_evidence_source_grade == false
+            and .any_synthetic_evidence == true
+            and .field_qualification_granted == false
+            and .model_update_performed == false
+            and .operational_authority_granted == false
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+            and all(.groups[]; (.risk_coverage | length) == 3)
+          ' service-decision-impact-report.json
+          cat service-decision-impact-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -708,6 +737,10 @@ jobs:
             sustainable-mobility-service-capacity-report.json \
             tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_quality.rs \
             tools/ev-passenger-cost-frontier/src/service_prediction_calibration.rs \
+            tools/ev-passenger-cost-frontier/src/service_decision_impact.rs \
+            tools/ev-passenger-cost-frontier/src/bin/service_decision_impact_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json \
             tools/ev-passenger-cost-frontier/src/bin/service_prediction_calibration_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json \
@@ -774,6 +807,9 @@ jobs:
             sustainable-mobility-service-quality-linked-report.json
             sustainable-mobility-service-quality-exact-oracle-report.json
             service-prediction-calibration-report.json
+            service-decision-impact-report.json
+            tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
             tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json
             docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md
