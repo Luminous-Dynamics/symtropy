@@ -207,7 +207,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
 
     let mut component_ids = BTreeSet::new();
     for component in &case.components {
-        if !valid_text(&component.component_id) || !component_ids.insert(&component.component_id) {
+        if !valid_text(&component.component_id) || !component_ids.insert(component.component_id.clone()) {
             return Err("COMPONENT_ID_DUPLICATE_OR_EMPTY".to_owned());
         }
         if component.configuration.iter().any(|(key, value)| !valid_text(key) || !valid_text(value)) {
@@ -223,7 +223,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
             || !valid_sha256(&scope.certificate_sha256)
             || !valid_text(&scope.component_id)
             || scope.valid_until_ns <= scope.valid_from_ns
-            || !scope_ids.insert(&scope.scope_id)
+            || !scope_ids.insert(scope.scope_id.clone())
         {
             return Err("CALIBRATION_SCOPE_INVALID".to_owned());
         }
@@ -245,7 +245,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
 
     let mut required = BTreeSet::new();
     for scope_id in &case.required_scope_ids {
-        if !valid_text(scope_id) || !required.insert(scope_id) || !scope_ids.contains(scope_id) {
+        if !valid_text(scope_id) || !required.insert(scope_id.clone()) || !scope_ids.contains(scope_id) {
             return Err("REQUIRED_SCOPE_REFERENCE_INVALID".to_owned());
         }
     }
@@ -254,14 +254,14 @@ fn validate_case(case: &Case) -> Result<(), String> {
     for event in &case.events {
         checked_interval(event.effective_time_ns, event.time_uncertainty_ns)?;
         if !valid_text(&event.event_id)
-            || !event_ids.insert(&event.event_id)
+            || !event_ids.insert(event.event_id.clone())
             || event.affected_scope_ids.is_empty()
         {
             return Err("CHANGE_EVENT_INVALID".to_owned());
         }
         let mut affected = BTreeSet::new();
         for scope_id in &event.affected_scope_ids {
-            if !affected.insert(scope_id) || !scope_ids.contains(scope_id) {
+            if !affected.insert(scope_id.clone()) || !scope_ids.contains(scope_id) {
                 return Err("CHANGE_EVENT_SCOPE_REFERENCE_INVALID".to_owned());
             }
         }
