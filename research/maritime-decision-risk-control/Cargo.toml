@@ -14,3 +14,7 @@ name = "decision-risk-audit"
 path = "src/main.rs"
 
 [workspace]
+
+[[bin]]
+name = "non-monotone-risk-audit"
+path = "src/bin/non_monotone_risk_audit.rs"
