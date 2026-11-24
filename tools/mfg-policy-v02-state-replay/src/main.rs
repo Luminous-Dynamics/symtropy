@@ -946,11 +946,11 @@ fn current_setup_duration(
     }
 }
 
-fn current_frame_qualification(
-    evidence: &FrameEvidence,
+fn current_frame_qualification<'a>(
+    evidence: &'a FrameEvidence,
     resource_id: &str,
     process_family: &str,
-) -> Option<&str> {
+) -> Option<&'a str> {
     evidence
         .qualifications
         .get(&(resource_id.to_string(), process_family.to_string()))
@@ -1293,7 +1293,11 @@ fn apply_start_action(
         ));
     }
     if resource.capacity_units_total == 0
-        || (action_kind == "START" && resource.capacity_units_remaining == 0)
+        || (action_kind == "START"
+            && resource
+                .capacity_units_total
+                .saturating_sub(resource.capacity_units_used)
+                == 0)
     {
         return Err(violation(
             "resource_capacity_exhausted",
