@@ -21,8 +21,7 @@ const REPLAY_RECEIPT_SCHEMA_JSON: &str =
 
 const SNAPSHOT_SCHEMA_ID: &str =
     "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot";
-const REPLAY_SCHEMA_ID: &str =
-    "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt";
+const REPLAY_SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt";
 const SNAPSHOT_CLAIM_CEILING: &str = "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility.";
 const REPLAY_CLAIM_CEILING: &str = "Synthetic event-sourced schedule-state replay; no physical execution, source authentication, product acceptance, ISO conformance or SOTA superiority.";
 const ADMISSION_CLAIM_CEILING: &str = "Synthetic single-action admissibility only; this receipt is not schedule feasibility, source authentication, machine authority, or execution authorization.";
@@ -134,7 +133,11 @@ struct FrameEvidence {
     source_event_ids: Vec<String>,
 }
 
-fn violation(code: impl Into<String>, epoch: Option<u64>, transition_id: Option<&str>) -> Violation {
+fn violation(
+    code: impl Into<String>,
+    epoch: Option<u64>,
+    transition_id: Option<&str>,
+) -> Violation {
     Violation {
         decision_epoch: epoch,
         transition_id: transition_id.map(str::to_string),
@@ -171,7 +174,13 @@ fn required_string<'a>(
         .get(key)
         .and_then(Value::as_str)
         .filter(|text| !text.trim().is_empty())
-        .ok_or_else(|| violation(format!("{context}_{key}_missing_or_invalid"), epoch, transition_id))
+        .ok_or_else(|| {
+            violation(
+                format!("{context}_{key}_missing_or_invalid"),
+                epoch,
+                transition_id,
+            )
+        })
 }
 
 fn required_array<'a>(
@@ -181,10 +190,13 @@ fn required_array<'a>(
     epoch: Option<u64>,
     transition_id: Option<&str>,
 ) -> Result<&'a Vec<Value>, Violation> {
-    value
-        .get(key)
-        .and_then(Value::as_array)
-        .ok_or_else(|| violation(format!("{context}_{key}_missing_or_invalid"), epoch, transition_id))
+    value.get(key).and_then(Value::as_array).ok_or_else(|| {
+        violation(
+            format!("{context}_{key}_missing_or_invalid"),
+            epoch,
+            transition_id,
+        )
+    })
 }
 
 fn required_u64(
@@ -194,13 +206,20 @@ fn required_u64(
     epoch: Option<u64>,
     transition_id: Option<&str>,
 ) -> Result<u64, Violation> {
-    value
-        .get(key)
-        .and_then(Value::as_u64)
-        .ok_or_else(|| violation(format!("{context}_{key}_missing_or_invalid"), epoch, transition_id))
+    value.get(key).and_then(Value::as_u64).ok_or_else(|| {
+        violation(
+            format!("{context}_{key}_missing_or_invalid"),
+            epoch,
+            transition_id,
+        )
+    })
 }
 
-fn digest_value(value: &Value, epoch: Option<u64>, transition_id: Option<&str>) -> Result<String, Violation> {
+fn digest_value(
+    value: &Value,
+    epoch: Option<u64>,
+    transition_id: Option<&str>,
+) -> Result<String, Violation> {
     let bytes = serde_json::to_vec(value)
         .map_err(|_| violation("canonical_json_serialization_failed", epoch, transition_id))?;
     Ok(format!("{:x}", Sha256::digest(bytes)))
@@ -252,7 +271,11 @@ fn index_jobs_and_operations(
                 .filter(|text| !text.trim().is_empty())
                 .ok_or_else(|| violation("predecessor_operation_id_invalid", Some(epoch), None))?;
             if !operations.contains_key(predecessor_id) {
-                return Err(violation("predecessor_operation_unknown", Some(epoch), None));
+                return Err(violation(
+                    "predecessor_operation_unknown",
+                    Some(epoch),
+                    None,
+                ));
             }
         }
     }
@@ -274,7 +297,11 @@ fn index_resources(case: &Value, epoch: u64) -> Result<BTreeMap<String, Value>, 
             None,
         )?;
         if capacity.len() != 4 || capacity.iter().any(|item| item.as_u64().is_none()) {
-            return Err(violation("resource_capacity_calendar_invalid", Some(epoch), None));
+            return Err(violation(
+                "resource_capacity_calendar_invalid",
+                Some(epoch),
+                None,
+            ));
         }
         if capacity.iter().any(|item| item.as_u64().unwrap_or(0) > 1) {
             return Err(violation(
@@ -297,10 +324,17 @@ fn index_resources(case: &Value, epoch: u64) -> Result<BTreeMap<String, Value>, 
                 .filter(|text| !text.trim().is_empty())
                 .ok_or_else(|| violation("resource_capability_invalid", Some(epoch), None))?;
             if !capability_ids.insert(capability.to_string()) {
-                return Err(violation("resource_capability_duplicate", Some(epoch), None));
+                return Err(violation(
+                    "resource_capability_duplicate",
+                    Some(epoch),
+                    None,
+                ));
             }
         }
-        if index.insert(resource_id.to_string(), resource.clone()).is_some() {
+        if index
+            .insert(resource_id.to_string(), resource.clone())
+            .is_some()
+        {
             return Err(violation("resource_id_duplicate", Some(epoch), None));
         }
     }
@@ -314,7 +348,13 @@ fn validate_frame_evidence(
     epoch: u64,
     resources: &BTreeMap<String, Value>,
 ) -> Result<FrameEvidence, Violation> {
-    let history = required_array(frame, "observable_history", "decision_frame", Some(epoch), None)?;
+    let history = required_array(
+        frame,
+        "observable_history",
+        "decision_frame",
+        Some(epoch),
+        None,
+    )?;
     if history.len() as u64 != epoch + 1 {
         return Err(violation(
             "observable_history_must_end_at_decision_epoch",
@@ -343,10 +383,8 @@ fn validate_frame_evidence(
             Some(epoch),
             None,
         )?;
-        let capability_set: BTreeSet<&str> = capabilities
-            .iter()
-            .filter_map(Value::as_str)
-            .collect();
+        let capability_set: BTreeSet<&str> =
+            capabilities.iter().filter_map(Value::as_str).collect();
 
         for qualification in required_array(
             resource,
@@ -386,7 +424,11 @@ fn validate_frame_evidence(
                     )
                     .is_some()
             {
-                return Err(violation("initial_qualification_identity_or_scope_invalid", Some(epoch), None));
+                return Err(violation(
+                    "initial_qualification_identity_or_scope_invalid",
+                    Some(epoch),
+                    None,
+                ));
             }
         }
         resource_availability.insert(resource_id.to_string(), "AVAILABLE".to_string());
@@ -397,7 +439,11 @@ fn validate_frame_evidence(
         if required_u64(observation, "epoch", "observation", Some(epoch), None)?
             != expected_epoch as u64
         {
-            return Err(violation("observable_history_epoch_order_invalid", Some(epoch), None));
+            return Err(violation(
+                "observable_history_epoch_order_invalid",
+                Some(epoch),
+                None,
+            ));
         }
 
         for event in required_array(
@@ -407,30 +453,61 @@ fn validate_frame_evidence(
             Some(epoch),
             None,
         )? {
-            let event_id = required_string(event, "source_event_id", "resource_event", Some(epoch), None)?;
-            let resource_id = required_string(event, "resource_id", "resource_event", Some(epoch), None)?;
+            let event_id = required_string(
+                event,
+                "source_event_id",
+                "resource_event",
+                Some(epoch),
+                None,
+            )?;
+            let resource_id =
+                required_string(event, "resource_id", "resource_event", Some(epoch), None)?;
             let kind = required_string(event, "kind", "resource_event", Some(epoch), None)?;
-            let occurred = required_u64(event, "occurred_at_epoch", "resource_event", Some(epoch), None)?;
-            let observed = required_u64(event, "observed_at_epoch", "resource_event", Some(epoch), None)?;
+            let occurred = required_u64(
+                event,
+                "occurred_at_epoch",
+                "resource_event",
+                Some(epoch),
+                None,
+            )?;
+            let observed = required_u64(
+                event,
+                "observed_at_epoch",
+                "resource_event",
+                Some(epoch),
+                None,
+            )?;
             if !event_ids.insert(event_id.to_string())
                 || !resources.contains_key(resource_id)
                 || observed != expected_epoch as u64
                 || occurred > observed
             {
-                return Err(violation("resource_event_identity_scope_or_chronology_invalid", Some(epoch), None));
+                return Err(violation(
+                    "resource_event_identity_scope_or_chronology_invalid",
+                    Some(epoch),
+                    None,
+                ));
             }
             match kind {
                 "FAILED" => {
                     let lower = event
                         .get("recovery_forecast_min_epochs")
                         .and_then(Value::as_u64)
-                        .ok_or_else(|| violation("failure_recovery_forecast_missing", Some(epoch), None))?;
+                        .ok_or_else(|| {
+                            violation("failure_recovery_forecast_missing", Some(epoch), None)
+                        }),?;
                     let upper = event
                         .get("recovery_forecast_max_epochs")
                         .and_then(Value::as_u64)
-                        .ok_or_else(|| violation("failure_recovery_forecast_missing", Some(epoch), None))?;
+                        .ok_or_else(|| {
+                            violation("failure_recovery_forecast_missing", Some(epoch), None)
+                        })?;
                     if lower > upper {
-                        return Err(violation("failure_recovery_forecast_invalid", Some(epoch), None));
+                        return Err(violation(
+                            "failure_recovery_forecast_invalid",
+                            Some(epoch),
+                            None,
+                        ));
                     }
                     resource_availability.insert(resource_id.to_string(), "FAILED".to_string());
                 }
@@ -442,7 +519,11 @@ fn validate_frame_evidence(
                             .get("recovery_forecast_max_epochs")
                             .is_some_and(Value::is_null)
                     {
-                        return Err(violation("restoration_must_not_carry_recovery_forecast", Some(epoch), None));
+                        return Err(violation(
+                            "restoration_must_not_carry_recovery_forecast",
+                            Some(epoch),
+                            None,
+                        ));
                     }
                     resource_availability.insert(resource_id.to_string(), "AVAILABLE".to_string());
                 }
@@ -457,32 +538,96 @@ fn validate_frame_evidence(
             Some(epoch),
             None,
         )? {
-            let receipt = required_string(update, "evidence_receipt_id", "qualification_update", Some(epoch), None)?;
-            let resource_id = required_string(update, "resource_id", "qualification_update", Some(epoch), None)?;
-            let family = required_string(update, "process_family", "qualification_update", Some(epoch), None)?;
-            let previous = required_string(update, "previous_disposition", "qualification_update", Some(epoch), None)?;
-            let next = required_string(update, "new_disposition", "qualification_update", Some(epoch), None)?;
-            let occurred = required_u64(update, "occurred_at_epoch", "qualification_update", Some(epoch), None)?;
-            let observed = required_u64(update, "observed_at_epoch", "qualification_update", Some(epoch), None)?;
-            let resource = resources
-                .get(resource_id)
-                .ok_or_else(|| violation("qualification_update_resource_unknown", Some(epoch), None))?;
-            let capabilities = required_array(resource, "capability_families", "resource", Some(epoch), None)?;
+            let receipt = required_string(
+                update,
+                "evidence_receipt_id",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let resource_id = required_string(
+                update,
+                "resource_id",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let family = required_string(
+                update,
+                "process_family",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let previous = required_string(
+                update,
+                "previous_disposition",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let next = required_string(
+                update,
+                "new_disposition",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let occurred = required_u64(
+                update,
+                "occurred_at_epoch",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let observed = required_u64(
+                update,
+                "observed_at_epoch",
+                "qualification_update",
+                Some(epoch),
+                None,
+            )?;
+            let resource = resources.get(resource_id).ok_or_else(|| {
+                violation("qualification_update_resource_unknown", Some(epoch), None)
+            })?;
+            let capabilities = required_array(
+                resource,
+                "capability_families",
+                "resource",
+                Some(epoch),
+                None,
+            )?;
             if !event_ids.insert(receipt.to_string())
                 || observed != expected_epoch as u64
                 || occurred > observed
                 || !["ADMISSIBLE", "UNKNOWN", "BLOCKED"].contains(&previous)
                 || !["ADMISSIBLE", "UNKNOWN", "BLOCKED"].contains(&next)
                 || previous == next
-                || !capabilities.iter().any(|value| value.as_str() == Some(family))
+                || !capabilities
+                    .iter()
+                    .any(|value| value.as_str() == Some(family))
             {
-                return Err(violation("qualification_update_identity_scope_or_chronology_invalid", Some(epoch), None));
+                return Err(violation(
+                    "qualification_update_identity_scope_or_chronology_invalid",
+                    Some(epoch),
+                    None,
+                ));
             }
             let state = qualifications
                 .get_mut(&(resource_id.to_string(), family.to_string()))
-                .ok_or_else(|| violation("qualification_update_prior_state_missing", Some(epoch), None))?;
+                .ok_or_else(|| {
+                    violation(
+                        "qualification_update_prior_state_missing",
+                        Some(epoch),
+                        None,
+                    )
+                })?;
             if state != previous {
-                return Err(violation("qualification_update_prior_state_mismatch", Some(epoch), None));
+                return Err(violation(
+                    "qualification_update_prior_state_mismatch",
+                    Some(epoch),
+                    None,
+                ));
             }
             *state = next.to_string();
         }
@@ -494,19 +639,47 @@ fn validate_frame_evidence(
             Some(epoch),
             None,
         )? {
-            let event_id = required_string(event, "source_event_id", "inspection_event", Some(epoch), None)?;
+            let event_id = required_string(
+                event,
+                "source_event_id",
+                "inspection_event",
+                Some(epoch),
+                None,
+            )?;
             let actual_station =
                 required_string(event, "station_id", "inspection_event", Some(epoch), None)?;
-            let occurred = required_u64(event, "occurred_at_epoch", "inspection_event", Some(epoch), None)?;
-            let observed = required_u64(event, "observed_at_epoch", "inspection_event", Some(epoch), None)?;
-            let capacity = required_u64(event, "available_capacity_units", "inspection_event", Some(epoch), None)?;
+            let occurred = required_u64(
+                event,
+                "occurred_at_epoch",
+                "inspection_event",
+                Some(epoch),
+                None,
+            )?;
+            let observed = required_u64(
+                event,
+                "observed_at_epoch",
+                "inspection_event",
+                Some(epoch),
+                None,
+            )?;
+            let capacity = required_u64(
+                event,
+                "available_capacity_units",
+                "inspection_event",
+                Some(epoch),
+                None,
+            )?;
             if !event_ids.insert(event_id.to_string())
                 || actual_station != station_id
                 || observed != expected_epoch as u64
                 || occurred > observed
                 || inspection_capacity_override.is_some() && expected_epoch as u64 == epoch
             {
-                return Err(violation("inspection_event_identity_scope_or_chronology_invalid", Some(epoch), None));
+                return Err(violation(
+                    "inspection_event_identity_scope_or_chronology_invalid",
+                    Some(epoch),
+                    None,
+                ));
             }
             if expected_epoch as u64 == epoch {
                 inspection_capacity_override = Some(capacity);
@@ -570,15 +743,33 @@ fn initial_state(
             "WAITING" if remaining == 0 && committed.is_none() => "WAITING",
             "IN_PROCESS" if remaining > 0 && committed.is_some() => "IN_PROCESS",
             "COMPLETED" if remaining == 0 && committed.is_none() => "COMPLETED",
-            _ => return Err(violation("initial_operation_state_inconsistent", Some(epoch), None)),
+            _ => {
+                return Err(violation(
+                    "initial_operation_state_inconsistent",
+                    Some(epoch),
+                    None,
+                ));
+            }
         };
 
         if let Some(resource_id) = committed.as_deref() {
-            let resource_state = resource_states
-                .get_mut(resource_id)
-                .ok_or_else(|| violation("initial_operation_committed_resource_unknown", Some(epoch), None))?;
-            if resource_state.active_operation_id.replace(operation_id.clone()).is_some() {
-                return Err(violation("initial_resource_has_multiple_active_operations", Some(epoch), None));
+            let resource_state = resource_states.get_mut(resource_id).ok_or_else(|| {
+                violation(
+                    "initial_operation_committed_resource_unknown",
+                    Some(epoch),
+                    None,
+                )
+            })?;
+            if resource_state
+                .active_operation_id
+                .replace(operation_id.clone())
+                .is_some()
+            {
+                return Err(violation(
+                    "initial_resource_has_multiple_active_operations",
+                    Some(epoch),
+                    None,
+                ));
             }
             let eligible = required_array(
                 &operation,
@@ -587,8 +778,15 @@ fn initial_state(
                 Some(epoch),
                 None,
             )?;
-            if !eligible.iter().any(|value| value.as_str() == Some(resource_id)) {
-                return Err(violation("initial_committed_resource_not_eligible", Some(epoch), None));
+            if !eligible
+                .iter()
+                .any(|value| value.as_str() == Some(resource_id))
+            {
+                return Err(violation(
+                    "initial_committed_resource_not_eligible",
+                    Some(epoch),
+                    None,
+                ));
             }
         }
 
@@ -607,8 +805,13 @@ fn initial_state(
     let station = case
         .get("inspection_station")
         .ok_or_else(|| violation("inspection_station_missing", Some(epoch), None))?;
-    let station_id =
-        required_string(station, "station_id", "inspection_station", Some(epoch), None)?;
+    let station_id = required_string(
+        station,
+        "station_id",
+        "inspection_station",
+        Some(epoch),
+        None,
+    )?;
 
     Ok(RuntimeState {
         operations: operation_states,
@@ -682,7 +885,11 @@ fn refresh_epoch_state(
         .ok_or_else(|| violation("inspection_capacity_for_epoch_missing", Some(epoch), None))?;
     if let Some(override_capacity) = evidence.inspection_capacity_override {
         if override_capacity > base_capacity {
-            return Err(violation("inspection_capacity_event_exceeds_static_bound", Some(epoch), None));
+            return Err(violation(
+                "inspection_capacity_event_exceeds_static_bound",
+                Some(epoch),
+                None,
+            ));
         }
         state.inspection_station.capacity_units_total = override_capacity;
     } else {
@@ -726,8 +933,16 @@ fn current_setup_duration(
             Some(epoch),
             Some(transition_id),
         ),
-        [] => Err(violation("setup_transition_missing", Some(epoch), Some(transition_id))),
-        _ => Err(violation("setup_transition_duplicate", Some(epoch), Some(transition_id))),
+        [] => Err(violation(
+            "setup_transition_missing",
+            Some(epoch),
+            Some(transition_id),
+        )),
+        _ => Err(violation(
+            "setup_transition_duplicate",
+            Some(epoch),
+            Some(transition_id),
+        )),
     }
 }
 
@@ -759,39 +974,138 @@ fn verify_receipt_matches(
         Some(epoch),
         Some(transition_id),
     )?;
-    if required_string(receipt, "status", "admission_receipt", Some(epoch), Some(transition_id))?
-        != "ADMISSIBLE"
+    if required_string(
+        receipt,
+        "status",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != "ADMISSIBLE"
     {
-        return Err(violation("admission_receipt_not_admissible", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "admission_receipt_not_admissible",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
-    if required_string(receipt, "benchmark_id", "admission_receipt", Some(epoch), Some(transition_id))?
-        != required_string(frame, "benchmark_id", "decision_frame", Some(epoch), Some(transition_id))?
-        || required_string(receipt, "case_id", "admission_receipt", Some(epoch), Some(transition_id))?
-            != required_string(frame, "case_id", "decision_frame", Some(epoch), Some(transition_id))?
-        || required_u64(receipt, "decision_epoch", "admission_receipt", Some(epoch), Some(transition_id))? != epoch
-        || required_string(receipt, "operation_id", "admission_receipt", Some(epoch), Some(transition_id))?
-            != required_string(proposal, "operation_id", "proposal", Some(epoch), Some(transition_id))?
-        || required_string(receipt, "resource_id", "admission_receipt", Some(epoch), Some(transition_id))?
-            != required_string(proposal, "resource_id", "proposal", Some(epoch), Some(transition_id))?
+    if required_string(
+        receipt,
+        "benchmark_id",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != required_string(
+        frame,
+        "benchmark_id",
+        "decision_frame",
+        Some(epoch),
+        Some(transition_id),
+    )? || required_string(
+        receipt,
+        "case_id",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != required_string(
+        frame,
+        "case_id",
+        "decision_frame",
+        Some(epoch),
+        Some(transition_id),
+    )? || required_u64(
+        receipt,
+        "decision_epoch",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != epoch
+        || required_string(
+            receipt,
+            "operation_id",
+            "admission_receipt",
+            Some(epoch),
+            Some(transition_id),
+        )? != required_string(
+            proposal,
+            "operation_id",
+            "proposal",
+            Some(epoch),
+            Some(transition_id),
+        )?
+        || required_string(
+            receipt,
+            "resource_id",
+            "admission_receipt",
+            Some(epoch),
+            Some(transition_id),
+        )? != required_string(
+            proposal,
+            "resource_id",
+            "proposal",
+            Some(epoch),
+            Some(transition_id),
+        )?
     {
-        return Err(violation("admission_receipt_identity_mismatch", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "admission_receipt_identity_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
-    let reason_codes = required_array(receipt, "reason_codes", "admission_receipt", Some(epoch), Some(transition_id))?;
+    let reason_codes = required_array(
+        receipt,
+        "reason_codes",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     if !reason_codes.is_empty()
-        || required_u64(receipt, "processing_duration_ticks", "admission_receipt", Some(epoch), Some(transition_id))?
-            != processing_duration
-        || required_u64(receipt, "setup_duration_ticks", "admission_receipt", Some(epoch), Some(transition_id))?
-            != setup_duration
-        || receipt.get("qualification_disposition").and_then(Value::as_str) != Some("ADMISSIBLE")
+        || required_u64(
+            receipt,
+            "processing_duration_ticks",
+            "admission_receipt",
+            Some(epoch),
+            Some(transition_id),
+        )? != processing_duration
+        || required_u64(
+            receipt,
+            "setup_duration_ticks",
+            "admission_receipt",
+            Some(epoch),
+            Some(transition_id),
+        )? != setup_duration
+        || receipt
+            .get("qualification_disposition")
+            .and_then(Value::as_str)
+            != Some("ADMISSIBLE")
         || receipt.get("inspection_method_id").and_then(Value::as_str) != inspection_method
     {
-        return Err(violation("admission_receipt_derived_fields_mismatch", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "admission_receipt_derived_fields_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
-    if required_u64(receipt, "capacity_units_required", "admission_receipt", Some(epoch), Some(transition_id))? != 1
-        || required_string(receipt, "claim_ceiling", "admission_receipt", Some(epoch), Some(transition_id))?
-            != ADMISSION_CLAIM_CEILING
+    if required_u64(
+        receipt,
+        "capacity_units_required",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != 1
+        || required_string(
+            receipt,
+            "claim_ceiling",
+            "admission_receipt",
+            Some(epoch),
+            Some(transition_id),
+        )? != ADMISSION_CLAIM_CEILING
     {
-        return Err(violation("admission_receipt_contract_mismatch", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "admission_receipt_contract_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     Ok(())
 }
@@ -805,25 +1119,79 @@ fn apply_start_action(
     epoch: u64,
     transition_id: &str,
 ) -> Result<(), Violation> {
-    let proposal = transition
-        .get("proposal")
-        .ok_or_else(|| violation("start_action_proposal_missing", Some(epoch), Some(transition_id)))?;
-    let receipt = transition
-        .get("admission_receipt")
-        .ok_or_else(|| violation("start_action_admission_receipt_missing", Some(epoch), Some(transition_id)))?;
-    validate_schema(proposal, PROPOSAL_SCHEMA_JSON, "action_proposal", Some(epoch), Some(transition_id))?;
+    let proposal = transition.get("proposal").ok_or_else(|| {
+        violation(
+            "start_action_proposal_missing",
+            Some(epoch),
+            Some(transition_id),
+        )
+    })?;
+    let receipt = transition.get("admission_receipt").ok_or_else(|| {
+        violation(
+            "start_action_admission_receipt_missing",
+            Some(epoch),
+            Some(transition_id),
+        )
+    })?;
+    validate_schema(
+        proposal,
+        PROPOSAL_SCHEMA_JSON,
+        "action_proposal",
+        Some(epoch),
+        Some(transition_id),
+    )?;
 
-    let operation_id =
-        required_string(proposal, "operation_id", "proposal", Some(epoch), Some(transition_id))?;
-    let resource_id =
-        required_string(proposal, "resource_id", "proposal", Some(epoch), Some(transition_id))?;
-    if required_string(proposal, "benchmark_id", "proposal", Some(epoch), Some(transition_id))?
-        != required_string(frame, "benchmark_id", "decision_frame", Some(epoch), Some(transition_id))?
-        || required_string(proposal, "case_id", "proposal", Some(epoch), Some(transition_id))?
-            != required_string(frame, "case_id", "decision_frame", Some(epoch), Some(transition_id))?
-        || required_u64(proposal, "decision_epoch", "proposal", Some(epoch), Some(transition_id))? != epoch
+    let operation_id = required_string(
+        proposal,
+        "operation_id",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let resource_id = required_string(
+        proposal,
+        "resource_id",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    if required_string(
+        proposal,
+        "benchmark_id",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )? != required_string(
+        frame,
+        "benchmark_id",
+        "decision_frame",
+        Some(epoch),
+        Some(transition_id),
+    )? || required_string(
+        proposal,
+        "case_id",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )? != required_string(
+        frame,
+        "case_id",
+        "decision_frame",
+        Some(epoch),
+        Some(transition_id),
+    )? || required_u64(
+        proposal,
+        "decision_epoch",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )? != epoch
     {
-        return Err(violation("proposal_decision_frame_identity_mismatch", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "proposal_decision_frame_identity_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let operation = state
@@ -852,64 +1220,152 @@ fn apply_start_action(
         })
         .ok_or_else(|| violation("static_operation_missing", Some(epoch), Some(transition_id)))?;
 
-    let action_kind = required_string(proposal, "action_kind", "proposal", Some(epoch), Some(transition_id))?;
-    let process_family = required_string(static_operation, "process_family", "operation", Some(epoch), Some(transition_id))?;
-    let setup_family = required_string(static_operation, "setup_family", "operation", Some(epoch), Some(transition_id))?;
+    let action_kind = required_string(
+        proposal,
+        "action_kind",
+        "proposal",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let process_family = required_string(
+        static_operation,
+        "process_family",
+        "operation",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let setup_family = required_string(
+        static_operation,
+        "setup_family",
+        "operation",
+        Some(epoch),
+        Some(transition_id),
+    )?;
 
-    let eligible = required_array(static_operation, "eligible_resource_ids", "operation", Some(epoch), Some(transition_id))?;
+    let eligible = required_array(
+        static_operation,
+        "eligible_resource_ids",
+        "operation",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     let capabilities = required_array(
         case.get("resources")
             .and_then(Value::as_array)
-            .and_then(|items| items.iter().find(|item| item.get("resource_id").and_then(Value::as_str) == Some(resource_id)))
-            .ok_or_else(|| violation("static_resource_missing", Some(epoch), Some(transition_id)))?,
+            .and_then(|items| {
+                items.iter().find(|item| {
+                    item.get("resource_id").and_then(Value::as_str) == Some(resource_id)
+                })
+            })
+            .ok_or_else(|| {
+                violation("static_resource_missing", Some(epoch), Some(transition_id))
+            })?,
         "capability_families",
         "resource",
         Some(epoch),
         Some(transition_id),
     )?;
-    if !eligible.iter().any(|item| item.as_str() == Some(resource_id))
-        || !capabilities.iter().any(|item| item.as_str() == Some(process_family))
+    if !eligible
+        .iter()
+        .any(|item| item.as_str() == Some(resource_id))
+        || !capabilities
+            .iter()
+            .any(|item| item.as_str() == Some(process_family))
     {
-        return Err(violation("resource_not_eligible_or_capable", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "resource_not_eligible_or_capable",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     if resource.availability_status != "AVAILABLE" {
-        return Err(violation("resource_unavailable_at_action_cutoff", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "resource_unavailable_at_action_cutoff",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     if resource.capacity_units_total == 0 || resource.capacity_units_remaining == 0 {
-        return Err(violation("resource_capacity_exhausted", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "resource_capacity_exhausted",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let qualification = current_frame_qualification(evidence, resource_id, process_family);
     if qualification != Some("ADMISSIBLE") {
-        return Err(violation("qualification_not_admissible_at_action_cutoff", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "qualification_not_admissible_at_action_cutoff",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let (processing_duration, setup_duration, inspection_method) = match action_kind {
         "START" => {
             if operation.status != "WAITING" || operation.committed_resource_id.is_some() {
-                return Err(violation("start_requires_uncommitted_waiting_operation", Some(epoch), Some(transition_id)));
+                return Err(violation(
+                    "start_requires_uncommitted_waiting_operation",
+                    Some(epoch),
+                    Some(transition_id),
+                ));
             }
             if resource.active_operation_id.is_some() {
-                return Err(violation("resource_already_has_active_operation", Some(epoch), Some(transition_id)));
+                return Err(violation(
+                    "resource_already_has_active_operation",
+                    Some(epoch),
+                    Some(transition_id),
+                ));
             }
-            let predecessors = required_array(static_operation, "predecessor_operation_ids", "operation", Some(epoch), Some(transition_id))?;
+            let predecessors = required_array(
+                static_operation,
+                "predecessor_operation_ids",
+                "operation",
+                Some(epoch),
+                Some(transition_id),
+            )?;
             for predecessor in predecessors {
-                let predecessor_id = predecessor
-                    .as_str()
-                    .ok_or_else(|| violation("predecessor_operation_id_invalid", Some(epoch), Some(transition_id)))?;
-                if state.operations.get(predecessor_id).is_none_or(|prior| prior.status != "COMPLETED") {
-                    return Err(violation("predecessor_not_completed_before_start", Some(epoch), Some(transition_id)));
+                let predecessor_id = predecessor.as_str().ok_or_else(|| {
+                    violation(
+                        "predecessor_operation_id_invalid",
+                        Some(epoch),
+                        Some(transition_id),
+                    )
+                })?;
+                if state
+                    .operations
+                    .get(predecessor_id)
+                    .is_none_or(|prior| prior.status != "COMPLETED")
+                {
+                    return Err(violation(
+                        "predecessor_not_completed_before_start",
+                        Some(epoch),
+                        Some(transition_id),
+                    ));
                 }
             }
             let processing_times = static_operation
                 .get("processing_time_ticks_by_resource")
                 .and_then(Value::as_object)
-                .ok_or_else(|| violation("operation_processing_times_missing", Some(epoch), Some(transition_id)))?;
+                .ok_or_else(|| {
+                    violation(
+                        "operation_processing_times_missing",
+                        Some(epoch),
+                        Some(transition_id),
+                    )
+                })?;
             let duration = processing_times
                 .get(resource_id)
                 .and_then(Value::as_u64)
                 .filter(|duration| *duration > 0)
-                .ok_or_else(|| violation("operation_processing_duration_missing", Some(epoch), Some(transition_id)))?;
+                .ok_or_else(|| {
+                    violation(
+                        "operation_processing_duration_missing",
+                        Some(epoch),
+                        Some(transition_id),
+                    )
+                })?;
             let setup = current_setup_duration(
                 case,
                 resource_id,
@@ -921,10 +1377,20 @@ fn apply_start_action(
             let inspection_required = static_operation
                 .get("inspection_required")
                 .and_then(Value::as_bool)
-                .ok_or_else(|| violation("operation_inspection_required_missing", Some(epoch), Some(transition_id)))?;
-            let proposal_method = proposal
-                .get("inspection_method_id")
-                .ok_or_else(|| violation("proposal_inspection_method_missing", Some(epoch), Some(transition_id)))?;
+                .ok_or_else(|| {
+                    violation(
+                        "operation_inspection_required_missing",
+                        Some(epoch),
+                        Some(transition_id),
+                    )
+                })?;
+            let proposal_method = proposal.get("inspection_method_id").ok_or_else(|| {
+                violation(
+                    "proposal_inspection_method_missing",
+                    Some(epoch),
+                    Some(transition_id),
+                )
+            })?;
             let method = if inspection_required {
                 let required_method = required_string(
                     static_operation,
@@ -934,13 +1400,27 @@ fn apply_start_action(
                     Some(transition_id),
                 )?;
                 if proposal_method.as_str() != Some(required_method) {
-                    return Err(violation("required_inspection_method_mismatch", Some(epoch), Some(transition_id)));
+                    return Err(violation(
+                        "required_inspection_method_mismatch",
+                        Some(epoch),
+                        Some(transition_id),
+                    ));
                 }
-                validate_inspection_method(case, required_method, process_family, epoch, transition_id)?;
+                validate_inspection_method(
+                    case,
+                    required_method,
+                    process_family,
+                    epoch,
+                    transition_id,
+                )?;
                 Some(required_method)
             } else {
                 if !proposal_method.is_null() {
-                    return Err(violation("unneeded_inspection_method_proposed", Some(epoch), Some(transition_id)));
+                    return Err(violation(
+                        "unneeded_inspection_method_proposed",
+                        Some(epoch),
+                        Some(transition_id),
+                    ));
                 }
                 None
             };
@@ -951,14 +1431,26 @@ fn apply_start_action(
                 || operation.committed_resource_id.as_deref() != Some(resource_id)
                 || resource.active_operation_id.as_deref() != Some(operation_id)
             {
-                return Err(violation("continuation_does_not_match_live_commitment", Some(epoch), Some(transition_id)));
+                return Err(violation(
+                    "continuation_does_not_match_live_commitment",
+                    Some(epoch),
+                    Some(transition_id),
+                ));
             }
             if operation.remaining_processing_ticks == 0 {
-                return Err(violation("continuation_has_no_remaining_work", Some(epoch), Some(transition_id)));
+                return Err(violation(
+                    "continuation_has_no_remaining_work",
+                    Some(epoch),
+                    Some(transition_id),
+                ));
             }
-            let proposal_method = proposal
-                .get("inspection_method_id")
-                .ok_or_else(|| violation("proposal_inspection_method_missing", Some(epoch), Some(transition_id)))?;
+            let proposal_method = proposal.get("inspection_method_id").ok_or_else(|| {
+                violation(
+                    "proposal_inspection_method_missing",
+                    Some(epoch),
+                    Some(transition_id),
+                )
+            })?;
             let inspection_required = static_operation
                 .get("inspection_required")
                 .and_then(Value::as_bool)
@@ -972,19 +1464,39 @@ fn apply_start_action(
                     Some(transition_id),
                 )?;
                 if proposal_method.as_str() != Some(required_method) {
-                    return Err(violation("required_inspection_method_mismatch", Some(epoch), Some(transition_id)));
+                    return Err(violation(
+                        "required_inspection_method_mismatch",
+                        Some(epoch),
+                        Some(transition_id),
+                    ));
                 }
-                validate_inspection_method(case, required_method, process_family, epoch, transition_id)?;
+                validate_inspection_method(
+                    case,
+                    required_method,
+                    process_family,
+                    epoch,
+                    transition_id,
+                )?;
                 Some(required_method)
             } else {
                 if !proposal_method.is_null() {
-                    return Err(violation("unneeded_inspection_method_proposed", Some(epoch), Some(transition_id)));
+                    return Err(violation(
+                        "unneeded_inspection_method_proposed",
+                        Some(epoch),
+                        Some(transition_id),
+                    ));
                 }
                 None
             };
             (operation.remaining_processing_ticks, 0, method)
         }
-        _ => return Err(violation("action_kind_invalid", Some(epoch), Some(transition_id))),
+        _ => {
+            return Err(violation(
+                "action_kind_invalid",
+                Some(epoch),
+                Some(transition_id),
+            ));
+        }
     };
 
     verify_receipt_matches(
@@ -1028,22 +1540,57 @@ fn validate_inspection_method(
     epoch: u64,
     transition_id: &str,
 ) -> Result<(), Violation> {
-    let station = case
-        .get("inspection_station")
-        .ok_or_else(|| violation("inspection_station_missing", Some(epoch), Some(transition_id)))?;
-    let methods = required_array(station, "methods", "inspection_station", Some(epoch), Some(transition_id))?;
+    let station = case.get("inspection_station").ok_or_else(|| {
+        violation(
+            "inspection_station_missing",
+            Some(epoch),
+            Some(transition_id),
+        )
+    })?;
+    let methods = required_array(
+        station,
+        "methods",
+        "inspection_station",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     let matches: Vec<&Value> = methods
         .iter()
         .filter(|method| method.get("method_id").and_then(Value::as_str) == Some(method_id))
         .collect();
     let method = match matches.as_slice() {
         [method] => *method,
-        [] => return Err(violation("inspection_method_not_declared", Some(epoch), Some(transition_id))),
-        _ => return Err(violation("inspection_method_duplicate", Some(epoch), Some(transition_id))),
+        [] => {
+            return Err(violation(
+                "inspection_method_not_declared",
+                Some(epoch),
+                Some(transition_id),
+            ));
+        }
+        _ => {
+            return Err(violation(
+                "inspection_method_duplicate",
+                Some(epoch),
+                Some(transition_id),
+            ));
+        }
     };
-    let applicable = required_array(method, "applicable_process_families", "inspection_method", Some(epoch), Some(transition_id))?;
-    if !applicable.iter().any(|family| family.as_str() == Some(process_family)) {
-        return Err(violation("inspection_method_not_applicable", Some(epoch), Some(transition_id)));
+    let applicable = required_array(
+        method,
+        "applicable_process_families",
+        "inspection_method",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    if !applicable
+        .iter()
+        .any(|family| family.as_str() == Some(process_family))
+    {
+        return Err(violation(
+            "inspection_method_not_applicable",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     Ok(())
 }
@@ -1055,11 +1602,33 @@ fn apply_process_ticks(
     epoch: u64,
     transition_id: &str,
 ) -> Result<(), Violation> {
-    let operation_id = required_string(transition, "operation_id", "process_ticks", Some(epoch), Some(transition_id))?;
-    let resource_id = required_string(transition, "resource_id", "process_ticks", Some(epoch), Some(transition_id))?;
-    let processed = required_u64(transition, "processed_ticks", "process_ticks", Some(epoch), Some(transition_id))?;
+    let operation_id = required_string(
+        transition,
+        "operation_id",
+        "process_ticks",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let resource_id = required_string(
+        transition,
+        "resource_id",
+        "process_ticks",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let processed = required_u64(
+        transition,
+        "processed_ticks",
+        "process_ticks",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     if processed == 0 {
-        return Err(violation("processed_ticks_must_be_positive", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "processed_ticks_must_be_positive",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let op = state
@@ -1076,20 +1645,38 @@ fn apply_process_ticks(
         || op.committed_resource_id.as_deref() != Some(resource_id)
         || resource.active_operation_id.as_deref() != Some(operation_id)
     {
-        return Err(violation("processing_does_not_match_live_resource_commitment", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "processing_does_not_match_live_resource_commitment",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     if resource.availability_status != "AVAILABLE" || resource.capacity_units_total == 0 {
-        return Err(violation("processing_resource_unavailable", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "processing_resource_unavailable",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     if processed > op.remaining_processing_ticks {
-        return Err(violation("processed_ticks_exceed_remaining_work", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "processed_ticks_exceed_remaining_work",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let operation_static = find_operation(case, operation_id, epoch, transition_id)?.clone();
     let inspection_required = operation_static
         .get("inspection_required")
         .and_then(Value::as_bool)
-        .ok_or_else(|| violation("operation_inspection_required_missing", Some(epoch), Some(transition_id)))?;
+        .ok_or_else(|| {
+            violation(
+                "operation_inspection_required_missing",
+                Some(epoch),
+                Some(transition_id),
+            )
+        })?;
 
     let op_mut = state
         .operations
@@ -1120,11 +1707,33 @@ fn apply_inspection_result(
     epoch: u64,
     transition_id: &str,
 ) -> Result<(), Violation> {
-    let operation_id = required_string(transition, "operation_id", "inspection_result", Some(epoch), Some(transition_id))?;
-    let method_id = required_string(transition, "method_id", "inspection_result", Some(epoch), Some(transition_id))?;
-    let disposition = required_string(transition, "disposition", "inspection_result", Some(epoch), Some(transition_id))?;
+    let operation_id = required_string(
+        transition,
+        "operation_id",
+        "inspection_result",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let method_id = required_string(
+        transition,
+        "method_id",
+        "inspection_result",
+        Some(epoch),
+        Some(transition_id),
+    )?;
+    let disposition = required_string(
+        transition,
+        "disposition",
+        "inspection_result",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     if !["ACCEPTED", "REJECTED", "INDETERMINATE"].contains(&disposition) {
-        return Err(violation("inspection_disposition_invalid", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "inspection_disposition_invalid",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     let op = state
         .operations
@@ -1132,7 +1741,11 @@ fn apply_inspection_result(
         .ok_or_else(|| violation("operation_not_found", Some(epoch), Some(transition_id)))?
         .clone();
     if op.status != "AWAITING_INSPECTION" {
-        return Err(violation("operation_not_awaiting_inspection", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "operation_not_awaiting_inspection",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
 
     let static_operation = find_operation(case, operation_id, epoch, transition_id)?;
@@ -1151,11 +1764,19 @@ fn apply_inspection_result(
         Some(transition_id),
     )?;
     if method_id != required_method {
-        return Err(violation("inspection_result_method_mismatch", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "inspection_result_method_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     validate_inspection_method(case, method_id, process_family, epoch, transition_id)?;
     if state.inspection_station.capacity_units_remaining() == 0 {
-        return Err(violation("inspection_capacity_exhausted", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "inspection_capacity_exhausted",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
     state.inspection_station.capacity_units_used += 1;
     let operation_mut = state
@@ -1191,7 +1812,8 @@ fn find_operation<'a>(
 
 impl RuntimeInspection {
     fn capacity_units_remaining(&self) -> u64 {
-        self.capacity_units_total.saturating_sub(self.capacity_units_used)
+        self.capacity_units_total
+            .saturating_sub(self.capacity_units_used)
     }
 }
 
@@ -1215,7 +1837,9 @@ fn make_snapshot(
             availability_status: runtime.availability_status.clone(),
             capacity_units_total: runtime.capacity_units_total,
             capacity_units_used: runtime.capacity_units_used,
-            capacity_units_remaining: runtime.capacity_units_total.saturating_sub(runtime.capacity_units_used),
+            capacity_units_remaining: runtime
+                .capacity_units_total
+                .saturating_sub(runtime.capacity_units_used),
         });
     }
     resources.sort_by(|left, right| left.resource_id.cmp(&right.resource_id));
@@ -1231,14 +1855,22 @@ fn make_snapshot(
         None,
     )?;
     let _ = base_station_capacity;
-    let history = required_array(frame, "observable_history", "decision_frame", Some(epoch), None)?;
+    let history = required_array(
+        frame,
+        "observable_history",
+        "decision_frame",
+        Some(epoch),
+        None,
+    )?;
     let history_digest = digest_value(&Value::Array(history.clone()), Some(epoch), None)?;
     let frame_digest = digest_value(frame, Some(epoch), None)?;
 
     let mut snapshot = Snapshot {
         schema_id: SNAPSHOT_SCHEMA_ID,
-        benchmark_id: required_string(frame, "benchmark_id", "decision_frame", Some(epoch), None)?.to_string(),
-        case_id: required_string(frame, "case_id", "decision_frame", Some(epoch), None)?.to_string(),
+        benchmark_id: required_string(frame, "benchmark_id", "decision_frame", Some(epoch), None)?
+            .to_string(),
+        case_id: required_string(frame, "case_id", "decision_frame", Some(epoch), None)?
+            .to_string(),
         decision_epoch: epoch,
         previous_snapshot_digest,
         decision_frame_digest: frame_digest,
@@ -1287,11 +1919,22 @@ fn apply_transition(
     state: &mut RuntimeState,
     epoch: u64,
 ) -> Result<(), Violation> {
-    let transition_id = required_string(transition, "transition_id", "transition", Some(epoch), None)?;
+    let transition_id =
+        required_string(transition, "transition_id", "transition", Some(epoch), None)?;
     if !state.seen_transition_ids.insert(transition_id.to_string()) {
-        return Err(violation("transition_id_duplicate", Some(epoch), Some(transition_id)));
+        return Err(violation(
+            "transition_id_duplicate",
+            Some(epoch),
+            Some(transition_id),
+        ));
     }
-    let kind = required_string(transition, "kind", "transition", Some(epoch), Some(transition_id))?;
+    let kind = required_string(
+        transition,
+        "kind",
+        "transition",
+        Some(epoch),
+        Some(transition_id),
+    )?;
     match kind {
         "START_ACTION" => apply_start_action(
             transition,
@@ -1306,7 +1949,13 @@ fn apply_transition(
         "INSPECTION_RESULT" => {
             apply_inspection_result(transition, case, state, epoch, transition_id)?
         }
-        _ => return Err(violation("transition_kind_invalid", Some(epoch), Some(transition_id))),
+        _ => {
+            return Err(violation(
+                "transition_kind_invalid",
+                Some(epoch),
+                Some(transition_id),
+            ));
+        }
     }
     state.applied_transition_ids.push(transition_id.to_string());
     Ok(())
@@ -1314,19 +1963,37 @@ fn apply_transition(
 
 fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
     validate_schema(ledger, LEDGER_SCHEMA_JSON, "execution_ledger", None, None)?;
-    let benchmark_id = required_string(ledger, "benchmark_id", "execution_ledger", None, None)?.to_string();
+    let benchmark_id =
+        required_string(ledger, "benchmark_id", "execution_ledger", None, None)?.to_string();
     let case_id = required_string(ledger, "case_id", "execution_ledger", None, None)?.to_string();
     let steps = required_array(ledger, "steps", "execution_ledger", None, None)?;
     let first_frame = steps
         .first()
         .and_then(|step| step.get("decision_frame"))
         .ok_or_else(|| violation("initial_decision_frame_missing", Some(0), None))?;
-    validate_schema(first_frame, FRAME_SCHEMA_JSON, "decision_frame", Some(0), None)?;
-    if required_string(first_frame, "benchmark_id", "decision_frame", Some(0), None)? != benchmark_id
+    validate_schema(
+        first_frame,
+        FRAME_SCHEMA_JSON,
+        "decision_frame",
+        Some(0),
+        None,
+    )?;
+    if required_string(first_frame, "benchmark_id", "decision_frame", Some(0), None)?
+        != benchmark_id
         || required_string(first_frame, "case_id", "decision_frame", Some(0), None)? != case_id
-        || required_u64(first_frame, "decision_epoch", "decision_frame", Some(0), None)? != 0
+        || required_u64(
+            first_frame,
+            "decision_epoch",
+            "decision_frame",
+            Some(0),
+            None,
+        )? != 0
     {
-        return Err(violation("initial_decision_frame_identity_or_epoch_invalid", Some(0), None));
+        return Err(violation(
+            "initial_decision_frame_identity_or_epoch_invalid",
+            Some(0),
+            None,
+        ));
     }
 
     let case = static_case(first_frame, 0)?;
@@ -1344,29 +2011,58 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
     for (index, step) in steps.iter().enumerate() {
         let epoch = required_u64(step, "epoch", "step", None, None)?;
         if epoch != index as u64 {
-            return Err(violation("decision_epochs_must_be_contiguous_from_zero", Some(epoch), None));
+            return Err(violation(
+                "decision_epochs_must_be_contiguous_from_zero",
+                Some(epoch),
+                None,
+            ));
         }
         let frame = step
             .get("decision_frame")
             .ok_or_else(|| violation("decision_frame_missing", Some(epoch), None))?;
-        validate_schema(frame, FRAME_SCHEMA_JSON, "decision_frame", Some(epoch), None)?;
-        if required_string(frame, "benchmark_id", "decision_frame", Some(epoch), None)? != benchmark_id
+        validate_schema(
+            frame,
+            FRAME_SCHEMA_JSON,
+            "decision_frame",
+            Some(epoch),
+            None,
+        )?;
+        if required_string(frame, "benchmark_id", "decision_frame", Some(epoch), None)?
+            != benchmark_id
             || required_string(frame, "case_id", "decision_frame", Some(epoch), None)? != case_id
             || required_u64(frame, "decision_epoch", "decision_frame", Some(epoch), None)? != epoch
         {
-            return Err(violation("decision_frame_identity_or_epoch_mismatch", Some(epoch), None));
+            return Err(violation(
+                "decision_frame_identity_or_epoch_mismatch",
+                Some(epoch),
+                None,
+            ));
         }
         let current_case = static_case(frame, epoch)?;
         if current_case != case {
-            return Err(violation("static_case_changed_during_episode", Some(epoch), None));
+            return Err(violation(
+                "static_case_changed_during_episode",
+                Some(epoch),
+                None,
+            ));
         }
         if index > 0 {
             let prior = previous_frame_history
                 .as_ref()
                 .ok_or_else(|| violation("prior_history_missing", Some(epoch), None))?;
-            let current = required_array(frame, "observable_history", "decision_frame", Some(epoch), None)?;
+            let current = required_array(
+                frame,
+                "observable_history",
+                "decision_frame",
+                Some(epoch),
+                None,
+            )?;
             if current.len() < prior.len() || current[..prior.len()] != prior[..] {
-                return Err(violation("observable_history_prefix_mutated", Some(epoch), None));
+                return Err(violation(
+                    "observable_history_prefix_mutated",
+                    Some(epoch),
+                    None,
+                ));
             }
         }
         let evidence = validate_frame_evidence(frame, current_case, epoch, &resources)?;
@@ -1377,12 +2073,29 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
             let transition_id =
                 required_string(transition, "transition_id", "transition", Some(epoch), None)?;
             if !all_transition_ids.insert(transition_id.to_string()) {
-                return Err(violation("transition_id_duplicate_in_ledger", Some(epoch), Some(transition_id)));
+                return Err(violation(
+                    "transition_id_duplicate_in_ledger",
+                    Some(epoch),
+                    Some(transition_id),
+                ));
             }
-            apply_transition(transition, frame, current_case, &evidence, &mut state, epoch)?;
+            apply_transition(
+                transition,
+                frame,
+                current_case,
+                &evidence,
+                &mut state,
+                epoch,
+            )?;
         }
 
-        let current_history = required_array(frame, "observable_history", "decision_frame", Some(epoch), None)?;
+        let current_history = required_array(
+            frame,
+            "observable_history",
+            "decision_frame",
+            Some(epoch),
+            None,
+        )?;
         previous_frame_history = Some(current_history.clone());
         let snapshot = make_snapshot(
             &state,
@@ -1398,7 +2111,9 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
 
     let _ = initial_operations;
     let ledger_digest = digest_value(ledger, None, None)?;
-    let final_snapshot_digest = snapshots.last().map(|snapshot| snapshot.snapshot_digest.clone());
+    let final_snapshot_digest = snapshots
+        .last()
+        .map(|snapshot| snapshot.snapshot_digest.clone());
     Ok(ReplayReceipt {
         schema_id: REPLAY_SCHEMA_ID,
         benchmark_id,
@@ -1442,9 +2157,10 @@ fn run() -> Result<(ReplayReceipt, bool), String> {
     if args.len() != 2 {
         return Err("usage: mfg-policy-v02-state-replay <execution-ledger.json>".into());
     }
-    let bytes = std::fs::read(&args[1]).map_err(|error| format!("execution_ledger_read:{error}"))?;
-    let ledger: Value = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("execution_ledger_json:{error}"))?;
+    let bytes =
+        std::fs::read(&args[1]).map_err(|error| format!("execution_ledger_read:{error}"))?;
+    let ledger: Value =
+        serde_json::from_slice(&bytes).map_err(|error| format!("execution_ledger_json:{error}"))?;
 
     let (receipt, verified) = match replay_ledger(&ledger) {
         Ok(receipt) => (receipt, true),
@@ -1676,24 +2392,42 @@ mod tests {
         assert_eq!(receipt.snapshots.len(), 3);
 
         let epoch0 = &receipt.snapshots[0];
-        let op2_e0 = epoch0.operations.iter().find(|op| op.operation_id == "OP-2").unwrap();
+        let op2_e0 = epoch0
+            .operations
+            .iter()
+            .find(|op| op.operation_id == "OP-2")
+            .unwrap();
         assert_eq!(op2_e0.status, "IN_PROCESS");
         assert_eq!(op2_e0.remaining_processing_ticks, 1);
         assert_eq!(epoch0.resources[0].current_setup_family, "SETUP-B");
-        assert_eq!(epoch0.resources[0].active_operation_id.as_deref(), Some("OP-2"));
+        assert_eq!(
+            epoch0.resources[0].active_operation_id.as_deref(),
+            Some("OP-2")
+        );
 
         let epoch1 = &receipt.snapshots[1];
-        let op2_e1 = epoch1.operations.iter().find(|op| op.operation_id == "OP-2").unwrap();
+        let op2_e1 = epoch1
+            .operations
+            .iter()
+            .find(|op| op.operation_id == "OP-2")
+            .unwrap();
         assert_eq!(op2_e1.status, "COMPLETED");
         assert_eq!(epoch1.resources[0].active_operation_id, None);
 
         let epoch2 = &receipt.snapshots[2];
-        let op3_e2 = epoch2.operations.iter().find(|op| op.operation_id == "OP-3").unwrap();
+        let op3_e2 = epoch2
+            .operations
+            .iter()
+            .find(|op| op.operation_id == "OP-3")
+            .unwrap();
         assert_eq!(op3_e2.status, "COMPLETED");
         assert_eq!(op3_e2.quality_disposition.as_deref(), Some("ACCEPTED"));
         assert_eq!(epoch2.resources[0].current_setup_family, "SETUP-C");
         assert_eq!(epoch2.inspection_station.capacity_units_used, 1);
-        assert_ne!(receipt.snapshots[0].snapshot_digest, receipt.snapshots[1].snapshot_digest);
+        assert_ne!(
+            receipt.snapshots[0].snapshot_digest,
+            receipt.snapshots[1].snapshot_digest
+        );
         assert_eq!(
             receipt.snapshots[1].previous_snapshot_digest.as_deref(),
             Some(receipt.snapshots[0].snapshot_digest.as_str())
@@ -1703,10 +2437,13 @@ mod tests {
     #[test]
     fn duplicate_start_is_rejected() {
         let mut value = golden_three_epoch_ledger();
-        value["steps"][0]["transitions"].as_array_mut().unwrap().insert(
-            1,
-            start_transition("DUPLICATE-START", 0, "OP-2", "START", None, 2, 1),
-        );
+        value["steps"][0]["transitions"]
+            .as_array_mut()
+            .unwrap()
+            .insert(
+                1,
+                start_transition("DUPLICATE-START", 0, "OP-2", "START", None, 2, 1),
+            );
         let error = replay_ledger(&value).unwrap_err();
         assert_eq!(error.code, "start_requires_uncommitted_waiting_operation");
     }
@@ -1761,7 +2498,8 @@ mod tests {
         })]);
         // OP-3's predecessor is not complete; the independent replay must reject it
         // before it can reserve the already committed resource.
-        value["steps"][0]["transitions"][1]["admission_receipt"]["processing_duration_ticks"] = Value::from(1_u64);
+        value["steps"][0]["transitions"][1]["admission_receipt"]["processing_duration_ticks"] =
+            Value::from(1_u64);
         let error = replay_ledger(&value).unwrap_err();
         assert_eq!(error.code, "resource_already_has_active_operation");
     }
@@ -1809,7 +2547,8 @@ mod tests {
     #[test]
     fn setup_change_must_match_current_resource_state() {
         let mut value = golden_three_epoch_ledger();
-        value["steps"][2]["transitions"][0]["admission_receipt"]["setup_duration_ticks"] = Value::from(1_u64);
+        value["steps"][2]["transitions"][0]["admission_receipt"]["setup_duration_ticks"] =
+            Value::from(1_u64);
         let error = replay_ledger(&value).unwrap_err();
         assert_eq!(error.code, "admission_receipt_derived_fields_mismatch");
     }
