@@ -67,11 +67,11 @@ pub enum EpcisRecordValidationError {
     InvalidSubjectUri,
     EmptySubjectSet,
     DuplicateSubject,
-    InvalidSourceRecordIdentity,
     InvalidSha256,
     InvalidTimeZoneOffset,
     NegativeTimestamp,
     RecordTimeBeforeEventTime,
+    DuplicateEventId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,7 +79,6 @@ pub enum CorrectionAppendError {
     InvalidDeclarationIdentity,
     InvalidEventId,
     TargetEventUnknown,
-    EventIdMismatch,
     SubjectIdentityMismatch,
     EventTimeMismatch,
     TimeZoneOffsetMismatch,
@@ -213,7 +212,7 @@ impl EpcisCorrectionLedger {
     ) -> Result<(), EpcisRecordValidationError> {
         event.validate()?;
         if self.events.iter().any(|existing| existing.event_id == event.event_id) {
-            return Err(EpcisRecordValidationError::EmptyIdentity);
+            return Err(EpcisRecordValidationError::DuplicateEventId);
         }
         self.events.push(event);
         Ok(())
@@ -256,9 +255,6 @@ impl EpcisCorrectionLedger {
         else {
             return Err(CorrectionAppendError::TargetEventUnknown);
         };
-        if original.event_id != declaration.event_id {
-            return Err(CorrectionAppendError::EventIdMismatch);
-        }
         if original.subject_ids != declaration.subject_ids {
             return Err(CorrectionAppendError::SubjectIdentityMismatch);
         }
@@ -694,6 +690,7 @@ mod tests {
         let first = render_csv();
         assert_eq!(first, render_csv());
         assert_eq!(first.lines().count(), 7);
+        assert_eq!(ReceiptCase::ALL.len(), 6);
         let header_width = first.lines().next().expect("header").split(',').count();
         assert_eq!(header_width, 7);
         for row in first.lines().skip(1) {
