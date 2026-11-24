@@ -1930,6 +1930,120 @@ mod tests {
     }
 
     #[test]
+    fn definitive_transport_acceptance_requires_source_bound_response_artifacts() {
+        let reset_path = temp_journal_path("accepted-reset-artifact");
+        let mut reset_journal = Journal::open(&reset_path).unwrap();
+        reset_journal
+            .append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-accepted".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "epoch-before".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-accepted".into(),
+                run_epoch: "run-epoch-accepted".into(),
+            })
+            .unwrap();
+        assert_eq!(
+            reset_journal.append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-accepted".into(),
+                source: ResetOutcomeSource::TransportResponse,
+                status: ResetOutcomeStatus::ResponseAccepted,
+                observed_world_epoch: None,
+                observed_clock_id: None,
+                observed_initial_state_sha256: None,
+                observation_artifact_sha256: None,
+                transport_response_artifact_sha256: None,
+            }),
+            Err(JournalError::InvalidOutcomeEvidence)
+        );
+        assert_eq!(
+            reset_journal.append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-accepted".into(),
+                source: ResetOutcomeSource::TransportResponse,
+                status: ResetOutcomeStatus::ResponseAccepted,
+                observed_world_epoch: None,
+                observed_clock_id: None,
+                observed_initial_state_sha256: None,
+                observation_artifact_sha256: Some(digest('d')),
+                transport_response_artifact_sha256: Some(digest('8')),
+            }),
+            Err(JournalError::InvalidOutcomeEvidence)
+        );
+        reset_journal
+            .append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-accepted".into(),
+                source: ResetOutcomeSource::TransportResponse,
+                status: ResetOutcomeStatus::ResponseAccepted,
+                observed_world_epoch: None,
+                observed_clock_id: None,
+                observed_initial_state_sha256: None,
+                observation_artifact_sha256: None,
+                transport_response_artifact_sha256: Some(digest('8')),
+            })
+            .unwrap();
+        assert_eq!(
+            reset_journal.recovery_projection().resets[0].disposition,
+            ResetRecoveryDisposition::ResponseAcceptedAwaitingObservation
+        );
+        drop(reset_journal);
+        cleanup(&reset_path);
+
+        let dispatch_path = temp_journal_path("accepted-dispatch-artifact");
+        let mut dispatch_journal = Journal::open(&dispatch_path).unwrap();
+        append_verified_reset(&mut dispatch_journal);
+        append_dispatch_intent(&mut dispatch_journal);
+        assert_eq!(
+            dispatch_journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseAccepted,
+                dispatch_id: Some("dispatch-1".into()),
+                transport_response_artifact_sha256: None,
+                ledger_artifact_sha256: None,
+            }),
+            Err(JournalError::InvalidOutcomeEvidence)
+        );
+        assert_eq!(
+            dispatch_journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseAccepted,
+                dispatch_id: Some("dispatch-1".into()),
+                transport_response_artifact_sha256: Some(digest('8')),
+                ledger_artifact_sha256: Some(digest('9')),
+            }),
+            Err(JournalError::InvalidOutcomeEvidence)
+        );
+        dispatch_journal
+            .append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseAccepted,
+                dispatch_id: Some("dispatch-1".into()),
+                transport_response_artifact_sha256: Some(digest('8')),
+                ledger_artifact_sha256: None,
+            })
+            .unwrap();
+        let projection = dispatch_journal.recovery_projection();
+        assert_eq!(
+            projection.dispatches[0].disposition,
+            DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence
+        );
+        assert_eq!(
+            projection.dispatch_execution_evidence_pending,
+            vec!["rrvr/v0.1/test-key-1"]
+        );
+        drop(dispatch_journal);
+        cleanup(&dispatch_path);
+    }
+
+    #[test]
     fn reset_verification_requires_exact_observed_world_clock_and_initial_digest() {
         let path = temp_journal_path("reset-proof");
         let mut journal = Journal::open(&path).unwrap();
