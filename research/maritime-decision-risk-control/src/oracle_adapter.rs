@@ -1093,8 +1093,8 @@ mod tests {
         assert_eq!(bounds.unknown_physical_cells_total, 1);
         assert_eq!(bounds.physical_cells_total, 6);
         assert_eq!(bounds.unknown_physical_cells_by_policy, vec![1, 0]);
-        assert_eq!(bounds.lower_bound.calibration_hard_failure_milli[0][0], 0);
-        assert_eq!(bounds.upper_bound.calibration_hard_failure_milli[0][0], 1_000);
+        assert_eq!(bounds.lower_bound.calibration_hard_failure_milli[1][0], 0);
+        assert_eq!(bounds.upper_bound.calibration_hard_failure_milli[1][0], 1_000);
         assert!(!bounds.certification_allowed);
     }
 
