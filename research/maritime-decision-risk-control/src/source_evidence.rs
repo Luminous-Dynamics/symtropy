@@ -815,12 +815,7 @@ mod tests {
         assert_eq!(historical.revision_id, "r1");
         assert!(
             ledger
-                .latest_valid_at_as_of(
-                    "dgt-firm-berth-plan-2026-11-24",
-                    4_000,
-                    2_000,
-                    2_000
-                )
+                .latest_valid_at_as_of("dgt-firm-berth-plan-2026-11-24", 4_000, 2_000, 2_000)
                 .is_none()
         );
     }
