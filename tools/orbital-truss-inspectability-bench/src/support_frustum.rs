@@ -1,4 +1,8 @@
 use crate::sha256_hex;
+use crate::support::{
+    evaluate_support_envelope, OcclusionStatus, SupportEnvelopeCase, SupportEnvelopeCertificate,
+    SupportStatus,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -82,6 +86,28 @@ pub struct RectilinearFrustumCertificate {
     pub precondition_proofs_verified_independently: bool,
     pub occlusion_status: String,
     pub within_rectilinear_frustum_certified: bool,
+    pub may_count_toward_visibility: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SupportPreconditionStatus {
+    NextGateEligible,
+    Rejected,
+    Indeterminate,
+    InvalidInput,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SupportPreconditionPairCertificate {
+    pub case_id: String,
+    pub status: SupportPreconditionStatus,
+    pub reason_codes: Vec<String>,
+    pub support_envelope: SupportEnvelopeCertificate,
+    pub rectilinear_frustum: RectilinearFrustumCertificate,
+    pub occlusion_assessed: bool,
+    pub photometric_usability_assessed: bool,
+    pub full_support_visibility_certified: bool,
     pub may_count_toward_visibility: bool,
 }
 
@@ -327,6 +353,104 @@ pub fn evaluate_rectilinear_frustum(
     }
 }
 
+fn same3(left: [f64; 3], right: [f64; 3]) -> bool {
+    left.iter()
+        .zip(right)
+        .all(|(a, b)| (*a - b).abs() <= UNIT_EPS)
+}
+
+fn same_scalar(left: f64, right: f64) -> bool {
+    (left - right).abs() <= GEOMETRY_EPS
+}
+
+/// Compose the range/incidence/GSD support-envelope result with the rectangular
+/// camera-frustum result. Identity mismatches are rejected before either result
+/// can be combined. A combined pass only makes the case eligible for later
+/// occlusion, photometric and calibrated-acquisition checks; it never creates
+/// a visibility bit.
+pub fn evaluate_support_precondition_pair(
+    support_case: &SupportEnvelopeCase,
+    frustum_case: &RectilinearFrustumCase,
+) -> Result<SupportPreconditionPairCertificate, String> {
+    let support_sensor = &support_case.sensor;
+    let support = &support_case.support;
+    let frustum_sensor = &frustum_case.camera;
+    let frustum_support = &frustum_case.support;
+
+    let identity_matches = support_case.case_id == frustum_case.case_id
+        && support_case.coordinate_frame_id == frustum_case.coordinate_frame_id
+        && support.support_id == frustum_support.support_id
+        && same3(support.center_m, frustum_support.center_m)
+        && same_scalar(
+            support.enclosing_ball_radius_m,
+            frustum_support.enclosing_ball_radius_m,
+        )
+        && support.enclosing_ball_asserted == frustum_support.enclosing_ball_asserted
+        && support_sensor.sensor_id == frustum_sensor.camera_id
+        && support_sensor.camera_model_id == frustum_sensor.camera_model_id
+        && same3(support_sensor.position_m, frustum_sensor.position_m)
+        && same3(support_sensor.optical_axis_unit, frustum_sensor.optical_axis_unit)
+        && same_scalar(
+            support_sensor.horizontal_fov_rad,
+            frustum_sensor.horizontal_fov_rad,
+        );
+    if !identity_matches {
+        return Err("SUPPORT_FRUSTUM_IDENTITY_MISMATCH".to_owned());
+    }
+
+    let support_envelope = evaluate_support_envelope(support_case);
+    let rectilinear_frustum = evaluate_rectilinear_frustum(frustum_case);
+    let status = match (support_envelope.status, rectilinear_frustum.status) {
+        (SupportStatus::InvalidInput, _) | (_, FrustumStatus::InvalidInput) => {
+            SupportPreconditionStatus::InvalidInput
+        }
+        (SupportStatus::ConditionalOutsideSensingEnvelope, _)
+        | (_, FrustumStatus::Outside) => SupportPreconditionStatus::Rejected,
+        (SupportStatus::Indeterminate, _) | (_, FrustumStatus::Indeterminate) => {
+            SupportPreconditionStatus::Indeterminate
+        }
+        (
+            SupportStatus::ConditionalWithinSensingEnvelope,
+            FrustumStatus::Within,
+        ) => SupportPreconditionStatus::NextGateEligible,
+    };
+
+    let mut reason_codes = Vec::new();
+    match support_envelope.status {
+        SupportStatus::ConditionalWithinSensingEnvelope => {
+            reason_codes.push("SUPPORT_ENVELOPE_CONDITIONAL_PASS".to_owned())
+        }
+        SupportStatus::ConditionalOutsideSensingEnvelope => {
+            reason_codes.push("SUPPORT_ENVELOPE_REJECTED".to_owned())
+        }
+        SupportStatus::Indeterminate => {
+            reason_codes.push("SUPPORT_ENVELOPE_INDETERMINATE".to_owned())
+        }
+        SupportStatus::InvalidInput => reason_codes.push("SUPPORT_ENVELOPE_INVALID".to_owned()),
+    }
+    match rectilinear_frustum.status {
+        FrustumStatus::Within => reason_codes.push("RECTILINEAR_FRUSTUM_PASS".to_owned()),
+        FrustumStatus::Outside => reason_codes.push("RECTILINEAR_FRUSTUM_REJECTED".to_owned()),
+        FrustumStatus::Indeterminate => {
+            reason_codes.push("RECTILINEAR_FRUSTUM_INDETERMINATE".to_owned())
+        }
+        FrustumStatus::InvalidInput => reason_codes.push("RECTILINEAR_FRUSTUM_INVALID".to_owned()),
+    }
+    reason_codes.sort();
+
+    Ok(SupportPreconditionPairCertificate {
+        case_id: support_case.case_id.clone(),
+        status,
+        reason_codes,
+        support_envelope,
+        rectilinear_frustum,
+        occlusion_assessed: false,
+        photometric_usability_assessed: false,
+        full_support_visibility_certified: false,
+        may_count_toward_visibility: false,
+    })
+}
+
 pub fn audit_rectilinear_frustum_corpus(
     bytes: &[u8],
     source_commit: &str,
@@ -380,6 +504,102 @@ mod tests {
     use super::*;
     const FIXTURE: &str =
         include_str!("../../../docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json");
+
+    fn frustum_case_for_support(
+        support_case: &SupportEnvelopeCase,
+        vertical_fov_rad: f64,
+    ) -> RectilinearFrustumCase {
+        let forward = support_case.sensor.optical_axis_unit;
+        let helper = if forward[2].abs() < 0.9 {
+            [0.0, 0.0, 1.0]
+        } else {
+            [0.0, 1.0, 0.0]
+        };
+        let right = normalize(cross(forward, helper)).unwrap();
+        let image_up = normalize(cross(right, forward)).unwrap();
+        RectilinearFrustumCase {
+            case_id: support_case.case_id.clone(),
+            coordinate_frame_id: support_case.coordinate_frame_id.clone(),
+            expected_status: FrustumStatus::Within,
+            support: DirectionalSupport {
+                support_id: support_case.support.support_id.clone(),
+                center_m: support_case.support.center_m,
+                enclosing_ball_radius_m: support_case.support.enclosing_ball_radius_m,
+                enclosing_ball_asserted: support_case.support.enclosing_ball_asserted,
+            },
+            camera: RectilinearCamera {
+                camera_id: support_case.sensor.sensor_id.clone(),
+                camera_model_id: support_case.sensor.camera_model_id.clone(),
+                position_m: support_case.sensor.position_m,
+                optical_axis_unit: forward,
+                image_up_unit: image_up,
+                horizontal_fov_rad: support_case.sensor.horizontal_fov_rad,
+                vertical_fov_rad,
+            },
+        }
+    }
+
+    fn positive_support_case() -> SupportEnvelopeCase {
+        let corpus: crate::support::SupportEnvelopeCorpus = serde_json::from_str(
+            include_str!("../../../docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"),
+        )
+        .unwrap();
+        corpus
+            .cases
+            .into_iter()
+            .find(|case| {
+                evaluate_support_envelope(case).status
+                    == SupportStatus::ConditionalWithinSensingEnvelope
+            })
+            .expect("frozen support corpus has a positive control")
+    }
+
+    #[test]
+    fn composed_preconditions_only_make_a_case_eligible_for_the_next_gate() {
+        let support_case = positive_support_case();
+        let frustum_case = frustum_case_for_support(&support_case, 2.8);
+        let pair =
+            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        assert_eq!(pair.status, SupportPreconditionStatus::NextGateEligible);
+        assert!(!pair.occlusion_assessed);
+        assert!(!pair.photometric_usability_assessed);
+        assert!(!pair.full_support_visibility_certified);
+        assert!(!pair.may_count_toward_visibility);
+    }
+
+    #[test]
+    fn indeterminate_support_envelope_cannot_be_upgraded_by_a_frustum_pass() {
+        let mut support_case = positive_support_case();
+        support_case.support.normal_cone_asserted = false;
+        let frustum_case = frustum_case_for_support(&support_case, 2.8);
+        let pair =
+            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        assert_eq!(pair.rectilinear_frustum.status, FrustumStatus::Within);
+        assert_eq!(pair.status, SupportPreconditionStatus::Indeterminate);
+        assert!(!pair.may_count_toward_visibility);
+    }
+
+    #[test]
+    fn narrow_vertical_fov_prevents_next_gate_eligibility() {
+        let support_case = positive_support_case();
+        let frustum_case = frustum_case_for_support(&support_case, 0.001);
+        let pair =
+            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        assert_ne!(pair.rectilinear_frustum.status, FrustumStatus::Within);
+        assert_ne!(pair.status, SupportPreconditionStatus::NextGateEligible);
+        assert!(!pair.may_count_toward_visibility);
+    }
+
+    #[test]
+    fn mismatched_support_camera_or_frame_identity_is_rejected() {
+        let support_case = positive_support_case();
+        let mut frustum_case = frustum_case_for_support(&support_case, 2.8);
+        frustum_case.camera.position_m[0] += 0.01;
+        assert_eq!(
+            evaluate_support_precondition_pair(&support_case, &frustum_case),
+            Err("SUPPORT_FRUSTUM_IDENTITY_MISMATCH".to_owned())
+        );
+    }
 
     #[test]
     fn frozen_corpus_matches_all_expected_outcomes() {
