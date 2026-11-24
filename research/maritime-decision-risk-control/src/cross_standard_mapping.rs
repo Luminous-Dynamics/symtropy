@@ -20,8 +20,7 @@ use std::fmt::Write as FmtWrite;
 
 const DCSA_TT_VERSION: &str = "DCSA-TT-2.2";
 const EPCIS_VERSION: &str = "GS1-EPCIS-2.0.0";
-const FIXTURE_DIGEST: &str =
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const FIXTURE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MappingKind {
@@ -80,9 +79,7 @@ impl CrosswalkError {
             Self::MissingLossinessReason => "LOSSINESS_REASON_MISSING",
             Self::ExactMappingMustBeReversible => "EXACT_MAPPING_NOT_REVERSIBLE",
             Self::NonExactMappingMustBeIrreversible => "NONEXACT_MAPPING_CLAIMS_REVERSIBILITY",
-            Self::DscaClassifierCannotMapToBusinessStep => {
-                "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP"
-            }
+            Self::DscaClassifierCannotMapToBusinessStep => "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP",
             Self::DscaClassifierCannotMapToDisposition => {
                 "DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION"
             }
@@ -160,11 +157,7 @@ impl MappingRule {
                 return Err(CrosswalkError::NonExactMappingMustBeIrreversible);
             }
             (MappingKind::Contextual | MappingKind::Lossy, MappingReversibility::Irreversible) => {
-                if self
-                    .lossiness_reason
-                    .as_deref()
-                    .is_none_or(str::is_empty)
-                {
+                if self.lossiness_reason.as_deref().is_none_or(str::is_empty) {
                     return Err(CrosswalkError::MissingLossinessReason);
                 }
             }
@@ -408,6 +401,15 @@ pub fn render_csv() -> String {
                 case.reversibility,
                 Some("source-specific subreason omitted by target vocabulary"),
             ),
+            "lossy_mapping_with_explicit_reason" => rule(
+                "eventTypeCode",
+                "LOAD",
+                case.target_field,
+                "urn:epcglobal:cbv:bizstep:loading",
+                case.kind,
+                case.reversibility,
+                Some("source-specific subreason omitted by target vocabulary"),
+            ),
             "lossy_mapping_without_reason_rejected" => rule(
                 "eventTypeCode",
                 "LOAD",
@@ -429,9 +431,13 @@ pub fn render_csv() -> String {
         };
         match case.id {
             "source_version_drift_rejected" => source.standard_version = "DCSA-TT-2.1".to_owned(),
-            "source_payload_digest_invalid" => source.raw_payload_sha256 = "not-a-digest".to_owned(),
+            "source_payload_digest_invalid" => {
+                source.raw_payload_sha256 = "not-a-digest".to_owned()
+            }
             "source_value_mismatch_rejected" => {
-                source.fields.insert("eventClassifierCode".to_owned(), "PLN".to_owned());
+                source
+                    .fields
+                    .insert("eventClassifierCode".to_owned(), "PLN".to_owned());
             }
             _ => {}
         }
@@ -449,12 +455,7 @@ pub fn render_csv() -> String {
         let _ = writeln!(
             output,
             "{},{},{},{},{},{},SYNTHETIC_ONLY",
-            case.id,
-            case.expected,
-            observed,
-            case.target_field,
-            preserved,
-            reversibility
+            case.id, case.expected, observed, case.target_field, preserved, reversibility
         );
     }
     output
