@@ -1,7 +1,6 @@
 {
   "corpus_id": "aero-evidence-binding-adversarial-v0.2",
   "synthetic_only": true,
-  "oracle_authored_independently_of_evaluator": true,
   "claim_ceiling": "synthetic_binding_contract_only",
   "cases": [
     {
@@ -274,5 +273,7 @@
         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
       ]
     }
-  ]
+  ],
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "expected_dispositions_frozen_separately_from_evaluator": true
 }
