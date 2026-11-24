@@ -343,9 +343,7 @@ impl SourceArtifactLedger {
                 }
             }
             Some(previous) => {
-                if artifact.supersedes_revision.as_deref()
-                    != Some(previous.revision_id.as_str())
-                {
+                if artifact.supersedes_revision.as_deref() != Some(previous.revision_id.as_str()) {
                     return Err(SourceArtifactError::SupersedesLatestRevisionMismatch {
                         expected: previous.revision_id.clone(),
                         found: artifact.supersedes_revision,
