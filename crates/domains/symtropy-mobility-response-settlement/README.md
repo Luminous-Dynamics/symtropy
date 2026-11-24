@@ -41,7 +41,8 @@ The four-report fixture represents a 10 kW two-second instruction with two subse
 | Signed dispatch-tracking delivery | 0.0055556 kWh |
 | PCC point net after rebound | 0.0054167 kWh |
 | Counterfactual net after recovery | 0.0053056 kWh |
-| Conservative technical lower bound | 0.0051944 kWh |
+| Conservative technical lower bound, event + recovery | 0.0051944 kWh |
+| Minimum dispatch-period service-power lower bound | 9.8 kW |
 | Lower bound is a joint event probability | false |
 | Source artifact signatures verified by this bridge | false |
 | Market / settlement / payment / dispatch authority | all false |
