@@ -282,7 +282,8 @@ Each complete scheduling episode declares its unique episode ID, unique dependen
 ### Fail-closed rules
 
 - A denied or unknown authority disposition rejects the dataset. `NotRequired` is reserved for a policy that made no mutating action; the adapter does not infer consent.
-- An unknown physical outcome rejects the dataset. It is never converted to a zero loss or silently dropped.
+- The strict calibration adapter rejects an unknown physical outcome. It is never converted to a zero loss or silently dropped.
+- A separate `compile_partially_identified_outcomes` diagnostic can represent unknown physical cells as [0, B] with lower (Unknown → Feasible) and upper (Unknown → Infeasible) matrices, plus per-policy unknown counts. It is explicitly marked `certification_allowed=false` and cannot be treated as CRC input or a calibrated risk result. MNAR, dependence and source missingness remain unresolved.
 - Physical `Infeasible` becomes hard-failure loss 1,000; `Feasible` becomes 0. Service loss remains its own value in [0, 1,000]. They are not added or averaged.
 - A reused dependence-cluster ID across any episodes or split roles is rejected. Clustered operations must first be aggregated into one complete schedule-level sampling unit or handled under a separate dependence-aware method.
 - A missing/extra policy candidate, policy revision drift, evaluator revision drift, loss-contract drift, mixed operating regimes, duplicate episode IDs, malformed receipt digest, or out-of-range loss rejects the whole dataset.
@@ -293,7 +294,7 @@ The adapter does **not** prove that the oracle is independent, that the evidence
 
 The root `crate::LossMatrix` and finite-grid CRC-NM grid can consume the emitted matrices independently for each loss axis. Known-weight shift selection is deliberately not wired to this adapter: a real bounded likelihood ratio must be independently justified, not inferred from these receipts.
 
-The adapter has 18 unit tests for separate axes, deterministic permutation invariance, exact frozen policy-order preservation, authority/action-class binding, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
+The adapter has 21 unit tests for separate axes, deterministic permutation invariance, exact frozen policy-order preservation, authority/action-class binding, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
 
 ## Important release preconditions
 
@@ -306,7 +307,7 @@ The future #7231 integration must establish all of the following before interpre
 - A maximum-parameter policy with loss at most `α` exists **by construction**. A fail-closed abstention is not automatically a low-service-loss policy; if abstention counts as failure, its loss must be included.
 - Hard authority/consent checks remain deterministic gates. A statistical risk budget cannot authorize an action.
 - The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions. Its outcome receipts are consumed through `oracle_adapter.rs`; the adapter does not reimplement those constraints. The adapter preserves the pre-frozen policy parameter order rather than sorting by ID, and requires `Mutating` actions to have `Authorized` disposition while `NoMutation` may use `NotRequired`.
-- Missing, censored, and outcome-dependent observations are separately identified; hidden outcomes never enter the deployed-style calibrator.
+- Missing, censored, and outcome-dependent observations are separately identified; hidden outcomes never enter the deployed-style calibrator. Partial-identification lower/upper matrices are diagnostics only and do not restore a CRC guarantee under MNAR or dependent missingness.
 
 The maximum-parameter assumption is especially strong. If the exact evaluator cannot establish a safe fallback within the declared scope, the correct result is **NO_MAX_PARAMETER_CONTRACT**, not an extrapolated certificate.
 
