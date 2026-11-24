@@ -101,7 +101,10 @@
     "sealed_test_clusters": true,
     "calibration_test_disjoint": true,
     "calibration_disjoint_from_prior_observed_and_calibration_clusters": true,
-    "same_certificate_can_self_restore": false
+    "same_certificate_can_self_restore": false,
+    "sealed_test_cohort_bound_by_certificate": true,
+    "receipt_must_exactly_match_certificate_sealed_test_ids": true,
+    "prior_sealed_test_clusters_are_non_reusable": true
   },
   "benchmarks": {
     "whole_field_coverage_target": "95_percent_nominal_with_cluster_level_confidence_intervals",
@@ -146,7 +149,7 @@
     "piv_roadmap": "https://doi.org/10.1088/1361-6501/ad774b",
     "holodrops": "https://doi.org/10.5194/amt-19-6973-2026"
   },
-  "v0_tests_authored": 15,
+  "v0_tests_authored": 16,
   "required_production_adapter_controls": [
     "persist_and_restore_append_only_evidence_ledger",
     "authenticate_source_and_custody_receipts",
