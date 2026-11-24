@@ -202,6 +202,7 @@ pub fn calibrate(
         .iter()
         .map(|row| u64::from(row[last]))
         .sum::<u64>();
+    let mut found_feasible = false;
     let n_u64 = n as u64;
 
     for parameter_index in 0..m {
@@ -218,6 +219,7 @@ pub fn calibrate(
         if lhs <= rhs {
             selected = parameter_index;
             selected_sum = loss_sum;
+            found_feasible = true;
             break;
         }
     }
@@ -347,7 +349,6 @@ pub fn calibrate_bernstein(
         .iter()
         .map(|row| u64::from(row[m - 1]))
         .sum::<u64>();
-    let mut found_feasible = false;
     let n_u64 = n as u64;
 
     for parameter_index in 0..m {
@@ -361,7 +362,6 @@ pub fn calibrate_bernstein(
         if lhs <= rhs {
             selected = parameter_index;
             selected_sum = loss_sum;
-            found_feasible = true;
             break;
         }
     }
