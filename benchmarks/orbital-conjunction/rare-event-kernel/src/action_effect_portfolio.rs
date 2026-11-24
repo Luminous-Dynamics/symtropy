@@ -394,7 +394,10 @@ mod tests {
                 event(13, 32, (1, 2_000_000), (2, 2_000_000)),
             ],
         );
-        assert_eq!(report.disposition, ActionPortfolioDisposition::PostActionBelowThreshold);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::PostActionBelowThreshold
+        );
         assert_eq!(report.absent_after_action_event_ids, vec![[12; 32]]);
         assert_eq!(report.definitely_reduced_event_ids, vec![[10; 32]]);
         assert_eq!(report.definitely_elevated_event_ids, vec![[11; 32]]);
@@ -411,7 +414,10 @@ mod tests {
                 event(11, 31, (2, 10_000), (3, 10_000)),
             ],
         );
-        assert_eq!(report.disposition, ActionPortfolioDisposition::ThresholdExceeded);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::ThresholdExceeded
+        );
         assert_eq!(report.new_event_ids, vec![[11; 32]]);
         assert_eq!(report.threshold_exceeded_event_ids, vec![[11; 32]]);
     }
@@ -419,20 +425,29 @@ mod tests {
     #[test]
     fn probability_interval_touching_threshold_is_indeterminate() {
         let report = reconcile(vec![], vec![event(10, 20, (9, 100_000), (1, 10_000))]);
-        assert_eq!(report.disposition, ActionPortfolioDisposition::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::Indeterminate
+        );
         assert_eq!(report.threshold_ambiguous_event_ids, vec![[10; 32]]);
     }
 
     #[test]
     fn post_event_wholly_above_threshold_is_reported_as_exceeded() {
         let report = reconcile(vec![], vec![event(10, 20, (2, 10_000), (3, 10_000))]);
-        assert_eq!(report.disposition, ActionPortfolioDisposition::ThresholdExceeded);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::ThresholdExceeded
+        );
     }
 
     #[test]
     fn fully_screened_empty_post_action_inventory_is_below_threshold() {
         let report = reconcile(vec![event(10, 20, (1, 10_000), (2, 10_000))], vec![]);
-        assert_eq!(report.disposition, ActionPortfolioDisposition::PostActionBelowThreshold);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::PostActionBelowThreshold
+        );
         assert_eq!(report.absent_after_action_event_ids, vec![[10; 32]]);
     }
 
@@ -441,17 +456,27 @@ mod tests {
         let before = snapshot(BEFORE, BEFORE_CATALOG, BEFORE_EPHEMERIS, vec![]);
         let mut after = snapshot(AFTER, AFTER_CATALOG, AFTER_EPHEMERIS, vec![]);
         after.full_catalog_screened = false;
-        let report = reconcile_action_effects(&before, &after, receipt(), rational(1, 10_000))
-            .unwrap();
-        assert_eq!(report.disposition, ActionPortfolioDisposition::IncompleteEvidence);
+        let report =
+            reconcile_action_effects(&before, &after, receipt(), rational(1, 10_000)).unwrap();
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::IncompleteEvidence
+        );
 
         let mut incomplete_before = before.clone();
         incomplete_before.inventory_complete = false;
         let complete_after = snapshot(AFTER, AFTER_CATALOG, AFTER_EPHEMERIS, vec![]);
-        let report =
-            reconcile_action_effects(&incomplete_before, &complete_after, receipt(), rational(1, 10_000))
-                .unwrap();
-        assert_eq!(report.disposition, ActionPortfolioDisposition::IncompleteEvidence);
+        let report = reconcile_action_effects(
+            &incomplete_before,
+            &complete_after,
+            receipt(),
+            rational(1, 10_000),
+        )
+        .unwrap();
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::IncompleteEvidence
+        );
     }
 
     #[test]
@@ -462,7 +487,10 @@ mod tests {
         action_receipt.secondary_maneuverable = true;
         let report =
             reconcile_action_effects(&before, &after, action_receipt, rational(1, 10_000)).unwrap();
-        assert_eq!(report.disposition, ActionPortfolioDisposition::IncompleteEvidence);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::IncompleteEvidence
+        );
     }
 
     #[test]
@@ -474,7 +502,10 @@ mod tests {
         action_receipt.coordination_digest = Some(COORDINATION);
         let report =
             reconcile_action_effects(&before, &after, action_receipt, rational(1, 10_000)).unwrap();
-        assert_eq!(report.disposition, ActionPortfolioDisposition::PostActionBelowThreshold);
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::PostActionBelowThreshold
+        );
     }
 
     #[test]
