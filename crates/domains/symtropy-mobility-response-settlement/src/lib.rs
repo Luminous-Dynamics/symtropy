@@ -50,6 +50,7 @@ pub struct MobilityResponseSettlementInput {
     pub benchmark_id: String,
     pub event_id: String,
     pub offer_id: String,
+    pub commitment_epoch_id: String,
     pub service_product_id: String,
     pub measurement_boundary_id: String,
     pub baseline_model_id: String,
@@ -98,6 +99,7 @@ pub struct MobilityResponseSettlementReport {
     pub input_digest: String,
     pub event_id: String,
     pub offer_id: String,
+    pub commitment_epoch_id: String,
     pub service_product_id: String,
     pub site_id: String,
     pub pcc_id: String,
@@ -152,6 +154,7 @@ pub enum BridgeError {
     IntervalMismatch(String),
     DuplicateEvidence(String),
     Arithmetic(String),
+    EnergyMismatch(String),
 }
 
 impl core::fmt::Display for BridgeError {
@@ -165,7 +168,8 @@ impl core::fmt::Display for BridgeError {
             | Self::TimeBoundaryMismatch(message)
             | Self::IntervalMismatch(message)
             | Self::DuplicateEvidence(message)
-            | Self::Arithmetic(message) => f.write_str(message),
+            | Self::Arithmetic(message)
+            | Self::EnergyMismatch(message) => f.write_str(message),
         }
     }
 }
@@ -282,6 +286,7 @@ fn validate_input(input: &MobilityResponseSettlementInput) -> Result<Vec<SourceA
     for (field, candidate) in [
         ("event_id", input.event_id.as_str()),
         ("offer_id", input.offer_id.as_str()),
+        ("commitment_epoch_id", input.commitment_epoch_id.as_str()),
         ("service_product_id", input.service_product_id.as_str()),
         ("measurement_boundary_id", input.measurement_boundary_id.as_str()),
         ("baseline_model_id", input.baseline_model_id.as_str()),
@@ -455,6 +460,12 @@ fn validate_report_identities(
         "counterfactual baseline model",
     )?;
 
+    check_identity(string(network, "/offer_id")?, &input.offer_id, "network adapter offer")?;
+    check_identity(
+        string(network, "/commitment_epoch_id")?,
+        &input.commitment_epoch_id,
+        "network adapter commitment epoch",
+    )?;
     check_identity(string(network, "/site_id")?, &input.site_id, "network adapter site")?;
     check_identity(string(network, "/pcc_id")?, &input.pcc_id, "network adapter PCC")?;
     check_identity(
@@ -583,6 +594,24 @@ fn validate_timelines(
             "baseline/PCC interval duration",
         )?;
         let phase = string(baseline_interval, "/phase")?;
+        if !boolean(pcc_interval, "/interval_qualified")?
+            || !boolean(baseline_interval, "/interval_qualified")?
+        {
+            return Err(BridgeError::IntervalMismatch(format!(
+                "PCC/baseline interval {index} is not qualified"
+            )));
+        }
+        let baseline_id = string(pcc_interval, "/baseline_evidence_id")?;
+        let candidate_id = string(pcc_interval, "/candidate_evidence_id")?;
+        let baseline_event_id = string(baseline_interval, "/evidence_id")?;
+        if !evidence_ids.insert(baseline_id)
+            || !evidence_ids.insert(candidate_id.clone())
+            || candidate_id != baseline_event_id
+        {
+            return Err(BridgeError::DuplicateEvidence(format!(
+                "PCC/baseline evidence IDs are reused or inconsistent at interval {index}"
+            )));
+        }
         match phase.as_str() {
             "dispatch" => dispatch_count += 1,
             "recovery" => recovery_count += 1,
@@ -647,11 +676,6 @@ fn validate_timelines(
 
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
-        if !evidence_ids.insert(baseline_id.clone()) || !evidence_ids.insert(response_id.clone()) {
-            return Err(BridgeError::DuplicateEvidence(
-                "grid-response sample reused an evidence reference".to_owned(),
-            ));
-        }
         check_identity(
             string(pcc_intervals.get(index).unwrap(), "/baseline_evidence_id")?,
             &baseline_id,
@@ -714,20 +738,30 @@ fn evaluate_component_flags(
                 .to_owned(),
         ));
     }
+    let required_gates: BTreeSet<&str> = [
+        "mobility_flexibility",
+        "reserve_recovery",
+        "commitment_lease",
+        "commitment_journal",
+        "pcc_metrology",
+    ]
+    .into_iter()
+    .collect();
     let mut gate_names = BTreeSet::new();
     for receipt in upstream {
         if string(receipt, "/disposition")? != "passed" {
             return Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, false, false));
         }
-        if !gate_names.insert(string(receipt, "/gate")?) {
+        let gate = string(receipt, "/gate")?;
+        if !gate_names.insert(gate) {
             return Err(BridgeError::DuplicateEvidence(
                 "network adapter contains duplicate upstream gate kinds".to_owned(),
             ));
         }
     }
-    if gate_names.len() != 5 {
+    if gate_names != required_gates {
         return Err(BridgeError::InvalidField(
-            "network adapter upstream gate set is incomplete".to_owned(),
+            "network adapter upstream gate set is not the exact five-gate contract".to_owned(),
         ));
     }
     Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, network_passed, n1_passed))
@@ -934,6 +968,7 @@ fn build_report(
         input_digest: canonical_input_digest(input).unwrap_or_else(|_| "sha256:invalid".to_owned()),
         event_id: input.event_id.clone(),
         offer_id: input.offer_id.clone(),
+        commitment_epoch_id: input.commitment_epoch_id.clone(),
         service_product_id: input.service_product_id.clone(),
         site_id: input.site_id.clone(),
         pcc_id: input.pcc_id.clone(),
@@ -1274,6 +1309,7 @@ mod tests {
             benchmark_id: BENCHMARK_ID.to_owned(),
             event_id: "event-001".to_owned(),
             offer_id: "mobility-offer-001".to_owned(),
+            commitment_epoch_id: "commitment-epoch-007".to_owned(),
             service_product_id: "regulating-reserve".to_owned(),
             measurement_boundary_id: "site-pcc-import".to_owned(),
             baseline_model_id: "baseline-model-v1".to_owned(),
