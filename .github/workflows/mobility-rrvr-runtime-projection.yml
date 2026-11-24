@@ -69,10 +69,12 @@ jobs:
           RECOVERY_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
           JOURNAL_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_entry_v0_1.schema.json"
           JOURNAL_RECOVERY_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_recovery_v0_1.schema.json"
+          JOURNAL_BENCH_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_benchmark_report_v0_1.schema.json"
           JOURNAL_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/durable_journal_known_answer_v0_1.jsonl"
           jq empty "$SCHEMA"
           jq empty "$JOURNAL_SCHEMA"
           jq empty "$JOURNAL_RECOVERY_SCHEMA"
+          jq empty "$JOURNAL_BENCH_SCHEMA"
           jq -e '
             .schema_version == "0.1"
             and .canonicalization == "serde-json-value-sorted-keys-v0.1"
