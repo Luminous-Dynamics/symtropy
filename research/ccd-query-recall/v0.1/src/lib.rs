@@ -774,8 +774,11 @@ mod tests {
         assert_eq!(counts.candidate_false_negatives, 1);
         assert_eq!(counts.candidate_recall_basis_points(), Some(5_000));
         assert_eq!(counts.narrowphase_true_positives, 1);
-        assert_eq!(counts.narrowphase_false_negatives, 1);
-        assert_eq!(counts.narrowphase_recall_basis_points(), Some(5_000));
+        assert_eq!(counts.narrowphase_eligible_positive_queries, 1);
+        assert_eq!(counts.narrowphase_false_negatives, 0);
+        assert_eq!(counts.narrowphase_recall_basis_points(), Some(10_000));
+        assert_eq!(counts.end_to_end_recall_basis_points(), Some(5_000));
+        assert_eq!(counts.end_to_end_false_negatives(), 1);
         assert_eq!(counts.certified_pruned_oracle_negatives, 1);
         assert_eq!(counts.accepted_replayed_prune_certificates, 2);
         assert!(!counts.correctness_qualified());
@@ -794,8 +797,11 @@ mod tests {
 
         assert_eq!(score.counts.candidate_false_negatives, 0);
         assert_eq!(score.counts.candidate_recall_basis_points(), Some(10_000));
+        assert_eq!(score.counts.narrowphase_eligible_positive_queries, 1);
         assert_eq!(score.counts.narrowphase_false_negatives, 1);
         assert_eq!(score.counts.narrowphase_recall_basis_points(), Some(0));
+        assert_eq!(score.counts.end_to_end_recall_basis_points(), Some(0));
+        assert_eq!(score.counts.end_to_end_false_negatives(), 1);
         assert!(!score.counts.correctness_qualified());
     }
 
