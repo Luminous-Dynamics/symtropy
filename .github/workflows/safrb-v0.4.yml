@@ -6,12 +6,10 @@ on:
       - research/safrb-v0.4-scenario-tournament
     paths:
       - "benchmarks/fuel-resilience/south-africa/v0.4/**"
-      - "benchmarks/fuel-resilience/south-africa/README.md"
       - ".github/workflows/safrb-v0.4.yml"
   pull_request:
     paths:
       - "benchmarks/fuel-resilience/south-africa/v0.4/**"
-      - "benchmarks/fuel-resilience/south-africa/README.md"
       - ".github/workflows/safrb-v0.4.yml"
   workflow_dispatch:
 
