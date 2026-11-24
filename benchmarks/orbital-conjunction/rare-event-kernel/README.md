@@ -2,10 +2,11 @@
 
 An isolated, dependency-light Rust package for mathematical primitives used by the orbital conjunction rare-event assurance programme.
 
-This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, candidate event-mode discovery, proposal fitting, confidence sequences for importance-sampling weights, or flight operations. It includes only a Bernoulli-specific time-uniform confidence sequence.
+This crate is a research kernel, not an operational collision-probability product. It deliberately does not implement orbit propagation, random sampling, candidate event-mode discovery, proposal fitting, flight operations. It includes a Bernoulli-specific sequence and a bounded-mean betting sequence for predictable adaptive importance-sampling contributions.
 
 ## Current primitives
 
+- A fixed-stake bounded-mean betting confidence sequence for conditionally-mean-stationary observations, plus an adaptive defensive-importance-sampling adapter that binds event/measure/proposal/sample identities and checks observed normalized weights.
 - Exact-rational three-way action-threshold classification for already-qualified risk intervals, with explicit inclusive/strict boundary semantics and abstention when the interval overlaps the threshold.
 - Decision-gated refinement planning that proposes scheduler work only for indeterminate assessments and preserves unresolved candidate identities when budget or selectable work is unavailable.
 - Strict positive-definite covariance validation using a Cholesky factor.
@@ -50,8 +51,8 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains **249 authored `#[test]` cases**:
-30 in `lib.rs`, 9 in `decision_gate.rs`, 7 in `decision_refinement.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `refinement_scheduler.rs`.
+The current authored test corpus contains **261 authored `#[test]` cases**:
+30 in `lib.rs`, 12 in `adaptive_importance_sampling.rs`, 9 in `decision_gate.rs`, 7 in `decision_refinement.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `refinement_scheduler.rs`.
 
 The package also includes:
 - A deterministic NASA-style sampled Ncdot refinement controller for boundary extension, top-four sampled peaks, zero-rate MD2 fallback, dominant trapezoid contributions and significant-rate spacing. It does not certify between-sample peak completeness.
@@ -74,7 +75,7 @@ The package also includes:
 - The polynomial trajectory classifier accepts coefficient intervals supplied by the caller. It does not construct or validate a Taylor remainder, establish the coefficient enclosures, solve nonlinear dynamics, or formally machine-verify its interval arithmetic. It is a fail-closed local component; ambiguous cases require high-fidelity evaluation.
 - The Gaussian cell-mass bound is intentionally loose and the cube-tail bound uses a Chernoff polynomial lower bound. The traversal is preliminary numerical conservative bookkeeping, not a formally machine-verified certificate or a proof of the physical model.
 - The cell splitter uses a deterministic longest-axis rule. Shared closed faces are covered by both children; they have zero measure only for a nondegenerate continuous Gaussian and still remain relevant to geometric tangency tests.
-- The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage.
+- The weighted indicator primitive does not construct confidence intervals or establish finite-sample coverage. The adaptive importance-sampling module uses fixed-stake bounded-mean test supermartingales and running-max inversion; its statistical guarantee requires a predictable proposal, a fixed target/event, the complete defensive-mixture density, and conditional-mean stationarity. The adapter checks observed weight bounds and evidence identities but cannot prove the sampler generated draws from the declared q_t or prove global mixture domination. Its f64 implementation is not a formally verified outward-rounded arithmetic kernel. It is not the empirical-Bernstein or Bayes-assisted confidence-sequence method used in current PLANS 2027 research.
 - The Lebedev module includes the NASA CARA 5,810-point, degree-131 sphere rule and low-order 6/14/26 rules. It does not reproduce the 3D-Nc collision-rate integrand, PeakOverlapPos solver or adaptive temporal integration. Significant-node diagnostics and successive-rule differences are indicators, not formal quadrature error bounds; compare multiple orders and establish convergence separately.
 - The proposal density must be the complete mixture density, including all defensive components.
 - The space-time partition prototype is limited to a synthetic two-hemisphere surface split and caller-supplied constant rational integrand enclosures. It verifies partition completeness and contribution accounting only; it does not construct arbitrary sphere patches, enclose the physical Ncdot integrand, propagate trajectory/covariance intervals, or provide outward floating-point arithmetic or a qualified Nc bound.
