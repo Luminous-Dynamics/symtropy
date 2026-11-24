@@ -763,8 +763,7 @@ pub fn render_csv() -> String {
                     AdmissionDecision::Blocked(reason) => reason.label(),
                 };
                 assert_eq!(
-                    observed,
-                    case.expected,
+                    observed, case.expected,
                     "source-claim benchmark case {}",
                     case.id
                 );
