@@ -52,7 +52,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         },
         {
           "scope_id": "camera-to-robot",
@@ -72,7 +73,8 @@
           "last_check_time_ns": null,
           "max_check_age_ns": null,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": null
+          "check_receipt_sha256": null,
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -125,7 +127,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -178,7 +181,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -231,7 +235,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -284,7 +289,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -337,7 +343,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -390,7 +397,8 @@
           "last_check_time_ns": 300,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -443,7 +451,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [
@@ -507,7 +516,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [
@@ -572,7 +582,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         },
         {
           "scope_id": "camera-to-robot",
@@ -592,7 +603,8 @@
           "last_check_time_ns": null,
           "max_check_age_ns": null,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": null
+          "check_receipt_sha256": null,
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -644,7 +656,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [],
@@ -697,7 +710,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [
@@ -761,7 +775,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [
@@ -825,7 +840,8 @@
           "last_check_time_ns": 450,
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
         }
       ],
       "events": [
@@ -838,6 +854,136 @@
           ],
           "impact": "UNKNOWN_IMPACT",
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "CAL-015-EVENT-BEFORE-CALIBRATION-EPOCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PRE-EPOCH",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_time_ns": 80,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-016-EVENT-OVERLAPS-CALIBRATION-EPOCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PRE-EPOCH",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_time_ns": 100,
+          "time_uncertainty_ns": 2,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
         }
       ],
       "expected_status": "INDETERMINATE"
