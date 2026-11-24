@@ -271,13 +271,16 @@ jobs:
           jq -e '
             .validation == "passed"
             and .read_only == true
-            and .summary.entry_count == 1
-            and .summary.head_sha256 == "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
-            and .summary.reset_intent_count == 1
-            and .summary.reset_verified_count == 0
-            and .summary.dispatch_intent_count == 0
-            and .summary.authority_created == false
-            and .summary.transport_calls_performed == false
+            and .recovery_projection.entry_count == 1
+            and .recovery_projection.head_sha256 == "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
+            and (.recovery_projection.resets | length == 1)
+            and .recovery_projection.resets[0].disposition == "intent_only"
+            and .recovery_projection.resets[0].intent.reset_id == "reset-vector-1"
+            and .recovery_projection.dispatches == []
+            and .recovery_projection.reset_reconciliation_required == ["reset-vector-1"]
+            and .recovery_projection.dispatch_ledger_reconciliation_required == []
+            and .recovery_projection.authority_created == false
+            and .recovery_projection.mutation_permitted == false
             and .transport_calls_performed == false
             and .native_authority_created == false
             and .physical_safety_established == false
