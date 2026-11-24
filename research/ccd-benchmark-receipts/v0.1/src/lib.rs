@@ -460,7 +460,7 @@ mod tests {
     fn rejects_certified_prunes_without_accepted_and_replayed_certificates() {
         let mut receipt = valid_receipt();
         receipt.pairs.accepted_certificates = 59;
-        receipt.pairs.replayed_certificates = 59;
+        receipt.pairs.replayed_certificates = 58;
         let errors = receipt.validate().unwrap_err();
         assert!(errors.contains(&ReceiptError::MissingPruneCertificates));
         assert!(errors.contains(&ReceiptError::CertificateReplayMismatch));
@@ -543,6 +543,7 @@ mod tests {
         );
         receipt = valid_receipt();
         receipt.timing.solver.p95_ns = receipt.timing.total_step.p95_ns + 1;
+        receipt.timing.solver.p99_ns = receipt.timing.solver.p95_ns + 500_000;
         assert!(
             receipt
                 .validate()
