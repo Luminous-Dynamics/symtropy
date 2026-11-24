@@ -136,6 +136,7 @@
               "intent_only",
               "response_accepted_awaiting_observation",
               "response_unknown_read_only_reconciliation_required",
+              "response_rejected_read_only_reconciliation_required",
               "unresolved_read_only_reconciliation_required",
               "verified",
               "rejected_hold"
@@ -314,6 +315,7 @@
             "enum": [
               "intent_only_ledger_lookup_required",
               "response_unknown_ledger_lookup_required",
+              "response_rejected_ledger_lookup_required",
               "unresolved_ledger_lookup_required",
               "accepted_awaiting_execution_evidence",
               "reconciled_accepted_awaiting_execution_evidence",
