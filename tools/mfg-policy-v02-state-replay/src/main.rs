@@ -1285,7 +1285,16 @@ fn apply_start_action(
             Some(transition_id),
         ));
     }
-    if resource.capacity_units_total == 0 || resource.capacity_units_remaining == 0 {
+    if action_kind == "START" && resource.active_operation_id.is_some() {
+        return Err(violation(
+            "resource_already_has_active_operation",
+            Some(epoch),
+            Some(transition_id),
+        ));
+    }
+    if resource.capacity_units_total == 0
+        || (action_kind == "START" && resource.capacity_units_remaining == 0)
+    {
         return Err(violation(
             "resource_capacity_exhausted",
             Some(epoch),
@@ -1307,13 +1316,6 @@ fn apply_start_action(
             if operation.status != "WAITING" || operation.committed_resource_id.is_some() {
                 return Err(violation(
                     "start_requires_uncommitted_waiting_operation",
-                    Some(epoch),
-                    Some(transition_id),
-                ));
-            }
-            if resource.active_operation_id.is_some() {
-                return Err(violation(
-                    "resource_already_has_active_operation",
                     Some(epoch),
                     Some(transition_id),
                 ));
@@ -2381,7 +2383,7 @@ mod tests {
                     {"transition_id": "TICK-OP3-E2", "kind": "PROCESS_TICKS", "operation_id": "OP-3", "resource_id": "RESOURCE-A", "processed_ticks": 1},
                     {"transition_id": "INSPECT-OP3-E2", "kind": "INSPECTION_RESULT", "operation_id": "OP-3", "method_id": "DIMENSIONAL", "disposition": "ACCEPTED"}
                 ]
-            })
+            }),
         ])
     }
 
@@ -2445,7 +2447,7 @@ mod tests {
                 start_transition("DUPLICATE-START", 0, "OP-2", "START", None, 2, 1),
             );
         let error = replay_ledger(&value).unwrap_err();
-        assert_eq!(error.code, "start_requires_uncommitted_waiting_operation");
+        assert_eq!(error.code, "resource_already_has_active_operation");
     }
 
     #[test]
