@@ -757,6 +757,7 @@ mod tests {
         ]);
         let report = compute_parameter_set(&problem, config()).expect("signed channels");
         assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
+        assert!(report.intervals.iter().all(|interval| interval.axis_was_excited));
         close(report.intervals[0].beta_lower.unwrap(), 0.25, 1.0e-8);
         close(report.intervals[1].beta_lower.unwrap(), 4.0, 1.0e-8);
         close(report.intervals[2].beta_lower.unwrap(), 16.0, 1.0e-8);
