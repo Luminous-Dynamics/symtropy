@@ -21,7 +21,7 @@
     "network_model_id": "triangle-model-v1",
     "network_model_digest": "sha256:85868893e0f07ad7da759733903a12036431a915d0bbf6b91650e62bfc535d24",
     "topology_id": "topology-2026-11-24",
-    "topology_digest": "sha256:9a5299af2925f96fd2598ce0fe3d4f522293b3e5f338ae9919c513b980489472",
+    "topology_digest": "sha256:0ed2885d0ca49f6dde1a672a2c6fbd7a477b2feaecbc3ed37abc556d0f3f595d",
     "topology_effective_at_ns": 0,
     "base_mva": 100,
     "buses": [
@@ -98,7 +98,7 @@
       "valid_from_unix_ms": 0,
       "valid_until_unix_ms": 4000000,
       "network_model_digest": "sha256:85868893e0f07ad7da759733903a12036431a915d0bbf6b91650e62bfc535d24",
-      "topology_digest": "sha256:9a5299af2925f96fd2598ce0fe3d4f522293b3e5f338ae9919c513b980489472",
+      "topology_digest": "sha256:0ed2885d0ca49f6dde1a672a2c6fbd7a477b2feaecbc3ed37abc556d0f3f595d",
       "baseline_trace_digest": null,
       "flexible_trace_digest": null,
       "pcc_bus_id": "B",
