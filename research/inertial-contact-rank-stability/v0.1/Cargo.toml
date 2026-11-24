@@ -1,0 +1,16 @@
+[package]
+name = "inertial-contact-rank-stability"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Perturbation-aware singular-value rank stability for whitened contact Jacobians"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "rank_stability_tournament"
+path = "examples/rank_stability_tournament.rs"
+
+[workspace]
