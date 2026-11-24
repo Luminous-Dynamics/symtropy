@@ -73,8 +73,7 @@ impl Fixture {
             *value = (1_000.0 - SEVERE_PROBABILITY_PER_MILLE as f64)
                 * f64::from(self.normal_loss()[index])
                 / 1_000.0
-                + SEVERE_PROBABILITY_PER_MILLE as f64
-                    * f64::from(self.severe_loss()[index])
+                + SEVERE_PROBABILITY_PER_MILLE as f64 * f64::from(self.severe_loss()[index])
                     / 1_000.0;
         }
         risk
@@ -213,10 +212,7 @@ impl SplitMix64 {
     }
 }
 
-fn sample_severe_cluster_count(
-    clusters: usize,
-    replicate_seed: u64,
-) -> usize {
+fn sample_severe_cluster_count(clusters: usize, replicate_seed: u64) -> usize {
     let mut rng = SplitMix64::new(replicate_seed);
     (0..clusters)
         .filter(|_| rng.below(1_000) < SEVERE_PROBABILITY_PER_MILLE)
@@ -246,10 +242,7 @@ fn schedule_pseudo_replicated_sums(
     std::array::from_fn(|index| cluster_sums[index] * schedules_per_cluster as u64)
 }
 
-fn select_crc(
-    loss_sums_milli: &[u64; POLICY_COUNT],
-    calibration_units: usize,
-) -> usize {
+fn select_crc(loss_sums_milli: &[u64; POLICY_COUNT], calibration_units: usize) -> usize {
     let denominator = calibration_units as u64 + 1;
     let target = u64::from(TARGET_RISK_MILLI);
 
@@ -268,12 +261,8 @@ fn select_hoeffding(
     loss_sums_milli: &[u64; POLICY_COUNT],
     calibration_units: usize,
 ) -> Option<usize> {
-    let radius = simultaneous_hoeffding_radius_milli(
-        POLICY_COUNT,
-        calibration_units,
-        DELTA,
-    )
-    .ok()?;
+    let radius =
+        simultaneous_hoeffding_radius_milli(POLICY_COUNT, calibration_units, DELTA).ok()?;
 
     for (index, loss_sum) in loss_sums_milli.iter().copied().enumerate() {
         let empirical_mean = loss_sum as f64 / calibration_units as f64;
@@ -285,11 +274,7 @@ fn select_hoeffding(
     None
 }
 
-fn mean_interval(
-    sum: f64,
-    square_sum: f64,
-    count: usize,
-) -> Option<(f64, f64, f64)> {
+fn mean_interval(sum: f64, square_sum: f64, count: usize) -> Option<(f64, f64, f64)> {
     if count == 0 {
         return None;
     }
@@ -313,19 +298,12 @@ fn wilson_interval(successes: usize, trials: usize) -> (f64, f64) {
     let proportion = successes as f64 / n;
     let denominator = 1.0 + z * z / n;
     let center = (proportion + z * z / (2.0 * n)) / denominator;
-    let half = z
-        * (proportion * (1.0 - proportion) / n + z * z / (4.0 * n * n)).sqrt()
-        / denominator;
-    (
-        (center - half).max(0.0),
-        (center + half).min(1.0),
-    )
+    let half =
+        z * (proportion * (1.0 - proportion) / n + z * z / (4.0 * n * n)).sqrt() / denominator;
+    ((center - half).max(0.0), (center + half).min(1.0))
 }
 
-fn push_optional_interval(
-    output: &mut String,
-    value: Option<(f64, f64, f64)>,
-) {
+fn push_optional_interval(output: &mut String, value: Option<(f64, f64, f64)>) {
     match value {
         Some((mean, low, high)) => {
             let _ = write!(output, "{mean:.3},{low:.3},{high:.3}");
@@ -342,11 +320,7 @@ struct RowMetadata {
     experiment: Experiment,
 }
 
-fn push_row(
-    output: &mut String,
-    metadata: RowMetadata,
-    accumulator: &Accumulator,
-) {
+fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulator) {
     let selected = accumulator.selected_runs;
     let abstentions = REPLICATES.saturating_sub(selected);
     let _ = write!(
@@ -373,12 +347,8 @@ fn push_row(
     push_optional_interval(output, accumulator.mean_selected_risk());
     output.push(',');
     let unsafe_rate = accumulator.unsafe_selections as f64 / REPLICATES as f64;
-    let (wilson_low, wilson_high) =
-        wilson_interval(accumulator.unsafe_selections, REPLICATES);
-    let _ = write!(
-        output,
-        "{unsafe_rate:.6},{wilson_low:.6},{wilson_high:.6},"
-    );
+    let (wilson_low, wilson_high) = wilson_interval(accumulator.unsafe_selections, REPLICATES);
+    let _ = write!(output, "{unsafe_rate:.6},{wilson_low:.6},{wilson_high:.6},");
     if selected == 0 {
         output.push_str("NA,NA");
     } else {
