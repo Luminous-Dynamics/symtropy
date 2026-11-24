@@ -1,5 +1,5 @@
-pub mod oracle_adapter;
 pub mod lipschitz;
+pub mod oracle_adapter;
 pub mod weighted_shift;
 
 pub mod non_monotone;
