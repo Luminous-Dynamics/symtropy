@@ -209,3 +209,6 @@ A test double exercises the contract across a simulated coordinator restart. A r
 ### Blind observer evaluation
 
 The Gazebo observer trait no longer receives the expected fault-signature digest. The independent assessor retains that oracle and compares it only after the observer returns its measured signature. A structurally qualified quorum now produces Confirmed (unanimous expected signature), Refuted (unanimous different signature), or InsufficientEvidence (observer disagreement). Invalid membership, stale scope and common-cause overlap remain hard errors. These verdicts do not grant authority.
+
+
+This increment advances the payload-conflict and observer-blinding portions of [#7148](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The durable append-only dispatch journal and real injector-side ledger are not implemented by this mock-transport PR.
