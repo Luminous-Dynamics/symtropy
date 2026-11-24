@@ -811,9 +811,11 @@ mod tests {
         );
     }
 
+    type FingerprintMutationCase = (&'static str, fn(&mut Fingerprints), Reason);
+
     #[test]
     fn measurement_identity_changes_require_independent_diagnostics() {
-        let cases: [(&str, fn(&mut Fingerprints), Reason); 6] = [
+        let cases: [FingerprintMutationCase; 6] = [
             (
                 "acquisition",
                 |value| value.acquisition_protocol.push_str("-changed"),
