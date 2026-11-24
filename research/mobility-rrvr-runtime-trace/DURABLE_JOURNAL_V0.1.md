@@ -34,7 +34,7 @@ A reset intent commits:
 - expected initial-state digest;
 - run ID and run epoch.
 
-The journal accepts only a new reset identity and rejects reusing the same (run, world, prior epoch) scope under a different reset ID. Reset outcomes distinguish transport response from read-only observation/reconciliation.
+The journal accepts only a new reset identity and rejects reusing the same (run, world, prior epoch) scope under a different reset ID. Reset outcomes distinguish transport response from read-only observation/reconciliation. Definitive accepted/rejected transport replies require `transport_response_artifact_sha256`; unknown replies may carry it when a response artifact exists. A transport-response record cannot substitute for an independent observation artifact.
 
 A verified reset requires all of:
 - a nonempty new world epoch different from the prior epoch;
@@ -50,7 +50,7 @@ A dispatch intent is accepted only after a verified reset and must match its pla
 
 Before the journal writes the dispatch intent, it reconstructs the same canonical request used by `gazebo_adapter::dispatch_request_fingerprint` and verifies that the payload digest matches. This prevents the journal from committing a request hash that describes a different target, fault, clock, world generation or schedule.
 
-An idempotency key can be recorded only once. Outcomes are payload-bound. A transport response of Unknown or an unresolved ledger query can only be followed by a read-only injector-ledger lookup. Reconciliation records require a separate ledger-artifact digest. `NoDispatchProven` is terminal for that old key; it is not permission to send the same request later. A genuinely new attempt requires a new physical-attempt identity and independent RRVR recovery admission.
+An idempotency key can be recorded only once. Outcomes are payload-bound. A transport response of Unknown or an unresolved ledger query can only be followed by a read-only injector-ledger lookup. Accepted/rejected transport replies require `transport_response_artifact_sha256`; unknown replies may carry it when available. Reconciliation records require a separate `ledger_artifact_sha256`, and a ledger receipt cannot be relabelled as a transport response artifact. `NoDispatchProven` is terminal for that old key; it is not permission to send the same request later. A genuinely new attempt requires a new physical-attempt identity and independent RRVR recovery admission.
 
 ## Writer lease, crash behaviour and recovery
 
@@ -81,4 +81,4 @@ The durable journal is local history. The actual injector must still implement a
 
 ## Claim ceiling
 
-The current implementation is a file-backed reference contract with mocked tests. It has not yet been compiled or run on a CI head in this branch, and it is not wired to a live ROS 2/Gazebo transport. File and directory sync semantics must be qualified on the deployment filesystem and storage stack. No claims are made about remote injector persistence, owner authentication, observer independence, HIL, physical behaviour or robotics safety.
+The current implementation is a file-backed reference contract with mocked tests. Its current exact-head CI status must be read from the stacked draft PR; this branch is not wired to a live ROS 2/Gazebo transport. File and directory sync semantics must be qualified on the deployment filesystem and storage stack. No claims are made about remote injector persistence, owner authentication, observer independence, HIL, physical behaviour or robotics safety.
