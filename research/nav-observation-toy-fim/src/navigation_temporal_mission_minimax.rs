@@ -1480,7 +1480,7 @@ mod cvar_policy_tests {
         let expected_tail = tail_for_policy(&p, &actions, &expected.mission_global_minimax_risk);
         assert_eq!(
             expected_tail.worst_case_cvar,
-            crate::navigation_tail_risk::ExactRisk::from_ratio(18_001, 10_000).unwrap()
+            crate::navigation_tail_risk::ExactRisk::from_ratio(1_801, 1_000).unwrap()
         );
         assert!(
             tail.tail_risk
