@@ -140,10 +140,7 @@ pub struct DcsaMaturityReceipt {
 }
 
 impl DcsaSourceEvent {
-    pub fn admit_as_of(
-        &self,
-        as_of_unix: i64,
-    ) -> Result<DcsaMaturityReceipt, DcsaClassifierError> {
+    pub fn admit_as_of(&self, as_of_unix: i64) -> Result<DcsaMaturityReceipt, DcsaClassifierError> {
         if self.standard_version != EXPECTED_STANDARD_VERSION {
             return Err(DcsaClassifierError::WrongStandardVersion);
         }
@@ -406,11 +403,7 @@ pub fn render_csv() -> String {
                 let _ = writeln!(
                     output,
                     "{},{},{},{},false,{},ADMITTED",
-                    case.id,
-                    case.code,
-                    case.expected,
-                    observed,
-                    receipt.claim_ceiling
+                    case.id, case.code, case.expected, observed, receipt.claim_ceiling
                 );
             }
             Err(error) => {
@@ -427,7 +420,9 @@ pub fn render_csv() -> String {
                     }
                     DcsaClassifierError::PublicationTimeUnknown => "PUBLICATION_TIME_UNKNOWN",
                     DcsaClassifierError::PublicationAfterRetrieval => "PUBLICATION_AFTER_RETRIEVAL",
-                    DcsaClassifierError::EvidenceUnavailableAtAsOf => "EVIDENCE_UNAVAILABLE_AT_AS_OF",
+                    DcsaClassifierError::EvidenceUnavailableAtAsOf => {
+                        "EVIDENCE_UNAVAILABLE_AT_AS_OF"
+                    }
                 };
                 assert_eq!(observed, case.expected, "DCSA case {}", case.id);
                 let _ = writeln!(
@@ -470,7 +465,10 @@ mod tests {
         let receipt = fixture_event("ACT")
             .admit_as_of(FIXTURE_AS_OF)
             .expect("valid source-reported ACT event");
-        assert_eq!(receipt.maturity, DcsaEventMaturity::SourceReportedActualOnly);
+        assert_eq!(
+            receipt.maturity,
+            DcsaEventMaturity::SourceReportedActualOnly
+        );
         assert!(!receipt.independent_physical_observation);
         assert!(!receipt.maturity.independent_physical_observation());
     }
@@ -481,7 +479,10 @@ mod tests {
             let receipt = fixture_event(code)
                 .admit_as_of(FIXTURE_AS_OF)
                 .expect("valid non-actual DCSA event");
-            assert_ne!(receipt.maturity, DcsaEventMaturity::SourceReportedActualOnly);
+            assert_ne!(
+                receipt.maturity,
+                DcsaEventMaturity::SourceReportedActualOnly
+            );
         }
     }
 
