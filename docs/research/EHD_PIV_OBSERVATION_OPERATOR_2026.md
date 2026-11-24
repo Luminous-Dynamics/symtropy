@@ -47,6 +47,22 @@ The eleven V0 tests cover:
 
 These are analytic/constructed controls, not comparisons to measured hardware.
 
+## Industry comparator: SynthPix (June 2026; current repository v0.4.0)
+
+The current high-throughput comparator is [SynthPix](https://github.com/antonioterpin/synthpix), an MIT-licensed JAX image-pair generator (paper: Terpin et al., SoftwareX 34, 102642, June 2026, DOI 10.1016/j.softx.2026.102642). The paper's v0.1.0 code metadata and the current public repository's `pyproject.toml` identify MIT licensing; the current repository at commit `0effe6e70b77d0d5c97348d8220e74d31bfaee2e` identifies v0.4.0.
+
+Its current interface supports batched/on-the-fly JAX generation and HDF5/MAT/NPY flow sources. It exposes seeding density, particle diameter and intensity ranges, particle hide probabilities, particle shape correlation (`rho`), per-frame particle diameter/intensity/`rho` variability, uniform and Gaussian noise, masks and histogram matching. The paper reports orders-of-magnitude image-pair throughput improvements over its selected alternatives. In its own synthetic benchmark, after tuning generator settings to match image conditions, the reported average relative endpoint-error discrepancy versus the original images was 0.001, maximum 0.005. This is a result for that study's datasets/settings, not a universal transfer guarantee.
+
+The paper explicitly describes the v0.1 sensor model as simplified and orthogonal: it does not model non-orthogonal camera projection or finite pixel fill factor, and multi-camera volumetric generation is deferred. Do not assume later releases have or have not changed every limitation without rechecking the pinned version. The v0.4.0 public interface should be treated as the live comparator version; no SynthPix execution or benchmark result is claimed in this PR.
+
+### Correct division of labour
+
+- **SynthPix:** high-throughput batched GPU/accelerator synthetic image generation for large robustness sweeps, training data, adaptive acquisition and benchmark-scale perturbation campaigns.
+- **This Rust crate:** small, deterministic, dependency-free reference operator with explicit RK2 path integration, finite-exposure quadrature, Gaussian out-of-plane sheet attenuation, PSF width, fixed per-pixel noise, gain/offset, quantization, masks and fail-closed numerical/domain checks. It is a reference/analytic-control instrument, not a throughput competitor.
+- **PIVtools / external raw-image benchmark:** independent estimator pipeline and admitted data, against which the image generators' usefulness and estimator-error prediction are tested.
+
+Do not rank the Rust reference kernel against SynthPix by pairs/second. Compare semantic coverage and controlled output behavior first; benchmark throughput separately only on matched hardware, image dimensions, particle density, particle kernel support, batch size, data-loading path and numerical precision.
+
 ## V1 research agenda
 
 The next physically meaningful additions require source-pinned device metadata and independent measurements:
@@ -58,7 +74,7 @@ The next physically meaningful additions require source-pinned device metadata a
 - observed raw-image likelihood / reprojection consistency with a separately calibrated PIV pipeline;
 - controlled negative tests where a nuisance-only perturbation must not be interpreted as a physical flow change.
 
-Potential inverse inference can combine a conventional PIV likelihood, sparse sensor likelihood and a conditional generative prior, but every prior/measurement privilege and uncertainty source must be explicit. Use the external PIVtools raw-image capsule (#7248) only with its exact CC-BY-4.0 attribution and pinned run configs.
+Potential inverse inference can combine a conventional PIV likelihood, sparse sensor likelihood and a conditional generative prior, but every prior/measurement privilege and uncertainty source must be explicit. Use SynthPix for large-scale GPU generation and this Rust crate for deterministic reference controls; do not build a second slow synthetic-data factory. Use the external PIVtools raw-image capsule (#7248) only with its exact CC-BY-4.0 attribution and pinned run configs.
 
 ## Benchmark interface
 
