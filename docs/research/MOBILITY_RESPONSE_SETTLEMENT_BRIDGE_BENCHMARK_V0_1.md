@@ -106,7 +106,23 @@ Paper: https://doi.org/10.1016/j.energy.2026.141090
 
 This should be a core planning comparator for fleet demand, inventory and service reliability. The mobility/network bridge adds evidence identity, exact PCC/topology binding, recovery and event metrology to the optimizer's candidate outputs; it does not claim a better optimizer than their SOCP/outer-approximation algorithm.
 
-### 7.2 Distributionally robust reinforcement learning
+### 7.2 Probabilistic counterfactual baselines with contemporaneous controls
+
+Shen and Bao, *Counterfactual Probabilistic Electricity Load Baseline Estimation for Demand Response Using Contemporaneous Non-Activated Customers*, Energies 19(22), 5442 (12 November 2026), propose Quantile Generalized Synthetic Control (QGSC). It updates historical conditional quantiles using contemporaneous non-activated customers, then calibrates intervals on held-out historical event controls. Against a CalTRACK-style regression, the paper reports CRPS 170.440 to 164.458 kW (3.51% reduction), empirical coverage of nominal 90% intervals from 77.89% to 85.16%, and 9.79% wider normalized intervals. The evaluation uses measured commercial/industrial load with simulated activation and response, five overlapping 60-customer cohorts drawn from one city pool of 102 customers. It shows a useful modest retrospective improvement, but still undercovers and does not establish live operational performance or nominal 90% coverage.
+
+Paper: https://doi.org/10.3390/en19225442
+
+Reproduce QGSC against the same frozen event controls and compare donor overlap, subgroup coverage, width, interval CRPS, bias and failure under donor-pool contamination. Use it as a baseline tournament candidate; do not call it a universal best method.
+
+### 7.3 Causal field-experiment design
+
+Fadhuile, Llerena and Roussillon, *Intrinsic Motivation to Promote Demand Flexibility: A Field Experiment From Household Demand*, The Energy Journal 46(4), first published 13 March 2025, report a two-year randomized field experiment involving 165 households and more than six million 30-minute electricity observations. Their difference-in-differences analysis reports a 21% consumption reduction during peak-load events in that particular programme. This is a causal-design precedent, not a transferable effect-size target for mobility assets or data centres.
+
+Paper: https://doi.org/10.1177/01956574251320363
+
+For a credible causal mobility pilot, randomize eligible offers/dispatch windows when safe and permitted, cluster assignment at depot/feeder level where interference exists, preregister intention-to-treat estimands, and retain shadow/no-dispatch controls. When randomization is infeasible, matched controls/synthetic control or DiD/Double ML require explicit identification assumptions, pre-trend checks, placebo periods/outcomes and sensitivity analysis. Model-only baseline forecasts remain model-based impact estimates, not causal claims. See new child issue #7347.
+
+### 7.4 Distributionally robust reinforcement learning
 
 Du and Zhu, *Optimal Scheduling of Electric Heavy-Truck Battery Swapping Stations via Distributionally Robust Deep Reinforcement Learning*, Applied Sciences 16(22), 11346 (16 November 2026), report DR-SAC with 78.9% peak shaving in their high-demand scenario. Across the full 31-day test window, DR-SAC averages 0.8 scarcity-violating periods/day; its high-demand scenario rises to 5.3/day, compared with SAC at 2.9, TD3 at 12.4 and DDPG at 21.7. DDPG reaches 86.7% peak shaving but at 21.7 violations/day. Therefore DR-SAC is not uniformly the safest policy: in the high-demand scenario SAC violates less often, while DR-SAC achieves higher peak shaving and profit. The authors explicitly say a safety layer is still needed under high demand, and disclose that the work uses one mining-area station, its own tariffs and a 15-minute transition model that omits charger-bay limits and battery degradation. These figures must not be transferred to a mobility fleet.
 
