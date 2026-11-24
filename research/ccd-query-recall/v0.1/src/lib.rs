@@ -1171,7 +1171,8 @@ mod tests {
             "profile-scene",
             CandidateDisposition::Forwarded,
             NarrowphaseOutcome::Collision,
-        );
+        )
+        .with_narrowphase_elapsed_ns(100);
         let binary64 = run_profile(
             "symtropy",
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -1214,7 +1215,8 @@ mod tests {
             "no-positive-profile-scene",
             CandidateDisposition::Forwarded,
             NarrowphaseOutcome::NoCollision,
-        );
+        )
+        .with_narrowphase_elapsed_ns(100);
         let profile = run_profile(
             "symtropy",
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -1632,6 +1634,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "100",
         ]
         .join("\t");
         let fallback = [
@@ -1647,6 +1650,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "300",
         ]
         .join("\t");
         let pruned = [
@@ -1662,6 +1666,7 @@ mod tests {
             "symtropy-aabb-checker-v0.1",
             "accepted_and_replayed",
             "not_run",
+            "",
         ]
         .join("\t");
         let input = ["#ccd-query-run-results-v1", &forwarded, &fallback, &pruned].join("\n");
@@ -1701,6 +1706,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "100",
         ]
         .join("\t");
         assert_eq!(
@@ -1721,6 +1727,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "100",
         ]
         .join("\t");
         assert_eq!(
@@ -1741,6 +1748,7 @@ mod tests {
             "checker",
             "accepted_and_replayed",
             "not_run",
+            "",
         ]
         .join("\t");
         assert_eq!(
@@ -1772,6 +1780,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "100",
         ]
         .join("\t");
         let row1 = [
@@ -1787,6 +1796,7 @@ mod tests {
             "",
             "",
             "no_collision",
+            "300",
         ]
         .join("\t");
         let results = parse_query_run_results_tsv(&[row0, row1].join("\n")).unwrap();
