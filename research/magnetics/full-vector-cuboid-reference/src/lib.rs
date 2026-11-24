@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 #![forbid(unsafe_code)]
 
+pub mod assembly;
+
 //! Full-vector analytical field of a uniformly polarized rectangular cuboid.
 //!
 //! This independent reference sums the six rectangular surface-charge faces.
