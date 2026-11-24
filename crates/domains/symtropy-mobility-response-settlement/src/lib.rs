@@ -1658,6 +1658,8 @@ mod tests {
     fn duplicate_sample_evidence_ids_are_rejected() {
         let mut bad = input();
         bad.grid_response.report["sample_receipts"][1]["response_evidence_id"] = json!("resp-1");
+        bad.pcc_metrology.report["intervals"][1]["candidate_evidence_id"] = json!("resp-1");
+        bad.counterfactual_baseline.report["intervals"][1]["evidence_id"] = json!("resp-1");
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::DuplicateEvidence(_))
