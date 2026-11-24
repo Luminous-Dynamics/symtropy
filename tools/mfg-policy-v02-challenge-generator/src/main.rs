@@ -381,7 +381,7 @@ fn make_jobs(
                             OperationStatus::Waiting
                         },
                         committed_resource_id: in_process.then(|| "RESOURCE-A".to_string()),
-                        remaining_processing_ticks: u64::from(in_process),
+                        remaining_processing_ticks: if in_process { 1 } else { 0 },
                         inspection_required,
                         inspection_method_id,
                     }
