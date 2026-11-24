@@ -131,6 +131,7 @@ pub struct OnlineRiskGroupReport {
     pub anytime_miscoverage_upper_bound_permille_at_audit_cutoff: Option<u16>,
     pub cusum_permille_observations_at_audit_cutoff: u64,
     pub drift_alarm_latched: bool,
+    pub historical_risk_upper_bound_exceeds_budget: bool,
     pub assessments: Vec<PrequentialAssessment>,
     pub final_status: PrequentialRiskStatus,
 }
@@ -243,10 +244,15 @@ fn expected_boundary(metric: OnlineForecastMetric) -> OnlineMeasurementBoundary 
 
 fn evidence_well_formed(evidence: &EvidenceEnvelope) -> bool {
     !evidence.asset_id.trim().is_empty()
+        && evidence.asset_id.len() <= 128
         && !evidence.configuration_digest.trim().is_empty()
+        && evidence.configuration_digest.len() <= 256
         && !evidence.producer_id.trim().is_empty()
+        && evidence.producer_id.len() <= 128
         && !evidence.method_id.trim().is_empty()
+        && evidence.method_id.len() <= 128
         && !evidence.evidence_reference.trim().is_empty()
+        && evidence.evidence_reference.len() <= 256
         && evidence.evidence_class != EvidenceClass::Unknown
 }
 
@@ -383,13 +389,19 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
         if record.sample_id.trim().is_empty()
             || record.sample_id.len() > 128
             || record.site_id.trim().is_empty()
+            || record.site_id.len() > 128
             || record.site_configuration_digest.trim().is_empty()
+            || record.site_configuration_digest.len() > 256
             || record.asset_id.trim().is_empty()
+            || record.asset_id.len() > 128
             || record.asset_configuration_digest.trim().is_empty()
+            || record.asset_configuration_digest.len() > 256
             || record.stratum_id.trim().is_empty()
             || record.stratum_id.len() > 96
             || record.forecast_model_id.trim().is_empty()
+            || record.forecast_model_id.len() > 96
             || record.forecast_model_version.trim().is_empty()
+            || record.forecast_model_version.len() > 64
             || record.forecast_issued_unix_ms == 0
             || record.forecast_issued_unix_ms >= record.target_start_unix_ms
             || record.target_start_unix_ms >= record.target_end_unix_ms
@@ -554,6 +566,8 @@ pub fn evaluate_online_service_risk(
             anytime_miscoverage_upper_bound_permille_at_audit_cutoff: final_upper,
             cusum_permille_observations_at_audit_cutoff: state.cusum,
             drift_alarm_latched: state.alarm_latched,
+            historical_risk_upper_bound_exceeds_budget: final_upper
+                .is_some_and(|upper| upper > input.maximum_miscoverage_permille),
             assessments,
             final_status,
         });
@@ -562,7 +576,7 @@ pub fn evaluate_online_service_risk(
     let groups_with_shift_alarm = groups.iter().filter(|g| g.drift_alarm_latched).count();
     let groups_with_risk_above_budget = groups
         .iter()
-        .filter(|g| g.final_status == PrequentialRiskStatus::HistoricalRiskAboveBudget)
+        .filter(|g| g.historical_risk_upper_bound_exceeds_budget)
         .count();
     let groups_with_insufficient_history = groups
         .iter()
@@ -770,6 +784,20 @@ mod tests {
             let empirical = ((1_u128 * 1_000) / count as u128) as u16;
             assert!(upper >= empirical);
         }
+    }
+
+    #[test]
+    fn drift_alarm_and_historical_risk_bound_are_reported_independently() {
+        let report = evaluate_online_service_risk(&input(vec![
+            observation("a", 1_000, 1_100, 1_500, 1_600, true, "cfg-1"),
+            observation("b", 1_700, 1_800, 2_000, 2_100, true, "cfg-1"),
+        ]))
+        .unwrap();
+        let group = &report.groups[0];
+        assert!(group.drift_alarm_latched);
+        assert!(group.historical_risk_upper_bound_exceeds_budget);
+        assert_eq!(report.groups_with_shift_alarm, 1);
+        assert_eq!(report.groups_with_risk_above_budget, 1);
     }
 
     #[test]
