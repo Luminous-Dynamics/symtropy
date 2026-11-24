@@ -1,0 +1,16 @@
+[package]
+name = "safrb-service-portfolio"
+version = "0.6.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Multi-carrier, battery-aware service-boundary accounting benchmark for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-service-portfolio"
+path = "src/main.rs"
+
+[workspace]
+# Standalone benchmark crate outside the parent workspace.
