@@ -56,6 +56,45 @@ For 3D homogeneous-isotropic-turbulence forecasting at (Re_\lambda=90), the same
 
 These methods belong on different lanes: adv-NO is a forward operator surrogate for super-resolution/forecasting; conditional diffusion samples an inverse conditional posterior from partial observations. Do not rank them in one leaderboard unless the estimand, observed information, data, compute budget and inference semantics are matched.
 
+## 2.5 Probabilistic turbulence priors, statistical computation and temporal reconstruction (2026)
+
+The field is moving beyond deterministic super-resolution toward models that estimate *conditional distributions* of flow realizations. These methods answer different questions and need separate benchmark tracks.
+
+### GenCFD — statistical forward computation / forward UQ
+
+Raonić et al., *Generative AI for efficient statistical computation of fluids*, Nature Communications 17, 9846 (17 August 2026), DOI 10.1038/s41467-026-76390-x, introduces GenCFD, a conditional score-based diffusion approach for statistical computation of 3D turbulent flow.
+
+The paper evaluates five challenging flow benchmarks, including canonical turbulence, engineering flows and atmospheric science. Its target is the conditional distribution, not only its conditional mean: results include conditional mean/variance, point PDFs, energy spectra, structure functions, higher central moments through order five and Wasserstein comparison of conditional distributions. It reports approximately one to five orders of magnitude speedup versus conventional CFD solvers, with benchmark samples generated in under four seconds on an RTX 4090. These are paper-specific benchmark/runtime claims and must be reproduced under their original settings before direct comparison.
+
+The model code is public under Apache-2.0 at [camlab-ethz/GenCFD](https://github.com/camlab-ethz/GenCFD); representative trajectories and dataset references are described in the paper's data availability. It is a strong comparator for **forward statistical prediction / conditional forward UQ**, not automatically a sparse-PIV inverse solver. Do not compare a statistical sample generator against a deterministic field reconstruction using only one RMSE.
+
+### Sparse-observation inverse diffusion
+
+Two 2026 studies provide complementary baselines:
+
+- *Guiding diffusion models to reconstruct flow fields from sparse data*, Physics of Fluids 38, 015112 (8 January 2026), DOI 10.1063/5.0304492, introduces masked/guided diffusion for sparse observations. In its 2D Kolmogorov-flow 5% observation example, the reported masked-diffusion RMSE is 0.13±0.02, sparse-location P-RMSE 0.10±0.01, physical-residual metric 0.02±0.03, structural similarity loss 0.05±0.01 and energy-spectrum error 0.26±0.05. The paper reports better performance than its listed supervised and prior diffusion baselines on that task. These values are not comparable to another dataset or EHD flow without exact reproduction.
+- Oommen et al. (2026), described above, use conditional EDM diffusion for sparse PTV-like observation reconstruction in a 3D cylinder-wake DNS case. Their unseen-mask/layout result is same-geometry generalization, not unseen-geometry transfer or raw-image PIV.
+
+These should be measured using both field/structure metrics and **measurement consistency at observed locations**, while separately reporting posterior sample count, sampling steps, sampling latency, conditional coverage and sharpness. Sparse observed values cannot be treated as error-free if they themselves carry PIV covariance.
+
+### Temporal super-resolution and autoregressive conditional diffusion
+
+- *Physics-regularized residual diffusion model for temporal super-resolution reconstruction of turbulent flows*, Computers & Fluids 320 (15 November 2026), 107277, DOI 10.1016/j.compfluid.2026.107277, conditions on two temporally sparse endpoint velocity fields. It constructs a linear interpolation base and learns the normalized DNS residual at intermediate times. Add this as an endpoint-conditioned temporal-super-resolution baseline, with phase/timing, interpolation residual, energy transfer and temporal coherence metrics.
+- Kohl, Chen & Thuerey, *Benchmarking autoregressive conditional diffusion models for turbulent flow simulation*, Neural Networks 199 (2026), 108641, DOI 10.1016/j.neunet.2026.108641, benchmarks 2D incompressible, transonic and isotropic-turbulence scenarios. It explicitly evaluates accuracy, posterior sampling, spectral behavior, temporal stability and flow-parameter generalization. Diffusion methods show accuracy/stability advantages on the declared cases, while established deterministic architectures are faster at inference. This is a useful long-rollout comparator, not direct PIV reconstruction.
+
+### General research direction: reusable conditional priors
+
+Wang, *Generative priors for spatiotemporal turbulence: Toward conditionable and scalable flow foundation models*, Physical Review Fluids 11, 090502 (21 September 2026), DOI 10.1103/qbw5-qqmg, is a Perspective advocating diffusion/flow-matching priors reusable for generation, inverse conditioning, assimilation, super-resolution, restoration and solver-constrained inference. It explicitly identifies distributional fidelity, non-memorization, data consistency, posterior calibration, physical admissibility and large-domain coherence as validation criteria. This is a strategic research agenda, not itself evidence of one model's performance.
+
+### Separate these tracks in all leaderboards
+
+1. **Forward conditional statistics / forward UQ:** GenCFD, conditional distribution of future/unknown flow given declared conditions. Metrics: mean/variance/PDF/higher moments, Wasserstein distribution distance, spectra, structure functions, conditional coverage/sharpness, calibrated functionals and rollout cost.
+2. **Inverse sparse observation reconstruction:** masked/guided diffusion, conditional EDM, conditional GAN, GP/LSE/SAMM-RR. Metrics: measurement consistency, field/structure/spectral error, posterior calibration and cost.
+3. **Temporal super-resolution / interpolation:** endpoint-conditioned residual diffusion, temporal operators and deterministic interpolation. Metrics: between-observation error, timing/phase, temporal coherence, spectrum/structure-function transfer and event detection.
+4. **Autoregressive rollout / parameter generalization:** conditional diffusion vs neural operators and CFD baselines. Metrics: long-horizon stability, drift, spectra, posterior statistics and out-of-training-range parameter performance.
+
+A common metric suite may be shared, but the estimand, information available to the model, data-generating regime, inference semantics and compute budget must be frozen per track.
+
 ## 3. Declare the estimand before scoring
 
 The target must be explicit and immutable for each benchmark lane:
@@ -141,6 +180,7 @@ HDC/CfC is an experimental challenger, not a privileged baseline. It earns credi
 - profile error and wake/shear-layer position/amplitude;
 - vorticity, divergence, band-wise energy-spectrum error, high-wavenumber tail-energy retention, structure-function error and Q–R velocity-gradient invariant PDF error when 3D gradients are available;
 - temporal phase, event timing and lag correlation for time-resolved tasks;
+- between-observation temporal super-resolution error, rollout drift and long-horizon stability;
 - mean, Reynolds stress, skewness and flatness error only when these are the declared estimands.
 
 ### B. Uncertainty quality
@@ -152,6 +192,9 @@ HDC/CfC is an experimental challenger, not a privileged baseline. It earns credi
 - uncertainty growth between observation times;
 - CRPS or weighted interval score for scalar predictive marginals;
 - energy score and variogram score for spatial/multivariate predictive distributions;
+- Wasserstein distance and conditional point-PDF scores for statistical forward generators;
+- mean/variance/high-order-moment (through declared order) fidelity and structure-function error;
+- posterior sample diversity, conditional measurement consistency and posterior calibration for inverse diffusion;
 - conditional measurement-consistency residual and phase alignment near observed regions for generative posterior samples;
 - interval width or confidence-region volume;
 - cluster-bootstrap confidence intervals and worst-slice reporting.
@@ -290,6 +333,7 @@ These are research targets, not achieved results:
 - **Multi-fidelity assimilation:** combine sparse PIV, pressure probes, LPT, hot-wire/LDA, DNS priors and physics models with explicit privilege and covariance accounting.
 - **Observer-aware active learning:** avoid designs where the tracer or sensor perturbs the EHD state enough to invalidate the target regime.
 - **Model-falsification:** include plausible but wrong dynamics, phase drift, unseen frequencies, geometry changes, missing sensors, timing shifts, common-mode calibration errors and nonstationary turbulence.
+- **Conditional-distribution qualification:** test non-memorization, measurement consistency, posterior calibration, physical admissibility and large-domain coherence; producing plausible samples is not sufficient.
 - **Human review value:** rank field regions by expected reduction in decision risk if manually reviewed, not by generic uncertainty magnitude.
 
 ## References
