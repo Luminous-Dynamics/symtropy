@@ -1326,7 +1326,11 @@ fn validate_scenario_streams(corpus: &Corpus, streams: &ScenarioStreams) -> Resu
     Ok(())
 }
 
-fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Result<(), String> {
+fn validate_evaluator_labels(
+    corpus: &Corpus,
+    streams: &ScenarioStreams,
+    labels: &EvaluatorLabels,
+) -> Result<(), String> {
     if labels.schema_id != "https://luminousdynamics.io/schemas/mfg-policy-v0.2-evaluator-labels"
         || labels.benchmark_id != corpus.benchmark_id
         || labels.evidence_class != "synthetic_evaluator_only"
@@ -1337,6 +1341,9 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
         return Err("evaluator_label_manifest_or_count_invalid".into());
     }
 
+    let stream_cases: BTreeMap<&str, &ScenarioStreamCase> = streams.cases.iter()
+        .map(|case| (case.case_id.as_str(), case))
+        .collect();
     let mut evaluator_cases = BTreeMap::new();
     for evaluator_case in &labels.cases {
         if evaluator_cases
@@ -1348,23 +1355,21 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
     }
 
     for case in &corpus.cases {
+        let stream_case = stream_cases.get(case.case_id.as_str())
+            .ok_or_else(|| "evaluator_stream_case_missing".to_string())?;
         let evaluator_case = evaluator_cases
             .get(case.case_id.as_str())
             .ok_or_else(|| "evaluator_labels_missing_case".to_string())?;
         if evaluator_case.scenario_family_id != case.scenario_family_id
-            || evaluator_case.scenario_outcomes.len() != case.scenarios.len()
+            || evaluator_case.scenario_outcomes.len() != stream_case.scenarios.len()
         {
             return Err("evaluator_case_scope_or_scenario_count_mismatch".into());
         }
 
-        let policy_scenarios: BTreeMap<&str, &Scenario> = case
-            .scenarios
-            .iter()
+        let stream_scenarios: BTreeMap<&str, &Scenario> = stream_case.scenarios.iter()
             .map(|scenario| (scenario.scenario_id.as_str(), scenario))
             .collect();
-        let operation_ids: BTreeSet<&str> = case
-            .jobs
-            .iter()
+        let operation_ids: BTreeSet<&str> = case.jobs.iter()
             .flat_map(|job| &job.operations)
             .map(|operation| operation.operation_id.as_str())
             .collect();
@@ -1372,7 +1377,7 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
 
         for scenario_outcome in &evaluator_case.scenario_outcomes {
             if !outcome_scenario_ids.insert(scenario_outcome.scenario_id.as_str())
-                || !policy_scenarios.contains_key(scenario_outcome.scenario_id.as_str())
+                || !stream_scenarios.contains_key(scenario_outcome.scenario_id.as_str())
                 || scenario_outcome.hidden_terminal_quality_outcomes.is_empty()
             {
                 return Err("evaluator_scenario_identity_or_scope_invalid".into());
@@ -1387,7 +1392,7 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
                 }
             }
         }
-        if outcome_scenario_ids != policy_scenarios.keys().copied().collect() {
+        if outcome_scenario_ids != stream_scenarios.keys().copied().collect() {
             return Err("evaluator_scenario_coverage_mismatch".into());
         }
 
