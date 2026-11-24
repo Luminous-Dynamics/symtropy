@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod conditional_velocity;
 pub mod coverage;
+pub mod decision_gate;
 pub mod lebedev;
 pub mod ncdot_refinement;
 pub mod ncdot_sphere;
@@ -44,6 +45,10 @@ pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
 
+pub use decision_gate::{
+    DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
+    assess_risk_threshold,
+};
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
