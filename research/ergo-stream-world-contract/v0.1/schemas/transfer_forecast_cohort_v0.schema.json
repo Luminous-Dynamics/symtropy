@@ -58,6 +58,7 @@
             "enum": [
               "assert_transfer",
               "reject_transfer",
+              "abstain",
               null
             ]
           }
