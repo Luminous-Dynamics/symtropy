@@ -502,7 +502,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     target,
                 );
                 accumulators[1][alpha_index].record(
-                    &mono_hoeffding_metrics,
+                    mono_hoeffding,
                     &mono_hoeffding_metrics,
                     mono_upper,
                     target,
