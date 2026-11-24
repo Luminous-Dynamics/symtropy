@@ -1,0 +1,466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Probability-qualified CVaR regret evaluation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result",
+    "evidence_class",
+    "claim_ceiling",
+    "summary",
+    "cases",
+    "authority_granted"
+  ],
+  "properties": {
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "probability-conditioned-synthetic-tail-risk-algebra-only"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "pass_cases",
+        "abstain_cases",
+        "invalid_input_cases",
+        "authority_grants"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pass_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstain_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_input_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authority_grants": {
+          "const": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "status",
+          "reason",
+          "probability_model_id",
+          "scenario_count",
+          "policies",
+          "authority_granted"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "ABSTAIN",
+              "INVALID_INPUT"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability_model_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scenario_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "policies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "policy_id",
+                "wait_and_see_regret",
+                "outcome_class_regret"
+              ],
+              "properties": {
+                "policy_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "wait_and_see_regret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "expected_regret",
+                    "worst_case_regret",
+                    "cvar"
+                  ],
+                  "properties": {
+                    "expected_regret": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000
+                        },
+                        "denominator": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000000000
+                        }
+                      }
+                    },
+                    "worst_case_regret": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000
+                        },
+                        "denominator": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000000000
+                        }
+                      }
+                    },
+                    "cvar": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "alpha",
+                          "var",
+                          "cvar",
+                          "tail_mass",
+                          "var_atom_fraction"
+                        ],
+                        "properties": {
+                          "alpha": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "var": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "cvar": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "tail_mass": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "var_atom_fraction": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "outcome_class_regret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "expected_regret",
+                    "worst_case_regret",
+                    "cvar"
+                  ],
+                  "properties": {
+                    "expected_regret": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000
+                        },
+                        "denominator": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000000000
+                        }
+                      }
+                    },
+                    "worst_case_regret": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "numerator",
+                        "denominator"
+                      ],
+                      "properties": {
+                        "numerator": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000000000
+                        },
+                        "denominator": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000000000000
+                        }
+                      }
+                    },
+                    "cvar": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "alpha",
+                          "var",
+                          "cvar",
+                          "tail_mass",
+                          "var_atom_fraction"
+                        ],
+                        "properties": {
+                          "alpha": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "var": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "cvar": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "tail_mass": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          },
+                          "var_atom_fraction": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "numerator",
+                              "denominator"
+                            ],
+                            "properties": {
+                              "numerator": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1000000000000
+                              },
+                              "denominator": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000000000000
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "authority_granted": {
+            "const": false
+          }
+        }
+      }
+    },
+    "authority_granted": {
+      "const": false
+    }
+  }
+}
