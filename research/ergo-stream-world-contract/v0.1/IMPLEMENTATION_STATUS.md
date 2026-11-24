@@ -313,3 +313,15 @@ Seven tests cover target-extra-behaviour acceptance for simulation, rejection fo
 This is finite proposed-relation validation, not learned mapping discovery, continuous-time behavioural equivalence, probabilistic bisimulation or causal-mechanism qualification.
 
 **Verification for simulation/bisimulation plus decision-value and quotient code:** pending an exact-head Rust 1.96 formatting, tests/doctest and strict-Clippy pass.
+
+## Latest exact-head qualification — 24 November 2026
+
+The current executable source is at exact commit `9735f9f7ddaabce19b75a96a0e97783d3cc04a9d`. Focused workflow [#45296666519](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45296666519) ran with Rust 1.96.0 and passed every step:
+
+- `cargo fmt --check`: passed;
+- `cargo test --locked`: passed — **86 unit tests, 0 failures**, plus doctests;
+- `cargo clippy --locked --all-targets -- -D warnings`: passed.
+
+This current head includes the structural/dynamics witness, Atlas, scoped isomorphism/induced/subgraph embedding, finite quotient congruence, many-to-many simulation/bisimulation, finite EVSI decision-value oracle, and the sidecar schema/example documents. The earlier failed Clippy/test attempts described above are historical and superseded by this successful exact-head run.
+
+Qualification boundary: this is the focused ErgoStream microcosm crate, not repository-wide Linux/Windows/macOS CI. It does not qualify the #11171 production learner adapter, the sealed evaluator process boundary, continuous-time transfer, physical deployment, or external benchmark performance.
