@@ -225,6 +225,12 @@ pub fn render_particle_image_pair(
     let mut second_intensity = vec![0.0; pixel_count];
     let mut sigma_min = f64::INFINITY;
     let mut sigma_max = 0.0_f64;
+    let render_context = RenderContext {
+        field,
+        illumination,
+        acquisition,
+        sensor,
+    };
 
     for particle in particles {
         let sigma = particle
@@ -234,21 +240,15 @@ pub fn render_particle_image_pair(
         sigma_max = sigma_max.max(sigma);
 
         render_exposure(
-            field,
+            &render_context,
             particle,
-            illumination,
-            acquisition,
-            sensor,
             0.0,
             sigma,
             &mut first_intensity,
         )?;
         render_exposure(
-            field,
+            &render_context,
             particle,
-            illumination,
-            acquisition,
-            sensor,
             acquisition.frame_separation,
             sigma,
             &mut second_intensity,
@@ -331,8 +331,13 @@ fn validate_inputs(
             return Err(ObservationError::InvalidFieldMetadata { field: name });
         }
     }
-    for index in 0..field_len {
-        if !field.u_px_per_time[index].is_finite() || !field.v_px_per_time[index].is_finite() {
+    for (index, (u, v)) in field
+        .u_px_per_time
+        .iter()
+        .zip(field.v_px_per_time.iter())
+        .enumerate()
+    {
+        if !u.is_finite() || !v.is_finite() {
             return Err(ObservationError::NonFiniteFieldValue { index });
         }
     }
@@ -473,35 +478,47 @@ fn validate_inputs(
     Ok(())
 }
 
+struct RenderContext<'a> {
+    field: &'a VelocityField2D,
+    illumination: &'a IlluminationSheet,
+    acquisition: &'a AcquisitionConfig,
+    sensor: &'a SensorConfig,
+}
+
 fn render_exposure(
-    field: &VelocityField2D,
+    context: &RenderContext<'_>,
     particle: &ParticleSeed,
-    illumination: &IlluminationSheet,
-    acquisition: &AcquisitionConfig,
-    sensor: &SensorConfig,
     exposure_start: f64,
     effective_sigma_px: f64,
     image: &mut [f64],
 ) -> Result<(), ObservationError> {
-    let count = acquisition.exposure_samples;
+    let count = context.acquisition.exposure_samples;
     for sample_index in 0..count {
-        let sample_offset =
-            (sample_index as f64 + 0.5) * acquisition.exposure_duration / count as f64;
+        let sample_offset = (sample_index as f64 + 0.5)
+            * context.acquisition.exposure_duration
+            / count as f64;
         let sample_time = exposure_start + sample_offset;
         let (x_px, y_px) = advect_particle(
-            field,
+            context.field,
             particle.x_px,
             particle.y_px,
             sample_time,
-            acquisition.maximum_integration_step,
+            context.acquisition.maximum_integration_step,
         )?;
         let z = particle.z_sheet_units
             + particle.out_of_plane_velocity_sheet_units_per_time * sample_time;
-        let normalized_z = z / illumination.sigma_sheet_units;
+        let normalized_z = z / context.illumination.sigma_sheet_units;
         let illumination_weight = (-0.5 * normalized_z * normalized_z).exp();
         let brightness = particle.brightness * illumination_weight / count as f64;
 
-        add_gaussian_particle(sensor, image, x_px, y_px, brightness, effective_sigma_px);
+        add_gaussian_particle(
+            context.sensor,
+            image,
+            x_px,
+            y_px,
+            brightness,
+            effective_sigma_px,
+        );
     }
     Ok(())
 }
