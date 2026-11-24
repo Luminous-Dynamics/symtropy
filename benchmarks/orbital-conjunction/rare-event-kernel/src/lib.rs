@@ -68,7 +68,8 @@ pub use decision_refinement::{
     plan_decision_refinement,
 };
 pub use hedged_capital_sequence::{
-    DEFAULT_HEDGED_STAKE_CAP, HedgedCapitalConfidenceSequence, HedgedConfidenceSequenceError,
+    AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
+    HedgedCapitalConfidenceSequence, HedgedConfidenceSequenceError,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
