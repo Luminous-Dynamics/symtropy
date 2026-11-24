@@ -545,7 +545,6 @@ fn jacobi_svd(
             sweeps: 0,
         });
     }
-    let row_count = input_columns[0].len();
     let mut columns = input_columns.to_vec();
     let mut right_columns = vec![vec![0.0; column_count]; column_count];
     for (index, column) in right_columns.iter_mut().enumerate() {
@@ -583,17 +582,27 @@ fn jacobi_svd(
                 let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
                 let sine = cosine * tangent;
 
-                for row in 0..row_count {
-                    let left = columns[first][row];
-                    let right = columns[second][row];
-                    columns[first][row] = cosine * left - sine * right;
-                    columns[second][row] = sine * left + cosine * right;
+                {
+                    let (left_columns, right_column_tail) = columns.split_at_mut(second);
+                    let first_column = &mut left_columns[first];
+                    let second_column = &mut right_column_tail[0];
+                    for (left, right) in first_column.iter_mut().zip(second_column.iter_mut()) {
+                        let old_left = *left;
+                        let old_right = *right;
+                        *left = cosine * old_left - sine * old_right;
+                        *right = sine * old_left + cosine * old_right;
+                    }
                 }
-                for row in 0..column_count {
-                    let left = right_columns[first][row];
-                    let right = right_columns[second][row];
-                    right_columns[first][row] = cosine * left - sine * right;
-                    right_columns[second][row] = sine * left + cosine * right;
+                {
+                    let (left_vectors, right_vector_tail) = right_columns.split_at_mut(second);
+                    let first_vector = &mut left_vectors[first];
+                    let second_vector = &mut right_vector_tail[0];
+                    for (left, right) in first_vector.iter_mut().zip(second_vector.iter_mut()) {
+                        let old_left = *left;
+                        let old_right = *right;
+                        *left = cosine * old_left - sine * old_right;
+                        *right = sine * old_left + cosine * old_right;
+                    }
                 }
                 rotated = true;
             }
