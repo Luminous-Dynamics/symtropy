@@ -727,6 +727,63 @@ mod tests {
     }
 
     #[test]
+    fn reports_independent_scene_frame_and_primitive_type_strata() {
+        let edge_queries = imported_queries_with_labels(&[true, false]);
+        let vertex_csv = (0..8)
+            .map(|index| format!("{index},1,0,1,0,1,false"))
+            .collect::<Vec<_>>()
+            .join("\\n");
+        let vertex_queries = parse_queries_csv(&vertex_csv, QueryKind::VertexFace).unwrap();
+
+        let edge_positive = evaluation(
+            &edge_queries[0],
+            "shared-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::Collision,
+        );
+        let vertex_negative = evaluation(
+            &vertex_queries[0],
+            "shared-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+        let mut next_frame_negative = evaluation(
+            &edge_queries[1],
+            "shared-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+        next_frame_negative.identity.time_step = 4;
+
+        let ordered = vec![
+            edge_positive.clone(),
+            vertex_negative.clone(),
+            next_frame_negative.clone(),
+        ];
+        let score = evaluate_queries(&ordered).unwrap();
+        let reversed = evaluate_queries(&[
+            next_frame_negative,
+            vertex_negative,
+            edge_positive,
+        ])
+        .unwrap();
+
+        assert_eq!(score, reversed);
+        assert_eq!(score.strata.len(), 3);
+        assert!(score.counts.correctness_qualified());
+        assert_eq!(score.counts.total_queries, 3);
+        assert_eq!(
+            score.strata[0].identity.query_class(),
+            QueryClass::EdgeEdge
+        );
+        assert_eq!(score.strata[0].identity.time_step(), 3);
+        assert_eq!(
+            score.strata[0].counts.oracle_positive_queries,
+            1
+        );
+    }
+
+    #[test]
     fn rejects_missing_oracle_ground_truth() {
         let csv = (0..8)
             .map(|index| format!("{index},1,0,1,0,1"))
