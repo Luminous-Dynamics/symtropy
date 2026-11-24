@@ -499,3 +499,10 @@ Reset is itself a mutating operation and must be tested with the same no-blind-r
 - coordinator restart with durable reset intent but no durable response receipt.
 
 Targets: zero second reset requests while the prior outcome is ambiguous; zero fault dispatch while reset is unresolved; read-only reconciliation can qualify only an observed state matching the full reset contract; journal recovery after coordinator restart must not invent a successful reset from an epoch string. The in-memory mock state machine is a software contract, not a durable reset ledger qualification.
+
+
+### Exact-cut observer scope and local outcome replay
+
+Add controls for an observer at the exact planned simulation iteration versus one step early/late. The positive control is exact-step only in v0.1; early or late observation must fail scope qualification. If later versions need asynchronous sensing, the observation window must be a typed, committed field in the campaign manifest and independently benchmarked.
+
+For the process-local dispatch guard, verify status-preserving behavior: accepted/definitively rejected same-payload replay -> DuplicateSuppressed; Unknown replay -> Unknown pending reconciliation; same-key changed-payload replay -> PayloadConflict; prior PayloadConflict replay remains PayloadConflict. None may issue a second injector call.
