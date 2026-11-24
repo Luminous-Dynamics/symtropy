@@ -1,0 +1,170 @@
+{
+  "corpus_id": "aero-material-process-adversarial-v0.1",
+  "synthetic_only": true,
+  "oracle_authored_independently_of_evaluator": true,
+  "cases": [
+    {
+      "case_id": "dangling-material-lot-reference",
+      "operation": "set",
+      "pointer": "/hierarchy/process_batches/0/material_lot_id",
+      "value": "LOT-NOT-DECLARED",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "DANGLING_REFERENCE"
+      ],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "dangling-product-configuration-reference",
+      "operation": "set",
+      "pointer": "/hierarchy/specimens/0/configuration_id",
+      "value": "CONFIG-NOT-DECLARED",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "DANGLING_REFERENCE"
+      ],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "holdout-to-training-group-leakage",
+      "operation": "set",
+      "pointer": "/partition_contract/assignments/4/partition",
+      "value": "train",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "SPLIT_GROUP_OVERLAP"
+      ],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "unknown-plus-out-of-domain-process",
+      "operation": "set",
+      "pointer": "/hierarchy/process_batches/0/process_state",
+      "value": "unknown",
+      "expected_structurally_complete": true,
+      "expected_process_domain_status": "MIXED_OUT_OF_DOMAIN_AND_UNKNOWN",
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "PROCESS_DOMAIN_UNKNOWN",
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "expired-calibration-campaign",
+      "operation": "set",
+      "pointer": "/hierarchy/test_campaigns/0/calibration_state",
+      "value": "expired",
+      "expected_structurally_complete": true,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_NOT_DECLARED_ACTIVE",
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "negative-observation-uncertainty",
+      "operation": "set",
+      "pointer": "/observations/0/standard_uncertainty_index",
+      "value": -0.1,
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "INVALID_OBSERVED_VALUE"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "physical-unit-substitution",
+      "operation": "set",
+      "pointer": "/observations/0/unit",
+      "value": "MPa",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "NON_SYNTHETIC_QUANTITY"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "unsupported-partition-label",
+      "operation": "set",
+      "pointer": "/partition_contract/assignments/0/partition",
+      "value": "validation",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "UNKNOWN_PARTITION"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "censored-record-loses-reason",
+      "operation": "set",
+      "pointer": "/observations/7/reason_code",
+      "value": null,
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "INCOMPLETE_CENSORED_RECORD"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "duplicate-partition-assignment",
+      "operation": "append",
+      "pointer": "/partition_contract/assignments",
+      "value": {
+        "specimen_id": "SPEC-A1",
+        "partition": "train"
+      },
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "DUPLICATE_SPECIMEN_ASSIGNMENT"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "duplicate-specimen-identity",
+      "operation": "set",
+      "pointer": "/hierarchy/specimens/1/id",
+      "value": "SPEC-A1",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "DUPLICATE_ID"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    },
+    {
+      "case_id": "unrecognized-observation-state",
+      "operation": "set",
+      "pointer": "/observations/0/status",
+      "value": "not-collected",
+      "expected_structurally_complete": false,
+      "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
+      "expected_violation_codes": [
+        "UNKNOWN_OBSERVATION_STATUS"
+      ],
+      "expected_blocker_codes": [
+        "PROCESS_OUT_OF_DOMAIN"
+      ]
+    }
+  ]
+}
