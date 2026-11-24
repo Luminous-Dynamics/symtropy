@@ -899,14 +899,17 @@ fn generate_case(
     (case, stream_case, evaluator_case)
 }
 
-fn generate_corpus() -> (Corpus, EvaluatorLabels) {
+fn generate_corpus() -> (Corpus, ScenarioStreams, EvaluatorLabels) {
     let family_manifest = family_manifest();
     let mut cases = Vec::with_capacity(FAMILY_COUNT * REPLICATIONS_PER_FAMILY);
+    let mut stream_cases = Vec::with_capacity(FAMILY_COUNT * REPLICATIONS_PER_FAMILY);
     let mut evaluator_cases = Vec::with_capacity(FAMILY_COUNT * REPLICATIONS_PER_FAMILY);
     for (family_index, family) in family_manifest.iter().enumerate() {
         for seed in &family.replication_seeds {
-            let (case, evaluator_case) = generate_case(family, family_index, *seed);
+            let (case, stream_case, evaluator_case) =
+                generate_case(family, family_index, *seed);
             cases.push(case);
+            stream_cases.push(stream_case);
             evaluator_cases.push(evaluator_case);
         }
     }
@@ -920,7 +923,7 @@ fn generate_corpus() -> (Corpus, EvaluatorLabels) {
             root_seed: ROOT_SEED,
             seed_algorithm: "SplitMix64-v1".into(),
             seed_derivation: "mix64(root_seed XOR ((family_index + 1) << 32) XOR replication_seed)".into(),
-            pairing_rule: "Each policy receives the same policy-visible case bytes, scenario leaves and event prefixes; paired seeds are shared across policies.".into(),
+            pairing_rule: "Each policy receives the same static case bytes and paired seed; the simulator reveals only the current observed event prefix.".into(),
             split_rule: "Whole scenario families are assigned to development or held_out before generation; no case-level random split.".into(),
             tuning_rule: "Tune only on development families; held_out families are evaluation-only and must not drive policy selection or hyperparameter changes.".into(),
         },
@@ -929,7 +932,15 @@ fn generate_corpus() -> (Corpus, EvaluatorLabels) {
         case_count: cases.len(),
         family_manifest,
         cases,
-        claim_ceiling: "Policy-visible deterministic synthetic challenge corpus only; evaluator outcomes are distributed separately and must be access-controlled; no scheduler superiority, real provider reliability, physical acceptance, product conformity, factory recovery, production authorization, or ISO conformance claim.".into(),
+        claim_ceiling: "Static policy-visible synthetic challenge corpus only; future event trajectories and evaluator outcomes are distributed separately; no scheduler superiority, real provider reliability, physical acceptance, product conformity, factory recovery, production authorization, or ISO conformance claim.".into(),
+    };
+    let scenario_streams = ScenarioStreams {
+        schema_id: "https://luminousdynamics.io/schemas/mfg-policy-v0.2-scenario-streams".into(),
+        benchmark_id: "MFG-POLICY-V02-CHALLENGE-001".into(),
+        evidence_class: "synthetic_simulation_only".into(),
+        case_count: stream_cases.len(),
+        cases: stream_cases,
+        claim_ceiling: "Synthetic future-event streams for simulation harness use only; reveal one observed epoch prefix at a time and never mount complete trajectories in policy processes.".into(),
     };
     let evaluator_labels = EvaluatorLabels {
         schema_id: "https://luminousdynamics.io/schemas/mfg-policy-v0.2-evaluator-labels".into(),
@@ -939,7 +950,7 @@ fn generate_corpus() -> (Corpus, EvaluatorLabels) {
         cases: evaluator_cases,
         claim_ceiling: "Synthetic terminal outcome labels for independent evaluation only; never mount or expose to policy processes.".into(),
     };
-    (policy_corpus, evaluator_labels)
+    (policy_corpus, scenario_streams, evaluator_labels)
 }
 
 fn validate_with_schema(instance: &serde_json::Value, schema_source: &str) -> Result<(), String> {
