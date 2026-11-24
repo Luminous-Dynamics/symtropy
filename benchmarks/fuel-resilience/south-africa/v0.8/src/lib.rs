@@ -54,19 +54,25 @@ impl Evidence {
                     digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
                 });
                 if !digest_is_well_formed {
-                    return Err("measured evidence requires a 64-character SHA-256 reference".into());
+                    return Err(
+                        "measured evidence requires a 64-character SHA-256 reference".into(),
+                    );
                 }
                 if self
                     .upstream_artifact_id
                     .as_ref()
                     .is_none_or(|artifact| artifact.trim().is_empty())
                 {
-                    return Err("measured evidence requires an upstream accounting artifact ID".into());
+                    return Err(
+                        "measured evidence requires an upstream accounting artifact ID".into(),
+                    );
                 }
             }
             EvidenceClass::Scenario => {
                 if !self.source_uri.starts_with("urn:safrb:fixture:") {
-                    return Err("scenario evidence must use the explicit SAFRB fixture namespace".into());
+                    return Err(
+                        "scenario evidence must use the explicit SAFRB fixture namespace".into(),
+                    );
                 }
             }
             EvidenceClass::Reported => {
@@ -291,22 +297,36 @@ fn assess_window(window: &ServiceWindow) -> Result<WindowAssessment, String> {
         return Err("window, period, service and boundary IDs must not be empty".into());
     }
     if window.duration_seconds == 0 {
-        return Err(format!("window {} must have positive duration", window.window_id));
+        return Err(format!(
+            "window {} must have positive duration",
+            window.window_id
+        ));
     }
     if window.critical_floor_wh == 0 || window.target_wh == 0 {
-        return Err(format!("window {} must have positive service requirements", window.window_id));
+        return Err(format!(
+            "window {} must have positive service requirements",
+            window.window_id
+        ));
     }
     if window.target_wh < window.critical_floor_wh {
-        return Err(format!("window {} target is below its critical service floor", window.window_id));
+        return Err(format!(
+            "window {} target is below its critical service floor",
+            window.window_id
+        ));
     }
     if window.delivered_lower_wh > window.delivered_upper_wh {
-        return Err(format!("window {} delivered lower bound exceeds upper bound", window.window_id));
+        return Err(format!(
+            "window {} delivered lower bound exceeds upper bound",
+            window.window_id
+        ));
     }
     let end_unix_s = window
         .start_unix_s
         .checked_add(window.duration_seconds)
         .ok_or_else(|| format!("window {} end timestamp overflowed", window.window_id))?;
-    window.evidence.validate_for_window(window.start_unix_s, end_unix_s)?;
+    window
+        .evidence
+        .validate_for_window(window.start_unix_s, end_unix_s)?;
 
     let disposition = if window.delivered_lower_wh >= window.critical_floor_wh {
         WindowDisposition::GuaranteedAtOrAboveCriticalFloor
@@ -322,8 +342,12 @@ fn assess_window(window: &ServiceWindow) -> Result<WindowAssessment, String> {
         start_unix_s: window.start_unix_s,
         end_unix_s,
         disposition,
-        critical_shortfall_lower_wh: window.critical_floor_wh.saturating_sub(window.delivered_upper_wh),
-        critical_shortfall_upper_wh: window.critical_floor_wh.saturating_sub(window.delivered_lower_wh),
+        critical_shortfall_lower_wh: window
+            .critical_floor_wh
+            .saturating_sub(window.delivered_upper_wh),
+        critical_shortfall_upper_wh: window
+            .critical_floor_wh
+            .saturating_sub(window.delivered_lower_wh),
         target_shortfall_lower_wh: window.target_wh.saturating_sub(window.delivered_upper_wh),
         target_shortfall_upper_wh: window.target_wh.saturating_sub(window.delivered_lower_wh),
     })
