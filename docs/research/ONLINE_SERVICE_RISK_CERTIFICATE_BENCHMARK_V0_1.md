@@ -83,13 +83,17 @@ Records are grouped by exact site, site configuration, asset, asset configuratio
 5. Enqueue the current forecast's later interval-miss outcome.
 6. At the audit cutoff, consume all remaining outcomes whose evidence availability is at or before that cutoff for the final retrospective report.
 
+A forecast without an outcome remains in the forecast denominator and contributes to the pending-outcome count; it does not update the confidence sequence. A completed outcome is added only after its evidence availability time is strictly earlier than a later forecast issue. A partially populated outcome tuple (timestamp without value/evidence, or vice versa) is rejected. This avoids silently dropping issued forecasts from the audit, although the caller still needs an upstream completeness feed to distinguish in-flight from permanently missing outcomes.
+
 The pending queue is ordered by outcome availability, not forecast issue order. This is necessary because a later-issued forecast can finish and be observed before an older, longer-horizon forecast.
 
 Forecast evidence must be observed no later than forecast issue; outcome evidence must be observed at its declared availability timestamp and no earlier than target end. The exact asset/configuration must match both evidence envelopes. Unknown evidence, duplicate sample/evidence IDs, invalid boundaries, stale/future chronology and malformed horizons are rejected.
 
 ## 6. Frozen synthetic known answer
 
-The fixture contains five observations for one exact site/ESS/configuration/model/stratum/metric cohort:
+The fixture contains five forecast events for one exact site/ESS/configuration/model/stratum/metric cohort. The event contract allows an all-or-none absent outcome tuple for forecasts whose outcome has not arrived by the audit cutoff; partial outcome tuples are rejected. Reports publish forecast, observed-outcome and pending-outcome denominators separately. Pending may mean delayed, unavailable or missing—the monitor does not infer which without source events.
+
+The frozen fixture itself contains five observed outcomes:
 - two interval misses arrive before the fourth forecast is issued;
 - the third observation arrives after its own forecast and before the fourth;
 - two later forecasts are issued while the CUSUM alarm is already latched.
@@ -98,7 +102,8 @@ Expected report:
 
 | Output | Expected |
 |---|---:|
-| Observations | 5 |
+| Forecasts | 5 |
+| Observed outcomes / pending outcomes | 5 / 0 |
 | Exact groups | 1 |
 | Interval misses | 2 |
 | Final empirical miscoverage | 400‰ |
