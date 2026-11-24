@@ -171,5 +171,6 @@
       ]
     }
   ],
-  "claim_ceiling": "Synthetic preregistration and assignment audit only; no causal effect or operational authority."
+  "claim_ceiling": "Synthetic preregistration and assignment audit only; no causal effect or operational authority.",
+  "primary_outcome_unit": "kWh"
 }
