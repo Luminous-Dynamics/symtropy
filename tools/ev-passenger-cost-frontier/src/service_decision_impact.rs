@@ -60,7 +60,7 @@ pub struct DecisionImpactRecord {
     pub predicted_upper: u64,
     pub observed_value: u64,
     pub hard_gate_disposition: HardGateDisposition,
-    pub service_value_units: u64,
+    pub candidate_value_proxy_units: u64,
     pub forecast_evidence: EvidenceEnvelope,
     pub hard_gate_evidence: EvidenceEnvelope,
     pub outcome_evidence: EvidenceEnvelope,
@@ -119,7 +119,7 @@ pub struct DecisionImpactGroup {
     pub false_abstention_rate_wilson_95: Option<WilsonInterval>,
     pub decision_flips: usize,
     pub replay_defined_count: usize,
-    pub avoidable_abstention_value_units: u64,
+    pub potentially_admissible_value_proxy_units: u64,
     pub risk_coverage: Vec<DecisionRiskCoveragePoint>,
 }
 
@@ -142,7 +142,7 @@ pub struct ServiceDecisionImpactReport {
     pub false_abstention_count: usize,
     pub decision_flip_count: usize,
     pub replay_defined_count: usize,
-    pub avoidable_abstention_value_units: u64,
+    pub potentially_admissible_value_proxy_units: u64,
     pub risk_coverage_group_count: usize,
     pub all_evidence_source_grade: bool,
     pub any_synthetic_evidence: bool,
@@ -174,7 +174,7 @@ struct EvaluatedDecision {
     candidate_admit: bool,
     realized_metric_admit: bool,
     hard_gate: HardGateDisposition,
-    service_value_units: u64,
+    candidate_value_proxy_units: u64,
 }
 
 fn evidence_well_formed(e: &EvidenceEnvelope) -> bool {
@@ -347,7 +347,7 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             r.predicted_point,
             r.predicted_upper,
             r.observed_value,
-            r.service_value_units,
+            r.candidate_value_proxy_units,
         ]
         .into_iter()
         .any(|v| v > MAX_VALUE)
@@ -480,7 +480,7 @@ pub fn evaluate_service_decision_impact(
                     r.threshold_value,
                 ),
                 hard_gate: r.hard_gate_disposition,
-                service_value_units: r.service_value_units,
+                candidate_value_proxy_units: r.candidate_value_proxy_units,
             });
     }
 
@@ -510,7 +510,7 @@ pub fn evaluate_service_decision_impact(
         false_abstention_rate_wilson_95: None,
         decision_flips: 0,
         replay_defined_count: 0,
-        avoidable_abstention_value_units: 0,
+        potentially_admissible_value_proxy_units: 0,
         risk_coverage: Vec::new(),
     };
 
@@ -540,7 +540,7 @@ pub fn evaluate_service_decision_impact(
             false_abstention_rate_wilson_95: None,
             decision_flips: 0,
             replay_defined_count: 0,
-            avoidable_abstention_value_units: 0,
+            potentially_admissible_value_proxy_units: 0,
             risk_coverage: Vec::new(),
         };
 
@@ -572,9 +572,9 @@ pub fn evaluate_service_decision_impact(
                     }
                 } else if d.realized_metric_admit {
                     group.false_abstentions += 1;
-                    group.avoidable_abstention_value_units = group
-                        .avoidable_abstention_value_units
-                        .saturating_add(d.service_value_units);
+                    group.potentially_admissible_value_proxy_units = group
+                        .potentially_admissible_value_proxy_units
+                        .saturating_add(d.candidate_value_proxy_units);
                 }
                 if d.candidate_admit != d.realized_metric_admit {
                     group.decision_flips += 1;
@@ -637,9 +637,9 @@ pub fn evaluate_service_decision_impact(
         totals.realized_feasible_count += group.realized_feasible_count;
         totals.decision_flips += group.decision_flips;
         totals.replay_defined_count += group.replay_defined_count;
-        totals.avoidable_abstention_value_units = totals
-            .avoidable_abstention_value_units
-            .saturating_add(group.avoidable_abstention_value_units);
+        totals.potentially_admissible_value_proxy_units = totals
+            .potentially_admissible_value_proxy_units
+            .saturating_add(group.potentially_admissible_value_proxy_units);
         groups.push(group);
     }
 
@@ -659,7 +659,7 @@ pub fn evaluate_service_decision_impact(
         false_abstention_count: totals.false_abstentions,
         decision_flip_count: totals.decision_flips,
         replay_defined_count: totals.replay_defined_count,
-        avoidable_abstention_value_units: totals.avoidable_abstention_value_units,
+        potentially_admissible_value_proxy_units: totals.potentially_admissible_value_proxy_units,
         risk_coverage_group_count: groups.len(),
         all_evidence_source_grade,
         any_synthetic_evidence,
@@ -729,7 +729,7 @@ mod tests {
             predicted_upper: upper,
             observed_value: observed,
             hard_gate_disposition: gate,
-            service_value_units: 10,
+            candidate_value_proxy_units: 10,
             forecast_evidence: evidence("ESS-01", &format!("{id}-forecast"), 900, 800, 2_500),
             hard_gate_evidence: evidence("ESS-01", &format!("{id}-gate"), 950, 800, 2_500),
             outcome_evidence: evidence("ESS-01", &format!("{id}-outcome"), 2_100, 2_000, 2_500),
@@ -756,7 +756,7 @@ mod tests {
         assert_eq!(report.false_safe_admission_count, 1);
         assert_eq!(report.false_abstention_count, 1);
         assert_eq!(report.decision_flip_count, 2);
-        assert_eq!(report.avoidable_abstention_value_units, 10);
+        assert_eq!(report.potentially_admissible_value_proxy_units, 10);
     }
 
     #[test]
@@ -865,7 +865,7 @@ mod tests {
     #[test]
     fn zero_service_value_does_not_relax_a_hard_gate() {
         let mut r = record("zero", 1_050, 1_100, 1_080, HardGateDisposition::Failed);
-        r.service_value_units = 0;
+        r.candidate_value_proxy_units = 0;
         let report = evaluate_service_decision_impact(&input(vec![r])).unwrap();
         assert_eq!(report.operational_admission_count, 0);
         assert_eq!(report.hard_gate_bypass_attempt_count, 1);
