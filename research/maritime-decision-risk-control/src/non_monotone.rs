@@ -328,9 +328,9 @@ pub fn render_csv() -> String {
     );
 
     let experiments = [
-        ("N1200_ALPHA200", 1_200, 200_u16, 0x4E4D_1200_001_u64),
-        ("N1200_ALPHA100", 1_200, 100_u16, 0x4E4D_1200_002_u64),
-        ("N50000_ALPHA100", 50_000, 100_u16, 0x4E4D_5000_003_u64),
+        ("N1200_ALPHA200", 1_200, 200_u16, 0x04E4_D120_0001_u64),
+        ("N1200_ALPHA100", 1_200, 100_u16, 0x04E4_D120_0002_u64),
+        ("N50000_ALPHA100", 50_000, 100_u16, 0x04E4_D500_0003_u64),
     ];
 
     for (name, n, alpha, seed) in experiments {
@@ -454,7 +454,7 @@ mod tests {
 
     #[test]
     fn adjusted_selector_keeps_non_monotone_loss_curve_and_reports_excess() {
-        let grid = synthetic_non_monotone_grid(1_200, 0x4E4D_1200_001);
+        let grid = synthetic_non_monotone_grid(1_200, 0x04E4_D120_0001);
         let result = calibrate(
             &grid,
             200,
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn fifty_thousand_schedule_units_can_make_the_ninety_percent_target_positive() {
-        let grid = synthetic_non_monotone_grid(50_000, 0x4E4D_5000_003);
+        let grid = synthetic_non_monotone_grid(50_000, 0x04E4_D500_0003);
         let result = calibrate(
             &grid,
             100,
