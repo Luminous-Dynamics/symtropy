@@ -509,3 +509,6 @@ For the process-local dispatch guard, verify status-preserving behavior: accepte
 
 
 Add idempotency-identity controls beyond request-payload mutation: delimiter-colliding caller IDs must produce distinct versioned keys; a scenario or fault object not byte/field-equal to the committed plan entry must not yield a key; a mutated plan digest must not yield a key. The key derivation and request payload digest require separate cross-language known-answer vectors so different transport languages cannot silently compute divergent identifiers.
+
+
+Add controls proving reset evidence cannot be transferred across otherwise-compatible campaigns: compile two valid plans for the same pinned simulator/world profile, reset under plan A, then attempt dispatch under plan B. Expected: ResetVerificationMismatch and zero simulator steps/injector calls. Also check the session cannot be cloned through the safe public API and raw injector dispatch cannot be imported from outside the adapter module.
