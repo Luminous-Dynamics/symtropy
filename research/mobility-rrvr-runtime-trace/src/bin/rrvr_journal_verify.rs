@@ -3,7 +3,7 @@
 
 //! Read-only verifier for an existing RRVR durable journal.
 
-use mobility_rrvr_runtime_trace::durable_journal::verify_file;
+use mobility_rrvr_runtime_trace::durable_journal::recovery_projection_file;
 use serde_json::json;
 use std::env;
 use std::fs;
@@ -21,7 +21,7 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let summary = match verify_file(&journal_path) {
+    let projection = match recovery_projection_file(&journal_path) {
         Ok(summary) => summary,
         Err(error) => {
             eprintln!("journal validation failed: {error}");
@@ -31,7 +31,7 @@ fn main() -> ExitCode {
     let report = json!({
         "validation": "passed",
         "journal_path": journal_path,
-        "summary": summary,
+        "recovery_projection": projection,
         "read_only": true,
         "transport_calls_performed": false,
         "native_authority_created": false,
