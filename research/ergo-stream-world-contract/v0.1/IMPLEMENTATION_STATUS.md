@@ -537,3 +537,13 @@ The split-conformal calibrator now stores `SplitConformalCalibrationIdentityV0`:
 `SplitConformalCalibrationIdentityV0` now includes `receipt_status` (`Active`, `Revoked`, `Expired`). Fitting rejects non-active receipts; prediction identity comparison fails closed to the full set/no decision if a receipt is revoked/expired or otherwise differs. The JSON schema/example mirror the status field.
 
 This is a typed owner-to-evaluator handoff, not cryptographic verification. The owner still verifies signature/custody, expiry/revocation, chronology, cohort digest and receipt state before creating the identity. Exact-head Rust verification remains pending.
+
+## Sequential/dependence ownership composition
+
+The static split-conformal implementation does not cover adaptive probe selection, optional stopping, delayed label maturation, or temporally dependent episodes. Related owners have been identified and linked:
+- #6943: dependence-aware trajectory calibration and independence-group contract;
+- #5285: block-maximum calibration and transfer failure;
+- #6887: anytime-valid sequential decision sets under adaptive observation;
+- Symthaea #13280: online conformal calibration under delayed metrology feedback and process drift.
+
+The v0.1 calibrator remains offline/static; no online update or anytime-valid claim is made. These systems should be integrated by receipt/episode identity and owner policy, not reimplemented here.
