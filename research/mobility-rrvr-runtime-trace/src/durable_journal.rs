@@ -327,6 +327,63 @@ fn entry_digest(
     Ok(sha256_hex(&canonical_json(&payload)?))
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResetRecoveryDisposition {
+    IntentOnly,
+    ResponseAcceptedAwaitingObservation,
+    ResponseUnknownReadOnlyReconciliationRequired,
+    UnresolvedReadOnlyReconciliationRequired,
+    Verified,
+    RejectedHold,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DispatchRecoveryDisposition {
+    IntentOnlyLedgerLookupRequired,
+    ResponseUnknownLedgerLookupRequired,
+    UnresolvedLedgerLookupRequired,
+    AcceptedAwaitingExecutionEvidence,
+    ReconciledAcceptedAwaitingExecutionEvidence,
+    Rejected,
+    ReconciledRejected,
+    NoDispatchProvenTerminal,
+    PayloadConflictHold,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResetRecoveryState {
+    pub intent: ResetIntentRecord,
+    pub latest_outcome: Option<ResetOutcomeRecord>,
+    pub disposition: ResetRecoveryDisposition,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchRecoveryState {
+    pub intent: DispatchIntentRecord,
+    pub latest_outcome: Option<DispatchOutcomeRecord>,
+    pub disposition: DispatchRecoveryDisposition,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct JournalRecoveryProjection {
+    pub schema_version: String,
+    pub canonicalization: String,
+    pub entry_count: u64,
+    pub head_sha256: String,
+    pub resets: Vec<ResetRecoveryState>,
+    pub dispatches: Vec<DispatchRecoveryState>,
+    pub reset_reconciliation_required: Vec<String>,
+    pub dispatch_ledger_reconciliation_required: Vec<String>,
+    pub dispatch_execution_evidence_pending: Vec<String>,
+    pub authority_created: bool,
+    pub mutation_permitted: bool,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JournalSummary {
@@ -370,8 +427,12 @@ struct JournalIndex {
     reset_intents: BTreeMap<String, ResetIntentBinding>,
     reset_status: BTreeMap<String, ResetOutcomeStatus>,
     reset_scopes: std::collections::BTreeSet<(String, String, String)>,
+    reset_intent_records: BTreeMap<String, ResetIntentRecord>,
+    reset_outcome_records: BTreeMap<String, ResetOutcomeRecord>,
     dispatch_intents: BTreeMap<String, DispatchIntentBinding>,
     dispatch_status: BTreeMap<String, DispatchOutcomeStatus>,
+    dispatch_intent_records: BTreeMap<String, DispatchIntentRecord>,
+    dispatch_outcome_records: BTreeMap<String, DispatchOutcomeRecord>,
 }
 
 impl JournalIndex {
@@ -424,6 +485,20 @@ impl JournalIndex {
                         run_id: run_id.clone(),
                         run_epoch: run_epoch.clone(),
                         verified_world_epoch: None,
+                    },
+                );
+                self.reset_intent_records.insert(
+                    reset_id.clone(),
+                    ResetIntentRecord {
+                        reset_id: reset_id.clone(),
+                        plan_sha256: plan_sha256.clone(),
+                        simulator_profile_sha256: simulator_profile_sha256.clone(),
+                        world_id: world_id.clone(),
+                        prior_world_epoch: prior_world_epoch.clone(),
+                        clock_id: clock_id.clone(),
+                        expected_initial_state_sha256: expected_initial_state_sha256.clone(),
+                        run_id: run_id.clone(),
+                        run_epoch: run_epoch.clone(),
                     },
                 );
                 Ok(())
@@ -491,6 +566,18 @@ impl JournalIndex {
                     }
                 }
                 self.reset_status.insert(reset_id.clone(), *status);
+                self.reset_outcome_records.insert(
+                    reset_id.clone(),
+                    ResetOutcomeRecord {
+                        reset_id: reset_id.clone(),
+                        source: *source,
+                        status: *status,
+                        observed_world_epoch: observed_world_epoch.clone(),
+                        observed_clock_id: observed_clock_id.clone(),
+                        observed_initial_state_sha256: observed_initial_state_sha256.clone(),
+                        observation_artifact_sha256: observation_artifact_sha256.clone(),
+                    },
+                );
                 Ok(())
             }
             JournalEvent::DispatchIntent {
@@ -506,14 +593,15 @@ impl JournalIndex {
                 pair_id,
                 scenario_id,
                 fault_id,
+                fault_sequence,
                 run_id,
                 run_epoch,
                 world_epoch,
                 clock_id,
                 target_id,
                 fault_domain_id,
+                scheduled_simulation_step,
                 parameters_sha256,
-                ..
             } => {
                 if !nonempty(idempotency_key)
                     || !valid_sha256(payload_sha256)
@@ -584,6 +672,32 @@ impl JournalIndex {
                         payload_sha256: payload_sha256.clone(),
                     },
                 );
+                self.dispatch_intent_records.insert(
+                    idempotency_key.clone(),
+                    DispatchIntentRecord {
+                        idempotency_key: idempotency_key.clone(),
+                        payload_sha256: payload_sha256.clone(),
+                        reset_id: reset_id.clone(),
+                        plan_sha256: plan_sha256.clone(),
+                        simulator_profile_sha256: simulator_profile_sha256.clone(),
+                        world_id: world_id.clone(),
+                        logical_effect_id: logical_effect_id.clone(),
+                        attempt_id: attempt_id.clone(),
+                        campaign_id: campaign_id.clone(),
+                        pair_id: pair_id.clone(),
+                        scenario_id: scenario_id.clone(),
+                        fault_id: fault_id.clone(),
+                        fault_sequence: *fault_sequence,
+                        run_id: run_id.clone(),
+                        run_epoch: run_epoch.clone(),
+                        world_epoch: world_epoch.clone(),
+                        clock_id: clock_id.clone(),
+                        target_id: target_id.clone(),
+                        fault_domain_id: fault_domain_id.clone(),
+                        scheduled_simulation_step: *scheduled_simulation_step,
+                        parameters_sha256: parameters_sha256.clone(),
+                    },
+                );
                 Ok(())
             }
             JournalEvent::DispatchOutcome {
@@ -645,8 +759,142 @@ impl JournalIndex {
                     | DispatchOutcomeStatus::ResponseUnknown => {}
                 }
                 self.dispatch_status.insert(idempotency_key.clone(), *status);
+                self.dispatch_outcome_records.insert(
+                    idempotency_key.clone(),
+                    DispatchOutcomeRecord {
+                        idempotency_key: idempotency_key.clone(),
+                        payload_sha256: payload_sha256.clone(),
+                        source: *source,
+                        status: *status,
+                        dispatch_id: dispatch_id.clone(),
+                        ledger_artifact_sha256: ledger_artifact_sha256.clone(),
+                    },
+                );
                 Ok(())
             }
+        }
+    }
+
+    fn recovery_projection(
+        &self,
+        entry_count: u64,
+        head_sha256: String,
+    ) -> JournalRecoveryProjection {
+        let resets: Vec<ResetRecoveryState> = self
+            .reset_intent_records
+            .iter()
+            .map(|(reset_id, intent)| {
+                let latest_outcome = self.reset_outcome_records.get(reset_id).cloned();
+                let disposition = match latest_outcome.as_ref().map(|outcome| outcome.status) {
+                    None => ResetRecoveryDisposition::IntentOnly,
+                    Some(ResetOutcomeStatus::ResponseAccepted) => {
+                        ResetRecoveryDisposition::ResponseAcceptedAwaitingObservation
+                    }
+                    Some(ResetOutcomeStatus::ResponseUnknown) => {
+                        ResetRecoveryDisposition::ResponseUnknownReadOnlyReconciliationRequired
+                    }
+                    Some(ResetOutcomeStatus::Unresolved) => {
+                        ResetRecoveryDisposition::UnresolvedReadOnlyReconciliationRequired
+                    }
+                    Some(ResetOutcomeStatus::Verified) => ResetRecoveryDisposition::Verified,
+                    Some(ResetOutcomeStatus::ResponseRejected) => {
+                        ResetRecoveryDisposition::RejectedHold
+                    }
+                };
+                ResetRecoveryState {
+                    intent: intent.clone(),
+                    latest_outcome,
+                    disposition,
+                }
+            })
+            .collect();
+        let dispatches: Vec<DispatchRecoveryState> = self
+            .dispatch_intent_records
+            .iter()
+            .map(|(key, intent)| {
+                let latest_outcome = self.dispatch_outcome_records.get(key).cloned();
+                let disposition = match latest_outcome.as_ref().map(|outcome| outcome.status) {
+                    None => DispatchRecoveryDisposition::IntentOnlyLedgerLookupRequired,
+                    Some(DispatchOutcomeStatus::ResponseUnknown) => {
+                        DispatchRecoveryDisposition::ResponseUnknownLedgerLookupRequired
+                    }
+                    Some(DispatchOutcomeStatus::Unresolved) => {
+                        DispatchRecoveryDisposition::UnresolvedLedgerLookupRequired
+                    }
+                    Some(DispatchOutcomeStatus::ResponseAccepted) => {
+                        DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence
+                    }
+                    Some(DispatchOutcomeStatus::ReconciledAccepted) => {
+                        DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence
+                    }
+                    Some(DispatchOutcomeStatus::ResponseRejected) => {
+                        DispatchRecoveryDisposition::Rejected
+                    }
+                    Some(DispatchOutcomeStatus::ReconciledRejected) => {
+                        DispatchRecoveryDisposition::ReconciledRejected
+                    }
+                    Some(DispatchOutcomeStatus::NoDispatchProven) => {
+                        DispatchRecoveryDisposition::NoDispatchProvenTerminal
+                    }
+                    Some(DispatchOutcomeStatus::PayloadConflict) => {
+                        DispatchRecoveryDisposition::PayloadConflictHold
+                    }
+                };
+                DispatchRecoveryState {
+                    intent: intent.clone(),
+                    latest_outcome,
+                    disposition,
+                }
+            })
+            .collect();
+        let reset_reconciliation_required = resets
+            .iter()
+            .filter(|reset| {
+                matches!(
+                    reset.disposition,
+                    ResetRecoveryDisposition::IntentOnly
+                        | ResetRecoveryDisposition::ResponseAcceptedAwaitingObservation
+                        | ResetRecoveryDisposition::ResponseUnknownReadOnlyReconciliationRequired
+                        | ResetRecoveryDisposition::UnresolvedReadOnlyReconciliationRequired
+                )
+            })
+            .map(|reset| reset.intent.reset_id.clone())
+            .collect();
+        let dispatch_ledger_reconciliation_required = dispatches
+            .iter()
+            .filter(|dispatch| {
+                matches!(
+                    dispatch.disposition,
+                    DispatchRecoveryDisposition::IntentOnlyLedgerLookupRequired
+                        | DispatchRecoveryDisposition::ResponseUnknownLedgerLookupRequired
+                        | DispatchRecoveryDisposition::UnresolvedLedgerLookupRequired
+                )
+            })
+            .map(|dispatch| dispatch.intent.idempotency_key.clone())
+            .collect();
+        let dispatch_execution_evidence_pending = dispatches
+            .iter()
+            .filter(|dispatch| {
+                matches!(
+                    dispatch.disposition,
+                    DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence
+                        | DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence
+                )
+            })
+            .map(|dispatch| dispatch.intent.idempotency_key.clone())
+            .collect();
+        JournalRecoveryProjection {
+            schema_version: JOURNAL_SCHEMA_VERSION.to_owned(),
+            canonicalization: JOURNAL_CANONICALIZATION.to_owned(),
+            entry_count,
+            head_sha256,
+            resets,
+            dispatches,
+            reset_reconciliation_required,
+            dispatch_ledger_reconciliation_required,
+            dispatch_execution_evidence_pending,
+            authority_created: false,
+            mutation_permitted: false,
         }
     }
 
@@ -906,6 +1154,15 @@ impl Journal {
         self.head_sha256 = digest;
         Ok(entry)
     }
+
+    /// Deterministic recovery projection from the already verified journal index.
+    /// This is read-only and never performs a transport call or grants mutation authority.
+    pub fn recovery_projection(&self) -> JournalRecoveryProjection {
+        self.index.recovery_projection(
+            self.next_sequence.saturating_sub(1),
+            self.head_sha256.clone(),
+        )
+    }
 }
 
 /// Verify an existing journal without taking a writer lease or mutating it.
@@ -915,6 +1172,16 @@ pub fn verify_file(path: impl AsRef<Path>) -> Result<JournalSummary, JournalErro
     let mut file = File::open(path).map_err(io_error)?;
     let (index, next_sequence, head_sha256) = replay_file(&mut file)?;
     Ok(index.summary(next_sequence.saturating_sub(1), head_sha256))
+}
+
+/// Reconstruct all outstanding reset/dispatch identities from a quiescent log.
+/// This performs no writes, resets, steps, injector calls or authority actions.
+pub fn recovery_projection_file(
+    path: impl AsRef<Path>,
+) -> Result<JournalRecoveryProjection, JournalError> {
+    let mut file = File::open(path).map_err(io_error)?;
+    let (index, next_sequence, head_sha256) = replay_file(&mut file)?;
+    Ok(index.recovery_projection(next_sequence.saturating_sub(1), head_sha256))
 }
 
 fn replay_file(file: &mut File) -> Result<(JournalIndex, u64, String), JournalError> {
