@@ -607,13 +607,25 @@ fn consider(
     best_regret: &mut Option<ObservablePolicy>,
     best_rectangular: &mut Option<ObservablePolicy>,
 ) -> Result<(), TemporalMinimaxError> {
-    if best_risk.as_ref().is_none_or(|best| better_risk(&policy, best).unwrap_or(false)) {
+    let replace_risk = match best_risk.as_ref() {
+        Some(best) => better_risk(&policy, best)?,
+        None => true,
+    };
+    if replace_risk {
         *best_risk = Some(policy.clone());
     }
-    if best_regret.as_ref().is_none_or(|best| better_regret(&policy, best).unwrap_or(false)) {
+    let replace_regret = match best_regret.as_ref() {
+        Some(best) => better_regret(&policy, best)?,
+        None => true,
+    };
+    if replace_regret {
         *best_regret = Some(policy.clone());
     }
-    if best_rectangular.as_ref().is_none_or(|best| better_rectangular(&policy, best).unwrap_or(false)) {
+    let replace_rectangular = match best_rectangular.as_ref() {
+        Some(best) => better_rectangular(&policy, best)?,
+        None => true,
+    };
+    if replace_rectangular {
         *best_rectangular = Some(policy);
     }
     Ok(())
@@ -668,15 +680,6 @@ pub fn plan_temporal_mission_minimax(
                 problem,
                 budget,
             )?;
-            for model in 0..MODEL_COUNT {
-                let best_branch = options.iter().map(|option| option.contributions[model]).min()
-                    .ok_or(TemporalMinimaxError::NoFeasiblePolicy)?;
-                model_oracles[model] = model_oracles[model].min(
-                    model_oracles[model].checked_sub(model_oracles[model])
-                        .and_then(|_| Some(best_branch))
-                        .ok_or(TemporalMinimaxError::ArithmeticOverflow)?,
-                );
-            }
             branches.push(options);
         }
         roots.push((first_action.action_id, branches));
@@ -810,11 +813,12 @@ mod tests {
     fn action(id: u64, age: u64, latency: u64, inside_error: u64, outside_error: u64) -> TimedJointAction {
         let inside = likelihoods(0, PROBABILITY_SCALE - inside_error, inside_error);
         let outside = likelihoods(0, outside_error, PROBABILITY_SCALE - outside_error);
+        let rows = [inside, outside, inside, outside];
         TimedJointAction {
             action_id: id,
             cost: ResourceVector { latency_ns: latency, energy_uj: 1, bandwidth_bytes: 1 },
             evidence_age_ns: age,
-            likelihoods: [[inside; STATE_COUNT]; MODEL_COUNT],
+            likelihoods: [rows; MODEL_COUNT],
             transitions: [[identity(); CAUSE_COUNT]; MODEL_COUNT],
             outcome_model_sha256: [[[0x31; 32]; CAUSE_COUNT]; MODEL_COUNT],
             transition_model_sha256: [[[0x42; 32]; CAUSE_COUNT]; MODEL_COUNT],
@@ -874,14 +878,25 @@ mod tests {
         let initial = initial_mass(&p, 0);
         let outcomes = apply_action(0, initial, &a).unwrap();
         for outcome in outcomes {
-            let nominal_before = initial.parts[0] + initial.parts[1];
-            let shared_before = initial.parts[2] + initial.parts[3];
-            let nominal_after = outcome.use_mass.parts[0] + outcome.use_mass.parts[1];
-            let shared_after = outcome.use_mass.parts[2] + outcome.use_mass.parts[3];
-            assert_eq!(nominal_after + shared_after, outcome.use_mass.parts.iter().sum());
-            // Both cause slices survive independently; transition cannot move mass between them.
-            assert!(nominal_after <= nominal_before * SCALE * SCALE);
-            assert!(shared_after <= shared_before * SCALE * SCALE);
+            let outcome_index = outcome.outcome.index();
+            let mut expected_cause_totals = [0_u128; CAUSE_COUNT];
+            for cause in 0..CAUSE_COUNT {
+                for nav_state in 0..2 {
+                    let state_index = cause * 2 + nav_state;
+                    expected_cause_totals[cause] = expected_cause_totals[cause]
+                        .checked_add(initial.parts[state_index]
+                            * a.likelihoods[0][state_index].probability(outcomes[outcome_index].outcome) as u128)
+                        .unwrap();
+                }
+                expected_cause_totals[cause] *= SCALE;
+            }
+            let actual_cause_totals = [
+                outcome.use_mass.parts[0] + outcome.use_mass.parts[1],
+                outcome.use_mass.parts[2] + outcome.use_mass.parts[3],
+            ];
+            // State transition can move inside/outside mass but cannot move a
+            // particle between the persistent nominal and shared-fault slices.
+            assert_eq!(actual_cause_totals, expected_cause_totals);
         }
     }
 
