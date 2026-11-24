@@ -522,8 +522,7 @@ fn source_signed_difference(
 ) -> Result<SourceSignedDifference, String> {
     let left = u128::from(baseline.numerator) * u128::from(candidate.denominator);
     let right = u128::from(candidate.numerator) * u128::from(baseline.denominator);
-    let denominator =
-        u128::from(baseline.denominator) * u128::from(candidate.denominator);
+    let denominator = u128::from(baseline.denominator) * u128::from(candidate.denominator);
     let (direction, numerator) = match left.cmp(&right) {
         Ordering::Greater => ("positive_improvement", left - right),
         Ordering::Less => ("negative_improvement", right - left),
@@ -936,19 +935,30 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .min_by(|left, right| left.compare_exact(right))
         .cloned();
     if best_no_query != case.best_no_query_worst_case_loss {
-        return invalid(case, "best-no-query worst-case loss disagrees with upstream policy metrics");
+        return invalid(
+            case,
+            "best-no-query worst-case loss disagrees with upstream policy metrics",
+        );
     }
     for (policy, loss) in policy_metrics.values() {
         let expected = match (&policy.query_id, &best_no_query) {
             (None, _) => None,
             (Some(_), Some(baseline)) => match source_signed_difference(baseline, loss) {
                 Ok(value) => Some(value),
-                Err(_) => return invalid(case, "best-no-query loss reduction exceeds exact rational bounds"),
+                Err(_) => {
+                    return invalid(
+                        case,
+                        "best-no-query loss reduction exceeds exact rational bounds",
+                    );
+                }
             },
             (Some(_), None) => None,
         };
         if policy.worst_loss_reduction_vs_best_no_query != expected {
-            return invalid(case, "policy worst-loss reduction diagnostic disagrees with best no-query baseline");
+            return invalid(
+                case,
+                "policy worst-loss reduction diagnostic disagrees with best no-query baseline",
+            );
         }
     }
 
@@ -1243,8 +1253,14 @@ mod tests {
             worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_loss_reduction_vs_best_no_query: Some(
                 source_signed_difference(
-                    &Rational { numerator: 10, denominator: 1 },
-                    &Rational { numerator: candidate_loss, denominator: 1 },
+                    &Rational {
+                        numerator: 10,
+                        denominator: 1,
+                    },
+                    &Rational {
+                        numerator: candidate_loss,
+                        denominator: 1,
+                    },
                 )
                 .expect("candidate loss reduction"),
             ),
@@ -1294,7 +1310,10 @@ mod tests {
                 source_expected_query_ids_sha256: "e".repeat(64),
                 source_queries_sha256: "f".repeat(64),
                 source_incumbent_policy_id: "incumbent-static".to_owned(),
-                source_best_no_query_worst_case_loss: Some(Rational { numerator: 10, denominator: 1 }),
+                source_best_no_query_worst_case_loss: Some(Rational {
+                    numerator: 10,
+                    denominator: 1,
+                }),
                 source_scope_sha256: "c".repeat(64),
                 source_decision_cutoff_id: "cutoff-106".to_owned(),
                 source_world_set_receipt_id: "world-receipt-1".to_owned(),
@@ -1315,7 +1334,10 @@ mod tests {
             incumbent_feasibility_state: "FEASIBLE".to_owned(),
             loss_unit: "loss_micro_units".to_owned(),
             incumbent_policy_id: "incumbent-static".to_owned(),
-            best_no_query_worst_case_loss: Some(Rational { numerator: 10, denominator: 1 }),
+            best_no_query_worst_case_loss: Some(Rational {
+                numerator: 10,
+                denominator: 1,
+            }),
             materiality_margin: Rational {
                 numerator: margin,
                 denominator: 1,
@@ -1556,8 +1578,10 @@ mod tests {
     #[test]
     fn best_no_query_baseline_and_policy_loss_reduction_are_recomputed() {
         let mut wrong_baseline = fixture_case(1, 2, 3);
-        wrong_baseline.best_no_query_worst_case_loss =
-            Some(Rational { numerator: 9, denominator: 1 });
+        wrong_baseline.best_no_query_worst_case_loss = Some(Rational {
+            numerator: 9,
+            denominator: 1,
+        });
         let result = evaluate_case(&wrong_baseline);
         assert_eq!(result.status, "INVALID_INPUT");
         assert_eq!(
@@ -1570,7 +1594,10 @@ mod tests {
             .worst_loss_reduction_vs_best_no_query
             .as_mut()
             .expect("candidate reduction exists")
-            .magnitude = Rational { numerator: 8, denominator: 1 };
+            .magnitude = Rational {
+            numerator: 8,
+            denominator: 1,
+        };
         refresh_source_digests(&mut wrong_delta);
         let result = evaluate_case(&wrong_delta);
         assert_eq!(result.status, "INVALID_INPUT");
