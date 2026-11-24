@@ -304,7 +304,6 @@ pub struct StatisticalRiskEvidenceClaim {
     pub target_risk_milli: u16,
     /// Upper risk bound emitted by the named method; may exceed 1,000.
     pub risk_upper_bound_milli: u32,
-    pub monitoring_horizon_ref: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -336,6 +335,7 @@ pub struct AssuranceDecision {
     pub guarantee: StatisticalGuarantee,
     pub target_risk_milli: u16,
     pub risk_upper_bound_milli: u32,
+    pub monitoring_horizon_ref: Option<String>,
     pub scenario_count: usize,
     pub physical_failure_count: usize,
     pub unknown_physical_count: usize,
