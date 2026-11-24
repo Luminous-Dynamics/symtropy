@@ -482,7 +482,7 @@ mod tests {
         .expect("calibration succeeds");
 
         assert_eq!(result.calibration_schedules, 120);
-        assert_eq!(result.observed_loss_mean_milli, 40.0);
+        assert!((result.observed_loss_mean_milli - (4_000.0 / 120.0)).abs() < 1e-9);
     }
 
     #[test]
@@ -573,7 +573,13 @@ mod tests {
     #[test]
     fn crc_empirical_threshold_matches_paper_formula() {
         let matrix = LossMatrix {
-            schedules: vec![vec![0], vec![0], vec![0], vec![0], vec![1_000]],
+            schedules: vec![
+                vec![1_000, 0],
+                vec![0, 0],
+                vec![0, 0],
+                vec![0, 0],
+                vec![0, 0],
+            ],
         };
         let result = calibrate(
             &matrix,
@@ -588,8 +594,10 @@ mod tests {
         )
         .expect("fallback contract");
 
-        assert_eq!(result.selected_parameter_index, 0);
-        assert_eq!(result.observed_loss_mean_milli, 200.0);
+        // n=5, B=1, alpha=.25: the empirical mean .20 fails
+        // .25 - (.75 / 5) = .10; lambda_max is the first passing grid point.
+        assert_eq!(result.selected_parameter_index, 1);
+        assert_eq!(result.observed_loss_mean_milli, 0.0);
     }
 
     #[test]
