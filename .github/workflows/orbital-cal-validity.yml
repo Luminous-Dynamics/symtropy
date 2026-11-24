@@ -56,8 +56,18 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --all-targets -- -D warnings
       - name: Deterministic Rust receipt replay
         run: |
-          cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-a.json
-          cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-b.json
+          set +e
+          cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-a.json 2> /tmp/cal-rust-a.err
+          first_status=$?
+          cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-b.json 2> /tmp/cal-rust-b.err
+          second_status=$?
+          echo "first cargo exit=$first_status; second cargo exit=$second_status"
+          echo "first stderr:"; cat /tmp/cal-rust-a.err
+          echo "second stderr:"; cat /tmp/cal-rust-b.err
+          wc -c /tmp/cal-rust-a.json /tmp/cal-rust-b.json
+          if [ "$first_status" -ne 0 ] || [ "$second_status" -ne 0 ]; then
+            exit 1
+          fi
           if ! cmp -s /tmp/cal-rust-a.json /tmp/cal-rust-b.json; then
             echo "Rust receipt replay is not byte-identical; showing exact diff"
             diff -u /tmp/cal-rust-a.json /tmp/cal-rust-b.json || true
