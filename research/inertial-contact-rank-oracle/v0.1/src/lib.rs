@@ -133,6 +133,9 @@ pub struct InertialRankReport {
     /// certificate must decide whether omitted rows may be removed.
     pub physical_omission_certified: bool,
     pub row_diagnostics: Vec<ContactRowDiagnostic>,
+    /// Every candidate row S_i = J_i L^-T, in the input candidate order.
+    /// This allows an independent consumer to reconstruct the Delassus Gram matrix.
+    pub whitened_contact_rows: Vec<Vec<f64>>,
     /// Orthonormal basis vectors in whitened generalized-velocity coordinates.
     pub whitened_row_basis: Vec<Vec<f64>>,
 }
@@ -610,6 +613,7 @@ pub fn select_inertial_rank_basis(
         minimum_cholesky_diagonal_ratio,
         physical_omission_certified: false,
         row_diagnostics,
+        whitened_contact_rows: whitened_rows,
         whitened_row_basis: basis,
     })
 }
@@ -775,6 +779,46 @@ mod tests {
         assert_eq!(a.pivot_residual_norms.len(), b.pivot_residual_norms.len());
         for (left, right) in a.pivot_residual_norms.iter().zip(&b.pivot_residual_norms) {
             close(*left, *right, 1.0e-12);
+        }
+    }
+
+    #[test]
+    fn whitened_candidate_rows_reconstruct_the_delassus_gram_matrix() {
+        let mass = vec![vec![4.0, 0.5], vec![0.5, 2.0]];
+        let jacobian = vec![
+            vec![1.0, 0.0],
+            vec![0.0, 2.0],
+            vec![1.0, 1.0],
+        ];
+        let report = select_inertial_rank_basis(
+            &input(&["a", "b", "c"], mass, jacobian),
+            config(),
+        )
+        .expect("rank report");
+        assert_eq!(report.whitened_contact_rows.len(), 3);
+        for i in 0..3 {
+            for j in 0..3 {
+                let gram = dot(
+                    &report.whitened_contact_rows[i],
+                    &report.whitened_contact_rows[j],
+                )
+                .expect("finite whitened gram");
+                // Independent reference for W_ij = J_i M^-1 J_j^T.
+                // Solve M x = J_j^T using a direct 2x2 inverse formula.
+                let det = 4.0 * 2.0 - 0.5 * 0.5;
+                let rhs = [if j == 0 { 1.0 } else if j == 1 { 0.0 } else { 1.0 },
+                           if j == 0 { 0.0 } else if j == 1 { 2.0 } else { 1.0 }];
+                let solved = [
+                    (2.0 * rhs[0] - 0.5 * rhs[1]) / det,
+                    (-0.5 * rhs[0] + 4.0 * rhs[1]) / det,
+                ];
+                let row_i = [
+                    if i == 0 { 1.0 } else if i == 1 { 0.0 } else { 1.0 },
+                    if i == 0 { 0.0 } else if i == 1 { 2.0 } else { 1.0 },
+                ];
+                let direct = row_i[0] * solved[0] + row_i[1] * solved[1];
+                close(gram, direct, 1.0e-12);
+            }
         }
     }
 
