@@ -939,9 +939,26 @@ mod tests {
         l.record(StageEvent {
             stage: Stage::CandidateGeneration,
             input: root.clone(),
-            outcome: Outcome::Spawn {
-                reason: ForwardReason::CandidateAdmitted,
-                children: vec![b.clone(), a.clone()],
+            outcome: Outcome::CandidateTrace {
+                requested_directions: 1,
+                attempts: vec![
+                    CandidateAttempt {
+                        id: a.clone(),
+                        kind: CandidateAttemptKind::PrimaryWitness,
+                        direction: DirectionDisposition::NotApplicable,
+                        support_a: SupportQueryDisposition::NotAttempted,
+                        support_b: SupportQueryDisposition::NotAttempted,
+                        disposition: CandidateDisposition::PrimaryAdmitted,
+                    },
+                    CandidateAttempt {
+                        id: b.clone(),
+                        kind: CandidateAttemptKind::PerturbationDirection,
+                        direction: DirectionDisposition::Generated,
+                        support_a: SupportQueryDisposition::Completed,
+                        support_b: SupportQueryDisposition::Completed,
+                        disposition: CandidateDisposition::Admitted,
+                    },
+                ],
             },
         })
         .unwrap();
@@ -978,9 +995,41 @@ mod tests {
                 r.spawned_count,
                 r.terminal_count
             ),
-            (1, 9, 6, 2, 2)
+            (1, 9, 8, 2, 2)
         );
         assert_eq!(r.stages[4].1.spawned, 2);
+    }
+
+    #[test]
+    fn candidate_generation_rejects_generic_forward_without_trace() {
+        let p = pair(1, 2);
+        let root = LineageId::root(p.clone());
+        let mut ledger = PairLedger::new([p]).unwrap();
+        for stage in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            ledger
+                .record(StageEvent {
+                    stage,
+                    input: root.clone(),
+                    outcome: Outcome::Forward,
+                })
+                .unwrap();
+        }
+        ledger
+            .record(StageEvent {
+                stage: Stage::CandidateGeneration,
+                input: root,
+                outcome: Outcome::Forward,
+            })
+            .unwrap();
+        assert_eq!(
+            ledger.validate(),
+            Err(LedgerError::CandidateGenerationRequiresTrace)
+        );
     }
 
     #[test]
@@ -1366,7 +1415,6 @@ mod tests {
             Stage::Eligibility,
             Stage::TemporalBounds,
             Stage::Broadphase,
-            Stage::Narrowphase,
         ] {
             l.record(StageEvent {
                 stage: s,
@@ -1376,10 +1424,10 @@ mod tests {
             .unwrap();
         }
         l.record(StageEvent {
-            stage: Stage::CandidateGeneration,
+            stage: Stage::Narrowphase,
             input: root,
             outcome: Outcome::Spawn {
-                reason: ForwardReason::CandidateAdmitted,
+                reason: ForwardReason::ManifoldsGenerated,
                 children: vec![LineageId::root(other)],
             },
         })
