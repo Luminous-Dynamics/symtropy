@@ -94,7 +94,7 @@ impl core::fmt::Display for PortfolioOracleError {
             Self::DuplicateConflictPair => "portfolio incompatibility pair is duplicated",
             Self::ArithmeticOverflow => {
                 "exact portfolio objective or resource arithmetic overflowed"
-            },
+            }
         };
         formatter.write_str(message)
     }
@@ -430,7 +430,6 @@ mod tests {
             Err(PortfolioOracleError::ZeroResourceCost)
         );
     }
-
 
     #[test]
     fn non_actionable_rejection_report_is_stable_under_input_permutation() {
