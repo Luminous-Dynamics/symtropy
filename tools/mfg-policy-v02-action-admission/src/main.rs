@@ -1141,9 +1141,9 @@ fn current_setup_duration(
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 3 {
+    if args.len() != 3 && args.len() != 4 {
         return Err(
-            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json>"
+            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [operational-state-snapshot.json]"
                 .into(),
         );
     }
@@ -1155,7 +1155,17 @@ fn run() -> Result<(), String> {
         .map_err(|error| fail(format!("decision_frame_json:{error}")))?;
     let proposal: Value = serde_json::from_slice(&proposal_bytes)
         .map_err(|error| fail(format!("action_proposal_json:{error}")))?;
-    let receipt = evaluate(&frame, &proposal)?;
+    let snapshot = if args.len() == 4 {
+        let bytes = std::fs::read(&args[3])
+            .map_err(|error| fail(format!("operational_state_snapshot_read:{error}")))?;
+        Some(
+            serde_json::from_slice(&bytes)
+                .map_err(|error| fail(format!("operational_state_snapshot_json:{error}")))?,
+        )
+    } else {
+        None
+    };
+    let receipt = evaluate_with_snapshot(&frame, &proposal, snapshot.as_ref())?;
     let receipt_value = serde_json::to_value(&receipt)
         .map_err(|error| fail(format!("admission_receipt_serialize:{error}")))?;
     validate_schema(
@@ -1258,6 +1268,99 @@ mod tests {
             }],
             "claim_ceiling": "Synthetic policy-input projection only; no physical authority."
         })
+    }
+
+    fn frame_epoch_one() -> Value {
+        let mut frame = sample_frame();
+        frame["decision_epoch"] = Value::from(1);
+        frame["observable_history"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "epoch": 1,
+                "resource_events": [],
+                "qualification_updates": [],
+                "inspection_capacity_events": []
+            }));
+        frame
+    }
+
+    fn valid_snapshot_for_epoch_one(frame: &Value, operation_two_completed: bool) -> Value {
+        let frame_digest = digest_value(frame).unwrap();
+        let history = frame["observable_history"].as_array().unwrap().clone();
+        let history_digest = digest_value(&Value::Array(history)).unwrap();
+        let operation_two = if operation_two_completed {
+            json!({
+                "operation_id": "OP-2",
+                "status": "COMPLETED",
+                "remaining_processing_ticks": 0,
+                "committed_resource_id": null,
+                "quality_disposition": null
+            })
+        } else {
+            json!({
+                "operation_id": "OP-2",
+                "status": "IN_PROCESS",
+                "remaining_processing_ticks": 1,
+                "committed_resource_id": "RESOURCE-A",
+                "quality_disposition": null
+            })
+        };
+        let operation_three = json!({
+            "operation_id": "OP-3",
+            "status": "WAITING",
+            "remaining_processing_ticks": 0,
+            "committed_resource_id": null,
+            "quality_disposition": null
+        });
+        let resource = json!({
+            "resource_id": "RESOURCE-A",
+            "current_setup_family": if operation_two_completed { "SETUP-B" } else { "SETUP-B" },
+            "active_operation_id": if operation_two_completed { Value::Null } else { Value::from("OP-2") },
+            "availability_status": "AVAILABLE",
+            "capacity_units_total": 1,
+            "capacity_units_used": if operation_two_completed { 0 } else { 1 },
+            "capacity_units_remaining": if operation_two_completed { 1 } else { 0 }
+        });
+        let mut snapshot = json!({
+            "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot",
+            "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
+            "case_id": "CASE-01",
+            "decision_epoch": 1,
+            "previous_snapshot_digest": "a".repeat(64),
+            "decision_frame_digest": frame_digest,
+            "visible_history_digest": history_digest,
+            "transition_version": "mfg-policy-v02-state-replay/0.1.0",
+            "operations": [
+                {
+                    "operation_id": "OP-1",
+                    "status": "COMPLETED",
+                    "remaining_processing_ticks": 0,
+                    "committed_resource_id": null,
+                    "quality_disposition": null
+                },
+                operation_two,
+                operation_three
+            ],
+            "resources": [resource],
+            "inspection_station": {
+                "station_id": "INSPECT-1",
+                "capacity_units_total": 1,
+                "capacity_units_used": 0,
+                "capacity_units_remaining": 1
+            },
+            "event_cut": {
+                "decision_epoch": 1,
+                "visible_source_event_ids": ["Q-CUT", "Q-FORM"]
+            },
+            "applied_transition_ids": ["START-OP2-E0", "PROCESS-OP2-E0"],
+            "snapshot_digest": "",
+            "claim_ceiling": "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility."
+        });
+        let mut body = snapshot.clone();
+        body.as_object_mut().unwrap().remove("snapshot_digest");
+        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        snapshot
     }
 
     fn sample_proposal_for(frame: &Value) -> Value {
@@ -1496,6 +1599,84 @@ mod tests {
             evaluate(&frame, &sample_proposal_for(&frame)).unwrap_err(),
             "observable_history_must_end_at_decision_epoch"
         );
+    }
+
+    #[test]
+    fn later_epoch_without_snapshot_remains_on_hold() {
+        let frame = frame_epoch_one();
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-3");
+        proposal["decision_epoch"] = Value::from(1);
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate(&frame, &proposal).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"trusted_operational_state_snapshot_required".to_string())
+        );
+    }
+
+    #[test]
+    fn valid_snapshot_allows_continuation_on_live_resource_commitment() {
+        let frame = frame_epoch_one();
+        let snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-2");
+        proposal["action_kind"] = Value::from("CONTINUE");
+        proposal["decision_epoch"] = Value::from(1);
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Admissible);
+        assert_eq!(receipt.processing_duration_ticks, Some(1));
+        assert_eq!(receipt.setup_duration_ticks, Some(0));
+    }
+
+    #[test]
+    fn valid_snapshot_allows_new_start_after_live_lane_is_released() {
+        let frame = frame_epoch_one();
+        let snapshot = valid_snapshot_for_epoch_one(&frame, true);
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-3");
+        proposal["action_kind"] = Value::from("START");
+        proposal["decision_epoch"] = Value::from(1);
+        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Admissible);
+        assert_eq!(receipt.processing_duration_ticks, Some(2));
+        assert_eq!(receipt.setup_duration_ticks, Some(0));
+    }
+
+    #[test]
+    fn tampered_snapshot_digest_holds_later_epoch_action() {
+        let frame = frame_epoch_one();
+        let mut snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        snapshot["snapshot_digest"] = Value::from("0".repeat(64));
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-2");
+        proposal["action_kind"] = Value::from("CONTINUE");
+        proposal["decision_epoch"] = Value::from(1);
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(receipt.reason_codes.iter().any(|reason| reason.starts_with("snapshot_invalid:")));
+    }
+
+    #[test]
+    fn snapshot_cannot_change_operation_resource_commitment() {
+        let frame = frame_epoch_one();
+        let mut snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        snapshot["resources"][0]["active_operation_id"] = Value::from("OP-3");
+        let mut body = snapshot.clone();
+        body.as_object_mut().unwrap().remove("snapshot_digest");
+        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-2");
+        proposal["action_kind"] = Value::from("CONTINUE");
+        proposal["decision_epoch"] = Value::from(1);
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(receipt.reason_codes.iter().any(|reason| reason.starts_with("snapshot_invalid:")));
     }
 
     #[test]
