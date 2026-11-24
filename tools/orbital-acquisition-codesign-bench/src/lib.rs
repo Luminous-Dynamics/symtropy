@@ -476,7 +476,7 @@ impl<'a> Enumeration<'a> {
             if let Some(transition) = allowed {
                 evidence_receipts.insert(transition.transition_receipt_sha256.clone());
             }
-            if !allowed {
+            if allowed.is_none() {
                 hard_failure = true;
                 reasons.insert("PATH_SPEED_TRANSITION_NOT_ADMITTED".to_owned());
             }
