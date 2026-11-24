@@ -1199,3 +1199,66 @@ mod belief_immediate_cvar_tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod static_cvar_time_consistency_tests {
+    use super::*;
+
+    #[test]
+    fn static_root_cvar_and_conditional_replanning_can_prefer_opposite_actions() {
+        // Two first-observation branches:
+        // H has 1% mission probability; L has 99%.
+        // On L, a common exogenous event causes loss 300 with 4% total
+        // mission probability. On H, the controller chooses A or B.
+        //
+        // Root policy A on H:
+        //   mission mass 4% at 300, 0.05% at 200, 0.95% at 150, 95% at 0.
+        // Root policy B on H:
+        //   mission mass 4% at 300, 1% at 180, 95% at 0.
+        let root_a = [
+            LossMass { loss: 300, mass: 80 },
+            LossMass { loss: 200, mass: 1 },
+            LossMass { loss: 150, mass: 19 },
+            LossMass { loss: 0, mass: 1_900 },
+        ];
+        let root_b = [
+            LossMass { loss: 300, mass: 80 },
+            LossMass { loss: 180, mass: 20 },
+            LossMass { loss: 0, mass: 1_900 },
+        ];
+
+        // After H is observed, conditional A has a 5% tail at 200 while B
+        // is constant at 180. A fresh conditional CVaR replan therefore
+        // changes the continuation from A to B.
+        let conditional_h_a = [
+            LossMass { loss: 200, mass: 1 },
+            LossMass { loss: 150, mass: 19 },
+        ];
+        let conditional_h_b = [LossMass { loss: 180, mass: 20 }];
+
+        let root_cvar_a = cvar(&root_a, 950_000).unwrap();
+        let root_cvar_b = cvar(&root_b, 950_000).unwrap();
+        let branch_cvar_a = cvar(&conditional_h_a, 950_000).unwrap();
+        let branch_cvar_b = cvar(&conditional_h_b, 950_000).unwrap();
+
+        assert_eq!(root_cvar_a, ExactRisk::from_ratio(541, 2).unwrap()); // 270.5
+        assert_eq!(root_cvar_b, ExactRisk::from_ratio(276, 1).unwrap());
+        assert_eq!(branch_cvar_a, ExactRisk::from_ratio(200, 1).unwrap());
+        assert_eq!(branch_cvar_b, ExactRisk::from_ratio(180, 1).unwrap());
+
+        // The original static root objective selects A (270.5 < 276), but
+        // after H is observed a new conditional CVaR solve selects B (180 < 200).
+        assert_eq!(root_cvar_a.compare(root_cvar_b), core::cmp::Ordering::Less);
+        assert_eq!(branch_cvar_b.compare(branch_cvar_a), core::cmp::Ordering::Less);
+
+        // Replacing A by B after H is realized changes the original root
+        // distribution from root_a to root_b, raising static mission CVaR
+        // from 270.5 to 276. This is the finite counterexample to assuming
+        // static trajectory CVaR is automatically time-consistent.
+        assert_eq!(
+            root_cvar_b.compare(root_cvar_a),
+            core::cmp::Ordering::Greater
+        );
+    }
+}
