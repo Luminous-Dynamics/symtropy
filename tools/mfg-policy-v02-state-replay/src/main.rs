@@ -2441,6 +2441,23 @@ mod tests {
     }
 
     #[test]
+    fn continuation_reuses_the_existing_live_resource_commitment() {
+        let mut value = golden_three_epoch_ledger();
+        value["steps"][1]["transitions"] = json!([
+            start_transition("CONTINUE-OP2-E1", 1, "OP-2", "CONTINUE", None, 1, 0),
+            {"transition_id": "TICK-OP2-E1", "kind": "PROCESS_TICKS", "operation_id": "OP-2", "resource_id": "RESOURCE-A", "processed_ticks": 1}
+        ]);
+        let receipt = replay_ledger(&value).unwrap();
+        let op2 = receipt.snapshots[1]
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == "OP-2")
+            .unwrap();
+        assert_eq!(op2.status, "COMPLETED");
+        assert_eq!(receipt.snapshots[1].resources[0].active_operation_id, None);
+    }
+
+    #[test]
     fn duplicate_start_is_rejected() {
         let mut value = golden_three_epoch_ledger();
         value["steps"][0]["transitions"]
@@ -2466,7 +2483,16 @@ mod tests {
     #[test]
     fn later_frame_cannot_rewrite_an_earlier_observation_prefix() {
         let mut value = golden_three_epoch_ledger();
-        value["steps"][1]["decision_frame"]["observable_history"][0]["epoch"] = Value::from(9_u64);
+        value["steps"][1]["decision_frame"]["observable_history"][0]["resource_events"] = json!([{
+            "source_event_id": "PAST-EVENT-SMUGGLE",
+            "resource_id": "RESOURCE-A",
+            "kind": "FAILED",
+            "occurred_at_epoch": 0,
+            "observed_at_epoch": 0,
+            "common_cause_id": null,
+            "recovery_forecast_min_epochs": 1,
+            "recovery_forecast_max_epochs": 2
+        }]);
         let error = replay_ledger(&value).unwrap_err();
         assert_eq!(error.code, "observable_history_prefix_mutated");
     }
