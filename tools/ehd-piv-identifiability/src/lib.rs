@@ -192,6 +192,31 @@ pub enum IdentifiabilityError {
         row: usize,
         column: usize,
     },
+    EmptyNoiseCovariance,
+    NoiseCovarianceTooLarge {
+        observations: usize,
+        maximum: usize,
+    },
+    NoiseCovarianceDimensionMismatch {
+        expected: usize,
+        actual: usize,
+    },
+    NoiseCovarianceRagged {
+        row: usize,
+        expected: usize,
+        actual: usize,
+    },
+    NoiseCovarianceNonFinite {
+        row: usize,
+        column: usize,
+    },
+    NoiseCovarianceAsymmetric {
+        row: usize,
+        column: usize,
+    },
+    NoiseCovarianceNotPositiveDefinite {
+        pivot: usize,
+    },
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -204,6 +229,149 @@ impl fmt::Display for IdentifiabilityError {
 }
 
 impl Error for IdentifiabilityError {}
+
+
+/// Whiten a raw observation sensitivity matrix using a dense, symmetric,
+/// positive-definite residual covariance.
+///
+/// Returns `L^{-1} J`, where `Sigma = L L^T`. Consequently:
+/// `J_white^T J_white = J^T Sigma^{-1} J`.
+///
+/// V0 is intentionally bounded to 512 observations (O(n^3) Cholesky). It
+/// does not add diagonal jitter or silently repair a covariance matrix.
+/// Large image systems should use independently qualified structured,
+/// block-sparse or low-rank covariance operators in a later adapter.
+pub fn whiten_sensitivity_with_covariance(
+    raw_sensitivity_matrix: &[Vec<f64>],
+    observation_covariance: &[Vec<f64>],
+    symmetry_relative_tolerance: f64,
+) -> Result<Vec<Vec<f64>>, IdentifiabilityError> {
+    if raw_sensitivity_matrix.is_empty() || observation_covariance.is_empty() {
+        return Err(IdentifiabilityError::EmptyNoiseCovariance);
+    }
+    if !symmetry_relative_tolerance.is_finite()
+        || symmetry_relative_tolerance < 0.0
+        || symmetry_relative_tolerance >= 1.0
+    {
+        return Err(IdentifiabilityError::InvalidConfiguration {
+            field: "symmetry_relative_tolerance",
+        });
+    }
+    let observation_count = raw_sensitivity_matrix.len();
+    if observation_count > 512 {
+        return Err(IdentifiabilityError::NoiseCovarianceTooLarge {
+            observations: observation_count,
+            maximum: 512,
+        });
+    }
+    if observation_covariance.len() != observation_count {
+        return Err(IdentifiabilityError::NoiseCovarianceDimensionMismatch {
+            expected: observation_count,
+            actual: observation_covariance.len(),
+        });
+    }
+    let parameter_count = raw_sensitivity_matrix[0].len();
+    if parameter_count == 0 {
+        return Err(IdentifiabilityError::EmptyParameterSet);
+    }
+    for (row_index, row) in raw_sensitivity_matrix.iter().enumerate() {
+        if row.len() != parameter_count {
+            return Err(IdentifiabilityError::RaggedSensitivityMatrix {
+                row: row_index,
+                expected: parameter_count,
+                actual: row.len(),
+            });
+        }
+        for (column_index, value) in row.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NonFiniteSensitivity {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
+    for (row_index, row) in observation_covariance.iter().enumerate() {
+        if row.len() != observation_count {
+            return Err(IdentifiabilityError::NoiseCovarianceRagged {
+                row: row_index,
+                expected: observation_count,
+                actual: row.len(),
+            });
+        }
+        for (column_index, value) in row.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NoiseCovarianceNonFinite {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
+
+    for (row_index, row) in observation_covariance.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate().take(row_index) {
+            let transpose_value = observation_covariance[column_index][row_index];
+            let scale = value.abs().max(transpose_value.abs()).max(1.0);
+            if (value - transpose_value).abs() > symmetry_relative_tolerance * scale {
+                return Err(IdentifiabilityError::NoiseCovarianceAsymmetric {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
+
+    let mut lower = vec![vec![0.0; observation_count]; observation_count];
+    for (row_index, covariance_row) in observation_covariance.iter().enumerate() {
+        for column_index in 0..=row_index {
+            let mut value = covariance_row[column_index];
+            for inner_index in 0..column_index {
+                value -= lower[row_index][inner_index] * lower[column_index][inner_index];
+                if !value.is_finite() {
+                    return Err(IdentifiabilityError::NumericalOverflow);
+                }
+            }
+            if row_index == column_index {
+                if value <= 0.0 {
+                    return Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite {
+                        pivot: row_index,
+                    });
+                }
+                lower[row_index][column_index] = value.sqrt();
+            } else {
+                let diagonal = lower[column_index][column_index];
+                if diagonal <= 0.0 || !diagonal.is_finite() {
+                    return Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite {
+                        pivot: column_index,
+                    });
+                }
+                lower[row_index][column_index] = value / diagonal;
+                if !lower[row_index][column_index].is_finite() {
+                    return Err(IdentifiabilityError::NumericalOverflow);
+                }
+            }
+        }
+    }
+
+    let mut whitened = vec![vec![0.0; parameter_count]; observation_count];
+    for parameter_index in 0..parameter_count {
+        for row_index in 0..observation_count {
+            let mut value = raw_sensitivity_matrix[row_index][parameter_index];
+            for inner_index in 0..row_index {
+                value -= lower[row_index][inner_index] * whitened[inner_index][parameter_index];
+                if !value.is_finite() {
+                    return Err(IdentifiabilityError::NumericalOverflow);
+                }
+            }
+            whitened[row_index][parameter_index] = value / lower[row_index][row_index];
+            if !whitened[row_index][parameter_index].is_finite() {
+                return Err(IdentifiabilityError::NumericalOverflow);
+            }
+        }
+    }
+    Ok(whitened)
+}
 
 #[derive(Clone, Debug)]
 struct SvdResult {
@@ -1427,4 +1595,82 @@ mod tests {
         assert!(condition < 1.1, "profiled condition was {condition}");
         assert!(*report.unprofiled_physical_singular_values.first().unwrap() > 50.0);
     }
+    #[test]
+    fn covariance_whitening_matches_correlated_information_analytic_oracle() {
+        let raw = vec![vec![1.0], vec![-1.0]];
+        let covariance = vec![vec![1.0, 0.9], vec![0.9, 1.0]];
+        let whitened =
+            whiten_sensitivity_with_covariance(&raw, &covariance, 1.0e-12).unwrap();
+        let information = whitened.iter().map(|row| row[0] * row[0]).sum::<f64>();
+        let analytic = 2.0 / (1.0 - 0.9);
+        assert!((information - analytic).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn correlated_noise_changes_the_information_of_a_common_mode_signal() {
+        let raw = vec![vec![1.0], vec![1.0]];
+        let independent_covariance = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
+        let correlated_covariance = vec![vec![1.0, 0.9], vec![0.9, 1.0]];
+        let independent = whiten_sensitivity_with_covariance(
+            &raw,
+            &independent_covariance,
+            1.0e-12,
+        )
+        .unwrap();
+        let correlated = whiten_sensitivity_with_covariance(
+            &raw,
+            &correlated_covariance,
+            1.0e-12,
+        )
+        .unwrap();
+        let independent_information =
+            independent.iter().map(|row| row[0] * row[0]).sum::<f64>();
+        let correlated_information =
+            correlated.iter().map(|row| row[0] * row[0]).sum::<f64>();
+        assert_eq!(independent_information, 2.0);
+        assert!((correlated_information - (2.0 / 1.9)).abs() < 1.0e-10);
+        assert!(correlated_information < independent_information);
+    }
+
+    #[test]
+    fn covariance_whitening_rejects_asymmetric_singular_and_ragged_inputs() {
+        assert!(matches!(
+            whiten_sensitivity_with_covariance(
+                &[vec![1.0], vec![1.0]],
+                &[vec![1.0, 0.2], vec![0.1, 1.0]],
+                1.0e-10
+            ),
+            Err(IdentifiabilityError::NoiseCovarianceAsymmetric { .. })
+        ));
+        assert_eq!(
+            whiten_sensitivity_with_covariance(
+                &[vec![1.0], vec![1.0]],
+                &[vec![1.0, 1.0], vec![1.0, 1.0]],
+                1.0e-10
+            ),
+            Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { pivot: 1 })
+        );
+        assert!(matches!(
+            whiten_sensitivity_with_covariance(
+                &[vec![1.0], vec![1.0]],
+                &[vec![1.0, 0.0], vec![1.0]],
+                1.0e-10
+            ),
+            Err(IdentifiabilityError::NoiseCovarianceRagged { .. })
+        ));
+    }
+
+    #[test]
+    fn covariance_whitening_does_not_silently_add_jitter_to_semidefinite_input() {
+        let result = whiten_sensitivity_with_covariance(
+            &[vec![1.0], vec![1.0]],
+            &[vec![1.0, 1.0], vec![1.0, 1.0]],
+            1.0e-10,
+        );
+        assert_eq!(
+            result,
+            Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { pivot: 1 })
+        );
+    }
+
 }
