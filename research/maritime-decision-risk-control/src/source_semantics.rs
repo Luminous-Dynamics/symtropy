@@ -235,6 +235,7 @@ pub struct ArtifactSnapshot {
 pub enum LedgerAppendError {
     EmptySnapshotIdentity,
     DuplicateSnapshotId,
+    InvalidEnvelope(ArtifactValidationError),
     RootRevisionMustStartAtOne,
     SupersededSnapshotUnknown,
     SupersessionFamilyMismatch,
@@ -300,7 +301,7 @@ impl AppendOnlyArtifactLedger {
         snapshot
             .envelope
             .validate()
-            .map_err(|_| LedgerAppendError::EmptySnapshotIdentity)?;
+            .map_err(LedgerAppendError::InvalidEnvelope)?;
         self.snapshots.push(snapshot);
         Ok(())
     }
@@ -515,7 +516,7 @@ struct BenchmarkCase {
     event_time: Option<i64>,
 }
 
-fn benchmark_cases() -> [BenchmarkCase; 17] {
+fn benchmark_cases() -> [BenchmarkCase; 18] {
     [
         BenchmarkCase {
             id: "dgt_vessel_status_as_reported",
@@ -700,6 +701,17 @@ fn benchmark_cases() -> [BenchmarkCase; 17] {
             expected: "EVIDENCE_UNAVAILABLE_AT_AS_OF_CUTOFF",
             publication_time: Some(FIXTURE_PUBLICATION_TIME),
             retrieval_time: FIXTURE_AS_OF + 1,
+            independence_ref: None,
+            custody_digest: None,
+            event_time: Some(FIXTURE_EVENT_TIME),
+        },
+        BenchmarkCase {
+            id: "published_after_historical_cutoff_negative",
+            artifact_class: ArtifactClass::OfficialVesselUpdate,
+            claim_kind: ClaimKind::SourceReportedVesselStatus,
+            expected: "EVIDENCE_UNAVAILABLE_AT_AS_OF_CUTOFF",
+            publication_time: Some(FIXTURE_AS_OF + 10),
+            retrieval_time: FIXTURE_AS_OF + 20,
             independence_ref: None,
             custody_digest: None,
             event_time: Some(FIXTURE_EVENT_TIME),
@@ -1116,6 +1128,15 @@ mod tests {
             ))
         );
 
+        candidate.artifact.retrieved_at_unix = FIXTURE_AS_OF + 20;
+        candidate.artifact.published_at_unix = Some(FIXTURE_AS_OF + 10);
+        assert_eq!(
+            admit_claim(&candidate),
+            Ok(AdmissionDecision::Blocked(
+                AdmissionBlock::EvidenceUnavailableAtAsOfCutoff
+            ))
+        );
+
         candidate.artifact.retrieved_at_unix = FIXTURE_RETRIEVAL_TIME;
         candidate.artifact.published_at_unix = Some(FIXTURE_AS_OF + 1);
         assert_eq!(
@@ -1179,7 +1200,7 @@ mod tests {
     fn benchmark_receipt_is_deterministic_and_contains_all_negative_controls() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 18);
+        assert_eq!(first.lines().count(), 19);
         let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 7);
         for row in first.lines().skip(1) {
