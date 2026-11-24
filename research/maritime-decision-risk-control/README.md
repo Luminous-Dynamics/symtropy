@@ -460,3 +460,51 @@ Research comparators:
 - Allohibi, *Grouped Validation and Conformal Calibration for Clustered Cross-National Data*, Mathematics 14(21), 4055 (5 November 2026), compares pooled, equal-cluster and subsampling calibration: https://doi.org/10.3390/math14214055
 
 The software experiment can falsify the assumption that 50,000 rows necessarily mean 50,000 independent units. It cannot determine a real port's cluster structure, establish DCT/DGT exchangeability, or confer an operational statistical guarantee.
+
+
+## Oracle adapter: preserve cluster identity through calibration (24 November 2026)
+
+The oracle adapter previously treated every repeated dependence-cluster ID as an error. That prevented multiple complete schedule episodes from sharing a valid same-split common-cause cluster, so an upstream caller could not aggregate their independently adjudicated per-schedule loss vectors into one cluster calibration row without bypassing the adapter.
+
+The new adapter projection separates two controls:
+
+1. **Split isolation:** the same dependence-cluster ID may appear on multiple complete schedule episodes within calibration, or on multiple episodes within evaluation, but it may never appear in both roles. A weather/outage/TOS incident cannot leak between calibration and held-out evaluation merely because its individual schedule IDs differ.
+2. **Explicit aggregation:** the raw per-schedule matrices remain available and are not silently collapsed. The caller must explicitly call `OracleCalibrationBundle::cluster_mean_matrix(role, axis)` to obtain one row per cluster.
+
+The returned `ClusterMeanMatrix` preserves canonical cluster IDs, source schedule counts, role and loss axis. It equal-weights cluster means (the estimand is a typical cluster's mean schedule loss), and rounds each milli-loss mean **upward** to avoid optimistic integer quantization. It is then convertible to the existing CRC `LossMatrix` interface. This is a different target from pooled schedule weighting when cluster sizes differ; the adapter does not pretend they are interchangeable.
+
+The physical hard-failure and service-loss axes remain separate. The aggregation never averages participant authority into a risk number, and it cannot cure a falsely declared cluster boundary. Different cluster IDs do not establish independence: source-owner/common-cause review remains required for weather, labour, vessel convoys, power, equipment, sensor, gateway, broker and TOS incidents. If a cluster must be split across calibration/evaluation, the adapter rejects the dataset. If the dependence structure cannot be defended, the appropriate result remains NO_GUARANTEE / NOT_EVALUABLE.
+
+Regression coverage:
+- accepts repeated same-split episodes sharing a dependence cluster;
+- aggregates their policy loss vectors into one cluster row with deterministic ordering;
+- rounds fractional cluster means upward;
+- retains schedule counts and cluster IDs beside the aggregated matrix;
+- rejects any cluster ID reused across calibration and evaluation;
+- leaves the original per-schedule matrices unchanged.
+
+## Cluster-aware oracle receipt projection (24 November 2026)
+
+The oracle adapter now preserves the dependence-cluster identifier beside every raw schedule row and permits several adjudicated episodes to share one cluster within the same dataset role. It rejects any cluster ID that is reused across calibration and evaluation, even if the episode IDs are different.
+
+The bundle's matrix(role, axis) and non_monotone_grid(role, axis) methods continue to return raw per-schedule rows. Their presence does not establish IID schedule observations. When the independent unit is the disruption/day/cluster, call cluster_mean_matrix(role, axis) explicitly. It returns one row per sorted cluster ID, retains the number of source schedule rows in each cluster, uses equal cluster weighting, and rounds each bounded milli-loss mean upward. The resulting ClusterMeanMatrix matrix() or non_monotone_grid() can be supplied to the existing risk-control methods.
+
+This implements the **typical-cluster mean schedule-loss estimand**, not the typical-schedule estimand when cluster sizes differ. It does not prove that cluster IDs are independent or that a particular real-world grouping is correct. If event records share serially dependent shocks across distinct clusters, an IID cluster theorem is still not justified. The independent-cluster basis and any block/mixing argument must be reviewed by the source/operations owners. Unknown physical outcomes and unauthorized policy outcomes are still rejected by the original adapter validation before aggregation.
+
+The adapter's exactness tests cover:
+- repeated cluster IDs within calibration: accepted and aggregated into one calibration row;
+- repeated cluster IDs within evaluation: same role rule;
+- cluster IDs crossing calibration/evaluation: rejected;
+- schedule rows preserved in the raw matrices while a distinct cluster matrix reduces the number of rows;
+- conservative upward rounding of fractional cluster mean losses;
+- deterministic cluster ordering under source input permutation;
+- hard failure and service axes remain separate;
+- risk selector receives only the cluster-unit rows and abstains in a deliberately underpowered two-cluster fixture.
+
+The adapter also exposes typed execution wrappers so the calibration-unit label cannot be lost when the existing algorithms are called:
+- `ClusterMeanMatrix::calibrate_marginal_expected_risk` wraps the existing CRC result with the cluster-unit provenance, loss axis, independent-cluster count, source schedule count, cluster IDs, and per-cluster row counts. It checks that evaluator and loss-contract revisions match the oracle bundle.
+- `ClusterMeanMatrix::select_fixed_grid_high_probability` accepts a separate cluster-level service matrix only when risk and service matrices share the exact same frozen cluster population, cluster sizes and policy order. The output preserves both provenance records and represents insufficient evidence as an explicit `Abstained(NoPolicyMeetsTarget)` outcome, not a successful empty selection.
+
+The underlying compatibility matrix APIs remain available for research, but their returned rows do not retain the typed provenance by themselves. Prefer the typed wrapper for any reported claim.
+
+The projection is a software contract, not an operational independence certificate. Cluster metadata, source receipts, exact physical/authority adjudication and operating regime remain caller-supplied evidence.

@@ -101,7 +101,8 @@ pub struct PolicyAdjudication {
 pub struct ScheduleAdjudication {
     /// One complete scheduling episode is one row of the calibration matrix.
     pub episode_id: String,
-    /// Shared outage/weather/TOS incident identifier; must be unique per episode.
+    /// Shared outage/weather/TOS incident identifier. Multiple episodes may
+    /// share one cluster within a split, but a cluster must never cross splits.
     pub dependence_cluster_id: String,
     pub scenario_family: String,
     pub regime_id: String,
@@ -130,6 +131,7 @@ pub enum OracleAdapterError {
         field: &'static str,
     },
     DuplicateEpisodeId(String),
+    /// One dependence cluster appears in both calibration and evaluation.
     ReusedDependenceCluster(String),
     MixedOperatingRegimes {
         expected: String,
@@ -191,6 +193,21 @@ pub enum OracleAdapterError {
     EmptyTailRiskSample,
     InvalidTailConfidence(f64),
     TailLossOutsideBound(u16),
+    ClusterIdentityCountMismatch {
+        schedule_rows: usize,
+        cluster_ids: usize,
+    },
+    EmptyDependenceClusterId,
+    ClusterPolicyWidthMismatch {
+        cluster_id: String,
+        expected: usize,
+        found: usize,
+    },
+    ClusterLossOutsideBound {
+        cluster_id: String,
+        policy_index: usize,
+        value_milli: u16,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -199,21 +216,218 @@ pub struct OracleCalibrationBundle {
     pub policy_ids: Vec<String>,
     /// Frozen candidate revisions in the same column order.
     pub policy_revisions: Vec<String>,
-    /// One row per independent calibration schedule, one column per candidate policy.
+    /// Raw per-schedule calibration rows, one column per candidate policy.
+    /// Multiple rows may share a dependence cluster and are not automatically IID.
+    /// Use cluster_mean_matrix when the independent unit is a dependence cluster.
     pub calibration_hard_failure_milli: Vec<Vec<u16>>,
     pub calibration_service_loss_milli: Vec<Vec<u16>>,
-    /// Separate held-out evaluation matrices, never consumed by calibration selection.
+    /// Raw held-out per-schedule evaluation rows, never consumed by calibration selection.
     pub evaluation_hard_failure_milli: Vec<Vec<u16>>,
     pub evaluation_service_loss_milli: Vec<Vec<u16>>,
     pub oracle_id: String,
     pub oracle_revision: String,
+    pub oracle_evidence_ref: String,
+    pub independence_evidence_ref: String,
+    pub exchangeability_scope: String,
     pub evaluator_revision: String,
     pub loss_contract_revision: String,
     pub policy_grid_sha256: String,
     pub regime_id: String,
+    /// Dependence-cluster identifier parallel to each calibration matrix row.
+    pub calibration_dependence_cluster_ids: Vec<String>,
+    /// Dependence-cluster identifier parallel to each evaluation matrix row.
+    pub evaluation_dependence_cluster_ids: Vec<String>,
+}
+
+/// Evidence identity carried from the original schedule oracle bundle into
+/// every cluster-unit statistical result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClusterCalibrationProvenance {
+    pub oracle_id: String,
+    pub oracle_revision: String,
+    pub oracle_evidence_ref: String,
+    /// Caller-declared review reference, not proof of statistical independence.
+    pub independence_evidence_ref: String,
+    /// Caller-declared exchangeability scope, not a proof.
+    pub exchangeability_scope: String,
+    pub evaluator_revision: String,
+    pub loss_contract_revision: String,
+    pub policy_grid_sha256: String,
+    pub regime_id: String,
+    /// Sorted identifiers of independent units used in this matrix.
+    pub cluster_ids: Vec<String>,
+    /// Number of source schedule episodes represented by each cluster row.
+    pub schedules_per_cluster: Vec<usize>,
+    pub independent_cluster_count: usize,
+    pub source_schedule_count: usize,
+}
+
+/// Equal-cluster-weighted, conservative cluster-mean loss matrix.
+///
+/// Each row represents one independent dependence cluster, not one schedule.
+/// The target is the mean schedule loss within a typical sampled cluster, with
+/// every cluster receiving equal weight. Means are rounded upward in milli-loss
+/// units so integer quantization cannot make the loss optimistic. This is not a
+/// schedule-weighted estimand when cluster sizes differ.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClusterMeanMatrix {
+    pub policy_ids: Vec<String>,
+    pub axis: LossAxis,
+    pub role: DatasetRole,
+    pub provenance: ClusterCalibrationProvenance,
+    pub loss: crate::LossMatrix,
+}
+
+/// Expected-risk CRC result with its calibration unit and source-row footprint.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClusteredRiskControlResult {
+    pub result: crate::RiskControlResult,
+    pub loss_axis: LossAxis,
+    pub calibration_provenance: ClusterCalibrationProvenance,
+}
+
+/// An explicit no-selection outcome is retained as an abstention, not a pass.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ClusterHighProbabilitySelection {
+    Selected(crate::high_probability::SimultaneousHoeffdingResult),
+    Abstained(crate::high_probability::HighProbabilityError),
+}
+
+/// High-probability result carrying both risk and service calibration provenance.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClusteredHighProbabilityResult {
+    pub selection: ClusterHighProbabilitySelection,
+    pub target_risk_milli: u16,
+    pub delta: f64,
+    pub risk_provenance: ClusterCalibrationProvenance,
+    pub service_provenance: ClusterCalibrationProvenance,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ClusterRiskControlError {
+    CalibrationRoleRequired { found: DatasetRole },
+    HardPhysicalFailureAxisRequired { found: LossAxis },
+    ServiceLossAxisRequired { found: LossAxis },
+    ClusterMatricesNotAligned,
+    RiskControl(crate::RiskControlError),
+    HighProbability(crate::high_probability::HighProbabilityError),
+}
+
+impl ClusterMeanMatrix {
+    /// Converts the cluster means into the existing CRC loss-matrix contract.
+    /// Each resulting row is one independent cluster, not one schedule. This
+    /// low-level projection does not retain provenance in the returned matrix;
+    /// prefer calibrate_marginal_expected_risk when issuing a typed claim.
+    pub fn matrix(&self) -> crate::LossMatrix {
+        self.loss.clone()
+    }
+
+    /// Converts cluster means into the existing non-monotone CRC grid contract.
+    /// The returned rows remain one per cluster; this is a low-level projection.
+    pub fn non_monotone_grid(&self) -> crate::non_monotone::WholeScheduleLossGrid {
+        crate::non_monotone::WholeScheduleLossGrid {
+            schedule_losses_milli: self.loss.schedules.clone(),
+        }
+    }
+
+    /// Runs marginal expected-risk CRC while preserving cluster identity and
+    /// schedule-count provenance in the returned result. The loss axis is
+    /// explicit; physical failure and service loss remain separate quantities.
+    pub fn calibrate_marginal_expected_risk(
+        &self,
+        target_risk_milli: u16,
+        mode: crate::MonotonicityMode,
+        maximum_parameter_contract: Option<&crate::MaxParameterContract>,
+    ) -> Result<ClusteredRiskControlResult, ClusterRiskControlError> {
+        if self.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired { found: self.role });
+        }
+        // Bind the risk-control receipt to the exact validated source revisions.
+        // The policy revision is the SHA-256 of the frozen ordered policy grid.
+        let revisions = crate::FrozenRevisions {
+            policy_revision: self.provenance.policy_grid_sha256.clone(),
+            evaluator_revision: self.provenance.evaluator_revision.clone(),
+            loss_contract_revision: self.provenance.loss_contract_revision.clone(),
+        };
+        let result = crate::calibrate(
+            &self.loss,
+            target_risk_milli,
+            mode,
+            maximum_parameter_contract,
+            &revisions,
+        )
+        .map_err(ClusterRiskControlError::RiskControl)?;
+
+        Ok(ClusteredRiskControlResult {
+            result,
+            loss_axis: self.axis,
+            calibration_provenance: self.provenance.clone(),
+        })
+    }
+
+    /// Runs fixed-grid simultaneous Hoeffding control on cluster-unit risk and
+    /// service matrices. The method requires identical cluster populations and
+    /// policy ordering; insufficient evidence is an explicit abstention.
+    pub fn select_fixed_grid_high_probability(
+        &self,
+        service_loss: &ClusterMeanMatrix,
+        target_risk_milli: u16,
+        delta: f64,
+    ) -> Result<ClusteredHighProbabilityResult, ClusterRiskControlError> {
+        if self.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired { found: self.role });
+        }
+        if service_loss.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired {
+                found: service_loss.role,
+            });
+        }
+        if self.axis != LossAxis::HardPhysicalFailure {
+            return Err(ClusterRiskControlError::HardPhysicalFailureAxisRequired {
+                found: self.axis,
+            });
+        }
+        if service_loss.axis != LossAxis::ServiceLoss {
+            return Err(ClusterRiskControlError::ServiceLossAxisRequired {
+                found: service_loss.axis,
+            });
+        }
+        if self.policy_ids != service_loss.policy_ids || self.provenance != service_loss.provenance
+        {
+            return Err(ClusterRiskControlError::ClusterMatricesNotAligned);
+        }
+
+        let selection = match crate::high_probability::select_simultaneous_hoeffding(
+            &self.non_monotone_grid(),
+            &service_loss.non_monotone_grid(),
+            target_risk_milli,
+            delta,
+        ) {
+            Ok(result) => ClusterHighProbabilitySelection::Selected(result),
+            Err(crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget) => {
+                ClusterHighProbabilitySelection::Abstained(
+                    crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget,
+                )
+            }
+            Err(error) => return Err(ClusterRiskControlError::HighProbability(error)),
+        };
+
+        Ok(ClusteredHighProbabilityResult {
+            selection,
+            target_risk_milli,
+            delta,
+            risk_provenance: self.provenance.clone(),
+            service_provenance: service_loss.provenance.clone(),
+        })
+    }
 }
 
 impl OracleCalibrationBundle {
+    /// Returns raw per-schedule rows in the frozen policy order.
+    ///
+    /// This does not make the rows independent. If schedules share a declared
+    /// dependence cluster and the cluster is the independent unit, use
+    /// cluster_mean_matrix rather than calibrating on this raw matrix.
     pub fn matrix(&self, role: DatasetRole, axis: LossAxis) -> crate::LossMatrix {
         let schedules = match (role, axis) {
             (DatasetRole::Calibration, LossAxis::HardPhysicalFailure) => {
@@ -233,6 +447,122 @@ impl OracleCalibrationBundle {
         }
     }
 
+    /// Aggregates schedule rows into equal-weight cluster means.
+    ///
+    /// The cluster identity is kept alongside each source schedule and cannot
+    /// be reused across calibration/evaluation. Unequal cluster sizes are
+    /// allowed for the equal-cluster estimand; this method does not claim the
+    /// pooled typical-schedule estimand.
+    pub fn cluster_mean_matrix(
+        &self,
+        role: DatasetRole,
+        axis: LossAxis,
+    ) -> Result<ClusterMeanMatrix, OracleAdapterError> {
+        let (schedules, cluster_ids) = match (role, axis) {
+            (DatasetRole::Calibration, LossAxis::HardPhysicalFailure) => (
+                &self.calibration_hard_failure_milli,
+                &self.calibration_dependence_cluster_ids,
+            ),
+            (DatasetRole::Calibration, LossAxis::ServiceLoss) => (
+                &self.calibration_service_loss_milli,
+                &self.calibration_dependence_cluster_ids,
+            ),
+            (DatasetRole::Evaluation, LossAxis::HardPhysicalFailure) => (
+                &self.evaluation_hard_failure_milli,
+                &self.evaluation_dependence_cluster_ids,
+            ),
+            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => (
+                &self.evaluation_service_loss_milli,
+                &self.evaluation_dependence_cluster_ids,
+            ),
+        };
+        if schedules.is_empty() || cluster_ids.is_empty() {
+            return Err(OracleAdapterError::EmptyDataset);
+        }
+        if schedules.len() != cluster_ids.len() {
+            return Err(OracleAdapterError::ClusterIdentityCountMismatch {
+                schedule_rows: schedules.len(),
+                cluster_ids: cluster_ids.len(),
+            });
+        }
+
+        let mut groups: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+        for (row_index, cluster_id) in cluster_ids.iter().enumerate() {
+            if cluster_id.trim().is_empty() {
+                return Err(OracleAdapterError::EmptyDependenceClusterId);
+            }
+            groups
+                .entry(cluster_id.as_str())
+                .or_default()
+                .push(row_index);
+        }
+
+        let mut ordered_cluster_ids = Vec::with_capacity(groups.len());
+        let mut schedules_per_cluster = Vec::with_capacity(groups.len());
+        let mut cluster_rows = Vec::with_capacity(groups.len());
+        for (cluster_id, row_indices) in groups {
+            let width = self.policy_ids.len();
+            let mut sums = vec![0_u64; width];
+            for row_index in &row_indices {
+                let row = &schedules[*row_index];
+                if row.len() != width {
+                    return Err(OracleAdapterError::ClusterPolicyWidthMismatch {
+                        cluster_id: cluster_id.to_owned(),
+                        expected: width,
+                        found: row.len(),
+                    });
+                }
+                for (policy_index, (sum, loss)) in sums.iter_mut().zip(row.iter()).enumerate() {
+                    if *loss > MAX_LOSS_MILLI {
+                        return Err(OracleAdapterError::ClusterLossOutsideBound {
+                            cluster_id: cluster_id.to_owned(),
+                            policy_index,
+                            value_milli: *loss,
+                        });
+                    }
+                    *sum += u64::from(*loss);
+                }
+            }
+            let count = row_indices.len() as u64;
+            let mean = sums
+                .into_iter()
+                .map(|sum| sum.div_ceil(count) as u16)
+                .collect::<Vec<_>>();
+            ordered_cluster_ids.push(cluster_id.to_owned());
+            schedules_per_cluster.push(row_indices.len());
+            cluster_rows.push(mean);
+        }
+
+        let source_schedule_count = schedules_per_cluster.iter().sum();
+        let independent_cluster_count = ordered_cluster_ids.len();
+        Ok(ClusterMeanMatrix {
+            policy_ids: self.policy_ids.clone(),
+            axis,
+            role,
+            provenance: ClusterCalibrationProvenance {
+                oracle_id: self.oracle_id.clone(),
+                oracle_revision: self.oracle_revision.clone(),
+                oracle_evidence_ref: self.oracle_evidence_ref.clone(),
+                independence_evidence_ref: self.independence_evidence_ref.clone(),
+                exchangeability_scope: self.exchangeability_scope.clone(),
+                evaluator_revision: self.evaluator_revision.clone(),
+                loss_contract_revision: self.loss_contract_revision.clone(),
+                policy_grid_sha256: self.policy_grid_sha256.clone(),
+                regime_id: self.regime_id.clone(),
+                cluster_ids: ordered_cluster_ids,
+                schedules_per_cluster,
+                independent_cluster_count,
+                source_schedule_count,
+            },
+            loss: crate::LossMatrix {
+                schedules: cluster_rows,
+            },
+        })
+    }
+
+    /// Returns the raw per-schedule loss grid. Dependence IDs are retained in
+    /// the bundle; this grid is not automatically an IID calibration sample.
+    /// For a cluster-as-independent-unit estimand use cluster_mean_matrix.
     pub fn non_monotone_grid(
         &self,
         role: DatasetRole,
@@ -449,9 +779,11 @@ fn validate_policy_outcome(
     Ok(())
 }
 
-/// Validates and deterministically converts independent oracle receipts into
-/// separate calibration/evaluation matrices. It never computes feasibility
-/// itself, infers authority, estimates a distribution ratio, or drops unknown rows.
+/// Validates and deterministically converts independently adjudicated schedule
+/// receipts into separate calibration/evaluation matrices while preserving each
+/// row's dependence-cluster identity. Repeated cluster IDs are allowed within a
+/// split and prohibited across splits. It never computes feasibility itself,
+/// infers authority, estimates a distribution ratio, or drops unknown rows.
 pub fn compile_oracle_outcomes(
     dataset: &OracleOutcomeDataset,
 ) -> Result<OracleCalibrationBundle, OracleAdapterError> {
@@ -461,7 +793,7 @@ pub fn compile_oracle_outcomes(
     validate_contract(&dataset.contract)?;
 
     let mut episode_ids = BTreeSet::new();
-    let mut dependence_clusters = BTreeSet::new();
+    let mut dependence_clusters = BTreeMap::new();
     let expected_policy_ids = dataset
         .contract
         .policy_grid
@@ -479,10 +811,16 @@ pub fn compile_oracle_outcomes(
                 episode.episode_id.clone(),
             ));
         }
-        if !dependence_clusters.insert(episode.dependence_cluster_id.clone()) {
-            return Err(OracleAdapterError::ReusedDependenceCluster(
-                episode.dependence_cluster_id.clone(),
-            ));
+        match dependence_clusters.get(&episode.dependence_cluster_id) {
+            Some(existing_role) if *existing_role != episode.role => {
+                return Err(OracleAdapterError::ReusedDependenceCluster(
+                    episode.dependence_cluster_id.clone(),
+                ));
+            }
+            Some(_) => {}
+            None => {
+                dependence_clusters.insert(episode.dependence_cluster_id.clone(), episode.role);
+            }
         }
         if episode.policy_outcomes.is_empty() {
             return Err(OracleAdapterError::EmptyPolicyGrid);
@@ -554,12 +892,18 @@ pub fn compile_oracle_outcomes(
             .collect::<Vec<_>>();
 
         match episode.role {
-            DatasetRole::Calibration => {
-                calibration_rows.push((episode.episode_id.clone(), hard_row, service_row))
-            }
-            DatasetRole::Evaluation => {
-                evaluation_rows.push((episode.episode_id.clone(), hard_row, service_row))
-            }
+            DatasetRole::Calibration => calibration_rows.push((
+                episode.episode_id.clone(),
+                episode.dependence_cluster_id.clone(),
+                hard_row,
+                service_row,
+            )),
+            DatasetRole::Evaluation => evaluation_rows.push((
+                episode.episode_id.clone(),
+                episode.dependence_cluster_id.clone(),
+                hard_row,
+                service_row,
+            )),
         }
     }
 
@@ -589,16 +933,27 @@ pub fn compile_oracle_outcomes(
     Ok(OracleCalibrationBundle {
         policy_ids,
         policy_revisions,
-        calibration_hard_failure_milli: calibration_rows.iter().map(|row| row.1.clone()).collect(),
-        calibration_service_loss_milli: calibration_rows.iter().map(|row| row.2.clone()).collect(),
-        evaluation_hard_failure_milli: evaluation_rows.iter().map(|row| row.1.clone()).collect(),
-        evaluation_service_loss_milli: evaluation_rows.iter().map(|row| row.2.clone()).collect(),
+        calibration_hard_failure_milli: calibration_rows.iter().map(|row| row.2.clone()).collect(),
+        calibration_service_loss_milli: calibration_rows.iter().map(|row| row.3.clone()).collect(),
+        evaluation_hard_failure_milli: evaluation_rows.iter().map(|row| row.2.clone()).collect(),
+        evaluation_service_loss_milli: evaluation_rows.iter().map(|row| row.3.clone()).collect(),
         oracle_id: dataset.contract.oracle_id.clone(),
         oracle_revision: dataset.contract.oracle_revision.clone(),
+        oracle_evidence_ref: dataset.contract.oracle_evidence_ref.clone(),
+        independence_evidence_ref: dataset.contract.independence_evidence_ref.clone(),
+        exchangeability_scope: dataset.contract.exchangeability_scope.clone(),
         evaluator_revision: dataset.contract.evaluator_revision.clone(),
         loss_contract_revision: dataset.contract.loss_contract_revision.clone(),
         policy_grid_sha256: dataset.contract.policy_grid_sha256.clone(),
         regime_id: dataset.contract.regime_id.clone(),
+        calibration_dependence_cluster_ids: calibration_rows
+            .iter()
+            .map(|row| row.1.clone())
+            .collect(),
+        evaluation_dependence_cluster_ids: evaluation_rows
+            .iter()
+            .map(|row| row.1.clone())
+            .collect(),
     })
 }
 
@@ -620,7 +975,7 @@ pub struct PartialIdentificationBundle {
 /// Preserves unresolved physical outcomes as [0, B] rather than dropping them.
 ///
 /// This function enforces the same frozen grid, authority, revision, regime,
-/// dependence-cluster and receipt checks as the strict adapter. It returns two
+/// dependence-cluster split-isolation and receipt checks as the strict adapter. It returns two
 /// fully deterministic bundles:
 /// - lower_bound: Unknown -> Feasible (0 loss);
 /// - upper_bound: Unknown -> Infeasible (B loss).
@@ -997,6 +1352,175 @@ mod tests {
                 value_milli: 1_001,
                 ..
             })
+        ));
+    }
+
+    #[test]
+    fn adapter_aggregates_repeated_same_split_episodes_into_conservative_cluster_means() {
+        let mut data = valid_dataset();
+        let mut repeated = data
+            .episodes
+            .iter()
+            .find(|episode| episode.episode_id == "cal-1")
+            .expect("calibration episode")
+            .clone();
+        repeated.episode_id = "cal-3".to_owned();
+        // The frozen policy order is B, A. Raise both service losses by one
+        // so the two-episode mean is fractional and must round upward.
+        repeated.policy_outcomes[0].service_loss_milli = 251;
+        repeated.policy_outcomes[1].service_loss_milli = 401;
+        data.episodes.push(repeated);
+
+        let bundle =
+            compile_oracle_outcomes(&data).expect("same-split cluster sharing is admissible");
+        assert_eq!(
+            bundle.calibration_dependence_cluster_ids,
+            vec!["weather-1", "weather-2", "weather-1"]
+        );
+
+        let cluster_means = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+            .expect("cluster means");
+        assert_eq!(
+            cluster_means.provenance.cluster_ids,
+            vec!["weather-1", "weather-2"]
+        );
+        assert_eq!(cluster_means.provenance.schedules_per_cluster, vec![2, 1]);
+        assert_eq!(cluster_means.provenance.independent_cluster_count, 2);
+        assert_eq!(cluster_means.provenance.source_schedule_count, 3);
+        assert_eq!(
+            cluster_means.loss.schedules,
+            vec![vec![401, 251], vec![600, 200]]
+        );
+        assert_eq!(bundle.calibration_hard_failure_milli.len(), 3);
+        assert_eq!(cluster_means.loss.schedules.len(), 2);
+
+        let mut permuted = data.clone();
+        permuted.episodes.reverse();
+        let permuted_bundle =
+            compile_oracle_outcomes(&permuted).expect("permuted same-split cluster receipts");
+        assert_eq!(
+            cluster_means,
+            permuted_bundle
+                .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+                .expect("permuted cluster means")
+        );
+
+        let hard_means = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
+            .expect("cluster hard-failure means");
+        assert_eq!(hard_means.loss.schedules, vec![vec![0, 0], vec![1_000, 0]]);
+
+        let crc = hard_means
+            .calibrate_marginal_expected_risk(
+                100,
+                crate::MonotonicityMode::UseUpperEnvelope,
+                Some(&crate::MaxParameterContract {
+                    scope: "typed oracle cluster fixture".to_owned(),
+                    evidence_ref: "synthetic-terminal-zero-loss-contract".to_owned(),
+                    declared_loss_bound_milli: 0,
+                }),
+            )
+            .expect("typed cluster-unit expected-risk CRC result");
+        assert_eq!(crc.result.calibration_schedules, 2);
+        assert_eq!(crc.calibration_provenance.source_schedule_count, 3);
+        assert_eq!(crc.calibration_provenance.independent_cluster_count, 2);
+        assert_eq!(crc.loss_axis, LossAxis::HardPhysicalFailure);
+        assert_eq!(
+            crc.result.revisions.policy_revision,
+            crc.calibration_provenance.policy_grid_sha256
+        );
+        assert_eq!(
+            crc.result.revisions.evaluator_revision,
+            crc.calibration_provenance.evaluator_revision
+        );
+        assert_eq!(
+            crc.result.revisions.loss_contract_revision,
+            crc.calibration_provenance.loss_contract_revision
+        );
+
+        let high_probability = hard_means
+            .select_fixed_grid_high_probability(&cluster_means, 100, 0.05)
+            .expect("cluster-unit high-probability evaluation");
+        assert!(matches!(
+            high_probability.selection,
+            ClusterHighProbabilitySelection::Abstained(
+                crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget
+            )
+        ));
+        assert_eq!(
+            high_probability.risk_provenance.independent_cluster_count,
+            2
+        );
+    }
+
+    #[test]
+    fn high_probability_cluster_projection_rejects_unaligned_service_clusters() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let risk = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
+            .expect("risk cluster means");
+        let mut service = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+            .expect("service cluster means");
+        service.provenance.schedules_per_cluster[0] += 1;
+        assert!(matches!(
+            risk.select_fixed_grid_high_probability(&service, 100, 0.05),
+            Err(ClusterRiskControlError::ClusterMatricesNotAligned)
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_row_cluster_identity_length_mismatch() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_dependence_cluster_ids.pop();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterIdentityCountMismatch {
+                schedule_rows: 2,
+                cluster_ids: 1,
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_policy_width_mismatch() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_service_loss_milli[0].pop();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterPolicyWidthMismatch {
+                expected: 2,
+                found: 1,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_loss_outside_declared_bound() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_service_loss_milli[0][0] = 1_001;
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterLossOutsideBound {
+                value_milli: 1_001,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_empty_cluster_identity() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_dependence_cluster_ids[0].clear();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::EmptyDependenceClusterId)
         ));
     }
 
