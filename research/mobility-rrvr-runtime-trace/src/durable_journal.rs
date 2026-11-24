@@ -1671,7 +1671,7 @@ mod tests {
                 status: DispatchOutcomeStatus::ResponseAccepted,
                 dispatch_id: Some("dispatch-late".into()),
                 ledger_artifact_sha256: None,
-                transport_response_artifact_sha256: None,
+                transport_response_artifact_sha256: Some(digest('8')),
             }),
             Err(JournalError::InvalidDispatchTransition)
         );
@@ -1735,7 +1735,7 @@ mod tests {
                     status: DispatchOutcomeStatus::ResponseAccepted,
                     dispatch_id: Some("late-dispatch".into()),
                     ledger_artifact_sha256: None,
-                    transport_response_artifact_sha256: None,
+                    transport_response_artifact_sha256: Some(digest('8')),
                 }),
                 Err(JournalError::InvalidDispatchTransition)
             );
