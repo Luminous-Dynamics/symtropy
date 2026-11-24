@@ -660,7 +660,8 @@ mod tests {
             let residual_event_probability = if previous_event { 0.8 } else { 0.05 };
             let proposal_event_probability = MIXTURE_WEIGHT * TARGET_EVENT_PROBABILITY
                 + (1.0 - MIXTURE_WEIGHT) * residual_event_probability;
-            let event_occurred = ((encoded_path >> time) & 1) == 1;
+            let bit_index = (time % u32::BITS as usize) as u32;
+            let event_occurred = ((encoded_path >> bit_index) & 1) == 1;
             path_probability *= if event_occurred {
                 proposal_event_probability
             } else {
