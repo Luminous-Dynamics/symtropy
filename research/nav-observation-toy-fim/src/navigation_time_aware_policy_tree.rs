@@ -657,9 +657,9 @@ mod tests {
         let budget = short_budget();
         let actions = transition_sensitive_fixture();
         let dynamic = plan_time_aware_horizon_two(&problem, &actions, budget).unwrap();
-        let static = plan_static_horizon_two(&problem, &actions, budget).unwrap();
+        let static_plan = plan_static_horizon_two(&problem, &actions, budget).unwrap();
 
-        assert_eq!(static.first_action_id, Some(1), "static-state planner prefers perfect capture");
+        assert_eq!(static_plan.first_action_id, Some(1), "static-state planner prefers perfect capture");
         assert_eq!(dynamic.first_action_id, Some(2), "time-aware planner prefers fresher, noisier evidence");
     }
 
