@@ -457,11 +457,7 @@ jobs:
             .events[0].execution.status = "unknown"
             | .events[0].execution.receipt = null
             | .events[0].delivery_observation.verdict = "unknown"
-            | .events[0].delivery_observation.observer_id = null
-            | .events[0].delivery_observation.observer_revision = null
-            | .events[0].delivery_observation.observer_fault_domain_id = null
-            | .events[0].delivery_observation.observed_fault_signature_sha256 = null
-            | .events[0].delivery_observation.receipt = null
+            | .events[0].delivery_observation.members = []
           ' "$BUNDLE" > "$DISPATCH_ONLY"
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$DISPATCH_ONLY" "$RUNNER_TEMP/rrvr-dispatch-only-report.json" > /dev/null
           jq -e '
@@ -479,11 +475,7 @@ jobs:
             | .events[1].execution.status = "unknown"
             | .events[1].execution.receipt = null
             | .events[1].delivery_observation.verdict = "unknown"
-            | .events[1].delivery_observation.observer_id = null
-            | .events[1].delivery_observation.observer_revision = null
-            | .events[1].delivery_observation.observer_fault_domain_id = null
-            | .events[1].delivery_observation.observed_fault_signature_sha256 = null
-            | .events[1].delivery_observation.receipt = null
+            | .events[1].delivery_observation.members = []
           ' "$BUNDLE" > "$UNKNOWN"
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$UNKNOWN" "$RUNNER_TEMP/rrvr-unknown-report.json" > /dev/null
           jq -e '
@@ -494,7 +486,7 @@ jobs:
             and .retry_permitted == false
           ' "$RUNNER_TEMP/rrvr-unknown-report.json"
 
-          jq '.events[0].delivery_observation.observed_fault_signature_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"' "$BUNDLE" > "$TAMPERED"
+          jq '.events[0].delivery_observation.members[0].observed_fault_signature_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"' "$BUNDLE" > "$TAMPERED"
           set +e
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$TAMPERED" > "$RUNNER_TEMP/rrvr-execution-tamper.log" 2>&1
           status=$?
@@ -503,6 +495,7 @@ jobs:
             echo "Execution evidence validator accepted a mismatched observed fault signature."
             exit 1
           fi
+          grep -Fq "DeliverySignatureMismatch" "$RUNNER_TEMP/rrvr-execution-tamper.log"
           echo "Expected negative control rejected: delivery signature mismatch."
 
       - name: Run strict Clippy
