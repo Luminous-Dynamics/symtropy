@@ -639,8 +639,7 @@ pub fn compile_partially_identified_outcomes(
     let mut upper = dataset.clone();
     let mut unknown_physical_cells_total = 0_usize;
     let mut physical_cells_total = 0_usize;
-    let mut unknown_physical_cells_by_policy =
-        vec![0_usize; dataset.contract.policy_grid.len()];
+    let mut unknown_physical_cells_by_policy = vec![0_usize; dataset.contract.policy_grid.len()];
 
     for episode_index in 0..dataset.episodes.len() {
         for outcome_index in 0..dataset.episodes[episode_index].policy_outcomes.len() {
@@ -1094,7 +1093,10 @@ mod tests {
         assert_eq!(bounds.physical_cells_total, 6);
         assert_eq!(bounds.unknown_physical_cells_by_policy, vec![1, 0]);
         assert_eq!(bounds.lower_bound.calibration_hard_failure_milli[1][0], 0);
-        assert_eq!(bounds.upper_bound.calibration_hard_failure_milli[1][0], 1_000);
+        assert_eq!(
+            bounds.upper_bound.calibration_hard_failure_milli[1][0],
+            1_000
+        );
         assert!(!bounds.certification_allowed);
     }
 
