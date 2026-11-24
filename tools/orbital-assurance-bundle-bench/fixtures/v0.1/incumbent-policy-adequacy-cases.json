@@ -23,7 +23,7 @@
         "source_world_set_receipt_id": "world-receipt-observable_review",
         "source_joint_loss_receipt_id": "loss-receipt-observable_review",
         "source_joint_scenario_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "policy_payload_sha256": "68d5c6072e87d4dffdc67307e05b9813705623d40b39ca12878193ac55b1fce2",
+        "policy_payload_sha256": "b6837d3c1f04ba6522743485d41da3feb965923803d299c70f41b3fda4642e6f",
         "receipt_id": "discovery-receipt-observable_review",
         "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "state": "CURRENT",
