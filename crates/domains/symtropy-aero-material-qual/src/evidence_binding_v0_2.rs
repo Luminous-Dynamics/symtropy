@@ -315,7 +315,7 @@ fn verified_field_value(expected_id: &str) -> &str {
     expected_id
 }
 
-fn evaluate_binding_case(case: &Value) -> BindingReport {
+pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     let mut violations = Vec::new();
     let mut blockers = Vec::new();
     let mut dispositions = Vec::new();
@@ -348,6 +348,23 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
         array_at(case, "/intended_configuration_assertions", &mut violations);
     let certificates = array_at(case, "/calibration_certificates", &mut violations);
     let events = array_at(case, "/calibration_events", &mut violations);
+
+    for (kind, rows) in [
+        ("material_lots", lots.as_slice()),
+        ("process_batches", batches.as_slice()),
+        ("panels", panels.as_slice()),
+        ("specimens", specimens.as_slice()),
+        ("test_campaigns", campaigns.as_slice()),
+        ("configurations", configurations.as_slice()),
+        ("observations", observations.as_slice()),
+        ("specimen_source_assertions", specimen_assertions.as_slice()),
+        ("intended_configuration_assertions", configuration_assertions.as_slice()),
+        ("calibration_certificates", certificates.as_slice()),
+    ] {
+        if rows.is_empty() {
+            push(&mut violations, "EMPTY_REQUIRED_COLLECTION", kind);
+        }
+    }
 
     let lot_index = index_by_id(&lots, "material_lots", &mut violations);
     let batch_index = index_by_id(&batches, "process_batches", &mut violations);
@@ -559,6 +576,11 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
             reasons.insert("ACQUISITION_AFTER_EVALUATION_TIME".to_owned());
         }
 
+        let specimen_id = field_str(observation, "specimen_id").unwrap_or("specimen");
+        if !specimen_index.contains_key(specimen_id) {
+            reasons.insert("OBSERVATION_SPECIMEN_UNKNOWN".to_owned());
+        }
+
         let campaign_id = field_str(observation, "campaign_id").unwrap_or("campaign");
         let campaign = campaign_index.get(campaign_id);
         if campaign.is_none() {
@@ -574,6 +596,11 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
 
         if let (Some(campaign), Some(certificate)) = (campaign, certificate) {
+            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref"] {
+                if !nonempty(field_str(certificate, required_field)) {
+                    reasons.insert("CALIBRATION_CERTIFICATE_METADATA_INCOMPLETE".to_owned());
+                }
+            }
             if field_str(campaign, "instrument_id") != field_str(certificate, "instrument_id") {
                 reasons.insert("CALIBRATION_INSTRUMENT_MISMATCH".to_owned());
             }
