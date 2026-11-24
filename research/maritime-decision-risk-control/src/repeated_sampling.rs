@@ -335,9 +335,15 @@ fn push_row(
     let abstentions = replicates.saturating_sub(selected);
     let _ = write!(
         output,
-        "{},{method},{POLICY_COUNT},{schedule_count},{replicates},{target},{selected},{abstentions},",
+        "{},{method},{POLICY_COUNT},{schedule_count},{replicates},{target},",
         fixture.label()
     );
+    if high_probability_method {
+        output.push_str("0.050,");
+    } else {
+        output.push_str("NA,");
+    }
+    let _ = write!(output, "{selected},{abstentions},");
 
     push_optional_interval(
         output,
@@ -399,7 +405,7 @@ fn push_row(
 fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
     assert!(replicates > 0, "replicates must be positive");
     let mut output = String::from(
-        "fixture,method,policy_grid_size,calibration_schedules,replicates,alpha_milli,selected_runs,abstentions,mean_selected_true_hard_risk_milli,true_risk_mc95_low,true_risk_mc95_high,mean_selected_theorem_axis_risk_milli,theorem_risk_mc95_low,theorem_risk_mc95_high,mean_selected_service_loss_milli,service_mc95_low,service_mc95_high,mean_selected_hoeffding_ucb_milli,ucb_mc95_low,ucb_mc95_high,selection_violation_rate,wilson95_low,wilson95_high,conditional_selected_violation_rate,guarantee_kind,status\n",
+        "fixture,method,policy_grid_size,calibration_schedules,replicates,alpha_milli,delta,selected_runs,abstentions,mean_selected_true_hard_risk_milli,true_risk_mc95_low,true_risk_mc95_high,mean_selected_theorem_axis_risk_milli,theorem_risk_mc95_low,theorem_risk_mc95_high,mean_selected_service_loss_milli,service_mc95_low,service_mc95_high,mean_selected_hoeffding_ucb_milli,ucb_mc95_low,ucb_mc95_high,selection_violation_rate,wilson95_low,wilson95_high,conditional_selected_violation_rate,guarantee_kind,status\n",
     );
 
     let (mono_true_risk, _mono_envelope_risk, mono_service) =
@@ -423,7 +429,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                 sampled_sums(Fixture::Monotone, &state_counts);
             let (nonmono_hard_sums, nonmono_envelope_sums, nonmono_service_sums) =
                 sampled_sums(Fixture::NonMonotone, &state_counts);
-                        for (alpha_index, target) in ALPHA_MILLI.iter().copied().enumerate() {
+            for (alpha_index, target) in ALPHA_MILLI.iter().copied().enumerate() {
                 let mono_crc = select_crc(&mono_hard_sums, schedule_count, target);
                 accumulators[0][alpha_index].record(
                     Some(mono_crc),
@@ -624,7 +630,7 @@ mod tests {
         assert_eq!(first, render_smoke_csv());
         assert_eq!(first.lines().count(), 21);
         let width = first.lines().next().unwrap().split(',').count();
-        assert_eq!(width, 26);
+        assert_eq!(width, 27);
         assert!(first.contains("MARGINAL_EXPECTED_RISK"));
         assert!(first.contains("FIXED_GRID_HIGH_PROBABILITY"));
         assert!(first.contains("NO_POSITIVE_ADJUSTED_TARGET"));
