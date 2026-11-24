@@ -352,3 +352,14 @@ The evaluator-side metric accepts candidate probabilities for exact scoped trans
 The decision confidence is derived from the predicted class: `p_transfer` for an assertion and `1-p_transfer` for a rejection. Explicit abstention is excluded from selective coverage but its probability remains in Brier/log-loss/ECE scoring. Candidate-authored probabilities and decisions are optional `transfer_forecasts` in the AgentTransferBundle; evaluator labels, bins and thresholds are not included in the learner sidecar.
 
 The new test suite covers exact scores, overconfident false transfer, abstention/coverage trade-offs, rejection confidence, boundary binning, malformed and duplicate IDs, out-of-range values and unmatched outcomes. Exact-head verification for this new module is pending.
+
+## Transfer forecast calibration and selective risk — current addition
+
+New implementation on the branch:
+- `src/calibration.rs`, exported as `calibration`;
+- `TRANSFER_CALIBRATION_V0_1.md`;
+- optional top-level `transfer_forecasts` in the AgentTransferBundle schema and example.
+
+It computes exact fixed-point Brier score and ECE numerators/denominators, mean log loss with a reported one-ppm boundary clip count, and selective risk/coverage across evaluator-supplied confidence thresholds. Assert/reject confidence is derived from the selected class; abstention is excluded from selective coverage but its probability remains in proper-score calculations. Thresholds, bins and outcome labels are evaluator-owned. The example forecast list includes structural, simulation and mechanism claims with assert/abstain/reject decisions.
+
+The implementation currently has nine focused unit tests covering perfect forecasts, exact bin boundaries, overconfident false transfer, abstention, decision confidence, duplicate/missing/out-of-range input, duplicate thresholds/out-of-range bins and orphan outcomes. **Exact-head Rust 1.96 format, tests/doctests and strict Clippy remain pending for this new module.** The prior green workflow on head `9735f9f7...` qualifies the earlier 86-test finite stack only and does not qualify this addition.
