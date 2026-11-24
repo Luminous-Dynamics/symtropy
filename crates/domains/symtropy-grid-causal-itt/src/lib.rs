@@ -188,65 +188,6 @@ fn digest_serializable<T: Serialize>(value: &T, label: &str) -> Result<String, I
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 
-fn stratified_effect(
-    design: &GridCausalDesignInput,
-    outcomes: &BTreeMap<String, f64>,
-    treated_cluster_ids: &BTreeSet<String>,
-) -> Result<(f64, Vec<StratumIttEffect>), IttAnalysisError> {
-    let total_clusters = design.clusters.len() as f64;
-    let mut pooled_effect = 0.0_f64;
-    let mut stratum_effects = Vec::with_capacity(design.strata.len());
-
-    for stratum in &design.strata {
-        let mut treated_values = Vec::new();
-        let mut control_values = Vec::new();
-
-        for cluster in design
-            .clusters
-            .iter()
-            .filter(|cluster| cluster.stratum_id == stratum.stratum_id)
-        {
-            let outcome = outcomes.get(&cluster.cluster_id).ok_or_else(|| {
-                IttAnalysisError::MissingOutcome(format!(
-                    "missing primary outcome for cluster {}",
-                    cluster.cluster_id
-                ))
-            })?;
-            if treated_cluster_ids.contains(&cluster.cluster_id) {
-                treated_values.push(*outcome);
-            } else {
-                control_values.push(*outcome);
-            }
-        }
-
-        if treated_values.len() < 2 || control_values.len() < 2 {
-            return Err(IttAnalysisError::InsufficientClusters(format!(
-                "stratum {} requires at least two observed clusters per arm for the Neyman variance estimate",
-                stratum.stratum_id
-            )));
-        }
-
-        let treated_mean = mean(&treated_values)?;
-        let control_mean = mean(&control_values)?;
-        let weight = (treated_values.len() + control_values.len()) as f64 / total_clusters;
-        let effect = treated_mean - control_mean;
-        pooled_effect += weight * effect;
-
-        stratum_effects.push(StratumIttEffect {
-            stratum_id: stratum.stratum_id.clone(),
-            treated_cluster_count: treated_values.len(),
-            control_cluster_count: control_values.len(),
-            stratum_weight: weight,
-            treated_mean_outcome: treated_mean,
-            control_mean_outcome: control_mean,
-            itt_effect_estimate: effect,
-            variance_contribution: 0.0,
-        });
-    }
-
-    Ok((pooled_effect, stratum_effects))
-}
-
 fn mean(values: &[f64]) -> Result<f64, IttAnalysisError> {
     if values.is_empty() {
         return Err(IttAnalysisError::InsufficientClusters(
@@ -389,7 +330,10 @@ fn choose_count(n: usize, k: usize) -> u128 {
     let k = k.min(n.saturating_sub(k));
     let mut result = 1_u128;
     for i in 0..k {
-        result = result.saturating_mul((n - i) as u128) / (i + 1) as u128;
+        let Some(product) = result.checked_mul((n - i) as u128) else {
+            return u128::MAX;
+        };
+        result = product / (i + 1) as u128;
     }
     result
 }
@@ -616,6 +560,11 @@ fn permutation_p_value_with_exact_limit(
         ));
     }
 
+    if !(MIN_MONTE_CARLO_DRAWS..=MAX_MONTE_CARLO_DRAWS).contains(&permutation_budget) {
+        return Err(IttAnalysisError::InvalidInput(format!(
+            "permutation_budget must be between {MIN_MONTE_CARLO_DRAWS} and {MAX_MONTE_CARLO_DRAWS} when Monte Carlo inference is required"
+        )));
+    }
     let mut extreme_count = 0_usize;
     for draw in 0..permutation_budget {
         let assignment = deterministic_permutation_assignment(design, draw);
@@ -751,11 +700,6 @@ pub fn estimate_cluster_itt(
         ));
     }
     require_nonempty("claim ceiling", &input.claim_ceiling)?;
-    if !(MIN_MONTE_CARLO_DRAWS..=MAX_MONTE_CARLO_DRAWS).contains(&input.permutation_budget) {
-        return Err(IttAnalysisError::InvalidInput(format!(
-            "permutation_budget must be between {MIN_MONTE_CARLO_DRAWS} and {MAX_MONTE_CARLO_DRAWS}"
-        )));
-    }
 
     let design_audit = audit_causal_design(&input.design)
         .map_err(|error| IttAnalysisError::InvalidInput(format!("design audit failed: {error}")))?;
