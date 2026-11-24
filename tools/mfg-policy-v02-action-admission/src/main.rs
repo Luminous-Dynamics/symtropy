@@ -7,8 +7,9 @@ const FRAME_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json");
 const PROPOSAL_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json");
-const RECEIPT_SCHEMA_JSON: &str =
-    include_str!("../../../schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json");
+const RECEIPT_SCHEMA_JSON: &str = include_str!(
+    "../../../schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+);
 
 const RECEIPT_SCHEMA_ID: &str =
     "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt";
@@ -64,7 +65,11 @@ fn required_string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a
         .ok_or_else(|| fail(format!("{context}_{key}_missing_or_invalid")))
 }
 
-fn required_array<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a Vec<Value>, String> {
+fn required_array<'a>(
+    value: &'a Value,
+    key: &str,
+    context: &str,
+) -> Result<&'a Vec<Value>, String> {
     value
         .get(key)
         .and_then(Value::as_array)
@@ -82,7 +87,11 @@ fn mark_hold(receipt: &mut AdmissionReceipt, reason: &str) {
     if receipt.status != AdmissionStatus::Rejected {
         receipt.status = AdmissionStatus::Hold;
     }
-    if !receipt.reason_codes.iter().any(|existing| existing == reason) {
+    if !receipt
+        .reason_codes
+        .iter()
+        .any(|existing| existing == reason)
+    {
         receipt.reason_codes.push(reason.to_string());
     }
 }
@@ -135,11 +144,14 @@ fn validate_visible_history(
     static_case: &Value,
     resources: &BTreeMap<String, &Value>,
     decision_epoch: u64,
-) -> Result<(
-    BTreeMap<(String, String), String>,
-    BTreeMap<String, String>,
-    Option<u64>,
-), String> {
+) -> Result<
+    (
+        BTreeMap<(String, String), String>,
+        BTreeMap<String, String>,
+        Option<u64>,
+    ),
+    String,
+> {
     let mut qualification_state = BTreeMap::<(String, String), String>::new();
     let mut evidence_receipts = BTreeSet::<String>::new();
 
@@ -163,13 +175,11 @@ fn validate_visible_history(
 
         for qualification in required_array(resource, "initial_qualifications", "resource")? {
             let family = required_string(qualification, "process_family", "qualification")?;
-            let disposition =
-                required_string(qualification, "disposition", "qualification")?;
+            let disposition = required_string(qualification, "disposition", "qualification")?;
             if !["ADMISSIBLE", "UNKNOWN", "BLOCKED"].contains(&disposition) {
                 return Err(fail("qualification_disposition_invalid"));
             }
-            let receipt =
-                required_string(qualification, "evidence_receipt_id", "qualification")?;
+            let receipt = required_string(qualification, "evidence_receipt_id", "qualification")?;
             if !evidence_receipts.insert(receipt.to_string()) {
                 return Err(fail("qualification_receipt_duplicate"));
             }
@@ -256,8 +266,7 @@ fn validate_visible_history(
             let receipt = required_string(update, "evidence_receipt_id", "qualification_update")?;
             let resource_id = required_string(update, "resource_id", "qualification_update")?;
             let family = required_string(update, "process_family", "qualification_update")?;
-            let previous =
-                required_string(update, "previous_disposition", "qualification_update")?;
+            let previous = required_string(update, "previous_disposition", "qualification_update")?;
             let next = required_string(update, "new_disposition", "qualification_update")?;
             let occurred = required_u64(update, "occurred_at_epoch", "qualification_update")?;
             let observed = required_u64(update, "observed_at_epoch", "qualification_update")?;
@@ -298,15 +307,16 @@ fn validate_visible_history(
             let event_station = required_string(event, "station_id", "inspection_event")?;
             let occurred = required_u64(event, "occurred_at_epoch", "inspection_event")?;
             let observed = required_u64(event, "observed_at_epoch", "inspection_event")?;
-            let capacity =
-                required_u64(event, "available_capacity_units", "inspection_event")?;
+            let capacity = required_u64(event, "available_capacity_units", "inspection_event")?;
             if !evidence_receipts.insert(event_id.to_string())
                 || event_station != station_id
                 || observed != expected_epoch as u64
                 || occurred > observed
                 || !inspection_event_epochs.insert(observed)
             {
-                return Err(fail("inspection_event_identity_scope_or_chronology_invalid"));
+                return Err(fail(
+                    "inspection_event_identity_scope_or_chronology_invalid",
+                ));
             }
             inspection_capacity_override = Some(capacity);
         }
@@ -432,12 +442,18 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
             .get("committed_resource_id")
             .is_none_or(Value::is_null)
         {
-            mark_rejected(&mut receipt, "waiting_operation_has_existing_resource_commitment");
+            mark_rejected(
+                &mut receipt,
+                "waiting_operation_has_existing_resource_commitment",
+            );
             return Ok(receipt);
         }
         let remaining = required_u64(operation, "remaining_processing_ticks", "operation")?;
         if remaining != 0 {
-            mark_rejected(&mut receipt, "waiting_operation_has_unmodeled_remaining_work");
+            mark_rejected(
+                &mut receipt,
+                "waiting_operation_has_unmodeled_remaining_work",
+            );
             return Ok(receipt);
         }
         let times = operation
@@ -472,9 +488,15 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
         .and_then(Value::as_u64)
         .ok_or_else(|| fail("resource_capacity_for_decision_epoch_missing"))?;
     if current_capacity == 0 {
-        mark_hold(&mut receipt, "resource_capacity_unavailable_in_current_epoch");
+        mark_hold(
+            &mut receipt,
+            "resource_capacity_unavailable_in_current_epoch",
+        );
     }
-    if resource_state.get(&resource_id).is_some_and(|state| state == "FAILED") {
+    if resource_state
+        .get(&resource_id)
+        .is_some_and(|state| state == "FAILED")
+    {
         mark_hold(&mut receipt, "resource_has_visible_unrestored_failure");
     }
 
@@ -491,7 +513,10 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
             receipt.qualification_disposition = Some("BLOCKED".to_string());
             mark_rejected(&mut receipt, "qualification_blocked_at_decision_cutoff");
         }
-        None => mark_hold(&mut receipt, "qualification_state_missing_at_decision_cutoff"),
+        None => mark_hold(
+            &mut receipt,
+            "qualification_state_missing_at_decision_cutoff",
+        ),
         Some(_) => return Err(fail("qualification_disposition_invalid")),
     }
 
@@ -537,7 +562,8 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
     let station = static_case
         .get("inspection_station")
         .ok_or_else(|| fail("inspection_station_missing"))?;
-    let station_capacity = required_array(station, "capacity_units_by_epoch", "inspection_station")?;
+    let station_capacity =
+        required_array(station, "capacity_units_by_epoch", "inspection_station")?;
     let mut current_inspection_capacity = station_capacity
         .get(decision_epoch as usize)
         .and_then(Value::as_u64)
@@ -566,7 +592,8 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
                 }
                 _ => return Err(fail("inspection_method_id_duplicate")),
             };
-            let applicable = required_array(method, "applicable_process_families", "inspection_method")?;
+            let applicable =
+                required_array(method, "applicable_process_families", "inspection_method")?;
             if !applicable
                 .iter()
                 .any(|family| family.as_str() == Some(process_family))
@@ -577,7 +604,10 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
             }
         }
         if current_inspection_capacity == 0 {
-            mark_hold(&mut receipt, "inspection_capacity_unavailable_in_current_epoch");
+            mark_hold(
+                &mut receipt,
+                "inspection_capacity_unavailable_in_current_epoch",
+            );
         }
     } else if !proposed_method.is_null() {
         mark_rejected(&mut receipt, "unneeded_inspection_method_proposed");
@@ -726,7 +756,10 @@ mod tests {
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
         assert_eq!(receipt.setup_duration_ticks, Some(2));
-        assert_eq!(receipt.qualification_disposition.as_deref(), Some("ADMISSIBLE"));
+        assert_eq!(
+            receipt.qualification_disposition.as_deref(),
+            Some("ADMISSIBLE")
+        );
         assert_eq!(receipt.inspection_method_id.as_deref(), Some("DIMENSIONAL"));
         assert!(receipt.reason_codes.is_empty());
     }
@@ -738,9 +771,11 @@ mod tests {
             Value::from("UNKNOWN");
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.contains(
-            &"qualification_unknown_at_decision_cutoff".to_string()
-        ));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"qualification_unknown_at_decision_cutoff".to_string())
+        );
     }
 
     #[test]
@@ -759,7 +794,10 @@ mod tests {
         }]);
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
-        assert_eq!(receipt.qualification_disposition.as_deref(), Some("ADMISSIBLE"));
+        assert_eq!(
+            receipt.qualification_disposition.as_deref(),
+            Some("ADMISSIBLE")
+        );
     }
 
     #[test]
@@ -769,9 +807,11 @@ mod tests {
             Value::from("BLOCKED");
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
-        assert!(receipt.reason_codes.contains(
-            &"qualification_blocked_at_decision_cutoff".to_string()
-        ));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"qualification_blocked_at_decision_cutoff".to_string())
+        );
     }
 
     #[test]
@@ -789,45 +829,53 @@ mod tests {
         );
 
         frame["decision_epoch"] = Value::from(1);
-        frame["observable_history"].as_array_mut().unwrap().push(json!({
-            "epoch": 1, "resource_events": [{
-                "source_event_id": "RESTORE-1", "resource_id": "RESOURCE-A", "kind": "RESTORED",
-                "occurred_at_epoch": 1, "observed_at_epoch": 1,
-                "common_cause_id": null, "recovery_forecast_min_epochs": null,
-                "recovery_forecast_max_epochs": null
-            }],
-            "qualification_updates": [], "inspection_capacity_events": []
-        }));
+        frame["observable_history"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "epoch": 1, "resource_events": [{
+                    "source_event_id": "RESTORE-1", "resource_id": "RESOURCE-A", "kind": "RESTORED",
+                    "occurred_at_epoch": 1, "observed_at_epoch": 1,
+                    "common_cause_id": null, "recovery_forecast_min_epochs": null,
+                    "recovery_forecast_max_epochs": null
+                }],
+                "qualification_updates": [], "inspection_capacity_events": []
+            }));
         let mut proposal = sample_proposal();
         proposal["decision_epoch"] = Value::from(1);
-        assert_eq!(evaluate(&frame, &proposal).unwrap().status, AdmissionStatus::Admissible);
+        assert_eq!(
+            evaluate(&frame, &proposal).unwrap().status,
+            AdmissionStatus::Admissible
+        );
     }
 
     #[test]
     fn uncompleted_predecessor_holds_a_dependent_start() {
         let mut frame = sample_frame();
-        frame["static_case"]["jobs"][0]["operations"][0]["initial_status"] =
-            Value::from("WAITING");
+        frame["static_case"]["jobs"][0]["operations"][0]["initial_status"] = Value::from("WAITING");
         let mut proposal = sample_proposal();
         proposal["operation_id"] = Value::from("OP-2");
         proposal["inspection_method_id"] = Value::Null;
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.contains(
-            &"predecessor_not_completed_at_decision_cutoff".to_string()
-        ));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"predecessor_not_completed_at_decision_cutoff".to_string())
+        );
     }
 
     #[test]
     fn resource_failure_and_capacity_are_checked_independently() {
         let mut frame = sample_frame();
-        frame["static_case"]["resources"][0]["capacity_units_by_epoch"][0] =
-            Value::from(0_u64);
+        frame["static_case"]["resources"][0]["capacity_units_by_epoch"][0] = Value::from(0_u64);
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.contains(
-            &"resource_capacity_unavailable_in_current_epoch".to_string()
-        ));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"resource_capacity_unavailable_in_current_epoch".to_string())
+        );
     }
 
     #[test]
@@ -854,9 +902,11 @@ mod tests {
         }]);
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.contains(
-            &"inspection_capacity_unavailable_in_current_epoch".to_string()
-        ));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"inspection_capacity_unavailable_in_current_epoch".to_string())
+        );
     }
 
     #[test]
@@ -865,7 +915,11 @@ mod tests {
         frame["static_case"]["setup_transitions"] = json!([]);
         let receipt = evaluate(&frame, &sample_proposal()).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
-        assert!(receipt.reason_codes.contains(&"setup_transition_missing".to_string()));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"setup_transition_missing".to_string())
+        );
     }
 
     #[test]
@@ -885,10 +939,13 @@ mod tests {
     #[test]
     fn future_observation_cannot_be_smuggled_into_decision_frame() {
         let mut frame = sample_frame();
-        frame["observable_history"].as_array_mut().unwrap().push(json!({
-            "epoch": 1, "resource_events": [], "qualification_updates": [],
-            "inspection_capacity_events": []
-        }));
+        frame["observable_history"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "epoch": 1, "resource_events": [], "qualification_updates": [],
+                "inspection_capacity_events": []
+            }));
         assert_eq!(
             evaluate(&frame, &sample_proposal()).unwrap_err(),
             "observable_history_must_end_at_decision_epoch"
@@ -902,6 +959,9 @@ mod tests {
         proposal["case_id"] = Value::from("OTHER-CASE");
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
-        assert_eq!(receipt.reason_codes, vec!["proposal_frame_identity_mismatch"]);
+        assert_eq!(
+            receipt.reason_codes,
+            vec!["proposal_frame_identity_mismatch"]
+        );
     }
 }
