@@ -275,14 +275,17 @@ fn family_manifest() -> Vec<FamilySpec> {
             scenario_family_id: "crossed-bottlenecks".into(),
             split: DataSplit::Development,
             replication_seeds: seeds.clone(),
-            primary_mechanism: "overlapping eligibility with two interacting capacity bottlenecks".into(),
-            decision_tension_under_test: "proactive reservation versus local greedy dispatch".into(),
+            primary_mechanism: "overlapping eligibility with two interacting capacity bottlenecks"
+                .into(),
+            decision_tension_under_test: "proactive reservation versus local greedy dispatch"
+                .into(),
         },
         FamilySpec {
             scenario_family_id: "common-cause-outage".into(),
             split: DataSplit::Development,
             replication_seeds: seeds.clone(),
-            primary_mechanism: "correlated loss and restoration of resources sharing a failure domain".into(),
+            primary_mechanism:
+                "correlated loss and restoration of resources sharing a failure domain".into(),
             decision_tension_under_test: "resource diversity versus nominal processing cost".into(),
         },
         FamilySpec {
@@ -296,22 +299,28 @@ fn family_manifest() -> Vec<FamilySpec> {
             scenario_family_id: "qualification-transition".into(),
             split: DataSplit::Development,
             replication_seeds: seeds.clone(),
-            primary_mechanism: "Unknown qualification becomes admissible only after a visible scoped receipt".into(),
+            primary_mechanism:
+                "Unknown qualification becomes admissible only after a visible scoped receipt"
+                    .into(),
             decision_tension_under_test: "defer an Unknown route until evidence is visible".into(),
         },
         FamilySpec {
             scenario_family_id: "setup-wip-pressure".into(),
             split: DataSplit::HeldOut,
             replication_seeds: seeds.clone(),
-            primary_mechanism: "sequence-dependent setups with committed and in-process work".into(),
-            decision_tension_under_test: "preserve committed WIP versus setup-aware rerouting".into(),
+            primary_mechanism: "sequence-dependent setups with committed and in-process work"
+                .into(),
+            decision_tension_under_test: "preserve committed WIP versus setup-aware rerouting"
+                .into(),
         },
         FamilySpec {
             scenario_family_id: "inspection-value".into(),
             split: DataSplit::HeldOut,
             replication_seeds: seeds,
-            primary_mechanism: "inspection-capacity contention and hidden terminal quality outcomes".into(),
-            decision_tension_under_test: "inspect when measurement can change disposition, not merely reduce entropy".into(),
+            primary_mechanism:
+                "inspection-capacity contention and hidden terminal quality outcomes".into(),
+            decision_tension_under_test:
+                "inspect when measurement can change disposition, not merely reduce entropy".into(),
         },
     ]
 }
@@ -333,10 +342,7 @@ fn process_families_for_job(job_index: usize) -> [&'static str; 2] {
     }
 }
 
-fn make_jobs(
-    family_id: &str,
-    rng: &mut DeterministicRng,
-) -> Vec<Job> {
+fn make_jobs(family_id: &str, rng: &mut DeterministicRng) -> Vec<Job> {
     (0..3)
         .map(|job_index| {
             let job_id = format!("JOB-{}", job_index + 1);
@@ -348,20 +354,15 @@ fn make_jobs(
                     let eligible = eligible_resources(&process_family);
                     let processing_time_ticks_by_resource = eligible
                         .iter()
-                        .map(|resource_id| {
-                            (
-                                (*resource_id).to_string(),
-                                rng.between(1, 4),
-                            )
-                        })
+                        .map(|resource_id| ((*resource_id).to_string(), rng.between(1, 4)))
                         .collect();
 
                     let in_process = job_index == 0 && operation_index == 0;
                     let completed = job_index == 1 && operation_index == 0;
                     let inspection_required =
                         family_id == "inspection-value" && operation_index == 1;
-                    let inspection_method_id = inspection_required
-                        .then(|| "INDEPENDENT-DIMENSIONAL".to_string());
+                    let inspection_method_id =
+                        inspection_required.then(|| "INDEPENDENT-DIMENSIONAL".to_string());
 
                     Operation {
                         operation_id,
@@ -371,14 +372,18 @@ fn make_jobs(
                             "FORMING" => "SETUP-B",
                             "FINISHING" => "SETUP-C",
                             _ => unreachable!("known process family"),
-                        }).to_string(),
+                        })
+                        .to_string(),
                         process_family,
                         predecessor_operation_ids: if operation_index == 0 {
                             Vec::new()
                         } else {
                             vec![format!("{job_id}-OP-1")]
                         },
-                        eligible_resource_ids: eligible.iter().map(|id| (*id).to_string()).collect(),
+                        eligible_resource_ids: eligible
+                            .iter()
+                            .map(|id| (*id).to_string())
+                            .collect(),
                         processing_time_ticks_by_resource,
                         initial_status: if in_process {
                             OperationStatus::InProcess
@@ -409,54 +414,73 @@ fn make_jobs(
 
 fn make_resources(family_id: &str) -> Vec<Resource> {
     let definitions = [
-        ("RESOURCE-A", vec!["CUTTING", "FORMING"], "POWER-DOMAIN-1", "SETUP-A"),
-        ("RESOURCE-B", vec!["CUTTING", "FINISHING"], "POWER-DOMAIN-1", "SETUP-B"),
-        ("RESOURCE-C", vec!["FORMING", "FINISHING"], "POWER-DOMAIN-2", "SETUP-C"),
+        (
+            "RESOURCE-A",
+            vec!["CUTTING", "FORMING"],
+            "POWER-DOMAIN-1",
+            "SETUP-A",
+        ),
+        (
+            "RESOURCE-B",
+            vec!["CUTTING", "FINISHING"],
+            "POWER-DOMAIN-1",
+            "SETUP-B",
+        ),
+        (
+            "RESOURCE-C",
+            vec!["FORMING", "FINISHING"],
+            "POWER-DOMAIN-2",
+            "SETUP-C",
+        ),
     ];
 
     definitions
         .into_iter()
-        .map(|(resource_id, capabilities, common_cause_domain, initial_setup_family)| {
-            let initial_qualifications = capabilities
-                .iter()
-                .map(|process_family| {
-                    let is_unknown_transition =
-                        family_id == "qualification-transition"
+        .map(
+            |(resource_id, capabilities, common_cause_domain, initial_setup_family)| {
+                let initial_qualifications = capabilities
+                    .iter()
+                    .map(|process_family| {
+                        let is_unknown_transition = family_id == "qualification-transition"
                             && resource_id == "RESOURCE-C"
                             && *process_family == "FORMING";
-                    ResourceQualification {
-                        process_family: (*process_family).to_string(),
-                        disposition: if is_unknown_transition {
-                            QualificationDisposition::Unknown
-                        } else {
-                            QualificationDisposition::Admissible
-                        },
-                        evidence_receipt_id: format!(
-                            "QUAL-INITIAL-{resource_id}-{process_family}"
-                        ),
+                        ResourceQualification {
+                            process_family: (*process_family).to_string(),
+                            disposition: if is_unknown_transition {
+                                QualificationDisposition::Unknown
+                            } else {
+                                QualificationDisposition::Admissible
+                            },
+                            evidence_receipt_id: format!(
+                                "QUAL-INITIAL-{resource_id}-{process_family}"
+                            ),
+                        }
+                    })
+                    .collect();
+
+                let capacity_units_by_epoch = if family_id == "crossed-bottlenecks" {
+                    match resource_id {
+                        "RESOURCE-A" => vec![1, 0, 1, 1],
+                        "RESOURCE-B" => vec![1, 1, 0, 1],
+                        _ => vec![1, 1, 1, 1],
                     }
-                })
-                .collect();
+                } else {
+                    vec![1, 1, 1, 1]
+                };
 
-            let capacity_units_by_epoch = if family_id == "crossed-bottlenecks" {
-                match resource_id {
-                    "RESOURCE-A" => vec![1, 0, 1, 1],
-                    "RESOURCE-B" => vec![1, 1, 0, 1],
-                    _ => vec![1, 1, 1, 1],
+                Resource {
+                    resource_id: resource_id.to_string(),
+                    capability_families: capabilities
+                        .iter()
+                        .map(|value| (*value).to_string())
+                        .collect(),
+                    common_cause_domain: common_cause_domain.to_string(),
+                    capacity_units_by_epoch,
+                    initial_setup_family: initial_setup_family.to_string(),
+                    initial_qualifications,
                 }
-            } else {
-                vec![1, 1, 1, 1]
-            };
-
-            Resource {
-                resource_id: resource_id.to_string(),
-                capability_families: capabilities.iter().map(|value| (*value).to_string()).collect(),
-                common_cause_domain: common_cause_domain.to_string(),
-                capacity_units_by_epoch,
-                initial_setup_family: initial_setup_family.to_string(),
-                initial_qualifications,
-            }
-        })
+            },
+        )
         .collect()
 }
 
@@ -525,37 +549,35 @@ fn add_resource_event(
     common_cause_id: Option<String>,
     forecast: Option<(u64, u64)>,
 ) {
-    observations[observed_at_epoch].resource_events.push(ResourceEvent {
-        source_event_id,
-        resource_id: resource_id.to_string(),
-        kind,
-        occurred_at_epoch,
-        observed_at_epoch,
-        common_cause_id,
-        recovery_forecast_min_epochs: forecast.map(|value| value.0),
-        recovery_forecast_max_epochs: forecast.map(|value| value.1),
-    });
+    observations[observed_at_epoch]
+        .resource_events
+        .push(ResourceEvent {
+            source_event_id,
+            resource_id: resource_id.to_string(),
+            kind,
+            occurred_at_epoch,
+            observed_at_epoch,
+            common_cause_id,
+            recovery_forecast_min_epochs: forecast.map(|value| value.0),
+            recovery_forecast_max_epochs: forecast.map(|value| value.1),
+        });
 }
 
-fn add_qualification_update(
-    observations: &mut [EpochObservation],
-    case_prefix: &str,
-) {
-    observations[2].qualification_updates.push(QualificationUpdate {
-        evidence_receipt_id: format!("{case_prefix}-QUAL-RC-FORMING-ADMITTED"),
-        resource_id: "RESOURCE-C".into(),
-        process_family: "FORMING".into(),
-        previous_disposition: QualificationDisposition::Unknown,
-        new_disposition: QualificationDisposition::Admissible,
-        occurred_at_epoch: 1,
-        observed_at_epoch: 2,
-    });
+fn add_qualification_update(observations: &mut [EpochObservation], case_prefix: &str) {
+    observations[2]
+        .qualification_updates
+        .push(QualificationUpdate {
+            evidence_receipt_id: format!("{case_prefix}-QUAL-RC-FORMING-ADMITTED"),
+            resource_id: "RESOURCE-C".into(),
+            process_family: "FORMING".into(),
+            previous_disposition: QualificationDisposition::Unknown,
+            new_disposition: QualificationDisposition::Admissible,
+            occurred_at_epoch: 1,
+            observed_at_epoch: 2,
+        });
 }
 
-fn add_inspection_capacity_event(
-    observations: &mut [EpochObservation],
-    case_prefix: &str,
-) {
+fn add_inspection_capacity_event(observations: &mut [EpochObservation], case_prefix: &str) {
     observations[2]
         .inspection_capacity_events
         .push(InspectionCapacityEvent {
@@ -576,11 +598,7 @@ fn add_inspection_capacity_event(
         });
 }
 
-fn make_scenarios(
-    family_id: &str,
-    case_prefix: &str,
-    rng: &mut DeterministicRng,
-) -> Vec<Scenario> {
+fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng) -> Vec<Scenario> {
     let nominal_history = empty_observations();
 
     let mut disruption_history = empty_observations();
@@ -735,11 +753,7 @@ fn make_scenarios(
     ]
 }
 
-fn generate_case(
-    family: &FamilySpec,
-    family_index: usize,
-    replication_seed: u64,
-) -> ChallengeCase {
+fn generate_case(family: &FamilySpec, family_index: usize, replication_seed: u64) -> ChallengeCase {
     let generator_seed = derive_seed(family_index, replication_seed);
     let mut rng = DeterministicRng::new(generator_seed);
     let case_prefix = format!(
@@ -805,8 +819,8 @@ fn generate_corpus() -> Corpus {
 }
 
 fn validate_schema(instance: &serde_json::Value) -> Result<(), String> {
-    let schema: serde_json::Value = serde_json::from_str(SCHEMA_JSON)
-        .map_err(|error| format!("schema_parse:{error}"))?;
+    let schema: serde_json::Value =
+        serde_json::from_str(SCHEMA_JSON).map_err(|error| format!("schema_parse:{error}"))?;
     let validator = jsonschema::draft202012::options()
         .offline()
         .build(&schema)
@@ -841,7 +855,9 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if family.replication_seeds != (1..=REPLICATIONS_PER_FAMILY as u64).collect::<Vec<_>>()
             || family.primary_mechanism.trim().is_empty()
             || family.decision_tension_under_test.trim().is_empty()
-            || family_by_id.insert(family.scenario_family_id.as_str(), family).is_some()
+            || family_by_id
+                .insert(family.scenario_family_id.as_str(), family)
+                .is_some()
         {
             return Err("family_manifest_invalid_or_duplicate".into());
         }
@@ -865,7 +881,12 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             .ok_or_else(|| "case_family_index_missing".to_string())?;
         if case.case_id.trim().is_empty()
             || case.generator_seed != derive_seed(family_index, case.replication_seed)
-            || case.case_id != format!("{}-{:02}", case.scenario_family_id.to_ascii_uppercase(), case.replication_seed)
+            || case.case_id
+                != format!(
+                    "{}-{:02}",
+                    case.scenario_family_id.to_ascii_uppercase(),
+                    case.replication_seed
+                )
             || !case_ids.insert(case.case_id.as_str())
             || case.split != family.split
             || !family.replication_seeds.contains(&case.replication_seed)
@@ -879,14 +900,18 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             return Err("case_identity_split_or_shape_invalid".into());
         }
 
-        let resource_ids: BTreeSet<&str> = case.resources.iter()
+        let resource_ids: BTreeSet<&str> = case
+            .resources
+            .iter()
             .map(|resource| resource.resource_id.as_str())
             .collect();
         if resource_ids.len() != 3 {
             return Err("resource_ids_not_unique".into());
         }
 
-        let resources_by_id: BTreeMap<&str, &Resource> = case.resources.iter()
+        let resources_by_id: BTreeMap<&str, &Resource> = case
+            .resources
+            .iter()
             .map(|resource| (resource.resource_id.as_str(), resource))
             .collect();
         let mut operation_ids = BTreeSet::new();
@@ -897,37 +922,70 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             for (index, operation) in job.operations.iter().enumerate() {
                 if !operation_ids.insert(operation.operation_id.as_str())
                     || operation.sequence != index + 1
-                    || operation.setup_family != (match operation.process_family.as_str() {
-                        "CUTTING" => "SETUP-A",
-                        "FORMING" => "SETUP-B",
-                        "FINISHING" => "SETUP-C",
-                        _ => "",
-                    })
+                    || operation.setup_family
+                        != (match operation.process_family.as_str() {
+                            "CUTTING" => "SETUP-A",
+                            "FORMING" => "SETUP-B",
+                            "FINISHING" => "SETUP-C",
+                            _ => "",
+                        })
                     || operation.eligible_resource_ids.len() != 2
-                    || operation.eligible_resource_ids.iter().any(|id| !resource_ids.contains(id.as_str()))
+                    || operation
+                        .eligible_resource_ids
+                        .iter()
+                        .any(|id| !resource_ids.contains(id.as_str()))
                     || operation.processing_time_ticks_by_resource.len() != 2
-                    || operation.processing_time_ticks_by_resource.keys().map(String::as_str).collect::<BTreeSet<_>>()
-                        != operation.eligible_resource_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
-                    || operation.eligible_resource_ids.iter().any(|resource_id|
-                        !resources_by_id.get(resource_id.as_str()).is_some_and(|resource|
-                            resource.capability_families.contains(&operation.process_family)))
-                    || operation.processing_time_ticks_by_resource.values().any(|value| *value == 0)
+                    || operation
+                        .processing_time_ticks_by_resource
+                        .keys()
+                        .map(String::as_str)
+                        .collect::<BTreeSet<_>>()
+                        != operation
+                            .eligible_resource_ids
+                            .iter()
+                            .map(String::as_str)
+                            .collect::<BTreeSet<_>>()
+                    || operation.eligible_resource_ids.iter().any(|resource_id| {
+                        !resources_by_id
+                            .get(resource_id.as_str())
+                            .is_some_and(|resource| {
+                                resource
+                                    .capability_families
+                                    .contains(&operation.process_family)
+                            })
+                    })
+                    || operation
+                        .processing_time_ticks_by_resource
+                        .values()
+                        .any(|value| *value == 0)
                     || (index == 0 && !operation.predecessor_operation_ids.is_empty())
-                    || (index == 1 && operation.predecessor_operation_ids != vec![job.operations[0].operation_id.clone()])
+                    || (index == 1
+                        && operation.predecessor_operation_ids
+                            != vec![job.operations[0].operation_id.clone()])
                 {
                     return Err("operation_identity_precedence_or_eligibility_invalid".into());
                 }
                 match operation.initial_status {
                     OperationStatus::InProcess => {
-                        if operation.committed_resource_id.as_deref().is_none_or(|id| !operation.eligible_resource_ids.iter().any(|eligible| eligible == id))
-                            || operation.remaining_processing_ticks == 0
+                        if operation.committed_resource_id.as_deref().is_none_or(|id| {
+                            !operation
+                                .eligible_resource_ids
+                                .iter()
+                                .any(|eligible| eligible == id)
+                        }) || operation.remaining_processing_ticks == 0
                         {
-                            return Err("in_process_operation_requires_committed_eligible_resource".into());
+                            return Err(
+                                "in_process_operation_requires_committed_eligible_resource".into(),
+                            );
                         }
                     }
                     OperationStatus::Waiting | OperationStatus::Completed => {
-                        if operation.committed_resource_id.is_some() || operation.remaining_processing_ticks != 0 {
-                            return Err("non_running_operation_has_commitment_or_remaining_work".into());
+                        if operation.committed_resource_id.is_some()
+                            || operation.remaining_processing_ticks != 0
+                        {
+                            return Err(
+                                "non_running_operation_has_commitment_or_remaining_work".into()
+                            );
                         }
                     }
                 }
@@ -935,38 +993,54 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
                     return Err("inspection_requirement_and_method_mismatch".into());
                 }
                 if let Some(method_id) = &operation.inspection_method_id {
-                    if !case.inspection_station.methods.iter().any(|method|
+                    if !case.inspection_station.methods.iter().any(|method| {
                         method.method_id == *method_id
-                            && method.applicable_process_families.contains(&operation.process_family))
-                    {
+                            && method
+                                .applicable_process_families
+                                .contains(&operation.process_family)
+                    }) {
                         return Err("operation_inspection_method_not_qualified_for_process".into());
                     }
                 }
             }
         }
 
-        if case.resources.iter().any(|resource| resource.capacity_units_by_epoch.len() != HORIZON_EPOCHS) {
+        if case
+            .resources
+            .iter()
+            .any(|resource| resource.capacity_units_by_epoch.len() != HORIZON_EPOCHS)
+        {
             return Err("resource_capacity_calendar_length_invalid".into());
         }
         if case.scenario_family_id == "crossed-bottlenecks"
-            && !(case.resources.iter().any(|resource| resource.resource_id == "RESOURCE-A" && resource.capacity_units_by_epoch == [1, 0, 1, 1])
-                && case.resources.iter().any(|resource| resource.resource_id == "RESOURCE-B" && resource.capacity_units_by_epoch == [1, 1, 0, 1]))
+            && !(case.resources.iter().any(|resource| {
+                resource.resource_id == "RESOURCE-A"
+                    && resource.capacity_units_by_epoch == [1, 0, 1, 1]
+            }) && case.resources.iter().any(|resource| {
+                resource.resource_id == "RESOURCE-B"
+                    && resource.capacity_units_by_epoch == [1, 1, 0, 1]
+            }))
         {
             return Err("interacting_bottleneck_capacity_windows_missing".into());
         }
-        let setup_keys: BTreeSet<(&str, &str, &str)> = case.setup_transitions.iter()
-            .map(|transition| (
-                transition.resource_id.as_str(),
-                transition.from_setup_family.as_str(),
-                transition.to_setup_family.as_str(),
-            ))
+        let setup_keys: BTreeSet<(&str, &str, &str)> = case
+            .setup_transitions
+            .iter()
+            .map(|transition| {
+                (
+                    transition.resource_id.as_str(),
+                    transition.from_setup_family.as_str(),
+                    transition.to_setup_family.as_str(),
+                )
+            })
             .collect();
         if case.setup_transitions.len() != 18
             || setup_keys.len() != 18
-            || case.setup_transitions.iter().any(|transition|
+            || case.setup_transitions.iter().any(|transition| {
                 transition.duration_ticks == 0
                     || !resource_ids.contains(transition.resource_id.as_str())
-                    || transition.from_setup_family == transition.to_setup_family)
+                    || transition.from_setup_family == transition.to_setup_family
+            })
         {
             return Err("sequence_dependent_setup_matrix_missing_invalid_or_zero".into());
         }
@@ -976,11 +1050,16 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         for scenario in &case.scenarios {
             if !scenario_ids.insert(scenario.scenario_id.as_str())
                 || scenario.observations_by_epoch.len() != HORIZON_EPOCHS
-                || scenario.observations_by_epoch.iter().enumerate().any(|(epoch, observation)| observation.epoch != epoch)
+                || scenario
+                    .observations_by_epoch
+                    .iter()
+                    .enumerate()
+                    .any(|(epoch, observation)| observation.epoch != epoch)
             {
                 return Err("scenario_identity_or_observation_horizon_invalid".into());
             }
-            probability_total = probability_total.checked_add(scenario.probability_ppm)
+            probability_total = probability_total
+                .checked_add(scenario.probability_ppm)
                 .ok_or_else(|| "scenario_probability_overflow".to_string())?;
             for observation in &scenario.observations_by_epoch {
                 for event in &observation.resource_events {
@@ -990,7 +1069,8 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
                         || (event.kind == ResourceEventKind::Failed
                             && (event.recovery_forecast_min_epochs.is_none()
                                 || event.recovery_forecast_max_epochs.is_none()
-                                || event.recovery_forecast_min_epochs > event.recovery_forecast_max_epochs))
+                                || event.recovery_forecast_min_epochs
+                                    > event.recovery_forecast_max_epochs))
                         || (event.kind == ResourceEventKind::Restored
                             && (event.recovery_forecast_min_epochs.is_some()
                                 || event.recovery_forecast_max_epochs.is_some()))
@@ -1027,15 +1107,25 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         }
 
         if case.scenarios[0].observations_by_epoch != case.scenarios[1].observations_by_epoch {
-            return Err("hidden_quality_counterfactuals_must_share_identical_visible_history".into());
+            return Err(
+                "hidden_quality_counterfactuals_must_share_identical_visible_history".into(),
+            );
         }
-        if case.scenarios[0].hidden_terminal_quality_outcomes == case.scenarios[1].hidden_terminal_quality_outcomes {
-            return Err("hidden_quality_counterfactuals_must_differ_only_in_evaluator_outcome".into());
+        if case.scenarios[0].hidden_terminal_quality_outcomes
+            == case.scenarios[1].hidden_terminal_quality_outcomes
+        {
+            return Err(
+                "hidden_quality_counterfactuals_must_differ_only_in_evaluator_outcome".into(),
+            );
         }
     }
 
     for family in &corpus.family_manifest {
-        let count = corpus.cases.iter().filter(|case| case.scenario_family_id == family.scenario_family_id).count();
+        let count = corpus
+            .cases
+            .iter()
+            .filter(|case| case.scenario_family_id == family.scenario_family_id)
+            .count();
         if count != REPLICATIONS_PER_FAMILY {
             return Err("family_replication_coverage_invalid".into());
         }
@@ -1045,8 +1135,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
 
 fn build_and_validate() -> Result<Corpus, String> {
     let corpus = generate_corpus();
-    let value = serde_json::to_value(&corpus)
-        .map_err(|error| format!("corpus_to_json:{error}"))?;
+    let value = serde_json::to_value(&corpus).map_err(|error| format!("corpus_to_json:{error}"))?;
     validate_schema(&value)?;
     validate_corpus(&corpus)?;
     Ok(corpus)
@@ -1054,8 +1143,7 @@ fn build_and_validate() -> Result<Corpus, String> {
 
 fn main() -> ExitCode {
     match build_and_validate().and_then(|corpus| {
-        serde_json::to_string_pretty(&corpus)
-            .map_err(|error| format!("corpus_serialize:{error}"))
+        serde_json::to_string_pretty(&corpus).map_err(|error| format!("corpus_serialize:{error}"))
     }) {
         Ok(json) => {
             println!("{json}");
@@ -1081,11 +1169,44 @@ mod tests {
         let corpus = corpus();
         assert_eq!(corpus.case_count, 120);
         assert_eq!(corpus.family_count, 6);
-        assert_eq!(corpus.family_manifest.iter().filter(|family| family.split == DataSplit::Development).count(), 4);
-        assert_eq!(corpus.family_manifest.iter().filter(|family| family.split == DataSplit::HeldOut).count(), 2);
-        assert!(corpus.family_manifest.iter().all(|family| family.replication_seeds.len() == 20));
-        assert_eq!(corpus.cases.iter().filter(|case| case.split == DataSplit::Development).count(), 80);
-        assert_eq!(corpus.cases.iter().filter(|case| case.split == DataSplit::HeldOut).count(), 40);
+        assert_eq!(
+            corpus
+                .family_manifest
+                .iter()
+                .filter(|family| family.split == DataSplit::Development)
+                .count(),
+            4
+        );
+        assert_eq!(
+            corpus
+                .family_manifest
+                .iter()
+                .filter(|family| family.split == DataSplit::HeldOut)
+                .count(),
+            2
+        );
+        assert!(
+            corpus
+                .family_manifest
+                .iter()
+                .all(|family| family.replication_seeds.len() == 20)
+        );
+        assert_eq!(
+            corpus
+                .cases
+                .iter()
+                .filter(|case| case.split == DataSplit::Development)
+                .count(),
+            80
+        );
+        assert_eq!(
+            corpus
+                .cases
+                .iter()
+                .filter(|case| case.split == DataSplit::HeldOut)
+                .count(),
+            40
+        );
     }
 
     #[test]
@@ -1095,19 +1216,40 @@ mod tests {
             assert_eq!(case.jobs.len(), 3);
             assert_eq!(case.resources.len(), 3);
             assert_eq!(case.horizon_epochs, 4);
-            assert_eq!(case.jobs.iter().map(|job| job.operations.len()).sum::<usize>(), 6);
-            assert!(case.jobs.iter().flat_map(|job| &job.operations).all(|operation| operation.eligible_resource_ids.len() == 2));
+            assert_eq!(
+                case.jobs
+                    .iter()
+                    .map(|job| job.operations.len())
+                    .sum::<usize>(),
+                6
+            );
+            assert!(
+                case.jobs
+                    .iter()
+                    .flat_map(|job| &job.operations)
+                    .all(|operation| operation.eligible_resource_ids.len() == 2)
+            );
         }
     }
 
     #[test]
     fn crossed_bottleneck_family_has_interacting_time_window_limits() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "crossed-bottlenecks")
             .expect("crossed bottlenecks family exists");
-        let a = case.resources.iter().find(|resource| resource.resource_id == "RESOURCE-A").unwrap();
-        let b = case.resources.iter().find(|resource| resource.resource_id == "RESOURCE-B").unwrap();
+        let a = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == "RESOURCE-A")
+            .unwrap();
+        let b = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == "RESOURCE-B")
+            .unwrap();
         assert_eq!(a.capacity_units_by_epoch, vec![1, 0, 1, 1]);
         assert_eq!(b.capacity_units_by_epoch, vec![1, 1, 0, 1]);
     }
@@ -1117,10 +1259,14 @@ mod tests {
         let corpus = corpus();
         for case in &corpus.cases {
             for operation in case.jobs.iter().flat_map(|job| &job.operations) {
-                assert!(case.setup_transitions.iter().any(|transition|
-                    transition.to_setup_family == operation.setup_family
-                        && transition.resource_id == operation.eligible_resource_ids[0]
-                ));
+                assert!(
+                    case.setup_transitions
+                        .iter()
+                        .any(
+                            |transition| transition.to_setup_family == operation.setup_family
+                                && transition.resource_id == operation.eligible_resource_ids[0]
+                        )
+                );
             }
         }
     }
@@ -1129,7 +1275,10 @@ mod tests {
     fn identical_visible_prefixes_can_have_different_hidden_terminal_quality() {
         let corpus = corpus();
         for case in &corpus.cases {
-            assert_eq!(case.scenarios[0].observations_by_epoch, case.scenarios[1].observations_by_epoch);
+            assert_eq!(
+                case.scenarios[0].observations_by_epoch,
+                case.scenarios[1].observations_by_epoch
+            );
             assert_ne!(
                 case.scenarios[0].hidden_terminal_quality_outcomes,
                 case.scenarios[1].hidden_terminal_quality_outcomes
@@ -1140,7 +1289,9 @@ mod tests {
     #[test]
     fn late_observations_never_rewrite_the_event_occurrence_time() {
         let corpus = corpus();
-        let cases = corpus.cases.iter()
+        let cases = corpus
+            .cases
+            .iter()
             .filter(|case| case.scenario_family_id == "uncertain-recovery");
         let mut found_late_event = false;
         for case in cases {
@@ -1161,37 +1312,57 @@ mod tests {
     #[test]
     fn correlated_outages_share_one_explicit_common_cause_id() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "common-cause-outage")
             .expect("common-cause family exists");
-        let failed: Vec<&ResourceEvent> = case.scenarios[2].observations_by_epoch.iter()
+        let failed: Vec<&ResourceEvent> = case.scenarios[2]
+            .observations_by_epoch
+            .iter()
             .flat_map(|observation| &observation.resource_events)
             .filter(|event| event.kind == ResourceEventKind::Failed)
             .collect();
         assert!(failed.iter().any(|event| event.resource_id == "RESOURCE-A"));
         assert!(failed.iter().any(|event| event.resource_id == "RESOURCE-B"));
-        assert!(failed.iter().all(|event| event.common_cause_id.as_deref() == Some("COMMON-POWER-FEEDER-01")));
+        assert!(
+            failed
+                .iter()
+                .all(|event| event.common_cause_id.as_deref() == Some("COMMON-POWER-FEEDER-01"))
+        );
     }
 
     #[test]
     fn unknown_qualification_requires_a_later_scoped_admission_receipt() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "qualification-transition")
             .expect("qualification-transition family exists");
-        let resource = case.resources.iter().find(|resource| resource.resource_id == "RESOURCE-C").unwrap();
-        assert!(resource.initial_qualifications.iter().any(|qualification|
-            qualification.process_family == "FORMING"
-                && qualification.disposition == QualificationDisposition::Unknown
-        ));
-        assert!(case.scenarios[3].observations_by_epoch[2].qualification_updates.iter().any(|update|
-            update.resource_id == "RESOURCE-C"
-                && update.process_family == "FORMING"
-                && update.previous_disposition == QualificationDisposition::Unknown
-                && update.new_disposition == QualificationDisposition::Admissible
-                && update.occurred_at_epoch == 1
-                && update.observed_at_epoch == 2
-        ));
+        let resource = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == "RESOURCE-C")
+            .unwrap();
+        assert!(
+            resource
+                .initial_qualifications
+                .iter()
+                .any(|qualification| qualification.process_family == "FORMING"
+                    && qualification.disposition == QualificationDisposition::Unknown)
+        );
+        assert!(
+            case.scenarios[3].observations_by_epoch[2]
+                .qualification_updates
+                .iter()
+                .any(|update| update.resource_id == "RESOURCE-C"
+                    && update.process_family == "FORMING"
+                    && update.previous_disposition == QualificationDisposition::Unknown
+                    && update.new_disposition == QualificationDisposition::Admissible
+                    && update.occurred_at_epoch == 1
+                    && update.observed_at_epoch == 2)
+        );
     }
 
     #[test]
@@ -1199,31 +1370,55 @@ mod tests {
         let corpus = corpus();
         for case in &corpus.cases {
             assert_eq!(case.setup_transitions.len(), 18);
-            assert!(case.setup_transitions.iter().any(|transition| transition.from_setup_family != transition.to_setup_family));
-            assert!(case.jobs.iter().flat_map(|job| &job.operations).any(|operation|
-                operation.initial_status == OperationStatus::InProcess
-                    && operation.committed_resource_id.as_deref() == Some("RESOURCE-A")
-            ));
+            assert!(
+                case.setup_transitions
+                    .iter()
+                    .any(|transition| transition.from_setup_family != transition.to_setup_family)
+            );
+            assert!(
+                case.jobs
+                    .iter()
+                    .flat_map(|job| &job.operations)
+                    .any(
+                        |operation| operation.initial_status == OperationStatus::InProcess
+                            && operation.committed_resource_id.as_deref() == Some("RESOURCE-A")
+                    )
+            );
         }
     }
 
     #[test]
     fn held_out_families_are_structurally_unseen_regimes() {
         let corpus = corpus();
-        let held_out: BTreeSet<&str> = corpus.family_manifest.iter()
+        let held_out: BTreeSet<&str> = corpus
+            .family_manifest
+            .iter()
             .filter(|family| family.split == DataSplit::HeldOut)
             .map(|family| family.scenario_family_id.as_str())
             .collect();
-        assert_eq!(held_out, ["setup-wip-pressure", "inspection-value"].into_iter().collect());
-        assert!(corpus.family_manifest.iter().filter(|family| family.split == DataSplit::HeldOut)
-            .all(|family| family.replication_seeds == (1..=20).collect::<Vec<_>>()));
+        assert_eq!(
+            held_out,
+            ["setup-wip-pressure", "inspection-value"]
+                .into_iter()
+                .collect()
+        );
+        assert!(
+            corpus
+                .family_manifest
+                .iter()
+                .filter(|family| family.split == DataSplit::HeldOut)
+                .all(|family| family.replication_seeds == (1..=20).collect::<Vec<_>>())
+        );
     }
 
     #[test]
     fn generator_is_deterministic_and_seed_provenance_is_explicit() {
         let first = corpus();
         let second = corpus();
-        assert_eq!(serde_json::to_vec(&first).unwrap(), serde_json::to_vec(&second).unwrap());
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&second).unwrap()
+        );
         assert_eq!(first.generation.root_seed, ROOT_SEED);
         assert_eq!(first.generation.seed_algorithm, "SplitMix64-v1");
     }
@@ -1231,20 +1426,44 @@ mod tests {
     #[test]
     fn inspection_capacity_is_a_real_shared_bottleneck_in_the_held_out_regime() {
         let corpus = corpus();
-        let case = corpus.cases.iter()
+        let case = corpus
+            .cases
+            .iter()
             .find(|case| case.scenario_family_id == "inspection-value")
             .expect("inspection family exists");
-        assert!(case.jobs.iter().flat_map(|job| &job.operations).any(|operation| operation.inspection_required));
-        assert_eq!(case.inspection_station.capacity_units_by_epoch.len(), HORIZON_EPOCHS);
-        assert!(case.scenarios[3].observations_by_epoch[2].inspection_capacity_events.iter()
-            .any(|event| event.available_capacity_units == 0));
+        assert!(
+            case.jobs
+                .iter()
+                .flat_map(|job| &job.operations)
+                .any(|operation| operation.inspection_required)
+        );
+        assert_eq!(
+            case.inspection_station.capacity_units_by_epoch.len(),
+            HORIZON_EPOCHS
+        );
+        assert!(
+            case.scenarios[3].observations_by_epoch[2]
+                .inspection_capacity_events
+                .iter()
+                .any(|event| event.available_capacity_units == 0)
+        );
     }
 
     #[test]
-    fn generator_manifest_declares_hold_and_proactive_reservation_tensions_without_claiming_a_winner() {
+    fn generator_manifest_declares_hold_and_proactive_reservation_tensions_without_claiming_a_winner()
+     {
         let corpus = corpus();
-        assert!(corpus.family_manifest.iter().any(|family| family.decision_tension_under_test.contains("defer")));
-        assert!(corpus.family_manifest.iter().any(|family| family.decision_tension_under_test.contains("proactive reservation")));
+        assert!(
+            corpus
+                .family_manifest
+                .iter()
+                .any(|family| family.decision_tension_under_test.contains("defer"))
+        );
+        assert!(corpus.family_manifest.iter().any(|family| {
+            family
+                .decision_tension_under_test
+                .contains("proactive reservation")
+        }));
         assert!(corpus.claim_ceiling.contains("no scheduler superiority"));
     }
 }
