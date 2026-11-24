@@ -239,7 +239,14 @@ fn valid_timezone_offset(value: &str) -> bool {
 fn fixture_event(code: &str) -> DcsaSourceEvent {
     DcsaSourceEvent {
         standard_version: EXPECTED_STANDARD_VERSION.to_owned(),
-        event_id: format!("urn:uuid:{code}-1111-4111-8111-111111111111"),
+        event_id: match code {
+            "EST" => "urn:uuid:11111111-1111-4111-8111-111111111111",
+            "REQ" => "urn:uuid:22222222-2222-4222-8222-222222222222",
+            "PLN" => "urn:uuid:33333333-3333-4333-8333-333333333333",
+            "ACT" => "urn:uuid:44444444-4444-4444-8444-444444444444",
+            _ => "urn:uuid:55555555-5555-4555-8555-555555555555",
+        }
+        .to_owned(),
         subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
         source_record_id: format!("dgt-source-record-{code}"),
         classifier_code: code.to_owned(),
