@@ -75,6 +75,18 @@ At each preregistered minimum-confidence threshold:
 
 Report the full risk–coverage curve, not only one operating point. An abstention strategy is useful when it lowers risk while retaining enough coverage to be operationally meaningful.
 
+## Bound claim identity: probability forecasts cannot float free of their map
+
+The calibrated claim adapter uses:
+- learner-authored `BoundTransferForecastV0`: claim ID, claim type, claim-scope SHA-256, probability and assert/reject/abstain decision;
+- evaluator-authored `BoundTransferOutcomeV0`: the same claim ID/type/scope digest, evaluator-owned stratum and hidden qualification truth.
+
+`evaluate_bound_transfer_calibration` requires a one-to-one join. It refuses empty/duplicate IDs, malformed digests, missing/orphan outcomes, claim-type mismatches and scope-digest mismatches. Only after identity checks does it convert the claims into private numeric row IDs and reuse pooled/per-stratum metrics.
+
+The owner must independently recompute each claim-scope digest from the frozen artifact using the canonical contract in `TRANSFER_CLAIM_SCOPE_DIGEST_V0_1.md`. The Rust calibration adapter checks digest syntax and equality to the owner-supplied outcome; it does not itself implement JCS or SHA-256. A candidate-provided digest is not proof that the object was actually hashed or that its evidence is true.
+
+Claim type maps to one exact artifact: structural correspondence, deterministic dynamics, simulation, bisimulation, or evidence-bound mechanism transfer. The canonical envelope binds claim ID/type, source/target episode IDs, source/target evidence-prefix digests and the complete claim-bearing artifact. Forecast probability and decision, evaluator truth, shift strata, hidden target outcomes and mutable timestamps are excluded.
+
 ## Executable known-answer behaviours
 
 The Rust test suite currently checks:
