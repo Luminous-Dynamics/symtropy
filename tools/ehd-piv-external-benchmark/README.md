@@ -45,3 +45,7 @@ The crate does not read TIFF, MAT or HDF5 files. A later importer must preserve 
 ## Manufactured tests
 
 The current V0 kernel has 19 deterministic Rust tests: 9 scalar-profile tests and 10 Reynolds-stress tensor tests. They cover metric semantics and known failure modes; they are not empirical PIV performance results.
+
+## PIVtools capsule protocol notes
+
+The pinned capsule deliberately separates some processing configurations by operation: noisy/experimental instantaneous runs use `ssmin 7x7`, while ensemble runs use raw images because filtering alters the ensemble stresses. The published profile helper x-averages after excluding four edge vectors at each side and defaults to y+ from 10 to 500; its wall-origin offset and +1 y+ shift are recorded, reproduced as a named baseline, and never retuned independently for candidate methods. Pair these x-averaged outputs with the field-level weak-structure scorecard.
