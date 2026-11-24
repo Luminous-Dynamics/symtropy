@@ -404,11 +404,11 @@ fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMa
         return Err("probability model assumptions do not declare an explicit joint distribution".to_owned());
     }
     let expected_ids = case.expected_scenario_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let scenario_ids_digest = digest_ids(&case.expected_scenario_ids)?;
     if case.expected_scenario_ids.is_empty()
         || expected_ids.len() != case.expected_scenario_ids.len()
         || case.expected_scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
-        || digest_ids(&case.expected_scenario_ids).as_deref()
-            != Ok(case.expected_scenario_ids_sha256.as_str())
+        || scenario_ids_digest != case.expected_scenario_ids_sha256
     {
         return Err("expected joint scenario ID inventory is malformed or digest-inconsistent".to_owned());
     }
@@ -418,8 +418,8 @@ fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMa
             || !valid_id(&row.loss_model_id))
         || case.joint_scenarios.iter().map(|row| row.scenario_id.as_str()).collect::<BTreeSet<_>>()
             != expected_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
-        || digest_joint_scenarios(&case.joint_scenarios).as_deref()
-            != Ok(case.joint_scenario_manifest_sha256.as_str())
+        || digest_joint_scenarios(&case.joint_scenarios)?
+            != case.joint_scenario_manifest_sha256
     {
         return Err("joint scenario identity records or manifest digest are inconsistent".to_owned());
     }
