@@ -24,7 +24,11 @@ use super::scoped::{
     ScopedStructuralCandidateV0, ScopedStructuralWitnessV0, ScopedTransferErrorV0,
     validate_scoped_structural_correspondence,
 };
-use super::transfer::StructureV0;
+use super::transfer::{
+    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0,
+    InterventionTransferWitnessV0, StructureV0, TransferErrorV0,
+    validate_intervention_correspondence,
+};
 
 pub const AGENT_PROTOCOL_VERSION_V0: &str = "symthaea-open-world-research-episode-v0";
 
@@ -168,6 +172,56 @@ pub struct EvidenceBoundBehaviouralWitnessV0 {
     pub target_action_evidence_references: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceInterventionEvidenceV0 {
+    pub source_action_id: u32,
+    pub target_action_id: u32,
+    pub source_effect: EffectSignV0,
+    /// Evidence IDs in the public source episode prefix.
+    pub evidence_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetEffectPredictionV0 {
+    pub source_action_id: u32,
+    pub target_action_id: u32,
+    /// Frozen candidate prediction. Actual target effect remains evaluator-side.
+    pub predicted_target_effect: EffectSignV0,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvidenceBoundMechanismCandidateV0 {
+    pub source_episode_id: String,
+    pub target_episode_id: String,
+    pub source_evidence_prefix_sha256: String,
+    pub target_evidence_prefix_sha256: String,
+    pub action_mappings: Vec<ActionCorrespondenceV0>,
+    pub source_interventions: Vec<SourceInterventionEvidenceV0>,
+    pub target_effect_predictions: Vec<TargetEffectPredictionV0>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnerInterventionOutcomeV0 {
+    pub source_action_id: u32,
+    pub target_action_id: u32,
+    pub source_action_kind: u16,
+    pub target_action_kind: u16,
+    pub source_effect: EffectSignV0,
+    pub target_effect: EffectSignV0,
+    /// Exact source receipt evidence; must match the public source prefix.
+    pub source_evidence_ids: Vec<String>,
+    /// Evaluator-held target evidence. Never included in the candidate sidecar.
+    pub target_evidence_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EvidenceBoundMechanismWitnessV0 {
+    pub intervention: InterventionTransferWitnessV0,
+    pub checked_source_evidence_references: usize,
+    pub checked_target_evidence_references: usize,
+    pub checked_target_effect_predictions: usize,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BundleValidationErrorV0 {
     InvalidProtocolVersion,
@@ -203,6 +257,26 @@ pub enum BundleValidationErrorV0 {
     PredictionStateRelationMismatch,
     PredictionActionMappingMismatch,
     BehaviouralWitnessRejected(BehaviouralTransferErrorV0),
+    MechanismPrefixMismatch,
+    EmptyMechanismCandidate,
+    MechanismScopeIncomplete,
+    DuplicateMechanismActionPair,
+    DuplicateSourceIntervention,
+    MissingSourceIntervention,
+    UnmappedSourceIntervention,
+    InvalidSourceInterventionEvidence,
+    DuplicateTargetEffectPrediction,
+    MissingTargetEffectPrediction,
+    UnmappedTargetEffectPrediction,
+    DuplicateOwnerInterventionOutcome,
+    MissingOwnerInterventionOutcome,
+    UnmappedOwnerInterventionOutcome,
+    OwnerInterventionActionKindMismatch,
+    OwnerSourceEffectMismatch,
+    MissingOwnerTargetEvidence,
+    InvalidOwnerTargetEvidence,
+    PredictedInterventionEffectCounterexample,
+    MechanismWitnessRejected(TransferErrorV0),
 }
 
 impl fmt::Display for BundleValidationErrorV0 {
@@ -294,6 +368,64 @@ impl fmt::Display for BundleValidationErrorV0 {
             }
             Self::BehaviouralWitnessRejected(error) => {
                 return write!(formatter, "behavioural transfer witness rejected: {error}");
+            }
+            Self::MechanismPrefixMismatch => {
+                "mechanism claim does not match the trusted source/target evidence prefixes"
+            }
+            Self::EmptyMechanismCandidate => "mechanism-transfer candidate has no mapped actions",
+            Self::MechanismScopeIncomplete => {
+                "source interventions, target predictions and owner outcomes must cover every mapped action"
+            }
+            Self::DuplicateMechanismActionPair => {
+                "mechanism action mappings contain a duplicate source/target pair"
+            }
+            Self::DuplicateSourceIntervention => {
+                "source intervention evidence contains a duplicate action pair"
+            }
+            Self::MissingSourceIntervention => {
+                "a mapped source action has no public intervention evidence"
+            }
+            Self::UnmappedSourceIntervention => {
+                "source intervention evidence has no declared action mapping"
+            }
+            Self::InvalidSourceInterventionEvidence => {
+                "source intervention evidence is empty, malformed, duplicate or outside the public prefix"
+            }
+            Self::DuplicateTargetEffectPrediction => {
+                "target effect predictions contain a duplicate action pair"
+            }
+            Self::MissingTargetEffectPrediction => {
+                "a mapped action has no frozen target-effect prediction"
+            }
+            Self::UnmappedTargetEffectPrediction => {
+                "target-effect prediction has no declared action mapping"
+            }
+            Self::DuplicateOwnerInterventionOutcome => {
+                "owner intervention outcomes contain a duplicate action pair"
+            }
+            Self::MissingOwnerInterventionOutcome => {
+                "a mapped action has no evaluator-owned target intervention outcome"
+            }
+            Self::UnmappedOwnerInterventionOutcome => {
+                "owner intervention outcome has no declared action mapping"
+            }
+            Self::OwnerInterventionActionKindMismatch => {
+                "owner action kinds do not match the precommitted action mapping"
+            }
+            Self::OwnerSourceEffectMismatch => {
+                "owner source effect does not match the learner's cited public source observation"
+            }
+            Self::MissingOwnerTargetEvidence => {
+                "evaluator-owned target intervention outcome has no evidence receipt"
+            }
+            Self::InvalidOwnerTargetEvidence => {
+                "evaluator-owned target intervention evidence IDs are malformed or duplicate"
+            }
+            Self::PredictedInterventionEffectCounterexample => {
+                "frozen target-effect prediction differs from the owner-held target intervention"
+            }
+            Self::MechanismWitnessRejected(error) => {
+                return write!(formatter, "mechanism-transfer witness rejected: {error}");
             }
         };
         formatter.write_str(message)
@@ -503,6 +635,198 @@ pub fn validate_evidence_bound_behavioural_transfer(
             .iter()
             .map(|binding| binding.evidence_ids.len())
             .sum(),
+    })
+}
+
+
+/// Validate a precommitted mechanism-transfer claim against owner-held intervention outcomes.
+///
+/// Source effect observations and their evidence IDs must be present in the
+/// exact public source prefix. The candidate supplies only predicted target
+/// effects. Actual target effects and target evidence IDs arrive from the
+/// trusted evaluator after the complete candidate bundle is frozen.
+///
+/// This checks qualitative action-effect correspondence only. It does not
+/// identify a causal graph, estimate effect magnitudes, remove confounding, or
+/// establish intervention equivalence outside the declared action scope.
+pub fn validate_evidence_bound_mechanism_transfer(
+    source_prefix: &PublicEvidencePrefixV0,
+    target_prefix: &PublicEvidencePrefixV0,
+    candidate: &EvidenceBoundMechanismCandidateV0,
+    owner_outcomes: &[OwnerInterventionOutcomeV0],
+) -> Result<EvidenceBoundMechanismWitnessV0, BundleValidationErrorV0> {
+    if candidate.source_episode_id != source_prefix.episode_id
+        || candidate.target_episode_id != target_prefix.episode_id
+        || !is_sha256_digest(&candidate.source_evidence_prefix_sha256)
+        || !is_sha256_digest(&candidate.target_evidence_prefix_sha256)
+        || candidate.source_evidence_prefix_sha256 != source_prefix.evidence_prefix_sha256
+        || candidate.target_evidence_prefix_sha256 != target_prefix.evidence_prefix_sha256
+    {
+        return Err(BundleValidationErrorV0::MechanismPrefixMismatch);
+    }
+
+    if candidate.action_mappings.is_empty() {
+        return Err(BundleValidationErrorV0::EmptyMechanismCandidate);
+    }
+    let mapping_pairs = candidate
+        .action_mappings
+        .iter()
+        .map(|mapping| (mapping.source_action_id, mapping.target_action_id))
+        .collect::<BTreeSet<_>>();
+    if mapping_pairs.len() != candidate.action_mappings.len() {
+        return Err(BundleValidationErrorV0::DuplicateMechanismActionPair);
+    }
+
+    let expected_count = candidate.action_mappings.len();
+    if candidate.source_interventions.len() != expected_count
+        || candidate.target_effect_predictions.len() != expected_count
+        || owner_outcomes.len() != expected_count
+    {
+        return Err(BundleValidationErrorV0::MechanismScopeIncomplete);
+    }
+
+    let available_source = available_evidence(source_prefix)?;
+    let mut source_pairs = BTreeSet::new();
+    let mut source_evidence_references = 0_usize;
+    for observation in &candidate.source_interventions {
+        let pair = (observation.source_action_id, observation.target_action_id);
+        if !source_pairs.insert(pair) {
+            return Err(BundleValidationErrorV0::DuplicateSourceIntervention);
+        }
+        if !mapping_pairs.contains(&pair) {
+            return Err(BundleValidationErrorV0::UnmappedSourceIntervention);
+        }
+        if observation.evidence_ids.is_empty() {
+            return Err(BundleValidationErrorV0::InvalidSourceInterventionEvidence);
+        }
+        let mut evidence_seen = BTreeSet::new();
+        for evidence_id in &observation.evidence_ids {
+            if !is_evidence_id(evidence_id)
+                || !evidence_seen.insert(evidence_id.as_str())
+                || !available_source.contains(evidence_id.as_str())
+            {
+                return Err(BundleValidationErrorV0::InvalidSourceInterventionEvidence);
+            }
+            source_evidence_references = source_evidence_references
+                .checked_add(1)
+                .ok_or(BundleValidationErrorV0::InvalidSourceInterventionEvidence)?;
+        }
+    }
+    for mapping in &candidate.action_mappings {
+        if !source_pairs.contains(&(mapping.source_action_id, mapping.target_action_id)) {
+            return Err(BundleValidationErrorV0::MissingSourceIntervention);
+        }
+    }
+
+    let mut predicted_pairs = BTreeSet::new();
+    for prediction in &candidate.target_effect_predictions {
+        let pair = (prediction.source_action_id, prediction.target_action_id);
+        if !predicted_pairs.insert(pair) {
+            return Err(BundleValidationErrorV0::DuplicateTargetEffectPrediction);
+        }
+        if !mapping_pairs.contains(&pair) {
+            return Err(BundleValidationErrorV0::UnmappedTargetEffectPrediction);
+        }
+    }
+    for mapping in &candidate.action_mappings {
+        if !predicted_pairs.contains(&(mapping.source_action_id, mapping.target_action_id)) {
+            return Err(BundleValidationErrorV0::MissingTargetEffectPrediction);
+        }
+    }
+
+    let mut owner_pairs = BTreeSet::new();
+    let mut target_evidence_references = 0_usize;
+    let mut observations = Vec::with_capacity(expected_count);
+    for outcome in owner_outcomes {
+        let pair = (outcome.source_action_id, outcome.target_action_id);
+        if !owner_pairs.insert(pair) {
+            return Err(BundleValidationErrorV0::DuplicateOwnerInterventionOutcome);
+        }
+        if !mapping_pairs.contains(&pair) {
+            return Err(BundleValidationErrorV0::UnmappedOwnerInterventionOutcome);
+        }
+        let mapping = candidate
+            .action_mappings
+            .iter()
+            .find(|mapping| {
+                mapping.source_action_id == outcome.source_action_id
+                    && mapping.target_action_id == outcome.target_action_id
+            })
+            .ok_or(BundleValidationErrorV0::UnmappedOwnerInterventionOutcome)?;
+        if mapping.source_action_kind != outcome.source_action_kind
+            || mapping.target_action_kind != outcome.target_action_kind
+        {
+            return Err(BundleValidationErrorV0::OwnerInterventionActionKindMismatch);
+        }
+
+        let source_observation = candidate
+            .source_interventions
+            .iter()
+            .find(|observation| {
+                observation.source_action_id == outcome.source_action_id
+                    && observation.target_action_id == outcome.target_action_id
+            })
+            .ok_or(BundleValidationErrorV0::MissingSourceIntervention)?;
+        if source_observation.source_effect != outcome.source_effect {
+            return Err(BundleValidationErrorV0::OwnerSourceEffectMismatch);
+        }
+        let mut owner_source_ids = outcome.source_evidence_ids.iter().collect::<Vec<_>>();
+        let mut candidate_source_ids = source_observation.evidence_ids.iter().collect::<Vec<_>>();
+        owner_source_ids.sort();
+        candidate_source_ids.sort();
+        if owner_source_ids != candidate_source_ids {
+            return Err(BundleValidationErrorV0::OwnerSourceEffectMismatch);
+        }
+
+        if outcome.target_evidence_ids.is_empty() {
+            return Err(BundleValidationErrorV0::MissingOwnerTargetEvidence);
+        }
+        let mut target_ids = BTreeSet::new();
+        for evidence_id in &outcome.target_evidence_ids {
+            if !is_evidence_id(evidence_id) || !target_ids.insert(evidence_id.as_str()) {
+                return Err(BundleValidationErrorV0::InvalidOwnerTargetEvidence);
+            }
+            target_evidence_references = target_evidence_references
+                .checked_add(1)
+                .ok_or(BundleValidationErrorV0::InvalidOwnerTargetEvidence)?;
+        }
+
+        let prediction = candidate
+            .target_effect_predictions
+            .iter()
+            .find(|prediction| {
+                prediction.source_action_id == outcome.source_action_id
+                    && prediction.target_action_id == outcome.target_action_id
+            })
+            .ok_or(BundleValidationErrorV0::MissingTargetEffectPrediction)?;
+        if prediction.predicted_target_effect != outcome.target_effect {
+            return Err(BundleValidationErrorV0::PredictedInterventionEffectCounterexample);
+        }
+
+        observations.push(InterventionObservationV0 {
+            source_action_id: outcome.source_action_id,
+            target_action_id: outcome.target_action_id,
+            source_effect: source_observation.source_effect,
+            target_effect: outcome.target_effect,
+        });
+    }
+    for mapping in &candidate.action_mappings {
+        if !owner_pairs.contains(&(mapping.source_action_id, mapping.target_action_id)) {
+            return Err(BundleValidationErrorV0::MissingOwnerInterventionOutcome);
+        }
+    }
+
+    let intervention = validate_intervention_correspondence(
+        &candidate.action_mappings,
+        &observations,
+    )
+    .map_err(BundleValidationErrorV0::MechanismWitnessRejected)?;
+
+    Ok(EvidenceBoundMechanismWitnessV0 {
+        intervention,
+        checked_source_evidence_references: source_evidence_references,
+        checked_target_evidence_references: target_evidence_references,
+        checked_target_effect_predictions: observations.len(),
     })
 }
 
@@ -1039,6 +1363,148 @@ mod tests {
                 }],
             },
         }
+    }
+
+    fn mechanism_candidate() -> EvidenceBoundMechanismCandidateV0 {
+        use super::super::transfer::{EffectTransformV0, SourceInterventionEvidenceV0};
+
+        EvidenceBoundMechanismCandidateV0 {
+            source_episode_id: "source-episode-001".to_owned(),
+            target_episode_id: "target-episode-014".to_owned(),
+            source_evidence_prefix_sha256: digest('1'),
+            target_evidence_prefix_sha256: digest('2'),
+            action_mappings: vec![ActionCorrespondenceV0 {
+                source_action_id: 20,
+                target_action_id: 120,
+                source_action_kind: 2,
+                target_action_kind: 200,
+                effect_transform: EffectTransformV0::Preserve,
+            }],
+            source_interventions: vec![SourceInterventionEvidenceV0 {
+                source_action_id: 20,
+                target_action_id: 120,
+                source_effect: EffectSignV0::Positive,
+                evidence_ids: vec!["E0006".to_owned()],
+            }],
+            target_effect_predictions: vec![TargetEffectPredictionV0 {
+                source_action_id: 20,
+                target_action_id: 120,
+                predicted_target_effect: EffectSignV0::Positive,
+            }],
+        }
+    }
+
+    fn owner_mechanism_outcome() -> OwnerInterventionOutcomeV0 {
+        OwnerInterventionOutcomeV0 {
+            source_action_id: 20,
+            target_action_id: 120,
+            source_action_kind: 2,
+            target_action_kind: 200,
+            source_effect: EffectSignV0::Positive,
+            target_effect: EffectSignV0::Positive,
+            source_evidence_ids: vec!["E0006".to_owned()],
+            target_evidence_ids: vec!["E0016".to_owned()],
+        }
+    }
+
+    #[test]
+    fn mechanism_transfer_uses_public_source_effect_and_owner_hidden_target_effect() {
+        let witness = validate_evidence_bound_mechanism_transfer(
+            &source_prefix_with_intervention(),
+            &target_prefix(),
+            &mechanism_candidate(),
+            &[owner_mechanism_outcome()],
+        )
+        .unwrap();
+
+        assert_eq!(witness.intervention.compared_actions, 1);
+        assert!(witness.intervention.all_declared_effects_match);
+        assert_eq!(witness.checked_source_evidence_references, 1);
+        assert_eq!(witness.checked_target_evidence_references, 1);
+        assert_eq!(witness.checked_target_effect_predictions, 1);
+    }
+
+    #[test]
+    fn mechanism_transfer_rejects_a_target_effect_counterexample() {
+        let mut outcome = owner_mechanism_outcome();
+        outcome.target_effect = EffectSignV0::Negative;
+
+        assert_eq!(
+            validate_evidence_bound_mechanism_transfer(
+                &source_prefix_with_intervention(),
+                &target_prefix(),
+                &mechanism_candidate(),
+                &[outcome],
+            ),
+            Err(BundleValidationErrorV0::PredictedInterventionEffectCounterexample)
+        );
+    }
+
+    #[test]
+    fn mechanism_transfer_rejects_source_evidence_outside_the_public_prefix() {
+        let mut candidate = mechanism_candidate();
+        candidate.source_interventions[0].evidence_ids[0] = "E9999".to_owned();
+
+        assert_eq!(
+            validate_evidence_bound_mechanism_transfer(
+                &source_prefix_with_intervention(),
+                &target_prefix(),
+                &candidate,
+                &[owner_mechanism_outcome()],
+            ),
+            Err(BundleValidationErrorV0::InvalidSourceInterventionEvidence)
+        );
+    }
+
+    #[test]
+    fn mechanism_transfer_rejects_missing_owner_target_evidence() {
+        let mut outcome = owner_mechanism_outcome();
+        outcome.target_evidence_ids.clear();
+
+        assert_eq!(
+            validate_evidence_bound_mechanism_transfer(
+                &source_prefix_with_intervention(),
+                &target_prefix(),
+                &mechanism_candidate(),
+                &[outcome],
+            ),
+            Err(BundleValidationErrorV0::MissingOwnerTargetEvidence)
+        );
+    }
+
+    #[test]
+    fn mechanism_transfer_rejects_source_or_target_action_kind_mismatch() {
+        let mut outcome = owner_mechanism_outcome();
+        outcome.target_action_kind = 999;
+
+        assert_eq!(
+            validate_evidence_bound_mechanism_transfer(
+                &source_prefix_with_intervention(),
+                &target_prefix(),
+                &mechanism_candidate(),
+                &[outcome],
+            ),
+            Err(BundleValidationErrorV0::OwnerInterventionActionKindMismatch)
+        );
+    }
+
+    #[test]
+    fn mechanism_transfer_rejects_incomplete_intervention_scope() {
+        assert_eq!(
+            validate_evidence_bound_mechanism_transfer(
+                &source_prefix_with_intervention(),
+                &target_prefix(),
+                &mechanism_candidate(),
+                &[],
+            ),
+            Err(BundleValidationErrorV0::MechanismScopeIncomplete)
+        );
+    }
+
+    fn source_prefix_with_intervention() -> PublicEvidencePrefixV0 {
+        let mut prefix = source_prefix();
+        prefix.available_evidence_ids.push("E0006".to_owned());
+        prefix
     }
 
     #[test]
