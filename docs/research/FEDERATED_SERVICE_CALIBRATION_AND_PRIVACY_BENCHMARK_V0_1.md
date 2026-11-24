@@ -317,3 +317,56 @@ A useful federation must improve calibration sample efficiency or aggregate quan
 - a synthetic summary is labelled source-authenticated, privacy-preserving or field-qualified.
 
 The next security increment must implement authenticated membership and atomic release-ledger consumption. The next privacy increment must implement and independently audit secure aggregation and/or DP accounting. Neither can be claimed from this reducer.
+
+
+## 10. November 2026 SOTA benchmark interpretation
+
+The executable reducer is a deliberately simple exact reference, not a claim to outperform the newest federated calibration literature. Three published comparators now shape the next tournament.
+
+### 10.1 Federated joint-shift conformal prediction
+
+Shi et al., *Valid and Efficient Uncertainty Quantification for Federated Joint Shift*, UAI 2026, PMLR 337:6232–6260, propose FCPJS. A server constructs a privacy-preserving global score-distribution sketch, while each client performs importance-weighted calibration using its local scores. Their paper reports marginal coverage under heterogeneous joint client shift up to a finite-sample/sketch approximation term and a 12.64% predictive-efficiency improvement over its strongest baseline across four heterogeneous benchmarks.
+
+This is the direct SOTA comparator for the next version. Our current reducer:
+- uses fixed bounded histogram bins instead of an adaptive or privacy-preserving score sketch;
+- does not perform importance weighting;
+- does not establish marginal coverage under arbitrary joint shift;
+- does not protect summaries from a curious coordinator;
+- does preserve exact configuration-cohort, stratum-taxonomy and calibration-policy compatibility, minimum-cohort suppression and visible local alarms.
+
+The research target is to reproduce FCPJS on a matched, non-private benchmark first, then compare the added value of hardware-cohort qualification and mobility hard-gate integration. Do not compare headline predictive-efficiency percentages across different datasets or assumptions.
+
+### 10.2 Temporal dependence and online certificates
+
+Huang, Ma and Michailidis, *Model-Agnostic Online Certificate-Driven Calibration for Time Series Forecasting Under Distribution Shift*, UAI 2026, PMLR 337:2244–2273, replaces IID concentration with martingale concentration based on predictable variation. Its online protocol predicts first and only then uses revealed outcomes to update future predictions; the corrective residual head can revert to a fixed backbone when its gate is closed.
+
+This is the comparator for chronological battery, charger and depot traces. Our audit must not randomly shuffle time series into IID-looking observations. Future tournament splits must preserve forecast issuance time, outcome arrival time, repeated packs, shared chargers, weather blocks and feeder events.
+
+### 10.3 Charging and dispatch baselines
+
+Huang and Wang's 2026 cross-station EV charging study uses a curated corpus of 2,964 sessions across 336 stations and an expanded snapshot of 6,151 sessions across 439 stations. It uses charger-power-regime routing plus hierarchical station-to-band-to-global calibration. This should be the charging forecast baseline, with site/charger holdout and exact equipment-cohort reporting.
+
+A 2026 heavy-truck swapping DR-SAC study shows why reward alone is not a safety metric. Under high demand it reports 5.3 scarcity-constraint violation periods per day for DR-SAC, compared with 2.9 for SAC, 12.4 for TD3 and 21.7 for DDPG, even though DR-SAC has the highest high-demand profit in its comparison. The result is specific to that experiment, but the lesson is general: a high-return learned scheduler can still violate a hard service constraint. The mobility reserve shield must remain outside the optimizer's reward function.
+
+### 10.4 Matched tournament
+
+Run the following arms on identical chronologically frozen traces and physical boundaries:
+
+1. Fixed global margin and fixed histogram.
+2. Site-local split conformal.
+3. Hierarchical station/band/global conformal.
+4. FCPJS-style global sketch plus local importance weighting.
+5. Online martingale certificate / gated residual correction.
+6. Each method with the same resource-level reserve, recovery, lease and PCC gates.
+7. Each method under the same correlated-shock scenarios and evidence-staleness faults.
+
+Publish empirical marginal coverage and worst-site coverage separately, interval width / predictive efficiency, false-safe decision rate, avoidable abstention, recovery deadline misses, worst-site and worst-asset outcomes, sketch/bin approximation error, message bytes, compute and memory. Add confidence intervals that respect the site/asset/time dependence structure. A pooled score is not a substitute for worst-site safety.
+
+### 10.5 External references
+
+- Shi et al. (2026), [Valid and Efficient Uncertainty Quantification for Federated Joint Shift](https://proceedings.mlr.press/v337/shi26a.html), UAI 2026, PMLR 337:6232–6260.
+- Huang, Ma and Michailidis (2026), [Model-Agnostic Online Certificate-Driven Calibration for Time Series Forecasting Under Distribution Shift](https://proceedings.mlr.press/v337/huang26b.html), UAI 2026, PMLR 337:2244–2273.
+- Huang and Wang (2026), [Session-level EV charging power forecasting under cross-station shift](https://www.sciencedirect.com/science/article/pii/S2352467726004443), Sustainable Energy, Grids and Networks, DOI 10.1016/j.segan.2026.102562.
+- [Optimal Scheduling of Electric Heavy-Truck Battery Swapping Stations via Distributionally Robust Deep Reinforcement Learning](https://www.mdpi.com/2076-3417/16/22/11346), Applied Sciences 16(22), 11346 (2026).
+
+All paper results are external comparators. They are not results of the Symtropy code or its synthetic fixtures.
