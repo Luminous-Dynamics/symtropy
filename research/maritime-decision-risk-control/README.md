@@ -164,9 +164,43 @@ Reproduction command:
 ```sh
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
 
+
+
+## Variance-sensitive non-monotone CRC
+
+The fifth executable, `bernstein-risk-audit`, implements the **known-population-variance Bernstein correction** in Appendix F, Corollary S1 (Lemma S2) of Aldirawi, Li & Guo, arXiv:2604.01502v3:
+
+https://arxiv.org/pdf/2604.01502
+
+For bounded losses in [0,B] on a finite candidate grid of size m, with population standard deviation uniformly bounded by `sigma_max`, the paper gives:
+
+`D_Bern(m,n) = sigma_max * sqrt(2*log(2m)/n) + B*log(2m)/(3n)`
+
+and the non-monotone expected-risk correction:
+
+`D_selected = min{D(m,n), D_Bern(m,n)}`.
+
+The adjusted selector uses `alpha' = alpha - D_selected` and requires the terminal candidate's **population expected loss** to be at most alpha'. This is still an expected-risk theorem, not a high-probability statement conditional on the realized calibration set.
+
+For loss in [0,B], Popoviciu's inequality gives `sigma_max <= B/2`. The synthetic benchmark supplies an analytically known upper bound of 376 milli-loss for its four-policy Bernoulli grid. Candidate losses share a within-schedule latent draw but complete schedule vectors are i.i.d. across episodes, as required by the theorem.
+
+The fixture probabilities are [0.17, 0.04, 0.12, 0.05] with B=1,000 and alpha=200 milli-loss. The terminal candidate has exact population expected loss 50 milli-loss. Calibration sizes are 120, 1,200 and 50,000. The receipt reports both corrections, the selected minimum, adjusted target, selected policy, calibration mean and independent synthetic test mean.
+
+### Important: empirical Bernstein is not the same theorem
+
+Appendix F, Lemma S3 gives an empirical-Bernstein **high-probability uniform-deviation certificate** with confidence parameter delta. Its random variance estimate and failure event mean that it cannot simply be substituted into the expected-risk selector and called the same Corollary S1 guarantee. The paper explicitly requires additional accounting for the probability-delta failure event before an expected-risk claim can be made.
+
+Therefore this implementation uses only the **known population variance bound** for its expected-risk arm. The empirical-Bernstein statement remains a separate high-probability comparator for #7303.
+
+Proposed reproduction command:
+
+```sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
+```
 
 ## Lipschitz-structured non-monotone CRC comparator
 
@@ -203,7 +237,7 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 
 ## Independent oracle outcome adapter
 
-The fifth research component is an adapter, not another feasibility engine: `oracle_adapter.rs` consumes versioned per-episode/per-policy adjudications from an independent oracle such as the #7231 owner. It compiles separate whole-schedule matrices for hard physical failure and service loss.
+The sixth research component is an adapter, not another feasibility engine: `oracle_adapter.rs` consumes versioned per-episode/per-policy adjudications from an independent oracle such as the #7231 owner. It compiles separate whole-schedule matrices for hard physical failure and service loss.
 
 ### Input contract
 
