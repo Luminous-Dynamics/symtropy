@@ -736,7 +736,6 @@ fn set_status_threshold(
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct CandidateMeasurementAction {
     pub id: String,
