@@ -430,12 +430,11 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
             .iter()
             .map(|window| ("placebo", window)),
     );
-    for left in 0..diagnostic_windows.len() {
-        for right in (left + 1)..diagnostic_windows.len() {
-            if overlaps(diagnostic_windows[left].1, diagnostic_windows[right].1) {
+    for (left_index, (left_name, left_window)) in diagnostic_windows.iter().enumerate() {
+        for (right_name, right_window) in diagnostic_windows.iter().skip(left_index + 1) {
+            if overlaps(left_window, right_window) {
                 return Err(DesignAuditError::InvalidTimeWindow(format!(
-                    "{} and {} windows must not overlap",
-                    diagnostic_windows[left].0, diagnostic_windows[right].0
+                    "{left_name} and {right_name} windows must not overlap"
                 )));
             }
         }
