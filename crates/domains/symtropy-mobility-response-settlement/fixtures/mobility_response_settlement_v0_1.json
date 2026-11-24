@@ -254,7 +254,7 @@
       "intervals": [
         {
           "point_id": "point-1",
-          "phase": "dispatch",
+          "phase": "Dispatch",
           "regime_id": "nominal",
           "interval_start_ns": 100000000000,
           "interval_duration_ns": 1000000000,
@@ -272,7 +272,7 @@
         },
         {
           "point_id": "point-2",
-          "phase": "dispatch",
+          "phase": "Dispatch",
           "regime_id": "nominal",
           "interval_start_ns": 101000000000,
           "interval_duration_ns": 1000000000,
@@ -290,7 +290,7 @@
         },
         {
           "point_id": "point-3",
-          "phase": "recovery",
+          "phase": "Recovery",
           "regime_id": "nominal",
           "interval_start_ns": 102000000000,
           "interval_duration_ns": 1000000000,
@@ -308,7 +308,7 @@
         },
         {
           "point_id": "point-4",
-          "phase": "recovery",
+          "phase": "Recovery",
           "regime_id": "nominal",
           "interval_start_ns": 103000000000,
           "interval_duration_ns": 1000000000,
