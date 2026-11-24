@@ -1161,13 +1161,19 @@ mod tests {
         )
         .unwrap();
         assert_eq!(positive.first.pixels, negative.first.pixels);
-        let sensitivity =
-            central_difference_image_sensitivity(&positive, &negative, step).unwrap();
-        assert!(sensitivity
-            .observation_sensitivity
-            .iter()
-            .any(|value| value.abs() > 0.0));
-        assert!(sensitivity.observation_sensitivity.iter().all(|value| value.is_finite()));
+        let sensitivity = central_difference_image_sensitivity(&positive, &negative, step).unwrap();
+        assert!(
+            sensitivity
+                .observation_sensitivity
+                .iter()
+                .any(|value| value.abs() > 0.0)
+        );
+        assert!(
+            sensitivity
+                .observation_sensitivity
+                .iter()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
@@ -1234,12 +1240,9 @@ mod tests {
             &frozen_noise,
         )
         .unwrap();
-        let gain_sensitivity = central_difference_image_sensitivity(
-            &gain_plus_pair,
-            &gain_minus_pair,
-            gain_step,
-        )
-        .unwrap();
+        let gain_sensitivity =
+            central_difference_image_sensitivity(&gain_plus_pair, &gain_minus_pair, gain_step)
+                .unwrap();
 
         let dot: f64 = brightness_sensitivity
             .observation_sensitivity
@@ -1291,5 +1294,4 @@ mod tests {
             })
         );
     }
-
 }
