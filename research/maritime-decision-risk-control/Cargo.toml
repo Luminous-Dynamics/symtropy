@@ -26,3 +26,7 @@ path = "src/bin/weighted_shift_risk_audit.rs"
 [[bin]]
 name = "lipschitz-risk-audit"
 path = "src/bin/lipschitz_risk_audit.rs"
+
+[[bin]]
+name = "bernstein-risk-audit"
+path = "src/bin/bernstein_risk_audit.rs"
