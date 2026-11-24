@@ -1,0 +1,16 @@
+[package]
+name = "safrb-service-continuity"
+version = "0.8.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Evidence-bounded service continuity and restoration evaluator for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-service-continuity"
+path = "src/main.rs"
+
+[workspace]
+# Standalone evaluator outside the parent workspace.
