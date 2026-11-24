@@ -238,3 +238,6 @@ Fault-dispatch keys and payload commitments include the verified post-reset worl
 
 
 Dispatch reconciliation is bound to the registered request payload and updates the local record with the read-only injector-ledger decision. NoDispatchProven, Unknown and PayloadConflict remain non-dispatching for that key; a genuinely new attempt must have a new run/attempt identity.
+
+
+The reset model now also pins the campaign identity at BeginReset and checks DispatchUsesResetPlan. The second TLC negative control swaps the active campaign after reset verification and must produce a counterexample if dispatch can reuse the old reset qualification under the new plan.
