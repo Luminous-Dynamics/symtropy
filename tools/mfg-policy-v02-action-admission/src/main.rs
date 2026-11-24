@@ -1782,7 +1782,7 @@ mod tests {
     #[test]
     fn snapshot_cannot_change_operation_resource_commitment() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
         snapshot["resources"][0]["active_operation_id"] = Value::from("OP-3");
         let mut body = snapshot.clone();
         body.as_object_mut().unwrap().remove("snapshot_digest");
