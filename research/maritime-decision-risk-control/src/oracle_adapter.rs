@@ -602,6 +602,83 @@ pub fn compile_oracle_outcomes(
     })
 }
 
+/// Partial-identification output for physical outcomes that are unresolved.
+///
+/// Unknown physical cells are bounded by [0, B]. The lower and upper matrices
+/// are diagnostics only; neither is silently passed to CRC. MNAR/dependence
+/// and the data-generation mechanism still need a valid missingness method.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PartialIdentificationBundle {
+    pub lower_bound: OracleCalibrationBundle,
+    pub upper_bound: OracleCalibrationBundle,
+    pub unknown_physical_cells_total: usize,
+    pub physical_cells_total: usize,
+    pub unknown_physical_cells_by_policy: Vec<usize>,
+    pub certification_allowed: bool,
+}
+
+/// Preserves unresolved physical outcomes as [0, B] rather than dropping them.
+///
+/// This function enforces the same frozen grid, authority, revision, regime,
+/// dependence-cluster and receipt checks as the strict adapter. It returns two
+/// fully deterministic bundles:
+/// - lower_bound: Unknown -> Feasible (0 loss);
+/// - upper_bound: Unknown -> Infeasible (B loss).
+///
+/// This is a partial-identification diagnostic, not a calibrated risk certificate.
+/// In particular, complete-case selection, MNAR, serial dependence and hidden
+/// outage causes are not repaired by these worst-case bounds.
+pub fn compile_partially_identified_outcomes(
+    dataset: &OracleOutcomeDataset,
+) -> Result<PartialIdentificationBundle, OracleAdapterError> {
+    if dataset.episodes.is_empty() {
+        return Err(OracleAdapterError::EmptyDataset);
+    }
+
+    let mut lower = dataset.clone();
+    let mut upper = dataset.clone();
+    let mut unknown_physical_cells_total = 0_usize;
+    let mut physical_cells_total = 0_usize;
+    let mut unknown_physical_cells_by_policy =
+        vec![0_usize; dataset.contract.policy_grid.len()];
+
+    for episode_index in 0..dataset.episodes.len() {
+        for outcome_index in 0..dataset.episodes[episode_index].policy_outcomes.len() {
+            let original = &dataset.episodes[episode_index].policy_outcomes[outcome_index];
+            let policy_index = dataset
+                .contract
+                .policy_grid
+                .iter()
+                .position(|entry| entry.policy_id == original.policy_id)
+                .unwrap_or(0);
+
+            physical_cells_total += 1;
+            if original.physical == PhysicalDisposition::Unknown {
+                unknown_physical_cells_total += 1;
+                if !dataset.contract.policy_grid.is_empty() {
+                    unknown_physical_cells_by_policy[policy_index] += 1;
+                }
+                lower.episodes[episode_index].policy_outcomes[outcome_index].physical =
+                    PhysicalDisposition::Feasible;
+                upper.episodes[episode_index].policy_outcomes[outcome_index].physical =
+                    PhysicalDisposition::Infeasible;
+            }
+        }
+    }
+
+    let lower_bound = compile_oracle_outcomes(&lower)?;
+    let upper_bound = compile_oracle_outcomes(&upper)?;
+
+    Ok(PartialIdentificationBundle {
+        lower_bound,
+        upper_bound,
+        unknown_physical_cells_total,
+        physical_cells_total,
+        unknown_physical_cells_by_policy,
+        certification_allowed: false,
+    })
+}
+
 /// Descriptive tail metrics for one independently adjudicated policy/loss axis.
 /// These statistics are diagnostics, not finite-sample risk certificates.
 #[derive(Clone, Debug, PartialEq)]
@@ -1004,6 +1081,48 @@ mod tests {
         let evaluation = bundle.matrix(DatasetRole::Evaluation, LossAxis::HardPhysicalFailure);
         assert_eq!(calibration.schedule_count(), 2);
         assert_eq!(evaluation.schedule_count(), 1);
+    }
+
+    #[test]
+    fn partial_identification_returns_lower_and_upper_physical_bounds() {
+        let mut data = valid_dataset();
+        data.episodes[0].policy_outcomes[0].physical = PhysicalDisposition::Unknown;
+        let bounds = compile_partially_identified_outcomes(&data)
+            .expect("unknown physical outcome should be bounded, not dropped");
+
+        assert_eq!(bounds.unknown_physical_cells_total, 1);
+        assert_eq!(bounds.physical_cells_total, 6);
+        assert_eq!(bounds.unknown_physical_cells_by_policy, vec![1, 0]);
+        assert_eq!(bounds.lower_bound.calibration_hard_failure_milli[0][0], 0);
+        assert_eq!(bounds.upper_bound.calibration_hard_failure_milli[0][0], 1_000);
+        assert!(!bounds.certification_allowed);
+    }
+
+    #[test]
+    fn partial_identification_preserves_authority_gates() {
+        let mut data = valid_dataset();
+        data.episodes[0].policy_outcomes[0].physical = PhysicalDisposition::Unknown;
+        data.episodes[0].policy_outcomes[0].authority = AuthorityDisposition::Unknown;
+        assert!(matches!(
+            compile_partially_identified_outcomes(&data),
+            Err(OracleAdapterError::UnauthorizedPolicyOutcome {
+                disposition: AuthorityDisposition::Unknown,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn partial_identification_is_permutation_invariant() {
+        let mut data = valid_dataset();
+        data.episodes[0].policy_outcomes[0].physical = PhysicalDisposition::Unknown;
+        let first = compile_partially_identified_outcomes(&data).expect("first bounds");
+        data.episodes.reverse();
+        for episode in &mut data.episodes {
+            episode.policy_outcomes.reverse();
+        }
+        let second = compile_partially_identified_outcomes(&data).expect("permuted bounds");
+        assert_eq!(first, second);
     }
 
     #[test]
