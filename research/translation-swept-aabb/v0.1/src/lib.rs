@@ -237,10 +237,7 @@ impl<const D: usize> TranslationSweepInput<D> {
             return Err(SweepError::InvalidAngularSpeed);
         }
         if context.quantization == QuantizationProfile::NativeBinary64
-            && !same_array(
-                &integrator_post_linear_velocity,
-                &post_linear_velocity,
-            )
+            && !same_array(&integrator_post_linear_velocity, &post_linear_velocity)
         {
             return Err(SweepError::NativeVelocityMismatch);
         }
@@ -840,16 +837,12 @@ mod tests {
                 (integrator_velocity[1] * 65536.0).round() / 65536.0,
             ];
             let dt = 0.25;
-            let integrated_displacement = [
-                integrator_velocity[0] * dt,
-                integrator_velocity[1] * dt,
-            ];
+            let integrated_displacement =
+                [integrator_velocity[0] * dt, integrator_velocity[1] * dt];
             let ccd_displacement = [post_velocity[0] * dt, post_velocity[1] * dt];
             let post_position = [
-                ((start_position[0] + integrated_displacement[0]) * 65536.0).round()
-                    / 65536.0,
-                ((start_position[1] + integrated_displacement[1]) * 65536.0).round()
-                    / 65536.0,
+                ((start_position[0] + integrated_displacement[0]) * 65536.0).round() / 65536.0,
+                ((start_position[1] + integrated_displacement[1]) * 65536.0).round() / 65536.0,
             ];
             let observed_delta = [
                 post_position[0] - start_position[0],
@@ -877,11 +870,7 @@ mod tests {
             // regression oracle, not a mathematical proof of the enclosure.
             for step in 0..=100 {
                 let alpha = step as f64 / 100.0;
-                for delta in [
-                    integrated_displacement,
-                    ccd_displacement,
-                    observed_delta,
-                ] {
+                for delta in [integrated_displacement, ccd_displacement, observed_delta] {
                     let offset = [delta[0] * alpha, delta[1] * alpha];
                     let sample = Aabb::new(
                         [
