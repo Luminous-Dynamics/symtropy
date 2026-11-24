@@ -66,6 +66,10 @@ cargo clippy --manifest-path Cargo.toml --all-targets --locked -- -D warnings
 cargo run --manifest-path Cargo.toml --release --locked
 ```
 
+## Read-only pilot evidence request
+
+The source-by-source data request, minimum first submission, time/measurement metadata, security boundaries and pilot admission checks are specified in [PILOT_EVIDENCE_REQUEST.md](research/PILOT_EVIDENCE_REQUEST.md). It is designed for a bounded terminal → tank → pipeline/transfer → receiving service chain; it does not request control-system write access.
+
 ## Benchmark targets (future gates, not achieved results)
 
 - Zero acceptance of reported-only or denominator-unknown access claims in the frozen negative suite.
