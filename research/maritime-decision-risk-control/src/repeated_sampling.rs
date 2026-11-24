@@ -56,13 +56,46 @@ struct Accumulator {
     upper_bound_square_sum: f64,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct PopulationMetrics {
+    true_risk: [f64; POLICY_COUNT],
+    theorem_risk: Option<[f64; POLICY_COUNT]>,
+    service_loss: [f64; POLICY_COUNT],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum GuaranteeKind {
+    MarginalExpectedRisk,
+    FixedGridHighProbability,
+    NoRiskClaim,
+}
+
+impl GuaranteeKind {
+    fn label(self) -> &'static str {
+        match self {
+            Self::MarginalExpectedRisk => "MARGINAL_EXPECTED_RISK",
+            Self::FixedGridHighProbability => "FIXED_GRID_HIGH_PROBABILITY",
+            Self::NoRiskClaim => "NO_RISK_CLAIM",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct RowMetadata {
+    fixture: Fixture,
+    method: &'static str,
+    schedule_count: usize,
+    replicates: usize,
+    target: u16,
+    guarantee: GuaranteeKind,
+    status: &'static str,
+}
+
 impl Accumulator {
     fn record(
         &mut self,
         selected: Option<usize>,
-        true_risk: &[f64; POLICY_COUNT],
-        theorem_risk: Option<&[f64; POLICY_COUNT]>,
-        service_loss: &[f64; POLICY_COUNT],
+        metrics: &PopulationMetrics,
         upper_bound: Option<u32>,
         target_risk_milli: u16,
         is_high_probability: bool,
@@ -72,14 +105,14 @@ impl Accumulator {
         };
 
         self.selected_runs += 1;
-        let risk = true_risk[index];
+        let risk = metrics.true_risk[index];
         self.true_risk_sum += risk;
         self.true_risk_square_sum += risk * risk;
-        let service = service_loss[index];
+        let service = metrics.service_loss[index];
         self.service_sum += service;
         self.service_square_sum += service * service;
 
-        if let Some(theorem_axis) = theorem_risk {
+        if let Some(theorem_axis) = metrics.theorem_risk {
             let value = theorem_axis[index];
             self.theorem_risk_sum += value;
             self.theorem_risk_square_sum += value * value;
@@ -184,19 +217,22 @@ fn sampled_sums(
     let mut envelope = [0_u64; POLICY_COUNT];
     let mut service = [0.0_f64; POLICY_COUNT];
 
-    for policy_index in 0..POLICY_COUNT {
-        for state in 0..4 {
-            let count = state_counts[state];
+    for (policy_index, ((hard_total, envelope_total), service_total)) in hard
+        .iter_mut()
+        .zip(envelope.iter_mut())
+        .zip(service.iter_mut())
+        .enumerate()
+    {
+        for (state, count) in state_counts.iter().copied().enumerate() {
             let loss = hard_loss(fixture, state, policy_index);
-            hard[policy_index] += count * u64::from(loss);
+            *hard_total += count * u64::from(loss);
 
             let future_max = (policy_index..POLICY_COUNT)
                 .map(|future_index| hard_loss(fixture, state, future_index))
                 .max()
                 .unwrap_or(0);
-            envelope[policy_index] += count * u64::from(future_max);
-            service[policy_index] +=
-                count as f64 * f64::from(service_loss(state, policy_index));
+            *envelope_total += count * u64::from(future_max);
+            *service_total += count as f64 * f64::from(service_loss(state, policy_index));
         }
     }
 
@@ -212,18 +248,21 @@ fn exact_population_means(fixture: Fixture) -> (
     let mut envelope = [0.0_f64; POLICY_COUNT];
     let mut service = [0.0_f64; POLICY_COUNT];
 
-    for policy_index in 0..POLICY_COUNT {
-        for state in 0..4 {
-            let probability = MASS_PER_THOUSAND[state] as f64 / 1_000.0;
-            hard[policy_index] +=
-                probability * f64::from(hard_loss(fixture, state, policy_index));
+    for (policy_index, ((hard_mean, envelope_mean), service_mean)) in hard
+        .iter_mut()
+        .zip(envelope.iter_mut())
+        .zip(service.iter_mut())
+        .enumerate()
+    {
+        for (state, mass) in MASS_PER_THOUSAND.iter().copied().enumerate() {
+            let probability = mass as f64 / 1_000.0;
+            *hard_mean += probability * f64::from(hard_loss(fixture, state, policy_index));
             let future_max = (policy_index..POLICY_COUNT)
                 .map(|future_index| hard_loss(fixture, state, future_index))
                 .max()
                 .unwrap_or(0);
-            envelope[policy_index] += probability * f64::from(future_max);
-            service[policy_index] +=
-                probability * f64::from(service_loss(state, policy_index));
+            *envelope_mean += probability * f64::from(future_max);
+            *service_mean += probability * f64::from(service_loss(state, policy_index));
         }
     }
     (hard, envelope, service)
@@ -261,13 +300,15 @@ fn select_hoeffding(
     target: u16,
 ) -> (Option<usize>, Option<u32>) {
     let mut selected: Option<(usize, f64, u32)> = None;
-    for policy_index in 0..POLICY_COUNT {
-        let empirical_mean = risk_sums[policy_index] as f64 / schedule_count as f64;
+    for (policy_index, (risk_sum, service_sum)) in
+        risk_sums.iter().zip(service_sums.iter()).enumerate()
+    {
+        let empirical_mean = *risk_sum as f64 / schedule_count as f64;
         let upper = (empirical_mean + f64::from(radius_milli)).ceil() as u32;
         if upper > u32::from(target) {
             continue;
         }
-        let service_mean = service_sums[policy_index] / schedule_count as f64;
+        let service_mean = *service_sum / schedule_count as f64;
         let replace = selected.is_none_or(|(_, best_service, _)| service_mean < best_service);
         if replace {
             selected = Some((policy_index, service_mean, upper));
@@ -319,27 +360,22 @@ fn push_optional_interval(
     }
 }
 
-fn push_row(
-    output: &mut String,
-    fixture: Fixture,
-    method: &str,
-    schedule_count: usize,
-    replicates: usize,
-    target: u16,
-    accumulator: &Accumulator,
-    expected_risk_method: bool,
-    high_probability_method: bool,
-    status: &str,
-) {
+fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulator) {
     let selected = accumulator.selected_runs;
-    let abstentions = replicates.saturating_sub(selected);
+    let abstentions = metadata.replicates.saturating_sub(selected);
     let _ = write!(
         output,
-        "{},{method},{POLICY_COUNT},{schedule_count},{replicates},{target},",
-        fixture.label()
+        "{},{},{POLICY_COUNT},{},{},{},",
+        metadata.fixture.label(),
+        metadata.method,
+        metadata.schedule_count,
+        metadata.replicates,
+        metadata.target
     );
-    if high_probability_method {
-        output.push_str("0.050,");
+
+    let is_high_probability = metadata.guarantee == GuaranteeKind::FixedGridHighProbability;
+    if is_high_probability {
+        let _ = write!(output, "{DELTA:.3},");
     } else {
         output.push_str("NA,");
     }
@@ -352,7 +388,7 @@ fn push_row(
         selected,
     );
     output.push(',');
-    if expected_risk_method {
+    if metadata.guarantee == GuaranteeKind::MarginalExpectedRisk {
         push_optional_interval(
             output,
             accumulator.theorem_risk_sum,
@@ -370,15 +406,15 @@ fn push_row(
         selected,
     );
     output.push(',');
-    if high_probability_method {
+    if is_high_probability {
         push_optional_interval(
             output,
             accumulator.upper_bound_sum,
             accumulator.upper_bound_square_sum,
             selected,
         );
-        let (wilson_low, wilson_high) = wilson_interval(accumulator.violations, replicates);
-        let unconditional_rate = accumulator.violations as f64 / replicates as f64;
+        let (wilson_low, wilson_high) = wilson_interval(accumulator.violations, metadata.replicates);
+        let unconditional_rate = accumulator.violations as f64 / metadata.replicates as f64;
         let conditional_rate = if selected == 0 {
             0.0
         } else {
@@ -392,14 +428,13 @@ fn push_row(
         output.push_str("NA,NA,NA,NA,NA,NA,NA");
     }
 
-    let guarantee = if high_probability_method {
-        "FIXED_GRID_HIGH_PROBABILITY"
-    } else if expected_risk_method {
-        "MARGINAL_EXPECTED_RISK"
-    } else {
-        "NO_RISK_CLAIM"
-    };
-    let _ = writeln!(output, ",{guarantee},{status}");
+    let _ = writeln!(
+        output,
+        ",{},{},{}",
+        metadata.guarantee.label(),
+        metadata.status,
+        ""
+    );
 }
 
 fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
@@ -408,10 +443,34 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
         "fixture,method,policy_grid_size,calibration_schedules,replicates,alpha_milli,delta,selected_runs,abstentions,mean_selected_true_hard_risk_milli,true_risk_mc95_low,true_risk_mc95_high,mean_selected_theorem_axis_risk_milli,theorem_risk_mc95_low,theorem_risk_mc95_high,mean_selected_service_loss_milli,service_mc95_low,service_mc95_high,mean_selected_hoeffding_ucb_milli,ucb_mc95_low,ucb_mc95_high,selection_violation_rate,wilson95_low,wilson95_high,conditional_selected_violation_rate,guarantee_kind,status\n",
     );
 
-    let (mono_true_risk, _mono_envelope_risk, mono_service) =
-        exact_population_means(Fixture::Monotone);
+    let (mono_true_risk, _, mono_service) = exact_population_means(Fixture::Monotone);
     let (nonmono_true_risk, nonmono_envelope_risk, nonmono_service) =
         exact_population_means(Fixture::NonMonotone);
+    let mono_expected_metrics = PopulationMetrics {
+        true_risk: mono_true_risk,
+        theorem_risk: Some(mono_true_risk),
+        service_loss: mono_service,
+    };
+    let mono_hoeffding_metrics = PopulationMetrics {
+        true_risk: mono_true_risk,
+        theorem_risk: None,
+        service_loss: mono_service,
+    };
+    let nonmono_envelope_metrics = PopulationMetrics {
+        true_risk: nonmono_true_risk,
+        theorem_risk: Some(nonmono_envelope_risk),
+        service_loss: nonmono_service,
+    };
+    let nonmono_crc_nm_metrics = PopulationMetrics {
+        true_risk: nonmono_true_risk,
+        theorem_risk: Some(nonmono_true_risk),
+        service_loss: nonmono_service,
+    };
+    let nonmono_high_probability_metrics = PopulationMetrics {
+        true_risk: nonmono_true_risk,
+        theorem_risk: None,
+        service_loss: nonmono_service,
+    };
 
     for &schedule_count in sample_sizes {
         let radius = simultaneous_hoeffding_radius_milli(POLICY_COUNT, schedule_count, DELTA)
@@ -433,9 +492,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                 let mono_crc = select_crc(&mono_hard_sums, schedule_count, target);
                 accumulators[0][alpha_index].record(
                     Some(mono_crc),
-                    &mono_true_risk,
-                    Some(&mono_true_risk),
-                    &mono_service,
+                    &mono_expected_metrics,
                     None,
                     target,
                     false,
@@ -449,10 +506,8 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     target,
                 );
                 accumulators[1][alpha_index].record(
-                    mono_hoeffding,
-                    &mono_true_risk,
-                    None,
-                    &mono_service,
+                    mono_high_probability_metrics,
+                    &mono_hoeffding_metrics,
                     mono_upper,
                     target,
                     true,
@@ -462,9 +517,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     select_crc(&nonmono_envelope_sums, schedule_count, target);
                 accumulators[2][alpha_index].record(
                     Some(envelope_crc),
-                    &nonmono_true_risk,
-                    Some(&nonmono_envelope_risk),
-                    &nonmono_service,
+                    &nonmono_envelope_metrics,
                     None,
                     target,
                     false,
@@ -474,9 +527,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     select_crc_nm(&nonmono_hard_sums, schedule_count, target).ok();
                 accumulators[3][alpha_index].record(
                     nm_selected,
-                    &nonmono_true_risk,
-                    Some(&nonmono_true_risk),
-                    &nonmono_service,
+                    &nonmono_crc_nm_metrics,
                     None,
                     target,
                     false,
@@ -491,9 +542,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                 );
                 accumulators[4][alpha_index].record(
                     nonmono_hoeffding,
-                    &nonmono_true_risk,
-                    None,
-                    &nonmono_service,
+                    &nonmono_high_probability_metrics,
                     nonmono_upper,
                     target,
                     true,
@@ -504,70 +553,80 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
         for (alpha_index, target) in ALPHA_MILLI.iter().copied().enumerate() {
             push_row(
                 &mut output,
-                Fixture::Monotone,
-                "MONOTONE_CRC",
-                schedule_count,
-                replicates,
-                target,
+                RowMetadata {
+                    fixture: Fixture::Monotone,
+                    method: "MONOTONE_CRC",
+                    schedule_count,
+                    replicates,
+                    target,
+                    guarantee: GuaranteeKind::MarginalExpectedRisk,
+                    status: "SYNTHETIC_ONLY",
+                },
                 &accumulators[0][alpha_index],
-                true,
-                false,
-                "SYNTHETIC_ONLY",
             );
             push_row(
                 &mut output,
-                Fixture::Monotone,
-                "SIMULTANEOUS_HOEFFDING",
-                schedule_count,
-                replicates,
-                target,
+                RowMetadata {
+                    fixture: Fixture::Monotone,
+                    method: "SIMULTANEOUS_HOEFFDING",
+                    schedule_count,
+                    replicates,
+                    target,
+                    guarantee: GuaranteeKind::FixedGridHighProbability,
+                    status: "SYNTHETIC_ONLY",
+                },
                 &accumulators[1][alpha_index],
-                false,
-                true,
-                "SYNTHETIC_ONLY",
             );
             push_row(
                 &mut output,
-                Fixture::NonMonotone,
-                "MONOTONE_ENVELOPE_CRC",
-                schedule_count,
-                replicates,
-                target,
+                RowMetadata {
+                    fixture: Fixture::NonMonotone,
+                    method: "MONOTONE_ENVELOPE_CRC",
+                    schedule_count,
+                    replicates,
+                    target,
+                    guarantee: GuaranteeKind::MarginalExpectedRisk,
+                    status: "SYNTHETIC_ONLY",
+                },
                 &accumulators[2][alpha_index],
-                true,
-                false,
-                "SYNTHETIC_ONLY",
             );
             let correction =
                 excess_bound_milli(POLICY_COUNT, schedule_count).unwrap_or(u32::MAX);
-            let nm_status = if correction >= u32::from(target) {
-                "NO_POSITIVE_ADJUSTED_TARGET"
-            } else {
+            let nm_has_claim = correction < u32::from(target);
+            let nm_status = if nm_has_claim {
                 "SYNTHETIC_ONLY"
+            } else {
+                "NO_POSITIVE_ADJUSTED_TARGET"
             };
             push_row(
                 &mut output,
-                Fixture::NonMonotone,
-                "FINITE_GRID_CRC_NM",
-                schedule_count,
-                replicates,
-                target,
+                RowMetadata {
+                    fixture: Fixture::NonMonotone,
+                    method: "FINITE_GRID_CRC_NM",
+                    schedule_count,
+                    replicates,
+                    target,
+                    guarantee: if nm_has_claim {
+                        GuaranteeKind::MarginalExpectedRisk
+                    } else {
+                        GuaranteeKind::NoRiskClaim
+                    },
+                    status: nm_status,
+                },
                 &accumulators[3][alpha_index],
-                true,
-                false,
-                nm_status,
             );
             push_row(
                 &mut output,
-                Fixture::NonMonotone,
-                "SIMULTANEOUS_HOEFFDING",
-                schedule_count,
-                replicates,
-                target,
+                RowMetadata {
+                    fixture: Fixture::NonMonotone,
+                    method: "SIMULTANEOUS_HOEFFDING",
+                    schedule_count,
+                    replicates,
+                    target,
+                    guarantee: GuaranteeKind::FixedGridHighProbability,
+                    status: "SYNTHETIC_ONLY",
+                },
                 &accumulators[4][alpha_index],
-                false,
-                true,
-                "SYNTHETIC_ONLY",
             );
         }
     }
@@ -629,7 +688,7 @@ mod tests {
         let first = render_smoke_csv();
         assert_eq!(first, render_smoke_csv());
         assert_eq!(first.lines().count(), 21);
-        let width = first.lines().next().unwrap().split(',').count();
+        let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 27);
         assert!(first.contains("MARGINAL_EXPECTED_RISK"));
         assert!(first.contains("FIXED_GRID_HIGH_PROBABILITY"));
