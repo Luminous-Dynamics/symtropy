@@ -1,0 +1,167 @@
+{
+  "contract_id": "ehd_piv_external_benchmark_v0_1",
+  "version": "0.1.0",
+  "status": "benchmark_admission_and_profile_metrics_only",
+  "issue": 7248,
+  "external_dataset": {
+    "name": "PIVtools Turbulent Channel Validation Dataset",
+    "owner": "MTT69",
+    "repository": "https://huggingface.co/datasets/MTT69/TurbulentChannel",
+    "revision": "02ce80485cf859692126cc5f90fdc5b727608951",
+    "revision_url": "https://huggingface.co/datasets/MTT69/TurbulentChannel/tree/02ce80485cf859692126cc5f90fdc5b727608951",
+    "license": "CC-BY-4.0",
+    "approximate_total_size_gb": 171,
+    "citation": {
+      "authors": [
+        "M.T. Taylor",
+        "J.M. Lawson",
+        "B. Ganapathisubramani"
+      ],
+      "title": "PIVtools: A comprehensive open source software for particle image velocimetry",
+      "venue": "SoftwareX",
+      "volume": 35,
+      "article_number": 102967,
+      "year": 2026,
+      "doi": "10.1016/j.softx.2026.102967"
+    }
+  },
+  "cases": [
+    {
+      "id": "synthetic_clean_planar",
+      "kind": "synthetic",
+      "geometry": "planar",
+      "image_pairs": 4000,
+      "particles_per_image": 85000,
+      "noise": "none",
+      "image_size_px": [
+        2048,
+        2048
+      ],
+      "reference": "case_matched_DNS_derived_particle_statistics"
+    },
+    {
+      "id": "synthetic_noisy_planar",
+      "kind": "synthetic",
+      "geometry": "planar",
+      "image_pairs": 4000,
+      "particles_per_image": 22000,
+      "noise": "independent_gaussian_per_frame_mean_80_std_16_snr_approx_8",
+      "image_size_px": [
+        2048,
+        2048
+      ],
+      "reference": "case_matched_DNS_derived_particle_statistics"
+    },
+    {
+      "id": "synthetic_clean_stereo",
+      "kind": "synthetic",
+      "geometry": "stereo_plus_minus_45deg",
+      "image_pairs": 4000,
+      "particles_per_image": 85000,
+      "noise": "none",
+      "image_size_px": [
+        1440,
+        2080
+      ],
+      "reference": "case_matched_DNS_derived_particle_statistics"
+    },
+    {
+      "id": "synthetic_noisy_stereo",
+      "kind": "synthetic",
+      "geometry": "stereo_plus_minus_45deg",
+      "image_pairs": 4000,
+      "particles_per_image": 22000,
+      "noise": "independent_gaussian_per_frame_mean_80_std_16_snr_approx_8",
+      "image_size_px": [
+        1440,
+        2080
+      ],
+      "reference": "case_matched_DNS_derived_particle_statistics"
+    },
+    {
+      "id": "experimental_cam4",
+      "kind": "experimental",
+      "geometry": "planar_cam4",
+      "image_pairs": 2100,
+      "preprocessing": "cropped_gain_normalized",
+      "reference": "hot_wire_profile_same_facility",
+      "reference_fields": [
+        "mean_velocity",
+        "streamwise_variance"
+      ],
+      "notes": [
+        "hot_wire_length_plus_45_6",
+        "variance_not_spatial_resolution_corrected",
+        "not_full_field_ground_truth"
+      ]
+    }
+  ],
+  "reference_semantics": {
+    "synthetic": {
+      "source": "JHTDB turbulent channel flow, friction Reynolds number approximately 1000",
+      "provided": [
+        "mean_velocity_U_plus",
+        "Reynolds_stress_tensor_3x3",
+        "95_percent_confidence_intervals",
+        "friction_velocity",
+        "viscous_length",
+        "Re_tau"
+      ],
+      "not_provided": [
+        "framewise_instantaneous_2D_velocity_truth",
+        "framewise_instantaneous_3D_velocity_truth"
+      ],
+      "case_specific_statistics": true
+    },
+    "experimental": {
+      "source": "hot-wire measurements from the same turbulent channel/boundary-layer facility",
+      "provided": [
+        "wall_normal_position",
+        "mean_velocity",
+        "streamwise_variance",
+        "u_tau",
+        "wire_length_plus",
+        "kinematic_viscosity"
+      ],
+      "limitations": [
+        "one_dimensional_profile",
+        "finite_probe_spatial_response",
+        "variance_is_not_spatial_resolution_corrected"
+      ]
+    }
+  },
+  "metrics": [
+    "point_coverage_fraction",
+    "pointwise_bias",
+    "pointwise_rmse",
+    "pointwise_nrmse_reference_rms",
+    "reference_interval_agreement_fraction",
+    "prediction_interval_coverage_fraction",
+    "span_coverage_fraction",
+    "trapezoidal_bias",
+    "trapezoidal_rmse",
+    "trapezoidal_nrmse_reference_rms",
+    "integrated_absolute_error"
+  ],
+  "bootstrap_unit": "contiguous_temporal_blocks_not_individual_frames_or_pixels",
+  "download_policy": "do_not_bulk_download_171GB_capsule_in_initial_phase",
+  "benchmark_tiers": [
+    "capsule_integrity_and_published_result_reproduction",
+    "matched_raw_image_reprocessing",
+    "measurement_and_engineering_quality",
+    "adaptive_measurement_value"
+  ],
+  "prospective_targets": {
+    "reproduce_shipped_reference_outputs": true,
+    "preserve_componentwise_stress_errors": true,
+    "adaptive_acquisition_reduction_fraction": 0.25,
+    "require_commit_config_dataset_revision_units_and_reference_semantics": true
+  },
+  "explicit_nonclaims": [
+    "no_Symtropy_SOTA_superiority_claim",
+    "no_framewise_ground_truth_claim_for_supplied_DNS_profiles",
+    "no_full_field_truth_claim_from_hotwire",
+    "no_171GB_bulk_download_performed",
+    "no_MAT_TIFF_HDF5_importer_in_v0"
+  ]
+}
