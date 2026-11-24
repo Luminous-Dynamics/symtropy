@@ -10,7 +10,8 @@
 use crate::campaign_plan::{CompiledCampaignPlan, CompiledScenario};
 use crate::fault_campaign::FaultInjection;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const GAZEBO_ADAPTER_CONTRACT_VERSION: &str = "0.1";
 
@@ -125,6 +126,7 @@ pub enum GazeboAdapterError {
     FaultNotFound,
     WorldChangedAtCutPoint,
     TargetBindingChanged,
+    InvalidDispatchRequest,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -459,7 +461,7 @@ pub trait GazeboSimulationTransport {
     ) -> Result<GazeboTargetBinding, Self::Error>;
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct GazeboDispatchRequest {
     pub plan_sha256: String,
     pub campaign_id: String,
@@ -471,6 +473,8 @@ pub struct GazeboDispatchRequest {
     pub fault_domain_id: String,
     pub scheduled_simulation_step: u64,
     pub parameters_sha256: String,
+    /// Digest of the canonical request body excluding this field.
+    pub payload_sha256: String,
     pub idempotency_key: String,
 }
 
@@ -487,22 +491,84 @@ pub enum GazeboDispatchOutcome {
         dispatch_id: Option<String>,
     },
     DuplicateSuppressed,
+    PayloadConflict { idempotency_key: String },
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct DispatchAttemptRegistry {
-    attempted_idempotency_keys: BTreeSet<String>,
+    // Process-local fast guard only. The injector owner must persist the same
+    // key-to-payload binding durably across coordinator restarts.
+    attempted_idempotency_keys: BTreeMap<String, String>,
 }
 
 impl DispatchAttemptRegistry {
     pub fn attempted(&self, idempotency_key: &str) -> bool {
-        self.attempted_idempotency_keys.contains(idempotency_key)
+        self.attempted_idempotency_keys.contains_key(idempotency_key)
     }
 }
 
-/// The injector transport has an exactly-once dispatch API plus a separate
-/// idempotency-ledger lookup. The adapter must call dispatch_once at most once
-/// for an idempotency key; a transport error maps to Unknown.
+/// Canonical request-body projection used by both the coordinator and injector.
+/// The idempotency key is included; payload_sha256 itself is excluded.
+#[derive(Serialize)]
+struct GazeboDispatchPayload<'a> {
+    plan_sha256: &'a str,
+    campaign_id: &'a str,
+    pair_id: &'a str,
+    scenario_id: &'a str,
+    fault_id: &'a str,
+    fault_sequence: u32,
+    target_id: &'a str,
+    fault_domain_id: &'a str,
+    scheduled_simulation_step: u64,
+    parameters_sha256: &'a str,
+    idempotency_key: &'a str,
+}
+
+/// Compute the stable payload commitment. The serde_json Value conversion
+/// sorts object keys under this crate's pinned serde_json configuration.
+pub fn dispatch_request_fingerprint(
+    request: &GazeboDispatchRequest,
+) -> Result<String, GazeboAdapterError> {
+    if !valid_sha256(&request.plan_sha256)
+        || !valid_sha256(&request.parameters_sha256)
+        || !nonempty(&request.campaign_id)
+        || !nonempty(&request.pair_id)
+        || !nonempty(&request.scenario_id)
+        || !nonempty(&request.fault_id)
+        || !nonempty(&request.target_id)
+        || !nonempty(&request.fault_domain_id)
+        || !nonempty(&request.idempotency_key)
+    {
+        return Err(GazeboAdapterError::InvalidDispatchRequest);
+    }
+    let payload = GazeboDispatchPayload {
+        plan_sha256: &request.plan_sha256,
+        campaign_id: &request.campaign_id,
+        pair_id: &request.pair_id,
+        scenario_id: &request.scenario_id,
+        fault_id: &request.fault_id,
+        fault_sequence: request.fault_sequence,
+        target_id: &request.target_id,
+        fault_domain_id: &request.fault_domain_id,
+        scheduled_simulation_step: request.scheduled_simulation_step,
+        parameters_sha256: &request.parameters_sha256,
+        idempotency_key: &request.idempotency_key,
+    };
+    let value = serde_json::to_value(payload)
+        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+    let bytes = serde_json::to_vec(&value)
+        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+    let digest = Sha256::digest(bytes);
+    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+/// Injector contract: atomically and durably bind idempotency_key to
+/// payload_sha256 before any fault effect can occur. Repeating the same key and
+/// digest must return the prior operation result without repeating the effect;
+/// reusing the key with a different digest must return PayloadConflict. The
+/// ledger must survive coordinator/injector process restarts. This trait cannot
+/// itself prove that a concrete remote injector satisfies those requirements.
+/// A transport error maps to Unknown.
 pub trait GazeboFaultInjectorTransport {
     type Error: std::fmt::Display;
 
@@ -529,8 +595,24 @@ pub fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
             .attempted_idempotency_keys
             .insert(request.idempotency_key.clone())
     {
-        return GazeboDispatchOutcome::DuplicateSuppressed;
+        return GazeboDispatchOutcome::InvalidDispatchRequest;
     }
+    let fingerprint = match dispatch_request_fingerprint(request) {
+        Ok(fingerprint) if fingerprint == request.payload_sha256 => fingerprint,
+        _ => return GazeboDispatchOutcome::InvalidDispatchRequest,
+    };
+    if let Some(previous) = registry.attempted_idempotency_keys.get(&request.idempotency_key) {
+        return if previous == &fingerprint {
+            GazeboDispatchOutcome::DuplicateSuppressed
+        } else {
+            GazeboDispatchOutcome::PayloadConflict {
+                idempotency_key: request.idempotency_key.clone(),
+            }
+        };
+    }
+    registry
+        .attempted_idempotency_keys
+        .insert(request.idempotency_key.clone(), fingerprint);
     injector
         .dispatch_once(request)
         .unwrap_or(GazeboDispatchOutcome::Unknown { dispatch_id: None })
@@ -579,6 +661,7 @@ pub enum DispatchLedgerResult {
     Rejected,
     NoDispatchProven,
     Unknown,
+    PayloadConflict,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -587,6 +670,7 @@ pub enum ReconciliationDecision {
     ExistingDispatchRejected,
     NoDispatchProven,
     Unresolved,
+    PayloadConflict,
 }
 
 /// A lost dispatch response maps to Unknown. It never invokes dispatch again.
@@ -596,6 +680,7 @@ pub fn reconcile_dispatch_lookup(lookup: DispatchLedgerResult) -> Reconciliation
         DispatchLedgerResult::Rejected => ReconciliationDecision::ExistingDispatchRejected,
         DispatchLedgerResult::NoDispatchProven => ReconciliationDecision::NoDispatchProven,
         DispatchLedgerResult::Unknown => ReconciliationDecision::Unresolved,
+        DispatchLedgerResult::PayloadConflict => ReconciliationDecision::PayloadConflict,
     }
 }
 
@@ -839,8 +924,10 @@ where
         fault_domain_id: fault.fault_domain_id.clone(),
         scheduled_simulation_step: fault.scheduled_simulation_step,
         parameters_sha256: fault.parameters_sha256.clone(),
+        payload_sha256: String::new(),
         idempotency_key,
     };
+    request.payload_sha256 = dispatch_request_fingerprint(&request)?;
     let outcome = dispatch_fault_once(registry, injector, &request);
 
     Ok(GazeboPlannedDispatchResult {
@@ -1511,9 +1598,12 @@ mod tests {
             fault_domain_id: fault.fault_domain_id.clone(),
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
+            payload_sha256: String::new(),
             idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1")
                 .unwrap(),
         };
+        let mut request = request;
+        request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
         let mut registry = DispatchAttemptRegistry::default();
         let mut injector = MockInjector {
             dispatch_calls: 0,
@@ -1531,6 +1621,17 @@ mod tests {
         assert_eq!(
             reconcile_fault_dispatch(&mut injector, &request.idempotency_key),
             ReconciliationDecision::ExistingDispatchAccepted
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+
+        let mut changed_payload = request.clone();
+        changed_payload.target_id = "different-target".into();
+        changed_payload.payload_sha256 = dispatch_request_fingerprint(&changed_payload).unwrap();
+        assert_eq!(
+            dispatch_fault_once(&mut registry, &mut injector, &changed_payload),
+            GazeboDispatchOutcome::PayloadConflict {
+                idempotency_key: request.idempotency_key.clone()
+            }
         );
         assert_eq!(injector.dispatch_calls, 1);
     }
@@ -1553,5 +1654,101 @@ mod tests {
             reconcile_dispatch_lookup(DispatchLedgerResult::Unknown),
             ReconciliationDecision::Unresolved
         );
+        assert_eq!(
+            reconcile_dispatch_lookup(DispatchLedgerResult::PayloadConflict),
+            ReconciliationDecision::PayloadConflict
+        );
+    }
+
+    struct DurableLedgerInjector {
+        entries: BTreeMap<String, String>,
+        effects: usize,
+    }
+
+    impl GazeboFaultInjectorTransport for DurableLedgerInjector {
+        type Error = &'static str;
+
+        fn dispatch_once(
+            &mut self,
+            request: &GazeboDispatchRequest,
+        ) -> Result<GazeboDispatchOutcome, Self::Error> {
+            let fingerprint = dispatch_request_fingerprint(request).map_err(|_| "invalid request")?;
+            if fingerprint != request.payload_sha256 {
+                return Ok(GazeboDispatchOutcome::InvalidDispatchRequest);
+            }
+            if let Some(previous) = self.entries.get(&request.idempotency_key) {
+                return Ok(if previous == &fingerprint {
+                    GazeboDispatchOutcome::DuplicateSuppressed
+                } else {
+                    GazeboDispatchOutcome::PayloadConflict {
+                        idempotency_key: request.idempotency_key.clone(),
+                    }
+                });
+            }
+            self.entries
+                .insert(request.idempotency_key.clone(), fingerprint);
+            self.effects += 1;
+            Ok(GazeboDispatchOutcome::Accepted {
+                dispatch_id: format!("dispatch-{}", self.effects),
+            })
+        }
+
+        fn lookup_dispatch(
+            &mut self,
+            idempotency_key: &str,
+        ) -> Result<DispatchLedgerResult, Self::Error> {
+            Ok(if self.entries.contains_key(idempotency_key) {
+                DispatchLedgerResult::Accepted
+            } else {
+                DispatchLedgerResult::NoDispatchProven
+            })
+        }
+    }
+
+    #[test]
+    fn durable_injector_ledger_rejects_payload_change_after_coordinator_restart() {
+        let plan = plan();
+        let scenario = &plan.scenarios[0];
+        let fault = &scenario.fault_events[0];
+        let mut request = GazeboDispatchRequest {
+            plan_sha256: plan.plan_sha256.clone(),
+            campaign_id: plan.campaign_id.clone(),
+            pair_id: scenario.pair_id.clone(),
+            scenario_id: scenario.scenario_id.clone(),
+            fault_id: fault.fault_id.clone(),
+            fault_sequence: fault.sequence,
+            target_id: "gazebo-model-001".into(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+            scheduled_simulation_step: fault.scheduled_simulation_step,
+            parameters_sha256: fault.parameters_sha256.clone(),
+            payload_sha256: String::new(),
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1")
+                .unwrap(),
+        };
+        request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
+        let mut durable = DurableLedgerInjector {
+            entries: BTreeMap::new(),
+            effects: 0,
+        };
+
+        let mut first_process_registry = DispatchAttemptRegistry::default();
+        assert!(matches!(
+            dispatch_fault_once(&mut first_process_registry, &mut durable, &request),
+            GazeboDispatchOutcome::Accepted { .. }
+        ));
+        assert_eq!(durable.effects, 1);
+
+        // A new coordinator has an empty local registry, but the injector's
+        // durable key-to-payload mapping survives and rejects the changed target.
+        let mut restarted_process_registry = DispatchAttemptRegistry::default();
+        request.target_id = "different-target".into();
+        request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
+        assert_eq!(
+            dispatch_fault_once(&mut restarted_process_registry, &mut durable, &request),
+            GazeboDispatchOutcome::PayloadConflict {
+                idempotency_key: request.idempotency_key.clone()
+            }
+        );
+        assert_eq!(durable.effects, 1);
     }
 }
