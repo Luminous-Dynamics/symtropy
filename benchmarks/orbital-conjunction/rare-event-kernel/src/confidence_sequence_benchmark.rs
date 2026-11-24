@@ -192,7 +192,10 @@ pub fn benchmark_confidence_sequences(
     if !fixture_truth.is_finite() || !(0.0..=1.0).contains(&fixture_truth) {
         return Err(ConfidenceSequenceBenchmarkError::InvalidFixtureTruth);
     }
-    if !observations.iter().all(|value| value.is_finite() && (0.0..=1.0).contains(value)) {
+    if !observations
+        .iter()
+        .all(|value| value.is_finite() && (0.0..=1.0).contains(value))
+    {
         return Err(ConfidenceSequenceBenchmarkError::InvalidObservation);
     }
     if observations.is_empty() {
@@ -466,10 +469,7 @@ fn snapshot(
     }
 }
 
-fn validate_interval(
-    lower: f64,
-    upper: f64,
-) -> Result<(), ConfidenceSequenceBenchmarkError> {
+fn validate_interval(lower: f64, upper: f64) -> Result<(), ConfidenceSequenceBenchmarkError> {
     if !lower.is_finite() || !upper.is_finite() || lower < 0.0 || upper > 1.0 || lower > upper {
         Err(ConfidenceSequenceBenchmarkError::InvalidConfidenceInterval)
     } else {
@@ -509,10 +509,7 @@ mod tests {
     use super::*;
 
     fn parameter_grid() -> Vec<f64> {
-        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(
-            1.0e-8, 0.02, 48, 48,
-        )
-        .unwrap()
+        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 48, 48).unwrap()
     }
 
     #[test]
@@ -541,9 +538,12 @@ mod tests {
                     .collect::<Vec<_>>(),
                 vec![16, 32, 64]
             );
-            assert!(method.snapshots.iter().all(|snapshot| {
-                snapshot.contains_fixture_truth && snapshot.width >= 0.0
-            }));
+            assert!(
+                method
+                    .snapshots
+                    .iter()
+                    .all(|snapshot| { snapshot.contains_fixture_truth && snapshot.width >= 0.0 })
+            );
             assert_eq!(method.timing_repetitions, 2);
         }
     }
@@ -677,15 +677,7 @@ mod tests {
     #[test]
     fn zero_timing_repetitions_are_rejected() {
         assert_eq!(
-            benchmark_confidence_sequences(
-                &[0.2],
-                0.2,
-                0.05,
-                parameter_grid(),
-                &[1],
-                None,
-                0,
-            ),
+            benchmark_confidence_sequences(&[0.2], 0.2, 0.05, parameter_grid(), &[1], None, 0,),
             Err(ConfidenceSequenceBenchmarkError::InvalidTimingRepetitions)
         );
     }
