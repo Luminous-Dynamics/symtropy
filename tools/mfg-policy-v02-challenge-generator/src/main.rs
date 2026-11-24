@@ -473,8 +473,8 @@ fn make_resources(family_id: &str) -> Vec<Resource> {
                 let initial_qualifications = capabilities
                     .iter()
                     .map(|process_family| {
-                        let is_forming_transition = family_id == "qualification-transition"
-                            && *process_family == "FORMING";
+                        let is_forming_transition =
+                            family_id == "qualification-transition" && *process_family == "FORMING";
                         let is_unknown_transition =
                             is_forming_transition && resource_id == "RESOURCE-C";
                         let is_blocked_competitor =
@@ -1588,33 +1588,61 @@ mod tests {
             .expect("qualification-transition family exists");
         let ready_operation = &case.jobs[0].operations[1];
         assert_eq!(ready_operation.initial_status, OperationStatus::Waiting);
-        assert_eq!(case.jobs[0].operations[0].initial_status, OperationStatus::Completed);
+        assert_eq!(
+            case.jobs[0].operations[0].initial_status,
+            OperationStatus::Completed
+        );
         assert_eq!(
             ready_operation.eligible_resource_ids,
             vec!["RESOURCE-A".to_string(), "RESOURCE-C".to_string()]
         );
 
-        let resource_a = case.resources.iter()
-            .find(|resource| resource.resource_id == "RESOURCE-A").unwrap();
-        let resource_c = case.resources.iter()
-            .find(|resource| resource.resource_id == "RESOURCE-C").unwrap();
-        let qualification_a = resource_a.initial_qualifications.iter()
-            .find(|qualification| qualification.process_family == "FORMING").unwrap();
-        let qualification_c = resource_c.initial_qualifications.iter()
-            .find(|qualification| qualification.process_family == "FORMING").unwrap();
-        assert_eq!(qualification_a.disposition, QualificationDisposition::Blocked);
-        assert_eq!(qualification_c.disposition, QualificationDisposition::Unknown);
+        let resource_a = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == "RESOURCE-A")
+            .unwrap();
+        let resource_c = case
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id == "RESOURCE-C")
+            .unwrap();
+        let qualification_a = resource_a
+            .initial_qualifications
+            .iter()
+            .find(|qualification| qualification.process_family == "FORMING")
+            .unwrap();
+        let qualification_c = resource_c
+            .initial_qualifications
+            .iter()
+            .find(|qualification| qualification.process_family == "FORMING")
+            .unwrap();
+        assert_eq!(
+            qualification_a.disposition,
+            QualificationDisposition::Blocked
+        );
+        assert_eq!(
+            qualification_c.disposition,
+            QualificationDisposition::Unknown
+        );
 
         let update = case.scenarios[3].observations_by_epoch[2]
-            .qualification_updates.iter()
-            .find(|update| update.resource_id == "RESOURCE-C"
-                && update.process_family == "FORMING")
+            .qualification_updates
+            .iter()
+            .find(|update| update.resource_id == "RESOURCE-C" && update.process_family == "FORMING")
             .expect("scoped qualification update appears in visible event stream");
-        assert_eq!(update.previous_disposition, QualificationDisposition::Unknown);
+        assert_eq!(
+            update.previous_disposition,
+            QualificationDisposition::Unknown
+        );
         assert_eq!(update.new_disposition, QualificationDisposition::Admissible);
         assert_eq!(update.occurred_at_epoch, 1);
         assert_eq!(update.observed_at_epoch, 2);
-        assert!(case.scenarios[3].observations_by_epoch[1].qualification_updates.is_empty());
+        assert!(
+            case.scenarios[3].observations_by_epoch[1]
+                .qualification_updates
+                .is_empty()
+        );
     }
 
     #[test]
