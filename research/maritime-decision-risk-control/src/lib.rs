@@ -1,3 +1,4 @@
+pub mod oracle_adapter;
 pub mod lipschitz;
 pub mod weighted_shift;
 
