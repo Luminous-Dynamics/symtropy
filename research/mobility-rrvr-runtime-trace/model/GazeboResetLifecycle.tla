@@ -32,7 +32,7 @@ Init ==
     /\ initialEpoch = 0
     /\ worldEpoch = initialEpoch
     /\ initialState = FALSE
-    /\ observedEpoch = -1
+    /\ observedEpoch = 0
     /\ observedInitial = FALSE
     /\ faultDispatches = 0
     /\ activePlan = "plan-a"
@@ -144,7 +144,7 @@ TypeOK ==
     /\ initialEpoch \in Nat
     /\ worldEpoch \in Nat
     /\ initialState \in BOOLEAN
-    /\ observedEpoch \in {-1} \cup Nat
+    /\ observedEpoch \in Nat
     /\ observedInitial \in BOOLEAN
     /\ faultDispatches \in 0..1
     /\ activePlan \in PlanIds
