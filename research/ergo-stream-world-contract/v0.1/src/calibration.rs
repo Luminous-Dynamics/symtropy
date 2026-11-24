@@ -231,8 +231,12 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::MixedCalibrationStrata => {
                 "split-conformal calibration samples must belong to one evaluator-owned stratum"
             }
-            Self::EmptyClaimId => "bound transfer forecast/outcome requires a non-empty claim ID",
-            Self::DuplicateClaimId => "bound transfer forecasts contain a duplicate claim ID",
+            Self::EmptyClaimId => {
+                "bound transfer forecast/outcome requires a non-empty claim ID"
+            }
+            Self::DuplicateClaimId => {
+                "bound transfer forecasts contain a duplicate claim ID"
+            }
             Self::DuplicateClaimOutcomeId => "bound transfer outcomes contain a duplicate claim ID",
             Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
             Self::ClaimIdentityMismatch => {
