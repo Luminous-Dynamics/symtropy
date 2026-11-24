@@ -18,7 +18,7 @@ The validator rejects false negatives, missing prune evidence, incomplete denomi
 
 ## Claim boundary
 
-This crate validates in-memory receipt structures. It does not download or parse external datasets, execute algorithms, authenticate upstream files, independently create the geometric oracle, or generate timing data. SHA-256 and source-commit strings are declarative metadata that the benchmark runner must verify. This is not a cryptographic signature.
+This crate validates in-memory receipt structures. It does not download or parse external datasets, execute algorithms, authenticate upstream files, independently create the geometric oracle, or generate timing data. SHA-256, source-commit and canonical-configuration strings are declarative metadata that the benchmark runner must verify against the checked-out inputs. The configuration digest must cover the complete canonical method-parameter object, feature flags, relevant runtime settings, and any precision/tolerance options; record the canonicalization/schema version in the surrounding manifest. This is not a cryptographic signature.
 
 ## External benchmark target
 
