@@ -154,6 +154,21 @@ jobs:
           grep -q "THIRD_PARTY_DERIVED_ONLY" /tmp/source-claim-admission.csv
           grep -q "INTEROPERABILITY_ONLY" /tmp/source-claim-admission.csv
           grep -q "RECEIVER_ACCEPTANCE" /tmp/source-claim-admission.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin dcsa-maturity-audit > /tmp/dcsa-maturity.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin dcsa-maturity-audit > /tmp/dcsa-maturity-replay.csv
+          cmp /tmp/dcsa-maturity.csv /tmp/dcsa-maturity-replay.csv
+          test "$(wc -l < /tmp/dcsa-maturity.csv)" -eq 12
+          head -n 1 /tmp/dcsa-maturity.csv | awk -F, '{ if (NF != 7) exit 1 }'
+          awk -F, 'NF != 7 { exit 1 }' /tmp/dcsa-maturity.csv
+          grep -q "ESTIMATED_ONLY" /tmp/dcsa-maturity.csv
+          grep -q "REQUESTED_ONLY" /tmp/dcsa-maturity.csv
+          grep -q "PLANNED_ONLY" /tmp/dcsa-maturity.csv
+          grep -q "SOURCE_REPORTED_ACTUAL_ONLY" /tmp/dcsa-maturity.csv
+          grep -q "UNKNOWN_CLASSIFIER" /tmp/dcsa-maturity.csv
+          grep -q "WRONG_STANDARD_VERSION" /tmp/dcsa-maturity.csv
+          grep -q "EVENT_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
+          grep -q "PUBLICATION_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
+          grep -q "PUBLICATION_AFTER_RETRIEVAL" /tmp/dcsa-maturity.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
           cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
@@ -186,6 +201,7 @@ jobs:
             /tmp/clustered-dependence-risk.csv \
             /tmp/source-claim-admission.csv \
             /tmp/epcis-corrections.csv \
+            /tmp/dcsa-maturity.csv \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -206,5 +222,6 @@ jobs:
             /tmp/clustered-dependence-risk.csv
             /tmp/source-claim-admission.csv
             /tmp/epcis-corrections.csv
+            /tmp/dcsa-maturity.csv
           if-no-files-found: error
           retention-days: 30

@@ -577,3 +577,27 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 The six synthetic receipt cases cover: original event before correction, declaration known by its declared time but not yet recorded, declaration visible while the correction is still pending, correction event later available, subject mismatch rejection, and assertion-payload mismatch rejection. Tests also retain eventTime/recordTime/timezone separately and preserve the original event after declaration.
 
 This is a targeted EPCIS compatibility fixture, **not** the complete EPCIS parser, JSON-LD or REST implementation, CBV vocabulary validator, DCSA conformance implementation, globally unique event-ID authority or physical observation system. It does not prove that the source captured every real event.
+
+
+## DCSA event classifier maturity adapter (24 November 2026)
+
+The `dcsa_maturity` module preserves the four DCSA event maturity codes as distinct typed values:
+
+- `EST` → ESTIMATED_ONLY
+- `REQ` → REQUESTED_ONLY
+- `PLN` → PLANNED_ONLY
+- `ACT` → SOURCE_REPORTED_ACTUAL_ONLY
+
+This adapter is pinned to the DCSA Track & Trace 2.2 release label and retains standard version, eventID, canonical subject ID, source-native record ID, event time, timezone offset, repository record time, publication time and retrieval time. It rejects unknown classifier codes, release-version drift, missing publication time, publication after retrieval, records unavailable by the historical as-of cutoff, and an ACT event without event time.
+
+**Critical claim ceiling:** ACT means that the DCSA source classified its milestone as actual. It is still source-reported evidence; the adapter always sets `independent_physical_observation=false`. An ACT event cannot be used as an independently verified berth occupancy, cargo movement, custody handoff or receiver acceptance without a separate qualified witness and evidence chain.
+
+The adapter also allows future event times for EST/REQ/PLN entries; it does not misclassify a future planned berth or arrival as an invalid actual event. Event time remains distinct from repository record time and source publication/retrieval time.
+
+Run the deterministic maturity receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin dcsa-maturity-audit
+~~~
+
+The synthetic tournament covers all four maturity values, unknown classifier, wrong version, unknown publication, late retrieval, ACT without event time, planned event with future eventTime and publication-after-retrieval. These tests qualify our mapping, not the external DCSA API conformance. For live implementation, pin and run the official DCSA T&T 2.2 / Port Call 2.0.0 reference conformance suites.

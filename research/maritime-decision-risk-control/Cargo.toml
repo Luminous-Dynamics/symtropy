@@ -50,3 +50,7 @@ path = "src/bin/source_claim_admission_audit.rs"
 [[bin]]
 name = "epcis-correction-audit"
 path = "src/bin/epcis_correction_audit.rs"
+
+[[bin]]
+name = "dcsa-maturity-audit"
+path = "src/bin/dcsa_maturity_audit.rs"
