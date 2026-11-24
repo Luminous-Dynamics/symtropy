@@ -249,11 +249,9 @@ pub fn evaluate_transfer_calibration(
                 TransferCalibrationErrorV0::ArithmeticOverflow
             })?)
             .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
-        let bin_index = usize::try_from(
-            scaled_bin / (u64::from(PROBABILITY_SCALE_PPM_V0) + 1),
-        )
-        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
-        .min(calibration_bin_count - 1);
+        let bin_index = usize::try_from(scaled_bin / u64::from(PROBABILITY_SCALE_PPM_V0))
+            .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+            .min(calibration_bin_count - 1);
 
         let bin = &mut bins[bin_index];
         bin.sample_count = bin
@@ -384,6 +382,24 @@ mod tests {
         assert_eq!(report.expected_calibration_error_numerator, 0);
         assert_eq!(report.selective_risk_curve[0].covered_samples, 4);
         assert_eq!(report.selective_risk_curve[1].covered_samples, 4);
+    }
+
+    #[test]
+    fn equal_width_bins_include_exact_lower_boundaries() {
+        let forecasts = [
+            forecast(1, 100_000, None),
+            forecast(2, 1_000_000, None),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 { sample_id: 1, transfer_qualified: false },
+            TransferOutcomeV0 { sample_id: 2, transfer_qualified: true },
+        ];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0]).unwrap();
+
+        assert_eq!(report.calibration_bins[0].sample_count, 0);
+        assert_eq!(report.calibration_bins[1].sample_count, 1);
+        assert_eq!(report.calibration_bins[9].sample_count, 1);
     }
 
     #[test]
