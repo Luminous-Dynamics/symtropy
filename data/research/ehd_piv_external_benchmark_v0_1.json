@@ -180,5 +180,42 @@
     "full_tensor_frobenius_error_with_double_weighted_off_diagonal_terms",
     "positive_semidefinite_realizability_diagnostic"
   ],
-  "v0_tests_authored": 19
+  "v0_tests_authored": 19,
+  "processing_protocol": {
+    "clean_planar": {
+      "instantaneous_preprocessing": "none",
+      "ensemble_preprocessing": "none"
+    },
+    "noisy_planar": {
+      "instantaneous_preprocessing": "ssmin_7x7",
+      "ensemble_preprocessing": "raw_images_no_filter"
+    },
+    "experimental_cam4": {
+      "instantaneous_preprocessing": "ssmin_7x7",
+      "ensemble_preprocessing": "raw_images_no_filter"
+    },
+    "stereo": {
+      "track": "instantaneous_only_no_published_stereo_ensemble"
+    },
+    "published_profile_comparison": {
+      "x_edge_exclusion_vectors_each_side": 4,
+      "profile_aggregation": "average_across_x_after_edge_exclusion",
+      "default_y_plus_range": [
+        10,
+        500
+      ],
+      "alignment": "wall_origin_offset_and_plus_one_wall_unit_as_published_helper",
+      "benchmark_policy": "reproduce_as_a_named_frozen_baseline; do_not_tune_per_method"
+    },
+    "caveat": "x_averaged_profiles can conceal localized coherent structures; pair with field-level structure preservation scorecard"
+  },
+  "data_contract_requirements": [
+    "configuration_digest_per_mode",
+    "calibration_and_axis_orientation_digest",
+    "interrogation_window_pass_and_run_index",
+    "preprocessing_variant_instantaneous_or_ensemble",
+    "x_edge_exclusion_and_profile_aggregation",
+    "wall_origin_offset_and_y_plus_shift",
+    "explicit_y_plus_scoring_bands"
+  ]
 }
