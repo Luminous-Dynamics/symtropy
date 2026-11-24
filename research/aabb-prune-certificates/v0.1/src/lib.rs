@@ -349,7 +349,9 @@ impl<const D: usize> AabbSeparationCertificate<D> {
     }
 
     #[must_use]
-    pub fn context(&self) -> &ProofContext { &self.context }
+    pub fn context(&self) -> &ProofContext {
+        &self.context
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
