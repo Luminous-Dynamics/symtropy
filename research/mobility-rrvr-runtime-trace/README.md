@@ -254,6 +254,16 @@ See [DURABLE_JOURNAL_V0.1.md](DURABLE_JOURNAL_V0.1.md), the [journal entry schem
 Claim ceiling: this branch is still a file-backed reference implementation. It is not yet wired into the live reset/dispatch transport, and the injector's own durable idempotency ledger remains an external requirement. Hash-chain validity does not authenticate the producer or prove physical truth.
 
 
+## Synthetic journal benchmark runner
+
+`rrvr_journal_bench` generates a non-mutating synthetic reset/dispatch journal and reports append-plus-sync latency percentiles, append throughput, bytes per entry and read-only replay/projection time. Example:
+
+```sh
+cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_journal_bench -- 1000 /tmp/rrvr-journal-1000.jsonl
+```
+
+The runner does not call ROS, Gazebo, an injector or native authority. It is not yet an SQLite comparison or a power-cut durability test; use identical event workloads, sync settings and target media for those comparisons.
+
 ## RRVR benchmark protocol v0.2
 
 The [RRVR Benchmark Protocol](RRVR_BENCHMARK_PROTOCOL_V0.2.md) defines cross-restart physical-effect benchmarks, matched prior-art baselines (EAST, SafeVLA-Bench, ROS fault-injection, ROS-RVFT, Gazebo, AWS idempotency, SQLite WAL and NIST), hard safety invariants, operational metrics, confidence methodology, mandatory negative controls and evidence artifact requirements.
