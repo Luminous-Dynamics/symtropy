@@ -159,13 +159,15 @@ pub struct OnTimeCalibrationGroup {
     pub forecast_model_id: String,
     pub forecast_model_version: String,
     pub stratum_id: String,
-    pub sample_count: usize,
-    pub brier_score_millionths: u32,
-    pub mean_predicted_probability_permille: u16,
-    pub observed_on_time_rate_permille: u16,
-    pub observed_rate_wilson_95: WilsonInterval,
-    pub expected_calibration_error_permille: u16,
-    pub reliability_bins: Vec<ReliabilityBin>,
+    pub site_configuration_digest: String,
+    pub calibration_sample_count: usize,
+    pub holdout_sample_count: usize,
+    pub holdout_brier_score_millionths: u32,
+    pub holdout_mean_predicted_probability_permille: u16,
+    pub holdout_observed_on_time_rate_permille: u16,
+    pub holdout_observed_rate_wilson_95: WilsonInterval,
+    pub holdout_expected_calibration_error_permille: u16,
+    pub holdout_reliability_bins: Vec<ReliabilityBin>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -499,13 +501,14 @@ fn build_metric_group(
 
 fn build_on_time_group(
     key: &OnTimeGroupKey,
-    records: &[(u16, bool)],
+    calibration_count: usize,
+    holdout: &[(u16, bool)],
 ) -> Option<OnTimeCalibrationGroup> {
-    if records.is_empty() {
+    if holdout.is_empty() {
         return None;
     }
-    let n = records.len() as u64;
-    let brier_sum: u128 = records
+    let n = holdout.len() as u64;
+    let brier_sum: u128 = holdout
         .iter()
         .map(|(probability, observed)| {
             let target = if *observed { 1_000_i64 } else { 0_i64 };
@@ -515,14 +518,14 @@ fn build_on_time_group(
         .sum();
     let brier = u32::try_from(brier_sum / u128::from(n)).ok()?;
 
-    let predicted_sum: u64 = records.iter().map(|(p, _)| u64::from(*p)).sum();
-    let successes = records.iter().filter(|(_, observed)| *observed).count();
+    let predicted_sum: u64 = holdout.iter().map(|(p, _)| u64::from(*p)).sum();
+    let successes = holdout.iter().filter(|(_, observed)| *observed).count();
     let mut reliability_bins = Vec::with_capacity(10);
     let mut weighted_abs_gap = 0_u128;
     for bin in 0..10_u16 {
         let lower = bin * 100;
         let upper = if bin == 9 { 1_000 } else { lower + 100 };
-        let selected: Vec<_> = records
+        let selected: Vec<_> = holdout
             .iter()
             .filter(|(p, _)| {
                 *p >= lower && if bin == 9 { *p <= upper } else { *p < upper }
@@ -539,8 +542,8 @@ fn build_on_time_group(
             / count as u64;
         let bin_successes = selected.iter().filter(|(_, observed)| *observed).count();
         let observed_rate = (bin_successes as u64 * 1_000) / count as u64;
-        weighted_abs_gap += u128::from(predicted.abs_diff(observed_rate))
-            * count as u128;
+        weighted_abs_gap +=
+            u128::from(predicted.abs_diff(observed_rate)) * count as u128;
         reliability_bins.push(ReliabilityBin {
             lower_probability_permille: lower,
             upper_probability_permille: upper,
@@ -550,18 +553,20 @@ fn build_on_time_group(
             observed_rate_wilson_95: wilson_interval(bin_successes, count)?,
         });
     }
-    let ece = u16::try_from(weighted_abs_gap / records.len() as u128).ok()?;
+    let ece = u16::try_from(weighted_abs_gap / holdout.len() as u128).ok()?;
     Some(OnTimeCalibrationGroup {
         forecast_model_id: key.model_id.clone(),
         forecast_model_version: key.model_version.clone(),
         stratum_id: key.stratum_id.clone(),
-        sample_count: records.len(),
-        brier_score_millionths: brier,
-        mean_predicted_probability_permille: u16::try_from(predicted_sum / records.len() as u64).ok()?,
-        observed_on_time_rate_permille: u16::try_from(successes as u64 * 1_000 / records.len() as u64).ok()?,
-        observed_rate_wilson_95: wilson_interval(successes, records.len())?,
-        expected_calibration_error_permille: ece,
-        reliability_bins,
+        site_configuration_digest: key.site_configuration_digest.clone(),
+        calibration_sample_count: calibration_count,
+        holdout_sample_count: holdout.len(),
+        holdout_brier_score_millionths: brier,
+        holdout_mean_predicted_probability_permille: u16::try_from(predicted_sum / holdout.len() as u64).ok()?,
+        holdout_observed_on_time_rate_permille: u16::try_from(successes as u64 * 1_000 / holdout.len() as u64).ok()?,
+        holdout_observed_rate_wilson_95: wilson_interval(successes, holdout.len())?,
+        holdout_expected_calibration_error_permille: ece,
+        holdout_reliability_bins: reliability_bins,
     })
 }
 
@@ -761,7 +766,10 @@ pub fn evaluate_service_prediction_calibration(
 
     let mut metric_groups: BTreeMap<MetricGroupKey, (Vec<IntervalPair>, Vec<IntervalPair>, u64, u64)> =
         BTreeMap::new();
-    let mut on_time_groups: BTreeMap<OnTimeGroupKey, Vec<(u16, bool)>> = BTreeMap::new();
+    let mut on_time_groups: BTreeMap<
+        OnTimeGroupKey,
+        (Vec<(u16, bool)>, Vec<(u16, bool)>, u64, u64),
+    > = BTreeMap::new();
     for record in &input.records {
         let on_key = OnTimeGroupKey {
             model_id: record.forecast_model_id.clone(),
@@ -769,10 +777,19 @@ pub fn evaluate_service_prediction_calibration(
             stratum_id: record.stratum_id.clone(),
             site_configuration_digest: record.site_configuration_digest.clone(),
         };
-        on_time_groups
+        let on_entry = on_time_groups
             .entry(on_key)
-            .or_default()
-            .push((record.on_time_probability_permille, record.on_time_observed));
+            .or_insert_with(|| (Vec::new(), Vec::new(), 0, 0));
+        if record.cohort == CalibrationCohort::Calibration {
+            on_entry.0.push((record.on_time_probability_permille, record.on_time_observed));
+            on_entry.2 = on_entry.2.max(
+                record.on_time_evidence.observed_at_unix_ms.unwrap_or(0)
+            );
+        } else {
+            on_entry.1.push((record.on_time_probability_permille, record.on_time_observed));
+            let forecasted = record.on_time_forecast_evidence.observed_at_unix_ms.unwrap_or(u64::MAX);
+            on_entry.3 = if on_entry.3 == 0 { forecasted } else { on_entry.3.min(forecasted) };
+        }
 
         for metric in &record.metrics {
             let key = MetricGroupKey {
@@ -827,6 +844,23 @@ pub fn evaluate_service_prediction_calibration(
         }
     }
 
+    for (key, (calibration, holdout, last_calibration_outcome, first_holdout_forecast)) in
+        &on_time_groups
+    {
+        if !calibration.is_empty()
+            && !holdout.is_empty()
+            && last_calibration_outcome > first_holdout_forecast
+        {
+            add_error(
+                &mut errors,
+                format!(
+                    "on_time_calibration_outcome_after_holdout_forecast:{}:{}",
+                    key.model_id, key.stratum_id
+                ),
+            );
+        }
+    }
+
     if !errors.is_empty() {
         errors.sort();
         errors.dedup();
@@ -845,8 +879,8 @@ pub fn evaluate_service_prediction_calibration(
         ));
     }
     let mut on_time_results = Vec::new();
-    for (key, records) in on_time_groups {
-        if let Some(group) = build_on_time_group(&key, &records) {
+    for (key, (calibration, holdout, _, _)) in on_time_groups {
+        if let Some(group) = build_on_time_group(&key, calibration.len(), &holdout) {
             on_time_results.push(group);
         }
     }
