@@ -3,62 +3,86 @@
   "cohort_id": "ergo-transfer-blind-confirmatory-v0-example",
   "forecasts": [
     {
-      "sample_id": 1,
+      "claim_id": "claim-001",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "probability_transfer_ppm": 950000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 2,
+      "claim_id": "claim-002",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "probability_transfer_ppm": 750000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 3,
+      "claim_id": "claim-003",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "probability_transfer_ppm": 200000,
       "decision": "reject_transfer"
     },
     {
-      "sample_id": 4,
+      "claim_id": "claim-004",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "probability_transfer_ppm": 980000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 5,
+      "claim_id": "claim-005",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "probability_transfer_ppm": 200000,
       "decision": "reject_transfer"
     },
     {
-      "sample_id": 6,
+      "claim_id": "claim-006",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "probability_transfer_ppm": 550000,
       "decision": null
     },
     {
-      "sample_id": 7,
+      "claim_id": "claim-007",
+      "claim_type": "bisimulation",
+      "claim_scope_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "probability_transfer_ppm": 900000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 8,
+      "claim_id": "claim-008",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "probability_transfer_ppm": 850000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 9,
+      "claim_id": "claim-009",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "probability_transfer_ppm": 100000,
       "decision": "reject_transfer"
     },
     {
-      "sample_id": 10,
+      "claim_id": "claim-010",
+      "claim_type": "deterministic_dynamics",
+      "claim_scope_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "probability_transfer_ppm": 700000,
       "decision": "assert_transfer"
     },
     {
-      "sample_id": 11,
+      "claim_id": "claim-011",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "probability_transfer_ppm": 600000,
       "decision": "reject_transfer"
     },
     {
-      "sample_id": 12,
+      "claim_id": "claim-012",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "probability_transfer_ppm": 400000,
       "decision": null
     }
