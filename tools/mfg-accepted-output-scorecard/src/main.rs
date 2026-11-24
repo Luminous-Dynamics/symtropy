@@ -131,7 +131,6 @@ struct Report {
     claim_ceiling: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 struct SurvivalPoint {
     time_ms: u64,
@@ -391,7 +390,6 @@ where
         .try_fold(0_u64, |sum, score| checked_add(sum, get(score), context))
 }
 
-
 fn survival_summary(observations: &[SurvivalObservation]) -> Result<SurvivalSummary, String> {
     if observations.is_empty() {
         return Err(fail("survival_cohort_empty"));
@@ -418,9 +416,7 @@ fn survival_summary(observations: &[SurvivalObservation]) -> Result<SurvivalSumm
     let normalized: Vec<(u64, bool)> = observations
         .iter()
         .map(|observation| {
-            let duration_ms = observation
-                .observed_duration_ms
-                .min(analysis_horizon_ms);
+            let duration_ms = observation.observed_duration_ms.min(analysis_horizon_ms);
             let event_observed = observation.event_observed
                 && observation.observed_duration_ms <= analysis_horizon_ms;
             (duration_ms, event_observed)
@@ -526,8 +522,7 @@ where
             if event.is_some_and(|time| time > score.episode_followup_duration_ms) {
                 return Err(fail("survival_event_exceeds_episode_follow_up"));
             }
-            let observed_duration_ms =
-                event.unwrap_or(score.episode_followup_duration_ms);
+            let observed_duration_ms = event.unwrap_or(score.episode_followup_duration_ms);
             Ok(SurvivalObservation {
                 observed_duration_ms,
                 follow_up_horizon_ms: score.episode_followup_duration_ms,
@@ -555,14 +550,10 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 
     let mut families = Vec::with_capacity(family_groups.len());
     for (scenario_family_id, group) in family_groups {
-        let first_accepted_output_survival = summarize_survival_for_scores(
-            &group,
-            |score| score.time_to_first_accepted_output_ms,
-        )?;
-        let recovery_target_survival = summarize_survival_for_scores(
-            &group,
-            |score| score.time_to_recovery_target_ms,
-        )?;
+        let first_accepted_output_survival =
+            summarize_survival_for_scores(&group, |score| score.time_to_first_accepted_output_ms)?;
+        let recovery_target_survival =
+            summarize_survival_for_scores(&group, |score| score.time_to_recovery_target_ms)?;
         let cases_with_first = group
             .iter()
             .filter(|score| score.time_to_first_accepted_output_ms.is_some())
@@ -617,14 +608,10 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         });
     }
 
-    let first_accepted_output_survival = summarize_survival_for_scores(
-        &cases,
-        |score| score.time_to_first_accepted_output_ms,
-    )?;
-    let recovery_target_survival = summarize_survival_for_scores(
-        &cases,
-        |score| score.time_to_recovery_target_ms,
-    )?;
+    let first_accepted_output_survival =
+        summarize_survival_for_scores(&cases, |score| score.time_to_first_accepted_output_ms)?;
+    let recovery_target_survival =
+        summarize_survival_for_scores(&cases, |score| score.time_to_recovery_target_ms)?;
 
     Ok(Report {
         benchmark_id: corpus.benchmark_id.clone(),
@@ -864,11 +851,31 @@ mod tests {
     #[test]
     fn survival_curve_keeps_right_censored_episodes_in_the_risk_set() {
         let summary = survival_summary(&[
-            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 300, event_observed: true },
-            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
-            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: true },
-        ]).expect("valid survival cohort");
-        assert_eq!((summary.sample_count, summary.events_observed, summary.right_censored), (3, 2, 1));
+            SurvivalObservation {
+                observed_duration_ms: 100,
+                follow_up_horizon_ms: 300,
+                event_observed: true,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 300,
+                follow_up_horizon_ms: 300,
+                event_observed: false,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 300,
+                follow_up_horizon_ms: 300,
+                event_observed: true,
+            },
+        ])
+        .expect("valid survival cohort");
+        assert_eq!(
+            (
+                summary.sample_count,
+                summary.events_observed,
+                summary.right_censored
+            ),
+            (3, 2, 1)
+        );
         assert_eq!(summary.analysis_horizon_ms, 300);
         assert_eq!(summary.restricted_mean_time_to_event_ms, 233);
         assert_eq!(summary.curve.len(), 2);
@@ -883,22 +890,49 @@ mod tests {
     #[test]
     fn no_recovery_by_horizon_contributes_full_restricted_mean_time() {
         let summary = survival_summary(&[
-            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
-            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
-        ]).expect("fully censored cohort is valid");
+            SurvivalObservation {
+                observed_duration_ms: 300,
+                follow_up_horizon_ms: 300,
+                event_observed: false,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 300,
+                follow_up_horizon_ms: 300,
+                event_observed: false,
+            },
+        ])
+        .expect("fully censored cohort is valid");
         assert_eq!(summary.events_observed, 0);
         assert_eq!(summary.right_censored, 2);
         assert_eq!(summary.restricted_mean_time_to_event_ms, 300);
-        assert!(summary.curve.iter().all(|point| point.survival_probability_ppm == 1_000_000));
+        assert!(
+            summary
+                .curve
+                .iter()
+                .all(|point| point.survival_probability_ppm == 1_000_000)
+        );
     }
 
     #[test]
     fn events_precede_censoring_at_tied_timestamps() {
         let summary = survival_summary(&[
-            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 200, event_observed: true },
-            SurvivalObservation { observed_duration_ms: 200, follow_up_horizon_ms: 200, event_observed: false },
-            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 200, event_observed: false },
-        ]).expect("tied event and censoring cohort is valid");
+            SurvivalObservation {
+                observed_duration_ms: 100,
+                follow_up_horizon_ms: 200,
+                event_observed: true,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 200,
+                follow_up_horizon_ms: 200,
+                event_observed: false,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 100,
+                follow_up_horizon_ms: 200,
+                event_observed: false,
+            },
+        ])
+        .expect("tied event and censoring cohort is valid");
         assert_eq!(summary.curve[0].time_ms, 100);
         assert_eq!(summary.curve[0].at_risk, 3);
         assert_eq!(summary.curve[0].events, 1);
@@ -910,9 +944,18 @@ mod tests {
     #[test]
     fn longer_follow_up_is_administratively_censored_at_common_horizon() {
         let summary = survival_summary(&[
-            SurvivalObservation { observed_duration_ms: 50, follow_up_horizon_ms: 100, event_observed: true },
-            SurvivalObservation { observed_duration_ms: 250, follow_up_horizon_ms: 250, event_observed: true },
-        ]).expect("unequal follow-up cohort is valid");
+            SurvivalObservation {
+                observed_duration_ms: 50,
+                follow_up_horizon_ms: 100,
+                event_observed: true,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 250,
+                follow_up_horizon_ms: 250,
+                event_observed: true,
+            },
+        ])
+        .expect("unequal follow-up cohort is valid");
         assert_eq!(summary.analysis_horizon_ms, 100);
         assert_eq!(summary.events_observed, 1);
         assert_eq!(summary.right_censored, 1);
@@ -922,14 +965,25 @@ mod tests {
     #[test]
     fn survival_summary_is_invariant_to_observation_order() {
         let observations = vec![
-            SurvivalObservation { observed_duration_ms: 80, follow_up_horizon_ms: 300, event_observed: true },
-            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
-            SurvivalObservation { observed_duration_ms: 180, follow_up_horizon_ms: 300, event_observed: true },
+            SurvivalObservation {
+                observed_duration_ms: 80,
+                follow_up_horizon_ms: 300,
+                event_observed: true,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 300,
+                follow_up_horizon_ms: 300,
+                event_observed: false,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 180,
+                follow_up_horizon_ms: 300,
+                event_observed: true,
+            },
         ];
         let expected = survival_summary(&observations).unwrap();
         let mut permuted = observations;
         permuted.reverse();
         assert_eq!(survival_summary(&permuted).unwrap(), expected);
     }
-
 }
