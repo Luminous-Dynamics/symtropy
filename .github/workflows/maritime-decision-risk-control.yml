@@ -128,7 +128,7 @@ jobs:
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin clustered-dependence-risk-audit > /tmp/clustered-dependence-risk.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin clustered-dependence-risk-audit > /tmp/clustered-dependence-risk-replay.csv
           cmp /tmp/clustered-dependence-risk.csv /tmp/clustered-dependence-risk-replay.csv
-          test "$(wc -l < /tmp/clustered-dependence-risk.csv)" -eq 33
+          test "$(wc -l < /tmp/clustered-dependence-risk.csv)" -eq 65
           head -n 1 /tmp/clustered-dependence-risk.csv | awk -F, '{ if (NF != 22) exit 1 }'
           awk -F, 'NF != 22 { exit 1 }' /tmp/clustered-dependence-risk.csv
           grep -q "INVALID_IID_PSEUDOREPLICATION_NEGATIVE_CONTROL" /tmp/clustered-dependence-risk.csv
