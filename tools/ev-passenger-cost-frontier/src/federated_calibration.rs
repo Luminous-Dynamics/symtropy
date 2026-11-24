@@ -198,9 +198,18 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         ("measurement_boundary", key.measurement_boundary.as_str()),
         ("unit", key.unit.as_str()),
         ("stratum_id", key.stratum_id.as_str()),
-        ("configuration_cohort_digest", key.configuration_cohort_digest.as_str()),
-        ("stratum_taxonomy_digest", key.stratum_taxonomy_digest.as_str()),
-        ("calibration_policy_digest", key.calibration_policy_digest.as_str()),
+        (
+            "configuration_cohort_digest",
+            key.configuration_cohort_digest.as_str(),
+        ),
+        (
+            "stratum_taxonomy_digest",
+            key.stratum_taxonomy_digest.as_str(),
+        ),
+        (
+            "calibration_policy_digest",
+            key.calibration_policy_digest.as_str(),
+        ),
         ("score_definition_id", key.score_definition_id.as_str()),
     ] {
         if !non_empty(value) {
@@ -239,7 +248,9 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         ));
     }
     if input.release_ledger_snapshot.len() > MAX_SUMMARIES {
-        errors.push(format!("release_ledger_snapshot must contain at most {MAX_SUMMARIES} items"));
+        errors.push(format!(
+            "release_ledger_snapshot must contain at most {MAX_SUMMARIES} items"
+        ));
     }
     if input.summaries.is_empty() || input.summaries.len() > MAX_SUMMARIES {
         errors.push(format!("summaries must contain 1..={MAX_SUMMARIES} items"));
@@ -824,4 +835,3 @@ mod tests {
         assert_eq!(report.operational_authority_granted, false);
     }
 }
-
