@@ -1,5 +1,6 @@
 pub mod assurance_envelope;
 pub mod high_probability;
+pub mod independent_oracle_projection;
 pub mod lipschitz;
 pub mod oracle_adapter;
 pub mod repeated_sampling;
