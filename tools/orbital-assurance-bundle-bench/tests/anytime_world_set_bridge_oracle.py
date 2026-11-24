@@ -78,6 +78,9 @@ def valid_sha(value: Any) -> bool:
 def exact_keys(value: Any, expected: set[str]) -> bool:
     return isinstance(value, dict) and set(value) == expected
 
+def enum_is(value: Any, allowed: set[str]) -> bool:
+    return isinstance(value, str) and value in allowed
+
 
 def valid_int(value: Any, minimum: int = 0, maximum: int = MAX_SAFE_INTEGER) -> bool:
     # bool is an int subclass in Python; reject it explicitly for JSON integers.
@@ -122,7 +125,7 @@ def validate_receipt(receipt: Any) -> dict[str, str]:
         or receipt.get("evidence_class") != "synthetic"
         or receipt.get("claim_ceiling") != CLAIM_CEILING
         or receipt.get("authority_granted") is not False
-        or receipt.get("adapter_disposition") not in {"CONSUMABLE", "ABSTAIN"}
+        or not enum_is(receipt.get("adapter_disposition"), {"CONSUMABLE", "ABSTAIN"})
     ):
         return invalid("envelope identity, claim ceiling, disposition or authority field is invalid")
 
@@ -145,8 +148,8 @@ def validate_receipt(receipt: Any) -> dict[str, str]:
         not exact_keys(contract, CONTRACT_KEYS)
         or not valid_id(contract.get("process_id"))
         or not valid_int(contract.get("look_index"), 1)
-        or contract.get("stopping_state") not in {"ACTIVE", "STOPPED"}
-        or contract.get("guarantee_disposition") not in {"QUALIFIED", "UNQUALIFIED"}
+        or not enum_is(contract.get("stopping_state"), {"ACTIVE", "STOPPED"})
+        or not enum_is(contract.get("guarantee_disposition"), {"QUALIFIED", "UNQUALIFIED"})
         or type(contract.get("optional_stopping_covered")) is not bool
         or type(contract.get("predictable_selection")) is not bool
         or type(contract.get("adaptive_selection_covered")) is not bool
@@ -212,18 +215,18 @@ def validate_receipt(receipt: Any) -> dict[str, str]:
     qualification = receipt["qualification"]
     if (
         not exact_keys(qualification, QUALIFICATION_KEYS)
-        or qualification.get("source_state") not in {
+        or not enum_is(qualification.get("source_state"), {
             "CURRENT", "STALE", "REVOKED", "CONTRADICTED", "INDETERMINATE"
-        }
-        or qualification.get("model_family_state") not in {
+        })
+        or not enum_is(qualification.get("model_family_state"), {
             "ADEQUATE", "INADEQUATE", "INDETERMINATE"
-        }
-        or qualification.get("channel_dependence_state") not in {
+        })
+        or not enum_is(qualification.get("channel_dependence_state"), {
             "ADEQUATE", "UNRESOLVED", "INADEQUATE"
-        }
-        or qualification.get("action_realization_state") not in {
+        })
+        or not enum_is(qualification.get("action_realization_state"), {
             "VERIFIED", "NOT_REQUIRED_BY_PROFILE", "UNKNOWN", "CONTRADICTED"
-        }
+        })
     ):
         return invalid("qualification object has unknown fields or malformed state enums")
 
@@ -284,6 +287,15 @@ def build_cases(fixture: dict[str, Any]) -> list[tuple[str, Any, str, str]]:
         "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"))
     cases.append(changed("malformed model qualification enum",
         lambda r: r["qualification"].update(model_family_state="PROBABLY_ADEQUATE"),
+        "INVALID_INPUT", "qualification object has unknown fields or malformed state enums"))
+    cases.append(changed("non-string adapter disposition",
+        lambda r: r.update(adapter_disposition=[]),
+        "INVALID_INPUT", "envelope identity, claim ceiling, disposition or authority field is invalid"))
+    cases.append(changed("non-string guarantee disposition",
+        lambda r: r["contract"].update(guarantee_disposition=[]),
+        "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"))
+    cases.append(changed("non-string qualification state",
+        lambda r: r["qualification"].update(source_state=[]),
         "INVALID_INPUT", "qualification object has unknown fields or malformed state enums"))
     cases.append(("qualified adaptive source", copy.deepcopy(fixture),
         "CONSUMABLE", "SOURCE_BOUND_WORLD_SET_READY_FOR_DOWNSTREAM_GATE"))
