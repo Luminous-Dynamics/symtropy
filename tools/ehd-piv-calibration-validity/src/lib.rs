@@ -252,7 +252,9 @@ pub enum Disposition {
     IndependentDiagnosticRequired {
         reason: Reason,
     },
-    AbstainOutOfEnvelope { feature: String },
+    AbstainOutOfEnvelope {
+        feature: String,
+    },
     AbstainInsufficientEvidence {
         reason: Reason,
     },
