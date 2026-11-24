@@ -49,18 +49,18 @@ jobs:
           cmp /tmp/decision-risk.csv /tmp/decision-risk-replay.csv
           test "$(wc -l < /tmp/decision-risk.csv)" -eq 3
           head -n 1 /tmp/decision-risk.csv | awk -F, '{ if (NF != 20) exit 1 }'
-          grep -q '^MONOTONE_HARD_FAILURE,WHOLE_SCHEDULE,REQUIRE_MONOTONE,' /tmp/decision-risk.csv
-          grep -q '^NON_MONOTONE_WITH_ENVELOPE,WHOLE_SCHEDULE,MONOTONE_ENVELOPE,' /tmp/decision-risk.csv
-          grep -q 'MARGINAL_EXPECTED_BOUNDED_LOSS,SYNTHETIC_ONLY /tmp/decision-risk.csv
+          grep -q "^MONOTONE_HARD_FAILURE,WHOLE_SCHEDULE,REQUIRE_MONOTONE," /tmp/decision-risk.csv
+          grep -q "^NON_MONOTONE_WITH_ENVELOPE,WHOLE_SCHEDULE,MONOTONE_ENVELOPE," /tmp/decision-risk.csv
+          grep -q "MARGINAL_EXPECTED_BOUNDED_LOSS,SYNTHETIC_ONLY$" /tmp/decision-risk.csv
 
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin non-monotone-risk-audit > /tmp/non-monotone-risk.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin non-monotone-risk-audit > /tmp/non-monotone-risk-replay.csv
           cmp /tmp/non-monotone-risk.csv /tmp/non-monotone-risk-replay.csv
           test "$(wc -l < /tmp/non-monotone-risk.csv)" -eq 4
           head -n 1 /tmp/non-monotone-risk.csv | awk -F, '{ if (NF != 17) exit 1 }'
-          grep -q '^N1200_ALPHA200,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID,' /tmp/non-monotone-risk.csv
-          grep -q '^N1200_ALPHA100,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID,' /tmp/non-monotone-risk.csv
-          grep -q '^N50000_ALPHA100,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID,' /tmp/non-monotone-risk.csv
-          grep -q ',NO_POSITIVE_ADJUSTED_TARGET /tmp/non-monotone-risk.csv
-          grep -q ',SYNTHETIC_ONLY /tmp/non-monotone-risk.csv
+          grep -q "^N1200_ALPHA200,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID," /tmp/non-monotone-risk.csv
+          grep -q "^N1200_ALPHA100,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID," /tmp/non-monotone-risk.csv
+          grep -q "^N50000_ALPHA100,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID," /tmp/non-monotone-risk.csv
+          grep -q "NO_POSITIVE_ADJUSTED_TARGET$" /tmp/non-monotone-risk.csv
+          grep -q "SYNTHETIC_ONLY$" /tmp/non-monotone-risk.csv
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
