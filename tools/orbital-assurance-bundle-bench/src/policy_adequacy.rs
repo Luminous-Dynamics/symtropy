@@ -86,6 +86,12 @@ pub struct SourceReceipt {
     pub source_commit: String,
     pub source_case_id: String,
     pub source_scope_id: String,
+    pub source_query_universe_receipt_id: String,
+    pub source_query_universe_scope_id: String,
+    pub source_expected_query_ids_sha256: String,
+    pub source_queries_sha256: String,
+    pub source_incumbent_policy_id: String,
+    pub source_best_no_query_worst_case_loss: Option<Rational>,
     pub source_scope_sha256: String,
     pub source_decision_cutoff_id: String,
     pub source_world_set_receipt_id: String,
@@ -155,6 +161,10 @@ pub struct Case {
     pub case_id: String,
     pub source_policy_case_id: String,
     pub decision_scope_id: String,
+    pub query_universe_receipt_id: String,
+    pub query_universe_scope_id: String,
+    pub expected_query_ids_sha256: String,
+    pub queries_sha256: String,
     pub scope_sha256: String,
     pub decision_cutoff_id: String,
     pub world_set_receipt_id: String,
@@ -170,6 +180,7 @@ pub struct Case {
     pub incumbent_feasibility_state: String,
     pub loss_unit: String,
     pub incumbent_policy_id: String,
+    pub best_no_query_worst_case_loss: Option<Rational>,
     pub materiality_margin: Rational,
     /// Policy transition cost remains a separate vector; it is not added to loss.
     pub policy_switch_cost: ActionCost,
@@ -355,6 +366,18 @@ fn validate_source(case: &Case) -> Result<(), String> {
         || source.source_case_id != case.source_policy_case_id
         || !valid_id(&source.source_scope_id)
         || source.source_scope_id != case.decision_scope_id
+        || !valid_id(&source.source_query_universe_receipt_id)
+        || source.source_query_universe_receipt_id != case.query_universe_receipt_id
+        || !valid_id(&source.source_query_universe_scope_id)
+        || source.source_query_universe_scope_id != case.query_universe_scope_id
+        || source.source_query_universe_scope_id != case.decision_scope_id
+        || !valid_sha256(&source.source_expected_query_ids_sha256)
+        || source.source_expected_query_ids_sha256 != case.expected_query_ids_sha256
+        || !valid_sha256(&source.source_queries_sha256)
+        || source.source_queries_sha256 != case.queries_sha256
+        || !valid_id(&source.source_incumbent_policy_id)
+        || source.source_incumbent_policy_id != case.incumbent_policy_id
+        || source.source_best_no_query_worst_case_loss != case.best_no_query_worst_case_loss
         || !valid_sha256(&source.source_scope_sha256)
         || source.source_scope_sha256 != case.scope_sha256
         || !valid_id(&source.source_decision_cutoff_id)
@@ -491,6 +514,36 @@ fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
         b = remainder;
     }
     a.max(1)
+}
+
+fn source_signed_difference(
+    baseline: &Rational,
+    candidate: &Rational,
+) -> Result<SourceSignedDifference, String> {
+    let left = u128::from(baseline.numerator) * u128::from(candidate.denominator);
+    let right = u128::from(candidate.numerator) * u128::from(baseline.denominator);
+    let denominator =
+        u128::from(baseline.denominator) * u128::from(candidate.denominator);
+    let (direction, numerator) = match left.cmp(&right) {
+        Ordering::Greater => ("positive_improvement", left - right),
+        Ordering::Less => ("negative_improvement", right - left),
+        Ordering::Equal => ("no_change", 0),
+    };
+    let gcd = gcd_u128(numerator, denominator);
+    let reduced_numerator = numerator / gcd;
+    let reduced_denominator = denominator / gcd;
+    if reduced_numerator > u128::from(MAX_RATIONAL_COMPONENT)
+        || reduced_denominator > u128::from(MAX_RATIONAL_COMPONENT)
+    {
+        return Err("best-no-query loss reduction exceeds exact rational bounds".to_owned());
+    }
+    Ok(SourceSignedDifference {
+        direction: direction.to_owned(),
+        magnitude: Rational {
+            numerator: reduced_numerator as u64,
+            denominator: reduced_denominator as u64,
+        },
+    })
 }
 
 fn same_id_set(left: &[String], right: &[String]) -> bool {
@@ -875,6 +928,29 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .any(|policy_id| !policy_metrics.contains_key(policy_id))
     {
         return invalid(case, "Pareto frontier references an unknown policy");
+    }
+
+    let best_no_query = policy_metrics
+        .values()
+        .filter(|(policy, _)| policy.query_id.is_none())
+        .map(|(_, loss)| loss)
+        .min_by(|left, right| left.compare_exact(right))
+        .cloned();
+    if best_no_query != case.best_no_query_worst_case_loss {
+        return invalid(case, "best-no-query worst-case loss disagrees with upstream policy metrics");
+    }
+    for (policy, loss) in policy_metrics.values() {
+        let expected = match (&policy.query_id, &best_no_query) {
+            (None, _) => None,
+            (Some(_), Some(baseline)) => match source_signed_difference(baseline, loss) {
+                Ok(value) => Some(value),
+                Err(_) => return invalid(case, "best-no-query loss reduction exceeds exact rational bounds"),
+            },
+            (Some(_), None) => None,
+        };
+        if policy.worst_loss_reduction_vs_best_no_query != expected {
+            return invalid(case, "policy worst-loss reduction diagnostic disagrees with best no-query baseline");
+        }
     }
 
     if case.incumbent_feasibility_state == "INDETERMINATE" {
