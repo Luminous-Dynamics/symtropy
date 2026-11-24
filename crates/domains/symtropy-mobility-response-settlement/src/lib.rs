@@ -818,6 +818,15 @@ pub fn evaluate_mobility_response_settlement(
         sum_interval_energy(pcc_intervals, "/lower_bound_reduction_energy_wh")? / 1_000.0;
     let computed_pcc_net_point_kwh =
         sum_interval_energy(pcc_intervals, "/measured_reduction_energy_wh")? / 1_000.0;
+    let pcc_gross_reduction_kwh = number(pcc, "/gross_reduction_energy_wh")? / 1_000.0;
+    let pcc_gross_rebound_kwh = number(pcc, "/gross_rebound_energy_wh")? / 1_000.0;
+    if (pcc_gross_reduction_kwh - pcc_gross_rebound_kwh - report_pcc_net_point_kwh).abs()
+        > input.maximum_net_energy_disagreement_kwh
+    {
+        return Err(BridgeError::EnergyMismatch(
+            "PCC gross reduction minus rebound does not equal reported signed net energy".to_owned(),
+        ));
+    }
     if (computed_pcc_net_lower_kwh - report_pcc_net_lower_kwh).abs()
         > input.maximum_net_energy_disagreement_kwh
         || (computed_pcc_net_point_kwh - report_pcc_net_point_kwh).abs()
@@ -834,12 +843,50 @@ pub fn evaluate_mobility_response_settlement(
     let baseline_net_point = number(baseline, "/net_reduction_energy_kwh")?;
     let baseline_net_lower = number(baseline, "/conservative_net_reduction_energy_kwh")?;
     let net_delta = pcc_net_point - baseline_net_point;
+    let baseline_gross_reduction_kwh = number(baseline, "/gross_reduction_energy_kwh")?;
+    let baseline_gross_rebound_kwh = number(baseline, "/gross_rebound_energy_kwh")?;
+    if (baseline_gross_reduction_kwh - baseline_gross_rebound_kwh - baseline_net_point).abs()
+        > input.maximum_net_energy_disagreement_kwh
+    {
+        return Err(BridgeError::EnergyMismatch(
+            "counterfactual gross reduction minus rebound does not equal signed net energy"
+                .to_owned(),
+        ));
+    }
+    let baseline_interval_lower_kwh = sum_interval_energy(
+        array(baseline, "/intervals")?,
+        "/conservative_reduction_energy_kwh",
+    )?;
+    if (baseline_interval_lower_kwh - baseline_net_lower).abs()
+        > input.maximum_net_energy_disagreement_kwh
+    {
+        return Err(BridgeError::EnergyMismatch(
+            "counterfactual conservative net energy does not equal summed interval lower bounds"
+                .to_owned(),
+        ));
+    }
     let network_max_kwh = number(
         network,
         "/maximum_dc_network_deliverable_response_energy_mwh",
     )? * 1_000.0;
+    if network_max_kwh < 0.0 {
+        return Err(BridgeError::InvalidField(
+            "network maximum deliverable response energy must be non-negative".to_owned(),
+        ));
+    }
 
     let requested_kwh = number(grid, "/requested_reduction_energy_kwh")?;
+    let target_reduction_kw = number(grid, "/target_reduction_kw")?;
+    let service_duration_ns = input.dispatch_end_ns - input.instruction_issued_at_ns;
+    let expected_requested_kwh =
+        target_reduction_kw * service_duration_ns as f64 / 3_600_000_000_000.0;
+    if (requested_kwh - expected_requested_kwh).abs()
+        > input.maximum_dispatch_energy_disagreement_kwh
+    {
+        return Err(BridgeError::EnergyMismatch(
+            "dispatch target power × service duration does not equal requested energy".to_owned(),
+        ));
+    }
     let network_requested_kwh = number(network, "/site_requested_response_energy_mwh")? * 1_000.0;
     if (requested_kwh - network_requested_kwh).abs()
         > input.maximum_dispatch_energy_disagreement_kwh
@@ -886,21 +933,21 @@ pub fn evaluate_mobility_response_settlement(
         && baseline_qualified
         && baseline_event_qualified
         && required_n_minus_one_passed;
-    let lower_bound = if all_physical_evidence_passed {
-        Some(report_pcc_net_lower_kwh.min(baseline_net_lower).min(network_max_kwh))
+    let uncapped_conservative_lower = report_pcc_net_lower_kwh.min(baseline_net_lower);
+    let network_cap_conflict = uncapped_conservative_lower
+        > network_max_kwh + input.maximum_net_energy_disagreement_kwh;
+    let lower_bound = if all_physical_evidence_passed && !network_cap_conflict {
+        Some(uncapped_conservative_lower)
     } else {
         None
     };
 
     let mut status = ReconciliationStatus::NotTechnicallyQualified;
     let mut reconciled = false;
-    if let Some(value) = lower_bound {
-        if value < -input.maximum_net_energy_disagreement_kwh {
-            status = ReconciliationStatus::TechnicallyReconciled;
-            reconciled = true;
-        } else if value > network_max_kwh + input.maximum_net_energy_disagreement_kwh {
-            status = ReconciliationStatus::RejectedMismatch;
-        } else if !full_request_dc_network_deliverable {
+    if network_cap_conflict {
+        status = ReconciliationStatus::RejectedMismatch;
+    } else if let Some(_signed_net_response) = lower_bound {
+        if !full_request_dc_network_deliverable {
             status = ReconciliationStatus::NetworkLimited;
             reconciled = true;
         } else {
@@ -1414,10 +1461,6 @@ mod tests {
     fn energy_disagreement_cannot_be_silently_clamped() {
         let mut bad = input();
         bad.grid_response.report["delivered_reduction_energy_kwh"] = json!(-1.0);
-        assert!(matches!(
-            evaluate_mobility_response_settlement(&bad),
-            Ok(_)
-        ));
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
         assert_eq!(report.status, ReconciliationStatus::RejectedMismatch);
         assert!(!report.technical_reconciliation_passed);
@@ -1430,7 +1473,7 @@ mod tests {
         limited.mobility_network.report["disposition"] = json!("screened_partial_request");
         limited.mobility_network.report["full_requested_trajectory_dc_deliverable"] = json!(false);
         limited.mobility_network.report["dc_network_report"]["network_deliverable"] = json!(false);
-        limited.mobility_network.report["maximum_dc_network_deliverable_response_energy_mwh"] = json!(0.000003);
+        limited.mobility_network.report["maximum_dc_network_deliverable_response_energy_mwh"] = json!(0.0000053);
         let report = evaluate_mobility_response_settlement(&limited).unwrap();
         assert_eq!(report.status, ReconciliationStatus::NetworkLimited);
         assert!(report.technical_reconciliation_passed);
@@ -1479,7 +1522,7 @@ mod tests {
     }
 
     #[test]
-    fn input_order_permutations_preserve_digest_when_reports_are_identical() {
+    fn temporal_interval_reordering_is_rejected_instead_of_normalized() {
         let first = evaluate_mobility_response_settlement(&input()).unwrap();
         let mut permuted = input();
         let reversed = permuted.pcc_metrology.report["intervals"]
