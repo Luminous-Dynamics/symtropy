@@ -87,7 +87,27 @@ Create a factorial campaign with source/target pairs and evaluator-hidden labels
 
 Include a degree-matched graph negative and the existing isomorphic-observation/different-mechanism Atlas control. The same visible graph must not cause TCC/KMM calibration to be admitted without independent evidence that the relevant score/outcome semantics transport.
 
-### Baseline tournament
+### Adaptive observations and delayed calibration feedback
+
+The current `fit_split_conformal_binary_transfer` is an **offline split** baseline. It does not cover calibration under an adaptive measurement policy, optional stopping, non-mature labels, or sequential updates.
+
+Compose rather than duplicate:
+- Symtropy [#6887](https://github.com/Luminous-Dynamics/symtropy/issues/6887) owns anytime-valid surviving-world / decision sets under adaptive observations, e-process assumptions and optional-stopping controls.
+- Symthaea [#13280](https://github.com/Luminous-Dynamics/symthaea/issues/13280) owns online conformal under delayed metrology feedback and process drift, including label maturation, revision/supersession, clock alignment, regime changes and update policy.
+- Symtropy [#6943](https://github.com/Luminous-Dynamics/symtropy/issues/6943) owns trajectory dependence and defensible independence-group contracts.
+- Symtropy [#5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285) owns conservative block-maximum conformal and transfer-failure controls.
+
+Rules for ErgoStream:
+1. Do not treat adaptively selected probes as exchangeable merely because sample IDs differ.
+2. Do not update calibration from a target result until its outcome is owner-validated and mature.
+3. Do not double-count a revised/superseded measurement.
+4. Preserve the policy/action receipt and exact public history used to choose each probe.
+5. When no defensible block-independence or sequential validity contract applies, mark the coverage guarantee unavailable and abstain rather than inventing an effective sample size.
+6. Never label the static v0 split-conformal result as anytime-valid or online.
+
+A future adaptive calibration track should compare fixed-window split conformal, campaign/block maximum, EnbPI/AcMCP where their assumptions fit, drift-triggered online calibration, and #6887's time-uniform e-process decision sets. Report sustained local undercoverage and longest miss runs, not only signed long-run average coverage.
+
+## Baseline tournament
 
 Run each method on identical source/target pairs, matched data budgets and the same frozen predictor:
 - source-only split conformal;
