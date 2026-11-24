@@ -658,6 +658,8 @@ jobs:
             and ([.metric_groups[] | select(.stratum_id == "hot_shift") | .holdout_coverage_after_permille] | all(.[]; . == 0))
             and ([.metric_groups[] | select(.stratum_id == "hot_shift") | .status] | all(.[]; . == "undercoverage_alarm"))
             and ([.on_time_groups[] | select(.stratum_id == "hot_shift") | .holdout_observed_on_time_rate_permille] == [600])
+            and ([.on_time_groups[] | select(.stratum_id == "nominal") | .holdout_brier_score_millionths] == [10000])
+            and ([.on_time_groups[] | select(.stratum_id == "hot_shift") | .holdout_brier_score_millionths] == [330000])
           ' service-prediction-calibration-report.json
           cat service-prediction-calibration-report.json
           sha256sum \
