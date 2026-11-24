@@ -1041,8 +1041,6 @@ impl Journal {
 
     /// Persist a reset intent before calling ResetSimulation. Do not call the
     /// simulator unless this method returns Ok.
-    /// Persist a reset intent before calling ResetSimulation. Do not call the
-    /// simulator unless this method returns Ok.
     pub fn append_reset_intent(
         &mut self,
         record: ResetIntentRecord,
@@ -1433,8 +1431,23 @@ mod tests {
                 ledger_artifact_sha256: Some(digest('9')),
             })
                 .unwrap();
+            let recovery = journal.recovery_projection();
+            assert_eq!(
+                recovery.dispatches[0].disposition,
+                DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence
+            );
+            assert_eq!(
+                recovery.dispatch_execution_evidence_pending,
+                vec!["rrvr/v0.1/test-key-1"]
+            );
+            assert!(!recovery.mutation_permitted);
             assert_eq!(journal.summary().entry_count, 6);
         }
+        let projection = recovery_projection_file(&path).unwrap();
+        assert_eq!(
+            projection.dispatches[0].disposition,
+            DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence
+        );
         let summary = verify_file(&path).unwrap();
         assert_eq!(summary.entry_count, 6);
         assert_eq!(summary.reset_verified_count, 1);
@@ -1605,6 +1618,12 @@ mod tests {
                 })
                 .unwrap();
             assert_eq!(reopened.summary().dispatch_no_dispatch_proven_count, 1);
+            let projection = reopened.recovery_projection();
+            assert_eq!(
+                projection.dispatches[0].disposition,
+                DispatchRecoveryDisposition::NoDispatchProvenTerminal
+            );
+            assert!(projection.dispatch_ledger_reconciliation_required.is_empty());
             assert_eq!(
                 reopened.append_dispatch_outcome(DispatchOutcomeRecord {
                     idempotency_key: "rrvr/v0.1/test-key-1".into(),
@@ -1621,6 +1640,13 @@ mod tests {
             verify_file(&path).unwrap().dispatch_no_dispatch_proven_count,
             1
         );
+        let projection = recovery_projection_file(&path).unwrap();
+        assert_eq!(
+            projection.dispatches[0].disposition,
+            DispatchRecoveryDisposition::NoDispatchProvenTerminal
+        );
+        assert!(projection.dispatch_ledger_reconciliation_required.is_empty());
+        assert!(!projection.mutation_permitted);
         cleanup(&path);
     }
 
