@@ -477,7 +477,7 @@ pub fn render_csv() -> String {
     };
     let _ = writeln!(
         output,
-        "{},1900000450,true,{available},{unavailable},SYNTHETIC_ONLY",
+        "{},1900000450,true,DECLARED_IN_ERROR,{available},{unavailable},SYNTHETIC_ONLY",
         ReceiptCase::DeclaredCorrectionPending.label()
     );
 
@@ -500,7 +500,7 @@ pub fn render_csv() -> String {
     };
     let _ = writeln!(
         output,
-        "{},1900000600,true,{available},{unavailable},SYNTHETIC_ONLY",
+        "{},1900000600,true,DECLARED_IN_ERROR,{available},{unavailable},SYNTHETIC_ONLY",
         ReceiptCase::CorrectiveEventAvailable.label()
     );
 
@@ -660,7 +660,7 @@ mod tests {
         ledger.append_event(original_event()).expect("original");
         assert_eq!(
             ledger.append_event(original_event()),
-            Err(EpcisRecordValidationError::EmptyIdentity)
+            Err(EpcisRecordValidationError::DuplicateEventId)
         );
     }
 
