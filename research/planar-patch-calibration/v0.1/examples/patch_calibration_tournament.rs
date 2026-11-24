@@ -54,9 +54,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.observation_count,
         report.unique_trial_group_count,
         report.status,
-        scales.map(|v| format!("{:.9}", v[0])).unwrap_or_else(|| "NA".to_owned()),
-        scales.map(|v| format!("{:.9}", v[1])).unwrap_or_else(|| "NA".to_owned()),
-        scales.map(|v| format!("{:.9}", v[2])).unwrap_or_else(|| "NA".to_owned()),
+        scales
+            .map(|v| format!("{:.9}", v[0]))
+            .unwrap_or_else(|| "NA".to_owned()),
+        scales
+            .map(|v| format!("{:.9}", v[1]))
+            .unwrap_or_else(|| "NA".to_owned()),
+        scales
+            .map(|v| format!("{:.9}", v[2]))
+            .unwrap_or_else(|| "NA".to_owned()),
         report
             .maximum_absolute_boundary_residual
             .map(|value| format!("{value:.9}"))
