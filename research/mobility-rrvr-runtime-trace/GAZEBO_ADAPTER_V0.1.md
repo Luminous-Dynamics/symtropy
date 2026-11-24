@@ -181,3 +181,14 @@ The composed dispatch function now refuses a session created only by capability 
 The dispatch path checks that the public session fields still equal the private marker, re-queries the live simulator capability profile and requires exact equality with the profile captured at reset. A preflight-only session, a caller-mutated epoch/profile/clock, a live capability drift, or a repeated reset attempt is rejected before injector dispatch. The preflight and reset functions also verify the compiled plan before issuing simulator operations, so a tampered plan cannot cause a reset.
 
 This marker is an in-process API invariant, not a durable reset receipt. It cannot establish that a concrete transport's reset record survived coordinator restart; the actual live adapter must persist reset receipts in the append-only ledger specified by #7148. A fresh coordinator after restart must not reconstruct a verified session merely from a remembered epoch string; it must reconcile the durable reset/evidence record and re-read live simulator state before resuming.
+
+
+### Ambiguous reset outcomes are non-retryable
+
+Reset lifecycle is now explicit: NotAttempted -> DispatchStarted -> Verified, with OutcomeUnresolved entered whenever the reset call or its immediate state observation is ambiguous or the returned state fails the reset contract. Once ResetSimulation might have been sent, reset_and_verify refuses a second reset request. It returns ResetOutcomeUnknown on a lost/ambiguous response and ResetOutcomeUnresolved on any subsequent attempt to reset without reconciliation.
+
+The read-only reconcile_reset path never calls ResetSimulation. It re-reads live capabilities and world state, then promotes the session to Verified only if the observed world proves a new epoch, the campaign-pinned initial state digest, paused state, step zero and matching clock. Otherwise the session remains unresolved. This is deliberately conservative: a timeout is not proof that reset did not happen.
+
+The regression test simulates the difficult cut: the mock applies the reset, then returns a transport error as though the response were lost. A second reset request is blocked; dispatch is also blocked while unresolved; read-only reconciliation observes the exact committed initial state and marks the session verified without a second reset.
+
+The state machine is still in-memory in this contract-only layer. A coordinator crash can erase DispatchStarted/OutcomeUnresolved; the concrete adapter must therefore persist reset intent before the request and reconcile from the #7148 append-only journal after restart.
