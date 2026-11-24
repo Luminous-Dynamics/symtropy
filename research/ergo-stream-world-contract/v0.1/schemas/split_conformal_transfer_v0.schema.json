@@ -17,18 +17,13 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "evaluation_stratum_id",
+        "identity",
         "alpha_ppm",
         "calibration_count",
         "quantile_rank",
         "quantile_nonconformity_ppm"
       ],
       "properties": {
-        "evaluation_stratum_id": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 65535
-        },
         "alpha_ppm": {
           "type": "integer",
           "minimum": 1,
@@ -46,6 +41,9 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000000
+        },
+        "identity": {
+          "$ref": "#/$defs/calibration_identity"
         }
       }
     },
@@ -58,7 +56,7 @@
         "required": [
           "sample_id",
           "evaluation_stratum_id",
-          "exchangeability_admitted",
+          "calibration_scope_admitted",
           "include_transfer",
           "include_non_transfer",
           "decision"
@@ -87,9 +85,87 @@
             "minimum": 0,
             "maximum": 65535
           },
-          "exchangeability_admitted": {
+          "calibration_scope_admitted": {
             "type": "boolean"
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "calibration_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "evaluation_stratum_id",
+        "independent_unit_kind",
+        "claim_type",
+        "claim_scope_sha256",
+        "predictor_sha256",
+        "preprocessing_sha256",
+        "score_function_sha256",
+        "calibration_cohort_sha256",
+        "sample_ids_sha256",
+        "split_manifest_sha256",
+        "evidence_prefix_sha256"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_stratum_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "independent_unit_kind": {
+          "enum": [
+            "world_seed",
+            "episode",
+            "campaign",
+            "site",
+            "asset",
+            "other"
+          ]
+        },
+        "claim_type": {
+          "enum": [
+            "structural_correspondence",
+            "deterministic_dynamics",
+            "simulation",
+            "bisimulation",
+            "mechanism_transfer"
+          ]
+        },
+        "claim_scope_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "predictor_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "preprocessing_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "score_function_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_cohort_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "sample_ids_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "split_manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
         }
       }
     }
