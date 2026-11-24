@@ -1,0 +1,70 @@
+name: Mobility Response Settlement Bridge
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-mobility-response-settlement/**"
+      - "docs/research/MOBILITY_RESPONSE_SETTLEMENT_BRIDGE_BENCHMARK_V0_1.md"
+      - ".github/workflows/mobility-response-settlement.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobility-response-settlement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Parse strict schema and fixture as JSON
+        run: |
+          jq empty crates/domains/symtropy-mobility-response-settlement/schemas/mobility_response_settlement_v0_1.schema.json
+          jq empty crates/domains/symtropy-mobility-response-settlement/fixtures/mobility_response_settlement_v0_1.json
+      - name: Format check
+        run: cargo fmt --package symtropy-mobility-response-settlement -- --check
+      - name: Rust tests
+        run: cargo test -p symtropy-mobility-response-settlement --locked
+      - name: Clippy
+        run: cargo clippy -p symtropy-mobility-response-settlement --all-targets --locked -- -D warnings
+      - name: Emit deterministic reference report
+        run: |
+          cargo run --quiet -p symtropy-mobility-response-settlement --locked --bin mobility_response_settlement_screen -- \
+            crates/domains/symtropy-mobility-response-settlement/fixtures/mobility_response_settlement_v0_1.json \
+            > mobility-response-settlement-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-RESPONSE-SETTLEMENT-BRIDGE-001"
+            and .status == "technically_reconciled"
+            and .technical_reconciliation_passed == true
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.source_artifacts | length) == 4
+            and (.requested_response_energy_kwh - 0.005555555555555556 | fabs < 0.000000000001)
+            and (.dispatch_tracking_signed_delivered_energy_kwh - 0.005555555555555556 | fabs < 0.000000000001)
+            and (.pcc_point_net_reduction_energy_kwh - 0.005416666666666667 | fabs < 0.000000000001)
+            and (.counterfactual_net_reduction_energy_kwh - 0.005305555555555556 | fabs < 0.000000000001)
+            and (.conservative_net_response_lower_bound_kwh - 0.005194444444444444 | fabs < 0.000000000001)
+            and .conservative_lower_bound_is_joint_probability == false
+            and .source_artifact_signatures_verified == false
+            and .settlement_authority_granted == false
+            and .payment_authorized == false
+            and .market_eligibility_granted == false
+            and .dispatch_authority_granted == false
+            and .interconnection_approval_granted == false
+            and .field_qualification_granted == false
+          ' mobility-response-settlement-report.json
+          cat mobility-response-settlement-report.json
+      - name: Upload settlement bridge evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobility-response-settlement-evidence
+          path: |
+            mobility-response-settlement-report.json
+            crates/domains/symtropy-mobility-response-settlement/fixtures/mobility_response_settlement_v0_1.json
+            crates/domains/symtropy-mobility-response-settlement/schemas/mobility_response_settlement_v0_1.schema.json
+            crates/domains/symtropy-mobility-response-settlement/README.md
+            docs/research/MOBILITY_RESPONSE_SETTLEMENT_BRIDGE_BENCHMARK_V0_1.md
+          if-no-files-found: error
