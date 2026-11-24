@@ -706,7 +706,7 @@ mod tests {
         OnlineServiceRiskInput {
             schema_version: "0.1.0".to_owned(),
             benchmark_id: "ONLINE-SERVICE-RISK-CERTIFICATE-001".to_owned(),
-            audit_cutoff_unix_ms: 10_000,
+            audit_cutoff_unix_ms: 200_000,
             alpha_permille: 50,
             maximum_miscoverage_permille: 100,
             minimum_prior_observations: 2,
@@ -853,6 +853,59 @@ mod tests {
         assert!(group.historical_risk_upper_bound_exceeds_budget);
         assert_eq!(report.groups_with_shift_alarm, 1);
         assert_eq!(report.groups_with_risk_above_budget, 1);
+    }
+
+    #[test]
+    fn stationary_one_in_ten_miss_pattern_does_not_trip_cusum() {
+        let observations = (0..80)
+            .map(|index| {
+                let issued = 1_000 + index * 1_000;
+                observation(
+                    &format!("stable-{index:03}"),
+                    issued,
+                    issued + 100,
+                    issued + 400,
+                    issued + 500,
+                    index % 10 == 0,
+                    "cfg-1",
+                )
+            })
+            .collect();
+        let report = evaluate_online_service_risk(&input(observations)).unwrap();
+        assert!(!report.groups[0].drift_alarm_latched);
+        assert_eq!(report.groups_with_shift_alarm, 0);
+        assert_eq!(report.groups[0].observation_count_at_audit_cutoff, 80);
+    }
+
+    #[test]
+    fn four_in_ten_step_shift_trips_cusum_within_two_revealed_misses() {
+        let observations = (0..80)
+            .map(|index| {
+                let issued = 1_000 + index * 1_000;
+                let miss = if index < 30 {
+                    index % 10 == 0
+                } else {
+                    index % 10 < 4
+                };
+                observation(
+                    &format!("shift-{index:03}"),
+                    issued,
+                    issued + 100,
+                    issued + 400,
+                    issued + 500,
+                    miss,
+                    "cfg-1",
+                )
+            })
+            .collect();
+        let report = evaluate_online_service_risk(&input(observations)).unwrap();
+        let first_alarm = report.groups[0]
+            .assessments
+            .iter()
+            .find(|assessment| assessment.drift_alarm_latched_before_forecast)
+            .expect("step shift must trip CUSUM");
+        assert!(first_alarm.prior_observation_count <= 32);
+        assert!(report.groups[0].drift_alarm_latched);
     }
 
     #[test]
