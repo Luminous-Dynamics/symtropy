@@ -157,6 +157,7 @@ All policies must receive the same candidate actions, observations, model set, r
 15. A three-way accept-as-measured / correct-with-qualified-model / reject-or-abstain disposition policy.
 16. Per-step split-conformal calibration (negative-control baseline), whole-episode maximum-score calibration, alpha-spending risk control, and trajectory-adaptive calibration.
 17. Static mission-path CVaR, two-level ICVaR, and immediate belief-cost CVaR as distinct risk formulations, with their different semantics reported rather than pooled.
+18. ICVaR sparse sampling, ICVaR-POMCPOW / POMCPOW, and ICVaR-PFT-DPW / PFT-DPW as sampled belief-tree scale-up comparators.
 
 Report both each method's result under every objective and the policy selected by each objective. Do not score a CVaR policy only with CVaR or a minimax policy only with expected loss.
 
@@ -247,6 +248,26 @@ Add these distinct comparators:
 
 Measure both marginal per-step coverage and the mission union event: any false-safe or any true-state-outside-protection-region event during an episode. Also report region size / volume, valid availability, abstention, time degraded, effective independent cluster count and uncertainty bounds. Do not infer mission PHMI from per-frame conformal coverage.
 
+### Scalable ICVaR belief-tree planning comparators
+
+Pariente & Indelman, *Online Risk-Averse Planning in POMDPs Using Iterated CVaR Value Function* (2026), define an ICVaR Bellman action-value as immediate belief cost plus CVaR over successor-belief values. They provide sparse-sampling, ICVaR-POMCPOW and ICVaR-PFT-DPW variants, using progressive widening and complete sampled paths rather than expectation-only rollouts. Their experiments compare risk-sensitive planners with POMCPOW / PFT-DPW on LaserTag and LightDark (including localization-aware observation uncertainty); at tail parameter \(\alpha=0.1\), they report lower ICVaR in both test environments, with reported relative reductions of 17% / 35% for ICVaR-POMCPOW and 37% / 51% for ICVaR-PFT-DPW versus their risk-neutral counterparts. These are results on those POMDP benchmarks, not UWB navigation or physical integrity results. <https://arxiv.org/abs/2601.20554>
+
+Add the following algorithmic comparators:
+- exact finite observable policy-tree oracle on tractable cases;
+- ICVaR sparse sampling;
+- ICVaR-POMCPOW versus POMCPOW;
+- ICVaR-PFT-DPW versus PFT-DPW;
+- particle-belief or sampled successor-state approximation, with declared sampling budget.
+
+The key Symtropy comparison is **exact-versus-sampled under matched information semantics**. A sampled planner may propose a compact policy, but the same candidate policy should be replayed / evaluated under every complete persistent mission model. Report:
+- risk objective value and exact-oracle gap where tractable;
+- policy action agreement and branch-continuation agreement;
+- risk-estimation error / confidence interval as branching and particle counts grow;
+- runtime, memory, latency, branch count and sample budget;
+- sensitivity to persistent model-set expansion and common-cause dependence.
+
+Do not allow a sampled method to reselect the hidden mission model after an observation. The POMDP paper's particle-belief and finite-time guarantees have their own assumptions; they do not automatically establish guarantees for Symtropy's non-rectangular persistent joint model set.
+
 ### Risk semantics remain separate
 
 The benchmark must distinguish:
@@ -313,6 +334,7 @@ The 20% target is a research ambition, not a forecast or achieved result. It mus
 - Kovaci et al. (2026), *Ultra-wideband indoor positioning: a critical survey of ranging, AI-based error mitigation, sensor fusion, and 6G integration*. https://doi.org/10.1186/s13638-026-02703-9
 - Ning et al. (2026), *Per-Step Conformal Calibration Does Not Transfer to Agent Trajectories*, EMNLP 2026. https://doi.org/10.18653/2026.emnlp-main.1808
 - Rezaei et al. (2026), *TRACE-CRC: Trajectory-Adaptive Conformal Risk Control for Multi-Step Channel State Information Prediction*. https://proceedings.mlr.press/v329/rezaei26a.html
+- Pariente & Indelman (2026), *Online Risk-Averse Planning in POMDPs Using Iterated CVaR Value Function*. https://arxiv.org/abs/2601.20554
 
 ## Claim boundary
 
