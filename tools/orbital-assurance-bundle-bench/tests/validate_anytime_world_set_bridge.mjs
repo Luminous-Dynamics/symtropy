@@ -139,6 +139,10 @@ function validateReceipt(receipt) {
     "alpha_total", "alpha_allocated", "alpha_allocation_id", "alpha_allocation_sha256", "filtration_sha256",
     "selection_policy_sha256", "conditional_kernel_sha256"]) || !validId(contract.process_id) || !Number.isSafeInteger(contract.look_index)
     || contract.look_index < 1 || !["ACTIVE", "STOPPED"].includes(contract.stopping_state)
+    || !["QUALIFIED", "UNQUALIFIED"].includes(contract.guarantee_disposition)
+    || typeof contract.optional_stopping_covered !== "boolean"
+    || typeof contract.predictable_selection !== "boolean"
+    || typeof contract.adaptive_selection_covered !== "boolean"
     || !validId(contract.alpha_allocation_id)
     || !SHA.test(contract.alpha_allocation_sha256 || "")
     || !SHA.test(contract.filtration_sha256 || "")
@@ -189,8 +193,12 @@ function validateReceipt(receipt) {
 
   const qualification = receipt.qualification;
   if (!hasExactKeys(qualification, ["source_state", "model_family_state", "channel_dependence_state",
-    "action_realization_state"])) {
-    return invalid("qualification object is missing required fields or contains unknown fields");
+    "action_realization_state"])
+    || !["CURRENT", "STALE", "REVOKED", "CONTRADICTED", "INDETERMINATE"].includes(qualification.source_state)
+    || !["ADEQUATE", "INADEQUATE", "INDETERMINATE"].includes(qualification.model_family_state)
+    || !["ADEQUATE", "UNRESOLVED", "INADEQUATE"].includes(qualification.channel_dependence_state)
+    || !["VERIFIED", "NOT_REQUIRED_BY_PROFILE", "UNKNOWN", "CONTRADICTED"].includes(qualification.action_realization_state)) {
+    return invalid("qualification object has unknown fields or malformed state enums");
   }
 
   let computed;
@@ -247,6 +255,18 @@ const tests = [
     r.contract.unreviewed_field = true;
     return r;
   }, "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"],
+  ["malformed stopping state enum", r => {
+    r.contract.stopping_state = "MAYBE";
+    return r;
+  }, "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"],
+  ["malformed guarantee disposition enum", r => {
+    r.contract.guarantee_disposition = "MOSTLY_QUALIFIED";
+    return r;
+  }, "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"],
+  ["malformed model qualification enum", r => {
+    r.qualification.model_family_state = "PROBABLY_ADEQUATE";
+    return r;
+  }, "INVALID_INPUT", "qualification object has unknown fields or malformed state enums"],
   ["qualified adaptive source", r => r, "CONSUMABLE", "SOURCE_BOUND_WORLD_SET_READY_FOR_DOWNSTREAM_GATE"],
   ["empty survivor set abstains", r => {
     r.world_inventory.surviving_world_ids = [];
