@@ -47,9 +47,12 @@ jobs:
             and .control_cluster_count == 4
             and .stratum_count == 2
             and .randomization_reproducible == true
-            and .pre_registration_precedes_randomization == true
-            and .public_randomness_published_after_freeze == true
-            and .interference_domains_are_exclusive == true
+            and .declared_pre_registration_precedes_randomization == true
+            and .declared_public_randomness_published_after_freeze == true
+            and .interference_domain_ids_unique_in_manifest == true
+            and .pre_registration_document_authenticated == false
+            and .interference_mapping_authenticated == false
+            and .declared_timestamps_attested == false
             and .cluster_level_inference_required == true
             and .external_randomness_source_authenticated == false
             and .causal_effect_estimated == false
