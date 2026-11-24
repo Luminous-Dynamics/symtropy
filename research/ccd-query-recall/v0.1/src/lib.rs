@@ -1518,7 +1518,7 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
+        .join("\t");
         let fallback = [
             "nyu-fixture-v1",
             "armadillo-rollers",
@@ -1533,7 +1533,7 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
+        .join("\t");
         let pruned = [
             "nyu-fixture-v1",
             "armadillo-rollers",
@@ -1548,14 +1548,14 @@ mod tests {
             "accepted_and_replayed",
             "not_run",
         ]
-        .join("\\t");
+        .join("\t");
         let input = [
             "#ccd-query-run-results-v1",
             &forwarded,
             &fallback,
             &pruned,
         ]
-        .join("\\n");
+        .join("\n");
 
         let results = parse_query_run_results_tsv(&input).unwrap();
         assert_eq!(results.len(), 3);
@@ -1593,7 +1593,7 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
+        .join("\t");
         assert_eq!(
             parse_query_run_results_tsv(&forwarded_with_metadata),
             Err(QueryRunImportError::UnexpectedDispositionMetadata)
@@ -1613,7 +1613,7 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
+        .join("\t");
         assert_eq!(
             parse_query_run_results_tsv(&missing_fallback_reason),
             Err(QueryRunImportError::MissingFallbackReason)
@@ -1633,7 +1633,7 @@ mod tests {
             "accepted_and_replayed",
             "not_run",
         ]
-        .join("\\t");
+        .join("\t");
         assert_eq!(
             parse_query_run_results_tsv(&missing_certificate),
             Err(QueryRunImportError::MissingPruneEvidence)
@@ -1665,7 +1665,7 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
+        .join("\t");
         let row1 = [
             "nyu-fixture-v1",
             "armadillo-rollers",
@@ -1680,8 +1680,8 @@ mod tests {
             "",
             "no_collision",
         ]
-        .join("\\t");
-        let results = parse_query_run_results_tsv(&[row0, row1].join("\\n")).unwrap();
+        .join("\t");
+        let results = parse_query_run_results_tsv(&[row0, row1].join("\n")).unwrap();
         let profile = RunProfile::new(
             RunProvenance::new(
                 "symtropy-adapter-smoke",
