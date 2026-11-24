@@ -721,9 +721,17 @@ pub enum ConformalIndependentUnitKindV0 {
 /// The owner must derive this from the active calibration receipt and exact
 /// frozen artifacts. String digests identify bytes; signature/custody
 /// verification remains an owner-side responsibility.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConformalCalibrationReceiptStatusV0 {
+    Active,
+    Revoked,
+    Expired,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitConformalCalibrationIdentityV0 {
     pub receipt_id: String,
+    pub receipt_status: ConformalCalibrationReceiptStatusV0,
     pub evaluation_stratum_id: u16,
     pub independent_unit_kind: ConformalIndependentUnitKindV0,
     pub claim_type: TransferClaimTypeV0,
@@ -816,7 +824,9 @@ impl SplitConformalBinaryTransferV0 {
 fn validate_conformal_identity(
     identity: &SplitConformalCalibrationIdentityV0,
 ) -> Result<(), TransferCalibrationErrorV0> {
-    if identity.receipt_id.trim().is_empty() {
+    if identity.receipt_id.trim().is_empty()
+        || identity.receipt_status != ConformalCalibrationReceiptStatusV0::Active
+    {
         return Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity);
     }
     if !is_lowercase_sha256(&identity.claim_scope_sha256) {
@@ -957,6 +967,7 @@ mod tests {
     ) -> SplitConformalCalibrationIdentityV0 {
         SplitConformalCalibrationIdentityV0 {
             receipt_id: "receipt-test-001".to_owned(),
+            receipt_status: ConformalCalibrationReceiptStatusV0::Active,
             evaluation_stratum_id,
             independent_unit_kind: ConformalIndependentUnitKindV0::WorldSeed,
             claim_type: TransferClaimTypeV0::Simulation,
@@ -1224,6 +1235,20 @@ mod tests {
         let mut identity = conformal_identity(7);
         identity.receipt_id.clear();
 
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
+        );
+
+        let mut identity = conformal_identity(7);
+        identity.receipt_status = ConformalCalibrationReceiptStatusV0::Revoked;
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
+        );
+
+        let mut identity = conformal_identity(7);
+        identity.receipt_status = ConformalCalibrationReceiptStatusV0::Expired;
         assert_eq!(
             fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
             Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
