@@ -51,7 +51,7 @@ JSON object keys are canonicalized by serde_json's ordered map representation. A
 - duplicate transition IDs, duplicate starts, double-booking, stale receipts and impossible state transitions are rejected;
 - each epoch emits a deterministic snapshot linked to its predecessor.
 
-The single-lane resource model matches the current v0.2 corpus, whose resource capacity is 0 or 1 per epoch. Higher-capacity parallel machines, overlapping intervals, setup crews, transport resources, rework loops, multi-station inspection routing, lot splitting and continuous-time calendars are not modeled yet. The replayer rejects capacity calendars above one rather than silently approximating them.
+The single-lane resource model matches the current v0.2 corpus, whose resource capacity is 0 or 1 per epoch. Active operations retain their resource commitment across epochs; a `CONTINUE` transition is allowed to use the occupied lane, whereas a new `START` cannot double-book it. Higher-capacity parallel machines, overlapping intervals, setup crews, transport resources, rework loops, multi-station inspection routing, lot splitting and continuous-time calendars are not modeled yet. The replayer rejects capacity calendars above one rather than silently approximating them.
 
 ## Validation
 
