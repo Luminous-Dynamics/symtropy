@@ -27,6 +27,37 @@ The evaluator does not count broadphase box pairs, map query indices to collider
 
 Each scorecard carries immutable run provenance: algorithm name/version/commit, dataset-manifest SHA-256, configuration SHA-256, motion profile and arithmetic profile (for example, linearized/binary64 versus Symtropy semi-implicit/Q16.16). The convenience evaluators return an unspecified profile and are not benchmark-qualified. Scorecards may be pooled only when all provenance and model fields are explicit and identical; runs from different algorithms, commits, datasets, configurations or precision/motion models stay separate. A zero-oracle-positive population also cannot claim benchmark recall. Safe negative certificate-backed prunes can qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives. Safe negative certificate-backed prunes are counted as certified prunes and are allowed to qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives.
 
+## Per-query result interchange
+
+Adapters write UTF-8 TSV with an optional first line `#ccd-query-run-results-v1`. Every data row has exactly twelve fields:
+
+| Index | Field | Allowed values |
+| ---: | --- | --- |
+| 1 | Dataset ID | lowercase letters, digits, `-`, `_`, `.` |
+| 2 | Scene ID | same token grammar |
+| 3 | Time step | unsigned integer |
+| 4 | Query class | `edge_edge`, `vertex_face` |
+| 5 | Query index | unsigned integer |
+| 6 | Candidate disposition | `forwarded`, `fallback`, `certified_pruned` |
+| 7 | Fallback reason | blank except for fallback rows; one of the typed reason codes |
+| 8 | Certificate SHA-256 | required for certified prune rows |
+| 9 | Frozen-input SHA-256 | required for certified prune rows |
+| 10 | Verifier ID | required for certified prune rows |
+| 11 | Verification status | `accepted_and_replayed`, `rejected`, `not_run` |
+| 12 | Narrowphase outcome | `collision`, `no_collision`, `indeterminate`, `not_run` |
+
+Forwarded rows must leave fields 7-11 blank. Fallback rows require field 7 and leave fields 8-11 blank. Certified-pruned rows require fields 8-11 and leave field 7 blank. Oracle labels are never included in adapter output. The evaluator joins TSV rows to the independent imported query set by dataset/scene/time-step/query-kind/query-index, then rejects duplicate, missing and orphan rows.
+
+Example rows (tabs separate fields):
+
+```text
+#ccd-query-run-results-v1
+nyu-fixture-v1	armadillo-rollers	3	edge_edge	0	forwarded						no_collision
+nyu-fixture-v1	armadillo-rollers	3	edge_edge	1	fallback	unsupported_motion					no_collision
+```
+
+A production benchmark run must provide an explicit `RunProfile` with algorithm name/version/commit, dataset-manifest SHA-256, canonical configuration SHA-256, motion profile and arithmetic profile. The convenience evaluator returns an unspecified profile and cannot qualify or be pooled. Only scorecards with identical explicit run provenance may be pooled; different algorithms and numeric models remain separate.
+
 ## Run
 
 ```sh
