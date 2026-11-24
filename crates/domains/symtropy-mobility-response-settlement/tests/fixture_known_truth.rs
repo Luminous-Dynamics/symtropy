@@ -17,6 +17,7 @@ fn frozen_four_report_bundle_reconciles_and_never_grants_settlement_authority() 
     let report = evaluate_mobility_response_settlement(&fixture()).unwrap();
     assert_eq!(report.status, ReconciliationStatus::TechnicallyReconciled);
     assert!(report.technical_reconciliation_passed);
+    assert!(report.service_performance_qualified);
     assert_eq!(report.source_artifacts.len(), 4);
     assert!((report.requested_response_energy_kwh - 0.005555555555555556).abs() < 1.0e-12);
     assert!(
