@@ -54,6 +54,26 @@ pub struct ComponentState {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct ConditionEnvelope {
+    pub unit: String,
+    pub minimum_q: i64,
+    pub maximum_q: i64,
+    pub maximum_age_ns: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConditionMeasurement {
+    pub unit: String,
+    pub value_q: i64,
+    pub uncertainty_q: u64,
+    pub observed_time_ns: i64,
+    pub time_uncertainty_ns: u64,
+    pub receipt_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CalibrationScope {
     pub scope_id: String,
     pub calibration_id: String,
@@ -65,6 +85,7 @@ pub struct CalibrationScope {
     pub valid_from_ns: i64,
     pub valid_until_ns: i64,
     pub required_configuration: BTreeMap<String, String>,
+    pub required_conditions: BTreeMap<String, ConditionEnvelope>,
     pub certificate_state: CertificateState,
     pub check_required: bool,
     pub check_state: CheckState,
@@ -92,6 +113,7 @@ pub struct Case {
     pub event_inventory_complete: bool,
     pub required_scope_ids: Vec<String>,
     pub components: Vec<ComponentState>,
+    pub actual_conditions: BTreeMap<String, ConditionMeasurement>,
     pub scopes: Vec<CalibrationScope>,
     pub events: Vec<ChangeEvent>,
     pub expected_status: ValidityStatus,
@@ -218,6 +240,16 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }
     }
 
+    for (condition_id, measurement) in &case.actual_conditions {
+        checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns)?;
+        if !valid_text(condition_id)
+            || !valid_text(&measurement.unit)
+            || !valid_sha256(&measurement.receipt_sha256)
+        {
+            return Err("ACTUAL_CONDITION_MEASUREMENT_INVALID".to_owned());
+        }
+    }
+
     let mut scope_ids = BTreeSet::new();
     for scope in &case.scopes {
         if !valid_text(&scope.scope_id)
@@ -233,6 +265,13 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }
         if scope.required_configuration.iter().any(|(key, value)| !valid_text(key) || !valid_text(value)) {
             return Err("REQUIRED_CONFIGURATION_INVALID".to_owned());
+        }
+        if scope.required_conditions.iter().any(|(key, envelope)| {
+            !valid_text(key)
+                || !valid_text(&envelope.unit)
+                || envelope.minimum_q > envelope.maximum_q
+        }) {
+            return Err("REQUIRED_CONDITION_ENVELOPE_INVALID".to_owned());
         }
         if scope.check_receipt_sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
             return Err("CHECK_RECEIPT_DIGEST_INVALID".to_owned());
@@ -310,6 +349,51 @@ fn evaluate_scope(
                         add_reason(ValidityStatus::IdentityMismatch, "CONFIGURATION_MISMATCH", &mut statuses, &mut reasons)
                     }
                     Some(_) => {}
+                }
+            }
+        }
+    }
+
+    for (condition_id, envelope) in &scope.required_conditions {
+        match case.actual_conditions.get(condition_id) {
+            None => add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_MISSING", &mut statuses, &mut reasons),
+            Some(measurement) if measurement.unit != envelope.unit => {
+                add_reason(ValidityStatus::IdentityMismatch, "CONDITION_UNIT_MISMATCH", &mut statuses, &mut reasons)
+            }
+            Some(measurement) => {
+                let value_interval = match checked_interval(measurement.value_q, measurement.uncertainty_q) {
+                    Ok(interval) => interval,
+                    Err(_) => {
+                        add_reason(ValidityStatus::InvalidInput, "CONDITION_VALUE_INTERVAL_INVALID", &mut statuses, &mut reasons);
+                        continue;
+                    }
+                };
+                let minimum = i128::from(envelope.minimum_q);
+                let maximum = i128::from(envelope.maximum_q);
+                if value_interval[1] < minimum || value_interval[0] > maximum {
+                    add_reason(ValidityStatus::OutOfScope, "OPERATING_CONDITION_OUT_OF_SCOPE", &mut statuses, &mut reasons);
+                } else if value_interval[0] < minimum || value_interval[1] > maximum {
+                    add_reason(ValidityStatus::Indeterminate, "OPERATING_CONDITION_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+                }
+
+                let observed_interval = match checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns) {
+                    Ok(interval) => interval,
+                    Err(_) => {
+                        add_reason(ValidityStatus::InvalidInput, "CONDITION_TIME_INTERVAL_INVALID", &mut statuses, &mut reasons);
+                        continue;
+                    }
+                };
+                if observed_interval[0] > acquisition[1] {
+                    add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AFTER_ACQUISITION", &mut statuses, &mut reasons);
+                } else if observed_interval[1] < acquisition[0] {
+                    let minimum_age = acquisition[0] - observed_interval[1];
+                    let maximum_age = acquisition[1] - observed_interval[0];
+                    let maximum_age_ns = i128::from(envelope.maximum_age_ns);
+                    if minimum_age > maximum_age_ns {
+                        add_reason(ValidityStatus::Expired, "CONDITION_MEASUREMENT_STALE", &mut statuses, &mut reasons);
+                    } else if maximum_age > maximum_age_ns {
+                        add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+                    }
                 }
             }
         }
@@ -486,6 +570,15 @@ mod tests {
                 ("lens".to_owned(), "L-1".to_owned()),
                 ("resolution".to_owned(), "1920x1080".to_owned()),
             ]),
+            required_conditions: BTreeMap::from([(
+                "temperature_milli_c".to_owned(),
+                ConditionEnvelope {
+                    unit: "milli_degC".to_owned(),
+                    minimum_q: 10_000,
+                    maximum_q: 35_000,
+                    maximum_age_ns: 10_000,
+                },
+            )]),
             certificate_state: CertificateState::Valid,
             check_required: true,
             check_state: CheckState::Pass,
@@ -509,6 +602,17 @@ mod tests {
                     ("resolution".to_owned(), "1920x1080".to_owned()),
                 ]),
             }],
+            actual_conditions: BTreeMap::from([(
+                "temperature_milli_c".to_owned(),
+                ConditionMeasurement {
+                    unit: "milli_degC".to_owned(),
+                    value_q: 22_000,
+                    uncertainty_q: 500,
+                    observed_time_ns: 480,
+                    time_uncertainty_ns: 1,
+                    receipt_sha256: "d".repeat(64),
+                },
+            )]),
             scopes: vec![scope()],
             events: vec![],
             expected_status: ValidityStatus::ValidWithinScope,
@@ -576,6 +680,32 @@ mod tests {
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
         assert!(result.reason_codes.contains(&"REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP".to_owned()));
+    }
+
+    #[test]
+    fn definitely_out_of_scope_temperature_is_rejected() {
+        let mut value = case();
+        value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists").value_q = 40_000;
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::OutOfScope);
+    }
+
+    #[test]
+    fn condition_uncertainty_crossing_envelope_is_indeterminate() {
+        let mut value = case();
+        let temperature = value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists");
+        temperature.value_q = 35_100;
+        temperature.uncertainty_q = 500;
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn stale_condition_observation_is_expired() {
+        let mut value = case();
+        value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists").observed_time_ns = 100;
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Expired);
     }
 
     #[test]
