@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 #![forbid(unsafe_code)]
 
 //! Exact on-axis flux density of a uniformly polarized rectangular prism.
@@ -10,7 +10,6 @@
 use std::fmt;
 
 const PI: f64 = std::f64::consts::PI;
-const MU0: f64 = 4.0 * PI * 1.0e-7;
 
 /// Positive half-dimensions (a, b, c) in metres.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -175,6 +174,8 @@ fn rectangle_solid_angle_half_angle(a: f64, b: f64, d: f64, zero_limit_sign: f64
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const MU0: f64 = 4.0 * PI * 1.0e-7;
 
     fn cube(j: f64) -> AxiallyPolarizedCuboid {
         AxiallyPolarizedCuboid::new(
