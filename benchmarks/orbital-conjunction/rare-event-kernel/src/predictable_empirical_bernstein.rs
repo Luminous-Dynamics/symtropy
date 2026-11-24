@@ -18,7 +18,10 @@
 //! Reference: https://doi.org/10.1093/jrsssb/qkad009
 //! https://arxiv.org/abs/2010.09686
 
-use crate::adaptive_importance_sampling::BoundedMeanConfidenceSequence;
+use crate::adaptive_importance_sampling::{
+    AdaptiveImportanceDraw, AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary,
+    BoundedMeanConfidenceSequence,
+};
 
 /// Default PrPl-EB betting-fraction cap recommended by Waudby-Smith & Ramdas.
 pub const DEFAULT_BET_FRACTION_CAP: f64 = 0.5;
@@ -251,6 +254,203 @@ impl PrPlEbConfidenceSequence {
     }
 }
 
+
+/// Streaming PrPl-EB confidence sequence for predictable defensive importance sampling.
+///
+/// This adapter applies the same evidence-identity, sample-order and observed
+/// defensive-weight checks as the fixed-stake adaptive-IS prototype, but updates
+/// the O(1)-state PrPl-EB sequence. It does not prove the external sampler used
+/// the declared proposal or that the declared defensive mixture dominates the
+/// target distribution globally.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdaptiveImportanceSamplingPrPlEbSequence {
+    event_digest: [u8; 32],
+    target_measure_digest: [u8; 32],
+    defensive_component_digest: [u8; 32],
+    defensive_mixture_weight: f64,
+    next_sequence_index: u64,
+    sample_ids: std::collections::BTreeSet<[u8; 32]>,
+    sequence: PrPlEbConfidenceSequence,
+}
+
+impl AdaptiveImportanceSamplingPrPlEbSequence {
+    /// Bind a new PrPl-EB sequence to one event, target measure and defensive component.
+    pub fn new(
+        event_digest: [u8; 32],
+        target_measure_digest: [u8; 32],
+        defensive_component_digest: [u8; 32],
+        defensive_mixture_weight: f64,
+        confidence_alpha: f64,
+    ) -> Result<Self, AdaptiveImportanceSamplingError> {
+        Self::with_bet_fraction_cap(
+            event_digest,
+            target_measure_digest,
+            defensive_component_digest,
+            defensive_mixture_weight,
+            confidence_alpha,
+            DEFAULT_BET_FRACTION_CAP,
+        )
+    }
+
+    /// Bind a new sequence with an explicit PrPl-EB betting-fraction cap.
+    pub fn with_bet_fraction_cap(
+        event_digest: [u8; 32],
+        target_measure_digest: [u8; 32],
+        defensive_component_digest: [u8; 32],
+        defensive_mixture_weight: f64,
+        confidence_alpha: f64,
+        bet_fraction_cap: f64,
+    ) -> Result<Self, AdaptiveImportanceSamplingError> {
+        if is_zero_digest(&event_digest)
+            || is_zero_digest(&target_measure_digest)
+            || is_zero_digest(&defensive_component_digest)
+        {
+            return Err(AdaptiveImportanceSamplingError::InvalidDigest);
+        }
+        if !defensive_mixture_weight.is_finite()
+            || defensive_mixture_weight <= 0.0
+            || defensive_mixture_weight > 1.0
+            || !defensive_mixture_weight.recip().is_finite()
+        {
+            return Err(AdaptiveImportanceSamplingError::InvalidProbability);
+        }
+
+        let sequence = PrPlEbConfidenceSequence::with_bet_fraction_cap(
+            confidence_alpha,
+            bet_fraction_cap,
+        )
+        .map_err(|_| AdaptiveImportanceSamplingError::InvalidProbability)?;
+
+        Ok(Self {
+            event_digest,
+            target_measure_digest,
+            defensive_component_digest,
+            defensive_mixture_weight,
+            next_sequence_index: 0,
+            sample_ids: std::collections::BTreeSet::new(),
+            sequence,
+        })
+    }
+
+    /// Accept one draw after validating its evidence identities and full-density weight.
+    ///
+    /// The update is transactional. The observed normalized contribution
+    /// alpha_mix * 1_E(X) * p(X)/q_t(X) must be in [0,1]. The global defensive
+    /// mixture condition and the fact that X was actually sampled from q_t
+    /// remain external assumptions.
+    pub fn observe(
+        &mut self,
+        draw: AdaptiveImportanceDraw,
+    ) -> Result<(), AdaptiveImportanceSamplingError> {
+        if draw.event_digest != self.event_digest {
+            return Err(AdaptiveImportanceSamplingError::EventIdentityMismatch);
+        }
+        if draw.target_measure_digest != self.target_measure_digest {
+            return Err(AdaptiveImportanceSamplingError::TargetMeasureMismatch);
+        }
+        if draw.defensive_component_digest != self.defensive_component_digest {
+            return Err(AdaptiveImportanceSamplingError::DefensiveComponentMismatch);
+        }
+        if !draw.defensive_mixture_weight.is_finite()
+            || draw.defensive_mixture_weight.to_bits()
+                != self.defensive_mixture_weight.to_bits()
+        {
+            return Err(AdaptiveImportanceSamplingError::DefensiveMixtureWeightMismatch);
+        }
+        if is_zero_digest(&draw.sample_id) || is_zero_digest(&draw.proposal_digest) {
+            return Err(AdaptiveImportanceSamplingError::InvalidDigest);
+        }
+        if draw.sequence_index != self.next_sequence_index {
+            return Err(AdaptiveImportanceSamplingError::NonSequentialSampleIndex);
+        }
+        if self.sample_ids.contains(&draw.sample_id) {
+            return Err(AdaptiveImportanceSamplingError::DuplicateSampleIdentity);
+        }
+        if !draw.log_proposal_density.is_finite() {
+            return Err(AdaptiveImportanceSamplingError::InvalidProposalDensity);
+        }
+        if draw.log_target_density.is_nan() || draw.log_target_density == f64::INFINITY {
+            return Err(AdaptiveImportanceSamplingError::InvalidTargetDensity);
+        }
+
+        let normalized_weight = if draw.log_target_density == f64::NEG_INFINITY {
+            0.0
+        } else {
+            let log_normalized_weight = self.defensive_mixture_weight.ln()
+                + draw.log_target_density
+                - draw.log_proposal_density;
+            if !log_normalized_weight.is_finite()
+                && log_normalized_weight != f64::NEG_INFINITY
+            {
+                return Err(AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation);
+            }
+            if log_normalized_weight > 0.0 {
+                return Err(AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation);
+            }
+            log_normalized_weight.exp()
+        };
+
+        if !normalized_weight.is_finite() || !(0.0..=1.0).contains(&normalized_weight) {
+            return Err(AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation);
+        }
+        let observation = if draw.event_occurred {
+            normalized_weight
+        } else {
+            0.0
+        };
+        let next_sequence_index = self
+            .next_sequence_index
+            .checked_add(1)
+            .ok_or(AdaptiveImportanceSamplingError::CounterOverflow)?;
+
+        self.sequence.observe(observation).map_err(|error| match error {
+            PrPlEbError::CounterOverflow => AdaptiveImportanceSamplingError::CounterOverflow,
+            PrPlEbError::InvalidObservation => {
+                AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation
+            }
+            PrPlEbError::InvalidAlpha
+            | PrPlEbError::InvalidBetFractionCap
+            | PrPlEbError::NumericalFailure => {
+                AdaptiveImportanceSamplingError::NumericalFailure
+            }
+        })?;
+        self.sample_ids.insert(draw.sample_id);
+        self.next_sequence_index = next_sequence_index;
+        Ok(())
+    }
+
+    /// Number of accepted adaptive importance-sampling draws.
+    pub fn sample_count(&self) -> u64 {
+        self.sequence.sample_count()
+    }
+
+    /// Return the importance-sampling estimate and time-uniform target-probability interval.
+    pub fn summary(
+        &self,
+    ) -> Result<AdaptiveImportanceSamplingSummary, AdaptiveImportanceSamplingError> {
+        let normalized = self.sequence.confidence_sequence();
+        let scale = self.defensive_mixture_weight.recip();
+        let target_probability_estimate = normalized.empirical_mean * scale;
+        if !target_probability_estimate.is_finite() {
+            return Err(AdaptiveImportanceSamplingError::NumericalFailure);
+        }
+
+        Ok(AdaptiveImportanceSamplingSummary {
+            sample_count: normalized.sample_count,
+            defensive_mixture_weight: self.defensive_mixture_weight,
+            confidence_alpha: normalized.alpha,
+            normalized_mean_estimate: normalized.empirical_mean,
+            target_probability_estimate,
+            lower: (normalized.lower * scale).clamp(0.0, 1.0),
+            upper: (normalized.upper * scale).clamp(0.0, 1.0),
+        })
+    }
+}
+
+fn is_zero_digest(digest: &[u8; 32]) -> bool {
+    digest.iter().all(|byte| *byte == 0)
+}
+
 fn next_down(value: f64) -> f64 {
     if value.is_nan() || value == f64::NEG_INFINITY {
         return value;
@@ -349,14 +549,21 @@ mod tests {
     #[test]
     fn exact_finite_support_adaptive_proposals_have_anytime_coverage() {
         // Target event probability 0.2, with q_t = a*p + (1-a)*r_t.
-        // r_t(event)=0.8 after an event, else 0.05. The bounded observation
-        // Y_t=a*1_E*p/q_t has constant conditional mean a*P(E)=0.02.
+        // r_t(event)=0.8 after an event, else 0.05. The normalized weighted
+        // event indicator has fixed conditional mean a*P(E)=0.02.
         const HORIZON: u32 = 6;
         let target_mean = DEFENSIVE_WEIGHT * EVENT_PROBABILITY;
         let mut total_miss_probability = 0.0;
 
         for encoded_path in 0_u32..(1_u32 << HORIZON) {
-            let mut sequence = PrPlEbConfidenceSequence::new(0.05).unwrap();
+            let mut sequence = AdaptiveImportanceSamplingPrPlEbSequence::new(
+                EVENT_ID,
+                TARGET_ID,
+                DEFENSIVE_ID,
+                DEFENSIVE_WEIGHT,
+                0.05,
+            )
+            .unwrap();
             let mut path_probability = 1.0;
             let mut previous_event = false;
             let mut ever_missed = false;
@@ -373,15 +580,27 @@ mod tests {
                     path_probability *= 1.0 - proposal_event_probability;
                 }
 
-                let normalized_weight = if event_occurred {
-                    DEFENSIVE_WEIGHT * EVENT_PROBABILITY / proposal_event_probability
+                let (target_density, proposal_density) = if event_occurred {
+                    (EVENT_PROBABILITY, proposal_event_probability)
                 } else {
-                    0.0
+                    (1.0 - EVENT_PROBABILITY, 1.0 - proposal_event_probability)
                 };
-                sequence.observe(normalized_weight).unwrap();
+                let draw = AdaptiveImportanceDraw {
+                    sequence_index: time as u64,
+                    sample_id: [time as u8 + 1; 32],
+                    event_digest: EVENT_ID,
+                    target_measure_digest: TARGET_ID,
+                    proposal_digest: [time as u8 + 20; 32],
+                    defensive_component_digest: DEFENSIVE_ID,
+                    defensive_mixture_weight: DEFENSIVE_WEIGHT,
+                    log_target_density: target_density.ln(),
+                    log_proposal_density: proposal_density.ln(),
+                    event_occurred,
+                };
+                sequence.observe(draw).unwrap();
 
-                let interval = sequence.confidence_sequence();
-                if interval.lower > target_mean || interval.upper < target_mean {
+                let interval = sequence.summary().unwrap();
+                if interval.lower > EVENT_PROBABILITY || interval.upper < EVENT_PROBABILITY {
                     ever_missed = true;
                 }
                 previous_event = event_occurred;
@@ -396,6 +615,44 @@ mod tests {
             total_miss_probability <= 0.05 + 1.0e-10,
             "exact adaptive-path miss probability was {total_miss_probability}"
         );
+    }
+
+    #[test]
+    fn adaptive_prpl_eb_rejects_duplicate_samples_and_weight_bound_violations() {
+        let mut sequence = AdaptiveImportanceSamplingPrPlEbSequence::new(
+            [1; 32], [2; 32], [3; 32], 0.1, 0.05,
+        )
+        .unwrap();
+        let valid = AdaptiveImportanceDraw {
+            sequence_index: 0,
+            sample_id: [4; 32],
+            event_digest: [1; 32],
+            target_measure_digest: [2; 32],
+            proposal_digest: [5; 32],
+            defensive_component_digest: [3; 32],
+            defensive_mixture_weight: 0.1,
+            log_target_density: 0.2_f64.ln(),
+            log_proposal_density: 0.74_f64.ln(),
+            event_occurred: true,
+        };
+        sequence.observe(valid).unwrap();
+        let mut duplicate = valid;
+        duplicate.sequence_index = 1;
+        assert_eq!(
+            sequence.observe(duplicate),
+            Err(AdaptiveImportanceSamplingError::DuplicateSampleIdentity)
+        );
+
+        let mut overweight = valid;
+        overweight.sequence_index = 1;
+        overweight.sample_id = [6; 32];
+        overweight.proposal_digest = [7; 32];
+        overweight.log_proposal_density = 0.01_f64.ln();
+        assert_eq!(
+            sequence.observe(overweight),
+            Err(AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation)
+        );
+        assert_eq!(sequence.sample_count(), 1);
     }
 
     #[test]
