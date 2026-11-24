@@ -405,3 +405,12 @@ The split-conformal contract now states that predictor, preprocessing, probabili
 
 A new test covers inclusive quantile ties and the empty prediction set. Empty and both-label sets are distinct in the set-membership fields but both produce no forced class decision. This protects the core reject-option behaviour.
 
+## Owner-issued split-conformal receipt
+
+Added an owner-side receipt schema and illustrative example:
+- `schemas/split_conformal_transfer_receipt_v0.schema.json`
+- `examples/split_conformal_transfer_receipt_v0.example.json`
+
+The receipt binds a fitted split-conformal quantile to exact predictor/preprocessing/score-function digests, calibration cohort and sample IDs, split manifest, evidence-prefix, evaluator stratum, independent unit and count, claim type/scope, alpha, order-statistic rank, quantile and owner custody receipt. It supports active/revoked/expired state, requiring a reason when revoked.
+
+This prevents a quantile from being silently reused after the model, score function, cohort, stratum or scope changes. Digests remain identifiers, not proof of acquisition/custody or exchangeability. JSON parse and example-shape consistency are pending static audit; the Rust split-conformal code remains pending exact-head qualification.
