@@ -8,6 +8,7 @@ a policy change. Missing/unqualified probability evidence causes ABSTAIN.
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import re
 import sys
@@ -55,6 +56,7 @@ def exact_fraction(value: Any, *, allow_zero: bool = True) -> Fraction | None:
         or denominator < 1
         or numerator > MAX_COMPONENT
         or denominator > MAX_COMPONENT
+        or math.gcd(numerator, denominator) != 1
     ):
         return None
     return Fraction(numerator, denominator)
