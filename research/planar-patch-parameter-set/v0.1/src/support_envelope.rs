@@ -48,8 +48,11 @@ impl Default for SupportEnvelopeConfig {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PatchSupportEnvelopeInput<'a> {
     pub parameter_set: &'a ParameterSetReport,
-    /// Independently supplied mu*N capacity, in newtons.
-    pub capacity_scale: f64,
+    /// Independently supplied positive [mu*N lower, mu*N upper] interval, in newtons.
+    /// This v0.1 treats it as independent of the normalized shape-parameter set.
+    pub capacity_scale_interval: [f64; 2],
+    /// Receipt/digest for the independently measured or declared capacity interval.
+    pub capacity_scale_digest: String,
     /// [tangent-u velocity (m/s), tangent-v velocity (m/s), normal angular velocity (rad/s)].
     pub slip_twist: [f64; 3],
 }
@@ -65,7 +68,8 @@ pub struct PatchSupportEnvelopeReport {
     pub observation_profile_digest: String,
     pub capacity_convention_digest: String,
     pub characteristic_length_m: f64,
-    pub capacity_scale: f64,
+    pub capacity_scale_interval: [f64; 2],
+    pub capacity_scale_digest: String,
     pub slip_twist: [f64; 3],
     /// q = [v_u, v_v, L*omega_n], used by the dimensionless ellipsoid.
     pub nondimensional_slip_direction: [f64; 3],
@@ -232,10 +236,21 @@ pub fn compute_patch_support_envelope(
 ) -> Result<PatchSupportEnvelopeReport, ParameterSetError> {
     let parameter_set = input.parameter_set;
     validate_parameter_set(parameter_set, config.report_consistency_tolerance)?;
-    if !input.capacity_scale.is_finite() || input.capacity_scale <= 0.0 {
+    let [capacity_lower, capacity_upper] = input.capacity_scale_interval;
+    if !capacity_lower.is_finite()
+        || !capacity_upper.is_finite()
+        || capacity_lower <= 0.0
+        || capacity_upper < capacity_lower
+    {
         return Err(invalid(
             ParameterSetErrorKind::InvalidInput,
-            "capacity scale mu*N must be finite and positive",
+            "capacity interval must be finite, positive and ordered",
+        ));
+    }
+    if input.capacity_scale_digest.trim().is_empty() {
+        return Err(invalid(
+            ParameterSetErrorKind::InvalidIdentity,
+            "capacity-scale digest must be non-empty",
         ));
     }
     if !input.slip_twist.iter().all(|value| value.is_finite()) {
@@ -276,7 +291,8 @@ pub fn compute_patch_support_envelope(
             observation_profile_digest: parameter_set.observation_profile_digest.clone(),
             capacity_convention_digest: parameter_set.capacity_convention_digest.clone(),
             characteristic_length_m: length,
-            capacity_scale: input.capacity_scale,
+            capacity_scale_interval: input.capacity_scale_interval,
+            capacity_scale_digest: input.capacity_scale_digest.clone(),
             slip_twist: input.slip_twist,
             nondimensional_slip_direction: direction,
             active_axis_count: active.len(),
@@ -340,7 +356,7 @@ pub fn compute_patch_support_envelope(
         if vertex_unbounded {
             unbounded_vertex = Some(*vertex);
         } else {
-            let support = input.capacity_scale * norm;
+            let support = capacity_upper * norm;
             if !support.is_finite() {
                 return Err(invalid(
                     ParameterSetErrorKind::NonFiniteEvaluation,
@@ -377,7 +393,7 @@ pub fn compute_patch_support_envelope(
             .iter()
             .map(|axis| direction[*axis].abs())
             .sum::<f64>();
-        let lower = input.capacity_scale * l1 / maximum_active_beta_sum.sqrt();
+        let lower = capacity_lower * l1 / maximum_active_beta_sum.sqrt();
         if !lower.is_finite() {
             return Err(invalid(
                 ParameterSetErrorKind::NonFiniteEvaluation,
@@ -495,7 +511,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 2.0,
+                capacity_scale_interval: [2.0, 2.0],
+                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 1.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -533,7 +550,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 3.0,
+                capacity_scale_interval: [3.0, 3.0],
+                capacity_scale_digest: "capacity-3N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 0.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -562,7 +580,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 1.0,
+                capacity_scale_interval: [1.0, 1.0],
+                capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 0.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -587,7 +606,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 5.0,
+                capacity_scale_interval: [5.0, 5.0],
+                capacity_scale_digest: "capacity-5N-synthetic-v1".to_owned(),
                 slip_twist: [0.0; 3],
             },
             SupportEnvelopeConfig::default(),
@@ -613,7 +633,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 2.0,
+                capacity_scale_interval: [2.0, 2.0],
+                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [0.0, 0.0, 2.0],
             },
             SupportEnvelopeConfig::default(),
@@ -637,7 +658,8 @@ mod tests {
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
-                capacity_scale: 2.0,
+                capacity_scale_interval: [2.0, 2.0],
+                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 1.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -665,7 +687,8 @@ mod tests {
         parameters.enumeration_complete = false;
         let input = PatchSupportEnvelopeInput {
             parameter_set: &parameters,
-            capacity_scale: 1.0,
+            capacity_scale_interval: [1.0, 1.0],
+                capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
             slip_twist: [1.0, 0.0, 0.0],
         };
         assert_eq!(
@@ -707,7 +730,8 @@ mod tests {
             compute_patch_support_envelope(
                 &PatchSupportEnvelopeInput {
                     parameter_set,
-                    capacity_scale: 2.0,
+                    capacity_scale_interval: [2.0, 2.0],
+                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                     slip_twist: [1.0, 1.0, 0.0],
                 },
                 SupportEnvelopeConfig::default(),
@@ -735,12 +759,17 @@ mod tests {
             ],
             ParameterSetStatus::FeasibleWithFiniteIntervals,
         );
-        for (capacity_scale, slip_twist) in [(0.0, [1.0, 0.0, 0.0]), (1.0, [f64::NAN, 0.0, 0.0])] {
+        for (capacity_scale_interval, slip_twist) in [
+            ([0.0, 0.0], [1.0, 0.0, 0.0]),
+            ([2.0, 1.0], [1.0, 0.0, 0.0]),
+            ([1.0, 1.0], [f64::NAN, 0.0, 0.0]),
+        ] {
             assert_eq!(
                 compute_patch_support_envelope(
                     &PatchSupportEnvelopeInput {
                         parameter_set: &parameters,
-                        capacity_scale,
+                        capacity_scale_interval,
+                        capacity_scale_digest: "capacity-invalid-test-v1".to_owned(),
                         slip_twist,
                     },
                     SupportEnvelopeConfig::default(),
