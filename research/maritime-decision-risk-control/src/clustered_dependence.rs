@@ -351,7 +351,7 @@ fn push_row(
     let abstentions = REPLICATES.saturating_sub(selected);
     let _ = write!(
         output,
-        "{},{},{},{},{},{},{},{},{},{},",
+        "{},{},{},{},{},{},{},{},",
         metadata.fixture.label(),
         metadata.method.label(),
         metadata.unit.label(),
@@ -359,15 +359,17 @@ fn push_row(
         metadata.experiment.schedules_per_cluster,
         metadata.experiment.total_schedules,
         REPLICATES,
-        TARGET_RISK_MILLI,
-        if metadata.method == Method::FixedGridHighProbabilityHoeffding {
-            format!("{DELTA:.3}")
-        } else {
-            "NA".to_owned()
-        },
-        INTRA_CLUSTER_CORRELATION_MILLI
+        TARGET_RISK_MILLI
     );
-    let _ = write!(output, "{selected},{abstentions},");
+    if metadata.method == Method::FixedGridHighProbabilityHoeffding {
+        let _ = write!(output, "{DELTA:.3},");
+    } else {
+        output.push_str("NA,");
+    }
+    let _ = write!(
+        output,
+        "{INTRA_CLUSTER_CORRELATION_MILLI},{selected},{abstentions},"
+    );
     push_optional_interval(output, accumulator.mean_selected_risk());
     output.push(',');
     let unsafe_rate = accumulator.unsafe_selections as f64 / REPLICATES as f64;
