@@ -107,9 +107,7 @@ fn mark_rejected(receipt: &mut AdmissionReceipt, reason: &str) {
     }
 }
 
-fn operation_index(
-    static_case: &Value,
-) -> Result<BTreeMap<String, (&Value, &Value)>, String> {
+fn operation_index(static_case: &Value) -> Result<BTreeMap<String, (&Value, &Value)>, String> {
     let jobs = required_array(static_case, "jobs", "static_case")?;
     let mut job_ids = BTreeSet::new();
     let mut operations = BTreeMap::new();
