@@ -1,0 +1,40 @@
+name: Manufacturing Policy v0.2 Challenge Corpus
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-challenge-generator.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-v02-challenge-generator
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-challenge-generator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --check
+      - name: Validate deterministic corpus and adversarial invariants
+        run: cargo test --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml
+      - name: Generate v0.2 corpus twice and compare exact bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml > "$RUNNER_TEMP/mfg-policy-v02-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml > "$RUNNER_TEMP/mfg-policy-v02-b.json"
+          cmp "$RUNNER_TEMP/mfg-policy-v02-a.json" "$RUNNER_TEMP/mfg-policy-v02-b.json"
+          test -s "$RUNNER_TEMP/mfg-policy-v02-a.json"
+          wc -c "$RUNNER_TEMP/mfg-policy-v02-a.json"
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- -D warnings
