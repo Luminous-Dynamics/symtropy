@@ -407,7 +407,8 @@ def main() -> int:
         return 1
     print(
         f"python-anytime-world-set-oracle: {len(cases)} cases passed; "
-        "Fraction exactness; no external dependencies; no authority"
+        "Fraction exactness; no external dependencies; no authority",
+        file=sys.stderr,
     )
     return 0
 
