@@ -637,11 +637,17 @@ pub enum GazeboDispatchOutcome {
     InvalidDispatchRequest,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DispatchAttemptEntry {
+    payload_sha256: String,
+    outcome: Option<GazeboDispatchOutcome>,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct DispatchAttemptRegistry {
     // Process-local fast guard only. The injector owner must persist the same
-    // key-to-payload binding durably across coordinator restarts.
-    attempted_idempotency_keys: BTreeMap<String, String>,
+    // key-to-payload-to-outcome binding durably across coordinator restarts.
+    attempted_idempotency_keys: BTreeMap<String, DispatchAttemptEntry>,
 }
 
 impl DispatchAttemptRegistry {
@@ -746,20 +752,46 @@ fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
         .attempted_idempotency_keys
         .get(&request.idempotency_key)
     {
-        return if previous == &fingerprint {
-            GazeboDispatchOutcome::DuplicateSuppressed
-        } else {
-            GazeboDispatchOutcome::PayloadConflict {
+        if previous.payload_sha256 != fingerprint {
+            return GazeboDispatchOutcome::PayloadConflict {
                 idempotency_key: request.idempotency_key.clone(),
+            };
+        }
+        return match &previous.outcome {
+            Some(GazeboDispatchOutcome::Unknown { dispatch_id }) => {
+                GazeboDispatchOutcome::Unknown {
+                    dispatch_id: dispatch_id.clone(),
+                }
             }
+            Some(GazeboDispatchOutcome::PayloadConflict { idempotency_key }) => {
+                GazeboDispatchOutcome::PayloadConflict {
+                    idempotency_key: idempotency_key.clone(),
+                }
+            }
+            Some(GazeboDispatchOutcome::InvalidDispatchRequest) => {
+                GazeboDispatchOutcome::InvalidDispatchRequest
+            }
+            Some(_) => GazeboDispatchOutcome::DuplicateSuppressed,
+            None => GazeboDispatchOutcome::Unknown { dispatch_id: None },
         };
     }
-    registry
-        .attempted_idempotency_keys
-        .insert(request.idempotency_key.clone(), fingerprint);
-    injector
+    registry.attempted_idempotency_keys.insert(
+        request.idempotency_key.clone(),
+        DispatchAttemptEntry {
+            payload_sha256: fingerprint,
+            outcome: None,
+        },
+    );
+    let outcome = injector
         .dispatch_once(request)
-        .unwrap_or(GazeboDispatchOutcome::Unknown { dispatch_id: None })
+        .unwrap_or(GazeboDispatchOutcome::Unknown { dispatch_id: None });
+    if let Some(entry) = registry
+        .attempted_idempotency_keys
+        .get_mut(&request.idempotency_key)
+    {
+        entry.outcome = Some(outcome.clone());
+    }
+    outcome
 }
 
 /// Reconcile by idempotency key only. This function never calls dispatch_once.
@@ -2169,7 +2201,7 @@ mod tests {
         );
         assert_eq!(
             dispatch_fault_once(&mut registry, &mut injector, &request),
-            GazeboDispatchOutcome::DuplicateSuppressed
+            GazeboDispatchOutcome::Unknown { dispatch_id: None }
         );
         assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(
