@@ -227,3 +227,46 @@ DCSA and GS1 EPCIS/CBV are complementary standards, not a common vocabulary with
 A hard negative control prevents DCSA `eventClassifierCode` values (EST/REQ/PLN/ACT maturity) from mapping directly to EPCIS `bizStep` or `disposition`. A reviewed DCSA event-type → CBV business-step crosswalk can be tested contextually, but it must not imply that source maturity proves a physical event or that the original source payload can be discarded. Every mapped receipt retains source record ID, event ID and raw payload digest.
 
 The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). Proposed acceptance: 100% deterministic field mapping for pinned rules; zero unreviewed mappings; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% original raw payload digest retention.
+
+
+## Terminal dwell process-mining benchmark: version and baseline discipline
+
+The current Mendeley record is **Event Log Dwelling Time Dataset v2** (DOI 10.17632/yvp2b4rtp3.2, 26 June 2024, CC BY 4.0). Its page describes container dwell as discharge/lift from ship until exit through the terminal main gate. The companion Data in Brief article (DOI 10.1016/j.dib.2024.110906) links the earlier **version 1** DOI (10.17632/yvp2b4rtp3.1) and describes July–September 2021 event logs, anonymization and multi-perspective attributes including worker roles and costs. The exact v2 file manifest was not retrieved in this pass; do not assume v2 is byte/schema-identical to the article's v1. Before reproducing the paper, fetch the exact v2 manifest/files through an authorized public API session, record each filename/size/hash and compare schema, event counts, case/trace coverage, labels and licence metadata with v1/paper descriptions.
+
+### Required discovery and conformance baselines
+
+For each frozen version, compare:
+- Directly-Follows Graph (DFG) as a transparent, low-complexity operational baseline.
+- Inductive Miner / infrequent Inductive Miner (sound, block-structured baseline).
+- Split Miner (fitness/precision and complexity trade-off).
+- Heuristics Miner / Flexible Heuristics Miner (noise and frequency baseline).
+- ILP Miner / exact small-log oracle where tractable.
+- Current research comparator: OptIMIIst (2026), which extends Inductive Miner with ILP-based local decisions and evaluates against IMf, AIM, ILP-Miner, Split Miner and Heuristics Miner on Process Discovery Contest synthetic logs. Reproduce its published protocol before claiming an improvement.
+
+Report more than a single F-score. Use held-out alignment-based fitness and precision, generalization, model simplicity/size, soundness/deadlock freedom where applicable, runtime, memory, activity coverage, and stability under repeated seeds. Use fixed input logs, identical activity abstraction, same train/test cases, same compute budget and pinned implementation versions. Keep Pareto frontiers; do not hide low precision behind a high-fitness spaghetti model or high precision behind a model that rejects ordinary behavior. Use a chronological holdout in addition to grouped case holdout to expose process drift and leakage.
+
+### Maritime-specific falsification
+
+1. **Censored cargo:** cases that have not exited the gate by the dataset cutoff remain right-censored/ongoing, not silently deleted or assigned a zero dwell time.
+2. **Missing capture:** preserve unexplained gaps and compare the model's output against capture-completeness diagnostics; an event log of recorded messages is not proof that every physical event was logged.
+3. **Duplicate/reordered events:** adversarially inject duplicate events, late publication, corrected timestamps and out-of-order recordTime; test whether replay preserves both event and knowledge time.
+4. **Route/clearance heterogeneity:** retain the source's separate route/activity/worker/cost dimensions where rights and anonymization permit; do not merge process branches into one generic "customs" step unless a versioned abstraction says so.
+5. **Operational-regime drift:** isolate time periods, terminal/TOS/operator changes and source-schema revisions; test chronological conformance decay rather than training and testing on randomly interleaved events only.
+6. **Receiver boundary:** stop the dwell-time metric at terminal main-gate exit. It says nothing about inland transport, custody handoff or receiver acceptance.
+
+### Proposed success criteria (targets, not achieved)
+
+- 100% raw v2 file digest and manifest reproducibility for the retrieved corpus.
+- 100% exact agreement on deterministic synthetic event-order/correction/censoring fixtures.
+- 0 dropped censored cases without a declared censoring rule.
+- 0 future-published/retrieved events in historical as-of replay.
+- 0 planned/source-reported events promoted to physical outcomes.
+- Discovery model must improve the held-out fitness/precision/complexity Pareto frontier over the strongest reproducible baseline at the same compute budget, with no loss of soundness where claimed.
+- Dwell-time evaluation reports median, p90/p95, tail/conditional summaries and censoring-aware estimates separately from throughput and schedule KPIs.
+
+References:
+- [Mendeley Event Log Dwelling Time Dataset v2](https://data.mendeley.com/datasets/yvp2b4rtp3/2)
+- [Data in Brief article and v1 dataset description](https://doi.org/10.1016/j.dib.2024.110906)
+- [OptIMIIst: Locally optimized inductive process discovery (2026)](https://link.springer.com/article/10.1007/s44311-026-00051-x)
+- [On Process Discovery Experimentation (ACM TOSEM, 2024)](https://doi.org/10.1145/3672447)
+- [South African berth allocation and quay-crane scheduling review (2025)](https://doi.org/10.3390/jmse13071339)
