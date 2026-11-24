@@ -215,7 +215,7 @@
       "quantity": "response_index",
       "unit": "synthetic_index",
       "status": "observed",
-      "value_index": 97.1,
+      "value_index": 96.7,
       "standard_uncertainty_index": 0.7
     },
     {
@@ -225,7 +225,7 @@
       "quantity": "response_index",
       "unit": "synthetic_index",
       "status": "observed",
-      "value_index": 97.5,
+      "value_index": 96.8,
       "standard_uncertainty_index": 0.7
     },
     {
@@ -235,7 +235,7 @@
       "quantity": "response_index",
       "unit": "synthetic_index",
       "status": "observed",
-      "value_index": 111,
+      "value_index": 110.5,
       "standard_uncertainty_index": 0.6
     },
     {
@@ -349,6 +349,7 @@
       "PANEL-C": 0.2,
       "PANEL-D": 0.9
     },
-    "measurement_noise_index": 0.5
+    "measurement_noise_index": 0.5,
+    "out_of_domain_offset_index": 8.1
   }
 }
