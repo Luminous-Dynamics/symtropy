@@ -1105,6 +1105,7 @@ mod tests {
         fn reset_simulation(&mut self, _world_name: &str) -> Result<(), Self::Error> {
             self.reset_calls += 1;
             self.world.world_epoch = format!("{}-reset", self.world.world_epoch);
+            self.target.world_epoch = self.world.world_epoch.clone();
             self.world.simulation_step = 0;
             self.world.simulation_time_ns = 0;
             self.world.state = SimulationState::Paused;
@@ -1194,6 +1195,92 @@ mod tests {
     }
 
     #[test]
+    fn planned_dispatch_rejects_preflight_only_session_before_transport_mutation() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-no-reset",
+                "epoch-no-reset"
+            ),
+            Err(GazeboAdapterError::ResetNotVerified)
+        );
+        assert_eq!(simulator.reset_calls, 0);
+        assert!(simulator.step_calls.is_empty());
+        assert_eq!(injector.dispatch_calls, 0);
+    }
+
+    #[test]
+    fn planned_dispatch_rejects_session_epoch_mutation_after_reset() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
+        session.world_epoch.push_str("-tampered");
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-mutated-session",
+                "epoch-mutated-session"
+            ),
+            Err(GazeboAdapterError::ResetVerificationMismatch)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+    }
+
+    #[test]
+    fn reset_verification_is_single_use_and_not_repeatable() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
+        assert_eq!(simulator.reset_calls, 1);
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetAlreadyVerified)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+    }
+
+    #[test]
     fn planned_dispatch_rejects_tampered_compiled_plan_before_any_transport_call() {
         let original = plan();
         let mut simulator = mock_transport(&original);
@@ -1239,7 +1326,8 @@ mod tests {
             .unwrap();
         let fault = &scenario.fault_events[0];
         let mut simulator = mock_transport(&plan);
-        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
         let mut injector = MockInjector {
             dispatch_calls: 0,
             lookup: DispatchLedgerResult::Accepted,
@@ -1292,7 +1380,8 @@ mod tests {
         let fault = &scenario.fault_events[0];
         let mut simulator = mock_transport(&plan);
         simulator.mutate_state_after_target_resolution = true;
-        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
         let mut injector = MockInjector {
             dispatch_calls: 0,
             lookup: DispatchLedgerResult::Accepted,
@@ -1320,7 +1409,8 @@ mod tests {
     fn planned_dispatch_rejects_scenario_or_fault_not_committed_by_plan() {
         let plan = plan();
         let mut simulator = mock_transport(&plan);
-        let session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
         let mut injector = MockInjector {
             dispatch_calls: 0,
             lookup: DispatchLedgerResult::Accepted,
