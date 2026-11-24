@@ -224,7 +224,7 @@ fn ceil_div(numerator: u128, denominator: u128) -> Result<u128, String> {
         return Err("ZERO_DENOMINATOR".to_owned());
     }
     let quotient = numerator / denominator;
-    if numerator % denominator == 0 {
+    if numerator.is_multiple_of(denominator) {
         Ok(quotient)
     } else {
         quotient
@@ -311,13 +311,12 @@ fn validate_case(case: &Case) -> Result<(), String> {
     if !case.requires_projector && case.projector_window.is_some() {
         return Err("UNEXPECTED_PROJECTOR_WINDOW".to_owned());
     }
-    if let Some(window) = &case.projector_window {
-        if !valid_text(&window.pattern_id)
+    if let Some(window) = &case.projector_window
+        && (!valid_text(&window.pattern_id)
             || !valid_sha256(&window.pattern_receipt_sha256)
-            || window.stable_end_ns <= window.stable_start_ns
-        {
-            return Err("PROJECTOR_WINDOW_INVALID".to_owned());
-        }
+            || window.stable_end_ns <= window.stable_start_ns)
+    {
+        return Err("PROJECTOR_WINDOW_INVALID".to_owned());
     }
     Ok(())
 }
