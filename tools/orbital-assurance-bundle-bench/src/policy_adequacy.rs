@@ -493,6 +493,34 @@ fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
     a.max(1)
 }
 
+fn same_id_set(left: &[String], right: &[String]) -> bool {
+    let left = left.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let right = right.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    left.len() == right.len() && left == right
+}
+
+fn max_scenario_value(rows: &[PolicyScenario], metric: impl Fn(&PolicyScenario) -> &Rational) -> Rational {
+    rows.iter()
+        .map(metric)
+        .max_by(|left, right| left.compare_exact(right))
+        .expect("validated nonempty policy scenario set")
+        .clone()
+}
+
+fn scenario_ids_at_max(
+    rows: &[PolicyScenario],
+    metric: impl Fn(&PolicyScenario) -> &Rational,
+    maximum: &Rational,
+) -> Vec<String> {
+    let mut ids = rows
+        .iter()
+        .filter(|row| metric(row).equal_exact(maximum))
+        .map(|row| row.scenario_id.clone())
+        .collect::<Vec<_>>();
+    ids.sort();
+    ids
+}
+
 fn validate_policy(
     policy: &PolicySnapshot,
     expected_scenarios: &BTreeMap<&str, (&str, &str)>,
@@ -500,10 +528,13 @@ fn validate_policy(
     if !valid_id(&policy.policy_id)
         || policy.query_id.as_deref().is_some_and(|id| !valid_id(id))
         || !policy.declared_worst_case_loss.valid()
+        || !policy.worst_case_wait_and_see_regret.valid()
+        || !policy.worst_case_outcome_class_regret.valid()
         || !policy.query_cost.valid()
         || !policy.branch_action_cost_upper_bound.valid()
         || !policy.total_cost_upper_bound.valid()
         || policy.branch_actions.is_empty()
+        || policy.observation_class_world_ids.is_empty()
         || policy.per_scenario.is_empty()
     {
         return Err(format!(
@@ -550,6 +581,7 @@ fn validate_policy(
     let mut seen_scenarios = BTreeSet::new();
     let mut observed_outcomes = BTreeSet::new();
     let mut world_outcomes = BTreeMap::<&str, &str>::new();
+    let mut worlds_by_outcome = BTreeMap::<String, BTreeSet<String>>::new();
     let mut worst_loss: Option<Rational> = None;
 
     for row in &policy.per_scenario {
@@ -559,6 +591,8 @@ fn validate_policy(
             || !valid_id(&row.observed_outcome_id)
             || !valid_id(&row.selected_action_id)
             || !row.loss.valid()
+            || !row.wait_and_see_regret.valid()
+            || !row.outcome_class_regret.valid()
             || !seen_scenarios.insert(row.scenario_id.as_str())
         {
             return Err(format!(
@@ -595,6 +629,10 @@ fn validate_policy(
             ));
         }
         observed_outcomes.insert(row.observed_outcome_id.as_str());
+        worlds_by_outcome
+            .entry(row.observed_outcome_id.clone())
+            .or_default()
+            .insert(row.world_id.clone());
         if worst_loss
             .as_ref()
             .is_none_or(|best| row.loss.compare_exact(best) == Ordering::Greater)
@@ -636,6 +674,30 @@ fn validate_policy(
             policy.policy_id
         ));
     }
+    let declared_outcome_ids = policy
+        .observation_class_world_ids
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    if declared_outcome_ids != observed_outcomes {
+        return Err(format!(
+            "policy {} observation-class world map has missing or extra outcomes",
+            policy.policy_id
+        ));
+    }
+    for (outcome, declared_worlds) in &policy.observation_class_world_ids {
+        if declared_worlds.is_empty()
+            || declared_worlds.iter().any(|world| !valid_id(world))
+            || declared_worlds.iter().collect::<BTreeSet<_>>().len() != declared_worlds.len()
+            || declared_worlds
+                != &worlds_by_outcome[outcome].iter().cloned().collect::<Vec<_>>()
+        {
+            return Err(format!(
+                "policy {} observation-class world IDs disagree with scenario outcomes",
+                policy.policy_id
+            ));
+        }
+    }
 
     let worst_loss = worst_loss.expect("nonempty policy scenarios were validated");
     if !worst_loss.equal_exact(&policy.declared_worst_case_loss) {
@@ -643,6 +705,45 @@ fn validate_policy(
             "policy {} declared worst-case loss disagrees with scenario rows",
             policy.policy_id
         ));
+    }
+    let worst_wait = max_scenario_value(&policy.per_scenario, |row| &row.wait_and_see_regret);
+    let worst_outcome = max_scenario_value(&policy.per_scenario, |row| &row.outcome_class_regret);
+    if !worst_wait.equal_exact(&policy.worst_case_wait_and_see_regret)
+        || !worst_outcome.equal_exact(&policy.worst_case_outcome_class_regret)
+    {
+        return Err(format!(
+            "policy {} declared regret metrics disagree with scenario rows",
+            policy.policy_id
+        ));
+    }
+    let worst_loss_ids = scenario_ids_at_max(&policy.per_scenario, |row| &row.loss, &worst_loss);
+    let worst_wait_ids =
+        scenario_ids_at_max(&policy.per_scenario, |row| &row.wait_and_see_regret, &worst_wait);
+    let worst_outcome_ids = scenario_ids_at_max(
+        &policy.per_scenario,
+        |row| &row.outcome_class_regret,
+        &worst_outcome,
+    );
+    if !same_id_set(&policy.worst_loss_scenario_ids, &worst_loss_ids)
+        || !same_id_set(&policy.worst_wait_and_see_scenario_ids, &worst_wait_ids)
+        || !same_id_set(&policy.worst_outcome_class_regret_scenario_ids, &worst_outcome_ids)
+    {
+        return Err(format!(
+            "policy {} worst-metric scenario ID sets disagree with per-scenario rows",
+            policy.policy_id
+        ));
+    }
+    if let Some(reduction) = &policy.worst_loss_reduction_vs_best_no_query {
+        if !matches!(
+            reduction.direction.as_str(),
+            "positive_improvement" | "negative_improvement" | "no_change"
+        ) || !reduction.magnitude.valid()
+        {
+            return Err(format!(
+                "policy {} loss-reduction diagnostic is malformed",
+                policy.policy_id
+            ));
+        }
     }
     Ok(worst_loss)
 }
