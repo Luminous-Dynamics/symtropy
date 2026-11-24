@@ -541,7 +541,7 @@ fn make_policy(
     oracles: [u128; MODEL_COUNT],
 ) -> Result<ObservablePolicy, TemporalMinimaxError> {
     let mut branches = Vec::with_capacity(selected.len());
-    let mut rectangular = 0_u128;
+    let mut rectangular = if root_action_id.is_none() { maximum(losses) } else { 0_u128 };
     let mut worst_resources = ResourceVector::default();
     for candidate in selected {
         rectangular = rectangular.checked_add(maximum(candidate.contributions))
@@ -749,7 +749,7 @@ pub fn plan_temporal_mission_minimax(
                                 .ok_or(TemporalMinimaxError::ArithmeticOverflow)?;
                         }
                     }
-                    let selected_owned = selected.iter().map(|item| (*item).clone()).collect::<Vec<_>>();
+                    let selected_owned = selected.iter().map(|item| (**item).clone()).collect::<Vec<_>>();
                     let policy = make_policy(
                         PolicyObjective::MissionGlobalMinimaxRisk,
                         Some(*root_id),
@@ -877,15 +877,14 @@ mod tests {
         let a = action(1, 100, 100, 250_000, 250_000);
         let initial = initial_mass(&p, 0);
         let outcomes = apply_action(0, initial, &a).unwrap();
-        for outcome in outcomes {
-            let outcome_index = outcome.outcome.index();
+        for outcome in &outcomes {
             let mut expected_cause_totals = [0_u128; CAUSE_COUNT];
             for cause in 0..CAUSE_COUNT {
                 for nav_state in 0..2 {
                     let state_index = cause * 2 + nav_state;
                     expected_cause_totals[cause] = expected_cause_totals[cause]
                         .checked_add(initial.parts[state_index]
-                            * a.likelihoods[0][state_index].probability(outcomes[outcome_index].outcome) as u128)
+                            * a.likelihoods[0][state_index].probability(outcome.outcome) as u128)
                         .unwrap();
                 }
                 expected_cause_totals[cause] *= SCALE;
@@ -957,6 +956,21 @@ mod tests {
     }
 
     #[test]
+    fn no_action_rectangular_value_is_not_zero() {
+        let mut p = problem();
+        p.prior_by_model_ppm = [
+            [0, 500_000, 0, 500_000],
+            [500_000, 0, 500_000, 0],
+        ];
+        let plans = plan_temporal_mission_minimax(&p, &[], ResourceVector::default()).unwrap();
+        assert_eq!(
+            plans.rectangular_switching_diagnostic.rectangular_switching_risk_numerator,
+            plans.rectangular_switching_diagnostic.worst_case_risk_numerator
+        );
+        assert_eq!(plans.rectangular_switching_diagnostic.first_action_id, None);
+    }
+
+    #[test]
     fn model_set_extension_cannot_beat_the_old_model_oracle() {
         let p = problem();
         let a = action_with_correct_outside(1, 100, 100);
@@ -990,8 +1004,8 @@ mod tests {
             if let Some(root) = policy.first_action_id {
                 for branch in &policy.branches {
                     assert!(branch.path_resource_use.fits(budget(200)));
-                    if let ObservableBranchChoice::Acquire { second_action_id, .. } = branch.choice {
-                        assert_ne!(Some(second_action_id), Some(root));
+                    if let ObservableBranchChoice::Acquire { second_action_id, .. } = &branch.choice {
+                        assert_ne!(Some(*second_action_id), Some(root));
                     }
                 }
             }
