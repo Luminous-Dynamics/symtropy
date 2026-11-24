@@ -681,4 +681,85 @@ mod tests {
             Err(ConfidenceSequenceBenchmarkError::InvalidTimingRepetitions)
         );
     }
+    #[test]
+    fn exhaustive_adaptive_proposal_paths_cover_all_three_methods_at_every_stopping_time() {
+        const HORIZON: u32 = 7;
+        const TARGET_EVENT_PROBABILITY: f64 = 0.2;
+        const DEFENSIVE_WEIGHT: f64 = 0.1;
+        let conditional_mean = DEFENSIVE_WEIGHT * TARGET_EVENT_PROBABILITY;
+        let alpha = 0.05;
+        let grid = parameter_grid();
+        let mut fixed_miss_probability = 0.0;
+        let mut prpl_miss_probability = 0.0;
+        let mut hedged_miss_probability = 0.0;
+
+        for encoded_path in 0_u32..(1_u32 << HORIZON) {
+            let mut fixed = BoundedMeanBettingSequence::new();
+            let mut prpl = PrPlEbConfidenceSequence::new(alpha).unwrap();
+            let mut hedged = HedgedCapitalConfidenceSequence::new(alpha, grid.clone()).unwrap();
+            let mut path_probability = 1.0;
+            let mut previous_event = false;
+            let mut fixed_missed = false;
+            let mut prpl_missed = false;
+            let mut hedged_missed = false;
+
+            for time in 0..HORIZON {
+                let residual_event_probability = if previous_event { 0.8 } else { 0.05 };
+                let proposal_event_probability = DEFENSIVE_WEIGHT * TARGET_EVENT_PROBABILITY
+                    + (1.0 - DEFENSIVE_WEIGHT) * residual_event_probability;
+                let event_occurred = ((encoded_path >> time) & 1) == 1;
+                path_probability *= if event_occurred {
+                    proposal_event_probability
+                } else {
+                    1.0 - proposal_event_probability
+                };
+
+                let observation = if event_occurred {
+                    DEFENSIVE_WEIGHT * TARGET_EVENT_PROBABILITY / proposal_event_probability
+                } else {
+                    0.0
+                };
+
+                fixed.observe(observation).unwrap();
+                prpl.observe(observation).unwrap();
+                hedged.observe(observation).unwrap();
+
+                let fixed_interval = fixed.confidence_sequence(alpha).unwrap();
+                let prpl_interval = prpl.confidence_sequence();
+                let hedged_interval = hedged.confidence_sequence();
+                fixed_missed |= fixed_interval.lower > conditional_mean
+                    || fixed_interval.upper < conditional_mean;
+                prpl_missed |=
+                    prpl_interval.lower > conditional_mean || prpl_interval.upper < conditional_mean;
+                hedged_missed |= hedged_interval.lower > conditional_mean
+                    || hedged_interval.upper < conditional_mean;
+                previous_event = event_occurred;
+            }
+
+            if fixed_missed {
+                fixed_miss_probability += path_probability;
+            }
+            if prpl_missed {
+                prpl_miss_probability += path_probability;
+            }
+            if hedged_missed {
+                hedged_miss_probability += path_probability;
+            }
+        }
+
+        assert!(
+            fixed_miss_probability <= alpha + 1.0e-10,
+            "fixed-stake exact adaptive-path miss probability was {fixed_miss_probability}"
+        );
+        assert!(
+            prpl_miss_probability <= alpha + 1.0e-10,
+            "PrPl-EB exact adaptive-path miss probability was {prpl_miss_probability}"
+        );
+        assert!(
+            hedged_miss_probability <= alpha + 1.0e-10,
+            "Hedged exact adaptive-path miss probability was {hedged_miss_probability}"
+        );
+    }
+
+
 }
