@@ -37,6 +37,8 @@ pub struct FiniteScenarioContract {
     pub evaluator_revision: String,
     pub loss_contract_revision: String,
     pub operating_regime_id: String,
+    /// Minimum service units required for each participant in every scenario.
+    pub participant_service_floor_units: u32,
     /// Exact, predeclared universe of stress-scenario identifiers.
     pub expected_scenario_ids: Vec<String>,
     pub source: FiniteScenarioSource,
@@ -73,6 +75,7 @@ pub enum FiniteScenarioError {
     LossContractRevisionMismatch,
     ServiceLossOutsideBound(u16),
     MissingIndependenceEvidence,
+    InvalidParticipantServiceFloor,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -93,6 +96,8 @@ pub struct FiniteScenarioAudit {
     pub physical_failure_count: usize,
     pub unknown_physical_count: usize,
     pub authority_violation_count: usize,
+    pub participant_service_floor_violation_count: usize,
+    pub participant_service_floor_units: u32,
     pub maximum_service_loss_milli: Option<u16>,
     pub minimum_participant_service_units: Option<u32>,
 }
@@ -131,6 +136,9 @@ pub fn compile_finite_scenario_audit(
     if contract.expected_scenario_ids.is_empty() {
         return Err(FiniteScenarioError::EmptyScenarioUniverse);
     }
+    if contract.participant_service_floor_units == 0 {
+        return Err(FiniteScenarioError::InvalidParticipantServiceFloor);
+    }
     if contract.source == FiniteScenarioSource::IndependentOracle
         && contract
             .independence_evidence_ref
@@ -158,6 +166,7 @@ pub fn compile_finite_scenario_audit(
     let mut physical_failure_count = 0_usize;
     let mut unknown_physical_count = 0_usize;
     let mut authority_violation_count = 0_usize;
+    let mut participant_service_floor_violation_count = 0_usize;
     let mut maximum_service_loss_milli = None;
     let mut minimum_participant_service_units = None;
 
@@ -210,6 +219,11 @@ pub fn compile_finite_scenario_audit(
             }),
         );
 
+        if outcome.participant_a_service_units < contract.participant_service_floor_units
+            || outcome.participant_b_service_units < contract.participant_service_floor_units
+        {
+            participant_service_floor_violation_count += 1;
+        }
         let participant_min = outcome
             .participant_a_service_units
             .min(outcome.participant_b_service_units);
@@ -239,6 +253,8 @@ pub fn compile_finite_scenario_audit(
         physical_failure_count,
         unknown_physical_count,
         authority_violation_count,
+        participant_service_floor_violation_count,
+        participant_service_floor_units: contract.participant_service_floor_units,
         maximum_service_loss_milli,
         minimum_participant_service_units,
     })
@@ -292,6 +308,7 @@ pub enum AssuranceBlocker {
     UnknownPhysicalScenarioOutcome,
     PhysicalScenarioFailure,
     AuthorityViolation,
+    ParticipantServiceFloorViolation,
     PolicyIdentityMismatch,
     EvaluatorRevisionMismatch,
     LossContractRevisionMismatch,
@@ -347,6 +364,9 @@ pub fn compose_assurance(
     }
     if scenarios.authority_violation_count > 0 {
         blockers.push(AssuranceBlocker::AuthorityViolation);
+    }
+    if scenarios.participant_service_floor_violation_count > 0 {
+        blockers.push(AssuranceBlocker::ParticipantServiceFloorViolation);
     }
 
     if risk.policy_id != scenarios.policy_id || risk.policy_revision != scenarios.policy_revision
@@ -415,6 +435,7 @@ mod tests {
             evaluator_revision: "evaluator-v1".to_owned(),
             loss_contract_revision: "loss-v1".to_owned(),
             operating_regime_id: "synthetic-reserve-regime".to_owned(),
+            participant_service_floor_units: 30,
             expected_scenario_ids: vec![
                 "a-critical".to_owned(),
                 "b-critical".to_owned(),
@@ -566,6 +587,37 @@ mod tests {
         assert!(decision
             .blockers
             .contains(&AssuranceBlocker::ScenarioUniverseIncomplete));
+    }
+
+    #[test]
+    fn participant_service_floor_is_non_compensable_for_each_scenario() {
+        let mut values = outcomes();
+        values[1].participant_a_service_units = 29;
+        values[1].participant_b_service_units = 900;
+        let audit = compile_finite_scenario_audit(
+            &contract(FiniteScenarioSource::IndependentOracle),
+            &values,
+        )
+        .expect("service-floor breach remains visible in the audit");
+
+        assert_eq!(audit.participant_service_floor_violation_count, 1);
+        assert_eq!(audit.minimum_participant_service_units, Some(29));
+
+        let decision = compose_assurance(&audit, &risk_claim());
+        assert!(!decision.admissible_within_declared_scope);
+        assert!(decision
+            .blockers
+            .contains(&AssuranceBlocker::ParticipantServiceFloorViolation));
+    }
+
+    #[test]
+    fn zero_service_floor_is_rejected_as_an_uninformative_fairness_contract() {
+        let mut fixture = contract(FiniteScenarioSource::IndependentOracle);
+        fixture.participant_service_floor_units = 0;
+        assert_eq!(
+            compile_finite_scenario_audit(&fixture, &outcomes()),
+            Err(FiniteScenarioError::InvalidParticipantServiceFloor)
+        );
     }
 
     #[test]
