@@ -54,3 +54,7 @@ path = "src/bin/epcis_correction_audit.rs"
 [[bin]]
 name = "dcsa-maturity-audit"
 path = "src/bin/dcsa_maturity_audit.rs"
+
+[[bin]]
+name = "cross-standard-mapping-audit"
+path = "src/bin/cross_standard_mapping_audit.rs"
