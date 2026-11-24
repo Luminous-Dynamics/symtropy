@@ -4,10 +4,12 @@
 //!
 //! For each declared sliding/boundary observation:
 //!
-//!   (f_u / (c e_u))^2 + (f_v / (c e_v))^2 + (m_n / (c e_n))^2 = 1
+//!   (f_u / (c e_u))^2 + (f_v / (c e_v))^2
+//!       + (m_n / (c L (e_n/L)))^2 = 1
 //!
-//! where c = mu * N is supplied per observation. Define beta_i = 1/e_i^2
-//! and x_i = (w_i / c)^2. Then x beta = 1 is linear in beta.
+//! where c = mu * N and characteristic length L are supplied per observation
+//! profile. Define beta = [1/e_u^2, 1/e_v^2, 1/(e_n/L)^2] and
+//! x = [ (f_u/c)^2, (f_v/c)^2, (m_n/(c L))^2 ]. Then x beta = 1.
 //!
 //! This crate uses weighted, pivoted, twice-reorthogonalized MGS to diagnose
 //! rank and solve the three-parameter least-squares fit. It deliberately does
@@ -725,6 +727,54 @@ mod tests {
     }
 
     #[test]
+    fn torsional_shape_scale_is_invariant_to_characteristic_length_choice() {
+        let observations = vec![
+            observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0),
+            observation("v", "v", [0.0, 0.5, 0.0], 1.0, 1.0),
+            observation("spin", "spin", [0.0, 0.0, 0.25], 1.0, 1.0),
+        ];
+        let mut short_length = input(observations.clone());
+        short_length.characteristic_length_m = 0.5;
+        let mut long_length = input(observations);
+        long_length.characteristic_length_m = 2.0;
+        let short_report =
+            calibrate_planar_patch(&short_length, config()).expect("short scale");
+        let long_report =
+            calibrate_planar_patch(&long_length, config()).expect("long scale");
+        let short_axes = short_report.ellipsoid_shape_scales.expect("short axes");
+        let long_axes = long_report.ellipsoid_shape_scales.expect("long axes");
+        close(short_axes[0], long_axes[0], 1.0e-12);
+        close(short_axes[1], long_axes[1], 1.0e-12);
+        close(short_axes[2], 0.25, 1.0e-12);
+        close(long_axes[2], 0.25, 1.0e-12);
+    }
+
+    #[test]
+    fn invalid_characteristic_length_is_rejected() {
+        let mut problem = input(vec![observation(
+            "u",
+            "u",
+            [2.0, 0.0, 0.0],
+            1.0,
+            1.0,
+        )]);
+        problem.characteristic_length_m = f64::NAN;
+        assert_eq!(
+            calibrate_planar_patch(&problem, config())
+                .expect_err("non-finite characteristic length")
+                .kind,
+            CalibrationErrorKind::InvalidParameter
+        );
+        problem.characteristic_length_m = 0.0;
+        assert_eq!(
+            calibrate_planar_patch(&problem, config())
+                .expect_err("zero characteristic length")
+                .kind,
+            CalibrationErrorKind::InvalidParameter
+        );
+    }
+
+    #[test]
     fn pure_tangential_u_trials_are_unidentifiable() {
         let problem = input(vec![
             observation("u1", "trial-a", [2.0, 0.0, 0.0], 1.0, 1.0),
@@ -770,7 +820,7 @@ mod tests {
             observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0),
             observation("v", "v", [0.0, 0.5, 0.0], 1.0, 1.0),
             observation("spin", "spin", [0.0, 0.0, 0.25], 1.0, 1.0),
-            observation("mixed", "mixed", [1.41421356237, 0.35355339059, 0.176776695295], 1.0, 1.0),
+            observation("mixed", "mixed", [1.1547005383792515, 0.2886751345948129, 0.14433756729740646], 1.0, 1.0),
         ];
         let first = calibrate_planar_patch(&input(observations.clone()), config()).expect("first");
         let second = calibrate_planar_patch(
