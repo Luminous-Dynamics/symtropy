@@ -126,6 +126,11 @@ pub struct TransferCalibrationReportV0 {
     /// Exact fixed-bin ECE = numerator / (sample_count * probability scale).
     pub expected_calibration_error_numerator: u128,
     pub expected_calibration_error_denominator: u128,
+    /// Share of all forecasts that received a non-abstaining decision.
+    pub decision_coverage: f64,
+    /// Tie-aware right-step AURC over decided samples only; None if all abstain.
+    /// Always report this beside decision_coverage to prevent abstention gaming.
+    pub risk_coverage_auc: Option<f64>,
     /// Risk/coverage values at the caller's preregistered thresholds.
     pub selective_risk_curve: Vec<SelectiveRiskPointV0>,
 }
@@ -362,6 +367,13 @@ pub fn evaluate_transfer_calibration(
         .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0))
         .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
 
+    let decided_count = decisions
+        .iter()
+        .filter(|(_, predicted, _)| predicted.is_some())
+        .count();
+    let decision_coverage = decided_count as f64 / sample_count as f64;
+    let risk_coverage_auc = tie_aware_right_step_aurc(&decisions, decided_count);
+
     let selective_risk_curve = confidence_thresholds_ppm
         .iter()
         .map(|threshold| {
@@ -395,8 +407,60 @@ pub fn evaluate_transfer_calibration(
         calibration_bins: bins,
         expected_calibration_error_numerator: ece_numerator,
         expected_calibration_error_denominator: ece_denominator,
+        decision_coverage,
+        risk_coverage_auc,
         selective_risk_curve,
     })
+}
+
+/// Tie-aware right-step area under the selective risk/coverage curve.
+///
+/// Only non-abstained decisions participate in the curve, so its coverage
+/// axis spans 0..=1 over decided samples. Report decision_coverage alongside
+/// this value: otherwise a system could improve AURC by abstaining on almost
+/// every difficult case. All equal-confidence decisions enter as one group,
+/// making the metric invariant to input order within ties.
+fn tie_aware_right_step_aurc(
+    decisions: &[(u32, Option<bool>, bool)],
+    decided_count: usize,
+) -> Option<f64> {
+    if decided_count == 0 {
+        return None;
+    }
+
+    let mut decided = decisions
+        .iter()
+        .filter_map(|(confidence, predicted, truth)| {
+            predicted.map(|predicted| (*confidence, predicted != *truth))
+        })
+        .collect::<Vec<_>>();
+    decided.sort_by(|left, right| right.0.cmp(&left.0));
+
+    let mut covered = 0_usize;
+    let mut errors = 0_usize;
+    let mut area = 0.0_f64;
+    let mut index = 0_usize;
+
+    while index < decided.len() {
+        let confidence = decided[index].0;
+        let mut group_count = 0_usize;
+        let mut group_errors = 0_usize;
+
+        while index < decided.len() && decided[index].0 == confidence {
+            group_count += 1;
+            if decided[index].1 {
+                group_errors += 1;
+            }
+            index += 1;
+        }
+
+        covered = covered.checked_add(group_count)?;
+        errors = errors.checked_add(group_errors)?;
+        let risk_after_group = errors as f64 / covered as f64;
+        area += (group_count as f64 / decided_count as f64) * risk_after_group;
+    }
+
+    Some(area)
 }
 
 /// Evaluate calibration separately for evaluator-owned strata.
@@ -872,6 +936,8 @@ mod tests {
         assert_eq!(report.expected_calibration_error_numerator, 0);
         assert_eq!(report.selective_risk_curve[0].covered_samples, 4);
         assert_eq!(report.selective_risk_curve[1].covered_samples, 4);
+        assert_eq!(report.decision_coverage, 1.0);
+        assert_eq!(report.risk_coverage_auc, Some(0.0));
     }
 
     #[test]
@@ -962,6 +1028,8 @@ mod tests {
         assert_eq!(high_confidence.errors, 0);
         assert_eq!(high_confidence.selective_risk(), Some(0.0));
         assert_eq!(high_confidence.coverage(), Some(0.5));
+        assert_eq!(report.decision_coverage, 0.75);
+        assert!(report.risk_coverage_auc.is_some());
     }
 
     #[test]
@@ -987,6 +1055,60 @@ mod tests {
 
         assert_eq!(report.selective_risk_curve[0].covered_samples, 1);
         assert_eq!(report.selective_risk_curve[0].errors, 1);
+    }
+
+    #[test]
+    fn tie_aware_aurc_is_input_order_invariant_and_reports_decision_coverage() {
+        let forecasts = [
+            forecast(1, 900_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(2, 900_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(3, 500_000, None),
+            forecast(4, 500_000, None),
+        ];
+        let reordered = [forecasts[1], forecasts[0], forecasts[2], forecasts[3]];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let first = evaluate_transfer_calibration(&forecasts, &outcomes, 4, &[0]).unwrap();
+        let second = evaluate_transfer_calibration(&reordered, &outcomes, 4, &[0]).unwrap();
+
+        assert_eq!(first.decision_coverage, 0.5);
+        assert_eq!(first.risk_coverage_auc, Some(0.5));
+        assert_eq!(first.risk_coverage_auc, second.risk_coverage_auc);
+    }
+
+    #[test]
+    fn aurc_is_none_when_all_forecasts_abstain() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 1,
+            evaluation_stratum_id: 0,
+            transfer_qualified: true,
+        }];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[0]).unwrap();
+        assert_eq!(report.decision_coverage, 0.0);
+        assert_eq!(report.risk_coverage_auc, None);
     }
 
     #[test]
