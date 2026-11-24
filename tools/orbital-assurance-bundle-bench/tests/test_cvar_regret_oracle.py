@@ -30,10 +30,10 @@ class CvarArithmeticTests(unittest.TestCase):
             (Fraction(0), Fraction(7, 10)),
             (Fraction(3), Fraction(1, 5)),
             (Fraction(8), Fraction(1, 10)),
-        ], Fraction(9, 10))
+        ], Fraction(17, 20))
         self.assertEqual(result["var"], Fraction(3))
-        self.assertEqual(result["cvar"], Fraction(8))
-        self.assertEqual(result["var_atom_fraction"], Fraction(1, 2))
+        self.assertEqual(result["cvar"], Fraction(19, 3))
+        self.assertEqual(result["var_atom_fraction"], Fraction(1, 4))
 
     def test_zero_mass_scenario_does_not_change_tail_risk(self):
         result = cvar_upper_tail([
