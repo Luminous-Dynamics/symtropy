@@ -397,12 +397,16 @@ impl SourceArtifactLedger {
         source_publication_cutoff_unix_ms: i64,
         system_retrieval_cutoff_unix_ms: i64,
     ) -> Option<&SourceArtifactEnvelope> {
-        self.revisions_by_artifact.get(artifact_id)?.iter().rev().find(|revision| {
-            revision
-                .source_published_at_unix_ms
-                .is_some_and(|published| published <= source_publication_cutoff_unix_ms)
-                && revision.retrieved_at_unix_ms <= system_retrieval_cutoff_unix_ms
-        })
+        self.revisions_by_artifact
+            .get(artifact_id)?
+            .iter()
+            .rev()
+            .find(|revision| {
+                revision
+                    .source_published_at_unix_ms
+                    .is_some_and(|published| published <= source_publication_cutoff_unix_ms)
+                    && revision.retrieved_at_unix_ms <= system_retrieval_cutoff_unix_ms
+            })
     }
 
     /// Returns the latest captured revision that applies to a requested valid
