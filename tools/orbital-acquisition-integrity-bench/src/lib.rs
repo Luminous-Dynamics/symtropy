@@ -7,8 +7,6 @@ pub const RECEIPT_SCHEMA: &str = "luminous.orbital-acquisition-integrity.receipt
 pub const BENCHMARK_ID: &str = "ORBITAL-ACQUISITION-INTEGRITY-001";
 pub const CLAIM_CEILING: &str =
     "synthetic_constant_relative_image_plane_motion_exposure_and_readout_bounds_only";
-const MICRO_PIXELS_PER_PIXEL: u128 = 1_000_000;
-const NANOSECONDS_PER_SECOND: u128 = 1_000_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -70,7 +68,7 @@ pub enum AcquisitionStatus {
     Indeterminate,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectorWindow {
     pub pattern_id: String,
@@ -123,13 +121,27 @@ pub struct Corpus {
 pub struct CaseResult {
     pub case_id: String,
     pub camera_id: String,
+    pub motion_model_id: String,
+    pub motion_model_state: MotionModelState,
     pub calibration_state: CalibrationState,
     pub calibration_receipt_sha256: String,
     pub clock_map_state: ClockMapState,
     pub clock_map_receipt_sha256: String,
     pub timestamp_reference: TimestampReference,
+    pub frame_timestamp_ns: i64,
+    pub timestamp_uncertainty_ns: u64,
+    pub trigger_jitter_ns: u64,
+    pub relative_velocity_x_um_per_s: i64,
+    pub relative_velocity_y_um_per_s: i64,
+    pub gsd_um_per_pixel: u64,
+    pub exposure_duration_ns: u64,
     pub shutter_mode: ShutterMode,
+    pub image_height_px: u32,
+    pub readout_duration_ns: u64,
+    pub readout_uncertainty_ns: u64,
     pub readout_direction: ReadoutDirection,
+    pub requires_projector: bool,
+    pub projector_window: Option<ProjectorWindow>,
     pub exposure_smear_bound_micro_px: u64,
     pub rolling_shutter_bound_micro_px: u64,
     pub timing_association_bound_micro_px: u64,
@@ -501,13 +513,27 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     Ok(CaseResult {
         case_id: case.case_id.clone(),
         camera_id: case.camera_id.clone(),
+        motion_model_id: case.motion_model_id.clone(),
+        motion_model_state: case.motion_model_state,
         calibration_state: case.calibration_state,
         calibration_receipt_sha256: case.calibration_receipt_sha256.clone(),
         clock_map_state: case.clock_map_state,
         clock_map_receipt_sha256: case.clock_map_receipt_sha256.clone(),
         timestamp_reference: case.timestamp_reference,
+        frame_timestamp_ns: case.frame_timestamp_ns,
+        timestamp_uncertainty_ns: case.timestamp_uncertainty_ns,
+        trigger_jitter_ns: case.trigger_jitter_ns,
+        relative_velocity_x_um_per_s: case.relative_velocity_x_um_per_s,
+        relative_velocity_y_um_per_s: case.relative_velocity_y_um_per_s,
+        gsd_um_per_pixel: case.gsd_um_per_pixel,
+        exposure_duration_ns: case.exposure_duration_ns,
         shutter_mode: case.shutter_mode,
+        image_height_px: case.image_height_px,
+        readout_duration_ns: case.readout_duration_ns,
+        readout_uncertainty_ns: case.readout_uncertainty_ns,
         readout_direction: case.readout_direction,
+        requires_projector: case.requires_projector,
+        projector_window: case.projector_window.clone(),
         exposure_smear_bound_micro_px: exposure_smear,
         rolling_shutter_bound_micro_px: rolling_shutter_bound,
         timing_association_bound_micro_px: timing_association_bound,
