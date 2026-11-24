@@ -602,7 +602,10 @@ fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
         p50_ns: Some(nearest_rank(50)),
         p95_ns: Some(nearest_rank(95)),
         p99_ns: Some(nearest_rank(99)),
-        sub_resolution_samples: durations_ns.iter().filter(|duration| **duration == 0).count() as u64,
+        sub_resolution_samples: durations_ns
+            .iter()
+            .filter(|duration| **duration == 0)
+            .count() as u64,
     }
 }
 
@@ -806,7 +809,8 @@ impl QueryScore {
     /// resolution. Correctness may still qualify; latency comparisons may not.
     #[must_use]
     pub fn latency_comparable(&self) -> bool {
-        self.timing.complete_for(self.counts.candidate_forwarded_queries)
+        self.timing
+            .complete_for(self.counts.candidate_forwarded_queries)
             && self.timing.sub_resolution_samples == 0
             && self
                 .strata
