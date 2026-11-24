@@ -693,6 +693,18 @@ mod tests {
     }
 
     #[test]
+    fn stale_out_of_range_condition_does_not_claim_current_out_of_scope() {
+        let mut value = case();
+        let temperature = value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists");
+        temperature.value_q = 40_000;
+        temperature.observed_time_ns = 100;
+        value.scopes[0].required_conditions.get_mut("temperature_milli_c").expect("condition envelope exists").maximum_age_ns = 100;
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Expired);
+        assert!(!result.reason_codes.contains(&"OPERATING_CONDITION_OUT_OF_SCOPE".to_owned()));
+    }
+
+    #[test]
     fn condition_uncertainty_crossing_envelope_is_indeterminate() {
         let mut value = case();
         let temperature = value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists");
