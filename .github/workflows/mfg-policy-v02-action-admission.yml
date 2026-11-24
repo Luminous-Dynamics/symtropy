@@ -6,16 +6,19 @@ on:
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
       - "tools/mfg-policy-v02-action-admission/**"
       - ".github/workflows/mfg-policy-v02-action-admission.yml"
   push:
     branches:
       - main
       - research/mfg-policy-v02-action-admission
+      - research/mfg-policy-v02-live-snapshot-admission
     paths:
       - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
       - "tools/mfg-policy-v02-action-admission/**"
       - ".github/workflows/mfg-policy-v02-action-admission.yml"
 
