@@ -43,7 +43,7 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 18
+          assert len(fixture["cases"]) == 24
           assert len({case["case_id"] for case in fixture["cases"]}) == 18
           assert all(case["required_scope_ids"] for case in fixture["cases"])
           print("16 frozen calibration-validity cases and Draft 2020-12 schema validated")
@@ -61,7 +61,7 @@ jobs:
           cmp /tmp/cal-rust-a.json /tmp/cal-rust-b.json
           jq -e '
             .schema == "luminous.orbital-cal-validity.receipt.v0.1" and
-            .case_count == 18 and .expected_outcome_matches == 18 and
+            .case_count == 24 and .expected_outcome_matches == 24 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .visibility_assessed == false and
             .measurement_performance_assessed == false and
@@ -92,7 +92,13 @@ jobs:
           assert cases["CAL-016-EVENT-OVERLAPS-CALIBRATION-EPOCH"]["status"] == "INDETERMINATE"
           assert cases["CAL-017-REFERENCE-CHECK-AGE-BOUNDARY-OVERLAP"]["status"] == "INDETERMINATE"
           assert cases["CAL-018-REFERENCE-CHECK-AT-ACQUISITION"]["status"] == "INDETERMINATE"
-          print("Rust and independent Python oracle agree on all 18 calibration-validity cases")
+          assert cases["CAL-019-TEMPERATURE-DEFINITIVELY-OUT-OF-SCOPE"]["status"] == "OUT_OF_SCOPE"
+          assert cases["CAL-020-TEMPERATURE-UNCERTAINTY-CROSSES-LIMIT"]["status"] == "INDETERMINATE"
+          assert cases["CAL-021-TEMPERATURE-MEASUREMENT-MISSING"]["status"] == "INDETERMINATE"
+          assert cases["CAL-022-TEMPERATURE-UNIT-MISMATCH"]["status"] == "IDENTITY_MISMATCH"
+          assert cases["CAL-023-TEMPERATURE-MEASUREMENT-STALE"]["status"] == "EXPIRED"
+          assert cases["CAL-024-TEMPERATURE-MEASUREMENT-AGE-BOUNDARY"]["status"] == "INDETERMINATE"
+          print("Rust and independent Python oracle agree on all 24 calibration-validity cases")
           PY
       - name: Retain exact-head evidence
         if: success()
