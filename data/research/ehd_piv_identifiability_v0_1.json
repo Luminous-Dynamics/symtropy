@@ -1,0 +1,120 @@
+{
+  "contract_id": "ehd_piv_identifiability_v0_1",
+  "version": "0.1.0",
+  "status": "local_linear_identifiability_kernel",
+  "matrix_semantics": "input residual sensitivity rows are pre-whitened by a qualified observation covariance; columns are multiplied by characteristic parameter scales",
+  "algorithm": "one_sided_jacobi_svd",
+  "diagnostics": [
+    "joint_singular_values",
+    "joint_rank_and_condition",
+    "nuisance_sensitivity_span",
+    "nuisance_profiled_physical_singular_values",
+    "nuisance_profiled_physical_rank_and_condition",
+    "weak_joint_right_singular_directions",
+    "physical_nuisance_pairwise_signed_correlation",
+    "candidate_acquisition_rank_gain",
+    "candidate_smallest_profiled_physical_sensitivity_gain_per_cost",
+    "dense_covariance_cholesky_whitening_reference",
+    "conditional_innovation_sensitivity_after_existing_measurements",
+    "Schur_complement_covariance_for_incremental_measurement"
+  ],
+  "authored_manufactured_tests": 28,
+  "limits": [
+    "no_observation_covariance_whitening",
+    "no_global_or_structural_identifiability_proof",
+    "no_nonlinear_profile_likelihood",
+    "no_posterior_unimodality_proof",
+    "no_model_correctness_or_physical_validation",
+    "does_not_authenticate_jacobian_or_noise_covariance_provenance",
+    "does_not_compute_FIM_from_raw_image_likelihood",
+    "does_not_whiten_correlated_noise_in_v0",
+    "does_not_select_an_optimal_acquisition_action_in_v0",
+    "candidate_rows_must_be_conditionally_whitened_innovations",
+    "no_full_covariance_cross_block_whitening_or_optimal_design_optimization_in_v0",
+    "dense_covariance_whitener_is_bounded_to_512_observation_rows"
+  ],
+  "additional_controls": [
+    "configured_condition_number_threshold",
+    "minimum_effective_nuisance_sensitivity_floor",
+    "nuisance_confounding_vs_absent_physical_sensitivity",
+    "projection_and_correlation_overflow_fail_closed",
+    "profiled_condition_number_uses_profiled_maximum_and_minimum_singular_values"
+  ],
+  "matrix_size_limits": {
+    "maximum_observation_rows": 65536,
+    "maximum_parameter_columns": 64
+  },
+  "candidate_action_selection": {
+    "maximum_candidate_actions": 256,
+    "maximum_total_observation_rows": 65536,
+    "objective": [
+      "increase_nuisance_profiled_physical_rank",
+      "increase_smallest_profiled_physical_singular_value",
+      "divide_sensitivity_gain_by_acquisition_cost"
+    ],
+    "input_semantics": "candidate rows are conditional innovations whitened with respect to existing measurement residuals and the cross-block covariance",
+    "nonclaims": [
+      "no automatic sensor actuation",
+      "no direct EVSI or functional posterior variance calculation",
+      "does_not_authenticate_noise_covariance_or_candidate_sensitivities"
+    ],
+    "raw_covariance_api": "rank_covariance_aware_measurement_actions",
+    "accepts_raw_existing_and_candidate_sensitivity_and_covariance_blocks": true,
+    "automatically_computes_conditional_schur_innovations": true,
+    "additional_test": "covariance_aware_action_ranker_discounts_correlated_repeat"
+  },
+  "covariance_whitening": {
+    "function": "whiten_sensitivity_with_covariance",
+    "formula": "J_white = L^-1 J, Sigma = L L^T; then J_white^T J_white = J^T Sigma^-1 J",
+    "maximum_observations": 512,
+    "covariance_requirements": [
+      "square",
+      "symmetric_within_declared_tolerance",
+      "finite",
+      "strictly_positive_definite"
+    ],
+    "no_hidden_jitter": true,
+    "no_silent_symmetrization": true,
+    "limits": [
+      "dense_O(n^3)_Cholesky_is_reference_only",
+      "no_block_sparse_or_low_rank_covariance_in_v0",
+      "covariance_provenance_is_caller_supplied"
+    ],
+    "manufactured_tests": [
+      "analytic_correlated_difference_mode",
+      "common_mode_information_reduction_under_positive_correlation",
+      "asymmetric_covariance_rejected",
+      "semidefinite_covariance_rejected_without_jitter",
+      "ragged_covariance_rejected"
+    ]
+  },
+  "conditional_innovation_whitening": {
+    "function": "whiten_conditional_innovation_sensitivities",
+    "raw_inputs": [
+      "existing_sensitivity_J0",
+      "candidate_sensitivity_J1",
+      "existing_covariance_Sigma00",
+      "candidate_covariance_Sigma11",
+      "candidate_existing_cross_covariance_Sigma10"
+    ],
+    "equations": [
+      "Sigma01 = transpose(Sigma10)",
+      "J_cond = J1 - Sigma10 * inverse(Sigma00) * J0",
+      "S_cond = Sigma11 - Sigma10 * inverse(Sigma00) * Sigma01",
+      "J_cond_white = inverse(cholesky(S_cond)) * J_cond"
+    ],
+    "bounded_dense_total_observations": 512,
+    "limits": [
+      "all_covariance_blocks_must_be_qualified",
+      "does_not_repair_non_spd_schur_complement",
+      "does_not_add_hidden_jitter",
+      "no_sparse_or_low_rank_scalable_covariance_operator_v0"
+    ],
+    "tests": [
+      "correlated_repeat_has_only_conditional_increment",
+      "independent_candidate_retains_raw_sensitivity",
+      "cross_covariance_shape_rejected",
+      "non_spd_schur_complement_rejected"
+    ]
+  }
+}
