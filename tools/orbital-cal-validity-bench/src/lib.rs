@@ -533,6 +533,8 @@ mod tests {
         let mut value = case();
         value.acquisition_time_ns = 999;
         value.acquisition_uncertainty_ns = 2;
+        value.scopes[0].last_check_time_ns = Some(900);
+        value.scopes[0].max_check_age_ns = Some(200);
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
     }
@@ -561,6 +563,17 @@ mod tests {
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Expired);
         assert!(result.reason_codes.contains(&"REFERENCE_CHECK_STALE".to_owned()));
+    }
+
+    #[test]
+    fn reference_check_age_boundary_overlap_is_indeterminate() {
+        let mut value = case();
+        value.acquisition_uncertainty_ns = 10;
+        value.scopes[0].last_check_time_ns = Some(400);
+        value.scopes[0].max_check_age_ns = Some(100);
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Indeterminate);
+        assert!(result.reason_codes.contains(&"REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP".to_owned()));
     }
 
     #[test]
