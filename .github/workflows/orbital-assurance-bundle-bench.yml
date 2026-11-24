@@ -198,6 +198,33 @@ jobs:
       - name: Compare Rust incumbent-adequacy receipt to independent oracle
         run: node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_adequacy.mjs incumbent-decision-adequacy-receipt.json incumbent-decision-adequacy-oracle.json
 
+      - name: Validate incumbent-policy-adequacy fixture and schemas
+        run: |
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-policy-adequacy-corpus.schema.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-policy-adequacy-receipt.schema.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-cases.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-expected.json", "utf8"))'
+
+      - name: Generate incumbent-policy-adequacy receipt
+        run: |
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin incumbent-policy-adequacy -- tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-cases.json --source-commit "$BENCHMARK_COMMIT" > incumbent-policy-adequacy-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '
+            .receipt_schema == "luminous.orbital-incumbent-policy-adequacy.receipt.v0.1"
+            and .source_commit == $expected_commit
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .evaluation.summary.case_count == 1
+            and .evaluation.summary.policy_review_warranted_cases == 1
+            and .evaluation.summary.authority_grants == 0
+            and .physical_qualification_granted == false
+            and .authority_granted == false
+          ' incumbent-policy-adequacy-receipt.json
+
+      - name: Compare incumbent-policy-adequacy receipt to frozen known answer
+        run: |
+          node --check tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequacy.mjs
+          node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequacy.mjs incumbent-policy-adequacy-receipt.json tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-expected.json
+
       - name: Upload reproducible assurance receipt
         uses: actions/upload-artifact@v4
         with:
@@ -210,5 +237,6 @@ jobs:
             dependency-graph-adequacy-oracle.json
             incumbent-decision-adequacy-receipt.json
             incumbent-decision-adequacy-oracle.json
+            incumbent-policy-adequacy-receipt.json
           if-no-files-found: error
           retention-days: 30
