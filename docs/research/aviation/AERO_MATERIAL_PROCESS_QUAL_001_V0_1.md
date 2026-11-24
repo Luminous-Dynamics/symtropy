@@ -49,7 +49,9 @@ The JSON Schema and fixture in this directory define:
 - grouping dimensions that the evaluator must check for disjointness;
 - a known synthetic data-generating model that is never treated as a physical model.
 
-A structurally valid JSON document is not sufficient to establish hierarchy closure, independent sampling or model applicability. The future Rust evaluator must verify all foreign-key edges, unique identities, ancestry, observation-to-specimen links, calibration windows and grouped split disjointness.
+A structurally valid JSON document is not sufficient to establish hierarchy closure, independent sampling or model applicability. The v0.1 Rust semantic evaluator now checks unique identities, hierarchy and observation foreign keys, specimen assignment completeness, observation-state requirements, and group-level split disjointness derived from the lineage graph. It reports out-of-domain process states and non-active calibration labels as blockers. It does **not** run a standards-compliant Draft 2020-12 JSON Schema validator or verify calibration validity intervals against measurement timestamps.
+
+Two important checks are not representable in the current v0.1 schema and are deliberately reported as capability gaps: (1) an independently asserted specimen source-material identity that can be reconciled against the panel/batch/lot ancestry, and (2) calibration validity start/end times tied to each measurement timestamp. Artifact digest and byte-length binding remains with the Mycelix packet layer. These must be closed before wrong-lot or time-stale-calibration detection can be claimed.
 
 ## 5. Minimum evaluator obligations
 
@@ -108,7 +110,7 @@ Do not assume Bayesian, machine-learning or adaptive methods win. Compare agains
 These are research objectives for the finite benchmark, not regulatory criteria or achieved results.
 
 - 100% agreement with an independently authored oracle on bounded synthetic cases.
-- Zero false passes on frozen wrong-lot, wrong-configuration, dangling ancestry, stale-calibration, out-of-domain, censoring/missingness and leakage controls.
+- Zero false passes on frozen wrong-configuration, dangling-ancestry, out-of-domain, censoring/missingness and leakage controls in the v0.1 semantic corpus; wrong-lot and time-stale-calibration controls remain v0.2 requirements until the source-identity and calibration-time fields exist.
 - 100% deterministic output under input-record permutation.
 - Zero overlap across declared training, holdout and challenge groups at each grouping level.
 - 100% explicit retention and accounting of censored, excluded, missing and failed records.
@@ -160,4 +162,4 @@ The physical ladder cannot be shortcut by a successful software test, simulation
 
 ## 10. Reproduction status
 
-v0.1 at this branch contains a research protocol, strict JSON Schema and one known-truth synthetic case. JSON parsing and schema/fixture structural checks are performed in the authoring workflow before the files are committed. No Rust evaluator, physical result, material allowable, manufacturing capability or airworthiness claim is included in v0.1.
+v0.1 at this branch contains the research protocol, strict JSON Schema, known-truth synthetic case, and a Rust semantic evaluator crate at `crates/domains/symtropy-aero-material-qual`. The evaluator includes unit tests for baseline closure, duplicate identity, dangling ancestry, split leakage, missing assignments, non-active calibration blockers, record-order determinism and explicit capability gaps. These tests are authored but have **not** been compiled or run in this authoring pass; exact-head CI status is reported separately. The evaluator does not perform full Draft 2020-12 schema validation. No physical result, material allowable, manufacturing capability, part acceptance, airworthiness or certification claim is included in v0.1.
