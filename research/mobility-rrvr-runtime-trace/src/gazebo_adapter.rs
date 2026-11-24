@@ -958,7 +958,22 @@ pub fn validate_delivery_observer_quorum(
     }
 }
 
-/// A stable idempotency key binds one dispatch to one plan/run/event.
+#[derive(Serialize)]
+struct GazeboIdempotencyIdentity<'a> {
+    canonicalization: &'static str,
+    plan_sha256: &'a str,
+    campaign_id: &'a str,
+    pair_id: &'a str,
+    scenario_id: &'a str,
+    fault_id: &'a str,
+    fault_sequence: u32,
+    run_id: &'a str,
+    run_epoch: &'a str,
+}
+
+/// A stable idempotency key binds one plan-committed event to one run epoch.
+/// The canonical identity is hashed so delimiter characters in caller IDs
+/// cannot create textual key collisions.
 pub fn dispatch_idempotency_key(
     plan: &CompiledCampaignPlan,
     scenario: &CompiledScenario,
@@ -966,19 +981,48 @@ pub fn dispatch_idempotency_key(
     run_id: &str,
     run_epoch: &str,
 ) -> Result<String, GazeboAdapterError> {
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
     if !nonempty(run_id)
         || !nonempty(run_epoch)
-        || scenario.pair_id.is_empty()
-        || scenario.scenario_id.is_empty()
-        || fault.fault_id.is_empty()
-        || !valid_sha256(&plan.plan_sha256)
+        || !nonempty(&scenario.pair_id)
+        || !nonempty(&scenario.scenario_id)
+        || !nonempty(&fault.fault_id)
     {
         return Err(GazeboAdapterError::InvalidIdempotencyContext);
     }
-    Ok(format!(
-        "rrvr/{}/{}/{}/{}/{}/{}",
-        plan.plan_sha256, scenario.pair_id, scenario.scenario_id, fault.fault_id, run_id, run_epoch
-    ))
+    let committed_scenario = plan
+        .scenarios
+        .iter()
+        .find(|candidate| candidate.scenario_id == scenario.scenario_id)
+        .ok_or(GazeboAdapterError::InvalidIdempotencyContext)?;
+    if committed_scenario != scenario
+        || !committed_scenario
+            .fault_events
+            .iter()
+            .any(|candidate| candidate == fault)
+    {
+        return Err(GazeboAdapterError::InvalidIdempotencyContext);
+    }
+
+    let identity = GazeboIdempotencyIdentity {
+        canonicalization: GAZEBO_DISPATCH_CANONICALIZATION_ID,
+        plan_sha256: &plan.plan_sha256,
+        campaign_id: &plan.campaign_id,
+        pair_id: &scenario.pair_id,
+        scenario_id: &scenario.scenario_id,
+        fault_id: &fault.fault_id,
+        fault_sequence: fault.sequence,
+        run_id,
+        run_epoch,
+    };
+    let value = serde_json::to_value(identity)
+        .map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
+    let bytes = serde_json::to_vec(&value)
+        .map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
+    let digest = Sha256::digest(bytes);
+    let digest: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    Ok(format!("rrvr/v0.1/{digest}"))
 }
 
 /// Validate a resolved platform target against the exact planned fault.
@@ -1618,7 +1662,8 @@ mod tests {
             result.cut_snapshot.simulation_step,
             fault.scheduled_simulation_step
         );
-        assert!(result.request.idempotency_key.contains("run-001"));
+        assert!(result.request.idempotency_key.starts_with("rrvr/v0.1/"));
+        assert_eq!(result.request.idempotency_key.len(), "rrvr/v0.1/".len() + 64);
         assert_eq!(
             result.outcome,
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
