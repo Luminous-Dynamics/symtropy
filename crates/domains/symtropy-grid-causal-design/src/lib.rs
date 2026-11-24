@@ -410,6 +410,35 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         }
     }
 
+    // Baseline training, pretrend checks and placebo windows are deliberately
+    // disjoint. Reusing the same observations for all three would disguise
+    // leakage and make negative controls look stronger than they are.
+    let mut diagnostic_windows: Vec<(&str, &TimeWindow)> =
+        vec![("baseline", &input.baseline_window)];
+    diagnostic_windows.extend(
+        input
+            .pretrend_windows
+            .iter()
+            .enumerate()
+            .map(|(index, window)| (if index == usize::MAX { "pretrend" } else { "pretrend" }, window)),
+    );
+    diagnostic_windows.extend(
+        input
+            .placebo_windows
+            .iter()
+            .map(|window| ("placebo", window)),
+    );
+    for left in 0..diagnostic_windows.len() {
+        for right in (left + 1)..diagnostic_windows.len() {
+            if overlaps(diagnostic_windows[left].1, diagnostic_windows[right].1) {
+                return Err(DesignAuditError::InvalidTimeWindow(format!(
+                    "{} and {} windows must not overlap",
+                    diagnostic_windows[left].0, diagnostic_windows[right].0
+                )));
+            }
+        }
+    }
+
     let mut stratum_ids = BTreeSet::new();
     let mut allocations = BTreeMap::new();
     for stratum in &input.strata {
