@@ -392,9 +392,6 @@ pub fn parse_query_run_results_tsv(
             let elapsed = fields[12]
                 .parse::<u64>()
                 .map_err(|_| QueryRunImportError::InvalidNarrowphaseDuration)?;
-            if elapsed == 0 {
-                return Err(QueryRunImportError::InvalidNarrowphaseDuration);
-            }
             Some(elapsed)
         };
 
@@ -577,6 +574,8 @@ pub struct QueryTimingSummary {
     pub p50_ns: Option<u64>,
     pub p95_ns: Option<u64>,
     pub p99_ns: Option<u64>,
+    /// Samples where the measured duration rounded below the declared timer resolution.
+    pub sub_resolution_samples: u64,
 }
 
 impl QueryTimingSummary {
@@ -603,6 +602,7 @@ fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
         p50_ns: Some(nearest_rank(50)),
         p95_ns: Some(nearest_rank(95)),
         p99_ns: Some(nearest_rank(99)),
+        sub_resolution_samples: 0,
     }
 }
 
@@ -640,6 +640,9 @@ pub struct RunProvenance {
     algorithm_commit_sha1: String,
     dataset_manifest_sha256: String,
     configuration_sha256: String,
+    environment_sha256: String,
+    /// Effective monotonic-clock resolution in nanoseconds, measured by the runner.
+    timer_resolution_ns: u64,
 }
 
 impl RunProvenance {
@@ -649,6 +652,8 @@ impl RunProvenance {
         algorithm_commit_sha1: impl Into<String>,
         dataset_manifest_sha256: impl Into<String>,
         configuration_sha256: impl Into<String>,
+        environment_sha256: impl Into<String>,
+        timer_resolution_ns: u64,
     ) -> Self {
         Self {
             algorithm_name: algorithm_name.into(),
@@ -656,6 +661,8 @@ impl RunProvenance {
             algorithm_commit_sha1: algorithm_commit_sha1.into(),
             dataset_manifest_sha256: dataset_manifest_sha256.into(),
             configuration_sha256: configuration_sha256.into(),
+            environment_sha256: environment_sha256.into(),
+            timer_resolution_ns,
         }
     }
 
@@ -685,12 +692,24 @@ impl RunProvenance {
     }
 
     #[must_use]
+    pub fn environment_sha256(&self) -> &str {
+        &self.environment_sha256
+    }
+
+    #[must_use]
+    pub fn timer_resolution_ns(&self) -> u64 {
+        self.timer_resolution_ns
+    }
+
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         !self.algorithm_name.trim().is_empty()
             && !self.algorithm_version.trim().is_empty()
             && is_lower_hex(&self.algorithm_commit_sha1, 40)
             && is_lower_hex(&self.dataset_manifest_sha256, 64)
             && is_lower_hex(&self.configuration_sha256, 64)
+            && is_lower_hex(&self.environment_sha256, 64)
+            && self.timer_resolution_ns > 0
     }
 }
 
@@ -879,9 +898,7 @@ pub fn evaluate_queries_with_profile(
             forwarded,
         );
         if let Some(elapsed_ns) = evaluation.narrowphase_elapsed_ns {
-            if elapsed_ns == 0 {
-                errors.push(EvaluationError::ZeroNarrowphaseDuration);
-            } else if evaluation.narrowphase == NarrowphaseOutcome::NotRun {
+            if evaluation.narrowphase == NarrowphaseOutcome::NotRun {
                 errors.push(EvaluationError::DurationForNotRunNarrowphase);
             } else {
                 all_durations_ns.push(elapsed_ns);
@@ -1120,6 +1137,8 @@ mod tests {
                 algorithm_commit,
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                1_000,
             ),
             motion,
             arithmetic,
@@ -1858,6 +1877,8 @@ mod tests {
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                1_000,
             ),
             MotionProfile::LinearizedConstantVelocity,
             ArithmeticProfile::Binary64,
