@@ -359,3 +359,23 @@ This qualifies the synthetic software/method fixtures only. It does not qualify 
 ## Claim ceiling
 
 Synthetic expected bounded-loss research only. This harness does not implement berth allocation, quay-crane scheduling, yard simulation, a physical terminal model, participant authorization, or a TOS integration. It does not certify DCT/DGT risk, conditional coverage, real schedule feasibility, cargo custody, vessel dispatch, receiver delivery, or operational authority.
+
+
+## Conjunctive finite-scenario + statistical assurance envelope
+
+The assurance_envelope.rs module adds a composition layer across two distinct kinds of evidence:
+
+1. **Finite adversarial scenarios:** an exact, predeclared scenario universe is evaluated for physical feasibility, action-authority consistency, unknown outcomes and participant-level service floors.
+2. **Statistical risk:** a named method contributes one explicitly typed guarantee (marginal expected, high-probability, or time-uniform) for the hard-physical-failure axis.
+
+The gate is a strict conjunction. A statistical risk bound cannot override a physical failure, an authority violation, an unknown physical outcome, an incomplete scenario universe, source-provenance failure, policy/evaluator revision drift, or a mismatched operating regime. Conversely, a clean finite stress set cannot substitute for a statistical guarantee. Diagnostic CVaR/tail metrics are never accepted as risk-control evidence.
+
+Finite scenarios are **not** appended to the CRC calibration matrix: the finite set is an adversarial coverage claim, not an i.i.d. sample. The statistical claim retains its guarantee class and (where applicable) its failure probability; the output does not flatten marginal expected, high-probability and time-uniform guarantees into a single number. Participant A/B service remains visible separately from service-loss and hard-failure axes.
+
+### Evidence and claim boundary
+
+The source enum and evidence references are declarations made by the caller. This module does not authenticate an oracle, prove that the scenario universe is exhaustive for reality, verify the statistical theorem assumptions, or grant operational authority. The positive unit test demonstrates composition semantics using synthetic declarations only; it is not a real independent-oracle or deployment certificate.
+
+### Next integration
+
+The #7188 scarce-reserve benchmark supplies a useful six-world finite-state test domain. Its current CSV is a policy/model receipt and must not be relabeled as independently adjudicated truth. A future #7231 owner-produced projection should provide per-policy/per-scenario oracle dispositions and the required independence evidence before the IndependentOracle source path is used. Statistical calibration continues to consume separately sampled, complete schedule episodes through oracle_adapter.rs.
