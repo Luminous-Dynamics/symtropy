@@ -20,6 +20,8 @@ v0.8 turns a contiguous sequence of lower/upper delivered-energy intervals and c
 
 This prevents a single recovered interval, a point estimate, or a forecast from being presented as a durable restoration.
 
+**Important service-quality boundary:** v0.8 measures delivered energy (Wh) at a named boundary against an externally defined floor. Wh alone does not establish adequate instantaneous power (W), voltage, frequency, waveform/power quality, process pressure/flow, water quality or telecom availability. Where those properties define whether the service is actually usable, a separate domain validator must provide them. v0.8 by itself supports an energy-floor statement, not a complete engineering or public-service certification.
+
 ## What the evaluator checks
 
 1. One named service and service boundary per certificate.

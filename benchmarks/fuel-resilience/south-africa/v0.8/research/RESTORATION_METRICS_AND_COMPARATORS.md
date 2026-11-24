@@ -50,6 +50,8 @@ Report at minimum:
 
 Never call a non-guaranteed interval an observed physical outage when the evidence bounds overlap the threshold. Preserve an indeterminate category.
 
+**Energy is not complete service quality.** The v0.8 Wh boundary cannot prove minimum instantaneous kW, voltage/frequency/waveform compliance or the quality of a downstream process service. Report independent engineering quality checks as separate predicates and fail closed when a required quality predicate is absent.
+
 ## 4. Competitive benchmark arms
 
 All arms must receive the same frozen input state, time steps, service boundary, critical floors, topology, outage set, demand, evidence eligibility, uncertainty intervals, and cost/priority policy.
