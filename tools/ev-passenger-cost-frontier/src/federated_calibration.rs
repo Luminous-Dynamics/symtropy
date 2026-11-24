@@ -32,6 +32,9 @@ pub struct FederatedCompatibilityKey {
     pub measurement_boundary: String,
     pub unit: String,
     pub stratum_id: String,
+    pub configuration_cohort_digest: String,
+    pub stratum_taxonomy_digest: String,
+    pub calibration_policy_digest: String,
     pub nominal_coverage_permille: u16,
     pub score_definition_id: String,
     pub bin_edges: Vec<u64>,
@@ -195,6 +198,9 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         ("measurement_boundary", key.measurement_boundary.as_str()),
         ("unit", key.unit.as_str()),
         ("stratum_id", key.stratum_id.as_str()),
+        ("configuration_cohort_digest", key.configuration_cohort_digest.as_str()),
+        ("stratum_taxonomy_digest", key.stratum_taxonomy_digest.as_str()),
+        ("calibration_policy_digest", key.calibration_policy_digest.as_str()),
         ("score_definition_id", key.score_definition_id.as_str()),
     ] {
         if !non_empty(value) {
@@ -494,6 +500,9 @@ mod tests {
             measurement_boundary: "pack_terminal".to_owned(),
             unit: "Wh".to_owned(),
             stratum_id: "lfp_warm_mission".to_owned(),
+            configuration_cohort_digest: "sha256:lfp-pack-charger-cohort-v1".to_owned(),
+            stratum_taxonomy_digest: "sha256:mobility-strata-v1".to_owned(),
+            calibration_policy_digest: "sha256:split-conformal-policy-v1".to_owned(),
             nominal_coverage_permille: 900,
             score_definition_id: "absolute_nonconformity_hist_v1".to_owned(),
             bin_edges: vec![0, 10, 20, 40],
@@ -599,6 +608,24 @@ mod tests {
     fn incompatible_measurement_boundary_is_rejected() {
         let mut input = fixture_input();
         input.summaries[1].compatibility.measurement_boundary = "charger_input".to_owned();
+        assert!(evaluate_federated_calibration(&input).is_err());
+    }
+
+    #[test]
+    fn incompatible_configuration_cohort_or_taxonomy_is_rejected() {
+        let mut input = fixture_input();
+        input.summaries[1].compatibility.configuration_cohort_digest =
+            "sha256:different-pack-charger-cohort".to_owned();
+        assert!(evaluate_federated_calibration(&input).is_err());
+
+        let mut input = fixture_input();
+        input.summaries[1].compatibility.stratum_taxonomy_digest =
+            "sha256:other-taxonomy".to_owned();
+        assert!(evaluate_federated_calibration(&input).is_err());
+
+        let mut input = fixture_input();
+        input.summaries[1].compatibility.calibration_policy_digest =
+            "sha256:other-policy".to_owned();
         assert!(evaluate_federated_calibration(&input).is_err());
     }
 
