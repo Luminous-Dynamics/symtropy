@@ -734,17 +734,17 @@ mod tests {
     fn incompatible_configuration_cohort_or_taxonomy_is_rejected() {
         let mut input = fixture_input();
         input.summaries[1].compatibility.configuration_cohort_digest =
-            "sha256:different-pack-charger-cohort".to_owned();
+            format!("sha256:{}", "e".repeat(64));
         assert!(evaluate_federated_calibration(&input).is_err());
 
         let mut input = fixture_input();
         input.summaries[1].compatibility.stratum_taxonomy_digest =
-            "sha256:other-taxonomy".to_owned();
+            format!("sha256:{}", "f".repeat(64));
         assert!(evaluate_federated_calibration(&input).is_err());
 
         let mut input = fixture_input();
         input.summaries[1].compatibility.calibration_policy_digest =
-            "sha256:other-policy".to_owned();
+            format!("sha256:{}", "9".repeat(64));
         assert!(evaluate_federated_calibration(&input).is_err());
     }
 
