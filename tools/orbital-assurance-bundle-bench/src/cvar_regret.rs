@@ -48,11 +48,17 @@ impl Rational {
     }
 
     pub fn zero() -> Self {
-        Self { numerator: 0, denominator: 1 }
+        Self {
+            numerator: 0,
+            denominator: 1,
+        }
     }
 
     pub fn one() -> Self {
-        Self { numerator: 1, denominator: 1 }
+        Self {
+            numerator: 1,
+            denominator: 1,
+        }
     }
 
     pub fn valid(&self) -> bool {
@@ -143,7 +149,9 @@ fn gcd_u128(mut left: u128, mut right: u128) -> u128 {
 }
 
 fn valid_id(value: &str) -> bool {
-    !value.trim().is_empty() && value.is_ascii() && value.bytes().all(|b| b.is_ascii_graphic() || b == b' ')
+    !value.trim().is_empty()
+        && value.is_ascii()
+        && value.bytes().all(|b| b.is_ascii_graphic() || b == b' ')
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -406,15 +414,23 @@ fn validate_receipt(
         || receipt.assumptions.dependence_model != "JOINT_SCENARIO_WEIGHTS"
     {
         return Err(
-            "probability model assumptions do not declare an explicit joint distribution".to_owned(),
+            "probability model assumptions do not declare an explicit joint distribution"
+                .to_owned(),
         );
     }
-    let expected_ids = case.expected_scenario_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_ids = case
+        .expected_scenario_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let scenario_ids_digest = digest_ids(&case.expected_scenario_ids)?;
     if case.expected_scenario_ids.is_empty()
         || case.expected_scenario_ids.len() > MAX_SCENARIOS
         || expected_ids.len() != case.expected_scenario_ids.len()
-        || case.expected_scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
+        || case
+            .expected_scenario_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
         || scenario_ids_digest != case.expected_scenario_ids_sha256
     {
         return Err(
@@ -426,20 +442,22 @@ fn validate_receipt(
         || case
             .joint_scenarios
             .iter()
-            .any(|row| !valid_id(&row.scenario_id)
-                || !valid_id(&row.world_id)
-                || !valid_id(&row.loss_model_id))
-        || case.joint_scenarios.iter().map(|row| row.scenario_id.as_str()).collect::<BTreeSet<_>>()
-            != expected_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
-        || digest_joint_scenarios(&case.joint_scenarios)?
-            != case.joint_scenario_manifest_sha256
+            .map(|row| row.scenario_id.as_str())
+            .collect::<BTreeSet<_>>()
+            != expected_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>()
+        || digest_joint_scenarios(&case.joint_scenarios)? != case.joint_scenario_manifest_sha256
     {
         return Err(
             "joint scenario identity records or manifest digest are inconsistent".to_owned(),
         );
     }
     if receipt.weights.len() != expected_ids.len() {
-        return Err("probability weights do not cover the exact joint scenario inventory".to_owned());
+        return Err(
+            "probability weights do not cover the exact joint scenario inventory".to_owned(),
+        );
     }
     let mut weights = BTreeMap::new();
     let mut total = Rational::zero();
@@ -447,9 +465,14 @@ fn validate_receipt(
         if !expected_ids.contains(&row.scenario_id)
             || !valid_id(&row.scenario_id)
             || !row.weight.valid()
-            || weights.insert(row.scenario_id.clone(), row.weight.clone()).is_some()
+            || weights
+                .insert(row.scenario_id.clone(), row.weight.clone())
+                .is_some()
         {
-            return Err("probability weights contain malformed, duplicate or unknown scenario IDs".to_owned());
+            return Err(
+                "probability weights contain malformed, duplicate or unknown scenario IDs"
+                    .to_owned(),
+            );
         }
         total = total.checked_add(&row.weight)?;
     }
@@ -471,16 +494,22 @@ fn weighted_expected(values: &[(Rational, Rational)]) -> Result<Rational, String
 }
 
 fn cvar_upper_tail(values: &[(Rational, Rational)], alpha: &Rational) -> Result<CvarPoint, String> {
-    if !alpha.valid() || alpha.numerator == 0 || alpha.compare_exact(&Rational::one()) != Ordering::Less {
+    if !alpha.valid()
+        || alpha.numerator == 0
+        || alpha.compare_exact(&Rational::one()) != Ordering::Less
+    {
         return Err("CVaR alpha must be strictly between zero and one".to_owned());
     }
-    let total_weight = values.iter().try_fold(Rational::zero(), |sum, (_, weight)| {
-        sum.checked_add(weight)
-    })?;
+    let total_weight = values
+        .iter()
+        .try_fold(Rational::zero(), |sum, (_, weight)| sum.checked_add(weight))?;
     if values.is_empty() || total_weight != Rational::one() {
         return Err("CVaR values must have normalized probability weights".to_owned());
     }
-    let mut candidates = values.iter().map(|(value, _)| value.clone()).collect::<Vec<_>>();
+    let mut candidates = values
+        .iter()
+        .map(|(value, _)| value.clone())
+        .collect::<Vec<_>>();
     candidates.sort_by(Rational::compare_exact);
     candidates.dedup_by(|left, right| left.compare_exact(right) == Ordering::Equal);
 
@@ -494,7 +523,10 @@ fn cvar_upper_tail(values: &[(Rational, Rational)], alpha: &Rational) -> Result<
             }
         }
         let objective = eta.checked_add(&excess.checked_div(&one_minus_alpha)?)?;
-        if best.as_ref().is_none_or(|current| objective.compare_exact(current) == Ordering::Less) {
+        if best
+            .as_ref()
+            .is_none_or(|current| objective.compare_exact(current) == Ordering::Less)
+        {
             best = Some(objective);
         }
     }
@@ -621,7 +653,11 @@ fn evaluate_case(case: &Case, alphas: &[Rational]) -> CaseResult {
             .map(|row| row.scenario_id.as_str())
             .collect::<BTreeSet<_>>();
         if row_ids.len() != policy.per_scenario.len()
-            || row_ids != expected_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
+            || row_ids
+                != expected_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>()
         {
             return invalid(
                 case,
