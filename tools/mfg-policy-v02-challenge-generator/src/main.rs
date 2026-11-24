@@ -846,7 +846,7 @@ fn make_scenarios(
     ];
 
     ScenarioBundle {
-        policy_scenarios,
+        streams: policy_scenarios,
         evaluator_outcomes,
     }
 }
@@ -855,7 +855,7 @@ fn generate_case(
     family: &FamilySpec,
     family_index: usize,
     replication_seed: u64,
-) -> (ChallengeCase, EvaluatorCase) {
+) -> (ChallengeCase, ScenarioStreamCase, EvaluatorCase) {
     let generator_seed = derive_seed(family_index, replication_seed);
     let mut rng = DeterministicRng::new(generator_seed);
     let case_prefix = format!(
@@ -879,20 +879,24 @@ fn generate_case(
         paired_seed_id: format!("PAIR-SEED-{replication_seed:02}"),
         horizon_epochs: HORIZON_EPOCHS,
         decision_visibility_rule:
-            "At epoch t, a policy receives only observations_by_epoch[0..=t]. Evaluator-only terminal outcomes are in a separately stored sidecar that must never be mounted in policy execution."
+            "The policy process receives this static case only. A simulator must deliver one observed epoch prefix at a time; it must never expose complete future scenario trajectories or scenario IDs."
                 .into(),
         jobs,
         resources,
         setup_transitions,
         inspection_station,
-        scenarios: scenario_bundle.policy_scenarios,
+    };
+    let stream_case = ScenarioStreamCase {
+        case_id: case_prefix.clone(),
+        scenario_family_id: family.scenario_family_id.clone(),
+        scenarios: scenario_bundle.streams,
     };
     let evaluator_case = EvaluatorCase {
         case_id: case_prefix,
         scenario_family_id: family.scenario_family_id.clone(),
         scenario_outcomes: scenario_bundle.evaluator_outcomes,
     };
-    (case, evaluator_case)
+    (case, stream_case, evaluator_case)
 }
 
 fn generate_corpus() -> (Corpus, EvaluatorLabels) {
