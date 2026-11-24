@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/decision_value_problem_v0.schema.json",
+  "title": "ErgoStream finite decision-value problem v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "loss_unit",
+    "hypotheses",
+    "actions",
+    "losses",
+    "experiments",
+    "known_answer"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-decision-value-problem-v0"
+    },
+    "loss_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/hypothesis"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "losses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/loss"
+      }
+    },
+    "experiments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/experiment"
+      }
+    },
+    "known_answer": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/known_answer"
+      }
+    }
+  },
+  "$defs": {
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prior_weight"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "prior_weight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "action_id",
+        "loss_units"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "loss_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "likelihood": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_id",
+        "outcome_id",
+        "likelihood_weight"
+      ],
+      "properties": {
+        "hypothesis_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "outcome_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "likelihood_weight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "outcome_ids",
+        "likelihood_scale",
+        "likelihoods",
+        "cost_units"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "outcome_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          }
+        },
+        "likelihood_scale": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "likelihoods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/likelihood"
+          }
+        },
+        "cost_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "known_answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experiment_id",
+        "baseline_action_id",
+        "mutual_information_bits",
+        "evsi_numerator",
+        "common_denominator",
+        "net_evsi_numerator",
+        "possible_outcomes_changing_baseline_action"
+      ],
+      "properties": {
+        "experiment_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "baseline_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "mutual_information_bits": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evsi_numerator": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "common_denominator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "net_evsi_numerator": {
+          "type": "integer"
+        },
+        "possible_outcomes_changing_baseline_action": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
