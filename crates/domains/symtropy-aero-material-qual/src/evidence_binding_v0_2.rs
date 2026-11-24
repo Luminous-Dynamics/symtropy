@@ -784,6 +784,9 @@ mod tests {
     const FIXTURE: &str = include_str!(
         "../../../../docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
     );
+    const MUTATION_ORACLE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+    );
 
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).expect("v0.2 synthetic fixture parses")
@@ -1045,6 +1048,120 @@ mod tests {
             &evaluate_binding_case(&contradictory),
             "CONTRADICTORY_CALIBRATION_CORRECTIONS"
         ));
+    }
+
+    #[test]
+    fn frozen_v0_2_mutation_dispositions_match_exact_expected_sets() {
+        fn apply_one(case: &mut Value, operation: &str, pointer: &str, value: &Value) {
+            match operation {
+                "set" => {
+                    let target = case
+                        .pointer_mut(pointer)
+                        .unwrap_or_else(|| panic!("mutation pointer exists: {pointer}"));
+                    *target = value.clone();
+                }
+                "append" => {
+                    let target = case
+                        .pointer_mut(pointer)
+                        .and_then(Value::as_array_mut)
+                        .unwrap_or_else(|| panic!("append pointer is an array: {pointer}"));
+                    target.push(value.clone());
+                }
+                other => panic!("unsupported mutation operation: {other}"),
+            }
+        }
+
+        let oracle: Value =
+            serde_json::from_str(MUTATION_ORACLE).expect("v0.2 mutation oracle parses");
+        assert_eq!(
+            oracle.get("synthetic_only").and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            oracle
+                .get("oracle_review_status")
+                .and_then(Value::as_str),
+            Some("NOT_INDEPENDENTLY_REVIEWED")
+        );
+        let cases = oracle
+            .get("cases")
+            .and_then(Value::as_array)
+            .expect("v0.2 mutation cases");
+        assert_eq!(cases.len(), 16);
+
+        for mutation in cases {
+            let case_id = mutation
+                .get("case_id")
+                .and_then(Value::as_str)
+                .expect("mutation case ID");
+            let mut case = fixture();
+
+            match mutation.get("operation").and_then(Value::as_str) {
+                Some("set" | "append") => {
+                    apply_one(
+                        &mut case,
+                        mutation["operation"].as_str().expect("operation"),
+                        mutation["pointer"].as_str().expect("pointer"),
+                        mutation.get("value").expect("mutation value"),
+                    );
+                }
+                Some("composite") => {
+                    let steps = mutation["mutations"]
+                        .as_array()
+                        .expect("composite mutation steps");
+                    for step in steps {
+                        apply_one(
+                            &mut case,
+                            step["operation"].as_str().expect("step operation"),
+                            step["pointer"].as_str().expect("step pointer"),
+                            step.get("value").expect("step value"),
+                        );
+                    }
+                }
+                other => panic!("{case_id}: unsupported operation {other:?}"),
+            }
+
+            let report = evaluate_binding_case(&case);
+            assert_eq!(
+                report.structurally_complete,
+                mutation["expected_structurally_complete"]
+                    .as_bool()
+                    .expect("expected structural status"),
+                "{case_id}: structural disposition"
+            );
+
+            let expected_violations = mutation["expected_violation_codes"]
+                .as_array()
+                .expect("expected violations")
+                .iter()
+                .map(|code| code.as_str().expect("violation code").to_owned())
+                .collect::<std::collections::BTreeSet<_>>();
+            let actual_violations = report
+                .violations
+                .iter()
+                .map(|finding| finding.code.clone())
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(
+                actual_violations, expected_violations,
+                "{case_id}: exact violation set"
+            );
+
+            let expected_blockers = mutation["expected_blocker_codes"]
+                .as_array()
+                .expect("expected blockers")
+                .iter()
+                .map(|code| code.as_str().expect("blocker code").to_owned())
+                .collect::<std::collections::BTreeSet<_>>();
+            let actual_blockers = report
+                .blockers
+                .iter()
+                .map(|finding| finding.code.clone())
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(
+                actual_blockers, expected_blockers,
+                "{case_id}: exact blocker set"
+            );
+        }
     }
 
     #[test]
