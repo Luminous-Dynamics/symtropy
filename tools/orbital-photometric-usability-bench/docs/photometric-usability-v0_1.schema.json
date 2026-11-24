@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Photometric Usability Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-photometric-usability.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-PHOTO-USABILITY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_declared_brdf_signal_and_sensor_dynamic_range_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Vector": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "Geometry": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INDETERMINATE"
+      ]
+    },
+    "Summary": {
+      "type": "string",
+      "enum": [
+        "FULLY_USABLE",
+        "PARTIAL",
+        "NOT_USABLE",
+        "INDETERMINATE"
+      ]
+    },
+    "Acquisition": {
+      "type": "string",
+      "enum": [
+        "USABLE",
+        "PARTIAL",
+        "UNUSABLE",
+        "INDETERMINATE",
+        "GEOMETRY_REJECTED"
+      ]
+    },
+    "Brdf": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "albedo"
+          ],
+          "properties": {
+            "model": {
+              "const": "LAMBERTIAN"
+            },
+            "albedo": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "albedo",
+            "specular",
+            "shininess"
+          ],
+          "properties": {
+            "model": {
+              "const": "BLINN_PHONG"
+            },
+            "albedo": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "specular": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "shininess": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 2048
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "albedo",
+            "f0",
+            "roughness",
+            "metallic"
+          ],
+          "properties": {
+            "model": {
+              "const": "COOK_TORRANCE_GGX"
+            },
+            "albedo": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "f0": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughness": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 1
+            },
+            "metallic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      ]
+    },
+    "Light": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "incident_radiance",
+        "illumination_factor",
+        "asserted"
+      ],
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/Vector"
+        },
+        "incident_radiance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "illumination_factor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "asserted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "exposure_gain",
+        "noise_floor",
+        "saturation",
+        "asserted"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "noise_floor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "saturation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "asserted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "geometry",
+        "normal",
+        "view_direction",
+        "material_asserted",
+        "brdf"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry": {
+          "$ref": "#/$defs/Geometry"
+        },
+        "normal": {
+          "$ref": "#/$defs/Vector"
+        },
+        "view_direction": {
+          "$ref": "#/$defs/Vector"
+        },
+        "material_asserted": {
+          "type": "boolean"
+        },
+        "brdf": {
+          "$ref": "#/$defs/Brdf"
+        }
+      }
+    },
+    "Expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode_id",
+        "summary",
+        "acquisition"
+      ],
+      "properties": {
+        "mode_id": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/Summary"
+        },
+        "acquisition": {
+          "$ref": "#/$defs/Acquisition"
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "frame_id",
+        "light",
+        "modes",
+        "samples",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "frame_id": {
+          "type": "string"
+        },
+        "light": {
+          "$ref": "#/$defs/Light"
+        },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Mode"
+          }
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Sample"
+          }
+        },
+        "expected": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Expected"
+          }
+        }
+      }
+    }
+  }
+}

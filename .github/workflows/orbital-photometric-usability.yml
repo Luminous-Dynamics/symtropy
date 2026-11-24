@@ -1,0 +1,120 @@
+name: Orbital Photometric Usability Benchmark
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-photometric-usability-bench/**"
+      - ".github/workflows/orbital-photometric-usability.yml"
+  push:
+    branches: ["research/orbital-photometric-usability-v0-1"]
+    paths:
+      - "tools/orbital-photometric-usability-bench/**"
+      - ".github/workflows/orbital-photometric-usability.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate corpus
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          f=json.loads(Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json").read_text())
+          s=json.loads(Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.schema.json").read_text())
+          assert f["benchmark_id"]=="ORBITAL-PHOTO-USABILITY-001" and len(f["cases"])==8
+          assert s["properties"]["cases"]["minItems"]==8 and s["properties"]["cases"]["maxItems"]==8
+          assert {x["brdf"]["model"] for c in f["cases"] for x in c["samples"]}=={"LAMBERTIAN","BLINN_PHONG","COOK_TORRANCE_GGX"}
+          rgb=json.loads(Path("tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json").read_text())
+          rgb_schema=json.loads(Path("tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.schema.json").read_text())
+          assert rgb["schema"]=="luminous.orbital-photometric-usability.rgb-corpus.v0.2"
+          assert rgb["benchmark_id"]=="ORBITAL-PHOTO-RGB-002" and len(rgb["cases"])==10
+          assert rgb_schema["properties"]["cases"]["minItems"]==10 and rgb_schema["properties"]["cases"]["maxItems"]==10
+          assert any(sample["camera_fov"]=="FAIL" for case in rgb["cases"] for sample in case["samples"])
+          assert any(sample["projector_fov"]=="FAIL" for case in rgb["cases"] for sample in case["samples"])
+          assert any(sample["camera_line_of_sight"]=="INDETERMINATE" for case in rgb["cases"] for sample in case["samples"])
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml --bin orbital-photometric-usability-bench -- tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json "$GITHUB_SHA" > /tmp/rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml --bin orbital-photometric-usability-bench -- tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json "$GITHUB_SHA" > /tmp/rust2.json
+          cmp /tmp/rust.json /tmp/rust2.json
+          jq -e '.expected_mismatches == 0 and .physical_validation == "NOT_ASSESSED"' /tmp/rust.json
+      - name: Deterministic RGB Rust replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml --bin orbital-photometric-rgb-bench -- tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json "$GITHUB_SHA" > /tmp/rgb-rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-photometric-usability-bench/Cargo.toml --bin orbital-photometric-rgb-bench -- tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json "$GITHUB_SHA" > /tmp/rgb-rust-2.json
+          cmp /tmp/rgb-rust.json /tmp/rgb-rust-2.json
+          jq -e '.schema == "luminous.orbital-photometric-usability.rgb-receipt.v0.2" and .case_count == 10 and .expected_mismatches == 0 and .physical_validation == "NOT_ASSESSED"' /tmp/rgb-rust.json
+      - name: Independent RGB Python oracle
+        run: |
+          python3 tools/orbital-photometric-usability-bench/tests/rgb_reference_oracle_v0_2.py tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json "$GITHUB_SHA" > /tmp/rgb-oracle.json
+      - name: Independent Python oracle
+        run: |
+          python3 tools/orbital-photometric-usability-bench/tests/photometric_reference_oracle.py tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json "$GITHUB_SHA" > /tmp/oracle.json
+      - name: Compare complete receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("/tmp/rust.json").read_text()); o=json.loads(Path("/tmp/oracle.json").read_text())
+          assert r==o
+          cs={x["case_id"]:x for x in r["cases"]}
+          assert cs["PH-002-SPECULAR-SATURATION"]["modes"][0]["saturated_count"]==1
+          assert cs["PH-003-SHADOW"]["modes"][0]["underexposed_count"]==1
+          assert [x["acquisition"] for x in cs["PH-006-EXPOSURE-MODES"]["modes"]]==["UNUSABLE","USABLE"]
+          assert cs["PH-007-MATERIAL-UNKNOWN"]["modes"][0]["acquisition"]=="INDETERMINATE"
+          assert cs["PH-008-GEOMETRY-FAIL"]["modes"][0]["acquisition"]=="GEOMETRY_REJECTED"
+          rr=json.loads(Path("/tmp/rgb-rust.json").read_text())
+          ro=json.loads(Path("/tmp/rgb-oracle.json").read_text())
+          assert rr==ro
+          rc={x["case_id"]:x for x in rr["cases"]}
+          assert rc["RGB-002-ONE-CHANNEL-SATURATED"]["modes"][0]["samples"][0]["rgb_status"]=="SATURATED"
+          assert rc["RGB-003-ALL-CHANNELS-DARK"]["modes"][0]["samples"][0]["rgb_status"]=="UNDEREXPOSED"
+          assert rc["RGB-004-CAMERA-FOV-FAIL"]["modes"][0]["samples"][0]["joint_status"]=="GEOMETRY_REJECTED"
+          assert rc["RGB-005-PROJECTOR-FOV-FAIL"]["modes"][0]["samples"][0]["joint_status"]=="GEOMETRY_REJECTED"
+          assert rc["RGB-007-CAMERA-LOS-INDETERMINATE"]["modes"][0]["samples"][0]["joint_status"]=="INDETERMINATE"
+          assert rc["RGB-009-MIXED-SAMPLES-PARTIAL"]["modes"][0]["summary"]=="PARTIAL"
+          assert rc["RGB-010-INCLUSIVE-THRESHOLD-BOUNDARIES"]["modes"][0]["samples"][0]["rgb_status"]=="USABLE"
+          PY
+      - name: Create evidence manifest
+        run: |
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          r=Path("/tmp/rust.json").read_bytes();o=Path("/tmp/oracle.json").read_bytes()
+          f=Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json").read_bytes()
+          s=Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.schema.json").read_bytes()
+          rr=Path("/tmp/rgb-rust.json").read_bytes();ro=Path("/tmp/rgb-oracle.json").read_bytes()
+          rf=Path("tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json").read_bytes()
+          rs=Path("tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.schema.json").read_bytes()
+          m={"source_commit":"${{ github.sha }}","rust_sha256":hashlib.sha256(r).hexdigest(),"oracle_sha256":hashlib.sha256(o).hexdigest(),"fixture_sha256":hashlib.sha256(f).hexdigest(),"schema_sha256":hashlib.sha256(s).hexdigest(),"rgb_rust_sha256":hashlib.sha256(rr).hexdigest(),"rgb_oracle_sha256":hashlib.sha256(ro).hexdigest(),"rgb_fixture_sha256":hashlib.sha256(rf).hexdigest(),"rgb_schema_sha256":hashlib.sha256(rs).hexdigest(),"authority_granted":False,"physical_validation":"NOT_ASSESSED"}
+          Path("/tmp/evidence.json").write_text(json.dumps(m,indent=2)+"\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbital-photometric-usability-${{ github.sha }}
+          path: |
+            /tmp/rust.json
+            /tmp/oracle.json
+            /tmp/evidence.json
+            tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json
+            tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.schema.json
+            /tmp/rgb-rust.json
+            /tmp/rgb-oracle.json
+            tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.json
+            tools/orbital-photometric-usability-bench/docs/photometric-rgb-v0_2.schema.json
+          retention-days: 30
