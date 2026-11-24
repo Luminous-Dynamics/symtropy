@@ -235,11 +235,7 @@ fn signed_margin(direction: ThresholdDirection, lower: u64, upper: u64, threshol
     i64::try_from(margin).expect("validated decision values fit in i64")
 }
 
-fn realized_metric_admit(
-    direction: ThresholdDirection,
-    observed: u64,
-    threshold: u64,
-) -> bool {
+fn realized_metric_admit(direction: ThresholdDirection, observed: u64, threshold: u64) -> bool {
     match direction {
         ThresholdDirection::MinimumAtLeastThreshold => observed >= threshold,
         ThresholdDirection::MaximumAtMostThreshold => observed <= threshold,
@@ -314,9 +310,15 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
         for (name, value) in [
             ("sample_id", r.sample_id.as_str()),
             ("site_id", r.site_id.as_str()),
-            ("site_configuration_digest", r.site_configuration_digest.as_str()),
+            (
+                "site_configuration_digest",
+                r.site_configuration_digest.as_str(),
+            ),
             ("asset_id", r.asset_id.as_str()),
-            ("asset_configuration_digest", r.asset_configuration_digest.as_str()),
+            (
+                "asset_configuration_digest",
+                r.asset_configuration_digest.as_str(),
+            ),
             ("stratum_id", r.stratum_id.as_str()),
             ("forecast_model_id", r.forecast_model_id.as_str()),
             ("forecast_model_version", r.forecast_model_version.as_str()),
@@ -335,7 +337,9 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             || r.target_start_unix_ms >= r.target_end_unix_ms
             || r.target_end_unix_ms > input.audit_cutoff_unix_ms
         {
-            errors.push(format!("{prefix} has invalid decision/target/audit chronology"));
+            errors.push(format!(
+                "{prefix} has invalid decision/target/audit chronology"
+            ));
         }
         if [
             r.threshold_value,
@@ -351,7 +355,9 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             errors.push(format!("{prefix} contains a value above {MAX_VALUE}"));
         }
         if !(r.predicted_lower <= r.predicted_point && r.predicted_point <= r.predicted_upper) {
-            errors.push(format!("{prefix} forecast interval/point ordering is invalid"));
+            errors.push(format!(
+                "{prefix} forecast interval/point ordering is invalid"
+            ));
         }
 
         let site_ok = forecast_evidence_valid(
@@ -383,24 +389,41 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             input.audit_cutoff_unix_ms,
         );
         if !site_ok {
-            errors.push(format!("{prefix}.site_evidence is stale, mismatched or invalid"));
+            errors.push(format!(
+                "{prefix}.site_evidence is stale, mismatched or invalid"
+            ));
         }
         if !forecast_ok {
-            errors.push(format!("{prefix}.forecast_evidence is stale, mismatched or invalid"));
+            errors.push(format!(
+                "{prefix}.forecast_evidence is stale, mismatched or invalid"
+            ));
         }
         if !gate_ok {
-            errors.push(format!("{prefix}.hard_gate_evidence is stale, mismatched or invalid"));
+            errors.push(format!(
+                "{prefix}.hard_gate_evidence is stale, mismatched or invalid"
+            ));
         }
         if !outcome_ok {
-            errors.push(format!("{prefix}.outcome_evidence is premature, mismatched or invalid"));
+            errors.push(format!(
+                "{prefix}.outcome_evidence is premature, mismatched or invalid"
+            ));
         }
-        for e in [&r.site_evidence, &r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence] {
+        for e in [
+            &r.site_evidence,
+            &r.forecast_evidence,
+            &r.hard_gate_evidence,
+            &r.outcome_evidence,
+        ] {
             if evidence_well_formed(e) && !evidence_refs.insert(e.evidence_reference.as_str()) {
                 errors.push(format!("{prefix} reuses an evidence reference"));
             }
         }
     }
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 pub fn evaluate_service_decision_impact(
@@ -409,7 +432,9 @@ pub fn evaluate_service_decision_impact(
     validate(input)?;
 
     let mut canonical = input.clone();
-    canonical.records.sort_by(|a, b| a.sample_id.cmp(&b.sample_id));
+    canonical
+        .records
+        .sort_by(|a, b| a.sample_id.cmp(&b.sample_id));
     let canonical_bytes = serde_json::to_vec(&canonical)
         .map_err(|e| vec![format!("cannot canonicalize decision-impact input: {e}")])?;
     let input_digest = format!("sha256:{:x}", Sha256::digest(canonical_bytes));
@@ -419,24 +444,44 @@ pub fn evaluate_service_decision_impact(
     let mut any_synthetic_evidence = false;
 
     for r in &input.records {
-        let evidence = [&r.site_evidence, &r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence];
+        let evidence = [
+            &r.site_evidence,
+            &r.forecast_evidence,
+            &r.hard_gate_evidence,
+            &r.outcome_evidence,
+        ];
         for e in evidence {
             if e.evidence_class == EvidenceClass::Synthetic {
                 any_synthetic_evidence = true;
             }
-            if !matches!(e.evidence_class, EvidenceClass::Measured | EvidenceClass::IndependentTest) {
+            if !matches!(
+                e.evidence_class,
+                EvidenceClass::Measured | EvidenceClass::IndependentTest
+            ) {
                 all_evidence_source_grade = false;
             }
         }
 
-        let margin = signed_margin(r.direction, r.predicted_lower, r.predicted_upper, r.threshold_value);
-        evaluated.entry(group_key(r)).or_default().push(EvaluatedDecision {
-            margin,
-            candidate_admit: proposal_from_margin(margin),
-            realized_metric_admit: realized_metric_admit(r.direction, r.observed_value, r.threshold_value),
-            hard_gate: r.hard_gate_disposition,
-            service_value_units: r.service_value_units,
-        });
+        let margin = signed_margin(
+            r.direction,
+            r.predicted_lower,
+            r.predicted_upper,
+            r.threshold_value,
+        );
+        evaluated
+            .entry(group_key(r))
+            .or_default()
+            .push(EvaluatedDecision {
+                margin,
+                candidate_admit: proposal_from_margin(margin),
+                realized_metric_admit: realized_metric_admit(
+                    r.direction,
+                    r.observed_value,
+                    r.threshold_value,
+                ),
+                hard_gate: r.hard_gate_disposition,
+                service_value_units: r.service_value_units,
+            });
     }
 
     let mut groups = Vec::new();
@@ -565,7 +610,9 @@ pub fn evaluate_service_decision_impact(
         for minimum_margin in margins {
             let accepted: Vec<_> = decisions
                 .iter()
-                .filter(|d| d.hard_gate == HardGateDisposition::Passed && d.margin >= minimum_margin)
+                .filter(|d| {
+                    d.hard_gate == HardGateDisposition::Passed && d.margin >= minimum_margin
+                })
                 .collect();
             let false_safe = accepted.iter().filter(|d| !d.realized_metric_admit).count();
             group.risk_coverage.push(DecisionRiskCoveragePoint {
@@ -579,7 +626,8 @@ pub fn evaluate_service_decision_impact(
 
         totals.sample_count += group.sample_count;
         totals.candidate_admissions += group.candidate_admissions;
-        totals.operational_admissions_after_hard_gate += group.operational_admissions_after_hard_gate;
+        totals.operational_admissions_after_hard_gate +=
+            group.operational_admissions_after_hard_gate;
         totals.hard_gate_blocked_proposals += group.hard_gate_blocked_proposals;
         totals.unsupported_proposals += group.unsupported_proposals;
         totals.hard_gate_bypass_attempts += group.hard_gate_bypass_attempts;
@@ -628,7 +676,13 @@ pub fn evaluate_service_decision_impact(
 mod tests {
     use super::*;
 
-    fn evidence(asset: &str, reference: &str, observed: u64, from: u64, until: u64) -> EvidenceEnvelope {
+    fn evidence(
+        asset: &str,
+        reference: &str,
+        observed: u64,
+        from: u64,
+        until: u64,
+    ) -> EvidenceEnvelope {
         EvidenceEnvelope {
             asset_id: asset.to_owned(),
             configuration_digest: "cfg-1".to_owned(),
@@ -642,7 +696,13 @@ mod tests {
         }
     }
 
-    fn record(id: &str, lower: u64, upper: u64, observed: u64, gate: HardGateDisposition) -> DecisionImpactRecord {
+    fn record(
+        id: &str,
+        lower: u64,
+        upper: u64,
+        observed: u64,
+        gate: HardGateDisposition,
+    ) -> DecisionImpactRecord {
         DecisionImpactRecord {
             sample_id: id.to_owned(),
             site_id: "site-1".to_owned(),
@@ -701,7 +761,13 @@ mod tests {
 
     #[test]
     fn failed_hard_gate_blocks_proposal_and_records_bypass_attempt() {
-        let input = input(vec![record("blocked", 1_050, 1_100, 1_080, HardGateDisposition::Failed)]);
+        let input = input(vec![record(
+            "blocked",
+            1_050,
+            1_100,
+            1_080,
+            HardGateDisposition::Failed,
+        )]);
         let report = evaluate_service_decision_impact(&input).unwrap();
         assert_eq!(report.hard_gate_blocked_proposal_count, 1);
         assert_eq!(report.hard_gate_bypass_attempt_count, 1);
@@ -711,7 +777,13 @@ mod tests {
 
     #[test]
     fn unknown_hard_gate_is_unsupported_not_safe() {
-        let input = input(vec![record("unknown", 1_050, 1_100, 1_080, HardGateDisposition::Unknown)]);
+        let input = input(vec![record(
+            "unknown",
+            1_050,
+            1_100,
+            1_080,
+            HardGateDisposition::Unknown,
+        )]);
         let report = evaluate_service_decision_impact(&input).unwrap();
         assert_eq!(report.unsupported_proposal_count, 1);
         assert_eq!(report.operational_admission_count, 0);
@@ -752,9 +824,14 @@ mod tests {
 
     #[test]
     fn synthetic_evidence_cannot_claim_field_qualification() {
-        let report = evaluate_service_decision_impact(&input(vec![
-            record("synthetic", 1_050, 1_100, 1_080, HardGateDisposition::Passed),
-        ])).unwrap();
+        let report = evaluate_service_decision_impact(&input(vec![record(
+            "synthetic",
+            1_050,
+            1_100,
+            1_080,
+            HardGateDisposition::Passed,
+        )]))
+        .unwrap();
         assert!(report.any_synthetic_evidence);
         assert!(!report.all_evidence_source_grade);
         assert!(!report.field_qualification_granted);
@@ -778,7 +855,11 @@ mod tests {
         let report = evaluate_service_decision_impact(&input).unwrap();
         let points = &report.groups[0].risk_coverage;
         assert!(points.len() >= 2);
-        assert!(points.windows(2).all(|w| w[0].coverage_permille <= w[1].coverage_permille));
+        assert!(
+            points
+                .windows(2)
+                .all(|w| w[0].coverage_permille <= w[1].coverage_permille)
+        );
     }
 
     #[test]
