@@ -1,0 +1,37 @@
+{
+  "profile_id": "style.composed.conversation.v1",
+  "context_id": "creative_collaboration",
+  "family_id": "hybrid.organic-painterly",
+  "palette_id": "palette.copper-violet",
+  "material_language_id": null,
+  "scalar_edits": [
+    {
+      "dimension": "visual_stylization",
+      "value": 0.92
+    },
+    {
+      "dimension": "motion_gesture_amplitude",
+      "value": 0.4
+    }
+  ],
+  "visual_parameters": null,
+  "accessibility": {
+    "reduced_motion": true,
+    "high_contrast": false,
+    "colour_independent_cues": true,
+    "low_distraction": true,
+    "low_detail": false
+  },
+  "required_renderer_features": null,
+  "optional_renderer_features": null,
+  "parent_influences": [
+    {
+      "profile_id": "style.base.painterly.v1",
+      "weight": 0.25
+    },
+    {
+      "profile_id": "style.hybrid.dawn-organic.v1",
+      "weight": 0.75
+    }
+  ]
+}
