@@ -11,7 +11,9 @@ This crate consumes serialized reports from the existing owners. It does not dup
 - PR #3807: no-dispatch baseline qualification, interval lower bounds, dispatch impact, full recovery horizon and rebound.
 - PR #7313: mobility offer identity, reserve/lease/journal receipts and locational DC network screen.
 
-It checks exact identities, source repository path/commit shape, canonical report-content digests, timestamps, PCC/baseline interval alignment, dispatch evidence IDs, recovery coverage, arithmetic consistency and the exact upstream gate set. It preserves all four source reports as opaque inputs and returns one cross-report reconciliation summary.
+It checks exact identities, source repository path/commit shape, canonical report-content digests, timestamps, PCC/baseline/network interval alignment, dispatch evidence IDs, recovery coverage, arithmetic consistency and the exact upstream gate set. It preserves all four source reports as opaque inputs and returns one cross-report reconciliation summary.
+
+Two conclusions are deliberately separate: `technical_reconciliation_passed` means the evidence bundle is consistent; `service_performance_qualified` additionally requires every upstream gate, full-request network deliverability, positive per-interval service-power lower bound and positive event-plus-recovery net energy. A net-negative or network-limited event can be accurately reconciled while still failing service performance.
 
 ## Four quantities that must not be collapsed
 
