@@ -42,4 +42,4 @@ jobs:
       - name: Run independent receipt contract challenge cases
         run: |
           node --check tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs
-          node tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json
+          node tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json
