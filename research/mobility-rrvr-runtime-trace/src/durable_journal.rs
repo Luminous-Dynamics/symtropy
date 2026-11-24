@@ -847,33 +847,48 @@ impl JournalIndex {
     fn commit(&mut self, delta: JournalIndexDelta) {
         match delta {
             JournalIndexDelta::ResetIntent(delta) => {
-                self.reset_scopes.insert(delta.scope.clone());
-                self.reset_intents
-                    .insert(delta.reset_id.clone(), delta.binding.clone());
-                self.reset_intent_records
-                    .insert(delta.reset_id.clone(), delta.record.clone());
+                let ResetIntentDelta {
+                    reset_id,
+                    scope,
+                    binding,
+                    record,
+                } = *delta;
+                self.reset_scopes.insert(scope);
+                self.reset_intents.insert(reset_id.clone(), binding);
+                self.reset_intent_records.insert(reset_id, record);
             }
             JournalIndexDelta::ResetOutcome(delta) => {
-                if let Some(epoch) = delta.verified_world_epoch.clone() {
-                    if let Some(intent) = self.reset_intents.get_mut(&delta.reset_id) {
-                        intent.verified_world_epoch = Some(epoch);
-                    }
+                let ResetOutcomeDelta {
+                    reset_id,
+                    status,
+                    verified_world_epoch,
+                    record,
+                } = *delta;
+                if let Some(epoch) = verified_world_epoch
+                    && let Some(intent) = self.reset_intents.get_mut(&reset_id)
+                {
+                    intent.verified_world_epoch = Some(epoch);
                 }
-                self.reset_status.insert(delta.reset_id.clone(), delta.status);
-                self.reset_outcome_records
-                    .insert(delta.reset_id.clone(), delta.record.clone());
+                self.reset_status.insert(reset_id.clone(), status);
+                self.reset_outcome_records.insert(reset_id, record);
             }
             JournalIndexDelta::DispatchIntent(delta) => {
-                self.dispatch_intents
-                    .insert(delta.idempotency_key.clone(), delta.binding.clone());
-                self.dispatch_intent_records
-                    .insert(delta.idempotency_key.clone(), delta.record.clone());
+                let DispatchIntentDelta {
+                    idempotency_key,
+                    binding,
+                    record,
+                } = *delta;
+                self.dispatch_intents.insert(idempotency_key.clone(), binding);
+                self.dispatch_intent_records.insert(idempotency_key, record);
             }
             JournalIndexDelta::DispatchOutcome(delta) => {
-                self.dispatch_status
-                    .insert(delta.idempotency_key.clone(), delta.status);
-                self.dispatch_outcome_records
-                    .insert(delta.idempotency_key.clone(), delta.record.clone());
+                let DispatchOutcomeDelta {
+                    idempotency_key,
+                    status,
+                    record,
+                } = *delta;
+                self.dispatch_status.insert(idempotency_key.clone(), status);
+                self.dispatch_outcome_records.insert(idempotency_key, record);
             }
         }
     }
