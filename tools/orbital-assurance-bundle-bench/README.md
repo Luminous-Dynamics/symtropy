@@ -248,3 +248,23 @@ node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequac
 The policy adapter now pins the query-universe receipt/scope, expected query IDs and query-record digest, the actual incumbent policy ID, and the best no-query loss summary. It recomputes the best no-query baseline and every query policy's loss reduction rather than trusting the reported diagnostic. See [source provenance hardening and the 2026 benchmark comparison](../../research/orbital/INCUMBENT_POLICY_ADEQUACY_V0_1.md#10-source-provenance-hardening-stacked-increment).
 
 A small, independent exhaustive Python oracle also enumerates every observable policy on a bounded three-scenario/two-world domain. It computes the exact Pareto frontier and review decision using Fraction arithmetic; its CI known answer requires 22 enumerated policies, 2 frontier policies, zero authority and a review trigger for a 9-unit improvement over a 2-unit materiality threshold. This is only a tiny-domain oracle, not a scalable production planner.
+
+
+## Probability-qualified CVaR regret v0.1
+
+A separate risk-sensitive adapter computes exact upper-tail CVaR of wait-and-see and outcome-class regret from an explicit, source-bound joint probability receipt. It does not derive probabilities from the unweighted scenario inventory and does not alter the existing distribution-free worst-case incumbent result. Missing, stale, uncalibrated or incomplete probability evidence abstains.
+
+The Rust evaluator uses bounded reduced rationals and checked arithmetic; the independent Python reference uses stdlib `Fraction`. The finite-support CVaR implementation uses the Rockafellar-Uryasev variational formula, evaluates every distinct support loss, and reports the fraction of the VaR atom consumed at the tail boundary.
+
+Research contract and benchmark positioning: [ORBITAL_RISK_SENSITIVE_CVAR_V0_1.md](../../research/orbital/ORBITAL_RISK_SENSITIVE_CVAR_V0_1.md).
+
+~~~bash
+cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin cvar-regret -- \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/cvar-regret-cases.json \
+  --source-commit <40-lowercase-hex-commit>
+python3 tools/orbital-assurance-bundle-bench/tests/cvar_regret_oracle.py \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/cvar-regret-cases.json
+(cd tools/orbital-assurance-bundle-bench/tests && python3 -m unittest -v test_cvar_regret_oracle)
+~~~
+
+The synthetic known answer includes one qualified distribution and three abstention cases (no receipt, stale receipt, unqualified calibration). Expected wait-and-see CVaR values at alpha 0.90 / 0.95 / 0.99 are 22/5, 29/5, 10 for the incumbent and 14/5, 18/5, 6 for the candidate. These are arithmetic fixtures, not evidence that the probability model is calibrated to the real world.

@@ -1,0 +1,457 @@
+{
+  "schema": "luminous.orbital-cvar-regret.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "probability-conditioned-synthetic-tail-risk-algebra-only",
+  "alphas": [
+    {
+      "numerator": 9,
+      "denominator": 10
+    },
+    {
+      "numerator": 19,
+      "denominator": 20
+    },
+    {
+      "numerator": 99,
+      "denominator": 100
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "cvar-case-1",
+      "scope_id": "scope-cvar-1",
+      "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "decision_cutoff_id": "cutoff-cvar-106",
+      "world_set_receipt_id": "world-set-cvar-1",
+      "joint_loss_receipt_id": "joint-loss-cvar-1",
+      "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+      "expected_scenario_ids": [
+        "s-A",
+        "s-B",
+        "s-C",
+        "s-D"
+      ],
+      "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+      "joint_scenarios": [
+        {
+          "scenario_id": "s-A",
+          "world_id": "w-A",
+          "loss_model_id": "lm-A"
+        },
+        {
+          "scenario_id": "s-B",
+          "world_id": "w-B",
+          "loss_model_id": "lm-B"
+        },
+        {
+          "scenario_id": "s-C",
+          "world_id": "w-C",
+          "loss_model_id": "lm-C"
+        },
+        {
+          "scenario_id": "s-D",
+          "world_id": "w-D",
+          "loss_model_id": "lm-D"
+        }
+      ],
+      "probability_model": {
+        "receipt_schema": "luminous.orbital-probability-model.receipt.v0.1",
+        "claim_ceiling": "explicit-joint-probability-model-receipt-only",
+        "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "probability_model_id": "calibrated-joint-model-1",
+        "receipt_id": "probability-receipt-1",
+        "receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "source_case_id": "cvar-case-1",
+        "scope_id": "scope-cvar-1",
+        "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_cutoff_id": "cutoff-cvar-106",
+        "world_set_receipt_id": "world-set-cvar-1",
+        "joint_loss_receipt_id": "joint-loss-cvar-1",
+        "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+        "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+        "calibration_receipt_id": "calibration-1",
+        "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "validation_split_id": "holdout-split-1",
+        "validation_split_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "probability_payload_sha256": "ed0eeef7973eb127b00c14a8afdf92dee8b39d0d22159ff318d73e708c4a80b9",
+        "state": "CURRENT",
+        "calibration_state": "QUALIFIED",
+        "coverage_state": "ADEQUATE",
+        "model_family_state": "ADEQUATE",
+        "assumptions": {
+          "sampling_design": "EXPLICIT_JOINT_DISTRIBUTION",
+          "dependence_model": "JOINT_SCENARIO_WEIGHTS"
+        },
+        "result": "pass",
+        "weights": [
+          {
+            "scenario_id": "s-A",
+            "weight": {
+              "numerator": 7,
+              "denominator": 10
+            }
+          },
+          {
+            "scenario_id": "s-B",
+            "weight": {
+              "numerator": 1,
+              "denominator": 5
+            }
+          },
+          {
+            "scenario_id": "s-C",
+            "weight": {
+              "numerator": 2,
+              "denominator": 25
+            }
+          },
+          {
+            "scenario_id": "s-D",
+            "weight": {
+              "numerator": 1,
+              "denominator": 50
+            }
+          }
+        ]
+      },
+      "policies": [
+        {
+          "policy_id": "incumbent-static",
+          "per_scenario": [
+            {
+              "scenario_id": "s-A",
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            },
+            {
+              "scenario_id": "s-B",
+              "wait_and_see_regret": {
+                "numerator": 1,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 1,
+                "denominator": 2
+              }
+            },
+            {
+              "scenario_id": "s-C",
+              "wait_and_see_regret": {
+                "numerator": 3,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 2,
+                "denominator": 1
+              }
+            },
+            {
+              "scenario_id": "s-D",
+              "wait_and_see_regret": {
+                "numerator": 10,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 7,
+                "denominator": 1
+              }
+            }
+          ]
+        },
+        {
+          "policy_id": "candidate-observable",
+          "per_scenario": [
+            {
+              "scenario_id": "s-A",
+              "wait_and_see_regret": {
+                "numerator": 0,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 0,
+                "denominator": 1
+              }
+            },
+            {
+              "scenario_id": "s-B",
+              "wait_and_see_regret": {
+                "numerator": 1,
+                "denominator": 2
+              },
+              "outcome_class_regret": {
+                "numerator": 1,
+                "denominator": 5
+              }
+            },
+            {
+              "scenario_id": "s-C",
+              "wait_and_see_regret": {
+                "numerator": 2,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 3,
+                "denominator": 2
+              }
+            },
+            {
+              "scenario_id": "s-D",
+              "wait_and_see_regret": {
+                "numerator": 6,
+                "denominator": 1
+              },
+              "outcome_class_regret": {
+                "numerator": 4,
+                "denominator": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "cvar-case-no-probability",
+      "scope_id": "scope-cvar-1",
+      "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "decision_cutoff_id": "cutoff-cvar-106",
+      "world_set_receipt_id": "world-set-cvar-1",
+      "joint_loss_receipt_id": "joint-loss-cvar-1",
+      "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+      "expected_scenario_ids": [
+        "s-A",
+        "s-B",
+        "s-C",
+        "s-D"
+      ],
+      "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+      "joint_scenarios": [
+        {
+          "scenario_id": "s-A",
+          "world_id": "w-A",
+          "loss_model_id": "lm-A"
+        },
+        {
+          "scenario_id": "s-B",
+          "world_id": "w-B",
+          "loss_model_id": "lm-B"
+        },
+        {
+          "scenario_id": "s-C",
+          "world_id": "w-C",
+          "loss_model_id": "lm-C"
+        },
+        {
+          "scenario_id": "s-D",
+          "world_id": "w-D",
+          "loss_model_id": "lm-D"
+        }
+      ],
+      "probability_model": null,
+      "policies": []
+    },
+    {
+      "case_id": "cvar-case-stale-model",
+      "scope_id": "scope-cvar-1",
+      "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "decision_cutoff_id": "cutoff-cvar-106",
+      "world_set_receipt_id": "world-set-cvar-1",
+      "joint_loss_receipt_id": "joint-loss-cvar-1",
+      "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+      "expected_scenario_ids": [
+        "s-A",
+        "s-B",
+        "s-C",
+        "s-D"
+      ],
+      "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+      "joint_scenarios": [
+        {
+          "scenario_id": "s-A",
+          "world_id": "w-A",
+          "loss_model_id": "lm-A"
+        },
+        {
+          "scenario_id": "s-B",
+          "world_id": "w-B",
+          "loss_model_id": "lm-B"
+        },
+        {
+          "scenario_id": "s-C",
+          "world_id": "w-C",
+          "loss_model_id": "lm-C"
+        },
+        {
+          "scenario_id": "s-D",
+          "world_id": "w-D",
+          "loss_model_id": "lm-D"
+        }
+      ],
+      "probability_model": {
+        "receipt_schema": "luminous.orbital-probability-model.receipt.v0.1",
+        "claim_ceiling": "explicit-joint-probability-model-receipt-only",
+        "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "probability_model_id": "stale-model-1",
+        "receipt_id": "stale-probability-receipt",
+        "receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "source_case_id": "cvar-case-stale-model",
+        "scope_id": "scope-cvar-1",
+        "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_cutoff_id": "cutoff-cvar-106",
+        "world_set_receipt_id": "world-set-cvar-1",
+        "joint_loss_receipt_id": "joint-loss-cvar-1",
+        "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+        "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+        "calibration_receipt_id": "calibration-1",
+        "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "validation_split_id": "holdout-split-1",
+        "validation_split_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "probability_payload_sha256": "ed0eeef7973eb127b00c14a8afdf92dee8b39d0d22159ff318d73e708c4a80b9",
+        "state": "STALE",
+        "calibration_state": "QUALIFIED",
+        "coverage_state": "ADEQUATE",
+        "model_family_state": "ADEQUATE",
+        "assumptions": {
+          "sampling_design": "EXPLICIT_JOINT_DISTRIBUTION",
+          "dependence_model": "JOINT_SCENARIO_WEIGHTS"
+        },
+        "result": "pass",
+        "weights": [
+          {
+            "scenario_id": "s-A",
+            "weight": {
+              "numerator": 7,
+              "denominator": 10
+            }
+          },
+          {
+            "scenario_id": "s-B",
+            "weight": {
+              "numerator": 1,
+              "denominator": 5
+            }
+          },
+          {
+            "scenario_id": "s-C",
+            "weight": {
+              "numerator": 2,
+              "denominator": 25
+            }
+          },
+          {
+            "scenario_id": "s-D",
+            "weight": {
+              "numerator": 1,
+              "denominator": 50
+            }
+          }
+        ]
+      },
+      "policies": []
+    },
+    {
+      "case_id": "cvar-case-unqualified-calibration",
+      "scope_id": "scope-cvar-1",
+      "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "decision_cutoff_id": "cutoff-cvar-106",
+      "world_set_receipt_id": "world-set-cvar-1",
+      "joint_loss_receipt_id": "joint-loss-cvar-1",
+      "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+      "expected_scenario_ids": [
+        "s-A",
+        "s-B",
+        "s-C",
+        "s-D"
+      ],
+      "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+      "joint_scenarios": [
+        {
+          "scenario_id": "s-A",
+          "world_id": "w-A",
+          "loss_model_id": "lm-A"
+        },
+        {
+          "scenario_id": "s-B",
+          "world_id": "w-B",
+          "loss_model_id": "lm-B"
+        },
+        {
+          "scenario_id": "s-C",
+          "world_id": "w-C",
+          "loss_model_id": "lm-C"
+        },
+        {
+          "scenario_id": "s-D",
+          "world_id": "w-D",
+          "loss_model_id": "lm-D"
+        }
+      ],
+      "probability_model": {
+        "receipt_schema": "luminous.orbital-probability-model.receipt.v0.1",
+        "claim_ceiling": "explicit-joint-probability-model-receipt-only",
+        "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "probability_model_id": "unqualified-model-1",
+        "receipt_id": "unqualified-probability-receipt",
+        "receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "source_case_id": "cvar-case-unqualified-calibration",
+        "scope_id": "scope-cvar-1",
+        "scope_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_cutoff_id": "cutoff-cvar-106",
+        "world_set_receipt_id": "world-set-cvar-1",
+        "joint_loss_receipt_id": "joint-loss-cvar-1",
+        "joint_scenario_manifest_sha256": "8b3b7c8f210ed581534aa8c8940d70e88533ffd8176983cf27f39904a5c84eb6",
+        "expected_scenario_ids_sha256": "83078edc5b9d1df1abef15c2a3afa023b9e3b4640c5a7187c306c5a7fdfb3efb",
+        "calibration_receipt_id": "calibration-1",
+        "calibration_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "validation_split_id": "holdout-split-1",
+        "validation_split_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "probability_payload_sha256": "ed0eeef7973eb127b00c14a8afdf92dee8b39d0d22159ff318d73e708c4a80b9",
+        "state": "CURRENT",
+        "calibration_state": "UNQUALIFIED",
+        "coverage_state": "ADEQUATE",
+        "model_family_state": "ADEQUATE",
+        "assumptions": {
+          "sampling_design": "EXPLICIT_JOINT_DISTRIBUTION",
+          "dependence_model": "JOINT_SCENARIO_WEIGHTS"
+        },
+        "result": "pass",
+        "weights": [
+          {
+            "scenario_id": "s-A",
+            "weight": {
+              "numerator": 7,
+              "denominator": 10
+            }
+          },
+          {
+            "scenario_id": "s-B",
+            "weight": {
+              "numerator": 1,
+              "denominator": 5
+            }
+          },
+          {
+            "scenario_id": "s-C",
+            "weight": {
+              "numerator": 2,
+              "denominator": 25
+            }
+          },
+          {
+            "scenario_id": "s-D",
+            "weight": {
+              "numerator": 1,
+              "denominator": 50
+            }
+          }
+        ]
+      },
+      "policies": []
+    }
+  ]
+}
