@@ -443,6 +443,29 @@ pub fn whiten_conditional_innovation_sensitivities(
     if parameter_count == 0 {
         return Err(IdentifiabilityError::EmptyParameterSet);
     }
+    if candidate_covariance.len() != candidate_count {
+        return Err(IdentifiabilityError::NoiseCovarianceDimensionMismatch {
+            expected: candidate_count,
+            actual: candidate_covariance.len(),
+        });
+    }
+    for (row_index, row) in candidate_covariance.iter().enumerate() {
+        if row.len() != candidate_count {
+            return Err(IdentifiabilityError::NoiseCovarianceRagged {
+                row: row_index,
+                expected: candidate_count,
+                actual: row.len(),
+            });
+        }
+        for (column_index, value) in row.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NoiseCovarianceNonFinite {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
     for (row_index, row) in candidate_sensitivity.iter().enumerate() {
         if row.len() != parameter_count {
             return Err(IdentifiabilityError::ConditionalParameterCountMismatch {
@@ -531,21 +554,8 @@ pub fn whiten_conditional_innovation_sensitivities(
                     cross_row[candidate_row] * cross_row[candidate_column]
                 })
                 .sum::<f64>();
-            let row = conditional_covariance
-                .get_mut(candidate_row)
-                .ok_or(IdentifiabilityError::NoiseCovarianceDimensionMismatch {
-                    expected: candidate_count,
-                    actual: conditional_covariance.len(),
-                })?;
-            let value = row.get_mut(candidate_column).ok_or(
-                IdentifiabilityError::NoiseCovarianceRagged {
-                    row: candidate_row,
-                    expected: candidate_count,
-                    actual: row.len(),
-                },
-            )?;
-            *value -= correction;
-            if !value.is_finite() {
+            conditional_covariance[candidate_row][candidate_column] -= correction;
+            if !conditional_covariance[candidate_row][candidate_column].is_finite() {
                 return Err(IdentifiabilityError::NumericalOverflow);
             }
         }
