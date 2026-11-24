@@ -546,8 +546,7 @@
       "additionalProperties": false,
       "required": [
         "map_kind",
-        "source_scope",
-        "target_scope",
+        "scope",
         "source_state_snapshot",
         "target_state_snapshot",
         "source_action_snapshot",
@@ -564,12 +563,6 @@
             "simulation",
             "bisimulation"
           ]
-        },
-        "source_scope": {
-          "$ref": "#/$defs/behaviour_scope"
-        },
-        "target_scope": {
-          "$ref": "#/$defs/behaviour_scope"
         },
         "source_state_snapshot": {
           "type": "array",
@@ -626,6 +619,9 @@
         },
         "unresolved": {
           "type": "boolean"
+        },
+        "scope": {
+          "$ref": "#/$defs/behaviour_scope"
         }
       }
     }
