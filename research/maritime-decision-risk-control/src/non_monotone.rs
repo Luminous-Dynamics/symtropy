@@ -337,7 +337,12 @@ pub fn calibrate_bernstein(
 
     let adjusted_target = target_risk_milli - correction as u16;
     if endpoint.expected_loss_upper_milli > adjusted_target {
-        return Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget);
+        return Err(
+            RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget {
+                endpoint_risk_upper_milli: endpoint.expected_loss_upper_milli,
+                adjusted_target_milli: adjusted_target,
+            },
+        );
     }
 
     let mut selected = m - 1;
@@ -570,7 +575,7 @@ fn synthetic_variance_endpoint() -> EndpointPopulationRiskContract {
 /// Bernstein corrections on the same non-monotone whole-schedule policy grid.
 pub fn render_bernstein_csv() -> String {
     let mut output = String::from(
-        "calibration_schedules,parameter_count,target_risk_milli,sigma_max_milli,hoeffding_correction_milli,bernstein_correction_milli,selected_correction_milli,adjusted_risk_milli,selected_policy_index,selected_calibration_loss_mean_milli,synthetic_population_loss_milli,independent_test_loss_mean_milli,endpoint_risk_upper_milli,monotonicity_violations,status\\n",
+        "calibration_schedules,parameter_count,target_risk_milli,sigma_max_milli,hoeffding_correction_milli,bernstein_correction_milli,selected_correction_milli,adjusted_risk_milli,selected_policy_index,selected_calibration_loss_mean_milli,synthetic_population_loss_milli,independent_test_loss_mean_milli,endpoint_risk_upper_milli,monotonicity_violations,status\n",
     );
 
     for (n, seed, name) in [
@@ -598,7 +603,7 @@ pub fn render_bernstein_csv() -> String {
                 let population_mean =
                     VARIANCE_POLICY_PROBABILITIES[index] * f64::from(LOSS_BOUND_MILLI);
                 output.push_str(&format!(
-                    "{},{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{},{},EXPECTED_RISK_BOUND_SYNTHETIC\\n",
+                    "{},{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{},{},EXPECTED_RISK_BOUND_SYNTHETIC\n",
                     result.calibration_schedules,
                     result.parameter_count,
                     result.target_risk_milli,
@@ -617,17 +622,17 @@ pub fn render_bernstein_csv() -> String {
             }
             Err(RiskControlError::NoPositiveAdjustedTarget { .. }) => {
                 output.push_str(&format!(
-                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_POSITIVE_ADJUSTED_TARGET\\n"
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_POSITIVE_ADJUSTED_TARGET\n"
                 ));
             }
-            Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget) => {
+            Err(RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget { .. }) => {
                 output.push_str(&format!(
-                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,ENDPOINT_MARGIN_FAIL\\n"
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,ENDPOINT_MARGIN_FAIL\n"
                 ));
             }
             Err(_) => {
                 output.push_str(&format!(
-                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_RISK_CLAIM\\n"
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_RISK_CLAIM\n"
                 ));
             }
         }
@@ -755,7 +760,7 @@ mod tests {
                 }),
                 &variance_fixture_revisions(),
             ),
-            Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget)
+            Err(RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget { .. })
         );
     }
 
