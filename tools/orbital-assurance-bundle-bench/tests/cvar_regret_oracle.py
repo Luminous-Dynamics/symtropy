@@ -23,6 +23,7 @@ MODEL_CLAIM_CEILING = "explicit-joint-probability-model-receipt-only"
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 MAX_COMPONENT = 10**12
+MAX_SCENARIOS = 16_384
 
 
 def canonical_json(value: Any) -> str:
@@ -223,6 +224,7 @@ def validate_receipt(case: dict[str, Any]) -> list[tuple[str, Fraction]]:
     if (
         not isinstance(expected_ids, list)
         or not expected_ids
+        or len(expected_ids) > MAX_SCENARIOS
         or any(not valid_id(value) for value in expected_ids)
         or len(expected_ids) != len(set(expected_ids))
         or sorted(expected_ids) != expected_ids
@@ -235,7 +237,12 @@ def validate_receipt(case: dict[str, Any]) -> list[tuple[str, Fraction]]:
     joint_ids = [row.get("scenario_id") for row in joint_scenarios if isinstance(row, dict)]
     if (
         len(joint_ids) != len(joint_scenarios)
+        or len(joint_scenarios) > MAX_SCENARIOS
         or any(not valid_id(value) for value in joint_ids)
+        or any(
+            not valid_id(row.get("world_id")) or not valid_id(row.get("loss_model_id"))
+            for row in joint_scenarios
+        )
         or len(set(joint_ids)) != len(joint_ids)
         or sorted(joint_ids) != expected_ids
         or digest_json(canonical_joint_rows(joint_scenarios))
@@ -323,8 +330,16 @@ def evaluate_policy(
 
 
 def evaluate_case(case: dict[str, Any], alphas: list[Fraction]) -> dict[str, Any]:
-    if not valid_id(case.get("case_id")) or not valid_id(case.get("scope_id")):
-        return invalid(case, "case identity or scope is malformed")
+    if (
+        not valid_id(case.get("case_id"))
+        or not valid_id(case.get("scope_id"))
+        or not valid_sha(case.get("scope_sha256"))
+        or not valid_id(case.get("decision_cutoff_id"))
+        or not valid_id(case.get("world_set_receipt_id"))
+        or not valid_id(case.get("joint_loss_receipt_id"))
+        or not valid_sha(case.get("joint_scenario_manifest_sha256"))
+    ):
+        return invalid(case, "case identity and source scope are malformed")
     try:
         weight_rows = validate_receipt(case)
     except LookupError as error:
