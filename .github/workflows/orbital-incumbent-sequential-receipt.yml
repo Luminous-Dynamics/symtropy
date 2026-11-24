@@ -49,4 +49,4 @@ jobs:
           python3 --version
           python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py
           python3 tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json > python-anytime-world-set-oracle.json
-          python3 -c 'import json; r=json.load(open("python-anytime-world-set-oracle.json", encoding="utf-8")); assert r["result"] == "pass" and r["case_count"] == 23 and r["expected_result_mismatches"] == 0 and r["authority_grants"] == 0'
+          python3 -c 'import json; r=json.load(open("python-anytime-world-set-oracle.json", encoding="utf-8")); assert r["result"] == "pass" and r["case_count"] == 26 and r["expected_result_mismatches"] == 0 and r["authority_grants"] == 0'
