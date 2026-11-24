@@ -485,3 +485,17 @@ The composed adapter must not permit dispatch from a session that has only compl
 - fresh coordinator restart -> must recover reset qualification from a durable journal receipt, not an in-memory marker or remembered epoch string.
 
 Targets: zero injector calls for every invalid-control case, zero simulator mutation from a tampered plan, and 100% valid positive-control admission only when the exact reset and capability receipts are present. The private session marker is a software guard, not durable reset evidence; that remains part of #7148.
+
+
+### Reset timeout and ambiguous-outcome campaign
+
+Reset is itself a mutating operation and must be tested with the same no-blind-retry discipline as physical fault dispatch. Add crash/fault cuts:
+- before ResetSimulation request;
+- request sent, response dropped before the simulator applies reset;
+- reset applied, response dropped;
+- response accepted, immediate state read lost;
+- state returned but wrong world epoch, clock, paused state, step or initial-state digest;
+- coordinator crash after request but before recording the outcome;
+- coordinator restart with durable reset intent but no durable response receipt.
+
+Targets: zero second reset requests while the prior outcome is ambiguous; zero fault dispatch while reset is unresolved; read-only reconciliation can qualify only an observed state matching the full reset contract; journal recovery after coordinator restart must not invent a successful reset from an epoch string. The in-memory mock state machine is a software contract, not a durable reset ledger qualification.
