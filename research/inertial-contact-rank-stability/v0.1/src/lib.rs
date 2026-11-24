@@ -634,6 +634,33 @@ mod tests {
     }
 
     #[test]
+    fn one_sided_jacobi_recovers_non_diagonal_known_spectrum() {
+        let problem = input(
+            &["a", "b"],
+            vec![vec![1.0, 1.0], vec![0.0, 1.0]],
+            0.0,
+            0.0,
+            1.7,
+            0.1,
+        );
+        let report = certify_rank_stability(&problem, square_config()).expect("Jacobi SVD");
+        let root_five = 5.0_f64.sqrt();
+        let expected_max = ((3.0 + root_five) / 2.0).sqrt();
+        let expected_min = ((3.0 - root_five) / 2.0).sqrt();
+        close(
+            report.singular_value_intervals[0].nominal_value,
+            expected_max,
+            1.0e-10,
+        );
+        close(
+            report.singular_value_intervals[1].nominal_value,
+            expected_min,
+            1.0e-10,
+        );
+        assert_eq!(report.robust_spectral_rank, Some(2));
+    }
+
+    #[test]
     fn dense_rectangular_matrix_returns_sorted_singular_values() {
         let problem = input(
             &["a", "b"],
