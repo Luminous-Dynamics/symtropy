@@ -204,3 +204,8 @@ The research positioning has also been updated to acknowledge EAST (October 2026
 The dispatch request now includes a SHA-256 commitment over its canonical plan/run/fault/target payload. The local registry detects same-process duplicates and same-key/different-payload conflicts; it is not durable and cannot protect a new coordinator process by itself. A concrete injector must persist idempotency-key-to-payload-digest-to-outcome atomically before effect execution, return the stored outcome for an identical retry, and reject a changed payload under the same key. `PayloadConflict` is distinct from `Unknown` and requires investigation, not retry.
 
 A test double exercises the contract across a simulated coordinator restart. A real injector ledger, its persistence semantics and its physical effect boundary remain unqualified.
+
+
+### Blind observer evaluation
+
+The Gazebo observer trait no longer receives the expected fault-signature digest. The independent assessor retains that oracle and compares it only after the observer returns its measured signature. A structurally qualified quorum now produces Confirmed (unanimous expected signature), Refuted (unanimous different signature), or InsufficientEvidence (observer disagreement). Invalid membership, stale scope and common-cause overlap remain hard errors. These verdicts do not grant authority.
