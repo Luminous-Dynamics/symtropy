@@ -756,10 +756,11 @@ fn validate_timelines(
                 .is_some_and(|phase| phase == "dispatch")
         })
         .collect();
-    let mut network_interval_index = 0_usize;
     let mut sample_evidence_ids = BTreeSet::new();
     let mut tracked_sample_energy_kwh = 0.0_f64;
-    for (index, (sample, baseline_interval)) in samples.iter().zip(dispatch_intervals).enumerate() {
+    for ((index, (sample, baseline_interval)), network_interval_index) in
+        samples.iter().zip(dispatch_intervals).enumerate().enumerate()
+    {
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
             .checked_mul(sample_interval_ns)
@@ -835,8 +836,6 @@ fn validate_timelines(
                 "per-interval network deliverability cannot be negative".to_owned(),
             ));
         }
-        network_interval_index += 1;
-
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
         if !sample_evidence_ids.insert(baseline_id.clone())
@@ -1375,7 +1374,7 @@ mod tests {
     fn report_artifact(pr: u32, source_path: &str, report: Value) -> SourceReportArtifact {
         SourceReportArtifact {
             source_pr: pr,
-            source_commit_sha: sha_commit(char::from_u32(b'a' as u32 + (pr % 6) as u32).unwrap()),
+            source_commit_sha: sha_commit(char::from_u32(b'a' as u32 + (pr % 6)).unwrap()),
             source_path: source_path.to_owned(),
             report,
         }
