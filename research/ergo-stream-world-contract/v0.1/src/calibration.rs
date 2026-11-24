@@ -205,6 +205,7 @@ pub enum TransferCalibrationErrorV0 {
     EmptyClaimId,
     DuplicateClaimId,
     DuplicateClaimOutcomeId,
+    DuplicateIndependentUnitId,
     InvalidClaimScopeDigest,
     ClaimIdentityMismatch,
 }
@@ -234,6 +235,9 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::EmptyClaimId => "bound transfer forecast/outcome requires a non-empty claim ID",
             Self::DuplicateClaimId => "bound transfer forecasts contain a duplicate claim ID",
             Self::DuplicateClaimOutcomeId => "bound transfer outcomes contain a duplicate claim ID",
+            Self::DuplicateIndependentUnitId => {
+                "split-conformal calibration must have one record per independent unit"
+            }
             Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
             Self::ClaimIdentityMismatch => {
                 "forecast and evaluator outcome do not bind to the same claim type and scope digest"
@@ -683,6 +687,18 @@ fn is_lowercase_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+/// One evaluator-scored transfer claim from a declared independent unit.
+/// A v0 calibration sample is one-to-one with an independent unit; multiple
+/// correlated claims from one unit must be aggregated or handled by a block
+/// maximum in a separately specified protocol before fitting this calibrator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SplitConformalCalibrationOutcomeV0 {
+    pub sample_id: u64,
+    pub independent_unit_id: u64,
+    pub evaluation_stratum_id: u16,
+    pub transfer_qualified: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SplitConformalBinaryTransferV0 {
     pub evaluation_stratum_id: u16,
@@ -764,7 +780,7 @@ impl SplitConformalBinaryTransferV0 {
 /// under arbitrary distribution shift.
 pub fn fit_split_conformal_binary_transfer(
     calibration_forecasts: &[TransferForecastV0],
-    calibration_outcomes: &[TransferOutcomeV0],
+    calibration_outcomes: &[SplitConformalCalibrationOutcomeV0],
     evaluation_stratum_id: u16,
     alpha_ppm: u32,
 ) -> Result<SplitConformalBinaryTransferV0, TransferCalibrationErrorV0> {
@@ -789,9 +805,13 @@ pub fn fit_split_conformal_binary_transfer(
     }
 
     let mut outcomes_by_id = BTreeMap::new();
+    let mut independent_unit_ids = BTreeSet::new();
     for outcome in calibration_outcomes {
         if outcome.evaluation_stratum_id != evaluation_stratum_id {
             return Err(TransferCalibrationErrorV0::MixedCalibrationStrata);
+        }
+        if !independent_unit_ids.insert(outcome.independent_unit_id) {
+            return Err(TransferCalibrationErrorV0::DuplicateIndependentUnitId);
         }
         if outcomes_by_id.insert(outcome.sample_id, *outcome).is_some() {
             return Err(TransferCalibrationErrorV0::DuplicateOutcomeId);
@@ -868,25 +888,31 @@ mod tests {
         }
     }
 
-    fn conformal_calibration_fixture() -> (Vec<TransferForecastV0>, Vec<TransferOutcomeV0>) {
+    fn conformal_calibration_fixture() -> (
+        Vec<TransferForecastV0>,
+        Vec<SplitConformalCalibrationOutcomeV0>,
+    ) {
         let forecasts = vec![
             forecast(201, 900_000, None),
             forecast(202, 200_000, None),
             forecast(203, 500_000, None),
         ];
         let outcomes = vec![
-            TransferOutcomeV0 {
+            SplitConformalCalibrationOutcomeV0 {
                 sample_id: 201,
+                independent_unit_id: 7201,
                 evaluation_stratum_id: 7,
                 transfer_qualified: true,
             },
-            TransferOutcomeV0 {
+            SplitConformalCalibrationOutcomeV0 {
                 sample_id: 202,
+                independent_unit_id: 7202,
                 evaluation_stratum_id: 7,
                 transfer_qualified: false,
             },
-            TransferOutcomeV0 {
+            SplitConformalCalibrationOutcomeV0 {
                 sample_id: 203,
+                independent_unit_id: 7203,
                 evaluation_stratum_id: 7,
                 transfer_qualified: false,
             },
@@ -913,8 +939,9 @@ mod tests {
     #[test]
     fn split_conformal_empty_and_tied_prediction_sets_remain_set_valued() {
         let forecasts = [forecast(401, 900_000, None)];
-        let outcomes = [TransferOutcomeV0 {
+        let outcomes = [SplitConformalCalibrationOutcomeV0 {
             sample_id: 401,
+            independent_unit_id: 9401,
             evaluation_stratum_id: 9,
             transfer_qualified: true,
         }];
@@ -936,8 +963,9 @@ mod tests {
     #[test]
     fn split_conformal_returns_both_labels_when_calibration_is_too_small_for_rank() {
         let forecasts = [forecast(301, 900_000, None)];
-        let outcomes = [TransferOutcomeV0 {
+        let outcomes = [SplitConformalCalibrationOutcomeV0 {
             sample_id: 301,
+            independent_unit_id: 9301,
             evaluation_stratum_id: 2,
             transfer_qualified: true,
         }];
@@ -999,6 +1027,33 @@ mod tests {
         assert!(prediction.include_transfer);
         assert!(prediction.include_non_transfer);
         assert_eq!(prediction.decision, None);
+    }
+
+    #[test]
+    fn split_conformal_rejects_duplicate_independent_unit_ids() {
+        let forecasts = [
+            forecast(501, 900_000, None),
+            forecast(502, 100_000, None),
+        ];
+        let outcomes = [
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 501,
+                independent_unit_id: 7,
+                evaluation_stratum_id: 3,
+                transfer_qualified: true,
+            },
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 502,
+                independent_unit_id: 7,
+                evaluation_stratum_id: 3,
+                transfer_qualified: false,
+            },
+        ];
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 3, 100_000),
+            Err(TransferCalibrationErrorV0::DuplicateIndependentUnitId)
+        );
     }
 
     #[test]
