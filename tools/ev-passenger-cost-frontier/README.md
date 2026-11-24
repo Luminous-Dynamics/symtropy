@@ -193,3 +193,32 @@ The frozen two-asset known answer allocates the site trajectory [2,200, 2,500, 2
 Schema: `schemas/mobility_flexibility_envelope_v0_1.schema.json`; fixture: `fixtures/mobility_flexibility_envelope_v0_1.json`; evaluator: `src/mobility_flexibility_envelope.rs`; CLI: `src/bin/mobility_flexibility_envelope_screen.rs`.
 
 Research dossier: [Mobility-First Grid Flexibility Envelope Benchmark v0.1](../../docs/research/MOBILITY_FLEXIBILITY_ENVELOPE_BENCHMARK_V0_1.md). The v0.1 model does not yet certify post-dispatch recharge/recovery viability, full AC power flow, thermal evolution, degradation, or market deliverability; these are explicit later phases, not implied by a passing synthetic profile.
+
+
+## MOBILITY-RESERVE-RECOVERY-001 — chronological reserve restoration (v0.2 prototype)
+
+The recovery child of [#6707](https://github.com/Luminous-Dynamics/symtropy/issues/6707) is tracked in [#6808](https://github.com/Luminous-Dynamics/symtropy/issues/6808) and builds on the offer-window flexibility check in [#6802 / PR #6803](https://github.com/Luminous-Dynamics/symtropy/pull/6803).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin mobility_recovery_envelope_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/mobility_recovery_envelope_v0_2.json
+```
+
+The evaluator replays an eight-slot, two-resource timeline. For each scenario and asset it debits mission, disturbance and grid-delivery energy before crediting conservative lower-bound charging energy for that interval. Charge Wh is rounded down; discharge Wh is rounded up. It checks the starting reserve floor, every subsequent mission/inventory/safety/uncertainty floor, charger compatibility and exclusive channel occupancy, scenario-specific channel availability, resource charge/discharge power, capacity, PCC import headroom and the exact recovery target deadline.
+
+The frozen second-shock case yields:
+
+| Resource | Energy at slot 5 | Recovery target | Margin |
+| --- | ---: | ---: | ---: |
+| ess-01 | 1,151 Wh | 1,100 Wh | +51 Wh |
+| ess-02 | 960 Wh | 950 Wh | +10 Wh |
+
+The site's modeled import profile is [1,900, 1,900, 4,300, 4,300, 2,500, 4,000, 2,500, 2,500] W against a 6,500 W limit. The two-scenario synthetic fixture includes a second event before reserve restoration is complete. It demonstrates arithmetic and rejection behavior only; it does not demonstrate observed charging, measured state of energy or an operational recovery guarantee.
+
+This is a source-level prototype with 11 focused Rust test definitions at this branch revision. The existing workflow has been wired to parse the strict schema/fixture, run the CLI, assert the known-answer states and PCC profile, and retain a JSON report. **Rust formatting, compilation, tests and CI are not yet verified for this recovery branch.** The report always has dispatch and export authority set to false.
+
+Schema: `schemas/mobility_recovery_envelope_v0_2.schema.json`; fixture: `fixtures/mobility_recovery_envelope_v0_2.json`; evaluator: `src/mobility_recovery_envelope.rs`; CLI: `src/bin/mobility_recovery_envelope_screen.rs`.
+
+Research dossier: [Mobility Reserve Recovery and Repeated-Shock Benchmark v0.1](../../docs/research/MOBILITY_RESERVE_RECOVERY_BENCHMARK_V0_1.md). The current model does not certify cell electrochemistry, thermal/SOH derating, AC feeder flow, metered charging completion or the cryptographic authenticity of its declarative evidence envelopes. It is a candidate-trajectory evaluator, not a charge command or a return-to-service certificate.
