@@ -7,6 +7,7 @@ on:
       - "Cargo.lock"
       - "crates/domains/symtropy-dc-network-screen/**"
       - "crates/domains/symtropy-mobility-network-adapter/**"
+      - "docs/research/MOBILITY_NETWORK_DELIVERY_ADAPTER_BENCHMARK_V0_1.md"
       - ".github/workflows/mobility-network-delivery-adapter.yml"
   workflow_dispatch:
 
@@ -66,4 +67,5 @@ jobs:
             crates/domains/symtropy-mobility-network-adapter/fixtures/mobility_network_adapter_v0_1.json
             crates/domains/symtropy-mobility-network-adapter/schemas/mobility_network_adapter_v0_1.schema.json
             crates/domains/symtropy-mobility-network-adapter/README.md
+            docs/research/MOBILITY_NETWORK_DELIVERY_ADAPTER_BENCHMARK_V0_1.md
           if-no-files-found: error
