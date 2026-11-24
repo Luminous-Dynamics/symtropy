@@ -482,3 +482,23 @@ Regression coverage:
 - retains schedule counts and cluster IDs beside the aggregated matrix;
 - rejects any cluster ID reused across calibration and evaluation;
 - leaves the original per-schedule matrices unchanged.
+
+## Cluster-aware oracle receipt projection (24 November 2026)
+
+The oracle adapter now preserves the dependence-cluster identifier beside every raw schedule row and permits several adjudicated episodes to share one cluster within the same dataset role. It rejects any cluster ID that is reused across calibration and evaluation, even if the episode IDs are different.
+
+The bundle's matrix(role, axis) and non_monotone_grid(role, axis) methods continue to return raw per-schedule rows. Their presence does not establish IID schedule observations. When the independent unit is the disruption/day/cluster, call cluster_mean_matrix(role, axis) explicitly. It returns one row per sorted cluster ID, retains the number of source schedule rows in each cluster, uses equal cluster weighting, and rounds each bounded milli-loss mean upward. The resulting ClusterMeanMatrix matrix() or non_monotone_grid() can be supplied to the existing risk-control methods.
+
+This implements the **typical-cluster mean schedule-loss estimand**, not the typical-schedule estimand when cluster sizes differ. It does not prove that cluster IDs are independent or that a particular real-world grouping is correct. If event records share serially dependent shocks across distinct clusters, an IID cluster theorem is still not justified. The independent-cluster basis and any block/mixing argument must be reviewed by the source/operations owners. Unknown physical outcomes and unauthorized policy outcomes are still rejected by the original adapter validation before aggregation.
+
+The adapter's exactness tests cover:
+- repeated cluster IDs within calibration: accepted and aggregated into one calibration row;
+- repeated cluster IDs within evaluation: same role rule;
+- cluster IDs crossing calibration/evaluation: rejected;
+- schedule rows preserved in the raw matrices while a distinct cluster matrix reduces the number of rows;
+- conservative upward rounding of fractional cluster mean losses;
+- deterministic cluster ordering under source input permutation;
+- hard failure and service axes remain separate;
+- risk selector receives only the cluster-unit rows and abstains in a deliberately underpowered two-cluster fixture.
+
+The projection is a software contract, not an operational independence certificate. Cluster metadata, source receipts, exact physical/authority adjudication and operating regime remain caller-supplied evidence.
