@@ -764,6 +764,13 @@ where
 {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCapabilityProfile)?;
+    let selected_method = session.profile.validate_for_plan(plan)?;
+    if selected_method != session.stepping_method
+        || !nonempty(&session.world_epoch)
+        || !nonempty(&session.clock_id)
+    {
+        return Err(GazeboAdapterError::InvalidCapabilityProfile);
+    }
     let scenario = plan
         .scenarios
         .iter()
