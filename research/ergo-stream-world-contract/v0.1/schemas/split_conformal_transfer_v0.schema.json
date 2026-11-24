@@ -102,6 +102,7 @@
       "additionalProperties": false,
       "required": [
         "receipt_id",
+        "receipt_status",
         "evaluation_stratum_id",
         "independent_unit_kind",
         "claim_type",
@@ -166,6 +167,13 @@
         },
         "evidence_prefix_sha256": {
           "$ref": "#/$defs/digest"
+        },
+        "receipt_status": {
+          "enum": [
+            "active",
+            "revoked",
+            "expired"
+          ]
         }
       }
     }
