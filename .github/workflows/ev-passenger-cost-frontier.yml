@@ -146,6 +146,8 @@ jobs:
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_capacity_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_v0_1.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
           jq empty tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
@@ -634,6 +636,30 @@ jobs:
             and ([.exact_oracle.policy_gaps[] | select(.policy == "earliest_deadline_first") | .on_time_completion_gap, .completed_by_horizon_gap, .lateness_excess_seconds, .latency_excess_seconds] == [0,0,0,0])
           ' sustainable-mobility-service-quality-exact-oracle-report.json
           cat sustainable-mobility-service-quality-exact-oracle-report.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin service_prediction_calibration_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json \
+            > service-prediction-calibration-report.json
+          jq -e '
+            .benchmark_id == "SERVICE-PREDICTION-CALIBRATION-001"
+            and .record_count == 100
+            and .calibration_record_count == 40
+            and .holdout_record_count == 60
+            and .metric_group_count == 6
+            and .on_time_group_count == 2
+            and .all_evidence_source_grade == false
+            and .any_synthetic_evidence == true
+            and .any_undercoverage_alarm == true
+            and .all_metric_groups_empirically_supported == false
+            and .field_qualification_granted == false
+            and .model_update_performed == false
+            and .operational_authority_granted == false
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+            and ([.metric_groups[] | select(.stratum_id == "nominal") | .holdout_coverage_after_permille] | all(.[]; . == 1000))
+            and ([.metric_groups[] | select(.stratum_id == "hot_shift") | .holdout_coverage_after_permille] | all(.[]; . == 0))
+            and ([.metric_groups[] | select(.stratum_id == "hot_shift") | .status] | all(.[]; . == "undercoverage_alarm"))
+            and ([.on_time_groups[] | select(.stratum_id == "hot_shift") | .holdout_observed_on_time_rate_permille] == [600])
+          ' service-prediction-calibration-report.json
+          cat service-prediction-calibration-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -679,6 +705,12 @@ jobs:
             docs/research/SUSTAINABLE_MOBILITY_SERVICE_CAPACITY_BENCHMARK_V0_1.md \
             sustainable-mobility-service-capacity-report.json \
             tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_quality.rs \
+            tools/ev-passenger-cost-frontier/src/service_prediction_calibration.rs \
+            tools/ev-passenger-cost-frontier/src/bin/service_prediction_calibration_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json \
+            service-prediction-calibration-report.json \
+            docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md \
             tools/ev-passenger-cost-frontier/schemas/sustainable_mobility_service_quality_linked_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json \
             sustainable-mobility-service-quality-linked-report.json \
@@ -739,6 +771,10 @@ jobs:
             sustainable-mobility-service-quality-report.json
             sustainable-mobility-service-quality-linked-report.json
             sustainable-mobility-service-quality-exact-oracle-report.json
+            service-prediction-calibration-report.json
+            tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json
+            docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_exact_oracle_v0_1.json
             docs/research/SUSTAINABLE_MOBILITY_EXACT_ORACLE_AND_SERVICE_HORIZON_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/sustainable_mobility_service_quality_linked_v0_1.json
