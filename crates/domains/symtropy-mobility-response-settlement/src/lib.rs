@@ -297,6 +297,7 @@ fn validate_input(input: &MobilityResponseSettlementInput) -> Result<Vec<SourceA
         ("asset_id", input.asset_id.as_str()),
         ("asset_configuration_digest", input.asset_configuration_digest.as_str()),
         ("pcc_bus_id", input.pcc_bus_id.as_str()),
+        ("claim_ceiling", input.claim_ceiling.as_str()),
     ] {
         nonempty(field, candidate)?;
     }
@@ -738,12 +739,12 @@ fn evaluate_component_flags(
                 .to_owned(),
         ));
     }
-    let required_gates: BTreeSet<&str> = [
-        "mobility_flexibility",
-        "reserve_recovery",
-        "commitment_lease",
-        "commitment_journal",
-        "pcc_metrology",
+    let required_gates: BTreeSet<String> = [
+        "mobility_flexibility".to_owned(),
+        "reserve_recovery".to_owned(),
+        "commitment_lease".to_owned(),
+        "commitment_journal".to_owned(),
+        "pcc_metrology".to_owned(),
     ]
     .into_iter()
     .collect();
@@ -763,6 +764,21 @@ fn evaluate_component_flags(
         return Err(BridgeError::InvalidField(
             "network adapter upstream gate set is not the exact five-gate contract".to_owned(),
         ));
+    }
+    for field in [
+        "/actual_metered_delivery_assessed",
+        "/adequacy_contribution_computed",
+        "/ac_feasibility_established",
+        "/market_eligibility_granted",
+        "/interconnection_approval_granted",
+        "/field_qualification_granted",
+        "/dispatch_authority_granted",
+    ] {
+        if boolean(network, field)? {
+            return Err(BridgeError::InvalidField(format!(
+                "network report improperly promotes authority or an uncomputed claim: {field}"
+            )));
+        }
     }
     Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, network_passed, n1_passed))
 }
@@ -1481,6 +1497,36 @@ mod tests {
         assert!(report.technical_reconciliation_passed);
         assert!(!report.full_request_dc_network_deliverable);
         assert!(report.conservative_net_response_lower_bound_kwh.unwrap() < 0.0052);
+    }
+
+    #[test]
+    fn measured_lower_bound_above_network_cap_is_a_reconciliation_mismatch() {
+        let mut bad = input();
+        bad.mobility_network.report["maximum_dc_network_deliverable_response_energy_mwh"] =
+            json!(0.000004);
+        bad.mobility_network.report["disposition"] = json!("screened_partial_request");
+        bad.mobility_network.report["full_requested_trajectory_dc_deliverable"] = json!(false);
+        bad.mobility_network.report["dc_network_report"]["network_deliverable"] = json!(false);
+        let report = evaluate_mobility_response_settlement(&bad).unwrap();
+        assert_eq!(report.status, ReconciliationStatus::RejectedMismatch);
+        assert!(!report.technical_reconciliation_passed);
+        assert_eq!(report.conservative_net_response_lower_bound_kwh, None);
+    }
+
+    #[test]
+    fn negative_conservative_net_response_is_preserved_not_clamped() {
+        let mut bad = input();
+        bad.counterfactual_baseline.report["conservative_net_reduction_energy_kwh"] =
+            json!(-0.0001);
+        bad.counterfactual_baseline.report["intervals"][3]["conservative_reduction_energy_kwh"] =
+            json!(-0.005494444444444444);
+        let report = evaluate_mobility_response_settlement(&bad).unwrap();
+        assert_eq!(report.status, ReconciliationStatus::TechnicallyReconciled);
+        assert!(report.technical_reconciliation_passed);
+        assert!(report
+            .conservative_net_response_lower_bound_kwh
+            .unwrap()
+            < 0.0);
     }
 
     #[test]
