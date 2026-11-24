@@ -281,7 +281,9 @@ fn policy_payload_digest(
     frontier.sort();
     let mut sorted_policies = policies.to_vec();
     for policy in &mut sorted_policies {
-        policy.per_scenario.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+        policy
+            .per_scenario
+            .sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     }
     sorted_policies.sort_by(|left, right| left.policy_id.cmp(&right.policy_id));
     let bytes = serde_json::to_vec(&Payload {
@@ -690,15 +692,16 @@ fn evaluate_case(case: &Case) -> CaseResult {
     if scenario_ids_digest != case.expected_scenario_ids_sha256 {
         return invalid(case, "joint scenario ID inventory digest mismatch");
     }
-    let payload_digest = match policy_payload_digest(
-        &case.policy_pareto_frontier_ids,
-        &case.policies,
-    ) {
-        Ok(digest) => digest,
-        Err(_) => return invalid(case, "source policy payload cannot be encoded"),
-    };
+    let payload_digest =
+        match policy_payload_digest(&case.policy_pareto_frontier_ids, &case.policies) {
+            Ok(digest) => digest,
+            Err(_) => return invalid(case, "source policy payload cannot be encoded"),
+        };
     if payload_digest != case.source_receipt.policy_payload_sha256 {
-        return invalid(case, "policy frontier payload digest differs from source receipt pin");
+        return invalid(
+            case,
+            "policy frontier payload digest differs from source receipt pin",
+        );
     }
 
     let mut expected_scenarios = BTreeMap::new();
@@ -948,11 +951,9 @@ mod tests {
         case.expected_scenario_ids_sha256 = digest_ids(&ids).expect("scenario ID digest");
         case.expected_joint_scenarios_sha256 =
             digest_scenarios(&case.expected_joint_scenarios).expect("joint scenario digest");
-        case.source_receipt.policy_payload_sha256 = policy_payload_digest(
-            &case.policy_pareto_frontier_ids,
-            &case.policies,
-        )
-        .expect("policy payload digest");
+        case.source_receipt.policy_payload_sha256 =
+            policy_payload_digest(&case.policy_pareto_frontier_ids, &case.policies)
+                .expect("policy payload digest");
     }
 
     fn fixture_case(candidate_loss: u64, margin: u64, budget_trials: u64) -> Case {
@@ -1071,10 +1072,9 @@ mod tests {
         };
         case.expected_joint_scenarios_sha256 =
             digest_scenarios(&case.expected_joint_scenarios).expect("joint scenario digest");
-        case.source_receipt.policy_payload_sha256 = policy_payload_digest(
-            &case.policy_pareto_frontier_ids,
-            &case.policies,
-        ).expect("policy frontier digest");
+        case.source_receipt.policy_payload_sha256 =
+            policy_payload_digest(&case.policy_pareto_frontier_ids, &case.policies)
+                .expect("policy frontier digest");
         case
     }
 
@@ -1201,7 +1201,11 @@ mod tests {
         refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("uses a hidden scenario/world/loss-model identity"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("uses a hidden scenario/world/loss-model identity")
+        );
     }
 
     #[test]
