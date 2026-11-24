@@ -141,7 +141,7 @@ jobs:
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin source-claim-admission-audit > /tmp/source-claim-admission.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin source-claim-admission-audit > /tmp/source-claim-admission-replay.csv
           cmp /tmp/source-claim-admission.csv /tmp/source-claim-admission-replay.csv
-          test "$(wc -l < /tmp/source-claim-admission.csv)" -eq 21
+          test "$(wc -l < /tmp/source-claim-admission.csv)" -eq 22
           head -n 1 /tmp/source-claim-admission.csv | awk -F, '{ if (NF != 7) exit 1 }'
           awk -F, 'NF != 7 { exit 1 }' /tmp/source-claim-admission.csv
           grep -q "SOURCE_CLASS_DOES_NOT_SUPPORT_CLAIM" /tmp/source-claim-admission.csv
@@ -149,6 +149,8 @@ jobs:
           grep -q "EVIDENCE_UNAVAILABLE_AT_AS_OF_CUTOFF" /tmp/source-claim-admission.csv
           grep -q "INDEPENDENCE_REFERENCE_MISSING" /tmp/source-claim-admission.csv
           grep -q "RECEIVER_CUSTODY_DIGEST_MISSING" /tmp/source-claim-admission.csv
+          grep -q "EVENT_TIME_UNKNOWN" /tmp/source-claim-admission.csv
+          grep -q "NOTICE_ONLY" /tmp/source-claim-admission.csv
           grep -q "THIRD_PARTY_DERIVED_ONLY" /tmp/source-claim-admission.csv
           grep -q "INTEROPERABILITY_ONLY" /tmp/source-claim-admission.csv
           grep -q "RECEIVER_ACCEPTANCE" /tmp/source-claim-admission.csv
