@@ -499,7 +499,10 @@ fn same_id_set(left: &[String], right: &[String]) -> bool {
     left.len() == right.len() && left == right
 }
 
-fn max_scenario_value(rows: &[PolicyScenario], metric: impl Fn(&PolicyScenario) -> &Rational) -> Rational {
+fn max_scenario_value(
+    rows: &[PolicyScenario],
+    metric: impl Fn(&PolicyScenario) -> &Rational,
+) -> Rational {
     rows.iter()
         .map(metric)
         .max_by(|left, right| left.compare_exact(right))
@@ -690,7 +693,10 @@ fn validate_policy(
             || declared_worlds.iter().any(|world| !valid_id(world))
             || declared_worlds.iter().collect::<BTreeSet<_>>().len() != declared_worlds.len()
             || declared_worlds
-                != &worlds_by_outcome[outcome].iter().cloned().collect::<Vec<_>>()
+                != &worlds_by_outcome[outcome]
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<_>>()
         {
             return Err(format!(
                 "policy {} observation-class world IDs disagree with scenario outcomes",
@@ -717,8 +723,11 @@ fn validate_policy(
         ));
     }
     let worst_loss_ids = scenario_ids_at_max(&policy.per_scenario, |row| &row.loss, &worst_loss);
-    let worst_wait_ids =
-        scenario_ids_at_max(&policy.per_scenario, |row| &row.wait_and_see_regret, &worst_wait);
+    let worst_wait_ids = scenario_ids_at_max(
+        &policy.per_scenario,
+        |row| &row.wait_and_see_regret,
+        &worst_wait,
+    );
     let worst_outcome_ids = scenario_ids_at_max(
         &policy.per_scenario,
         |row| &row.outcome_class_regret,
@@ -726,7 +735,10 @@ fn validate_policy(
     );
     if !same_id_set(&policy.worst_loss_scenario_ids, &worst_loss_ids)
         || !same_id_set(&policy.worst_wait_and_see_scenario_ids, &worst_wait_ids)
-        || !same_id_set(&policy.worst_outcome_class_regret_scenario_ids, &worst_outcome_ids)
+        || !same_id_set(
+            &policy.worst_outcome_class_regret_scenario_ids,
+            &worst_outcome_ids,
+        )
     {
         return Err(format!(
             "policy {} worst-metric scenario ID sets disagree with per-scenario rows",
@@ -1143,8 +1155,14 @@ mod tests {
                 numerator: candidate_loss,
                 denominator: 1,
             },
-            worst_case_wait_and_see_regret: Rational { numerator: 0, denominator: 1 },
-            worst_case_outcome_class_regret: Rational { numerator: 0, denominator: 1 },
+            worst_case_wait_and_see_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            },
+            worst_case_outcome_class_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            }
             worst_loss_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_wait_and_see_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
