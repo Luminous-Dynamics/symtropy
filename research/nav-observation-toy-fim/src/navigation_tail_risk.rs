@@ -8,6 +8,11 @@
 
 use core::cmp::Ordering;
 
+use crate::navigation_temporal_mission_minimax::{
+    ActionOutcome, ObservableBranchChoice, ObservablePolicy, TemporalMinimaxProblem,
+    TerminalDecision, TimedJointAction, PROBABILITY_SCALE,
+};
+
 pub const PROBABILITY_SCALE_PPM: u128 = 1_000_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,6 +68,8 @@ pub enum TailRiskError {
     ZeroTotalMass,
     InvalidAlpha(u32),
     DuplicateModelId(u64),
+    MissingAction(u64),
+    InvalidPolicyTree,
     ArithmeticOverflow,
 }
 
@@ -76,6 +83,8 @@ impl core::fmt::Display for TailRiskError {
                 "CVaR alpha must be below one million PPM, got {alpha}"
             ),
             Self::DuplicateModelId(id) => write!(f, "mission model identity is duplicated: {id}"),
+            Self::MissingAction(id) => write!(f, "policy references an unavailable action: {id}"),
+            Self::InvalidPolicyTree => write!(f, "observable policy tree is incomplete or inconsistent"),
             Self::ArithmeticOverflow => write!(f, "checked exact tail-risk arithmetic overflowed"),
         }
     }
@@ -301,6 +310,248 @@ fn compare_fractions(
             }
         }
     }
+}
+
+
+
+/// Reconstruct complete mission-path loss distributions for a fixed temporal
+/// mission-minimax policy.
+///
+/// This is an independent evaluator-side propagation of the public model and
+/// policy fields. It reconstructs all observable outcome branches and splits
+/// each terminal state mass into its realized loss atom. The resulting mass
+/// denominator is PROBABILITY_SCALE_PPM^5 for every model, matching the
+/// finite oracle's two-stage integer probability scale.
+///
+/// The two candidate mission models are evaluated separately and remain fixed
+/// through each complete path. This function does not optimize the policy and
+/// must not be exposed to the controller's observation history.
+pub fn mission_path_loss_distributions(
+    problem: &TemporalMinimaxProblem,
+    actions: &[TimedJointAction],
+    policy: &ObservablePolicy,
+) -> Result<[Vec<LossMass>; 2], TailRiskError> {
+    for model in 0..2 {
+        let total = problem.prior_by_model_ppm[model]
+            .iter()
+            .try_fold(0_u64, |sum, value| sum.checked_add(*value));
+        if total != Some(PROBABILITY_SCALE) {
+            return Err(TailRiskError::InvalidPolicyTree);
+        }
+    }
+
+    for (index, action) in actions.iter().enumerate() {
+        if actions[..index]
+            .iter()
+            .any(|prior| prior.action_id == action.action_id)
+        {
+            return Err(TailRiskError::InvalidPolicyTree);
+        }
+    }
+
+    let padding_one_action = scale_power(2)?;
+    let padding_no_action = scale_power(4)?;
+    let expected_total_mass = scale_power(5)?;
+    let mut distributions: [Vec<LossMass>; 2] = [Vec::new(), Vec::new()];
+
+    let Some(first_action_id) = policy.first_action_id else {
+        if !policy.branches.is_empty() {
+            return Err(TailRiskError::InvalidPolicyTree);
+        }
+        let decision = policy
+            .root_terminal_decision
+            .ok_or(TailRiskError::InvalidPolicyTree)?;
+        for model in 0..2 {
+            append_terminal_state_masses(
+                &mut distributions[model],
+                problem.prior_by_model_ppm[model].map(u128::from),
+                decision,
+                problem,
+                padding_no_action,
+            )?;
+        }
+        for distribution in &distributions {
+            if total_mass(distribution)? != expected_total_mass {
+                return Err(TailRiskError::InvalidPolicyTree);
+            }
+        }
+        return Ok(distributions);
+    };
+
+    if policy.root_terminal_decision.is_some() || policy.branches.len() != 3 {
+        return Err(TailRiskError::InvalidPolicyTree);
+    }
+    let first_action = actions
+        .iter()
+        .find(|action| action.action_id == first_action_id)
+        .ok_or(TailRiskError::MissingAction(first_action_id))?;
+
+    let mut seen = [false; 3];
+    for branch in &policy.branches {
+        let first_index = outcome_index(branch.first_outcome);
+        if seen[first_index] {
+            return Err(TailRiskError::InvalidPolicyTree);
+        }
+        seen[first_index] = true;
+
+        for model in 0..2 {
+            let initial = problem.prior_by_model_ppm[model].map(u128::from);
+            let first_outcomes = propagate_action(model, initial, first_action)?;
+            let first_state_mass = first_outcomes[first_index];
+
+            match &branch.choice {
+                ObservableBranchChoice::Stop { terminal_decision } => {
+                    append_terminal_state_masses(
+                        &mut distributions[model],
+                        first_state_mass,
+                        *terminal_decision,
+                        problem,
+                        padding_one_action,
+                    )?;
+                }
+                ObservableBranchChoice::Acquire {
+                    second_action_id,
+                    terminal_decisions,
+                } => {
+                    if *second_action_id == first_action_id {
+                        return Err(TailRiskError::InvalidPolicyTree);
+                    }
+                    let second_action = actions
+                        .iter()
+                        .find(|action| action.action_id == *second_action_id)
+                        .ok_or(TailRiskError::MissingAction(*second_action_id))?;
+                    let second_outcomes = propagate_action(model, first_state_mass, second_action)?;
+                    for second_outcome_index in 0..3 {
+                        append_terminal_state_masses(
+                            &mut distributions[model],
+                            second_outcomes[second_outcome_index],
+                            terminal_decisions[second_outcome_index],
+                            problem,
+                            1,
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+
+    if seen.iter().any(|present| !present) {
+        return Err(TailRiskError::InvalidPolicyTree);
+    }
+    for distribution in &distributions {
+        if total_mass(distribution)? != expected_total_mass {
+            return Err(TailRiskError::InvalidPolicyTree);
+        }
+    }
+    Ok(distributions)
+}
+
+fn outcome_index(outcome: ActionOutcome) -> usize {
+    match outcome {
+        ActionOutcome::NoObservation => 0,
+        ActionOutcome::ObservedZero => 1,
+        ActionOutcome::ObservedOne => 2,
+    }
+}
+
+fn scale_power(exponent: u8) -> Result<u128, TailRiskError> {
+    let mut value = 1_u128;
+    for _ in 0..exponent {
+        value = value
+            .checked_mul(PROBABILITY_SCALE_PPM)
+            .ok_or(TailRiskError::ArithmeticOverflow)?;
+    }
+    Ok(value)
+}
+
+/// Returns post-use state mass for no-observation, observed-zero and
+/// observed-one. State indices are nominal/inside, nominal/outside,
+/// shared-cause/inside, shared-cause/outside.
+fn propagate_action(
+    model: usize,
+    mass: [u128; 4],
+    action: &TimedJointAction,
+) -> Result<[[u128; 4]; 3], TailRiskError> {
+    let scale = PROBABILITY_SCALE_PPM;
+    let mut outcomes = [[0_u128; 4]; 3];
+    for outcome_index in 0..3 {
+        let likelihood_for_state = |state: usize| {
+            let likelihoods = action.likelihoods[model][state];
+            match outcome_index {
+                0 => likelihoods.no_observation_ppm,
+                1 => likelihoods.observed_zero_ppm,
+                _ => likelihoods.observed_one_ppm,
+            }
+        };
+
+        let mut capture = [0_u128; 4];
+        for state in 0..4 {
+            capture[state] = mass[state]
+                .checked_mul(likelihood_for_state(state) as u128)
+                .ok_or(TailRiskError::ArithmeticOverflow)?;
+        }
+
+        for cause in 0..2 {
+            let inside = cause * 2;
+            let outside = inside + 1;
+            let transition = action.transitions[model][cause];
+            let inside_to_outside = transition.inside_to_outside_ppm as u128;
+            let outside_to_inside = transition.outside_to_inside_ppm as u128;
+            if inside_to_outside > scale || outside_to_inside > scale {
+                return Err(TailRiskError::InvalidPolicyTree);
+            }
+            let inside_to_inside = scale - inside_to_outside;
+            let outside_to_outside = scale - outside_to_inside;
+
+            outcomes[outcome_index][inside] = capture[inside]
+                .checked_mul(inside_to_inside)
+                .and_then(|value| value.checked_add(
+                    capture[outside].checked_mul(outside_to_inside)?,
+                ))
+                .ok_or(TailRiskError::ArithmeticOverflow)?;
+            outcomes[outcome_index][outside] = capture[inside]
+                .checked_mul(inside_to_outside)
+                .and_then(|value| value.checked_add(
+                    capture[outside].checked_mul(outside_to_outside)?,
+                ))
+                .ok_or(TailRiskError::ArithmeticOverflow)?;
+        }
+    }
+    Ok(outcomes)
+}
+
+fn append_terminal_state_masses(
+    distribution: &mut Vec<LossMass>,
+    state_mass: [u128; 4],
+    decision: TerminalDecision,
+    problem: &TemporalMinimaxProblem,
+    multiplier: u128,
+) -> Result<(), TailRiskError> {
+    for (state_index, mass) in state_mass.into_iter().enumerate() {
+        if mass == 0 {
+            continue;
+        }
+        let loss = match (state_index % 2, decision) {
+            (0, TerminalDecision::DeclareDegraded) => problem.false_degraded_loss,
+            (1, TerminalDecision::DeclareSafe) => problem.false_safe_loss,
+            _ => 0,
+        };
+        let scaled_mass = mass
+            .checked_mul(multiplier)
+            .ok_or(TailRiskError::ArithmeticOverflow)?;
+        if let Some(existing) = distribution.iter_mut().find(|item| item.loss == loss) {
+            existing.mass = existing
+                .mass
+                .checked_add(scaled_mass)
+                .ok_or(TailRiskError::ArithmeticOverflow)?;
+        } else {
+            distribution.push(LossMass {
+                loss,
+                mass: scaled_mass,
+            });
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
