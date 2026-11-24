@@ -228,7 +228,10 @@ impl QueryCounts {
 
     #[must_use]
     pub fn candidate_precision_basis_points(&self) -> Option<u64> {
-        rate_basis_points(self.candidate_true_positives, self.candidate_forwarded_queries)
+        rate_basis_points(
+            self.candidate_true_positives,
+            self.candidate_forwarded_queries,
+        )
     }
 
     #[must_use]
@@ -238,12 +241,18 @@ impl QueryCounts {
 
     #[must_use]
     pub fn narrowphase_recall_basis_points(&self) -> Option<u64> {
-        rate_basis_points(self.narrowphase_true_positives, self.oracle_positive_queries)
+        rate_basis_points(
+            self.narrowphase_true_positives,
+            self.oracle_positive_queries,
+        )
     }
 
     #[must_use]
     pub fn narrowphase_precision_basis_points(&self) -> Option<u64> {
-        rate_basis_points(self.narrowphase_true_positives, self.narrowphase_collision_queries)
+        rate_basis_points(
+            self.narrowphase_true_positives,
+            self.narrowphase_collision_queries,
+        )
     }
 
     #[must_use]
@@ -399,11 +408,7 @@ pub fn evaluate_queries(
     }
 }
 
-fn accumulate_counts(
-    counts: &mut QueryCounts,
-    evaluation: &QueryEvaluation,
-    forwarded: bool,
-) {
+fn accumulate_counts(counts: &mut QueryCounts, evaluation: &QueryEvaluation, forwarded: bool) {
     counts.total_queries += 1;
     if evaluation.oracle_collision {
         counts.oracle_positive_queries += 1;
@@ -491,9 +496,7 @@ fn is_lower_hex(value: &str, expected_length: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nyu_ccd_query_import::{
-        attach_ground_truth, parse_boolean_json, parse_queries_csv, QueryKind,
-    };
+    use nyu_ccd_query_import::{QueryKind, attach_ground_truth, parse_boolean_json, parse_queries_csv};
 
     fn evidence(status: VerificationStatus) -> PruneEvidence {
         PruneEvidence::new(
@@ -528,22 +531,14 @@ mod tests {
         candidate: CandidateDisposition,
         narrowphase: NarrowphaseOutcome,
     ) -> QueryEvaluation {
-        QueryEvaluation::from_imported(
-            "nyu-fixture-v1",
-            scene,
-            3,
-            query,
-            candidate,
-            narrowphase,
-        )
-        .unwrap()
+        QueryEvaluation::from_imported("nyu-fixture-v1", scene, 3, query, candidate, narrowphase)
+            .unwrap()
     }
 
     #[test]
     fn real_armadillo_sample_keeps_zero_positive_recall_unavailable() {
-        const CSV: &str = include_str!(
-            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv"
-        );
+        const CSV: &str =
+            include_str!("../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv");
         const BOOLS: &str = include_str!(
             "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json"
         );
@@ -725,7 +720,9 @@ mod tests {
         );
         assert_eq!(
             evaluate_queries(&[rejected]),
-            Err(vec![EvaluationError::PruneCertificateNotAcceptedAndReplayed])
+            Err(vec![
+                EvaluationError::PruneCertificateNotAcceptedAndReplayed
+            ])
         );
 
         let malformed = QueryEvaluation::new(
@@ -812,26 +809,16 @@ mod tests {
             next_frame_negative.clone(),
         ];
         let score = evaluate_queries(&ordered).unwrap();
-        let reversed = evaluate_queries(&[
-            next_frame_negative,
-            vertex_negative,
-            edge_positive,
-        ])
-        .unwrap();
+        let reversed =
+            evaluate_queries(&[next_frame_negative, vertex_negative, edge_positive]).unwrap();
 
         assert_eq!(score, reversed);
         assert_eq!(score.strata.len(), 3);
         assert!(score.counts.correctness_qualified());
         assert_eq!(score.counts.total_queries, 3);
-        assert_eq!(
-            score.strata[0].identity.query_class(),
-            QueryClass::EdgeEdge
-        );
+        assert_eq!(score.strata[0].identity.query_class(), QueryClass::EdgeEdge);
         assert_eq!(score.strata[0].identity.time_step(), 3);
-        assert_eq!(
-            score.strata[0].counts.oracle_positive_queries,
-            1
-        );
+        assert_eq!(score.strata[0].counts.oracle_positive_queries, 1);
     }
 
     #[test]
