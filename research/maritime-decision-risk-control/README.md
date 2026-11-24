@@ -368,6 +368,8 @@ The assurance_envelope.rs module adds a composition layer across two distinct ki
 1. **Finite adversarial scenarios:** an exact, predeclared scenario universe is evaluated for physical feasibility, action-authority consistency, unknown outcomes and participant-level service floors.
 2. **Statistical risk:** a named method contributes one explicitly typed guarantee (marginal expected, high-probability, or time-uniform) for the hard-physical-failure axis.
 
+The finite-scenario contract also declares a minimum service floor for **each participant in every scenario**. A compensating gain to another participant cannot offset a breach; floor violations block composition even when the aggregate service or statistical risk bound is favourable. The floor is part of the frozen loss/contract revision.
+
 The gate is a strict conjunction. A statistical risk bound cannot override a physical failure, an authority violation, an unknown physical outcome, an incomplete scenario universe, source-provenance failure, policy/evaluator revision drift, or a mismatched operating regime. Conversely, a clean finite stress set cannot substitute for a statistical guarantee. Diagnostic CVaR/tail metrics are never accepted as risk-control evidence.
 
 Finite scenarios are **not** appended to the CRC calibration matrix: the finite set is an adversarial coverage claim, not an i.i.d. sample. The statistical claim retains its guarantee class and (where applicable) its failure probability; the output does not flatten marginal expected, high-probability and time-uniform guarantees into a single number. Participant A/B service remains visible separately from service-loss and hard-failure axes.
