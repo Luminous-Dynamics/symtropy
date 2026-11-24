@@ -1972,7 +1972,7 @@ mod tests {
         let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
-        assert_eq!(receipt.setup_duration_ticks, Some(0));
+        assert_eq!(receipt.setup_duration_ticks, Some(2));
     }
 
     #[test]
@@ -2014,7 +2014,7 @@ mod tests {
             receipt
                 .reason_codes
                 .iter()
-                .any(|reason| reason.starts_with("replay_receipt_invalid:"))
+                .any(|reason| reason.starts_with("snapshot_invalid:"))
         );
     }
 
