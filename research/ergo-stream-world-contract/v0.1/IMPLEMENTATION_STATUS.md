@@ -547,3 +547,9 @@ The static split-conformal implementation does not cover adaptive probe selectio
 - Symthaea #13280: online conformal calibration under delayed metrology feedback and process drift.
 
 The v0.1 calibrator remains offline/static; no online update or anytime-valid claim is made. These systems should be integrated by receipt/episode identity and owner policy, not reimplemented here.
+
+## Complete calibration-result receipt verification
+
+The conformal identity now also carries the receipt's `alpha_ppm`, `calibration_count`, `quantile_rank` and `quantile_nonconformity_ppm`. The fitter recomputes the finite-sample count/rank/quantile from the supplied calibration outcomes and refuses the calibration with `CalibrationReceiptMismatch` unless all values and alpha match the owner receipt. Prediction equality includes those fields; a different nominal miscoverage level or quantile cannot reuse the calibrator.
+
+The JSON schema/example place these finite-sample values inside the bound calibration identity, avoiding a separate unbound copy on the calibrator object. Exact-head Rust verification is pending.
