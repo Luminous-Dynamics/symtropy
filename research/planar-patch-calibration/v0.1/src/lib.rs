@@ -83,6 +83,8 @@ pub struct PatchCalibrationInput {
     pub coordinate_frame_digest: String,
     pub rig_calibration_digest: String,
     pub observation_profile_digest: String,
+    /// Characteristic patch length in metres, used to nondimensionalize torsion.
+    pub characteristic_length_m: f64,
     pub observations: Vec<BoundaryObservation>,
 }
 
@@ -133,6 +135,7 @@ pub struct PatchCalibrationReport {
     pub coordinate_frame_digest: String,
     pub rig_calibration_digest: String,
     pub observation_profile_digest: String,
+    pub characteristic_length_m: f64,
     pub observation_count: usize,
     pub unique_trial_group_count: usize,
     pub design_rank: usize,
@@ -142,8 +145,9 @@ pub struct PatchCalibrationReport {
     pub pivot_residual_norms: Vec<f64>,
     pub axis_excitation: Vec<AxisExcitation>,
     pub status: CalibrationStatus,
-    /// beta = 1/e^2. None for a rank-deficient or invalid fit.
-    pub inverse_squared_shape_scales: Option<[f64; 3]>,
+    /// Dimensionless beta = [1/e_u^2, 1/e_v^2, 1/(e_n/L)^2].
+    /// None for a rank-deficient or invalid fit.
+    pub inverse_squared_dimensionless_shape_scales: Option<[f64; 3]>,
     /// e = [e_u, e_v, e_n]. e_n is in metres when input moments are N·m.
     pub ellipsoid_shape_scales: Option<[f64; 3]>,
     /// Maximum absolute residual in the normalized boundary equation.
@@ -207,6 +211,12 @@ fn validate(
                 format!("{label} digest must be non-empty"),
             ));
         }
+    }
+    if !input.characteristic_length_m.is_finite() || input.characteristic_length_m <= 0.0 {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::InvalidParameter,
+            "characteristic patch length must be finite and positive",
+        ));
     }
     if input.observations.is_empty() {
         return Err(CalibrationError::new(
@@ -465,7 +475,7 @@ pub fn calibrate_planar_patch(
         let normalized = [
             wrench.tangent_u_force / scale,
             wrench.tangent_v_force / scale,
-            wrench.normal_torsional_moment / scale,
+            wrench.normal_torsional_moment / scale / input.characteristic_length_m,
         ];
         if !normalized.iter().all(|value| value.is_finite()) {
             return Err(CalibrationError::new(
@@ -502,22 +512,18 @@ pub fn calibrate_planar_patch(
         pivoted_weighted_least_squares(&columns, &target, config.rank_relative_tolerance)?;
 
     let mut axis_excitation = Vec::with_capacity(3);
-    for axis in 0..3 {
-        let norm = stable_norm(&columns[axis]);
-        let residual = if let Some(index) = pivot_order.iter().position(|pivot| *pivot == axis) {
-            pivot_norms[index]
-        } else {
-            let mut vector = columns[axis].clone();
-            for _ in 0..2 {
-                for direction in &basis {
-                    let coefficient = dot(direction, &vector)?;
-                    for (value, basis_value) in vector.iter_mut().zip(direction) {
-                        *value -= coefficient * basis_value;
-                    }
+    for (axis, column) in columns.iter().enumerate() {
+        let norm = stable_norm(column);
+        let mut residual_vector = column.clone();
+        for _ in 0..2 {
+            for direction in &basis {
+                let coefficient = dot(direction, &residual_vector)?;
+                for (value, basis_value) in residual_vector.iter_mut().zip(direction) {
+                    *value -= coefficient * basis_value;
                 }
             }
-            stable_norm(&vector)
-        };
+        }
+        let residual = stable_norm(&residual_vector);
         axis_excitation.push(AxisExcitation {
             axis: axis_from_index(axis),
             weighted_column_norm: norm,
@@ -534,6 +540,7 @@ pub fn calibrate_planar_patch(
             coordinate_frame_digest: input.coordinate_frame_digest.clone(),
             rig_calibration_digest: input.rig_calibration_digest.clone(),
             observation_profile_digest: input.observation_profile_digest.clone(),
+            characteristic_length_m: input.characteristic_length_m,
             observation_count: input.observations.len(),
             unique_trial_group_count: trial_groups.len(),
             design_rank: rank,
@@ -543,7 +550,7 @@ pub fn calibrate_planar_patch(
             pivot_residual_norms: pivot_norms,
             axis_excitation,
             status: CalibrationStatus::Unidentifiable,
-            inverse_squared_shape_scales: None,
+            inverse_squared_dimensionless_shape_scales: None,
             ellipsoid_shape_scales: None,
             maximum_absolute_boundary_residual: None,
             weighted_rms_boundary_residual: None,
@@ -560,7 +567,12 @@ pub fn calibrate_planar_patch(
         ));
     }
 
-    let shape_scales = beta.map(|value| 1.0 / value.sqrt());
+    let dimensionless_shape_scales = beta.map(|value| 1.0 / value.sqrt());
+    let shape_scales = [
+        dimensionless_shape_scales[0],
+        dimensionless_shape_scales[1],
+        dimensionless_shape_scales[2] * input.characteristic_length_m,
+    ];
     if !shape_scales.iter().all(|value| value.is_finite() && *value > 0.0) {
         return Err(CalibrationError::new(
             CalibrationErrorKind::NonFiniteEvaluation,
@@ -576,7 +588,7 @@ pub fn calibrate_planar_patch(
         let normalized = [
             wrench.tangent_u_force / scale,
             wrench.tangent_v_force / scale,
-            wrench.normal_torsional_moment / scale,
+            wrench.normal_torsional_moment / scale / input.characteristic_length_m,
         ];
         let predicted = beta[0] * normalized[0] * normalized[0]
             + beta[1] * normalized[1] * normalized[1]
@@ -612,6 +624,7 @@ pub fn calibrate_planar_patch(
         coordinate_frame_digest: input.coordinate_frame_digest.clone(),
         rig_calibration_digest: input.rig_calibration_digest.clone(),
         observation_profile_digest: input.observation_profile_digest.clone(),
+        characteristic_length_m: input.characteristic_length_m,
         observation_count: input.observations.len(),
         unique_trial_group_count: trial_groups.len(),
         design_rank: rank,
@@ -625,7 +638,7 @@ pub fn calibrate_planar_patch(
         } else {
             CalibrationStatus::IdentifiedPoorBoundaryFit
         },
-        inverse_squared_shape_scales: Some(beta),
+        inverse_squared_dimensionless_shape_scales: Some(beta),
         ellipsoid_shape_scales: Some(shape_scales),
         maximum_absolute_boundary_residual: Some(max_residual),
         weighted_rms_boundary_residual: Some(weighted_rms),
@@ -666,6 +679,7 @@ mod tests {
             coordinate_frame_digest: "patch-frame-001".to_owned(),
             rig_calibration_digest: "rig-calibration-001".to_owned(),
             observation_profile_digest: "boundary-sliding-profile-001".to_owned(),
+            characteristic_length_m: 1.0,
             observations,
         }
     }
@@ -720,7 +734,7 @@ mod tests {
         assert_eq!(report.status, CalibrationStatus::Unidentifiable);
         assert_eq!(report.design_rank, 1);
         assert!(report.ellipsoid_shape_scales.is_none());
-        assert!(report.inverse_squared_shape_scales.is_none());
+        assert!(report.inverse_squared_dimensionless_shape_scales.is_none());
     }
 
     #[test]
