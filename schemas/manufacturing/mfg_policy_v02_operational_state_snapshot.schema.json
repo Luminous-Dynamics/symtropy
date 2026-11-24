@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot",
+  "title": "Manufacturing Policy v0.2 Operational State Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "case_id", "decision_epoch", "previous_snapshot_digest", "decision_frame_digest", "visible_history_digest", "transition_version", "operations", "resources", "inspection_station", "event_cut", "applied_transition_ids", "snapshot_digest", "claim_ceiling"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "case_id": {"type": "string", "minLength": 1},
+    "decision_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+    "previous_snapshot_digest": {"type": ["string", "null"]},
+    "decision_frame_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "visible_history_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "transition_version": {"const": "mfg-policy-v02-state-replay/0.1.0"},
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation_id", "status", "remaining_processing_ticks", "committed_resource_id", "quality_disposition"],
+        "properties": {
+          "operation_id": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "enum": ["WAITING", "IN_PROCESS", "AWAITING_INSPECTION", "COMPLETED"]},
+          "remaining_processing_ticks": {"type": "integer", "minimum": 0},
+          "committed_resource_id": {"type": ["string", "null"]},
+          "quality_disposition": {"type": ["string", "null"], "enum": ["ACCEPTED", "REJECTED", "INDETERMINATE", null]}
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resource_id", "current_setup_family", "active_operation_id", "availability_status", "capacity_units_total", "capacity_units_used", "capacity_units_remaining"],
+        "properties": {
+          "resource_id": {"type": "string", "minLength": 1},
+          "current_setup_family": {"type": "string", "minLength": 1},
+          "active_operation_id": {"type": ["string", "null"]},
+          "availability_status": {"type": "string", "enum": ["AVAILABLE", "FAILED"]},
+          "capacity_units_total": {"type": "integer", "minimum": 0},
+          "capacity_units_used": {"type": "integer", "minimum": 0},
+          "capacity_units_remaining": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "inspection_station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["station_id", "capacity_units_total", "capacity_units_used", "capacity_units_remaining"],
+      "properties": {
+        "station_id": {"type": "string", "minLength": 1},
+        "capacity_units_total": {"type": "integer", "minimum": 0},
+        "capacity_units_used": {"type": "integer", "minimum": 0},
+        "capacity_units_remaining": {"type": "integer", "minimum": 0}
+      }
+    },
+    "event_cut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision_epoch", "visible_source_event_ids"],
+      "properties": {
+        "decision_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "visible_source_event_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "applied_transition_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "snapshot_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "claim_ceiling": {"const": "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility."}
+  }
+}

@@ -1,0 +1,41 @@
+name: Manufacturing Policy v0.2 Event-Sourced State Replay
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_execution_ledger.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json"
+      - "tools/mfg-policy-v02-state-replay/**"
+      - ".github/workflows/mfg-policy-v02-state-replay.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-v02-state-replay
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_execution_ledger.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json"
+      - "tools/mfg-policy-v02-state-replay/**"
+      - ".github/workflows/mfg-policy-v02-state-replay.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-v02-state-replay/Cargo.toml -- --check
+      - name: Event-sourced replay and adversarial controls
+        run: cargo test --manifest-path tools/mfg-policy-v02-state-replay/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-v02-state-replay/Cargo.toml -- -D warnings

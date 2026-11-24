@@ -40,7 +40,7 @@ The verifier independently checks visible-event identity and chronology, qualifi
 mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json>
 ```
 
-The proposal schema requires `inspection_method_id` to be either the required method ID or JSON null. It has no field for a caller-supplied feasibility assertion, duration, evidence disposition, or execution authorization.
+The proposal schema requires `decision_frame_digest` (SHA-256 of the exact serialized decision-frame object) and `inspection_method_id` (the required method ID or JSON null). The verifier recomputes the frame digest and rejects a proposal bound to a different frame. The emitted admission receipt repeats that digest. The proposal has no field for a caller-supplied feasibility assertion, duration, evidence disposition, or execution authorization.
 
 ## Live-state limitation
 
