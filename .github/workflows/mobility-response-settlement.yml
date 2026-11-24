@@ -47,6 +47,7 @@ jobs:
             and (.pcc_point_net_reduction_energy_kwh - 0.005416666666666667 | fabs < 0.000000000001)
             and (.counterfactual_net_reduction_energy_kwh - 0.005305555555555556 | fabs < 0.000000000001)
             and (.conservative_net_response_lower_bound_kwh - 0.005194444444444444 | fabs < 0.000000000001)
+            and (.minimum_dispatch_interval_lower_bound_kw - 9.8 | fabs < 0.000000001)
             and .conservative_lower_bound_is_joint_probability == false
             and .source_artifact_signatures_verified == false
             and .settlement_authority_granted == false
