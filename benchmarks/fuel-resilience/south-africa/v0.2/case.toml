@@ -1,0 +1,216 @@
+benchmark_id = "safrb.south-africa.grade-network.v0.2"
+revision = 2
+research_cut = "2026-11-23"
+status = "synthetic-reference-kernel-public-data-register-not-calibrated"
+implementation = "Rust 2024"
+package = "safrb-network"
+claim_ceiling = "synthetic_network_accounting_only"
+
+[demand_observations.d50]
+value_litres_2024 = 12000000000
+source_id = "DEE-2026-MARKET-REPORT"
+evidence_class = "reported_rounded"
+notes = "Government report's grade table; not assumed to reconcile to the national consumption series."
+
+[demand_observations.d500]
+value_litres_2024 = 273000000
+source_id = "DEE-2026-MARKET-REPORT"
+evidence_class = "reported_rounded"
+notes = "Government report's grade table."
+
+[demand_observations.national_aggregate_comparator]
+value_litres_2024 = 11800000000
+source_ids = ["DEE-2026-NATIONAL-SUPPLY-DEMAND-GRAPH", "STATSSA-MBALO-MAY-2026"]
+evidence_class = "reported_approximate"
+notes = "National aggregate comparator; not allocated to D50/D500 because grade breakdown is not reconciled."
+
+[demand_observations.reconciliation]
+grade_sum_litres = 12273000000
+aggregate_comparator_litres = 11800000000
+difference_litres = 473000000
+status = "unresolved"
+policy = "Preserve both source claims; do not average, select or infer the boundary difference."
+
+[q2_2026_imports]
+diesel_import_volume_litres = 3300000000
+source_id = "SA-ENERGY-TRADE-Q2-2026"
+evidence_class = "customs_reported_quarterly_flow"
+not_equivalent_to = ["usable_inventory", "annual_demand", "daily_supply", "contracted_future_supply"]
+
+[q2_2026_import_origin_shares]
+india_percent = 27
+united_states_percent = 21
+oman_percent = 15
+togo_percent = 9
+netherlands_percent = 5
+top_three_percent = 63
+top_five_percent = 77
+known_top_five_hhi_contribution_points = 1501
+hhi_note = "1501 is the sum of squared reported top-five shares only; it is a lower bound on full HHI because residual origin shares are not enumerated."
+
+[provincial_demand_shares]
+gauteng_percent = 26
+kwazulu_natal_percent = 20
+western_cape_percent = 18
+mpumalanga_percent = 11
+other_provinces_percent = 25
+notes = "Rounded aggregate shares. Do not allocate grade volumes to provinces without a grade-by-province source."
+
+[network_scope]
+grades = ["D50", "D500"]
+nodes = ["port", "refinery", "coastal_terminal", "pipeline_station", "inland_terminal", "demand_zone"]
+edge_capacity_basis = "synthetic_fixture_until_source_pinned"
+transit_time_basis = "synthetic_fixture_until_operator_data_or_engineering_reference"
+topology_status = "conceptual"
+hydraulic_validation = "not_performed"
+dispatch_optimisation = "not_implemented_in_v0_2"
+
+[stress_scenarios]
+durations_days = [7, 14, 30, 60, 90]
+recovery_tail_days = 30
+interpretation = "Stress-test durations; not forecasts or predictions."
+
+[policy_document_observations.draft_strategic_stocks_policy_2026]
+source_id = "DMPR-GAZETTE-54975-R7691"
+gazette_date = "2026-07-09"
+public_comment_deadline = "2026-08-09"
+consultation_status = "closed"
+legal_status = "draft_policy_not_final_law"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.executive_summary]
+state_days = 90
+private_refined_product_days = 14
+state_storage_focus = "primarily crude at Saldanha Bay"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.section_9_table]
+state_days = 60
+private_days = 21
+crude_share_percent = 70
+refined_product_share_percent = 30
+combined_cover_days_text = "60+ days"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.cabinet_statement_2026_07_01]
+state_days = 60
+long_term_target_days = 90
+basis = "net_imports_crude_and_refined_products"
+status = "cabinet_announcement_of_draft_policy"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.reconciliation]
+status = "unresolved_internal_source_conflict"
+policy = "preserve_all_statements_as_distinct_scenarios; do_not_average_or_select"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.lead_time_claims]
+import_to_port_min_days = 21
+import_to_port_max_days = 42
+offloading_refining_and_inland_movement_min_days = 10
+offloading_refining_and_inland_movement_max_days = 14
+evidence_class = "reported_draft_policy_not_calibrated"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.disruption_cost_arithmetic]
+annual_products_litres_section_3 = 27000000000
+annual_products_litres_section_7_1 = 30000000
+section_3_vs_section_7_1_ratio = 900
+section_7_1_claimed_shortfall_litres = 1200000
+section_7_1_shortfall_20_percent_14_days_at_30m_annual_litres = 230137
+section_7_1_shortfall_20_percent_14_days_at_27bn_annual_litres = 207123288
+section_7_1_claimed_direct_fuel_value_r = 24000000
+section_7_1_itemized_sectoral_and_indirect_losses_r = 8016000000
+section_7_1_stated_sectoral_and_indirect_losses_r = 24000000
+section_7_1_stated_total_cost_r = 48000000
+status = "multiple_internal_unit_and_arithmetic_conflicts"
+policy = "do_not_use_for_economic_impact_calibration"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.pipeline_claims]
+former_pipeline = "700km Durban-Johannesburg Pipeline (DJP)"
+draft_says = "DJP reached end of economic life in 2018 and was replaced by the MPP; the MPP was commissioned in 2012 for petrol and later diesel"
+state_replenishment_days = 60
+commercial_replenishment_days = 45
+capacity_evidence = "draft states sufficient capacity but does not provide an independently qualified machine-readable hydraulic operating envelope"
+policy = "require source_pinned_hydraulic_and_operator_evidence_before_calibration"
+
+[policy_document_observations.draft_strategic_stocks_policy_2026.stock_rotation]
+refined_product_rotation_max_days = 90
+evidence_class = "reported_draft_policy"
+
+[structural_supply_context]
+source_id = "SARB-REFINERY-CLOSURES-2026"
+sarb_refining_capacity_change = "halved_over_prior_decade"
+imported_refined_products_share_of_domestic_fuel_demand = "more_than_50_percent"
+evidence_class = "reported_macro_context"
+not_equivalent_to = ["current_stock", "diesel_only_import_share", "immediate_shortage"]
+
+[structural_supply_context.industry_attributed_deficit]
+source_id = "SPGLOBAL-STOCK-POLICY-STATUS-2026"
+value_barrels_per_day = 300000
+scope = "oil_products_shortfall_attributed_to_SANPC_CEO_after_Enref_and_Sapref_closures"
+evidence_class = "reported_executive_estimate"
+not_equivalent_to = ["diesel_only_deficit", "usable_inventory_shortfall", "calibrated_national_balance"]
+
+[short_term_availability_context]
+source_id = "MINISTER-FUEL-SUPPLY-HANSARD-2026-05"
+statement_date = "2026-05-19"
+claim = "Minister stated supply was secured and no near-term shortage expected"
+evidence_class = "official_parliamentary_statement"
+not_equivalent_to = ["independent_stock_audit", "long_horizon_resilience", "verified_days_of_cover"]
+
+[policy_status_as_of_2026_11_24]
+source_id = "SPGLOBAL-STOCK-POLICY-STATUS-2026"
+reported_status = "consultation_concluded; Cabinet approval awaited as of 2026-10-15"
+formalization_target = "by_end_2026"
+verification_status = "no_final_policy_instrument_verified_in_sources_reviewed_by_2026-11-24"
+
+[reported_stock_claims.sff_eight_million_barrels_2026_03_25]
+source_id = "MINISTER-STRATEGIC-STOCK-HANSARD-2026-03-25"
+statement_date = "2026-03-25"
+quantity = 8000000
+unit = "barrels"
+issuer_attribution = "Minister of Mineral and Petroleum Resources in National Assembly"
+claim = "Strategic Fuel Fund held eight million barrels of strategic fuel stock, not being used pending a real crisis"
+product_composition = "not specified in cited answer"
+grades = "not specified"
+measurement_timestamp = "not specified"
+quality_release = "not specified"
+physical_accessibility = "not specified"
+evidence_class = "reported_official_statement"
+policy = "do_not_convert_to_diesel_litres_or_days_of_cover"
+
+[reported_supply_structure.minister_2026_03_25]
+source_id = "MINISTER-STRATEGIC-STOCK-HANSARD-2026-03-25"
+imported_processed_products_percent = 60
+domestically_processed_percent = 40
+basis = "Minister's parliamentary statement; exact period/denominator not supplied in answer"
+evidence_class = "reported_official_statement"
+
+[reported_supply_structure.sarb_2026_09]
+source_id = "SARB-REFINERY-CLOSURES-2026"
+refined_product_import_share = "more_than_50_percent"
+refinery_capacity_change = "halved_over_prior_decade"
+basis = "SARB economic note published 2026-09-08"
+evidence_class = "reported_macro_context"
+policy = "do_not_average_with_dated_ministerial_percentage_without_scope_alignment"
+
+[capacity_access.ivp_2026]
+source_id = "IVP-CAPACITY-ACCESS-PARLIAMENT-2026"
+site = "Island View Precinct, Port of Durban"
+berths = 10
+parliament_description = "majority of South African fuel is imported through IVP"
+supplementary_directive_new_market_access_percent = 10
+operator_capacity_commitments_reported_percent = 13
+later_phase_black_participation_target_percent = 27.8
+percentages_are_additive = false
+physical_throughput_measurement = "not provided by source"
+evidence_class = "reported_policy_and_contract_statement"
+policy = "preserve_entitlement_commitment_and_future_target_as_distinct_types"
+
+[capacity_restoration.petrosa_mossel_bay_gtl]
+source_id = "CEF-PETROSA-GTL-RESTORATION-2026"
+status_as_reported = "offline_and_on_preservation_since_2020-11"
+business_case_completion = "2026-08"
+phase_1_target_barrels_per_day = 18000
+phase_1_estimated_investment_r = 5800000000
+phase_2_target_barrels_per_day = 46000
+phase_2_additional_estimated_investment_r = 8500000000
+phase_2_output_interpretation = "ambiguous_total_vs_incremental_in_source_wording"
+current_firm_output_barrels_per_day = 0
+evidence_class = "reported_future_project_target"
+policy = "do_not_count_target_until_commissioning_and_measured_sustained_output"

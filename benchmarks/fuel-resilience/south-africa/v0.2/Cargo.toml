@@ -1,0 +1,16 @@
+[package]
+name = "safrb-network"
+version = "0.2.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Grade-aware, time-expanded fuel-network accounting benchmark"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-network"
+path = "src/main.rs"
+
+[workspace]
+# This benchmark is intentionally standalone, outside the parent Symtropy workspace.

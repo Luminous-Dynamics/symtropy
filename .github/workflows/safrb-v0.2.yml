@@ -1,0 +1,43 @@
+name: SAFRB v0.2 standalone qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-v0.2-grade-network
+    paths:
+      - "benchmarks/fuel-resilience/south-africa/v0.2/**"
+      - "benchmarks/fuel-resilience/south-africa/README.md"
+      - ".github/workflows/safrb-v0.2.yml"
+  pull_request:
+    paths:
+      - "benchmarks/fuel-resilience/south-africa/v0.2/**"
+      - "benchmarks/fuel-resilience/south-africa/README.md"
+      - ".github/workflows/safrb-v0.2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-v0.2-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: SAFRB v0.2 Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path benchmarks/fuel-resilience/south-africa/v0.2/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path benchmarks/fuel-resilience/south-africa/v0.2/Cargo.toml --locked
+      - name: Run Clippy
+        run: cargo clippy --manifest-path benchmarks/fuel-resilience/south-africa/v0.2/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Run known-answer example
+        run: cargo run --manifest-path benchmarks/fuel-resilience/south-africa/v0.2/Cargo.toml --release --locked
