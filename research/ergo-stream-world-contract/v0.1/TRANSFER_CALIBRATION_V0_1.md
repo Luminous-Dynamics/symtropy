@@ -110,6 +110,23 @@ Minimum controls:
 
 Do not use the confirmatory set to fit calibration, choose thresholds or tune bins. Keep an adaptive development cohort separate from a sealed confirmatory cohort.
 
+## Split-conformal binary transfer prediction sets
+
+The calibration module now also provides fit_split_conformal_binary_transfer. It calibrates the nonconformity score for the exact binary outcome "this scoped transfer claim qualifies":
+
+- for a true transfer calibration example, score = 1 - p_transfer;
+- for a false transfer example, score = p_transfer.
+
+The finite-sample order statistic uses rank ceil((n+1)(1-alpha)). If that rank is n+1, the quantile uses the conservative full-scale fallback, yielding the full two-label set. At prediction time it includes transfer and/or non-transfer labels when their nonconformity scores are below the calibrated quantile.
+
+Disposition is set-valued:
+- transfer only: singleton AssertTransfer;
+- non-transfer only: singleton RejectTransfer;
+- both labels: ambiguous / abstain;
+- neither label: empty set / no decision (do not force a class).
+
+The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. Under exchangeability between the calibration cohort and future claims within that admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes.
+
 ## Prospective internal targets
 
 These are proposed acceptance targets, not achieved results:
