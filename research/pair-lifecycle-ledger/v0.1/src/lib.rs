@@ -479,10 +479,10 @@ impl PairLedger {
                         }
                         validate_candidate_trace(&input, requested_directions, &attempts)?;
                         for attempt in attempts {
-                            if is_candidate_admitted(attempt.disposition) {
-                                if !next.insert(attempt.id) {
-                                    return Err(LedgerError::DuplicateCandidateAttempt);
-                                }
+                            if is_candidate_admitted(attempt.disposition)
+                                && !next.insert(attempt.id)
+                            {
+                                return Err(LedgerError::DuplicateCandidateAttempt);
                             }
                         }
                     }
