@@ -704,6 +704,7 @@ mod tests {
     fn stale_condition_observation_is_expired() {
         let mut value = case();
         value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists").observed_time_ns = 100;
+        value.scopes[0].required_conditions.get_mut("temperature_milli_c").expect("condition envelope exists").maximum_age_ns = 100;
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Expired);
     }
