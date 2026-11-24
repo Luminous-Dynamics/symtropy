@@ -141,6 +141,18 @@ Both-label and empty prediction sets are retained as distinct outcomes. A tie at
 
 The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. The predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of the calibration outcomes; the calibration cohort must not be used to fit or select that predictor. Under exchangeability between the independent calibration cohort and future claims within that predeclared admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes. The owner must also pass the actual evaluation stratum for each prediction. A cross-stratum prediction returns the full label set and marks the exchangeability scope as not admitted; it must never inherit the calibrator's nominal coverage statement.
 
+### Independent calibration units
+
+Split conformal now accepts `SplitConformalCalibrationOutcomeV0`, not the generic row-level evaluator outcome. Every calibration record carries an evaluator-issued `independent_unit_id`, and duplicate unit IDs are rejected. v0.1 therefore uses one calibration score per independent unit (for example, one world seed or one independent campaign block).
+
+Do not turn correlated frames, overlapping windows, repeat measurements or multiple claims from one campaign into extra conformal rows. When a block contains multiple correlated claims, either predefine one conservative block-level score (such as the maximum nonconformity across the block) or introduce a separately specified block-conformal protocol; this v0.1 API deliberately rejects repeated unit IDs rather than silently pretending they are independent.
+
+The machine-readable owner-side outcomes are:
+- `schemas/split_conformal_calibration_outcomes_v0.schema.json`
+- `examples/split_conformal_calibration_outcomes_v0.example.json`
+
+The domain support fingerprint and minimum independent-block threshold should be resolved by [Symtropy #7041](https://github.com/Luminous-Dynamics/symtropy/issues/7041). This calibrator consumes the owner-approved stratum ID; it is not itself the domain support registry or proof of independence.
+
 ## Owner-issued calibration receipt
 
 The quantile is not a free-floating number. The owner-side receipt schema is:
