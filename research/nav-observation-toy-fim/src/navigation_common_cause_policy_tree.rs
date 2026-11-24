@@ -607,7 +607,7 @@ mod tests {
 
     #[test]
     fn observation_updates_the_persistent_shared_fault_belief() {
-        let prior = JointStateMass { parts: [500_000_000, 0, 500_000_000, 0].map(u128::from) };
+        let prior = JointStateMass { parts: [500_000_000_u64, 0, 500_000_000, 0].map(u128::from) };
         let probe = regime_probe(1, 100_000_000, 900_000_000);
         let observed_one = expand_action(prior, &probe).unwrap().into_iter()
             .find(|branch| branch.outcome == ActionOutcome::ObservedOne).unwrap();
@@ -627,7 +627,7 @@ mod tests {
             ],
             unit_cost(),
         );
-        let prior = JointStateMass { parts: [500_000_000, 0, 500_000_000, 0].map(u128::from) };
+        let prior = JointStateMass { parts: [500_000_000_u64, 0, 500_000_000, 0].map(u128::from) };
         let no_observation = expand_action(prior, &probe).unwrap().into_iter()
             .find(|branch| branch.outcome == ActionOutcome::NoObservation).unwrap();
         let posterior = posterior_shared_fault_probability(no_observation.mass).unwrap();
