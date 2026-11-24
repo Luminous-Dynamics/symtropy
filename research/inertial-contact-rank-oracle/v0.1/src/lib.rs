@@ -140,6 +140,15 @@ pub struct InertialRankReport {
     pub whitened_row_basis: Vec<Vec<f64>>,
 }
 
+struct CholeskyDiagnostics {
+    factor: Vec<Vec<f64>>,
+    maximum_symmetry_error: f64,
+    symmetry_tolerance: f64,
+    minimum_diagonal: f64,
+}
+
+type ResidualCandidate = Option<(Vec<f64>, f64)>;
+
 fn finite_matrix(matrix: &[Vec<f64>]) -> bool {
     matrix
         .iter()
@@ -188,7 +197,7 @@ fn tolerances_valid(config: RankSelectionConfig) -> bool {
 fn cholesky_mass(
     mass: &[Vec<f64>],
     config: RankSelectionConfig,
-) -> Result<(Vec<Vec<f64>>, f64, f64, f64), RankError> {
+) -> Result<CholeskyDiagnostics, RankError> {
     let dof = mass.len();
     if dof == 0 || mass.iter().any(|row| row.len() != dof) {
         return Err(RankError::new(
@@ -241,8 +250,8 @@ fn cholesky_mass(
     for i in 0..dof {
         for j in 0..=i {
             let mut residual = symmetric[i][j];
-            for k in 0..j {
-                residual -= lower[i][k] * lower[j][k];
+            for (left, right) in lower[i].iter().take(j).zip(lower[j].iter().take(j)) {
+                residual -= left * right;
             }
             if !residual.is_finite() {
                 return Err(RankError::new(
@@ -297,12 +306,12 @@ fn cholesky_mass(
         ));
     }
 
-    Ok((
-        lower,
+    Ok(CholeskyDiagnostics {
+        factor: lower,
         maximum_symmetry_error,
         symmetry_tolerance,
         minimum_diagonal,
-    ))
+    })
 }
 
 /// Solve L x = rhs for a lower-triangular Cholesky factor L.
@@ -357,7 +366,7 @@ fn residual_candidates(
     whitened_rows: &[Vec<f64>],
     basis: &[Vec<f64>],
     selected: &[bool],
-) -> Result<Vec<Option<(Vec<f64>, f64)>>, RankError> {
+) -> Result<Vec<ResidualCandidate>, RankError> {
     let mut output = Vec::with_capacity(whitened_rows.len());
     for (index, row) in whitened_rows.iter().enumerate() {
         if selected[index] {
@@ -446,8 +455,12 @@ pub fn select_inertial_rank_basis(
         ));
     }
 
-    let (lower, symmetry_error, symmetry_tolerance, minimum_diagonal) =
-        cholesky_mass(&input.mass_matrix, config)?;
+    let CholeskyDiagnostics {
+        factor: lower,
+        maximum_symmetry_error: symmetry_error,
+        symmetry_tolerance,
+        minimum_diagonal,
+    } = cholesky_mass(&input.mass_matrix, config)?;
     let maximum_diagonal = (0..dof)
         .map(|index| lower[index][index])
         .fold(0.0_f64, f64::max);
@@ -490,8 +503,8 @@ pub fn select_inertial_rank_basis(
         let mut best_norm = 0.0_f64;
         let mut best_residual: Option<Vec<f64>> = None;
 
-        for index in 0..candidate_count {
-            let Some((residual, norm)) = &residuals[index] else {
+        for (index, candidate) in residuals.iter().enumerate() {
+            let Some((residual, norm)) = candidate else {
                 continue;
             };
             let should_replace = match best_index {
@@ -544,10 +557,12 @@ pub fn select_inertial_rank_basis(
     let mut maximum_relative_projection_residual = 0.0_f64;
     let mut excluded_contact_ids = Vec::new();
 
-    for index in 0..candidate_count {
-        let residual_norm = match &final_residuals[index] {
+    for (index, (candidate_residual, whitened_row)) in
+        final_residuals.iter().zip(&whitened_rows).enumerate()
+    {
+        let residual_norm = match candidate_residual {
             Some((_, norm)) => *norm,
-            None => stable_norm(&orthogonal_residual(&whitened_rows[index], &basis)?),
+            None => stable_norm(&orthogonal_residual(whitened_row, &basis)?),
         };
         if !residual_norm.is_finite() {
             return Err(RankError::new(
@@ -568,7 +583,8 @@ pub fn select_inertial_rank_basis(
                     "relative row projection residual is non-finite",
                 ));
             }
-            maximum_relative_projection_residual = maximum_relative_projection_residual.max(value);
+            maximum_relative_projection_residual =
+                maximum_relative_projection_residual.max(value);
         }
 
         let disposition = if selected[index] {
@@ -586,7 +602,6 @@ pub fn select_inertial_rank_basis(
             disposition,
         });
     }
-
     row_diagnostics.sort_by(|left, right| left.contact_id.cmp(&right.contact_id));
     excluded_contact_ids.sort();
 
