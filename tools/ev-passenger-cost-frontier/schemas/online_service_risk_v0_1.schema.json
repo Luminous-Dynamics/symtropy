@@ -5,81 +5,278 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "benchmark_id", "audit_cutoff_unix_ms", "alpha_permille",
-    "maximum_miscoverage_permille", "minimum_prior_observations",
-    "cusum_slack_permille", "cusum_alarm_threshold", "observations", "claim_ceiling"
+    "schema_version",
+    "benchmark_id",
+    "audit_cutoff_unix_ms",
+    "alpha_permille",
+    "maximum_miscoverage_permille",
+    "minimum_prior_observations",
+    "cusum_slack_permille",
+    "cusum_alarm_threshold",
+    "observations",
+    "claim_ceiling"
   ],
   "properties": {
-    "schema_version": {"const": "0.1.0"},
-    "benchmark_id": {"const": "ONLINE-SERVICE-RISK-CERTIFICATE-001"},
-    "audit_cutoff_unix_ms": {"type": "integer", "minimum": 1},
-    "alpha_permille": {"type": "integer", "minimum": 1, "maximum": 200},
-    "maximum_miscoverage_permille": {"type": "integer", "minimum": 1, "maximum": 500},
-    "minimum_prior_observations": {"type": "integer", "minimum": 2, "maximum": 1000},
-    "cusum_slack_permille": {"type": "integer", "minimum": 0, "maximum": 250},
-    "cusum_alarm_threshold": {"type": "integer", "minimum": 1, "maximum": 10000000},
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "ONLINE-SERVICE-RISK-CERTIFICATE-001"
+    },
+    "audit_cutoff_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "alpha_permille": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "maximum_miscoverage_permille": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 500
+    },
+    "minimum_prior_observations": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 1000
+    },
+    "cusum_slack_permille": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 250
+    },
+    "cusum_alarm_threshold": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000000
+    },
     "observations": {
       "type": "array",
       "minItems": 1,
       "maxItems": 5000,
-      "items": {"$ref": "#/$defs/observation"}
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
     },
-    "claim_ceiling": {"type": "string", "minLength": 1}
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
   },
   "$defs": {
     "evidence": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "asset_id", "configuration_digest", "producer_id", "method_id",
-        "evidence_reference", "evidence_class", "observed_at_unix_ms",
-        "valid_from_unix_ms", "valid_until_unix_ms"
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
       ],
       "properties": {
-        "asset_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "configuration_digest": {"type": "string", "minLength": 1, "maxLength": 256},
-        "producer_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "method_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "evidence_reference": {"type": "string", "minLength": 1, "maxLength": 256},
-        "evidence_class": {"enum": ["synthetic", "measured", "independent_test", "unknown"]},
-        "observed_at_unix_ms": {"type": ["integer", "null"], "minimum": 0},
-        "valid_from_unix_ms": {"type": ["integer", "null"], "minimum": 0},
-        "valid_until_unix_ms": {"type": ["integer", "null"], "minimum": 0}
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "observation": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "sample_id", "site_id", "site_configuration_digest", "asset_id",
-        "asset_configuration_digest", "stratum_id", "forecast_model_id",
-        "forecast_model_version", "metric", "measurement_boundary",
-        "nominal_coverage_permille", "forecast_issued_unix_ms",
-        "target_start_unix_ms", "target_end_unix_ms", "outcome_available_unix_ms",
-        "predicted_lower", "predicted_upper", "observed_value",
-        "forecast_evidence", "outcome_evidence"
+        "sample_id",
+        "site_id",
+        "site_configuration_digest",
+        "asset_id",
+        "asset_configuration_digest",
+        "stratum_id",
+        "forecast_model_id",
+        "forecast_model_version",
+        "metric",
+        "measurement_boundary",
+        "nominal_coverage_permille",
+        "forecast_issued_unix_ms",
+        "target_start_unix_ms",
+        "target_end_unix_ms",
+        "outcome_available_unix_ms",
+        "predicted_lower",
+        "predicted_upper",
+        "observed_value",
+        "forecast_evidence",
+        "outcome_evidence"
       ],
       "properties": {
-        "sample_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "site_configuration_digest": {"type": "string", "minLength": 1, "maxLength": 256},
-        "asset_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "asset_configuration_digest": {"type": "string", "minLength": 1, "maxLength": 256},
-        "stratum_id": {"type": "string", "minLength": 1, "maxLength": 96},
-        "forecast_model_id": {"type": "string", "minLength": 1, "maxLength": 96},
-        "forecast_model_version": {"type": "string", "minLength": 1, "maxLength": 64},
-        "metric": {"enum": ["mission_duration_seconds", "pack_terminal_energy_wh", "charge_restoration_seconds", "charger_input_energy_wh", "queue_wait_seconds", "site_pcc_peak_import_w"]},
-        "measurement_boundary": {"enum": ["mission_clock", "pack_terminal", "charger_service_clock", "charger_input", "site_pcc_meter"]},
-        "nominal_coverage_permille": {"type": "integer", "minimum": 500, "maximum": 990},
-        "forecast_issued_unix_ms": {"type": "integer", "minimum": 1},
-        "target_start_unix_ms": {"type": "integer", "minimum": 1},
-        "target_end_unix_ms": {"type": "integer", "minimum": 1},
-        "outcome_available_unix_ms": {"type": "integer", "minimum": 1},
-        "predicted_lower": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
-        "predicted_upper": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
-        "observed_value": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
-        "forecast_evidence": {"$ref": "#/$defs/evidence"},
-        "outcome_evidence": {"$ref": "#/$defs/evidence"}
+        "sample_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "asset_configuration_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "stratum_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "forecast_model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "forecast_model_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "metric": {
+          "enum": [
+            "mission_duration_seconds",
+            "pack_terminal_energy_wh",
+            "charge_restoration_seconds",
+            "charger_input_energy_wh",
+            "queue_wait_seconds",
+            "site_pcc_peak_import_w"
+          ]
+        },
+        "measurement_boundary": {
+          "enum": [
+            "mission_clock",
+            "pack_terminal",
+            "charger_service_clock",
+            "charger_input",
+            "site_pcc_meter"
+          ]
+        },
+        "nominal_coverage_permille": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 990
+        },
+        "forecast_issued_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_start_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_end_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "outcome_available_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "predicted_lower": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "predicted_upper": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "observed_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "forecast_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "outcome_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       }
     }
   }
