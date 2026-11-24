@@ -42,7 +42,7 @@ The frame exposes a deliberately narrowed operational projection—case identity
 
 ## Validation
 
-The focused workflow runs formatting, five Rust tests, a live generation-to-projection smoke test using the v0.2 generator, frame-schema validation, negative grep controls and strict Clippy.
+The focused workflow runs formatting, eight Rust tests, a live generation-to-projection smoke test using the v0.2 generator, frame-schema validation, negative grep controls and strict Clippy. Paired-scenario equality is checked only through the current decision cutoff: a divergence in a not-yet-observed epoch cannot alter an earlier policy frame.
 
 ## Claim ceiling and remaining work
 
