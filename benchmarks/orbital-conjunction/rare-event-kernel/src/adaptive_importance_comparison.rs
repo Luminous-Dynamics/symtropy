@@ -189,7 +189,7 @@ impl core::fmt::Display for AdaptiveImportanceComparisonError {
             Self::InvalidDecisionThreshold => "decision threshold must lie in [0, 1]",
             Self::InvalidConfidenceAlpha => {
                 "confidence alpha must lie strictly between zero and one"
-            },
+            }
             Self::InvalidDefensiveMixtureWeight => "defensive mixture weight must lie in (0, 1]",
             Self::InvalidIdentity => "a required comparison identity digest is invalid",
             Self::ReceiptScopeMismatch => "receipt stream mixes event or target-measure identities",
