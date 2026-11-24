@@ -1453,7 +1453,11 @@ mod tests {
         refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("observation-class world IDs disagree"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("observation-class world IDs disagree")
+        );
     }
 
     #[test]
@@ -1466,7 +1470,11 @@ mod tests {
         refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("declared regret metrics disagree"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("declared regret metrics disagree")
+        );
     }
 
     #[test]
@@ -1476,7 +1484,11 @@ mod tests {
         refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("worst-metric scenario ID sets disagree"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("worst-metric scenario ID sets disagree")
+        );
     }
 
     #[test]
