@@ -225,6 +225,17 @@ jobs:
           node --check tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequacy.mjs
           node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequacy.mjs incumbent-policy-adequacy-receipt.json tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-expected.json
 
+      - name: Run independent Python Fraction policy oracle
+        run: |
+          python3 --version
+          python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/incumbent_policy_adequacy_oracle.py
+          python3 tools/orbital-assurance-bundle-bench/tests/incumbent_policy_adequacy_oracle.py tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-cases.json > incumbent-policy-adequacy-python.json
+
+      - name: Compare Rust and Python policy evaluations
+        run: |
+          node --check tools/orbital-assurance-bundle-bench/tests/compare_rust_python_policy_adequacy.mjs
+          node tools/orbital-assurance-bundle-bench/tests/compare_rust_python_policy_adequacy.mjs incumbent-policy-adequacy-receipt.json incumbent-policy-adequacy-python.json
+
       - name: Upload reproducible assurance receipt
         uses: actions/upload-artifact@v4
         with:
@@ -238,5 +249,6 @@ jobs:
             incumbent-decision-adequacy-receipt.json
             incumbent-decision-adequacy-oracle.json
             incumbent-policy-adequacy-receipt.json
+            incumbent-policy-adequacy-python.json
           if-no-files-found: error
           retention-days: 30
