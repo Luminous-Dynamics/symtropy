@@ -534,6 +534,28 @@ impl JournalIndex {
                 {
                     return Err(JournalError::MissingIdentity);
                 }
+                let request = crate::gazebo_adapter::GazeboDispatchRequest {
+                    plan_sha256: plan_sha256.clone(),
+                    campaign_id: campaign_id.clone(),
+                    pair_id: pair_id.clone(),
+                    scenario_id: scenario_id.clone(),
+                    fault_id: fault_id.clone(),
+                    fault_sequence: *fault_sequence,
+                    world_epoch: world_epoch.clone(),
+                    clock_id: clock_id.clone(),
+                    target_id: target_id.clone(),
+                    fault_domain_id: fault_domain_id.clone(),
+                    scheduled_simulation_step: *scheduled_simulation_step,
+                    parameters_sha256: parameters_sha256.clone(),
+                    payload_sha256: payload_sha256.clone(),
+                    idempotency_key: idempotency_key.clone(),
+                };
+                if crate::gazebo_adapter::dispatch_request_fingerprint(&request)
+                    .map(|computed| computed != *payload_sha256)
+                    .unwrap_or(true)
+                {
+                    return Err(JournalError::DispatchPayloadMismatch);
+                }
                 if self.dispatch_intents.contains_key(idempotency_key) {
                     return Err(JournalError::DuplicateDispatchKey);
                 }
