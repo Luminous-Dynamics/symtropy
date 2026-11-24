@@ -397,7 +397,7 @@ The fitter requires matched forecast/outcome IDs in one evaluator-owned stratum.
 
 Five additional tests cover finite-sample rank and singleton output, conservative full-set fallback when calibration is small, mixed-stratum/invalid-alpha rejection, unmatched/duplicate calibration rows and prediction-probability range.
 
-**This split-conformal addition is newer than the last successful e9a5fbf… run; exact-head Rust 1.96 formatting, test/doctest and strict-Clippy verification are pending.**
+**Exact-head qualification passed:** code head `80f48aae87e57d73efa31d69296c665cb5796693` passed Rust 1.96.0 formatting, 105 unit tests plus doctests, and strict Clippy in workflow [#45359834929](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45359834929).
 
 ## Split-conformal preconditions and set-valued edge cases
 
@@ -413,4 +413,13 @@ Added an owner-side receipt schema and illustrative example:
 
 The receipt binds a fitted split-conformal quantile to exact predictor/preprocessing/score-function digests, calibration cohort and sample IDs, split manifest, evidence-prefix, evaluator stratum, independent unit and count, claim type/scope, alpha, order-statistic rank, quantile and owner custody receipt. It supports active/revoked/expired state, requiring a reason when revoked.
 
-This prevents a quantile from being silently reused after the model, score function, cohort, stratum or scope changes. Digests remain identifiers, not proof of acquisition/custody or exchangeability. JSON parse and example-shape consistency are pending static audit; the Rust split-conformal code remains pending exact-head qualification.
+This prevents a quantile from being silently reused after the model, score function, cohort, stratum or scope changes. Digests remain identifiers, not proof of acquisition/custody or exchangeability. Both receipt schema and example were parsed as JSON; static checks confirmed all supplied SHA-256-shaped digests and the example order-statistic rank (ceil(41 × 0.9) = 37). This is not a full Draft 2020-12 validator run.
+
+## Latest exact-head qualification — split conformal and owner receipt — 24 November 2026
+
+Current executable code head: `80f48aae87e57d73efa31d69296c665cb5796693`. Focused workflow [#45359834929](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45359834929), Rust 1.96.0, passed all steps:
+- `cargo fmt --check`: passed;
+- `cargo test --locked`: **105 unit tests passed, 0 failed**, plus doctests;
+- `cargo clippy --locked --all-targets -- -D warnings`: passed.
+
+The new tests cover split-conformal rank/coverage, conservative full-set fallback at insufficient calibration size, mixed-stratum and invalid-alpha rejection, malformed calibration bindings, inclusive quantile ties and empty-set abstention. The owner-issued receipt schema/example parse and the example rank arithmetic matches. Qualification remains focused to the finite microcosm: no production #11171 adapter, sealed multi-process evaluator, temporal/online conformal guarantee, conditional coverage, physical deployment or SOTA result is claimed.
