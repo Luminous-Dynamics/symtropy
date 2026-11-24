@@ -4,7 +4,7 @@
   "epoch_id": "epoch-01",
   "aggregation_time_unix_ms": 2000,
   "maximum_summary_age_ms": 500,
-  "query_scope_digest": "sha256:query-01",
+  "query_scope_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "compatibility": {
     "forecast_model_id": "model-1",
     "forecast_model_version": "v1",
@@ -21,9 +21,9 @@
       20,
       40
     ],
-    "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
-    "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
-    "calibration_policy_digest": "sha256:split-conformal-policy-v1"
+    "configuration_cohort_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "stratum_taxonomy_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "calibration_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
   },
   "registered_site_ids": [
     "depot-a",
@@ -77,9 +77,9 @@
           20,
           40
         ],
-        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
-        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
-        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
+        "configuration_cohort_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stratum_taxonomy_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "calibration_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
@@ -92,7 +92,7 @@
       "holdout_interval_width_sum": 100,
       "local_status": "locally_supported",
       "local_audit_cutoff_unix_ms": 1900,
-      "local_evidence_digest": "sha256:depot-a-evidence"
+      "local_evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
     {
       "site_id": "depot-b",
@@ -113,9 +113,9 @@
           20,
           40
         ],
-        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
-        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
-        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
+        "configuration_cohort_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stratum_taxonomy_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "calibration_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
@@ -128,7 +128,7 @@
       "holdout_interval_width_sum": 100,
       "local_status": "undercoverage_alarm",
       "local_audit_cutoff_unix_ms": 1900,
-      "local_evidence_digest": "sha256:depot-b-evidence"
+      "local_evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     },
     {
       "site_id": "depot-c",
@@ -149,9 +149,9 @@
           20,
           40
         ],
-        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
-        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
-        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
+        "configuration_cohort_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stratum_taxonomy_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "calibration_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
@@ -164,7 +164,7 @@
       "holdout_interval_width_sum": 100,
       "local_status": "insufficient_local_support",
       "local_audit_cutoff_unix_ms": 1900,
-      "local_evidence_digest": "sha256:depot-c-evidence"
+      "local_evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     }
   ],
   "claim_ceiling": "Synthetic bounded deterministic summary merge only; no privacy or site qualification claims."
