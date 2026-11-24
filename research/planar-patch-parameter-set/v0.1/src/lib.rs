@@ -22,6 +22,9 @@ use std::fmt::{self, Display, Formatter};
 
 pub const SCHEMA_VERSION: &str = "planar-patch-parameter-set-v0.1";
 
+mod support_envelope;
+pub use support_envelope::*;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ParameterSetErrorKind {
     EmptyObservations,
@@ -164,7 +167,7 @@ pub struct ParameterSetReport {
     pub intervals: [ParameterInterval; 3],
     pub feasible_vertices: Vec<[f64; 3]>,
     pub worst_residual_witness: Option<ParameterSetWitness>,
-    /// True means the finite plane-triple budget was exhausted before completion.
+    /// True only when every plane triple within the configured budget was checked.
     pub enumeration_complete: bool,
     /// A zero design row contradicts the strictly positive lower boundary bound.
     pub direct_infeasibility_observation_id: Option<String>,
