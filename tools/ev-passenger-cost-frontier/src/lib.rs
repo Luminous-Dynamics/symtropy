@@ -12,3 +12,4 @@ pub mod mobility_recovery_envelope;
 pub mod service_prediction_calibration;
 pub mod sustainable_mobility_service_capacity;
 pub mod sustainable_mobility_service_quality;
+pub mod service_decision_impact;
