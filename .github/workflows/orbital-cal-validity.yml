@@ -59,14 +59,29 @@ jobs:
           cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-a.json
           cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-b.json
           cmp /tmp/cal-rust-a.json /tmp/cal-rust-b.json
-          jq -e '
-            .schema == "luminous.orbital-cal-validity.receipt.v0.1" and
-            .case_count == 25 and .expected_outcome_matches == 25 and
-            .expected_outcome_mismatches == 0 and .authority_granted == false and
-            .visibility_assessed == false and
-            .measurement_performance_assessed == false and
-            .physical_validation == "NOT_ASSESSED"
-          ' /tmp/cal-rust-a.json
+          jq '{
+            schema, case_count, expected_outcome_matches, expected_outcome_mismatches,
+            authority_granted, visibility_assessed, measurement_performance_assessed,
+            physical_validation
+          }' /tmp/cal-rust-a.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path("/tmp/cal-rust-a.json").read_text())
+          expected = {
+              "schema": "luminous.orbital-cal-validity.receipt.v0.1",
+              "case_count": 25,
+              "expected_outcome_matches": 25,
+              "expected_outcome_mismatches": 0,
+              "authority_granted": False,
+              "visibility_assessed": False,
+              "measurement_performance_assessed": False,
+              "physical_validation": "NOT_ASSESSED",
+          }
+          actual = {key: receipt.get(key) for key in expected}
+          assert actual == expected, {"expected": expected, "actual": actual}
+          print("25-case deterministic Rust receipt metadata verified")
+          PY
       - name: Independent Python oracle
         run: |
           python3 tools/orbital-cal-validity-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-python.json
