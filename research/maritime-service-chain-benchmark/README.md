@@ -66,3 +66,18 @@ The AI Port Center Data Hub is a **directory**, not a single joined dataset or l
 5. Include a negative-control scenario where the quay-crane or truck-throughput metric improves while final receiver delivery does not.
 
 **Evidence boundary:** no source data in this register has been downloaded by the current commit. Every item remains catalogued_not_downloaded or reference_only. No new result or benchmark performance claim is asserted. Raw file SHA-256 values must be computed only after the exact file bytes have been retrieved; licences and source identity are item-specific.
+
+
+## Official Durban Gateway Terminal snapshots (24 November 2026)
+
+A read-only source-discovery pass verified that the official [DGT Terminal Updates index](https://dgt.ictsi.com/terminalupdates) currently exposes distinct source artifacts for vessel updates, export stack dates, import storage, firm berth plans, customer notices and NAVIS/TOS communications. The 24 November page lists both AM and PM export stack snapshots, the 24 November import storage file, and a 24 November firm berth plan. These are separate source classes, not one generic event timeline.
+
+Two source PDFs were inspected:
+- The official vessel update carries an internal report time of **24 November 2026, 11H00** and distinguishes NOT YET IN, IN NOT WORKING, ON WAY IN and WORKING states; it includes vessel visit, berth, ETA, started-working, remaining discharge/load, completion and notes. [Official PDF](https://cdnweb-dgt.ictsi.com/users/user20/DGT%20VESSELS%20UPDATE%20SPREADSHEET%20%2853%29.pdf)
+- The official firm berth plan carries an internal live-update timestamp of **24 November 2026, 11:48:45** and lays out berth/bollard occupancy and planned vessel windows through December. This remains a plan; it must not be promoted to observed alongside or actual berth occupancy. [Official PDF](https://cdnweb-dgt.ictsi.com/users/user20/DGT%20FIRM%20BERTH%20PLAN%2024.11.2026.pdf)
+
+The linked AM/PM export-stack and import-storage XLSX files were discovered by URL but were **not downloaded** in this intake (the web viewer did not render XLSX). Their schema, rights and file digests are therefore still unverified. The source register marks them catalogued-not-downloaded and rights-review-required. No raw data or third-party-derived status has been promoted to an oracle receipt.
+
+The third-party Dues DGT status page can be useful as a **diagnostic comparator** for source freshness, status normalization and discrepancies, but its own page says it republishes/refreshes terminal files. It is not an independent physical witness and cannot replace the DGT source artifact. [Dues DGT view](https://dues.co.za/ports/durban-gateway-terminal)
+
+This evidence suggests a valuable first real-source engineering task: a strictly read-only, permission-aware, append-only artifact indexer that preserves source-native class, publication time, retrieval time, valid-time scope, revisions and raw digests. The benchmark should measure source revision linkage, false plan-to-actual promotion, as-of replay correctness and disagreements between primary and derived sources. It should not start by trying to schedule vessels or claim improved terminal performance.
