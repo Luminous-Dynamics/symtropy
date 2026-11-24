@@ -501,4 +501,10 @@ The adapter's exactness tests cover:
 - hard failure and service axes remain separate;
 - risk selector receives only the cluster-unit rows and abstains in a deliberately underpowered two-cluster fixture.
 
+The adapter also exposes typed execution wrappers so the calibration-unit label cannot be lost when the existing algorithms are called:
+- `ClusterMeanMatrix::calibrate_marginal_expected_risk` wraps the existing CRC result with the cluster-unit provenance, loss axis, independent-cluster count, source schedule count, cluster IDs, and per-cluster row counts. It checks that evaluator and loss-contract revisions match the oracle bundle.
+- `ClusterMeanMatrix::select_fixed_grid_high_probability` accepts a separate cluster-level service matrix only when risk and service matrices share the exact same frozen cluster population, cluster sizes and policy order. The output preserves both provenance records and represents insufficient evidence as an explicit `Abstained(NoPolicyMeetsTarget)` outcome, not a successful empty selection.
+
+The underlying compatibility matrix APIs remain available for research, but their returned rows do not retain the typed provenance by themselves. Prefer the typed wrapper for any reported claim.
+
 The projection is a software contract, not an operational independence certificate. Cluster metadata, source receipts, exact physical/authority adjudication and operating regime remain caller-supplied evidence.
