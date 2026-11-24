@@ -70,7 +70,11 @@
     "Symtropy_or_Symthaea_HDC_CfC_experimental_challenger",
     "adversarially_trained_neural_operator_adv_NO_for_forward_super_resolution_and_forecasting",
     "conditional_score_based_diffusion_EDM_for_sparse_inverse_reconstruction",
-    "conditional_GAN_for_sparse_inverse_reconstruction"
+    "conditional_GAN_for_sparse_inverse_reconstruction",
+    "GenCFD_conditional_score_diffusion_for_forward_statistical_computation",
+    "masked_or_guided_diffusion_for_sparse_inverse_reconstruction",
+    "physics_regularized_endpoint_residual_diffusion_for_temporal_super_resolution",
+    "autoregressive_conditional_diffusion_for_long_horizon_turbulence_rollout"
   ],
   "matched_privileges": [
     "same_observations",
@@ -99,7 +103,12 @@
       "high_wavenumber_tail_energy_retention",
       "velocity_gradient_invariant_QR_joint_PDF_error_when_3D_available",
       "conditional_measurement_consistency_residual",
-      "phase_alignment_near_observed_measurements"
+      "phase_alignment_near_observed_measurements",
+      "between_observation_temporal_super_resolution_error",
+      "long_horizon_autoregressive_rollout_drift",
+      "temporal_coherence_and_rollout_stability",
+      "structure_function_error",
+      "higher_order_statistics_through_declared_moment_order"
     ],
     "uncertainty": [
       "pointwise_coverage_50_80_90_95_99",
@@ -114,7 +123,13 @@
       "interval_width_or_region_volume",
       "cluster_bootstrap_confidence_intervals",
       "posterior_sample_coverage_and_sharpness_for_generative_inverse_models",
-      "conditional_measurement_consistency_of_posterior_samples"
+      "conditional_measurement_consistency_of_posterior_samples",
+      "Wasserstein_distance_between_conditional_flow_distributions",
+      "conditional_point_PDF_and_higher_central_moment_error",
+      "posterior_sample_diversity",
+      "posterior_measurement_consistency_at_sparse_observation_locations",
+      "non_memorization_and_distributional_generalization",
+      "physical_admissibility_and_large_domain_coherence"
     ],
     "selective_prediction": [
       "risk_coverage_curve",
@@ -244,7 +259,13 @@
     "inrae_dns_lpt": "https://doi.org/10.15454/GLNRHK",
     "piv_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
     "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
-    "oommen_2026": "https://doi.org/10.1038/s41467-026-70145-4"
+    "oommen_2026": "https://doi.org/10.1038/s41467-026-70145-4",
+    "gencfd": "https://doi.org/10.1038/s41467-026-76390-x",
+    "gencfd_code": "https://github.com/camlab-ethz/GenCFD",
+    "guided_sparse_diffusion": "https://doi.org/10.1063/5.0304492",
+    "temporal_residual_diffusion": "https://doi.org/10.1016/j.compfluid.2026.107277",
+    "autoregressive_conditional_diffusion": "https://doi.org/10.1016/j.neunet.2026.108641",
+    "generative_turbulence_priors_perspective": "https://doi.org/10.1103/qbw5-qqmg"
   },
   "periodic_sampling_design": {
     "status": "source_reported_synthetic_baseline_and_prospective_benchmark_lane",
@@ -401,6 +422,93 @@
       "generalization": "unseen masking layouts within the same geometry only; not unseen geometry",
       "observation": "sparse PTV-like velocity masks applied to DNS fields; not raw PIV image processing",
       "limit": "posterior calibration and experimental measurement-domain transfer require separate evaluation"
+    }
+  },
+  "statistical_forward_uq": {
+    "model": "GenCFD",
+    "source": "Raonic et al., Nature Communications 17:9846 (17 August 2026)",
+    "doi": "10.1038/s41467-026-76390-x",
+    "task": "conditional distribution of three-dimensional turbulent flow realizations",
+    "reported_claims": {
+      "benchmarks": 5,
+      "metrics": [
+        "conditional_mean",
+        "conditional_variance",
+        "point_PDF",
+        "energy_spectrum",
+        "structure_functions",
+        "higher_central_moments_up_to_order_five",
+        "Wasserstein_conditional_distribution_distance"
+      ],
+      "speedup_over_conventional_CFD_orders_of_magnitude": [
+        1,
+        5
+      ],
+      "sample_generation_seconds_upper_bound": 4,
+      "hardware": "NVIDIA RTX 4090"
+    },
+    "code": {
+      "repository": "https://github.com/camlab-ethz/GenCFD",
+      "license": "Apache-2.0",
+      "caveat": "paper settings and full data must be pinned before reproducing; do not transfer published speed or accuracy directly to EHD"
+    }
+  },
+  "sparse_inverse_diffusion": {
+    "masked_guided_diffusion": {
+      "paper": "Guiding diffusion models to reconstruct flow fields from sparse data",
+      "venue": "Physics of Fluids 38, 015112",
+      "date": "2026-01-08",
+      "doi": "10.1063/5.0304492",
+      "reported_2d_kolmogorov_5_percent_case": {
+        "rmse": "0.13 ± 0.02",
+        "sparse_observation_p_rmse": "0.10 ± 0.01",
+        "physics_residual_metric": "0.02 ± 0.03",
+        "structure_similarity_loss": "0.05 ± 0.01",
+        "energy_spectrum_error": "0.26 ± 0.05"
+      },
+      "limitation": "one published 2D Kolmogorov-flow case; not directly comparable to other datasets"
+    },
+    "conditional_edm": {
+      "source": "Oommen et al. (2026), Nature Communications 17:3707",
+      "task": "inverse reconstruction from sparse PTV-like DNS velocity observations",
+      "limitation": "same-geometry unseen-mask transfer is not unseen-geometry or raw-PIV-image transfer"
+    }
+  },
+  "temporal_diffusion": {
+    "endpoint_residual_diffusion": {
+      "paper": "Physics-regularized residual diffusion model for temporal super-resolution reconstruction of turbulent flows",
+      "venue": "Computers & Fluids 320, 107277",
+      "publication_date": "2026-11-15",
+      "doi": "10.1016/j.compfluid.2026.107277",
+      "conditioning": "two temporally sparse endpoint velocity fields",
+      "method": "linear interpolation base plus learned normalized DNS residual at intermediate times",
+      "benchmark_requirements": [
+        "between_endpoint_error",
+        "phase_and_timing_error",
+        "temporal_coherence",
+        "spectral_transfer",
+        "structure_function_transfer",
+        "event_detection"
+      ]
+    },
+    "autoregressive_conditional_diffusion": {
+      "paper": "Benchmarking autoregressive conditional diffusion models for turbulent flow simulation",
+      "venue": "Neural Networks 199, 108641",
+      "year": 2026,
+      "doi": "10.1016/j.neunet.2026.108641",
+      "scenarios": [
+        "2D_incompressible_flow",
+        "2D_transonic_flow",
+        "2D_isotropic_turbulence"
+      ],
+      "evaluation": [
+        "accuracy",
+        "posterior_sampling",
+        "spectral_behavior",
+        "temporal_stability",
+        "out_of_training_range_parameter_generalization"
+      ],
+      "tradeoff": "diffusion accuracy/stability vs deterministic architecture inference speed"
     }
   }
 }
