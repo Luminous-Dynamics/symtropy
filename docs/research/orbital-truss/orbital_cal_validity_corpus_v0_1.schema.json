@@ -150,6 +150,7 @@
       "additionalProperties": false,
       "required": [
         "event_id",
+        "event_receipt_sha256",
         "effective_time_ns",
         "time_uncertainty_ns",
         "affected_scope_ids",
@@ -182,6 +183,10 @@
             "NO_CALIBRATION_IMPACT",
             "UNKNOWN_IMPACT"
           ]
+        },
+        "event_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
         }
       }
     },
