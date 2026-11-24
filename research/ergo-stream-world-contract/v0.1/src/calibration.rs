@@ -42,6 +42,45 @@ pub struct TransferOutcomeV0 {
     pub transfer_qualified: bool,
 }
 
+/// Exact type of the scoped claim whose qualification probability is forecast.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TransferClaimTypeV0 {
+    StructuralCorrespondence,
+    DeterministicDynamics,
+    Simulation,
+    Bisimulation,
+    MechanismTransfer,
+}
+
+/// Learner-authored forecast bound to a named claim and its canonical scope digest.
+///
+/// The evaluator must independently recompute the scope digest from the frozen
+/// claim artifact; comparing two learner-supplied strings is not sufficient.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundTransferForecastV0 {
+    pub claim_id: String,
+    pub claim_type: TransferClaimTypeV0,
+    pub claim_scope_sha256: String,
+    pub probability_transfer_ppm: u32,
+    pub decision: Option<TransferDecisionV0>,
+}
+
+/// Evaluator-owned outcome joined to the exact same claim identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundTransferOutcomeV0 {
+    pub claim_id: String,
+    pub claim_type: TransferClaimTypeV0,
+    pub claim_scope_sha256: String,
+    pub evaluation_stratum_id: u16,
+    pub transfer_qualified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundTransferCalibrationReportV0 {
+    pub pooled: TransferCalibrationReportV0,
+    pub by_stratum: Vec<StratifiedTransferCalibrationReportV0>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CalibrationBinV0 {
     pub bin_index: usize,
@@ -163,6 +202,11 @@ pub enum TransferCalibrationErrorV0 {
     EmptyConformalCalibration,
     AlphaOutOfRange,
     MixedCalibrationStrata,
+    EmptyClaimId,
+    DuplicateClaimId,
+    DuplicateClaimOutcomeId,
+    InvalidClaimScopeDigest,
+    ClaimIdentityMismatch,
 }
 
 impl fmt::Display for TransferCalibrationErrorV0 {
@@ -186,6 +230,17 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::AlphaOutOfRange => "conformal miscoverage alpha must be in 1..999999 ppm",
             Self::MixedCalibrationStrata => {
                 "split-conformal calibration samples must belong to one evaluator-owned stratum"
+            }
+            Self::EmptyClaimId => "bound transfer forecast/outcome requires a non-empty claim ID",
+            Self::DuplicateClaimId => "bound transfer forecasts contain a duplicate claim ID",
+            Self::DuplicateClaimOutcomeId => {
+                "bound transfer outcomes contain a duplicate claim ID"
+            }
+            Self::InvalidClaimScopeDigest => {
+                "claim scope digest must be a lowercase sha256 digest"
+            }
+            Self::ClaimIdentityMismatch => {
+                "forecast and evaluator outcome do not bind to the same claim type and scope digest"
             }
         };
         formatter.write_str(message)
@@ -522,6 +577,116 @@ pub fn evaluate_transfer_calibration_by_stratum(
             })
         })
         .collect()
+}
+
+
+/// Score claim-bound forecasts against owner-recomputed claim identities.
+///
+/// The adapter refuses to score a probability unless claim ID, claim type and
+/// canonical scope digest match an evaluator-owned outcome. The owner must
+/// recompute the digest from the exact frozen source/target episodes, map kind,
+/// selected/excluded scopes, transformations and evidence-prefix identities;
+/// a candidate-supplied digest is only a binding value, never proof.
+///
+/// Once identities are checked, this function delegates to the existing
+/// pooled and stratified scoring routines. Numeric sample IDs are internal
+/// deterministic join keys and are not exposed as the claim identity.
+pub fn evaluate_bound_transfer_calibration(
+    forecasts: &[BoundTransferForecastV0],
+    outcomes: &[BoundTransferOutcomeV0],
+    calibration_bin_count: usize,
+    confidence_thresholds_ppm: &[u32],
+) -> Result<BoundTransferCalibrationReportV0, TransferCalibrationErrorV0> {
+    if forecasts.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyForecasts);
+    }
+
+    let mut forecast_ids = BTreeSet::new();
+    for forecast in forecasts {
+        if forecast.claim_id.trim().is_empty() {
+            return Err(TransferCalibrationErrorV0::EmptyClaimId);
+        }
+        if !is_lowercase_sha256(&forecast.claim_scope_sha256) {
+            return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
+        }
+        if !forecast_ids.insert(forecast.claim_id.as_str()) {
+            return Err(TransferCalibrationErrorV0::DuplicateClaimId);
+        }
+    }
+
+    let mut outcome_by_claim = BTreeMap::new();
+    for outcome in outcomes {
+        if outcome.claim_id.trim().is_empty() {
+            return Err(TransferCalibrationErrorV0::EmptyClaimId);
+        }
+        if !is_lowercase_sha256(&outcome.claim_scope_sha256) {
+            return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
+        }
+        if outcome_by_claim
+            .insert(outcome.claim_id.as_str(), outcome)
+            .is_some()
+        {
+            return Err(TransferCalibrationErrorV0::DuplicateClaimOutcomeId);
+        }
+    }
+
+    let mut internal_forecasts = Vec::with_capacity(forecasts.len());
+    let mut internal_outcomes = Vec::with_capacity(forecasts.len());
+    for (index, forecast) in forecasts.iter().enumerate() {
+        let outcome = outcome_by_claim
+            .get(forecast.claim_id.as_str())
+            .copied()
+            .ok_or(TransferCalibrationErrorV0::MissingOutcome)?;
+        if forecast.claim_type != outcome.claim_type
+            || forecast.claim_scope_sha256 != outcome.claim_scope_sha256
+        {
+            return Err(TransferCalibrationErrorV0::ClaimIdentityMismatch);
+        }
+        let sample_id =
+            u64::try_from(index).map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        internal_forecasts.push(TransferForecastV0 {
+            sample_id,
+            probability_transfer_ppm: forecast.probability_transfer_ppm,
+            decision: forecast.decision,
+        });
+        internal_outcomes.push(TransferOutcomeV0 {
+            sample_id,
+            evaluation_stratum_id: outcome.evaluation_stratum_id,
+            transfer_qualified: outcome.transfer_qualified,
+        });
+    }
+
+    if outcome_by_claim
+        .keys()
+        .any(|claim_id| !forecast_ids.contains(claim_id))
+    {
+        return Err(TransferCalibrationErrorV0::UnknownOutcome);
+    }
+
+    let pooled = evaluate_transfer_calibration(
+        &internal_forecasts,
+        &internal_outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+    let by_stratum = evaluate_transfer_calibration_by_stratum(
+        &internal_forecasts,
+        &internal_outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+
+    Ok(BoundTransferCalibrationReportV0 { pooled, by_stratum })
+}
+
+fn is_lowercase_sha256(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -895,6 +1060,202 @@ mod tests {
         assert_eq!(
             reports[1].report.selective_risk_curve[1].selective_risk(),
             Some(1.0)
+        );
+    }
+
+
+    fn bound_forecast(
+        claim_id: &str,
+        claim_type: TransferClaimTypeV0,
+        digest_byte: char,
+        probability_transfer_ppm: u32,
+        decision: Option<TransferDecisionV0>,
+    ) -> BoundTransferForecastV0 {
+        BoundTransferForecastV0 {
+            claim_id: claim_id.to_owned(),
+            claim_type,
+            claim_scope_sha256: format!("sha256:{}", digest_byte.to_string().repeat(64)),
+            probability_transfer_ppm,
+            decision,
+        }
+    }
+
+    fn bound_outcome(
+        claim_id: &str,
+        claim_type: TransferClaimTypeV0,
+        digest_byte: char,
+        evaluation_stratum_id: u16,
+        transfer_qualified: bool,
+    ) -> BoundTransferOutcomeV0 {
+        BoundTransferOutcomeV0 {
+            claim_id: claim_id.to_owned(),
+            claim_type,
+            claim_scope_sha256: format!("sha256:{}", digest_byte.to_string().repeat(64)),
+            evaluation_stratum_id,
+            transfer_qualified,
+        }
+    }
+
+    #[test]
+    fn bound_forecast_requires_exact_claim_id_type_and_scope_digest() {
+        let forecasts = [
+            bound_forecast(
+                "claim-structural-1",
+                TransferClaimTypeV0::StructuralCorrespondence,
+                'a',
+                900_000,
+                Some(TransferDecisionV0::AssertTransfer),
+            ),
+            bound_forecast(
+                "claim-simulation-2",
+                TransferClaimTypeV0::Simulation,
+                'b',
+                250_000,
+                Some(TransferDecisionV0::RejectTransfer),
+            ),
+        ];
+        let outcomes = [
+            bound_outcome(
+                "claim-structural-1",
+                TransferClaimTypeV0::StructuralCorrespondence,
+                'a',
+                1,
+                true,
+            ),
+            bound_outcome(
+                "claim-simulation-2",
+                TransferClaimTypeV0::Simulation,
+                'b',
+                2,
+                false,
+            ),
+        ];
+
+        let report =
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 5, &[0, 900_000])
+                .unwrap();
+        assert_eq!(report.pooled.sample_count, 2);
+        assert_eq!(report.by_stratum.len(), 2);
+        assert_eq!(report.pooled.decision_coverage, 1.0);
+    }
+
+    #[test]
+    fn bound_forecast_rejects_scope_digest_mismatch() {
+        let forecasts = [bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::StructuralCorrespondence,
+            'a',
+            900_000,
+            Some(TransferDecisionV0::AssertTransfer),
+        )];
+        let outcomes = [bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::StructuralCorrespondence,
+            'b',
+            0,
+            true,
+        )];
+
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::ClaimIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_claim_type_mismatch() {
+        let forecasts = [bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::Simulation,
+            'a',
+            900_000,
+            Some(TransferDecisionV0::AssertTransfer),
+        )];
+        let outcomes = [bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::Bisimulation,
+            'a',
+            0,
+            true,
+        )];
+
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::ClaimIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_duplicate_claims_and_orphan_outcomes() {
+        let forecast = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        let duplicate = [forecast.clone(), forecast.clone()];
+        let outcome = bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&duplicate, &[outcome.clone()], 2, &[0]),
+            Err(TransferCalibrationErrorV0::DuplicateClaimId)
+        );
+        let orphan = bound_outcome(
+            "claim-2",
+            TransferClaimTypeV0::MechanismTransfer,
+            'b',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[forecast], &[orphan], 2, &[0]),
+            Err(TransferCalibrationErrorV0::MissingOutcome)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_invalid_scope_digest_and_duplicate_outcome() {
+        let mut invalid = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        invalid.claim_scope_sha256 = "sha256:bad".to_owned();
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[invalid], &[], 2, &[0]),
+            Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest)
+        );
+
+        let forecast = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        let outcome = bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(
+                &[forecast],
+                &[outcome.clone(), outcome],
+                2,
+                &[0],
+            ),
+            Err(TransferCalibrationErrorV0::DuplicateClaimOutcomeId)
         );
     }
 
