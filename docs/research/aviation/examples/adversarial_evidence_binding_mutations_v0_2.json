@@ -1,0 +1,278 @@
+{
+  "corpus_id": "aero-evidence-binding-adversarial-v0.2",
+  "synthetic_only": true,
+  "oracle_authored_independently_of_evaluator": true,
+  "claim_ceiling": "synthetic_binding_contract_only",
+  "cases": [
+    {
+      "case_id": "wrong-declared-material-lot",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/declared_material_lot_id",
+      "value": "LOT-WRONG",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "hierarchy-changed-to-another-valid-lot",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/material_lots",
+          "value": {
+            "id": "LOT-B"
+          }
+        },
+        {
+          "operation": "set",
+          "pointer": "/hierarchy/process_batches/0/material_lot_id",
+          "value": "LOT-B"
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH",
+        "SPECIMEN_SOURCE_VERIFIED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "wrong-intended-configuration",
+      "operation": "set",
+      "pointer": "/intended_configuration_assertions/0/declared_intended_configuration_id",
+      "value": "CONFIG-WRONG",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "INTENDED_CONFIGURATION_DECLARED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "INTENDED_CONFIGURATION_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "missing-specimen-source-assertion",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions",
+      "value": [],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "EMPTY_REQUIRED_COLLECTION"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_ASSERTION_MISSING"
+      ]
+    },
+    {
+      "case_id": "acquisition-before-calibration-window",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_utc",
+      "value": "2026-11-24T08:59:59Z",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+      ]
+    },
+    {
+      "case_id": "acquisition-at-exclusive-calibration-end",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_utc",
+      "value": "2026-11-24T11:00:00Z",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL",
+        "ACQUISITION_AFTER_EVALUATION_TIME"
+      ]
+    },
+    {
+      "case_id": "instrument-identity-mismatch",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/instrument_id",
+      "value": "INSTRUMENT-OTHER",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_INSTRUMENT_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "method-revision-mismatch",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/method_revision_id",
+      "value": "METHOD-OTHER",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_METHOD_REVISION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "timezone-not-normalized",
+      "operation": "set",
+      "pointer": "/observations/0/time_basis",
+      "value": "LOCAL_UNKNOWN",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "TIME_BASIS_NOT_NORMALIZED_TO_UTC"
+      ]
+    },
+    {
+      "case_id": "calibration-certificate-missing",
+      "operation": "set",
+      "pointer": "/hierarchy/test_campaigns/0/calibration_id",
+      "value": "CAL-MISSING",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_MISSING"
+      ]
+    },
+    {
+      "case_id": "certificate-authenticity-unknown",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/authenticity_status",
+      "value": "unknown",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_AUTHENTICITY_UNKNOWN"
+      ]
+    },
+    {
+      "case_id": "revocation-recorded-before-evaluation-after-acquisition",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "set",
+          "pointer": "/evaluated_at_utc",
+          "value": "2026-11-24T10:40:00Z"
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REVOKE-A",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_utc": "2026-11-24T10:30:00Z",
+            "recorded_at_utc": "2026-11-24T10:35:00Z",
+            "retroactive": false
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "invalid-calendar-timestamp",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_utc",
+      "value": "2026-02-30T10:00:00Z",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "ACQUISITION_TIMESTAMP_INVALID_OR_AMBIGUOUS"
+      ]
+    },
+    {
+      "case_id": "calibration-correction-with-unknown-target",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-CORRECT-A",
+        "certificate_id": "CAL-A",
+        "event_type": "corrected",
+        "corrects_event_id": "EVENT-NOT-FOUND",
+        "effective_at_utc": "2026-11-24T10:20:00Z",
+        "recorded_at_utc": "2026-11-24T10:21:00Z",
+        "retroactive": true
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "competing-corrections-for-one-event",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "effective_at_utc": "2026-11-24T10:10:00Z",
+            "recorded_at_utc": "2026-11-24T10:11:00Z",
+            "retroactive": false
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-A",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_utc": "2026-11-24T10:20:00Z",
+            "recorded_at_utc": "2026-11-24T10:21:00Z",
+            "retroactive": true
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-B",
+            "certificate_id": "CAL-A",
+            "event_type": "superseded",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_utc": "2026-11-24T10:22:00Z",
+            "recorded_at_utc": "2026-11-24T10:23:00Z",
+            "retroactive": true
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CONTRADICTORY_CALIBRATION_CORRECTIONS"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_SUSPENDED_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "empty-source-provenance-field",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/source_record_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_PROVENANCE_INCOMPLETE"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    }
+  ]
+}
