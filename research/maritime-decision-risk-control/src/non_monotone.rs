@@ -748,20 +748,21 @@ mod tests {
             .expect("Bernstein correction")
             .min(excess_bound_milli(4, 1_200).expect("Hoeffding correction"));
         let adjusted = 200_u16 - correction as u16;
-        assert_eq!(
-            calibrate_bernstein(
-                &grid,
-                200,
-                376,
-                Some(&EndpointPopulationRiskContract {
-                    scope: "bad endpoint".to_owned(),
-                    evidence_ref: "synthetic".to_owned(),
-                    population_expected_loss_upper_milli: adjusted + 1,
-                }),
-                &variance_fixture_revisions(),
-            ),
-            Err(RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget { .. })
+        let result = calibrate_bernstein(
+            &grid,
+            200,
+            376,
+            Some(&EndpointPopulationRiskContract {
+                scope: "bad endpoint".to_owned(),
+                evidence_ref: "synthetic".to_owned(),
+                population_expected_loss_upper_milli: adjusted + 1,
+            }),
+            &variance_fixture_revisions(),
         );
+        assert!(matches!(
+            result,
+            Err(RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget { .. })
+        ));
     }
 
     #[test]
