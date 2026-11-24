@@ -642,6 +642,7 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
         blockers,
         capability_gaps: vec![
             "INDEPENDENT_SPECIMEN_SOURCE_MATERIAL_IDENTITY_NOT_REPRESENTED".to_owned(),
+            "INDEPENDENT_SPECIMEN_DESIGN_CONFIGURATION_ASSERTION_NOT_REPRESENTED".to_owned(),
             "CALIBRATION_VALIDITY_INTERVAL_AND_MEASUREMENT_TIMESTAMP_NOT_REPRESENTED".to_owned(),
             "SOURCE_ARTIFACT_DIGEST_AND_BYTE_LENGTH_ARE_OWNED_BY_MYCELIX_PACKET_LAYER".to_owned(),
             "COUPON_TO_ELEMENT_JOINT_SUBCOMPONENT_TRANSFER_EVIDENCE_NOT_REPRESENTED".to_owned(),
@@ -804,6 +805,14 @@ mod tests {
         let report = evaluate_case(&case);
         assert!(!report.structurally_complete);
         assert!(has_code(&report, "UNKNOWN_PARTITION"));
+    }
+
+    #[test]
+    fn independent_configuration_assertion_is_reported_as_a_capability_gap() {
+        let report = evaluate_case(&fixture());
+        assert!(report.capability_gaps.iter().any(|gap| {
+            gap == "INDEPENDENT_SPECIMEN_DESIGN_CONFIGURATION_ASSERTION_NOT_REPRESENTED"
+        }));
     }
 
     #[test]
