@@ -766,12 +766,12 @@ fn make_scenarios(
     let quality_operation = "JOB-1-OP-2";
     let policy_scenarios = vec![
         Scenario {
-            scenario_id: "NOMINAL-ACCEPTED".into(),
+            scenario_id: "NOMINAL-01".into(),
             probability_ppm: 300_000,
             observations_by_epoch: nominal_history.clone(),
         },
         Scenario {
-            scenario_id: "NOMINAL-HIDDEN-REJECT".into(),
+            scenario_id: "NOMINAL-02".into(),
             probability_ppm: 200_000,
             observations_by_epoch: nominal_history,
         },
@@ -788,7 +788,7 @@ fn make_scenarios(
     ];
     let evaluator_outcomes = vec![
         EvaluatorScenarioOutcome {
-            scenario_id: "NOMINAL-ACCEPTED".into(),
+            scenario_id: "NOMINAL-01".into(),
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-NOMINAL"),
                 operation_id: quality_operation.into(),
@@ -796,7 +796,7 @@ fn make_scenarios(
             }],
         },
         EvaluatorScenarioOutcome {
-            scenario_id: "NOMINAL-HIDDEN-REJECT".into(),
+            scenario_id: "NOMINAL-02".into(),
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-HIDDEN-REJECT"),
                 operation_id: quality_operation.into(),
@@ -1297,12 +1297,12 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
         let accepted = evaluator_case
             .scenario_outcomes
             .iter()
-            .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
+            .find(|outcome| outcome.scenario_id == "NOMINAL-01")
             .ok_or_else(|| "nominal_accepted_evaluator_label_missing".to_string())?;
         let rejected = evaluator_case
             .scenario_outcomes
             .iter()
-            .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
+            .find(|outcome| outcome.scenario_id == "NOMINAL-02")
             .ok_or_else(|| "nominal_reject_evaluator_label_missing".to_string())?;
         if accepted.hidden_terminal_quality_outcomes == rejected.hidden_terminal_quality_outcomes
             || accepted.hidden_terminal_quality_outcomes.len() != 1
@@ -1501,12 +1501,12 @@ mod tests {
             let accepted = evaluator_case
                 .scenario_outcomes
                 .iter()
-                .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
+                .find(|outcome| outcome.scenario_id == "NOMINAL-01")
                 .expect("nominal acceptance label");
             let rejected = evaluator_case
                 .scenario_outcomes
                 .iter()
-                .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
+                .find(|outcome| outcome.scenario_id == "NOMINAL-02")
                 .expect("nominal rejection label");
             assert_ne!(
                 accepted.hidden_terminal_quality_outcomes,
