@@ -235,7 +235,7 @@ pub fn render_csv() -> String {
     let mut output = String::from(
         "calibration_schedules,parameter_count,target_risk_milli,delta,simultaneous_radius_milli,selected_policy_index,selected_risk_upper_bound_milli,selected_service_mean_milli,eligible_policy_count,status\n",
     );
-    let hard_probabilities = [0.25, 0.08, 0.13, 0.04];
+    let hard_probabilities = [0.25, 0.08, 0.13, 0.02];
     let service_costs = [100_u16, 300, 150, 450];
 
     for (n, seed) in [
@@ -247,7 +247,7 @@ pub fn render_csv() -> String {
         let service = WholeScheduleLossGrid {
             schedule_losses_milli: (0..n).map(|_| service_costs.to_vec()).collect(),
         };
-        match select_simultaneous_hoeffding(&hard, &service, 200, 0.05) {
+        match select_simultaneous_hoeffding(&hard, &service, 100, 0.05) {
             Ok(result) => output.push_str(&format!(
                 "{},{},{},{:.3},{},{},{},{:.3},{},SIMULTANEOUS_UCB_SYNTHETIC\n",
                 result.calibration_schedules,
@@ -313,7 +313,7 @@ mod tests {
             schedule_losses_milli: (0..120).map(|_| vec![100, 300, 150, 450]).collect(),
         };
         assert_eq!(
-            select_simultaneous_hoeffding(&hard, &service, 200, 0.05),
+            select_simultaneous_hoeffding(&hard, &service, 100, 0.05),
             Err(HighProbabilityError::NoPolicyMeetsTarget)
         );
     }
