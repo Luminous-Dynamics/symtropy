@@ -636,8 +636,9 @@ pub struct ObservedFaultSignature {
     pub simulation_step: u64,
 }
 
-/// The observer must be a separate subsystem from the injector. The concrete
-/// implementation supplies raw evidence to the execution-evidence bundle.
+/// The observer must be a separate subsystem from the injector. It receives
+/// the event identity and observation coordinates, but never the expected
+/// signature; that oracle value remains with the independent assessor.
 pub trait GazeboIndependentObserver {
     type Error: std::fmt::Display;
 
@@ -645,7 +646,6 @@ pub trait GazeboIndependentObserver {
         &mut self,
         target_id: &str,
         fault_id: &str,
-        expected_signature_sha256: &str,
         world_epoch: &str,
         simulation_step: u64,
     ) -> Result<ObservedFaultSignature, Self::Error>;
@@ -680,16 +680,27 @@ pub fn reconcile_dispatch_lookup(lookup: DispatchLedgerResult) -> Reconciliation
     }
 }
 
+/// Three-valued result of comparing a qualified observer quorum with the
+/// hidden plan-committed delivery signature.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeliveryEvidenceVerdict {
+    Confirmed,
+    Refuted,
+    InsufficientEvidence,
+}
+
 /// Qualify a fault-delivery observer quorum against the exact plan profile.
 ///
-/// Every member is pinned by ID/revision/binary digest and its complete declared
-/// common-cause domain set. Any overlap invalidates this supplied quorum.
+/// Structural identity, epoch, step and common-cause defects are hard errors.
+/// Once the quorum is structurally qualified, unanimous agreement on the
+/// expected signature is Confirmed, unanimous agreement on a different valid
+/// signature is Refuted, and disagreement is InsufficientEvidence.
 pub fn validate_delivery_observer_quorum(
     observations: &[ObservedFaultSignature],
     plan: &CompiledCampaignPlan,
     fault: &FaultInjection,
     expected_world_epoch: &str,
-) -> Result<(), GazeboAdapterError> {
+) -> Result<DeliveryEvidenceVerdict, GazeboAdapterError> {
     let required = plan.platform.required_delivery_observer_quorum;
     if observations.len() < required || observations.len() > 32 {
         return Err(GazeboAdapterError::ObserverQuorumUnqualified);
@@ -700,6 +711,7 @@ pub fn validate_delivery_observer_quorum(
 
     let mut observer_ids = BTreeSet::new();
     let mut common_cause_domains = BTreeSet::new();
+    let mut observed_signatures = BTreeSet::new();
     let mut previous_observer: Option<&str> = None;
     for observation in observations {
         if !observer_ids.insert(observation.observer_id.as_str())
@@ -733,9 +745,7 @@ pub fn validate_delivery_observer_quorum(
         {
             return Err(GazeboAdapterError::ObserverIdentityMismatch);
         }
-        if !valid_sha256(&observation.signature_sha256)
-            || observation.signature_sha256 != fault.expected_delivery_signature_sha256
-        {
+        if !valid_sha256(&observation.signature_sha256) {
             return Err(GazeboAdapterError::ObserverSignatureMismatch);
         }
         if observation.world_epoch != expected_world_epoch {
@@ -744,8 +754,20 @@ pub fn validate_delivery_observer_quorum(
         if observation.simulation_step < fault.scheduled_simulation_step {
             return Err(GazeboAdapterError::ObserverStepMismatch);
         }
+        observed_signatures.insert(observation.signature_sha256.as_str());
     }
-    Ok(())
+
+    if observed_signatures.len() != 1 {
+        return Ok(DeliveryEvidenceVerdict::InsufficientEvidence);
+    }
+    let observed = observed_signatures
+        .first()
+        .ok_or(GazeboAdapterError::ObserverQuorumUnqualified)?;
+    if *observed == fault.expected_delivery_signature_sha256 {
+        Ok(DeliveryEvidenceVerdict::Confirmed)
+    } else {
+        Ok(DeliveryEvidenceVerdict::Refuted)
+    }
 }
 
 /// A stable idempotency key binds one dispatch to one plan/run/event.
@@ -1495,7 +1517,33 @@ mod tests {
         let observations = observer_quorum(&plan);
         assert_eq!(
             validate_delivery_observer_quorum(&observations, &plan, fault, "world-epoch-2"),
-            Ok(())
+            Ok(DeliveryEvidenceVerdict::Confirmed)
+        );
+    }
+
+    #[test]
+    fn observer_quorum_refutes_unanimous_mismatch_and_abstains_on_disagreement() {
+        let plan = plan();
+        let fault = &plan.scenarios[0].fault_events[0];
+
+        let mut unanimous_mismatch = observer_quorum(&plan);
+        for observation in &mut unanimous_mismatch {
+            observation.signature_sha256 = "f".repeat(64);
+        }
+        assert_eq!(
+            validate_delivery_observer_quorum(
+                &unanimous_mismatch, &plan, fault, "world-epoch-2"
+            ),
+            Ok(DeliveryEvidenceVerdict::Refuted)
+        );
+
+        let mut disagreement = observer_quorum(&plan);
+        disagreement[0].signature_sha256 = "f".repeat(64);
+        assert_eq!(
+            validate_delivery_observer_quorum(
+                &disagreement, &plan, fault, "world-epoch-2"
+            ),
+            Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
 
@@ -1560,7 +1608,7 @@ mod tests {
         signature[0].signature_sha256 = "f".repeat(64);
         assert_eq!(
             validate_delivery_observer_quorum(&signature, &plan, fault, "world-epoch-2"),
-            Err(GazeboAdapterError::ObserverSignatureMismatch)
+            Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
 
