@@ -55,16 +55,50 @@ The envelope is non-increasing and upper-bounds the original loss at the selecte
 - `REQUIRE_MONOTONE`: reject a loss family that violates monotonicity;
 - `MONOTONE_ENVELOPE`: replace each schedule's loss curve with its upper monotone envelope before calibration.
 
-The non-monotone baseline is never issued a CRC claim.
+The non-monotone method is now represented by a separate executable comparator: finite-grid CRC-NM, based on Aldirawi, Li & Guo (arXiv:2604.01502v3, 11 November 2026). This is an arXiv preprint, not treated here as a peer-reviewed result. Its theorem provides an expected-risk bound with an explicit finite-grid correction; its assumptions and endpoint population-risk requirement are kept separate from the standard monotone CRC claim.
 
 ## Synthetic fixture
 
 Two deterministic whole-schedule loss streams are included:
 
 - **MONOTONE_HARD_FAILURE**: an explicitly nested policy family with binary schedule-failure loss.
-- **NON_MONOTONE_WITH_ENVELOPE**: a constructed loss family where adding buffer/recourse options can worsen some schedules. The monotone envelope is used before CRC.
+- **NON_MONOTONE_WITH_ENVELOPE**: a constructed loss family where adding buffer/recourse options can worsen some schedules. The monotone envelope is used before standard CRC.
+- **FINITE_GRID_CRC_NM**: a separate finite-grid non-monotone risk-control experiment using pseudo-random synthetic whole-schedule loss vectors, with calibration sizes of 1,200 and 50,000 schedules.
 
 The generated test outcomes are descriptive only. All data are synthetic, deterministic, and deliberately small. They are not estimates of DCT, DGT, or any operating terminal's risk.
+
+
+## Finite-grid non-monotone CRC comparator (November 2026)
+
+The second executable, `non-monotone-risk-audit`, implements Theorem 1 from Aldirawi, Li & Guo, *Conformal Risk Control under Non-Monotone Losses: Theory and Finite-Sample Guarantees*, arXiv:2604.01502v3 (11 November 2026):
+
+https://arxiv.org/abs/2604.01502
+
+This is an **arXiv preprint**, not a peer-reviewed SOTA result. It is nevertheless directly relevant to maritime recourse, where increasing a buffer or changing a recovery policy can reduce one failure mode while increasing another.
+
+For a finite candidate grid of size `m`, calibration size `n`, and bounded loss in `[0,B]`, the paper defines:
+
+`D(m,n) = B * sqrt(log(2m)/(2n)) + B/(2*sqrt(2n*log(2m)))`.
+
+For non-monotone loss vectors that are i.i.d. across complete schedules and a terminal candidate whose population expected loss is at most `alpha`, the unadjusted CRC selector has:
+
+`E[L_{n+1}(lambda_hat)] <= alpha + D(m,n)`.
+
+The adjusted selector uses `alpha' = alpha - D(m,n)`. If `alpha' > 0` **and** the terminal candidate's population expected loss is at most `alpha'`, then:
+
+`E[L_{n+1}(lambda_hat_adj)] <= alpha`.
+
+Important distinctions:
+
+- The guarantee is on **marginal expected loss**, not a high-probability bound conditional on the realized calibration set.
+- The schedule-loss vectors must be i.i.d. under the theorem; temporal drift and dependent schedules are stress tests, not covered guarantees.
+- The endpoint population-risk condition is an external assumption requiring structural evidence. A calibration-sample average does not prove it.
+- The correction grows with the candidate-grid resolution and shrinks with calibration sample size. If `D >= alpha`, the implementation emits `NO_POSITIVE_ADJUSTED_TARGET`, not a fabricated certificate.
+- Authority/consent remains a deterministic gate; no statistical guarantee can authorize an action.
+
+The deterministic receipt compares three finite-grid cases: 1,200 schedules at 20% target risk, 1,200 at 10%, and 50,000 at 10%. These counts are synthetic illustrations of the correction's effect, not DCT sample-size recommendations or operational risk estimates. The 1,200/10% arm is expected to show that the correction can consume the entire risk budget; the 50,000/10% arm tests whether a useful adjusted target returns at a larger calibration size.
+
+The original monotone CRC, CRC with a monotone envelope, and finite-grid CRC-NM are different methods with different theorem assumptions. They must be compared at matched loss definitions and clearly reported guarantee types; do not treat them as interchangeable.
 
 ## Important release preconditions
 
@@ -73,7 +107,7 @@ The future #7231 integration must establish all of the following before interpre
 - The loss is defined over **complete schedules**, not individual vessel rows.
 - Calibration schedules and the future schedule satisfy the exchangeability assumption, or a different method with a valid guarantee is used.
 - The frozen policy, evaluator, resource map, constraint catalogue, and loss contract have not changed after calibration.
-- The policy parameter is genuinely monotone for the declared loss, or the monotone upper envelope is used.
+- For standard CRC, the policy parameter must be genuinely monotone for the declared loss, or a justified monotone upper envelope must be used. The separate finite-grid non-monotone method does not require monotonicity, but instead pays its explicit sample-size/grid-resolution correction and requires the stated population-risk condition for the terminal policy.
 - A maximum-parameter policy with loss at most `α` exists **by construction**. A fail-closed abstention is not automatically a low-service-loss policy; if abstention counts as failure, its loss must be included.
 - Hard authority/consent checks remain deterministic gates. A statistical risk budget cannot authorize an action.
 - The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions.
@@ -106,6 +140,7 @@ cargo clippy --locked --manifest-path research/maritime-decision-risk-control/Ca
 cargo check --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --all-targets
 cargo test --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --all-targets
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin decision-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin non-monotone-risk-audit
 ```
 
 ## Claim ceiling
