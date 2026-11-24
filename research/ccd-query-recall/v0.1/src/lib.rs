@@ -569,10 +569,48 @@ impl QueryStratumIdentity {
     }
 }
 
+/// Nearest-rank p50/p95/p99 of per-query narrowphase durations.
+/// Durations are integer nanoseconds; empty populations remain unavailable.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct QueryTimingSummary {
+    pub sample_count: u64,
+    pub p50_ns: Option<u64>,
+    pub p95_ns: Option<u64>,
+    pub p99_ns: Option<u64>,
+}
+
+impl QueryTimingSummary {
+    #[must_use]
+    pub fn complete_for(&self, expected_samples: u64) -> bool {
+        self.sample_count == expected_samples
+            && (expected_samples == 0
+                || (self.p50_ns.is_some() && self.p95_ns.is_some() && self.p99_ns.is_some()))
+    }
+}
+
+fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
+    if durations_ns.is_empty() {
+        return QueryTimingSummary::default();
+    }
+    durations_ns.sort_unstable();
+    let nearest_rank = |percentile: u64| {
+        let rank = ((durations_ns.len() as u128 * u128::from(percentile)).div_ceil(100))
+            .max(1) as usize;
+        durations_ns[rank - 1]
+    };
+    QueryTimingSummary {
+        sample_count: durations_ns.len() as u64,
+        p50_ns: Some(nearest_rank(50)),
+        p95_ns: Some(nearest_rank(95)),
+        p99_ns: Some(nearest_rank(99)),
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryStratumScore {
     pub identity: QueryStratumIdentity,
     pub counts: QueryCounts,
+    pub timing: QueryTimingSummary,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -719,10 +757,12 @@ impl RunProfile {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryScore {
-    /// Exact motion and arithmetic stratum of this score.
+    /// Exact algorithm, dataset, configuration, motion and arithmetic profile.
     pub profile: RunProfile,
     /// Micro-aggregated counts over the full evaluated query population.
     pub counts: QueryCounts,
+    /// Per-query narrowphase latency across forwarded and fallback queries.
+    pub timing: QueryTimingSummary,
     /// Independently reported per dataset/scene/time-step/query-kind strata.
     pub strata: Vec<QueryStratumScore>,
 }
@@ -733,6 +773,9 @@ impl QueryScore {
         self.profile.is_explicit()
             && self.counts.oracle_positive_queries > 0
             && self.counts.correctness_qualified()
+            && self
+                .timing
+                .complete_for(self.counts.candidate_forwarded_queries)
     }
 
     #[must_use]
