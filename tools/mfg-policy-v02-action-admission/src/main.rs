@@ -780,13 +780,12 @@ mod tests {
         })
     }
 
-    fn sample_proposal() -> Value {
-        sample_proposal_for(&sample_frame())
-    }
-
     #[test]
     fn eligible_qualified_precedent_free_action_is_admitted_with_derived_durations() {
-        let receipt = evaluate(&sample_frame(), &sample_proposal()).unwrap();
+        let receipt = {
+            let frame = sample_frame();
+            evaluate(&frame, &sample_proposal_for(&frame)).unwrap()
+        };
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
         assert_eq!(receipt.setup_duration_ticks, Some(2));
@@ -826,7 +825,7 @@ mod tests {
             "occurred_at_epoch": 0,
             "observed_at_epoch": 0
         }]);
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(
             receipt.qualification_disposition.as_deref(),
@@ -839,7 +838,7 @@ mod tests {
         let mut frame = sample_frame();
         frame["static_case"]["resources"][0]["initial_qualifications"][0]["disposition"] =
             Value::from("BLOCKED");
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
         assert!(
             receipt
@@ -861,7 +860,7 @@ mod tests {
             "recovery_forecast_min_epochs": 1,
             "recovery_forecast_max_epochs": 2
         }]);
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
@@ -906,7 +905,7 @@ mod tests {
     fn uncompleted_predecessor_holds_a_dependent_start() {
         let mut frame = sample_frame();
         frame["static_case"]["jobs"][0]["operations"][0]["initial_status"] = Value::from("WAITING");
-        let mut proposal = sample_proposal();
+        let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["inspection_method_id"] = Value::Null;
         let receipt = evaluate(&frame, &proposal).unwrap();
@@ -922,7 +921,7 @@ mod tests {
     fn resource_failure_and_capacity_are_checked_independently() {
         let mut frame = sample_frame();
         frame["static_case"]["resources"][0]["capacity_units_by_epoch"][0] = Value::from(0_u64);
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
@@ -938,7 +937,7 @@ mod tests {
         operation["initial_status"] = Value::from("IN_PROCESS");
         operation["committed_resource_id"] = Value::from("RESOURCE-A");
         operation["remaining_processing_ticks"] = Value::from(3_u64);
-        let mut proposal = sample_proposal();
+        let mut proposal = sample_proposal_for(&frame);
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["inspection_method_id"] = Value::from("DIMENSIONAL");
         let receipt = evaluate(&frame, &proposal).unwrap();
@@ -953,7 +952,7 @@ mod tests {
             "source_event_id": "INSPECT-CAP-0", "station_id": "INSPECT-1",
             "available_capacity_units": 0, "occurred_at_epoch": 0, "observed_at_epoch": 0
         }]);
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
@@ -966,7 +965,7 @@ mod tests {
     fn missing_setup_transition_rejects() {
         let mut frame = sample_frame();
         frame["static_case"]["setup_transitions"] = json!([]);
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
         assert!(
             receipt
@@ -984,7 +983,7 @@ mod tests {
             .unwrap()
             .push(duplicate);
         assert_eq!(
-            evaluate(&frame, &sample_proposal()).unwrap_err(),
+            evaluate(&frame, &sample_proposal_for(&frame)).unwrap_err(),
             "operation_id_duplicate"
         );
     }
@@ -1000,7 +999,7 @@ mod tests {
                 "inspection_capacity_events": []
             }));
         assert_eq!(
-            evaluate(&frame, &sample_proposal()).unwrap_err(),
+            evaluate(&frame, &sample_proposal_for(&frame)).unwrap_err(),
             "observable_history_must_end_at_decision_epoch"
         );
     }
@@ -1008,7 +1007,7 @@ mod tests {
     #[test]
     fn proposal_from_another_frame_digest_is_rejected() {
         let frame = sample_frame();
-        let mut proposal = sample_proposal();
+        let mut proposal = sample_proposal_for(&frame);
         proposal["decision_frame_digest"] = Value::from("0".repeat(64));
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
@@ -1022,7 +1021,7 @@ mod tests {
     #[test]
     fn proposal_for_another_case_or_epoch_is_rejected() {
         let frame = sample_frame();
-        let mut proposal = sample_proposal();
+        let mut proposal = sample_proposal_for(&frame);
         proposal["case_id"] = Value::from("OTHER-CASE");
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
