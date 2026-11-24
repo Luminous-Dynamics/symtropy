@@ -22,9 +22,9 @@ Exactly one receipt is required for each:
 4. commitment journal reconciliation;
 5. PCC baseline/metrology.
 
-All receipts must match the exact offer, commitment epoch, site and PCC. The four resource/commitment gates must also match the exact asset and configuration. PCC metrology must bind the baseline and offered trajectory digests. The flexibility receipt must pin the exact network model and topology digests.
+All receipts must match the exact offer, commitment epoch, site and PCC. The mobility-flexibility and PCC-metrology receipts must also bind the exact PCC bus. The four resource/commitment gates must match the exact asset and configuration. PCC metrology must bind the baseline and offered trajectory digests. The flexibility receipt must pin the exact network model and topology digests. The reserve-recovery receipt must bind the next required recovery deadline and remain valid through that deadline.
 
-The adapter checks digest shape, uniqueness, identity and evidence validity intervals. It does not authenticate producers, verify signatures, or prove that a source generated the stated digest. A missing/mismatched/stale receipt is rejected; a failed receipt is rejected; an unknown receipt holds the offer without calling the DC screen.
+The adapter recomputes canonical network-model and topology-content digests, and checks receipt digest shape, uniqueness, identity and evidence validity intervals. It does not authenticate producers, verify signatures, or prove that a source generated the stated digest. A missing/mismatched/stale receipt is rejected; a failed receipt is rejected; an unknown receipt holds the offer without calling the DC screen.
 
 ## Run
 
