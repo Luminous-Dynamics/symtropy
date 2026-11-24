@@ -555,14 +555,23 @@ mod tests {
 
     #[test]
     fn analytic_probability_and_target_mass_uncertainty_are_decomposed_exactly() {
-        let result = aggregate_orbital_hybrid_leaf_portfolio(&portfolio(vec![leaf(
-            10,
-            ((1, 4), (1, 2)),
-            OrbitalLeafEvidence::Analytic {
-                conditional_probability: interval((1, 5), (2, 5)),
-                enclosure_digest: [30; 32],
-            },
-        )]))
+        let result = aggregate_orbital_hybrid_leaf_portfolio(&portfolio(vec![
+            leaf(
+                10,
+                ((1, 4), (1, 2)),
+                OrbitalLeafEvidence::Analytic {
+                    conditional_probability: interval((1, 5), (2, 5)),
+                    enclosure_digest: [30; 32],
+                },
+            ),
+            leaf(
+                11,
+                ((1, 2), (3, 4)),
+                OrbitalLeafEvidence::StructurallyEventFree {
+                    closure_digest: [31; 32],
+                },
+            ),
+        ]))
         .unwrap();
 
         assert_eq!(result.risk_probability_lower, rational(1, 20));
@@ -656,13 +665,22 @@ mod tests {
 
     #[test]
     fn unresolved_residual_mass_is_never_discarded() {
-        let result = aggregate_orbital_hybrid_leaf_portfolio(&portfolio(vec![leaf(
-            10,
-            ((1, 10), (1, 10)),
-            OrbitalLeafEvidence::Unresolved {
-                residual_mass_digest: [30; 32],
-            },
-        )]))
+        let result = aggregate_orbital_hybrid_leaf_portfolio(&portfolio(vec![
+            leaf(
+                10,
+                ((1, 10), (1, 10)),
+                OrbitalLeafEvidence::Unresolved {
+                    residual_mass_digest: [30; 32],
+                },
+            ),
+            leaf(
+                11,
+                ((9, 10), (9, 10)),
+                OrbitalLeafEvidence::StructurallyEventFree {
+                    closure_digest: [31; 32],
+                },
+            ),
+        ]))
         .unwrap();
 
         assert_eq!(result.risk_probability_lower, rational(0, 1));
