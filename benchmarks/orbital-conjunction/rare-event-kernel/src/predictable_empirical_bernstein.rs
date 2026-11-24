@@ -479,6 +479,9 @@ mod tests {
 
     const EVENT_PROBABILITY: f64 = 0.2;
     const DEFENSIVE_WEIGHT: f64 = 0.1;
+    const EVENT_ID: [u8; 32] = [1; 32];
+    const TARGET_ID: [u8; 32] = [2; 32];
+    const DEFENSIVE_ID: [u8; 32] = [3; 32];
 
     #[test]
     fn empty_prpl_eb_sequence_is_the_unit_interval() {
