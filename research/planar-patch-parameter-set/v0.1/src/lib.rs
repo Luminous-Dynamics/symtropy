@@ -823,17 +823,26 @@ mod tests {
     }
 
     #[test]
-    fn shape_unboundedness_is_reflected_in_overall_status() {
-        let problem = input(vec![
-            observation("u", "u-trial", [2.0, 0.0, 0.0], 0.95),
-            observation("v", "v-trial", [0.0, 0.5, 0.0], 0.95),
-            observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.95),
-            observation("mixed", "mixed-trial", [1.0, 0.0, 0.0], 0.95),
-        ]);
-        let report = compute_parameter_set(&problem, config()).expect("wide slabs");
-        if report.intervals.iter().any(|interval| interval.shape_scale_upper.is_none()) {
-            assert_eq!(report.status, ParameterSetStatus::FeasibleWithUnboundedAxes);
+    fn shape_upper_bounds_can_be_unbounded_even_for_excited_axes() {
+        let problem = input(vec![observation(
+            "mixed-u-v",
+            "mixed-trial",
+            [1.0, 1.0, 0.0],
+            0.05,
+        )]);
+        let report = compute_parameter_set(&problem, config()).expect("shape interval");
+        assert_eq!(report.status, ParameterSetStatus::FeasibleWithUnboundedAxes);
+        for axis in 0..2 {
+            assert!(report.intervals[axis].axis_was_excited);
+            assert!(report.intervals[axis].beta_upper.is_some());
+            assert!(report.intervals[axis].shape_scale_upper.is_none());
+            assert_eq!(
+                report.intervals[axis].identifiability,
+                AxisIdentifiability::ShapeUpperBoundUnbounded
+            );
         }
+        assert!(!report.intervals[2].axis_was_excited);
+        assert!(report.intervals[2].beta_upper.is_none());
     }
 
     #[test]
