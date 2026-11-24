@@ -202,6 +202,18 @@ Add the following to the v0.2 scorecard by shift axis and claim kind:
 - abstention rate and correctness of abstention on non-identifiable/out-of-scope cases;
 - calibration drift between in-domain, representation-only, semantic/mechanism and combined shifts.
 
+### Evaluator-owned shift strata
+
+Use `evaluate_transfer_calibration_by_stratum` to report separate proper scores and risk/coverage curves for predeclared evaluator-owned groups. Recommended strata include:
+- in-domain / source-like;
+- representation-only (identifier, ordering, serialization, modality format);
+- semantic/mechanism shift;
+- representation × semantic interaction;
+- structural, dynamics, simulation/bisimulation and mechanism-transfer claim type;
+- identifiable versus non-identifiable controls.
+
+The stratum ID is attached to the evaluator outcome, never to the learner-authored forecast. The helper validates the full cohort before grouping, so missing/duplicate samples cannot disappear during stratification. Do not publish only a pooled aggregate.
+
 These are reporting thresholds for experiments, not claims that the system has already achieved them. The confirmatory cohort must not be used to fit a calibration transform, choose thresholds or tune bins.
 
 ## 5. Scorecard
