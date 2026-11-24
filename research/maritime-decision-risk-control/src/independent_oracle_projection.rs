@@ -624,16 +624,17 @@ fn validate_policy_projection(
                     policy_id: policy_id.to_owned(),
                 })?;
             validate_digest(digest, "authority_record_sha256")?;
-            let authority_record_matches_source = outcome
-                .authority
-                .source_evidence_ids
-                .iter()
-                .any(|source_id| {
-                    sources.get(source_id.as_str()).is_some_and(|source| {
-                        source.kind == SourceEvidenceKind::AuthorityRecord
-                            && source.source_sha256 == digest
-                    })
-                });
+            let authority_record_matches_source =
+                outcome
+                    .authority
+                    .source_evidence_ids
+                    .iter()
+                    .any(|source_id| {
+                        sources.get(source_id.as_str()).is_some_and(|source| {
+                            source.kind == SourceEvidenceKind::AuthorityRecord
+                                && source.source_sha256 == digest
+                        })
+                    });
             if !authority_kinds.contains(&SourceEvidenceKind::AuthorityRecord) {
                 return Err(OracleProjectionError::AuthorityEvidenceKindMissing {
                     episode_id: episode_id.to_owned(),
