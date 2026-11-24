@@ -40,15 +40,24 @@ The report preserves:
 - each axis's original weighted column norm and final residual after projection onto the full fitted basis;
 - dimensionless inverse-squared scales and physical shape scales when identified;
 - maximum absolute and weighted RMS normalized-boundary residual;
+- separate held-out maximum-dissipation directional residuals and observed-power violations;
 - explicit Unidentifiable, IdentifiedWithinResidualTolerance or IdentifiedPoorBoundaryFit status.
 
 A rank-deficient experiment returns no shape point estimates. The algorithm does not add Tikhonov regularization to manufacture values for unexcited axes.
 
 ## What this does not estimate
 
-This v0.1 fit uses boundary/sliding observations only. It does not yet fit the maximum-dissipation direction law, infer unknown mu separately from normal-load calibration, infer correlated sensor covariance, or model pressure/contact evolution. Those require separately identified nuisance parameters and a richer likelihood.
+## Held-out maximum-dissipation validation
 
-Zero-slip sticking does not uniquely choose a boundary wrench and must not be treated as a labelled boundary observation.
+The same crate also evaluates a supplied calibrated shape vector against held-out sliding observations. For axes a = [c e_u, c e_v, c e_n] and slip v = [v_u, v_v, omega_n], it predicts:
+
+    w_i = -(a_i^2 * v_i) / ||diag(a) v||
+
+It reports per-observation predicted wrench, measured/predicted power and dimensionless normalized wrench error, plus weighted RMS and maximum error. Positive measured power beyond its declared tolerance is counted separately and makes the validation inconsistent.
+
+Zero-slip observations are preserved as ZERO_SLIP_STICKING_SET_NOT_DIRECTIONAL and excluded from directional scoring. If every observation has zero slip, the status is NO_INFORMATIVE_SLIDING_OBSERVATIONS, never a zero-error pass. The receipt binds a calibration-parameter digest and held-out split digest; the validation function does not refit the parameters.
+
+This is an independent local-law check, not a joint estimator. The v0.1 fitter still identifies shape parameters from boundary observations only; it does not infer unknown mu separately from normal-load calibration, correlated sensor covariance or evolving pressure/contact dynamics.
 
 ## Run
 
@@ -64,7 +73,8 @@ The standalone crate is explicitly qualified by the existing three-platform repo
 - zero point estimates for rank-deficient trials;
 - full-rank recovery on independently excited tangential-u, tangential-v and torsional boundary fixtures;
 - physical torsional scale invariant to the chosen numerical characteristic length;
-- held-out boundary residual coverage reported separately from training fit;
+- held-out boundary and maximum-dissipation direction residual coverage reported separately from training fit;
+- zero-slip sticking samples never enter the directional score;
 - no calibration claim without specimen, rig, frame and observation-profile identities;
 - robust/Bayesian parameter intervals and maximum-dissipation direction fitting are future extensions.
 
