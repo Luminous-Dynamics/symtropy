@@ -118,7 +118,7 @@ An outcome that is impossible under every live hypothesis is represented with no
 
 ## Required ablations and extensions
 
-The first implementation is an exact one-step known-answer oracle. The next research layer should compare:
+The first implementation is an exact one-step known-answer oracle. Its tests cover decision-irrelevant versus decision-relevant information, exact EVSI, cost dominance, invalid normalization, incomplete loss tables, impossible outcomes, duplicate IDs/pairs and unknown or out-of-range references. The machine-readable fixture has the same priors, losses and likelihoods as the Rust test. The next research layer should compare:
 1. entropy / mutual-information greedy;
 2. hypothesis-disagreement variance from Symthaea `experiment_selection.rs`;
 3. hierarchical model/parameter/state information gain where priors and likelihoods are admitted;
