@@ -175,6 +175,63 @@ Coverage without sharpness is insufficient. Overly wide intervals must not be re
 - end-to-end cost including image preprocessing, feature extraction, model fitting, uncertainty calibration, fallback, I/O and receipt generation;
 - quality-versus-compute Pareto frontiers at matched hardware and output semantics.
 
+## 7.1 Periodic-flow acquisition: phase coverage × independent replication
+
+Periodic and quasi-periodic flows need an acquisition-design scoreboard that does not collapse temporal sampling to one percentage.
+
+Ju (2026), using a synthetic pulsed impinging jet with 160 forcing cycles, identifies a consequential interaction between phase diversity and per-phase replication (DOI: 10.1016/j.aitf.2026.100034). Its reported configurations include:
+
+| Sampling | Distinct forcing phases | Samples per phase | SVGP-KAN/LSE interpolation L2 |
+|---|---:|---:|---:|
+| 0.50%, non-coprime | 1 | 10 | 0.089 |
+| 0.55%, coprime | 11 | 1 | 0.237 |
+| 1.0%, non-coprime | 1 | 20 | 0.068 |
+| 8.1%, coprime | 81 | 2 | 0.047 |
+| 10.1%, coprime | 101 | 2 | source reports best regime; reproduce exact table/config before use |
+
+The publication reports that 0.55% coprime sampling with 11 distinct phases and only one observation per phase performs substantially worse than 1.0% non-coprime sampling with 20 repetitions at one phase. At 8.1%, 81 phases with two observations per phase performs substantially better. This does not mean phase diversity is harmful; it means phase diversity without sufficient replication can be unstable. The paper identifies two samples per phase as a useful threshold **for its tested synthetic impinging-jet configuration**, not a universal fluid law or general guarantee.
+
+### Design variables and diagnostics
+
+For predeclared forcing period and phase origin, convert each measurement timestamp to φ ∈ [0, 1). Partition the cycle into fixed phase bins before candidate evaluation. Report at least:
+
+- nominal sample fraction and total snapshots;
+- occupied phase bins and phase coverage fraction;
+- occupancy histogram, singleton-bin fraction and empty-bin fraction;
+- minimum and median **independent-cycle** replication per occupied phase bin;
+- maximum cyclic phase gap;
+- phase-occupancy entropy (normalised by log of total bins);
+- number of independent cycles/session clusters;
+- phase-estimation error and clock/forcing uncertainty when phase is inferred rather than supplied.
+
+Multiple frames from one forcing cycle do not automatically count as independent replication. Dependence-cluster IDs must be retained; use distinct cycles/acquisition clusters for independent-replication counts. Evaluate phase coverage separately within model-fit, model-selection, calibration and final-test roles so no cycle crosses partitions.
+
+### Matched design tournament
+
+At a fixed total acquisition and compute budget compare:
+1. uniform phase-locked sampling;
+2. random phase sampling;
+3. coprime / phase-diverse sampling;
+4. non-coprime / repeated-phase sampling;
+5. stratified phase coverage with a minimum independent-cycle repeat count;
+6. adaptive phase selection driven by a frozen predictor's expected reduction in downstream functional risk.
+
+Do not let a policy inspect future reference fields when choosing a phase or acquisition time. Known forcing phase and unknown/estimated phase are different information-privilege tracks. In the unknown-phase track, phase estimation must be fitted using training/selection data only and its error included in the budget and uncertainty report.
+
+### Reconstruction and uncertainty metrics
+
+Report observed-time and between-observation-time errors separately, plus worst-phase and phase-bin stratified error. For the declared estimand, include field/functional relative error, structure preservation, pointwise and simultaneous whole-field uncertainty coverage, sharpness, phase-wise calibration, and generalization gap (interpolation error minus observed-time error). A model cannot claim success by fitting observed snapshots while failing between them.
+
+### Initial prospective controls
+
+- Reproduce the paper's seven sampling schedules and its low/high-noise conditions after obtaining its source code/data; report phase bins, replication and interpolation-time error.
+- Include an adversarial one-sample-per-phase coprime schedule and repeated-phase non-coprime schedule at matched total snapshots.
+- Include exact phase-clock offsets, jitter, drift and forcing-frequency mismatch; invalid phase metadata must produce abstention or a separate estimated-phase track.
+- Use two independent cycles per occupied bin as a first **candidate design constraint** for the paper-reproduction lane, not an acceptance rule for other flows.
+- Search the Pareto frontier between phase coverage, independent replication, acquisition count and functional uncertainty instead of optimising the count of unique phases alone.
+
+**Claim boundary:** these source results are synthetic periodic impinging-jet evidence. They do not establish an EHD threshold, and no phase-known reconstruction result may be promoted to a physical EHD conclusion without matched acquisition and independent validation.
+
 ## 8. Dataset admission register
 
 Dataset rights, version and scientific role are separate admission gates.
