@@ -2584,6 +2584,19 @@ mod tests {
         );
         assert_eq!(injector.dispatch_calls, 1);
 
+        injector.lookup = DispatchLedgerResult::NoDispatchProven;
+        assert_eq!(
+            reconcile_fault_dispatch(&mut registry, &mut injector, &request),
+            ReconciliationDecision::NoDispatchProven
+        );
+        assert_eq!(
+            dispatch_fault_once(&mut registry, &mut injector, &request),
+            GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::NoDispatchProven
+            }
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+
         let mut altered = request.clone();
         altered.target_id = "other-target".into();
         altered.payload_sha256 = dispatch_request_fingerprint(&altered).unwrap();
