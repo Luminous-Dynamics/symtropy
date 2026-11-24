@@ -862,7 +862,6 @@ mod tests {
         dot / (left_norm * right_norm)
     }
 
-
     #[test]
     fn stationary_particle_pair_is_identical_with_identical_noise() {
         let width = 32;
@@ -1533,5 +1532,4 @@ mod tests {
             ) > 0.999_99
         );
     }
-
 }
