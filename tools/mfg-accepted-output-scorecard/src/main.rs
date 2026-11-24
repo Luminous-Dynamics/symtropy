@@ -14,6 +14,7 @@ const ANSWERS_SCHEMA_JSON: &str = include_str!(
     "../../../schemas/manufacturing/mfg_accepted_output_scorecard_known_answers_v0_1.schema.json"
 );
 const PPM_SCALE: u128 = 1_000_000;
+const SURVIVAL_SCALE: u128 = 1_000_000_000;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -88,6 +89,7 @@ struct CaseScore {
     unqualified_acceptance_claim_units: u64,
     time_to_first_accepted_output_ms: Option<u64>,
     time_to_recovery_target_ms: Option<u64>,
+    episode_followup_duration_ms: u64,
     accepted_demand_fill_ppm: u64,
     accepted_quality_yield_ppm: Option<u64>,
 }
@@ -105,6 +107,8 @@ struct FamilyScore {
     independently_rejected_units_total: u64,
     unresolved_units_total: u64,
     unqualified_acceptance_claim_units_total: u64,
+    first_accepted_output_survival: SurvivalSummary,
+    recovery_target_survival: SurvivalSummary,
     worst_time_to_first_accepted_output_ms: Option<u64>,
     worst_time_to_recovery_target_ms: Option<u64>,
 }
@@ -116,6 +120,8 @@ struct Report {
     evidence_class: String,
     case_count: usize,
     family_count: usize,
+    first_accepted_output_survival: SurvivalSummary,
+    recovery_target_survival: SurvivalSummary,
     cases: Vec<CaseScore>,
     families: Vec<FamilyScore>,
     physical_acceptance_verified: bool,
@@ -123,6 +129,33 @@ struct Report {
     machine_commands_issued: bool,
     resource_reservations_created: bool,
     claim_ceiling: String,
+}
+
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+struct SurvivalPoint {
+    time_ms: u64,
+    at_risk: usize,
+    events: usize,
+    right_censored: usize,
+    survival_probability_ppm: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+struct SurvivalSummary {
+    sample_count: usize,
+    events_observed: usize,
+    right_censored: usize,
+    analysis_horizon_ms: u64,
+    restricted_mean_time_to_event_ms: u64,
+    curve: Vec<SurvivalPoint>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SurvivalObservation {
+    observed_duration_ms: u64,
+    follow_up_horizon_ms: u64,
+    event_observed: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -343,6 +376,7 @@ fn evaluate_case(case: &EpisodeCase) -> Result<CaseScore, String> {
         unqualified_acceptance_claim_units,
         time_to_first_accepted_output_ms,
         time_to_recovery_target_ms,
+        episode_followup_duration_ms: case.horizon_end_ms - case.disturbance_at_ms,
         accepted_demand_fill_ppm,
         accepted_quality_yield_ppm,
     })
@@ -355,6 +389,153 @@ where
     scores
         .iter()
         .try_fold(0_u64, |sum, score| checked_add(sum, get(score), context))
+}
+
+
+fn survival_summary(observations: &[SurvivalObservation]) -> Result<SurvivalSummary, String> {
+    if observations.is_empty() {
+        return Err(fail("survival_cohort_empty"));
+    }
+
+    for observation in observations {
+        if observation.follow_up_horizon_ms == 0
+            || observation.observed_duration_ms > observation.follow_up_horizon_ms
+            || (!observation.event_observed
+                && observation.observed_duration_ms != observation.follow_up_horizon_ms)
+        {
+            return Err(fail("survival_observation_duration_invalid"));
+        }
+    }
+
+    // Use one common administrative horizon for the cohort. Episodes with longer
+    // follow-up are censored at this horizon so every curve has the same estimand.
+    let analysis_horizon_ms = observations
+        .iter()
+        .map(|observation| observation.follow_up_horizon_ms)
+        .min()
+        .ok_or_else(|| fail("survival_cohort_empty"))?;
+
+    let normalized: Vec<(u64, bool)> = observations
+        .iter()
+        .map(|observation| {
+            let duration_ms = observation
+                .observed_duration_ms
+                .min(analysis_horizon_ms);
+            let event_observed = observation.event_observed
+                && observation.observed_duration_ms <= analysis_horizon_ms;
+            (duration_ms, event_observed)
+        })
+        .collect();
+
+    let observation_times: BTreeSet<u64> = normalized
+        .iter()
+        .map(|(duration_ms, _)| *duration_ms)
+        .collect();
+
+    let mut survival = SURVIVAL_SCALE;
+    let mut previous_time_ms = 0_u64;
+    let mut area_scaled = 0_u128;
+    let mut curve = Vec::with_capacity(observation_times.len());
+
+    for time_ms in observation_times {
+        let interval_area = u128::from(time_ms - previous_time_ms)
+            .checked_mul(survival)
+            .ok_or_else(|| fail("survival_area_overflow"))?;
+        area_scaled = area_scaled
+            .checked_add(interval_area)
+            .ok_or_else(|| fail("survival_area_overflow"))?;
+
+        // The risk set is measured immediately before this timestamp. Events are
+        // applied before censoring at a tied timestamp, as in Kaplan-Meier estimation.
+        let at_risk = normalized
+            .iter()
+            .filter(|(duration_ms, _)| *duration_ms >= time_ms)
+            .count();
+        let events = normalized
+            .iter()
+            .filter(|(duration_ms, event)| *duration_ms == time_ms && *event)
+            .count();
+        let right_censored = normalized
+            .iter()
+            .filter(|(duration_ms, event)| *duration_ms == time_ms && !*event)
+            .count();
+
+        if at_risk == 0 || events > at_risk {
+            return Err(fail("survival_risk_set_invalid"));
+        }
+
+        if events > 0 {
+            let remaining = at_risk - events;
+            let numerator = survival
+                .checked_mul(remaining as u128)
+                .and_then(|value| value.checked_add((at_risk as u128) / 2))
+                .ok_or_else(|| fail("survival_probability_overflow"))?;
+            survival = numerator / (at_risk as u128);
+        }
+
+        curve.push(SurvivalPoint {
+            time_ms,
+            at_risk,
+            events,
+            right_censored,
+            survival_probability_ppm: ((survival * PPM_SCALE) / SURVIVAL_SCALE) as u64,
+        });
+        previous_time_ms = time_ms;
+    }
+
+    let remaining_area = u128::from(analysis_horizon_ms - previous_time_ms)
+        .checked_mul(survival)
+        .ok_or_else(|| fail("survival_area_overflow"))?;
+    area_scaled = area_scaled
+        .checked_add(remaining_area)
+        .ok_or_else(|| fail("survival_area_overflow"))?;
+
+    let events_observed = normalized
+        .iter()
+        .filter(|(_, event_observed)| *event_observed)
+        .count();
+    let right_censored = normalized.len() - events_observed;
+    let rounded_rmst = area_scaled
+        .checked_add(SURVIVAL_SCALE / 2)
+        .ok_or_else(|| fail("survival_rmst_rounding_overflow"))?
+        / SURVIVAL_SCALE;
+    let restricted_mean_time_to_event_ms =
+        u64::try_from(rounded_rmst).map_err(|_| fail("survival_rmst_out_of_range"))?;
+
+    Ok(SurvivalSummary {
+        sample_count: normalized.len(),
+        events_observed,
+        right_censored,
+        analysis_horizon_ms,
+        restricted_mean_time_to_event_ms,
+        curve,
+    })
+}
+
+fn summarize_survival_for_scores<F>(
+    scores: &[CaseScore],
+    event_time: F,
+) -> Result<SurvivalSummary, String>
+where
+    F: Fn(&CaseScore) -> Option<u64>,
+{
+    let observations = scores
+        .iter()
+        .map(|score| {
+            let event = event_time(score);
+            if event.is_some_and(|time| time > score.episode_followup_duration_ms) {
+                return Err(fail("survival_event_exceeds_episode_follow_up"));
+            }
+            let observed_duration_ms =
+                event.unwrap_or(score.episode_followup_duration_ms);
+            Ok(SurvivalObservation {
+                observed_duration_ms,
+                follow_up_horizon_ms: score.episode_followup_duration_ms,
+                event_observed: event.is_some(),
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    survival_summary(&observations)
 }
 
 fn evaluate(corpus: &Corpus) -> Result<Report, String> {
@@ -374,6 +555,14 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
 
     let mut families = Vec::with_capacity(family_groups.len());
     for (scenario_family_id, group) in family_groups {
+        let first_accepted_output_survival = summarize_survival_for_scores(
+            &group,
+            |score| score.time_to_first_accepted_output_ms,
+        )?;
+        let recovery_target_survival = summarize_survival_for_scores(
+            &group,
+            |score| score.time_to_recovery_target_ms,
+        )?;
         let cases_with_first = group
             .iter()
             .filter(|score| score.time_to_first_accepted_output_ms.is_some())
@@ -415,6 +604,8 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
                 |score| score.unqualified_acceptance_claim_units,
                 "family_unqualified",
             )?,
+            first_accepted_output_survival,
+            recovery_target_survival,
             worst_time_to_first_accepted_output_ms: group
                 .iter()
                 .filter_map(|score| score.time_to_first_accepted_output_ms)
@@ -426,12 +617,23 @@ fn evaluate(corpus: &Corpus) -> Result<Report, String> {
         });
     }
 
+    let first_accepted_output_survival = summarize_survival_for_scores(
+        &cases,
+        |score| score.time_to_first_accepted_output_ms,
+    )?;
+    let recovery_target_survival = summarize_survival_for_scores(
+        &cases,
+        |score| score.time_to_recovery_target_ms,
+    )?;
+
     Ok(Report {
         benchmark_id: corpus.benchmark_id.clone(),
-        evaluator_version: "0.1.0",
+        evaluator_version: "0.2.0",
         evidence_class: corpus.evidence_class.clone(),
         case_count: cases.len(),
         family_count: families.len(),
+        first_accepted_output_survival,
+        recovery_target_survival,
         cases,
         families,
         physical_acceptance_verified: false,
@@ -658,4 +860,76 @@ mod tests {
         assert_eq!(quality_family.cases_not_reaching_recovery_target, 1);
         assert_eq!(quality_family.worst_time_to_recovery_target_ms, None);
     }
+
+    #[test]
+    fn survival_curve_keeps_right_censored_episodes_in_the_risk_set() {
+        let summary = survival_summary(&[
+            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 300, event_observed: true },
+            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
+            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: true },
+        ]).expect("valid survival cohort");
+        assert_eq!((summary.sample_count, summary.events_observed, summary.right_censored), (3, 2, 1));
+        assert_eq!(summary.analysis_horizon_ms, 300);
+        assert_eq!(summary.restricted_mean_time_to_event_ms, 233);
+        assert_eq!(summary.curve.len(), 2);
+        assert_eq!(summary.curve[0].at_risk, 3);
+        assert_eq!(summary.curve[0].events, 1);
+        assert_eq!(summary.curve[0].survival_probability_ppm, 666_666);
+        assert_eq!(summary.curve[1].at_risk, 2);
+        assert_eq!(summary.curve[1].right_censored, 1);
+        assert_eq!(summary.curve[1].survival_probability_ppm, 333_333);
+    }
+
+    #[test]
+    fn no_recovery_by_horizon_contributes_full_restricted_mean_time() {
+        let summary = survival_summary(&[
+            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
+            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
+        ]).expect("fully censored cohort is valid");
+        assert_eq!(summary.events_observed, 0);
+        assert_eq!(summary.right_censored, 2);
+        assert_eq!(summary.restricted_mean_time_to_event_ms, 300);
+        assert!(summary.curve.iter().all(|point| point.survival_probability_ppm == 1_000_000));
+    }
+
+    #[test]
+    fn events_precede_censoring_at_tied_timestamps() {
+        let summary = survival_summary(&[
+            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 200, event_observed: true },
+            SurvivalObservation { observed_duration_ms: 200, follow_up_horizon_ms: 200, event_observed: false },
+            SurvivalObservation { observed_duration_ms: 100, follow_up_horizon_ms: 200, event_observed: false },
+        ]).expect("tied event and censoring cohort is valid");
+        assert_eq!(summary.curve[0].time_ms, 100);
+        assert_eq!(summary.curve[0].at_risk, 3);
+        assert_eq!(summary.curve[0].events, 1);
+        assert_eq!(summary.curve[0].right_censored, 1);
+        assert_eq!(summary.curve[0].survival_probability_ppm, 666_666);
+        assert_eq!(summary.restricted_mean_time_to_event_ms, 167);
+    }
+
+    #[test]
+    fn longer_follow_up_is_administratively_censored_at_common_horizon() {
+        let summary = survival_summary(&[
+            SurvivalObservation { observed_duration_ms: 50, follow_up_horizon_ms: 100, event_observed: true },
+            SurvivalObservation { observed_duration_ms: 250, follow_up_horizon_ms: 250, event_observed: true },
+        ]).expect("unequal follow-up cohort is valid");
+        assert_eq!(summary.analysis_horizon_ms, 100);
+        assert_eq!(summary.events_observed, 1);
+        assert_eq!(summary.right_censored, 1);
+        assert_eq!(summary.restricted_mean_time_to_event_ms, 75);
+    }
+
+    #[test]
+    fn survival_summary_is_invariant_to_observation_order() {
+        let observations = vec![
+            SurvivalObservation { observed_duration_ms: 80, follow_up_horizon_ms: 300, event_observed: true },
+            SurvivalObservation { observed_duration_ms: 300, follow_up_horizon_ms: 300, event_observed: false },
+            SurvivalObservation { observed_duration_ms: 180, follow_up_horizon_ms: 300, event_observed: true },
+        ];
+        let expected = survival_summary(&observations).unwrap();
+        let mut permuted = observations;
+        permuted.reverse();
+        assert_eq!(survival_summary(&permuted).unwrap(), expected);
+    }
+
 }
