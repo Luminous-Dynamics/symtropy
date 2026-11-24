@@ -61,6 +61,7 @@ pub struct CalibrationScope {
     pub certificate_sha256: String,
     pub check_receipt_sha256: Option<String>,
     pub component_id: String,
+    pub calibration_epoch_ns: i64,
     pub valid_from_ns: i64,
     pub valid_until_ns: i64,
     pub required_configuration: BTreeMap<String, String>,
@@ -113,6 +114,7 @@ pub struct ScopeResult {
     pub calibration_revision: String,
     pub certificate_sha256: String,
     pub check_receipt_sha256: Option<String>,
+    pub calibration_epoch_ns: i64,
     pub status: ValidityStatus,
     pub reason_codes: Vec<String>,
 }
@@ -223,6 +225,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
             || !valid_text(&scope.calibration_revision)
             || !valid_sha256(&scope.certificate_sha256)
             || !valid_text(&scope.component_id)
+            || scope.calibration_epoch_ns > scope.valid_from_ns
             || scope.valid_until_ns <= scope.valid_from_ns
             || !scope_ids.insert(scope.scope_id.clone())
         {
@@ -351,7 +354,13 @@ fn evaluate_scope(
                 continue;
             }
         };
-        if event_interval[1] <= acquisition[0] {
+        let calibration_epoch = i128::from(scope.calibration_epoch_ns);
+        if event_interval[1] <= calibration_epoch {
+            continue;
+        }
+        if event_interval[0] <= calibration_epoch {
+            add_reason(ValidityStatus::Indeterminate, "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH", &mut statuses, &mut reasons);
+        } else if event_interval[1] <= acquisition[0] {
             match event.impact {
                 EventImpact::Invalidates => add_reason(ValidityStatus::Invalidated, "CALIBRATION_INVALIDATED_BY_EVENT", &mut statuses, &mut reasons),
                 EventImpact::UnknownImpact => add_reason(ValidityStatus::Indeterminate, "EVENT_IMPACT_UNKNOWN", &mut statuses, &mut reasons),
@@ -369,6 +378,7 @@ fn evaluate_scope(
         calibration_revision: scope.calibration_revision.clone(),
         certificate_sha256: scope.certificate_sha256.clone(),
         check_receipt_sha256: scope.check_receipt_sha256.clone(),
+        calibration_epoch_ns: scope.calibration_epoch_ns,
         status,
         reason_codes: reasons.into_iter().collect(),
     }
@@ -466,6 +476,7 @@ mod tests {
             certificate_sha256: "a".repeat(64),
             check_receipt_sha256: Some("b".repeat(64)),
             component_id: "CAM-01".to_owned(),
+            calibration_epoch_ns: 100,
             valid_from_ns: 100,
             valid_until_ns: 1000,
             required_configuration: BTreeMap::from([
@@ -597,6 +608,37 @@ mod tests {
         value.components[0].configuration.remove("lens");
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
+    }
+
+    #[test]
+    fn event_definitely_before_calibration_epoch_does_not_invalidate() {
+        let mut value = case();
+        value.events.push(ChangeEvent {
+            event_id: "pre-calibration-maintenance".to_owned(),
+            event_receipt_sha256: "c".repeat(64),
+            effective_time_ns: 80,
+            time_uncertainty_ns: 1,
+            affected_scope_ids: vec!["camera-intrinsics".to_owned()],
+            impact: EventImpact::Invalidates,
+        });
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::ValidWithinScope);
+    }
+
+    #[test]
+    fn event_overlapping_calibration_epoch_is_indeterminate() {
+        let mut value = case();
+        value.events.push(ChangeEvent {
+            event_id: "epoch-boundary-event".to_owned(),
+            event_receipt_sha256: "c".repeat(64),
+            effective_time_ns: 100,
+            time_uncertainty_ns: 2,
+            affected_scope_ids: vec!["camera-intrinsics".to_owned()],
+            impact: EventImpact::Invalidates,
+        });
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Indeterminate);
+        assert!(result.reason_codes.contains(&"EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH".to_owned()));
     }
 
     #[test]
