@@ -926,27 +926,30 @@ mod tests {
         let summary = survival_summary(&[
             SurvivalObservation {
                 observed_duration_ms: 100,
-                follow_up_horizon_ms: 200,
+                follow_up_horizon_ms: 100,
                 event_observed: true,
+            },
+            SurvivalObservation {
+                observed_duration_ms: 100,
+                follow_up_horizon_ms: 100,
+                event_observed: false,
             },
             SurvivalObservation {
                 observed_duration_ms: 200,
                 follow_up_horizon_ms: 200,
-                event_observed: false,
-            },
-            SurvivalObservation {
-                observed_duration_ms: 100,
-                follow_up_horizon_ms: 200,
-                event_observed: false,
+                event_observed: true,
             },
         ])
         .expect("tied event and censoring cohort is valid");
+
+        assert_eq!(summary.analysis_horizon_ms, 100);
+        assert_eq!(summary.curve.len(), 1);
         assert_eq!(summary.curve[0].time_ms, 100);
         assert_eq!(summary.curve[0].at_risk, 3);
         assert_eq!(summary.curve[0].events, 1);
-        assert_eq!(summary.curve[0].right_censored, 1);
+        assert_eq!(summary.curve[0].right_censored, 2);
         assert_eq!(summary.curve[0].survival_probability_ppm, 666_666);
-        assert_eq!(summary.restricted_mean_time_to_event_ms, 167);
+        assert_eq!(summary.restricted_mean_time_to_event_ms, 100);
     }
 
     #[test]
