@@ -161,7 +161,61 @@
               ],
               "pattern": "^[a-fA-F0-9]{64}$"
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source": {
+                    "const": "transport_response"
+                  },
+                  "status": {
+                    "enum": [
+                      "response_accepted",
+                      "response_rejected"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "transport_response_artifact_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "observation_artifact_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "read_only_observation",
+                      "reconciliation"
+                    ]
+                  }
+                },
+                "required": [
+                  "source"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "transport_response_artifact_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         },
         {
           "type": "object",
@@ -343,7 +397,62 @@
               ],
               "pattern": "^[a-fA-F0-9]{64}$"
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source": {
+                    "const": "transport_response"
+                  },
+                  "status": {
+                    "enum": [
+                      "response_accepted",
+                      "response_rejected"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "transport_response_artifact_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "ledger_artifact_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source": {
+                    "const": "injector_ledger_lookup"
+                  }
+                },
+                "required": [
+                  "source"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "ledger_artifact_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "transport_response_artifact_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         }
       ]
     }
