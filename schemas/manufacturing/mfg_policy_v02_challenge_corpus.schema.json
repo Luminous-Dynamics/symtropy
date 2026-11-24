@@ -61,7 +61,7 @@
         "jobs": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/job"}},
         "resources": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/resource"}},
         "setup_transitions": {"type": "array", "minItems": 18, "items": {"$ref": "#/$defs/setupTransition"}},
-        "inspection_station": {"$ref": "#/$defs/inspectionStation"},
+        "inspection_station": {"$ref": "#/$defs/inspectionStation"}
       }
     },
     "job": {
