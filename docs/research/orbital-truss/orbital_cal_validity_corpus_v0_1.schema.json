@@ -71,6 +71,7 @@
         "valid_from_ns",
         "valid_until_ns",
         "required_configuration",
+        "required_conditions",
         "certificate_state",
         "check_required",
         "check_state",
@@ -146,6 +147,12 @@
         },
         "calibration_epoch_ns": {
           "type": "integer"
+        },
+        "required_conditions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConditionEnvelope"
+          }
         }
       }
     },
@@ -204,6 +211,7 @@
         "event_inventory_complete",
         "required_scope_ids",
         "components",
+        "actual_conditions",
         "scopes",
         "events",
         "expected_status"
@@ -263,6 +271,74 @@
             "REVOKED",
             "INVALID_INPUT"
           ]
+        },
+        "actual_conditions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConditionMeasurement"
+          }
+        }
+      }
+    },
+    "ConditionEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "minimum_q",
+        "maximum_q",
+        "maximum_age_ns"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_q": {
+          "type": "integer"
+        },
+        "maximum_q": {
+          "type": "integer"
+        },
+        "maximum_age_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ConditionMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "value_q",
+        "uncertainty_q",
+        "observed_time_ns",
+        "time_uncertainty_ns",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_q": {
+          "type": "integer"
+        },
+        "uncertainty_q": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_time_ns": {
+          "type": "integer"
+        },
+        "time_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
         }
       }
     }
