@@ -313,12 +313,12 @@ pub fn evaluate_transfer_calibration(
             let mut covered_samples = 0_usize;
             let mut errors = 0_usize;
             for (confidence, predicted, truth) in &decisions {
-                if let Some(predicted) = predicted {
-                    if confidence >= threshold {
-                        covered_samples += 1;
-                        if predicted != truth {
-                            errors += 1;
-                        }
+                if let Some(predicted) = predicted
+                    && confidence >= threshold
+                {
+                    covered_samples += 1;
+                    if predicted != truth {
+                        errors += 1;
                     }
                 }
             }
