@@ -1,3 +1,4 @@
+pub mod lipschitz;
 pub mod weighted_shift;
 
 pub mod non_monotone;
