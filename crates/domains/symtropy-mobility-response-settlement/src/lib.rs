@@ -721,6 +721,7 @@ fn validate_timelines(
         })
         .collect();
     let mut network_interval_index = 0_usize;
+    let mut sample_evidence_ids = BTreeSet::new();
     for (index, (sample, baseline_interval)) in samples.iter().zip(dispatch_intervals).enumerate() {
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
@@ -778,9 +779,11 @@ fn validate_timelines(
 
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
-        if !evidence_ids.insert(baseline_id.clone()) || !evidence_ids.insert(response_id.clone()) {
+        if !sample_evidence_ids.insert(baseline_id.clone())
+            || !sample_evidence_ids.insert(response_id.clone())
+        {
             return Err(BridgeError::DuplicateEvidence(
-                "baseline or response evidence reference is reused across intervals".to_owned(),
+                "grid-response sample reuses a baseline/response evidence reference".to_owned(),
             ));
         }
         check_identity(
