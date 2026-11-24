@@ -67,6 +67,7 @@ def validate_case(case):
                 or not require_text(scope["calibration_revision"])
                 or not valid_sha256(scope["certificate_sha256"])
                 or not require_text(scope["component_id"])
+                or scope["calibration_epoch_ns"] > scope["valid_from_ns"]
                 or scope["valid_until_ns"] <= scope["valid_from_ns"]
                 or sid in scope_ids):
             raise ValueError("CALIBRATION_SCOPE_INVALID")
@@ -159,7 +160,11 @@ def evaluate_scope(case, scope, acquisition):
         if event["impact"] == "NO_CALIBRATION_IMPACT":
             continue
         event_time = interval(event["effective_time_ns"], event["time_uncertainty_ns"])
-        if event_time[1] <= acquisition[0]:
+        if event_time[1] <= scope["calibration_epoch_ns"]:
+            continue
+        if event_time[0] <= scope["calibration_epoch_ns"]:
+            add("INDETERMINATE", "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH")
+        elif event_time[1] <= acquisition[0]:
             if event["impact"] == "INVALIDATES":
                 add("INVALIDATED", "CALIBRATION_INVALIDATED_BY_EVENT")
             elif event["impact"] == "UNKNOWN_IMPACT":
@@ -173,6 +178,7 @@ def evaluate_scope(case, scope, acquisition):
         "calibration_revision": scope["calibration_revision"],
         "certificate_sha256": scope["certificate_sha256"],
         "check_receipt_sha256": scope["check_receipt_sha256"],
+        "calibration_epoch_ns": scope["calibration_epoch_ns"],
         "status": choose_status(statuses),
         "reason_codes": sorted(reasons),
     }
