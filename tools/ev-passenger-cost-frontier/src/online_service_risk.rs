@@ -72,12 +72,12 @@ pub struct OnlineRiskObservation {
     pub forecast_issued_unix_ms: u64,
     pub target_start_unix_ms: u64,
     pub target_end_unix_ms: u64,
-    pub outcome_available_unix_ms: u64,
+    pub outcome_available_unix_ms: Option<u64>,
     pub predicted_lower: u64,
     pub predicted_upper: u64,
-    pub observed_value: u64,
+    pub observed_value: Option<u64>,
     pub forecast_evidence: EvidenceEnvelope,
-    pub outcome_evidence: EvidenceEnvelope,
+    pub outcome_evidence: Option<EvidenceEnvelope>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -125,7 +125,9 @@ pub struct OnlineRiskGroupReport {
     pub metric: OnlineForecastMetric,
     pub measurement_boundary: OnlineMeasurementBoundary,
     pub nominal_coverage_permille: u16,
-    pub observation_count_at_audit_cutoff: usize,
+    pub forecast_count: usize,
+    pub observed_outcome_count_at_audit_cutoff: usize,
+    pub pending_outcome_count_at_audit_cutoff: usize,
     pub interval_miss_count_at_audit_cutoff: usize,
     pub empirical_miscoverage_permille_at_audit_cutoff: u16,
     pub anytime_miscoverage_upper_bound_permille_at_audit_cutoff: Option<u16>,
@@ -143,7 +145,9 @@ pub struct OnlineServiceRiskReport {
     pub audit_cutoff_unix_ms: u64,
     pub alpha_permille: u16,
     pub maximum_miscoverage_permille: u16,
-    pub observation_count: usize,
+    pub forecast_count: usize,
+    pub observed_outcome_count: usize,
+    pub pending_outcome_count: usize,
     pub group_count: usize,
     pub groups_with_shift_alarm: usize,
     pub groups_with_risk_above_budget: usize,
@@ -279,7 +283,13 @@ fn forecast_evidence_valid(record: &OnlineRiskObservation) -> bool {
 }
 
 fn outcome_evidence_valid(record: &OnlineRiskObservation, audit_cutoff: u64) -> bool {
-    let evidence = &record.outcome_evidence;
+    let (Some(available), Some(_observed_value), Some(evidence)) = (
+        record.outcome_available_unix_ms,
+        record.observed_value,
+        record.outcome_evidence.as_ref(),
+    ) else {
+        return false;
+    };
     if !evidence_well_formed(evidence)
         || evidence.asset_id != record.asset_id
         || evidence.configuration_digest != record.asset_configuration_digest
@@ -293,7 +303,7 @@ fn outcome_evidence_valid(record: &OnlineRiskObservation, audit_cutoff: u64) -> 
             evidence.valid_until_unix_ms
         ),
         (Some(observed), Some(valid_from), Some(valid_until))
-            if observed == record.outcome_available_unix_ms
+            if observed == available
                 && observed >= record.target_end_unix_ms
                 && observed <= audit_cutoff
                 && valid_from <= record.target_end_unix_ms
@@ -317,8 +327,10 @@ fn group_key(record: &OnlineRiskObservation) -> GroupKey {
 }
 
 fn is_interval_miss(record: &OnlineRiskObservation) -> bool {
-    record.observed_value < record.predicted_lower
-        || record.observed_value > record.predicted_upper
+    let observed = record
+        .observed_value
+        .expect("only complete outcomes enter the risk queue");
+    observed < record.predicted_lower || observed > record.predicted_upper
 }
 
 fn miscoverage_upper_bound_permille(
@@ -405,15 +417,12 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
             || record.forecast_issued_unix_ms == 0
             || record.forecast_issued_unix_ms >= record.target_start_unix_ms
             || record.target_start_unix_ms >= record.target_end_unix_ms
-            || record.outcome_available_unix_ms < record.target_end_unix_ms
-            || record.outcome_available_unix_ms <= record.forecast_issued_unix_ms
-            || record.outcome_available_unix_ms > input.audit_cutoff_unix_ms
             || record.measurement_boundary != expected_boundary(record.metric)
             || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE)
                 .contains(&record.nominal_coverage_permille)
             || record.predicted_lower > record.predicted_upper
             || record.predicted_upper > MAX_VALUE
-            || record.observed_value > MAX_VALUE
+            || record.observed_value.is_some_and(|value| value > MAX_VALUE)
         {
             errors.push(format!("online_record_identity_or_time_invalid:{}", record.sample_id));
         }
@@ -423,10 +432,31 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
         if !forecast_evidence_valid(record) {
             errors.push(format!("online_forecast_evidence_invalid:{}", record.sample_id));
         }
-        if !outcome_evidence_valid(record, input.audit_cutoff_unix_ms) {
-            errors.push(format!("online_outcome_evidence_invalid:{}", record.sample_id));
+        let outcome_presence = (
+            record.outcome_available_unix_ms.is_some(),
+            record.observed_value.is_some(),
+            record.outcome_evidence.is_some(),
+        );
+        match outcome_presence {
+            (false, false, false) => {}
+            (true, true, true) => {
+                let available = record.outcome_available_unix_ms.expect("presence checked");
+                if available < record.target_end_unix_ms
+                    || available <= record.forecast_issued_unix_ms
+                    || available > input.audit_cutoff_unix_ms
+                    || !outcome_evidence_valid(record, input.audit_cutoff_unix_ms)
+                {
+                    errors.push(format!("online_outcome_evidence_invalid:{}", record.sample_id));
+                }
+            }
+            _ => errors.push(format!("online_outcome_fields_partial:{}", record.sample_id)),
         }
-        for evidence in [&record.forecast_evidence, &record.outcome_evidence] {
+
+        let mut record_evidence = vec![&record.forecast_evidence];
+        if let Some(outcome_evidence) = record.outcome_evidence.as_ref() {
+            record_evidence.push(outcome_evidence);
+        }
+        for evidence in record_evidence {
             if evidence.evidence_reference.trim().is_empty()
                 || !evidence_refs.insert(evidence.evidence_reference.as_str())
             {
@@ -493,6 +523,7 @@ pub fn evaluate_online_service_risk(
 
         let mut state = RiskState::new();
         let mut pending: BTreeMap<(u64, String), bool> = BTreeMap::new();
+        let mut pending_without_outcome = 0_usize;
         let mut assessments = Vec::with_capacity(records.len());
 
         for record in &records {
@@ -524,10 +555,15 @@ pub fn evaluate_online_service_risk(
                 drift_alarm_latched_before_forecast: state.alarm_latched,
                 status: status(state, input),
             });
-            pending.insert(
-                (record.outcome_available_unix_ms, record.sample_id.clone()),
-                is_interval_miss(record),
-            );
+            match record.outcome_available_unix_ms {
+                Some(available) => {
+                    pending.insert(
+                        (available, record.sample_id.clone()),
+                        is_interval_miss(record),
+                    );
+                }
+                None => pending_without_outcome += 1,
+            }
         }
 
         for miss in pending.values().copied() {
@@ -560,7 +596,9 @@ pub fn evaluate_online_service_risk(
             metric: key.metric,
             measurement_boundary: key.measurement_boundary,
             nominal_coverage_permille: key.nominal_coverage_permille,
-            observation_count_at_audit_cutoff: state.count,
+            forecast_count: records.len(),
+            observed_outcome_count_at_audit_cutoff: state.count,
+            pending_outcome_count_at_audit_cutoff: pending_without_outcome,
             interval_miss_count_at_audit_cutoff: state.misses,
             empirical_miscoverage_permille_at_audit_cutoff: empirical,
             anytime_miscoverage_upper_bound_permille_at_audit_cutoff: final_upper,
@@ -589,7 +627,9 @@ pub fn evaluate_online_service_risk(
         audit_cutoff_unix_ms: input.audit_cutoff_unix_ms,
         alpha_permille: input.alpha_permille,
         maximum_miscoverage_permille: input.maximum_miscoverage_permille,
-        observation_count: input.observations.len(),
+        forecast_count: input.observations.len(),
+        observed_outcome_count: groups.iter().map(|group| group.observed_outcome_count_at_audit_cutoff).sum(),
+        pending_outcome_count: groups.iter().map(|group| group.pending_outcome_count_at_audit_cutoff).sum(),
         group_count: groups.len(),
         groups_with_shift_alarm,
         groups_with_risk_above_budget,
@@ -653,12 +693,12 @@ mod tests {
             forecast_issued_unix_ms: issued,
             target_start_unix_ms: target_start,
             target_end_unix_ms: target_end,
-            outcome_available_unix_ms: available,
+            outcome_available_unix_ms: Some(available),
             predicted_lower: lower,
             predicted_upper: upper,
-            observed_value: observed,
+            observed_value: Some(observed),
             forecast_evidence: evidence("ESS-01", config, &format!("{id}-forecast"), issued - 10, issued - 20, target_end + 2_000),
-            outcome_evidence: evidence("ESS-01", config, &format!("{id}-outcome"), available, target_end, available + 100),
+            outcome_evidence: Some(evidence("ESS-01", config, &format!("{id}-outcome"), available, target_end, available + 100)),
         }
     }
 
@@ -689,7 +729,7 @@ mod tests {
         assert_eq!(assessments[0].prior_observation_count, 0);
         assert_eq!(assessments[1].prior_observation_count, 0);
         assert_eq!(assessments[2].prior_observation_count, 1);
-        assert_eq!(report.groups[0].observation_count_at_audit_cutoff, 3);
+        assert_eq!(report.groups[0].observed_outcome_count_at_audit_cutoff, 3);
         assert_eq!(report.groups[0].interval_miss_count_at_audit_cutoff, 2);
     }
 
@@ -704,6 +744,21 @@ mod tests {
         let assessments = &report.groups[0].assessments;
         assert_eq!(assessments[1].prior_observation_count, 0);
         assert_eq!(assessments[2].prior_observation_count, 1);
+    }
+
+    #[test]
+    fn forecast_without_outcome_remains_visible_as_pending() {
+        let mut pending = observation("pending", 1_000, 1_100, 1_500, 1_600, false, "cfg-1");
+        pending.outcome_available_unix_ms = None;
+        pending.observed_value = None;
+        pending.outcome_evidence = None;
+        let report = evaluate_online_service_risk(&input(vec![pending])).unwrap();
+        assert_eq!(report.forecast_count, 1);
+        assert_eq!(report.observed_outcome_count, 0);
+        assert_eq!(report.pending_outcome_count, 1);
+        assert_eq!(report.groups[0].forecast_count, 1);
+        assert_eq!(report.groups[0].observed_outcome_count_at_audit_cutoff, 0);
+        assert_eq!(report.groups[0].pending_outcome_count_at_audit_cutoff, 1);
     }
 
     #[test]
@@ -730,7 +785,7 @@ mod tests {
         ]))
         .unwrap();
         assert_eq!(report.group_count, 2);
-        assert!(report.groups.iter().all(|g| g.observation_count_at_audit_cutoff == 1));
+        assert!(report.groups.iter().all(|g| g.observed_outcome_count_at_audit_cutoff == 1));
         assert!(report.groups.iter().all(|g| g.final_status == PrequentialRiskStatus::InsufficientHistory));
     }
 
@@ -747,8 +802,8 @@ mod tests {
     #[test]
     fn rejects_outcome_available_before_target_end_or_at_forecast_time() {
         let mut bad = observation("bad", 1_000, 1_100, 1_500, 1_600, false, "cfg-1");
-        bad.outcome_available_unix_ms = 1_000;
-        bad.outcome_evidence.observed_at_unix_ms = Some(1_000);
+        bad.outcome_available_unix_ms = Some(1_000);
+        bad.outcome_evidence.as_mut().unwrap().observed_at_unix_ms = Some(1_000);
         assert!(evaluate_online_service_risk(&input(vec![bad])).is_err());
     }
 
@@ -763,16 +818,16 @@ mod tests {
     fn duplicate_evidence_reference_is_rejected() {
         let mut a = observation("a", 1_000, 1_100, 1_500, 1_600, false, "cfg-1");
         let mut b = observation("b", 1_700, 1_800, 2_000, 2_100, false, "cfg-1");
-        b.outcome_evidence.evidence_reference = a.forecast_evidence.evidence_reference.clone();
+        b.outcome_evidence.as_mut().unwrap().evidence_reference = a.forecast_evidence.evidence_reference.clone();
         assert!(evaluate_online_service_risk(&input(vec![a, b])).is_err());
     }
 
     #[test]
     fn interval_endpoints_are_covered() {
         let mut a = observation("a", 1_000, 1_100, 1_500, 1_600, false, "cfg-1");
-        a.observed_value = a.predicted_lower;
+        a.observed_value = Some(a.predicted_lower);
         let mut b = observation("b", 1_700, 1_800, 2_000, 2_100, false, "cfg-1");
-        b.observed_value = b.predicted_upper;
+        b.observed_value = Some(b.predicted_upper);
         let report = evaluate_online_service_risk(&input(vec![a, b])).unwrap();
         assert_eq!(report.groups[0].interval_miss_count_at_audit_cutoff, 0);
     }
