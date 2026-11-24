@@ -1,0 +1,296 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "GRID-CAUSAL-ITT-ESTIMATOR-001",
+  "design": {
+    "schema_version": "0.1.0",
+    "benchmark_id": "GRID-CAUSAL-DESIGN-AUDIT-001",
+    "experiment_id": "grid-flex-itt-pilot-v0-1",
+    "design_class": "cluster_randomized_parallel",
+    "primary_estimand": "intention_to_treat",
+    "service_product_id": "mobility-regulating-reserve-pilot",
+    "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+    "measurement_boundary_id": "site-pcc-import",
+    "protocol_reference": "https://github.com/Luminous-Dynamics/symtropy/issues/7347",
+    "pre_registration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "frozen_covariate_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "baseline_partition_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "interference_mapping_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "minimum_clusters_per_arm": 2,
+    "baseline_window": {
+      "start_unix_ms": 1000000,
+      "end_unix_ms": 2000000
+    },
+    "pretrend_windows": [
+      {
+        "start_unix_ms": 500000,
+        "end_unix_ms": 700000
+      },
+      {
+        "start_unix_ms": 700000,
+        "end_unix_ms": 900000
+      }
+    ],
+    "placebo_windows": [
+      {
+        "start_unix_ms": 2100000,
+        "end_unix_ms": 2200000
+      },
+      {
+        "start_unix_ms": 2200000,
+        "end_unix_ms": 2300000
+      }
+    ],
+    "dispatch_window": {
+      "start_unix_ms": 4000000,
+      "end_unix_ms": 5000000
+    },
+    "recovery_window": {
+      "start_unix_ms": 5000000,
+      "end_unix_ms": 7000000
+    },
+    "negative_control_outcome_ids": [
+      "unrelated_auxiliary_load_kwh",
+      "pre_event_queue_arrival_rate"
+    ],
+    "plan_frozen_at_unix_ms": 2500000,
+    "randomization": {
+      "algorithm": "sha256_rank_v1",
+      "seed_commitment_digest": "sha256:269d9009032f78e028848f7a8cbaaf5a4b9b1c05d95b0a8330d594ce0331d6cc",
+      "seed_reveal": "pre-registered-seed-2026-11-24-unique-92817",
+      "seed_commitment_recorded_at_unix_ms": 2000000,
+      "public_randomness_source_id": "public-beacon-mainnet-round-883104",
+      "public_randomness_value": "independent-public-beacon-value-2026-11-24-round-883104",
+      "public_randomness_digest": "sha256:99c643de6bafcf582750a6456a5e5f6bc1154f24af9ddd4b7538eb09666f29b0",
+      "randomness_published_at_unix_ms": 3000000,
+      "assignment_issued_at_unix_ms": 3500000
+    },
+    "strata": [
+      {
+        "stratum_id": "north",
+        "treated_cluster_count": 2,
+        "control_cluster_count": 2
+      },
+      {
+        "stratum_id": "south",
+        "treated_cluster_count": 2,
+        "control_cluster_count": 2
+      }
+    ],
+    "clusters": [
+      {
+        "cluster_id": "cluster-N1",
+        "stratum_id": "north",
+        "interference_domain_id": "feeder-N1-island",
+        "assigned_arm": "treatment",
+        "site_ids": [
+          "depot-N1"
+        ],
+        "asset_ids": [
+          "ess-N1"
+        ]
+      },
+      {
+        "cluster_id": "cluster-N2",
+        "stratum_id": "north",
+        "interference_domain_id": "feeder-N2-island",
+        "assigned_arm": "treatment",
+        "site_ids": [
+          "depot-N2"
+        ],
+        "asset_ids": [
+          "ess-N2"
+        ]
+      },
+      {
+        "cluster_id": "cluster-N3",
+        "stratum_id": "north",
+        "interference_domain_id": "feeder-N3-island",
+        "assigned_arm": "control",
+        "site_ids": [
+          "depot-N3"
+        ],
+        "asset_ids": [
+          "ess-N3"
+        ]
+      },
+      {
+        "cluster_id": "cluster-N4",
+        "stratum_id": "north",
+        "interference_domain_id": "feeder-N4-island",
+        "assigned_arm": "control",
+        "site_ids": [
+          "depot-N4"
+        ],
+        "asset_ids": [
+          "ess-N4"
+        ]
+      },
+      {
+        "cluster_id": "cluster-S1",
+        "stratum_id": "south",
+        "interference_domain_id": "feeder-S1-island",
+        "assigned_arm": "treatment",
+        "site_ids": [
+          "depot-S1"
+        ],
+        "asset_ids": [
+          "ess-S1"
+        ]
+      },
+      {
+        "cluster_id": "cluster-S2",
+        "stratum_id": "south",
+        "interference_domain_id": "feeder-S2-island",
+        "assigned_arm": "control",
+        "site_ids": [
+          "depot-S2"
+        ],
+        "asset_ids": [
+          "ess-S2"
+        ]
+      },
+      {
+        "cluster_id": "cluster-S3",
+        "stratum_id": "south",
+        "interference_domain_id": "feeder-S3-island",
+        "assigned_arm": "treatment",
+        "site_ids": [
+          "depot-S3"
+        ],
+        "asset_ids": [
+          "ess-S3"
+        ]
+      },
+      {
+        "cluster_id": "cluster-S4",
+        "stratum_id": "south",
+        "interference_domain_id": "feeder-S4-island",
+        "assigned_arm": "control",
+        "site_ids": [
+          "depot-S4"
+        ],
+        "asset_ids": [
+          "ess-S4"
+        ]
+      }
+    ],
+    "claim_ceiling": "Synthetic preregistration and assignment audit only; no causal effect or operational authority.",
+    "primary_outcome_unit": "kWh"
+  },
+  "outcomes": [
+    {
+      "cluster_id": "cluster-N1",
+      "reported_assignment": "treatment",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 10,
+      "received_treatment_fraction": 1,
+      "evidence_reference": "outcome-evidence-0",
+      "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "cluster_id": "cluster-N2",
+      "reported_assignment": "treatment",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 12,
+      "received_treatment_fraction": 1,
+      "evidence_reference": "outcome-evidence-1",
+      "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "cluster_id": "cluster-N3",
+      "reported_assignment": "control",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 1,
+      "received_treatment_fraction": 0,
+      "evidence_reference": "outcome-evidence-2",
+      "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "cluster_id": "cluster-N4",
+      "reported_assignment": "control",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 3,
+      "received_treatment_fraction": 0,
+      "evidence_reference": "outcome-evidence-3",
+      "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "cluster_id": "cluster-S1",
+      "reported_assignment": "treatment",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 11,
+      "received_treatment_fraction": 1,
+      "evidence_reference": "outcome-evidence-4",
+      "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "cluster_id": "cluster-S2",
+      "reported_assignment": "control",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 2,
+      "received_treatment_fraction": 0,
+      "evidence_reference": "outcome-evidence-5",
+      "evidence_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "cluster_id": "cluster-S3",
+      "reported_assignment": "treatment",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 13,
+      "received_treatment_fraction": 1,
+      "evidence_reference": "outcome-evidence-6",
+      "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "cluster_id": "cluster-S4",
+      "reported_assignment": "control",
+      "primary_outcome_id": "net_pcc_reduction_kwh_event_plus_recovery",
+      "primary_outcome_unit": "kWh",
+      "measurement_boundary_id": "site-pcc-import",
+      "outcome_window_start_unix_ms": 4000000,
+      "outcome_window_end_unix_ms": 7000000,
+      "outcome_observed_at_unix_ms": 7001000,
+      "outcome_value": 4,
+      "received_treatment_fraction": 0,
+      "evidence_reference": "outcome-evidence-7",
+      "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "permutation_budget": 10000,
+  "claim_ceiling": "Synthetic cluster-level ITT and randomization-inference fixture only."
+}
