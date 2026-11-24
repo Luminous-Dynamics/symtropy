@@ -239,8 +239,9 @@ fn expected_boundary(metric: OnlineForecastMetric) -> OnlineMeasurementBoundary 
     match metric {
         OnlineForecastMetric::MissionDurationSeconds => OnlineMeasurementBoundary::MissionClock,
         OnlineForecastMetric::PackTerminalEnergyWh => OnlineMeasurementBoundary::PackTerminal,
-        OnlineForecastMetric::ChargeRestorationSeconds
-        | OnlineForecastMetric::QueueWaitSeconds => OnlineMeasurementBoundary::ChargerServiceClock,
+        OnlineForecastMetric::ChargeRestorationSeconds | OnlineForecastMetric::QueueWaitSeconds => {
+            OnlineMeasurementBoundary::ChargerServiceClock
+        },
         OnlineForecastMetric::ChargerInputEnergyWh => OnlineMeasurementBoundary::ChargerInput,
         OnlineForecastMetric::SitePccPeakImportW => OnlineMeasurementBoundary::SitePccMeter,
     }
@@ -352,20 +353,13 @@ fn miscoverage_upper_bound_permille(
     Some(upper.clamp(0.0, 1_000.0) as u16)
 }
 
-fn status(
-    state: RiskState,
-    input: &OnlineServiceRiskInput,
-) -> PrequentialRiskStatus {
+fn status(state: RiskState, input: &OnlineServiceRiskInput) -> PrequentialRiskStatus {
     if state.count < usize::from(input.minimum_prior_observations) {
         PrequentialRiskStatus::InsufficientHistory
     } else if state.alarm_latched {
         PrequentialRiskStatus::DriftAlarmLatched
-    } else if miscoverage_upper_bound_permille(
-        state.misses,
-        state.count,
-        input.alpha_permille,
-    )
-    .is_some_and(|upper| upper > input.maximum_miscoverage_permille)
+    } else if miscoverage_upper_bound_permille(state.misses, state.count, input.alpha_permille)
+        .is_some_and(|upper| upper > input.maximum_miscoverage_permille)
     {
         PrequentialRiskStatus::HistoricalRiskAboveBudget
     } else {
@@ -424,13 +418,19 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
             || record.predicted_upper > MAX_VALUE
             || record.observed_value.is_some_and(|value| value > MAX_VALUE)
         {
-            errors.push(format!("online_record_identity_or_time_invalid:{}", record.sample_id));
+            errors.push(format!(
+                "online_record_identity_or_time_invalid:{}",
+                record.sample_id
+            ));
         }
         if !sample_ids.insert(record.sample_id.as_str()) {
             errors.push(format!("online_sample_id_duplicate:{}", record.sample_id));
         }
         if !forecast_evidence_valid(record) {
-            errors.push(format!("online_forecast_evidence_invalid:{}", record.sample_id));
+            errors.push(format!(
+                "online_forecast_evidence_invalid:{}",
+                record.sample_id
+            ));
         }
         let outcome_presence = (
             record.outcome_available_unix_ms.is_some(),
@@ -446,10 +446,16 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
                     || available > input.audit_cutoff_unix_ms
                     || !outcome_evidence_valid(record, input.audit_cutoff_unix_ms)
                 {
-                    errors.push(format!("online_outcome_evidence_invalid:{}", record.sample_id));
+                    errors.push(format!(
+                        "online_outcome_evidence_invalid:{}",
+                        record.sample_id
+                    ));
                 }
             }
-            _ => errors.push(format!("online_outcome_fields_partial:{}", record.sample_id)),
+            _ => errors.push(format!(
+                "online_outcome_fields_partial:{}",
+                record.sample_id
+            )),
         }
 
         let mut record_evidence = vec![&record.forecast_evidence];
@@ -495,8 +501,7 @@ pub fn evaluate_online_service_risk(
     input: &OnlineServiceRiskInput,
 ) -> Result<OnlineServiceRiskReport, Vec<String>> {
     let (all_evidence_source_grade, any_synthetic_evidence) = validate(input)?;
-    let input_digest =
-        canonical_input_digest(input).map_err(|error| vec![error])?;
+    let input_digest = canonical_input_digest(input).map_err(|error| vec![error])?;
 
     let mut grouped: BTreeMap<GroupKey, Vec<&OnlineRiskObservation>> = BTreeMap::new();
     for observation in &input.observations {
@@ -512,9 +517,10 @@ pub fn evaluate_online_service_risk(
             (a.forecast_issued_unix_ms, a.sample_id.as_str())
                 .cmp(&(b.forecast_issued_unix_ms, b.sample_id.as_str()))
         });
-        if records.windows(2).any(|window| {
-            window[0].forecast_issued_unix_ms == window[1].forecast_issued_unix_ms
-        }) {
+        if records
+            .windows(2)
+            .any(|window| window[0].forecast_issued_unix_ms == window[1].forecast_issued_unix_ms)
+        {
             return Err(vec![format!(
                 "online_forecast_issue_timestamp_ambiguous:{}:{}",
                 key.site_id, key.asset_id
@@ -652,7 +658,14 @@ pub fn evaluate_online_service_risk(
 mod tests {
     use super::*;
 
-    fn evidence(asset: &str, cfg: &str, reference: &str, observed: u64, from: u64, until: u64) -> EvidenceEnvelope {
+    fn evidence(
+        asset: &str,
+        cfg: &str,
+        reference: &str,
+        observed: u64,
+        from: u64,
+        until: u64,
+    ) -> EvidenceEnvelope {
         EvidenceEnvelope {
             asset_id: asset.to_owned(),
             configuration_digest: cfg.to_owned(),
@@ -697,8 +710,22 @@ mod tests {
             predicted_lower: lower,
             predicted_upper: upper,
             observed_value: Some(observed),
-            forecast_evidence: evidence("ESS-01", config, &format!("{id}-forecast"), issued - 10, issued - 20, target_end + 2_000),
-            outcome_evidence: Some(evidence("ESS-01", config, &format!("{id}-outcome"), available, target_end, available + 100)),
+            forecast_evidence: evidence(
+                "ESS-01",
+                config,
+                &format!("{id}-forecast"),
+                issued - 10,
+                issued - 20,
+                target_end + 2_000,
+            ),
+            outcome_evidence: Some(evidence(
+                "ESS-01",
+                config,
+                &format!("{id}-outcome"),
+                available,
+                target_end,
+                available + 100,
+            )),
         }
     }
 
@@ -785,8 +812,18 @@ mod tests {
         ]))
         .unwrap();
         assert_eq!(report.group_count, 2);
-        assert!(report.groups.iter().all(|g| g.observed_outcome_count_at_audit_cutoff == 1));
-        assert!(report.groups.iter().all(|g| g.final_status == PrequentialRiskStatus::InsufficientHistory));
+        assert!(
+            report
+                .groups
+                .iter()
+                .all(|g| g.observed_outcome_count_at_audit_cutoff == 1)
+        );
+        assert!(
+            report
+                .groups
+                .iter()
+                .all(|g| g.final_status == PrequentialRiskStatus::InsufficientHistory)
+        );
     }
 
     #[test]
@@ -818,7 +855,8 @@ mod tests {
     fn duplicate_evidence_reference_is_rejected() {
         let mut a = observation("a", 1_000, 1_100, 1_500, 1_600, false, "cfg-1");
         let mut b = observation("b", 1_700, 1_800, 2_000, 2_100, false, "cfg-1");
-        b.outcome_evidence.as_mut().unwrap().evidence_reference = a.forecast_evidence.evidence_reference.clone();
+        b.outcome_evidence.as_mut().unwrap().evidence_reference =
+            a.forecast_evidence.evidence_reference.clone();
         assert!(evaluate_online_service_risk(&input(vec![a, b])).is_err());
     }
 
@@ -910,9 +948,9 @@ mod tests {
 
     #[test]
     fn source_grade_flags_are_never_granted_by_synthetic_fixture() {
-        let report = evaluate_online_service_risk(&input(vec![
-            observation("a", 1_000, 1_100, 1_500, 1_600, false, "cfg-1"),
-        ]))
+        let report = evaluate_online_service_risk(&input(vec![observation(
+            "a", 1_000, 1_100, 1_500, 1_600, false, "cfg-1",
+        )]))
         .unwrap();
         assert!(report.any_synthetic_evidence);
         assert!(!report.all_evidence_source_grade);
