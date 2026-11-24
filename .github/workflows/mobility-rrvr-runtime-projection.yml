@@ -808,7 +808,7 @@ jobs:
             '{
               schema_version:"0.1",
               model:"GazeboResetLifecycle",
-              safe_model_check:{result:"passed",invariants:["TypeOK","AtMostOneResetRequest","NoFaultDispatchBeforeVerified","VerifiedRequiresObservedReset"],log_sha256:$safe_log_sha256},
+              safe_model_check:{result:"passed",invariants:["TypeOK","AtMostOneResetRequest","NoFaultDispatchBeforeVerified","VerifiedRequiresObservedReset","DispatchUsesResetPlan"],log_sha256:$safe_log_sha256},
               negative_controls:[
                 {mutation:"Enable UnsafeRetry from OutcomeUnresolved",expected:"AtMostOneResetRequest counterexample",result:"rejected",log_sha256:$unsafe_log_sha256},
                 {mutation:"Substitute the active plan after reset verification",expected:"DispatchUsesResetPlan counterexample",result:"rejected",log_sha256:$plan_log_sha256}
