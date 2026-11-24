@@ -654,10 +654,7 @@ mod tests {
 
     #[test]
     fn claim_from_different_source_or_event_class_is_not_admitted() {
-        let report = evaluate(&case(
-            Some(reference(&["e1"])),
-            vec![captured("e1")],
-        ));
+        let report = evaluate(&case(Some(reference(&["e1"])), vec![captured("e1")]));
         let mut claim = claim_for_event("e1");
         claim.source_id = "different-terminal-gate".to_owned();
         assert_eq!(
