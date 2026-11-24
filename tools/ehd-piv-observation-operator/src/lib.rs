@@ -1316,7 +1316,7 @@ mod tests {
         let noise = noise(width, height);
         let sensor = {
             let mut value = sensor(width, height);
-            value.optical_psf_sigma_px = 0.6;
+            value.optical_psf_sigma_px = 0.5;
             value
         };
         let seed = particle(12.0, 12.0);
