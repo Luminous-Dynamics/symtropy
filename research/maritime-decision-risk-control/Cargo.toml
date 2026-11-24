@@ -1,0 +1,36 @@
+[package]
+name = "maritime-decision-risk-control"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Synthetic-first conformal risk control harness for maritime schedule-level decision loss"
+
+[lib]
+name = "maritime_decision_risk_control"
+path = "src/lib.rs"
+
+[[bin]]
+name = "decision-risk-audit"
+path = "src/main.rs"
+
+[workspace]
+
+[[bin]]
+name = "non-monotone-risk-audit"
+path = "src/bin/non_monotone_risk_audit.rs"
+
+[[bin]]
+name = "weighted-shift-risk-audit"
+path = "src/bin/weighted_shift_risk_audit.rs"
+
+[[bin]]
+name = "lipschitz-risk-audit"
+path = "src/bin/lipschitz_risk_audit.rs"
+
+[[bin]]
+name = "bernstein-risk-audit"
+path = "src/bin/bernstein_risk_audit.rs"
+
+[[bin]]
+name = "simultaneous-hoeffding-risk-audit"
+path = "src/bin/simultaneous_hoeffding_risk_audit.rs"
