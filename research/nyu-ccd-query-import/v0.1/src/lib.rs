@@ -92,11 +92,7 @@ pub struct Point3 {
 }
 
 impl Point3 {
-    pub fn new(
-        x: Rational,
-        y: Rational,
-        z: Rational,
-    ) -> Self {
+    pub fn new(x: Rational, y: Rational, z: Rational) -> Self {
         Self { x, y, z }
     }
 
@@ -176,10 +172,7 @@ impl BoxPair {
 /// Seven-column legacy files add a Boolean ground-truth label to every row;
 /// labels within each eight-row query must agree. Scalable-CCD six-column
 /// files attach their separate JSON Boolean file using attach_ground_truth.
-pub fn parse_queries_csv(
-    input: &str,
-    kind: QueryKind,
-) -> Result<Vec<CcdQuery>, ImportError> {
+pub fn parse_queries_csv(input: &str, kind: QueryKind) -> Result<Vec<CcdQuery>, ImportError> {
     let mut rows = Vec::new();
     let mut column_count = None;
 
@@ -239,10 +232,7 @@ pub fn parse_queries_csv(
 }
 
 /// Attach the per-query Boolean vector from the Scalable-CCD mma_bool JSON.
-pub fn attach_ground_truth(
-    queries: &mut [CcdQuery],
-    labels: &[bool],
-) -> Result<(), ImportError> {
+pub fn attach_ground_truth(queries: &mut [CcdQuery], labels: &[bool]) -> Result<(), ImportError> {
     if queries.len() != labels.len() {
         return Err(ImportError::GroundTruthCountMismatch);
     }
@@ -373,26 +363,23 @@ impl<'a> JsonCursor<'a> {
     fn read_ascii_token(&mut self) -> Result<&'a str, ImportError> {
         self.skip_whitespace();
         let start = self.index;
-        while self.bytes.get(self.index).is_some_and(|byte| {
-            byte.is_ascii_alphabetic() || byte.is_ascii_digit()
-        }) {
+        while self
+            .bytes
+            .get(self.index)
+            .is_some_and(|byte| byte.is_ascii_alphabetic() || byte.is_ascii_digit())
+        {
             self.index += 1;
         }
         if self.index == start {
             return Err(ImportError::InvalidJson);
         }
-        std::str::from_utf8(&self.bytes[start..self.index])
-            .map_err(|_| ImportError::InvalidJson)
+        std::str::from_utf8(&self.bytes[start..self.index]).map_err(|_| ImportError::InvalidJson)
     }
 
     fn read_u64(&mut self) -> Result<u64, ImportError> {
         self.skip_whitespace();
         let start = self.index;
-        while self
-            .bytes
-            .get(self.index)
-            .is_some_and(u8::is_ascii_digit)
-        {
+        while self.bytes.get(self.index).is_some_and(u8::is_ascii_digit) {
             self.index += 1;
         }
         if self.index == start {
@@ -400,7 +387,9 @@ impl<'a> JsonCursor<'a> {
         }
         let token = std::str::from_utf8(&self.bytes[start..self.index])
             .map_err(|_| ImportError::InvalidJson)?;
-        token.parse::<u64>().map_err(|_| ImportError::IntegerOverflow)
+        token
+            .parse::<u64>()
+            .map_err(|_| ImportError::IntegerOverflow)
     }
 
     fn finish(&mut self) -> Result<(), ImportError> {
@@ -493,10 +482,7 @@ mod tests {
 
     #[test]
     fn rejects_invalid_or_zero_denominators_without_numeric_coercion() {
-        assert_eq!(
-            Rational::new("1", "0"),
-            Err(ImportError::ZeroDenominator)
-        );
+        assert_eq!(Rational::new("1", "0"), Err(ImportError::ZeroDenominator));
         assert_eq!(
             Rational::new("1", "-2"),
             Err(ImportError::InvalidDenominator)
