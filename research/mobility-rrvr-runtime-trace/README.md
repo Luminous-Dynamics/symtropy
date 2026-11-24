@@ -226,3 +226,6 @@ The process-local dispatch guard retains the last observed outcome as well as th
 
 
 The dispatch idempotency key uses a versioned hash of a canonical, plan-verified event/run identity rather than delimiter-concatenated identifiers. The scenario/fault must be members of the integrity-verified plan; the payload commitment then binds the generated key to the target and exact fault request.
+
+
+The reset marker is bound to the exact compiled plan digest, not only to the simulator/world profile. A session qualified under one plan cannot be reused for another valid campaign on the same simulator. The session is non-cloneable and the raw injector dispatch wrapper is private; use the composed plan-bound dispatch API.
