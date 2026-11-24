@@ -230,8 +230,8 @@ fn maximum_cyclic_gap(bins: &[PhaseBinOccupancy], phase_bin_count: usize) -> f64
         return 1.0;
     }
     let mut maximum_gap = 0usize;
-    for index in 0..bins.len() {
-        let current = bins[index].phase_bin_index;
+    for (index, current_bin) in bins.iter().enumerate() {
+        let current = current_bin.phase_bin_index;
         let next = if index + 1 == bins.len() {
             bins[0].phase_bin_index + phase_bin_count
         } else {
@@ -336,17 +336,20 @@ mod tests {
             observation(0.102, "cycle-a"),
             observation(0.1, "cycle-b"),
         ];
-        let mut settings = PhaseDesignConfig {
+        let settings = PhaseDesignConfig {
             phase_bin_count: 10,
             minimum_occupied_phase_bins: 1,
-            minimum_independent_cycles_per_occupied_bin: 2,
+            minimum_independent_cycles_per_occupied_bin: 3,
             maximum_cyclic_phase_gap: 1.0,
         };
-        settings.maximum_cyclic_phase_gap = 1.0;
         let report = evaluate_phase_design(&observations, &settings).unwrap();
         assert_eq!(report.bins[1].observations, 4);
         assert_eq!(report.bins[1].independent_cycle_count, 2);
         assert_eq!(report.minimum_independent_cycles_per_occupied_bin, 2);
+        assert_eq!(report.under_replicated_phase_bins, 1);
+        assert!(report
+            .failures
+            .contains(&PhaseDesignFailure::InsufficientIndependentReplication));
     }
 
     #[test]
