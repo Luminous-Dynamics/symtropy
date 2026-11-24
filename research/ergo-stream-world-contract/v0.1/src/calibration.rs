@@ -1111,8 +1111,13 @@ mod tests {
     #[test]
     fn split_conformal_fails_closed_outside_the_admitted_evaluation_stratum() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
-        let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 100_000).unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7),
+            100_000,
+        )
+        .unwrap();
 
         let prediction = calibrator.predict(205, &conformal_identity(8), 950_000).unwrap();
 
