@@ -1366,25 +1366,42 @@ mod tests {
         })
     }
 
-    fn frame_epoch_one() -> Value {
+    fn frame_for_epoch(epoch: u64) -> Value {
         let mut frame = sample_frame();
-        frame["decision_epoch"] = Value::from(1);
-        frame["observable_history"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({
-                "epoch": 1,
+        let history = frame["observable_history"].as_array_mut().unwrap();
+        for next_epoch in 1..=epoch {
+            history.push(json!({
+                "epoch": next_epoch,
                 "resource_events": [],
                 "qualification_updates": [],
                 "inspection_capacity_events": []
             }));
+        }
+        frame["decision_epoch"] = Value::from(epoch);
         frame
     }
 
-    fn valid_snapshot_for_epoch_one(frame: &Value, operation_two_completed: bool) -> Value {
+    fn frame_epoch_one() -> Value {
+        frame_for_epoch(1)
+    }
+
+    fn frame_epoch_two() -> Value {
+        frame_for_epoch(2)
+    }
+
+    fn valid_snapshot_for_epoch(
+        frame: &Value,
+        epoch: u64,
+        operation_two_completed: bool,
+    ) -> Value {
         let frame_digest = digest_value(frame).unwrap();
         let history = frame["observable_history"].as_array().unwrap().clone();
         let history_digest = digest_value(&Value::Array(history)).unwrap();
+        let mut applied_transition_ids =
+            vec!["START-OP2-E0", "TICK-OP2-E0"];
+        if epoch > 1 {
+            applied_transition_ids.push("TICK-OP2-E1");
+        }
         let operation_two = if operation_two_completed {
             json!({
                 "operation_id": "OP-2",
@@ -1422,7 +1439,7 @@ mod tests {
             "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot",
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-01",
-            "decision_epoch": 1,
+            "decision_epoch": epoch,
             "previous_snapshot_digest": "a".repeat(64),
             "decision_frame_digest": frame_digest,
             "visible_history_digest": history_digest,
@@ -1446,10 +1463,10 @@ mod tests {
                 "capacity_units_remaining": 1
             },
             "event_cut": {
-                "decision_epoch": 1,
+                "decision_epoch": epoch,
                 "visible_source_event_ids": ["Q-CUT", "Q-FORM"]
             },
-            "applied_transition_ids": ["START-OP2-E0", "PROCESS-OP2-E0"],
+            "applied_transition_ids": applied_transition_ids,
             "snapshot_digest": "",
             "claim_ceiling": "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility."
         });
@@ -1716,7 +1733,7 @@ mod tests {
     #[test]
     fn valid_snapshot_allows_continuation_on_live_resource_commitment() {
         let frame = frame_epoch_one();
-        let snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        let snapshot = valid_snapshot_for_epoch(&frame, 1, false);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
@@ -1730,12 +1747,12 @@ mod tests {
 
     #[test]
     fn valid_snapshot_allows_new_start_after_live_lane_is_released() {
-        let frame = frame_epoch_one();
-        let snapshot = valid_snapshot_for_epoch_one(&frame, true);
+        let frame = frame_epoch_two();
+        let snapshot = valid_snapshot_for_epoch(&frame, 2, true);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-3");
         proposal["action_kind"] = Value::from("START");
-        proposal["decision_epoch"] = Value::from(1);
+        proposal["decision_epoch"] = Value::from(2);
         let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
@@ -1745,7 +1762,7 @@ mod tests {
     #[test]
     fn tampered_snapshot_digest_holds_later_epoch_action() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch_one(&frame, false);
+        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
         snapshot["snapshot_digest"] = Value::from("0".repeat(64));
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
