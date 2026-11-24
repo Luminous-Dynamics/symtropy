@@ -216,3 +216,14 @@ The new DCSA maturity adapter maps the standard classifier codes to distinct evi
 It does not promote ACT to an independent physical witness. The exact source record, canonical subject, standard version, event time/timezone, record time, publication and retrieval times all remain attached. The receipt fails closed on unknown classifiers, version drift, missing event time for ACT, unknown publication, or an as-of cutoff that predates publication/retrieval. Estimated/requested/planned future event times remain valid forecasts/plans and are not treated as events already realized.
 
 This is particularly important for ETA, pilot, berth and cargo milestones: “ACTUAL” is the publisher's maturity classification, not independent verification that an event physically occurred. The claim still requires separate capture completeness and physical/receiver evidence.
+
+
+### Cross-standard mapping and semantic loss
+
+DCSA and GS1 EPCIS/CBV are complementary standards, not a common vocabulary with one-to-one renames. The crosswalk contract requires source/target version, explicit field/value, reviewed rule identity and a declared mapping class:
+- **EXACT** mappings are reversible;
+- **CONTEXTUAL** and **LOSSY** mappings are explicitly irreversible and must explain what semantic information is lost or added.
+
+A hard negative control prevents DCSA `eventClassifierCode` values (EST/REQ/PLN/ACT maturity) from mapping directly to EPCIS `bizStep` or `disposition`. A reviewed DCSA event-type → CBV business-step crosswalk can be tested contextually, but it must not imply that source maturity proves a physical event or that the original source payload can be discarded. Every mapped receipt retains source record ID, event ID and raw payload digest.
+
+The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). Proposed acceptance: 100% deterministic field mapping for pinned rules; zero unreviewed mappings; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% original raw payload digest retention.
