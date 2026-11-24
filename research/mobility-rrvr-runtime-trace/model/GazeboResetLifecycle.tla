@@ -1,7 +1,7 @@
 -------------------------- MODULE GazeboResetLifecycle --------------------------
 EXTENDS Naturals, TLC
 
-CONSTANT AllowUnsafeRetry
+CONSTANTS AllowUnsafeRetry, AllowPlanSubstitution
 
 VARIABLES phase,
           resetRequests,
@@ -11,13 +11,19 @@ VARIABLES phase,
           initialState,
           observedEpoch,
           observedInitial,
-          faultDispatches
+          faultDispatches,
+          activePlan,
+          resetPlan,
+          dispatchedPlan
 
 vars == <<phase, resetRequests, resetApplied, initialEpoch, worldEpoch,
-          initialState, observedEpoch, observedInitial, faultDispatches>>
+          initialState, observedEpoch, observedInitial, faultDispatches,
+          activePlan, resetPlan, dispatchedPlan>>
 
 Phases == {"NotAttempted", "DispatchStarted", "AwaitingVerification",
            "OutcomeUnresolved", "Verified"}
+
+PlanIds == {"plan-a", "plan-b"}
 
 Init ==
     /\ phase = "NotAttempted"
@@ -29,13 +35,18 @@ Init ==
     /\ observedEpoch = -1
     /\ observedInitial = FALSE
     /\ faultDispatches = 0
+    /\ activePlan = "plan-a"
+    /\ resetPlan = "none"
+    /\ dispatchedPlan = "none"
 
 BeginReset ==
     /\ phase = "NotAttempted"
     /\ resetRequests' = resetRequests + 1
     /\ phase' = "DispatchStarted"
+    /\ resetPlan' = activePlan
     /\ UNCHANGED <<resetApplied, initialEpoch, worldEpoch, initialState,
-                   observedEpoch, observedInitial, faultDispatches>>
+                   observedEpoch, observedInitial, faultDispatches,
+                   activePlan, dispatchedPlan>>
 
 ResetApplies ==
     /\ phase \in {"DispatchStarted", "OutcomeUnresolved"}
@@ -44,42 +55,45 @@ ResetApplies ==
     /\ worldEpoch' = worldEpoch + 1
     /\ initialState' = TRUE
     /\ UNCHANGED <<phase, resetRequests, initialEpoch, observedEpoch,
-                   observedInitial, faultDispatches>>
+                   observedInitial, faultDispatches, activePlan, resetPlan,
+                   dispatchedPlan>>
 
 AcceptResetResponse ==
     /\ phase = "DispatchStarted"
     /\ resetApplied
     /\ phase' = "AwaitingVerification"
     /\ UNCHANGED <<resetRequests, resetApplied, initialEpoch, worldEpoch,
-                   initialState, observedEpoch, observedInitial, faultDispatches>>
+                   initialState, observedEpoch, observedInitial, faultDispatches,
+                   activePlan, resetPlan, dispatchedPlan>>
 
 LoseResetResponse ==
     /\ phase = "DispatchStarted"
     /\ phase' = "OutcomeUnresolved"
     /\ UNCHANGED <<resetRequests, resetApplied, initialEpoch, worldEpoch,
-                   initialState, observedEpoch, observedInitial, faultDispatches>>
+                   initialState, observedEpoch, observedInitial, faultDispatches,
+                   activePlan, resetPlan, dispatchedPlan>>
 
 ObserveReset ==
     /\ phase = "AwaitingVerification"
     /\ observedEpoch' = worldEpoch
     /\ observedInitial' = initialState
     /\ IF resetApplied /\ worldEpoch > initialEpoch /\ initialState
-          /\ observedEpoch' = worldEpoch /\ observedInitial' = TRUE
        THEN phase' = "Verified"
        ELSE phase' = "OutcomeUnresolved"
     /\ UNCHANGED <<resetRequests, resetApplied, initialEpoch, worldEpoch,
-                   initialState, faultDispatches>>
+                   initialState, faultDispatches, activePlan, resetPlan,
+                   dispatchedPlan>>
 
 ReconcileReset ==
     /\ phase = "OutcomeUnresolved"
     /\ observedEpoch' = worldEpoch
     /\ observedInitial' = initialState
     /\ IF resetApplied /\ worldEpoch > initialEpoch /\ initialState
-          /\ observedEpoch' = worldEpoch /\ observedInitial' = TRUE
        THEN phase' = "Verified"
        ELSE phase' = "OutcomeUnresolved"
     /\ UNCHANGED <<resetRequests, resetApplied, initialEpoch, worldEpoch,
-                   initialState, faultDispatches>>
+                   initialState, faultDispatches, activePlan, resetPlan,
+                   dispatchedPlan>>
 
 UnsafeRetry ==
     /\ AllowUnsafeRetry
@@ -88,14 +102,27 @@ UnsafeRetry ==
     /\ resetRequests' = 2
     /\ phase' = "DispatchStarted"
     /\ UNCHANGED <<resetApplied, initialEpoch, worldEpoch, initialState,
-                   observedEpoch, observedInitial, faultDispatches>>
+                   observedEpoch, observedInitial, faultDispatches,
+                   activePlan, resetPlan, dispatchedPlan>>
+
+UnsafePlanSubstitution ==
+    /\ AllowPlanSubstitution
+    /\ phase = "Verified"
+    /\ faultDispatches = 0
+    /\ activePlan = "plan-a"
+    /\ activePlan' = "plan-b"
+    /\ UNCHANGED <<phase, resetRequests, resetApplied, initialEpoch,
+                   worldEpoch, initialState, observedEpoch, observedInitial,
+                   faultDispatches, resetPlan, dispatchedPlan>>
 
 FaultDispatch ==
     /\ phase = "Verified"
     /\ faultDispatches = 0
     /\ faultDispatches' = 1
+    /\ dispatchedPlan' = activePlan
     /\ UNCHANGED <<phase, resetRequests, resetApplied, initialEpoch,
-                   worldEpoch, initialState, observedEpoch, observedInitial>>
+                   worldEpoch, initialState, observedEpoch, observedInitial,
+                   activePlan, resetPlan>>
 
 Next ==
     \/ BeginReset
@@ -105,6 +132,7 @@ Next ==
     \/ ObserveReset
     \/ ReconcileReset
     \/ UnsafeRetry
+    \/ UnsafePlanSubstitution
     \/ FaultDispatch
 
 Spec == Init /\ [][Next]_vars
@@ -119,6 +147,9 @@ TypeOK ==
     /\ observedEpoch \in {-1} \cup Nat
     /\ observedInitial \in BOOLEAN
     /\ faultDispatches \in 0..1
+    /\ activePlan \in PlanIds
+    /\ resetPlan \in {"none"} \cup PlanIds
+    /\ dispatchedPlan \in {"none"} \cup PlanIds
 
 AtMostOneResetRequest ==
     resetRequests <= 1
@@ -134,5 +165,8 @@ VerifiedRequiresObservedReset ==
     /\ initialState
     /\ observedEpoch = worldEpoch
     /\ observedInitial = TRUE
+
+DispatchUsesResetPlan ==
+    faultDispatches = 0 \/ dispatchedPlan = resetPlan
 
 =============================================================================
