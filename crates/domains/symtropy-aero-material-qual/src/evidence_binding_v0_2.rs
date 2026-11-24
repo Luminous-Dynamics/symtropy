@@ -181,7 +181,7 @@ fn sort_findings(findings: &mut [BindingFinding]) {
 }
 
 fn assertion_rows<'a>(
-    rows: &'a [&'a Value],
+    rows: &[&'a Value],
     specimen_id: &str,
     relation_field: &str,
 ) -> Vec<&'a Value> {
@@ -372,7 +372,46 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     let campaign_index = index_by_id(&campaigns, "test_campaigns", &mut violations);
     let configuration_index = index_by_id(&configurations, "configurations", &mut violations);
     let certificate_index = index_by_id(&certificates, "calibration_certificates", &mut violations);
+    let _observation_index = index_by_id(&observations, "observations", &mut violations);
+    let _source_assertion_index =
+        index_by_id(&specimen_assertions, "specimen_source_assertions", &mut violations);
+    let _configuration_assertion_index = index_by_id(
+        &configuration_assertions,
+        "intended_configuration_assertions",
+        &mut violations,
+    );
     let event_index = index_by_id(&events, "calibration_events", &mut violations);
+
+    for assertion in &specimen_assertions {
+        let specimen_id = field_str(assertion, "specimen_id").unwrap_or("specimen");
+        if !specimen_index.contains_key(specimen_id) {
+            push(
+                &mut violations,
+                "SPECIMEN_SOURCE_ASSERTION_SPECIMEN_UNKNOWN",
+                specimen_id,
+            );
+            push(
+                &mut blockers,
+                "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
+                specimen_id,
+            );
+        }
+    }
+    for assertion in &configuration_assertions {
+        let specimen_id = field_str(assertion, "specimen_id").unwrap_or("specimen");
+        if !specimen_index.contains_key(specimen_id) {
+            push(
+                &mut violations,
+                "CONFIGURATION_ASSERTION_SPECIMEN_UNKNOWN",
+                specimen_id,
+            );
+            push(
+                &mut blockers,
+                "INTENDED_CONFIGURATION_UNRESOLVED",
+                specimen_id,
+            );
+        }
+    }
 
     let mut source_record_ids = BTreeSet::new();
     let mut source_record_replay = false;
