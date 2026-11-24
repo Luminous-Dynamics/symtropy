@@ -1023,5 +1023,4 @@ mod stress_tensor_tests {
         assert_eq!(report.bands[0].reference_non_psd_points, 3);
         assert_eq!(report.bands[0].estimate_non_psd_points, 0);
     }
-
 }
