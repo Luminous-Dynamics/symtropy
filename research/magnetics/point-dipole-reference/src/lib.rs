@@ -99,21 +99,22 @@ pub fn field_at(
         if !finite(r) {
             return Err(FieldError::NonFiniteField);
         }
-        let r2 = dot(r, r);
-        if !r2.is_finite() {
-            return Err(FieldError::NonFiniteField);
-        }
-        if r2 == 0.0 {
+        if r == [0.0; 3] {
             return Err(FieldError::CoincidentQuery);
         }
 
-        let radius = r2.sqrt();
-        let r3 = r2 * radius;
+        // hypot avoids squaring small or large coordinates before finding
+        // their norm; radius^3 is checked separately for representability.
+        let radius = r[0].hypot(r[1]).hypot(r[2]);
+        if !radius.is_finite() || radius == 0.0 {
+            return Err(FieldError::NonFiniteField);
+        }
+        let r3 = radius * radius * radius;
         if !r3.is_finite() || r3 == 0.0 {
             return Err(FieldError::NonFiniteField);
         }
 
-        let r_hat = mul(r, 1.0 / radius);
+        let r_hat = [r[0] / radius, r[1] / radius, r[2] / radius];
         let m_dot_rhat = dot(dipole.moment.0, r_hat);
         if !m_dot_rhat.is_finite() {
             return Err(FieldError::NonFiniteField);
@@ -161,10 +162,12 @@ mod tests {
     const TOL: f64 = 1.0e-12;
 
     fn close(actual: [f64; 3], expected: [f64; 3]) {
-        for i in 0..3 {
+        for (axis, (actual_value, expected_value)) in
+            actual.iter().zip(expected.iter()).enumerate()
+        {
             assert!(
-                (actual[i] - expected[i]).abs() <= TOL,
-                "axis {i}: actual {:?}, expected {:?}",
+                (actual_value - expected_value).abs() <= TOL,
+                "axis {axis}: actual {:?}, expected {:?}",
                 actual,
                 expected
             );
@@ -255,6 +258,14 @@ mod tests {
     fn singularity_and_non_finite_inputs_are_rejected() {
         let d = PointDipole::new([1.0, 2.0, 3.0], [0.0, 0.0, 1.0]);
         assert_eq!(field_at(&[d], PositionMeters([1.0, 2.0, 3.0])), Err(FieldError::CoincidentQuery));
+
+        // A nonzero distance whose cube is not representable is not a
+        // geometric coincidence; its field is outside this f64 oracle's range.
+        let tiny = PointDipole::new([0.0; 3], [0.0, 0.0, 1.0]);
+        assert_eq!(
+            field_at(&[tiny], PositionMeters([1.0e-200, 0.0, 0.0])),
+            Err(FieldError::NonFiniteField)
+        );
         assert_eq!(field_at(&[], PositionMeters([f64::NAN, 0.0, 0.0])), Err(FieldError::NonFinitePosition));
 
         let bad_pos = PointDipole::new([f64::INFINITY, 0.0, 0.0], [0.0, 0.0, 1.0]);
