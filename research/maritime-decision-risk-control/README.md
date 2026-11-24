@@ -163,6 +163,40 @@ Reproduction command:
 
 ```sh
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
+```
+
+
+## Lipschitz-structured non-monotone CRC comparator
+
+The fourth executable, `lipschitz-risk-audit`, implements the correction in Proposition 2 of Aldirawi, Li & Guo (arXiv:2604.01502v3, 11 Nov 2026):
+
+`D_e(n,K,b-a) = inf_{N>=2} { D(N,n) + K(b-a)/(N-1) }`
+
+where `D(N,n)` is the finite-grid non-monotone correction evaluated on an auxiliary grid of size `N`. The resulting expected-risk bound is:
+
+`E[L_{n+1}(lambda_hat)] <= alpha + min{D(m,n), D_e(n,K,b-a)}`.
+
+Unlike `D(m,n)`, the Lipschitz correction does not depend on the original candidate-grid size `m`. It is useful when a fine continuous policy grid would otherwise enlarge the selection correction.
+
+### Synthetic domain and strict scope
+
+This comparator deliberately uses a **continuous smooth service-cost surrogate**, not a hard-feasibility indicator. Its synthetic loss is:
+
+`L_i(lambda) = 0.15 + 0.02 sin(2 pi (lambda + phase_i))`
+
+over `lambda in [0,1]`. Its derivative is bounded by `2 pi * 0.02 < 0.126`, so the module declares `K=0.126` as a uniform bound for every synthetic schedule. The terminal population risk is at most 0.17, below the 0.20 target, by construction.
+
+The auxiliary-grid minimization enumerates integer `N>=2` and stops when the increasing concentration term `D(N,n)` is already no smaller than the best objective found. The receipt reports the finite-grid correction, Lipschitz correction, selected minimum and auxiliary grid size separately.
+
+**Do not transfer this assumption to physical feasibility.** A binary berth overlap, crane conflict, yard overflow or missed-deadline indicator can jump discontinuously when a continuous buffer crosses a threshold. A smooth empirical average does not prove an almost-sure uniform K-Lipschitz condition. The physical hard-failure stream remains on the #7231 exact-oracle and finite-grid CRC-NM track unless a valid Lipschitz envelope is independently established.
+
+The experiment uses 6 configurations (1,200 / 10,000 / 50,000 schedules × 64 / 10,000 policy-grid points). These are synthetic mathematical comparisons, not sample-size prescriptions for DCT/DGT operations.
+
+Reproduction command:
+
+```sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
 
 ## Important release preconditions
