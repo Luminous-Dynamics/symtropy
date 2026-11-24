@@ -203,3 +203,16 @@ Sources:
 - [IMO report on South Africa Maritime Single Window planning, 17 September 2024](https://www.imo.org/en/mediacentre/pages/whatsnew-2137.aspx)
 - [SARS Customs Single Window](https://www.sars.gov.za/customs-and-excise/customs-single-window-solution/)
 - [Freight News report, 8 September 2026](https://www.freightnews.co.za/article/no-completion-date-for-sas-single-window)
+
+
+### DCSA milestone maturity adapter
+
+The new DCSA maturity adapter maps the standard classifier codes to distinct evidence maturity:
+- EST = estimated;
+- REQ = requested;
+- PLN = planned;
+- ACT = source-reported actual.
+
+It does not promote ACT to an independent physical witness. The exact source record, canonical subject, standard version, event time/timezone, record time, publication and retrieval times all remain attached. The receipt fails closed on unknown classifiers, version drift, missing event time for ACT, unknown publication, or an as-of cutoff that predates publication/retrieval. Estimated/requested/planned future event times remain valid forecasts/plans and are not treated as events already realized.
+
+This is particularly important for ETA, pilot, berth and cargo milestones: “ACTUAL” is the publisher's maturity classification, not independent verification that an event physically occurred. The claim still requires separate capture completeness and physical/receiver evidence.
