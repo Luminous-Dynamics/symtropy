@@ -456,8 +456,8 @@ impl AdaptiveImportanceSamplingConfidenceSequence {
             confidence_alpha: self.confidence_alpha,
             normalized_mean_estimate: normalized.empirical_mean,
             target_probability_estimate,
-            lower: (normalized.lower * scale).min(1.0).max(0.0),
-            upper: (normalized.upper * scale).min(1.0).max(0.0),
+            lower: (normalized.lower * scale).clamp(0.0, 1.0),
+            upper: (normalized.upper * scale).clamp(0.0, 1.0),
         })
     }
 }
