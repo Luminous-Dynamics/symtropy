@@ -223,3 +223,6 @@ An ambiguous ResetSimulation response is non-retryable. The session moves to Out
 
 
 The process-local dispatch guard retains the last observed outcome as well as the payload digest: Unknown and PayloadConflict are not collapsed into DuplicateSuppressed on repeat calls. Independent delivery observation is bound to the exact scheduled simulation step in this v0.1 contract; later-step observations are rejected unless a future plan version explicitly commits an observation window.
+
+
+The dispatch idempotency key uses a versioned hash of a canonical, plan-verified event/run identity rather than delimiter-concatenated identifiers. The scenario/fault must be members of the integrity-verified plan; the payload commitment then binds the generated key to the target and exact fault request.
