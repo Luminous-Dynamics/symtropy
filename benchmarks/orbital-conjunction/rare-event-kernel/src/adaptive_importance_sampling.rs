@@ -778,4 +778,28 @@ mod tests {
         );
         assert_eq!(sequence.sample_count(), 0);
     }
+    #[test]
+    fn all_zero_path_keeps_zero_lower_bound_and_positive_upper_bound() {
+        let mut sequence = BoundedMeanBettingSequence::new();
+        for _ in 0..100 {
+            sequence.observe(0.0).unwrap();
+        }
+        let report = sequence.confidence_sequence(0.05).unwrap();
+        assert_eq!(report.lower, 0.0);
+        assert!(report.upper > 0.0);
+        assert!(report.upper < 0.1);
+    }
+
+    #[test]
+    fn all_one_path_keeps_one_upper_bound_and_nontrivial_lower_bound() {
+        let mut sequence = BoundedMeanBettingSequence::new();
+        for _ in 0..100 {
+            sequence.observe(1.0).unwrap();
+        }
+        let report = sequence.confidence_sequence(0.05).unwrap();
+        assert!(report.lower < 1.0);
+        assert!(report.lower > 0.9);
+        assert_eq!(report.upper, 1.0);
+    }
+
 }
