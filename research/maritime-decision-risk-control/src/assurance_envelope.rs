@@ -279,9 +279,9 @@ pub enum StatisticalRiskAxis {
 pub enum StatisticalGuarantee {
     /// Marginal expected risk over calibration and a future draw.
     MarginalExpected,
-    /// Sample-conditional risk control with a declared failure probability.
+    /// Population-risk upper bound holds with probability >= 1-delta over calibration samples.
     HighProbability { failure_probability_ppm: u32 },
-    /// Time-uniform risk control over the declared monitoring sequence.
+    /// Risk control holds uniformly over every time in the declared monitoring horizon.
     TimeUniform { failure_probability_ppm: u32 },
     /// Descriptive metric only; never sufficient for this composition gate.
     DiagnosticOnly,
@@ -292,6 +292,8 @@ pub struct StatisticalRiskEvidenceClaim {
     pub method_id: String,
     pub method_result_ref: String,
     pub assumptions_scope_ref: String,
+    /// Required for TimeUniform; identifies the exact monitoring sequence/horizon.
+    pub monitoring_horizon_ref: Option<String>,
     pub policy_id: String,
     pub policy_revision: String,
     pub evaluator_revision: String,
@@ -302,6 +304,7 @@ pub struct StatisticalRiskEvidenceClaim {
     pub target_risk_milli: u16,
     /// Upper risk bound emitted by the named method; may exceed 1,000.
     pub risk_upper_bound_milli: u32,
+    pub monitoring_horizon_ref: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -319,6 +322,7 @@ pub enum AssuranceBlocker {
     OperatingRegimeMismatch,
     WrongRiskAxis,
     InvalidRiskClaim,
+    MissingTimeUniformHorizon,
     DiagnosticIsNotRiskControl,
     RiskUpperBoundExceedsTarget,
 }
@@ -405,6 +409,14 @@ pub fn compose_assurance(
     if !references_present || !target_valid || !delta_valid {
         blockers.push(AssuranceBlocker::InvalidRiskClaim);
     }
+    if matches!(risk.guarantee, StatisticalGuarantee::TimeUniform { .. })
+        && risk
+            .monitoring_horizon_ref
+            .as_deref()
+            .is_none_or(str::is_empty)
+    {
+        blockers.push(AssuranceBlocker::MissingTimeUniformHorizon);
+    }
     if risk.guarantee == StatisticalGuarantee::DiagnosticOnly {
         blockers.push(AssuranceBlocker::DiagnosticIsNotRiskControl);
     }
@@ -418,6 +430,7 @@ pub fn compose_assurance(
         guarantee: risk.guarantee,
         target_risk_milli: risk.target_risk_milli,
         risk_upper_bound_milli: risk.risk_upper_bound_milli,
+        monitoring_horizon_ref: risk.monitoring_horizon_ref.clone(),
         scenario_count: scenarios.observed_scenario_count,
         physical_failure_count: scenarios.physical_failure_count,
         unknown_physical_count: scenarios.unknown_physical_count,
@@ -475,6 +488,7 @@ mod tests {
             method_id: "simultaneous-hoeffding".to_owned(),
             method_result_ref: "synthetic-risk-method-receipt".to_owned(),
             assumptions_scope_ref: "iid-bounded-frozen-grid".to_owned(),
+            monitoring_horizon_ref: None,
             policy_id: "independent-reserve-inspection".to_owned(),
             policy_revision: "policy-v1".to_owned(),
             evaluator_revision: "evaluator-v1".to_owned(),
@@ -692,6 +706,44 @@ mod tests {
         assert!(
             decision.blockers.contains(&AssuranceBlocker::WrongRiskAxis)
         );
+    }
+
+    #[test]
+    fn time_uniform_claim_requires_and_retains_explicit_monitoring_horizon() {
+        let mut claim = risk_claim();
+        claim.guarantee = StatisticalGuarantee::TimeUniform {
+            failure_probability_ppm: 50_000,
+        };
+        claim.monitoring_horizon_ref = Some("monitoring-sequence-2026-Q4-v1".to_owned());
+
+        let decision = compose_assurance(
+            &compile(FiniteScenarioSource::IndependentOracle),
+            &claim,
+        );
+
+        assert!(decision.admissible_within_declared_scope);
+        assert_eq!(
+            decision.monitoring_horizon_ref.as_deref(),
+            Some("monitoring-sequence-2026-Q4-v1")
+        );
+    }
+
+    #[test]
+    fn time_uniform_claim_without_monitoring_horizon_is_blocked() {
+        let mut claim = risk_claim();
+        claim.guarantee = StatisticalGuarantee::TimeUniform {
+            failure_probability_ppm: 50_000,
+        };
+
+        let decision = compose_assurance(
+            &compile(FiniteScenarioSource::IndependentOracle),
+            &claim,
+        );
+
+        assert!(decision
+            .blockers
+            .contains(&AssuranceBlocker::MissingTimeUniformHorizon));
+        assert!(!decision.admissible_within_declared_scope);
     }
 
     #[test]
