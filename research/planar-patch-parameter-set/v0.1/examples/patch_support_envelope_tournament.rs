@@ -39,7 +39,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let envelope = compute_patch_support_envelope(
         &PatchSupportEnvelopeInput {
             parameter_set: &parameter_set,
-            capacity_scale: 20.0,
+            capacity_scale_interval: [20.0, 20.0],
+            capacity_scale_digest: "mu-normal-load-20N-synthetic-v1".to_owned(),
             slip_twist: [0.1, 0.0, 0.0],
         },
         SupportEnvelopeConfig::default(),
