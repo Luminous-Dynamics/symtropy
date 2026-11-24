@@ -7,7 +7,7 @@ on:
       - "research/nd-bvh-metrics/v0.1/**"
       - ".github/workflows/nd-bvh-metrics.yml"
   push:
-    branches: [main]
+    branches: [main, "research/nd-bvh-metrics-v0.1"]
     paths:
       - "research/nd-bvh-metrics/v0.1/**"
       - ".github/workflows/nd-bvh-metrics.yml"
