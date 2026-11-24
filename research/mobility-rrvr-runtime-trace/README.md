@@ -197,3 +197,10 @@ dispatch_planned_fault_once now composes the verified plan, exact simulation cut
 The final snapshot/re-resolution narrows a time-of-check/time-of-use window but does not provide an atomic world lock. Gazebo's standard interfaces do not enforce exclusive mutation ownership. A live campaign must isolate and control all world-mutating clients, and must account for documented reset/spawn races, top-level-model-only enumeration, SceneBroadcaster synchronization and the separate /stats step-feedback clock. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
 
 The research positioning has also been updated to acknowledge EAST (October 2026) and existing ROS fault-injection/tracing tools as prior art. RRVR's intended differentiator is cross-restart physical-effect lineage and authority continuity, not generic fault injection or digital-twin safety testing. See [RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md](RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md).
+
+
+### Durable injector idempotency and payload conflict
+
+The dispatch request now includes a SHA-256 commitment over its canonical plan/run/fault/target payload. The local registry detects same-process duplicates and same-key/different-payload conflicts; it is not durable and cannot protect a new coordinator process by itself. A concrete injector must persist idempotency-key-to-payload-digest-to-outcome atomically before effect execution, return the stored outcome for an identical retry, and reject a changed payload under the same key. `PayloadConflict` is distinct from `Unknown` and requires investigation, not retry.
+
+A test double exercises the contract across a simulated coordinator restart. A real injector ledger, its persistence semantics and its physical effect boundary remain unqualified.
