@@ -239,7 +239,9 @@ fn sampled_sums(
     (hard, envelope, service)
 }
 
-fn exact_population_means(fixture: Fixture) -> (
+fn exact_population_means(
+    fixture: Fixture,
+) -> (
     [f64; POLICY_COUNT],
     [f64; POLICY_COUNT],
     [f64; POLICY_COUNT],
@@ -283,8 +285,7 @@ fn select_crc_nm(
     schedule_count: usize,
     target: u16,
 ) -> Result<usize, u32> {
-    let correction =
-        excess_bound_milli(POLICY_COUNT, schedule_count).unwrap_or(u32::MAX);
+    let correction = excess_bound_milli(POLICY_COUNT, schedule_count).unwrap_or(u32::MAX);
     if correction >= u32::from(target) {
         return Err(correction);
     }
@@ -346,12 +347,7 @@ fn wilson_interval(successes: usize, trials: usize) -> (f64, f64) {
     ((center - half).max(0.0), (center + half).min(1.0))
 }
 
-fn push_optional_interval(
-    output: &mut String,
-    sum: f64,
-    square_sum: f64,
-    count: usize,
-) {
+fn push_optional_interval(output: &mut String, sum: f64, square_sum: f64, count: usize) {
     match mean_interval(sum, square_sum, count) {
         Some((mean, low, high)) => {
             let _ = write!(output, "{mean:.3},{low:.3},{high:.3}");
@@ -413,7 +409,8 @@ fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulato
             accumulator.upper_bound_square_sum,
             selected,
         );
-        let (wilson_low, wilson_high) = wilson_interval(accumulator.violations, metadata.replicates);
+        let (wilson_low, wilson_high) =
+            wilson_interval(accumulator.violations, metadata.replicates);
         let unconditional_rate = accumulator.violations as f64 / metadata.replicates as f64;
         let conditional_rate = if selected == 0 {
             0.0
@@ -428,7 +425,12 @@ fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulato
         output.push_str("NA,NA,NA,NA,NA,NA,NA");
     }
 
-    let _ = writeln!(output, ",{},{}", metadata.guarantee.label(), metadata.status);
+    let _ = writeln!(
+        output,
+        ",{},{}",
+        metadata.guarantee.label(),
+        metadata.status
+    );
 }
 
 fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
@@ -507,8 +509,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     true,
                 );
 
-                let envelope_crc =
-                    select_crc(&nonmono_envelope_sums, schedule_count, target);
+                let envelope_crc = select_crc(&nonmono_envelope_sums, schedule_count, target);
                 accumulators[2][alpha_index].record(
                     Some(envelope_crc),
                     &nonmono_envelope_metrics,
@@ -517,8 +518,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                     false,
                 );
 
-                let nm_selected =
-                    select_crc_nm(&nonmono_hard_sums, schedule_count, target).ok();
+                let nm_selected = select_crc_nm(&nonmono_hard_sums, schedule_count, target).ok();
                 accumulators[3][alpha_index].record(
                     nm_selected,
                     &nonmono_crc_nm_metrics,
@@ -584,8 +584,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                 },
                 &accumulators[2][alpha_index],
             );
-            let correction =
-                excess_bound_milli(POLICY_COUNT, schedule_count).unwrap_or(u32::MAX);
+            let correction = excess_bound_milli(POLICY_COUNT, schedule_count).unwrap_or(u32::MAX);
             let nm_has_claim = correction < u32::from(target);
             let nm_status = if nm_has_claim {
                 "SYNTHETIC_ONLY"
@@ -645,9 +644,7 @@ mod tests {
         EndpointPopulationRiskContract, FrozenRevisions as NonMonotoneRevisions,
         WholeScheduleLossGrid,
     };
-    use crate::{
-        FrozenRevisions, LossMatrix, MaxParameterContract, MonotonicityMode, calibrate,
-    };
+    use crate::{FrozenRevisions, LossMatrix, MaxParameterContract, MonotonicityMode, calibrate};
 
     #[test]
     fn splitmix_sampling_is_deterministic_and_range_checked() {
@@ -766,16 +763,16 @@ mod tests {
             evidence_ref: "exact synthetic endpoint".into(),
             expected_loss_upper_milli: 0,
         };
-        let nonmono_result = crate::non_monotone::calibrate(
-            &nonmono_grid,
-            200,
-            Some(&endpoint),
-            &nonmono_revisions,
-        )
-        .expect("existing finite-grid CRC-NM implementation");
+        let nonmono_result =
+            crate::non_monotone::calibrate(&nonmono_grid, 200, Some(&endpoint), &nonmono_revisions)
+                .expect("existing finite-grid CRC-NM implementation");
         let nonmono_sums = sum_rows(&nonmonotone_rows);
         assert_eq!(
-            select_crc(&nonmono_sums, nonmonotone_rows.len(), nonmono_result.adjusted_risk_milli),
+            select_crc(
+                &nonmono_sums,
+                nonmonotone_rows.len(),
+                nonmono_result.adjusted_risk_milli
+            ),
             nonmono_result.selected_parameter_index
         );
 
@@ -799,8 +796,7 @@ mod tests {
         );
         let service_sums = sum_f64_rows(&service_rows);
         let risk_sums = sum_rows(&nonmonotone_rows);
-        let radius =
-            simultaneous_hoeffding_radius_milli(POLICY_COUNT, 1_200, DELTA).unwrap();
+        let radius = simultaneous_hoeffding_radius_milli(POLICY_COUNT, 1_200, DELTA).unwrap();
         let repeated = select_hoeffding(&risk_sums, &service_sums, 1_200, radius, 200);
         match high_probability {
             Ok(result) => {
