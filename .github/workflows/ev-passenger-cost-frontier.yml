@@ -662,6 +662,41 @@ jobs:
             and ([.on_time_groups[] | select(.stratum_id == "hot_shift") | .holdout_brier_score_millionths] == [330000])
           ' service-prediction-calibration-report.json
           cat service-prediction-calibration-report.json
+          jq empty tools/ev-passenger-cost-frontier/schemas/online_service_risk_v0_1.schema.json
+          jq empty tools/ev-passenger-cost-frontier/fixtures/online_service_risk_v0_1.json
+          cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin online_service_risk_screen -- \
+            tools/ev-passenger-cost-frontier/fixtures/online_service_risk_v0_1.json \
+            > online-service-risk-report.json
+          jq -e '
+            .benchmark_id == "ONLINE-SERVICE-RISK-CERTIFICATE-001"
+            and .forecast_count == 6
+            and .observed_outcome_count == 5
+            and .pending_outcome_count == 1
+            and .group_count == 1
+            and .groups_with_shift_alarm == 1
+            and .groups_with_risk_above_budget == 1
+            and .groups_with_insufficient_history == 0
+            and .all_evidence_source_grade == false
+            and .any_synthetic_evidence == true
+            and .confidence_bound_kind == "one_sided_time_uniform_hoeffding_azuma_martingale_upper_bound"
+            and .cusum_is_probability_guarantee == false
+            and .model_update_performed == false
+            and .field_qualification_granted == false
+            and .operational_authority_granted == false
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+            and .groups[0].forecast_count == 6
+            and .groups[0].observed_outcome_count_at_audit_cutoff == 5
+            and .groups[0].pending_outcome_count_at_audit_cutoff == 1
+            and .groups[0].interval_miss_count_at_audit_cutoff == 2
+            and .groups[0].empirical_miscoverage_permille_at_audit_cutoff == 400
+            and .groups[0].drift_alarm_latched == true
+            and .groups[0].historical_risk_upper_bound_exceeds_budget == true
+            and .groups[0].final_status == "drift_alarm_latched"
+            and ([.groups[0].assessments[].prior_observation_count] == [0,0,0,2,3,5])
+            and ([.groups[0].assessments[0:3][].status] | all(.[]; . == "insufficient_history"))
+            and ([.groups[0].assessments[3:6][].status] | all(.[]; . == "drift_alarm_latched"))
+          ' online-service-risk-report.json
+          cat online-service-risk-report.json
           sha256sum \
             tools/ev-passenger-cost-frontier/schemas/ev_passenger_cost_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/ev_passenger_cost_v0_1.json \
@@ -708,6 +743,11 @@ jobs:
             sustainable-mobility-service-capacity-report.json \
             tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_quality.rs \
             tools/ev-passenger-cost-frontier/src/service_prediction_calibration.rs \
+            tools/ev-passenger-cost-frontier/src/online_service_risk.rs \
+            tools/ev-passenger-cost-frontier/src/bin/online_service_risk_screen.rs \
+            tools/ev-passenger-cost-frontier/schemas/online_service_risk_v0_1.schema.json \
+            tools/ev-passenger-cost-frontier/fixtures/online_service_risk_v0_1.json \
+            docs/research/ONLINE_SERVICE_RISK_CERTIFICATE_BENCHMARK_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/service_prediction_calibration_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json \
@@ -774,6 +814,10 @@ jobs:
             sustainable-mobility-service-quality-linked-report.json
             sustainable-mobility-service-quality-exact-oracle-report.json
             service-prediction-calibration-report.json
+            online-service-risk-report.json
+            tools/ev-passenger-cost-frontier/fixtures/online_service_risk_v0_1.json
+            tools/ev-passenger-cost-frontier/schemas/online_service_risk_v0_1.schema.json
+            docs/research/ONLINE_SERVICE_RISK_CERTIFICATE_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json
             docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md

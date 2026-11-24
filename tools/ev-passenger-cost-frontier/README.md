@@ -460,3 +460,19 @@ The frozen synthetic fixture has 100 records (40 calibration, 60 holdout), two s
 These are synthetic controls. The evaluator explicitly sets field qualification, model mutation and operational authority to false. Its report labels Wilson intervals as an IID reference calculation; temporal/common-cause dependence needs cluster-aware inference. Synthetic evidence cannot produce an empirically supported status. Split conformal is reported as an empirical diagnostic only; no distribution-free guarantee under arbitrary temporal dependence or deployment shift is claimed.
 
 Files: `src/service_prediction_calibration.rs`, `src/bin/service_prediction_calibration_screen.rs`, `schemas/service_prediction_calibration_v0_1.schema.json`, `fixtures/service_prediction_calibration_v0_1.json`. The module currently contains 17 focused Rust test definitions. Exact-head Actions run [#45333671953](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45333671953) at `9f61b00ea3b4077f5f67409222e27dc20806f835` passed schema/fixture parsing, workspace formatting, Cargo tests, known-answer report assertions and artifact upload (241 tests passed, 0 failed across test binaries). Clippy and field/physical qualification remain separate.
+
+## ONLINE-SERVICE-RISK-CERTIFICATE-001 — prequential temporal risk monitor
+
+Tracked by [#7289](https://github.com/Luminous-Dynamics/symtropy/issues/7289), child of [#7240](https://github.com/Luminous-Dynamics/symtropy/issues/7240). Research protocol: [Online Service Risk Certificate and Temporal Shift Monitor v0.1](../../docs/research/ONLINE_SERVICE_RISK_CERTIFICATE_BENCHMARK_V0_1.md).
+
+Run:
+
+    cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin online_service_risk_screen -- tools/ev-passenger-cost-frontier/fixtures/online_service_risk_v0_1.json
+
+The evaluator groups exact site, asset/configuration, model/version, stratum, metric and measurement boundary. At each forecast issuance it consumes only outcomes whose evidence became available strictly earlier. It maintains a time-uniform one-sided Hoeffding-Azuma upper bound for average predictable historical interval-miscoverage under bounded martingale-difference assumptions and a separate one-sided CUSUM drift alarm. Outcomes can arrive out of forecast-issue order; the pending queue is ordered by actual availability. Forecasts without an outcome by the audit cutoff remain visible as pending, with forecast, observed-outcome and pending-outcome counts kept separate; partial outcome tuples are rejected.
+
+The confidence bound is not a bound on the next conditional error rate or arbitrary future shift. CUSUM is a deterministic alarm, not a probability guarantee. New asset configurations start with no inherited history. The module never updates a model or grants field/operational authority, and all existing reserve/recovery/lease/PCC/network gates remain authoritative.
+
+The six-forecast synthetic fixture has five observed outcomes and one still-pending outcome. It expects two interval misses, prior-history counts [0,0,0,2,3,5], one latched shift alarm and final empirical miscoverage of 400 permille. Seventeen focused Rust tests cover delayed/out-of-order outcomes, no future leakage, CUSUM latching, configuration isolation, deterministic replay, evidence chronology, duplicate references, interval endpoints and claim ceilings.
+
+Files: src/online_service_risk.rs, src/bin/online_service_risk_screen.rs, schemas/online_service_risk_v0_1.schema.json, fixtures/online_service_risk_v0_1.json. All fixture evidence is synthetic; no physical or field qualification is implied.
