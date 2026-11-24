@@ -14,7 +14,6 @@ const POLICY_INTERVAL_LENGTH: f64 = 1.0;
 const LOSS_CENTER: f64 = 0.15;
 const LOSS_AMPLITUDE: f64 = 0.02;
 const LIPSCHITZ_K: f64 = 0.126;
-const TEST_SCHEDULES: usize = 2_000;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LipschitzError {
