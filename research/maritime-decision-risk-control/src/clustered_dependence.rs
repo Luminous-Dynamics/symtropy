@@ -534,7 +534,7 @@ mod tests {
     fn repeated_receipt_is_deterministic_and_has_expected_schema() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 33);
+        assert_eq!(first.lines().count(), 65);
         let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 22);
         for row in first.lines().skip(1) {
