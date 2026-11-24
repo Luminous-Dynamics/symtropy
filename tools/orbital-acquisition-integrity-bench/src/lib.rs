@@ -738,6 +738,7 @@ mod tests {
     #[test]
     fn disjoint_projector_pattern_window_is_rejected() {
         let mut value = base_case();
+        value.exposure_duration_ns = 1_000;
         value.requires_projector = true;
         value.projector_window = Some(ProjectorWindow {
             pattern_id: "PATTERN-1".to_owned(),
@@ -752,6 +753,7 @@ mod tests {
     #[test]
     fn projector_window_overlap_is_indeterminate() {
         let mut value = base_case();
+        value.exposure_duration_ns = 1_000;
         value.requires_projector = true;
         value.projector_window = Some(ProjectorWindow {
             pattern_id: "PATTERN-1".to_owned(),
@@ -766,6 +768,7 @@ mod tests {
     #[test]
     fn complete_projector_pattern_window_is_admitted() {
         let mut value = base_case();
+        value.exposure_duration_ns = 1_000;
         value.requires_projector = true;
         value.projector_window = Some(ProjectorWindow {
             pattern_id: "PATTERN-1".to_owned(),
