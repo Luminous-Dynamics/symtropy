@@ -244,11 +244,13 @@ fn validate_source_transitions(
             return Err(QuotientErrorV0::UnknownTransitionAction);
         }
         if !seen.insert((transition.from_state_id, transition.action_id)) {
-            let duplicate_outcome = source.transitions.iter().filter(|candidate| {
+            let same_pair = source.transitions.iter().filter(|candidate| {
                 candidate.from_state_id == transition.from_state_id
                     && candidate.action_id == transition.action_id
-            }).count() == 1;
-            return Err(if duplicate_outcome {
+            });
+            let mut outcomes = same_pair.map(|candidate| candidate.to_state_id);
+            let first_outcome = outcomes.next().ok_or(QuotientErrorV0::DuplicateTransition)?;
+            return Err(if outcomes.all(|outcome| outcome == first_outcome) {
                 QuotientErrorV0::DuplicateTransition
             } else {
                 QuotientErrorV0::NondeterministicTransition
@@ -403,6 +405,17 @@ mod tests {
         assert_eq!(
             validate_and_build_quotient(&source, &partition),
             Err(QuotientErrorV0::PartitionIncomplete)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_transition_rows() {
+        let (mut source, partition) = fixture();
+        source.transitions.push(source.transitions[0]);
+
+        assert_eq!(
+            validate_and_build_quotient(&source, &partition),
+            Err(QuotientErrorV0::DuplicateTransition)
         );
     }
 
