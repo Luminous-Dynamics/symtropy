@@ -261,6 +261,11 @@ impl ClusterMeanMatrix {
 }
 
 impl OracleCalibrationBundle {
+    /// Returns raw per-schedule rows in the frozen policy order.
+    ///
+    /// This does not make the rows independent. If schedules share a declared
+    /// dependence cluster and the cluster is the independent unit, use
+    /// cluster_mean_matrix rather than calibrating on this raw matrix.
     pub fn matrix(&self, role: DatasetRole, axis: LossAxis) -> crate::LossMatrix {
         let schedules = match (role, axis) {
             (DatasetRole::Calibration, LossAxis::HardPhysicalFailure) => {
@@ -374,6 +379,9 @@ impl OracleCalibrationBundle {
         })
     }
 
+    /// Returns the raw per-schedule loss grid. Dependence IDs are retained in
+    /// the bundle; this grid is not automatically an IID calibration sample.
+    /// For a cluster-as-independent-unit estimand use cluster_mean_matrix.
     pub fn non_monotone_grid(
         &self,
         role: DatasetRole,
