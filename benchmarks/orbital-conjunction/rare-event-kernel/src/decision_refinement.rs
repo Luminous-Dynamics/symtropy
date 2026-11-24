@@ -20,7 +20,7 @@ use crate::decision_gate::{
 use crate::refinement_scheduler::{
     RefinementCandidate, RefinementScheduleError, RefinementScheduleReport, schedule_refinements,
 };
-use crate::space_time_partition::{Rational, SpaceTimeScope, NonnegativeRationalInterval};
+use crate::space_time_partition::{NonnegativeRationalInterval, Rational, SpaceTimeScope};
 
 /// Controller outcome after threshold classification and possible scheduling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,7 +129,7 @@ pub fn plan_decision_refinement(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::refinement_scheduler::{RefinementCandidateId};
+    use crate::refinement_scheduler::RefinementCandidateId;
     use crate::space_time_partition::NonnegativeRationalInterval;
 
     fn scope() -> SpaceTimeScope {
@@ -179,7 +179,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(report.disposition, DecisionRefinementDisposition::ThresholdMet);
+        assert_eq!(
+            report.disposition,
+            DecisionRefinementDisposition::ThresholdMet
+        );
         assert!(report.schedule.is_none());
     }
 
