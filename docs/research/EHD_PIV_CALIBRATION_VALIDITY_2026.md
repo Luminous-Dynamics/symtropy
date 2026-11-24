@@ -59,7 +59,7 @@ A certificate binds the following fingerprints:
 - reference/dependence graph;
 - observer state.
 
-It also binds an issuance tick, maximum age, a frozen rectangular feature envelope, calibration dependence-cluster IDs, calibration method and optional weighted-support policy.
+It also binds an issuance tick, maximum age, a frozen rectangular feature envelope, calibration dependence-cluster IDs, sealed test-cluster IDs, calibration method and optional weighted-support policy. The calibration and sealed-test sets must be nonempty, unique and disjoint.
 
 The feature envelope is a first V0 support check, not a complete multivariate density/support estimator. A point can be inside each scalar bound while still lying in a sparse joint region. V1 must add multivariate support diagnostics.
 
@@ -86,7 +86,7 @@ V0 requires all of the following before returning a warning that weighted covari
 - maximum normalized weight between 1 and the configured maximum (weights are normalized to mean one over the calibration cohort);
 - overlap fraction in [0, 1] and above the configured minimum.
 
-The evidence IDs and boolean are caller-supplied claims. The crate does not verify their provenance, estimate density ratios, or prove conditional-law stability. A production integration must resolve them to authenticated, independently reviewable evidence receipts. The replay and ordering ledger is process-local in V0; a production adapter must persist and restore an append-only ledger before processing observations after restart.
+The evidence IDs and boolean are caller-supplied claims. The crate does not verify their provenance, estimate density ratios, or prove conditional-law stability. A production integration must resolve them to authenticated, independently reviewable evidence receipts. The sealed-test cohort is now explicitly bound by the certificate and checked against the receipt; old sealed-test cohorts are treated as spent. The replay and ordering ledger is process-local in V0; a production adapter must persist and restore an append-only ledger before processing observations after restart.
 
 ### Requalification
 
@@ -98,7 +98,8 @@ A hard invalidator suspends the existing certificate. A later in-scope observati
 - external evidence verification asserted by the integration;
 - calibration clusters matching the new certificate;
 - calibration clusters disjoint from prior calibration and observed dependence clusters;
-- sealed test clusters disjoint from calibration and prior observed/calibration clusters.
+- sealed test clusters exactly match the IDs declared in the new certificate (the receipt cannot choose a different holdout after the fact);
+- sealed test clusters disjoint from calibration, prior observed/calibration clusters and the previous certificate's already-spent sealed test cohort.
 
 V0 checks identities/sets provided by the caller; it does not establish that the groups are physically independent or cryptographically authenticated. UQ-008 remains responsible for source-to-output lineage, shared-cause closure, hashes and custody.
 
