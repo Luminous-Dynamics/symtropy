@@ -6,14 +6,19 @@ use symtropy_mobility_network_adapter::{
 };
 
 fn fixture() -> MobilityNetworkAdapterInput {
-    serde_json::from_str(include_str!("../fixtures/mobility_network_adapter_v0_1.json"))
-        .expect("frozen adapter fixture must parse")
+    serde_json::from_str(include_str!(
+        "../fixtures/mobility_network_adapter_v0_1.json"
+    ))
+    .expect("frozen adapter fixture must parse")
 }
 
 #[test]
 fn frozen_three_bus_adapter_fixture_preserves_partial_deliverability_and_claim_boundary() {
     let report = evaluate_mobility_network_adapter(&fixture()).unwrap();
-    assert_eq!(report.disposition, CompositeDisposition::ScreenedPartialRequest);
+    assert_eq!(
+        report.disposition,
+        CompositeDisposition::ScreenedPartialRequest
+    );
     assert_eq!(report.upstream_receipts.len(), 5);
     assert!((report.site_requested_response_energy_mwh - 30.0).abs() < 1.0e-9);
     assert!(
@@ -24,9 +29,7 @@ fn frozen_three_bus_adapter_fixture_preserves_partial_deliverability_and_claim_b
             .abs()
             < 1.0e-8
     );
-    assert!(
-        (report.dc_undeliverable_or_curtailed_energy_mwh.unwrap() - 12.5).abs() < 1.0e-8
-    );
+    assert!((report.dc_undeliverable_or_curtailed_energy_mwh.unwrap() - 12.5).abs() < 1.0e-8);
     assert_eq!(report.full_requested_trajectory_dc_deliverable, Some(false));
     assert!(report.dc_network_report.is_some());
     assert_eq!(report.actual_measured_pcc_response_energy_mwh, None);
