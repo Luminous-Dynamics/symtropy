@@ -71,8 +71,6 @@ pub use hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
     HedgedCapitalConfidenceSequence, HedgedConfidenceSequenceError,
 };
-    DEFAULT_HEDGED_STAKE_CAP, HedgedCapitalConfidenceSequence, HedgedConfidenceSequenceError,
-};
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
     SphereQuadratureDiagnosticsConfig, SphereQuadratureNode, SphereQuadratureReport,
