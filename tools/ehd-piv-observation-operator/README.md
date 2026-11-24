@@ -33,7 +33,7 @@ The returned pair also exposes floating-point analog detector values after gain/
 
 ## Manufactured test inventory
 
-The V0 crate currently contains 11 deterministic Rust tests covering stationary frames, analytic translation, exposure smear, out-of-plane illumination attenuation, optical PSF width, sensor gain/noise/quantization/saturation, pixel masking, fail-closed domain boundaries, malformed inputs, field/image support and numeric overflow.
+The V0 crate currently contains 17 deterministic Rust tests covering stationary frames, analytic translation, exposure smear, out-of-plane illumination attenuation, optical PSF width, sensor gain/noise/quantization/saturation, pixel masking, fail-closed domain boundaries, malformed inputs, field/image support and numeric overflow.
 
 ## Related high-throughput generator: SynthPix
 
@@ -41,4 +41,6 @@ Use [SynthPix](https://github.com/antonioterpin/synthpix) (MIT, current public r
 
 ## Manufactured tests
 
-The current operator has 14 deterministic tests, including sub-LSB analog finite differences, gain/brightness confounding, and malformed sensitivity input rejection.
+The current operator has 17 deterministic tests, including sub-LSB analog finite differences, gain/brightness confounding, and malformed sensitivity input rejection.
+
+The sensitivity suite includes four single-view confounding controls: particle brightness/camera gain, particle diameter/optical PSF, out-of-plane particle position/light-sheet thickness, and uniform flow velocity/frame separation. These are manufactured local ambiguities, not evidence that all experiments are unidentifiable; additional independent calibration views or measurement actions may break them.
