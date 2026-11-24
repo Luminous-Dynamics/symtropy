@@ -11,7 +11,7 @@
     "case_id": {"type": "string", "minLength": 1},
     "status": {"type": "string", "enum": ["VERIFIED", "REJECTED"]},
     "ledger_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "snapshots": {"type": "array", "items": {"$ref": "mfg_policy_v02_operational_state_snapshot.schema.json"}},
+    "snapshots": {"type": "array", "items": {"type": "object"}},
     "violation_ledger": {
       "type": "array",
       "items": {
