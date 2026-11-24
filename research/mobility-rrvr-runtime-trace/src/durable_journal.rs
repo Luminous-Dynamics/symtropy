@@ -1000,13 +1000,29 @@ mod tests {
         {
             let mut journal = Journal::open(&path).unwrap();
             assert_eq!(
-                journal.append_dispatch_intent(
-                    "premature-key", digest('e'), "reset-1", digest('a'),
-                    "logical-effect-1", "attempt-1", "campaign-1", "pair-1",
-                    "scenario-1", "fault-1", 1, "run-1", "run-epoch-1",
-                    "world-epoch-2", "clock-1", "entity-1", "injector-domain-1",
-                    42, digest('f')
-                ),
+                journal.append_dispatch_intent(DispatchIntentRecord {
+                idempotency_key: "premature-key".into(),
+                payload_sha256: digest('e'),
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                logical_effect_id: "logical-effect-1".into(),
+                attempt_id: "attempt-1".into(),
+                campaign_id: "campaign-1".into(),
+                pair_id: "pair-1".into(),
+                scenario_id: "scenario-1".into(),
+                fault_id: "fault-1".into(),
+                fault_sequence: 1,
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+                world_epoch: "world-epoch-2".into(),
+                clock_id: "clock-1".into(),
+                target_id: "entity-1".into(),
+                fault_domain_id: "injector-domain-1".into(),
+                scheduled_simulation_step: 42,
+                parameters_sha256: digest('f'),
+            }),
                 Err(JournalError::UnknownResetId)
             );
             append_verified_reset(&mut journal);
@@ -1029,10 +1045,10 @@ mod tests {
                 ledger_artifact_sha256: Some(digest('9')),
             })
                 .unwrap();
-            assert_eq!(journal.summary().entry_count, 5);
+            assert_eq!(journal.summary().entry_count, 6);
         }
         let summary = verify_file(&path).unwrap();
-        assert_eq!(summary.entry_count, 5);
+        assert_eq!(summary.entry_count, 6);
         assert_eq!(summary.reset_verified_count, 1);
         assert_eq!(summary.dispatch_accepted_count, 1);
         assert_eq!(summary.authority_created, false);
@@ -1096,21 +1112,40 @@ mod tests {
         append_verified_reset(&mut journal);
         append_dispatch_intent(&mut journal);
         assert_eq!(
-            journal.append_dispatch_intent(
-                "rrvr/v0.1/test-key-1", digest('e'), "reset-1", digest('a'),
-                "logical-effect-1", "attempt-2", "campaign-1", "pair-1",
-                "scenario-1", "fault-1", 1, "run-1", "run-epoch-1",
-                "world-epoch-2", "clock-1", "entity-1", "injector-domain-1",
-                42, digest('f')
-            ),
+            journal.append_dispatch_intent(DispatchIntentRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: digest('e'),
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                logical_effect_id: "logical-effect-1".into(),
+                attempt_id: "attempt-2".into(),
+                campaign_id: "campaign-1".into(),
+                pair_id: "pair-1".into(),
+                scenario_id: "scenario-1".into(),
+                fault_id: "fault-1".into(),
+                fault_sequence: 1,
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+                world_epoch: "world-epoch-2".into(),
+                clock_id: "clock-1".into(),
+                target_id: "entity-1".into(),
+                fault_domain_id: "injector-domain-1".into(),
+                scheduled_simulation_step: 42,
+                parameters_sha256: digest('f'),
+            }),
             Err(JournalError::DuplicateDispatchKey)
         );
         assert_eq!(
-            journal.append_dispatch_outcome(
-                "rrvr/v0.1/test-key-1", digest('8'),
-                DispatchOutcomeSource::InjectorLedgerLookup,
-                DispatchOutcomeStatus::NoDispatchProven, None, Some(digest('9'))
-            ),
+            journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: digest('8'),
+                source: DispatchOutcomeSource::InjectorLedgerLookup,
+                status: DispatchOutcomeStatus::NoDispatchProven,
+                dispatch_id: None,
+                ledger_artifact_sha256: Some(digest('9')),
+            }),
             Err(JournalError::DispatchPayloadMismatch)
         );
         drop(journal);
@@ -1123,19 +1158,23 @@ mod tests {
         let mut journal = Journal::open(&path).unwrap();
         append_verified_reset(&mut journal);
         append_dispatch_intent(&mut journal);
-        journal
-            .append_dispatch_outcome(
-                "rrvr/v0.1/test-key-1", digest('e'),
-                DispatchOutcomeSource::InjectorLedgerLookup,
-                DispatchOutcomeStatus::NoDispatchProven, None, Some(digest('9'))
-            )
-            .unwrap();
+        journal.append_dispatch_outcome(DispatchOutcomeRecord {
+            idempotency_key: "rrvr/v0.1/test-key-1".into(),
+            payload_sha256: digest('e'),
+            source: DispatchOutcomeSource::InjectorLedgerLookup,
+            status: DispatchOutcomeStatus::NoDispatchProven,
+            dispatch_id: None,
+            ledger_artifact_sha256: Some(digest('9')),
+        }).unwrap();
         assert_eq!(
-            journal.append_dispatch_outcome(
-                "rrvr/v0.1/test-key-1", digest('e'),
-                DispatchOutcomeSource::TransportResponse,
-                DispatchOutcomeStatus::ResponseAccepted, Some("dispatch-late".into()), None
-            ),
+            journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: digest('e'),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseAccepted,
+                dispatch_id: Some("dispatch-late".into()),
+                ledger_artifact_sha256: None,
+            }),
             Err(JournalError::InvalidDispatchTransition)
         );
         drop(journal);
@@ -1146,18 +1185,27 @@ mod tests {
     fn reset_verification_requires_exact_observed_world_clock_and_initial_digest() {
         let path = temp_journal_path("reset-proof");
         let mut journal = Journal::open(&path).unwrap();
-        journal
-            .append_reset_intent(
-                "reset-1", digest('a'), digest('b'), "world-1", "world-epoch-1",
-                "clock-1", digest('c'), "run-1"
-            )
-            .unwrap();
+        journal.append_reset_intent(ResetIntentRecord {
+            reset_id: "reset-1".into(),
+            plan_sha256: digest('a'),
+            simulator_profile_sha256: digest('b'),
+            world_id: "world-1".into(),
+            prior_world_epoch: "world-epoch-1".into(),
+            clock_id: "clock-1".into(),
+            expected_initial_state_sha256: digest('c'),
+            run_id: "run-1".into(),
+            run_epoch: "run-epoch-1".into(),
+        }).unwrap();
         assert_eq!(
-            journal.append_reset_outcome(
-                "reset-1", ResetOutcomeSource::Reconciliation,
-                ResetOutcomeStatus::Verified, Some("world-epoch-2".into()),
-                Some("wrong-clock".into()), Some(digest('c')), Some(digest('d'))
-            ),
+            journal.append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-1".into(),
+                source: ResetOutcomeSource::Reconciliation,
+                status: ResetOutcomeStatus::Verified,
+                observed_world_epoch: Some("world-epoch-2".into()),
+                observed_clock_id: Some("wrong-clock".into()),
+                observed_initial_state_sha256: Some(digest('c')),
+                observation_artifact_sha256: Some(digest('d')),
+            }),
             Err(JournalError::InvalidOutcomeEvidence)
         );
         drop(journal);
