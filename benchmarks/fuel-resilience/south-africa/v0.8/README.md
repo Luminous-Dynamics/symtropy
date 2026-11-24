@@ -37,6 +37,10 @@ This prevents a single recovered interval, a point estimate, or a forecast from 
 
 The evaluator does not verify source bytes, hashes, signatures, calibration, measurement installation, physical state, upstream v0.6 calculations or issuer authority. A valid digest-shaped string is not proof that a file was hashed. Mycelix or an independent verifier must qualify upstream identities/receipts; a metrology or operator review is still required for field evidence.
 
+## South African strategic-stock claim register
+
+The March 2026 “eight million barrels of oil” statement and the September 2026 media-reported “6.9 million barrels / about 30 days of crude needs” statement are kept separate in [STRATEGIC_STOCK_CLAIM_REGISTER.md](research/STRATEGIC_STOCK_CLAIM_REGISTER.md). The latter remains secondary-source-attested pending the primary parliamentary answer.
+
 ## Compose with the existing Power Fabric restoration programme
 
 SAFRB v0.8 is deliberately a **South African fuel-to-service domain profile**, not a second generic restoration planner, simulator, action schema or claim verifier. It should compose with the existing Symtropy Power Fabric contracts:
