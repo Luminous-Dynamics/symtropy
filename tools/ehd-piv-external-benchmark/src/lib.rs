@@ -997,4 +997,31 @@ mod stress_tensor_tests {
         assert!(report.bands[0].component_rmse[0].unwrap() > 0.0);
         assert!(report.bands[0].component_rmse[1].unwrap() > 0.0);
     }
+    #[test]
+    fn singular_positive_semidefinite_stress_tensor_is_accepted() {
+        let rank_one = ReynoldsStressTensor3D {
+            uu: 1.0,
+            vv: 1.0,
+            ww: 0.0,
+            uv: 1.0,
+            uw: 0.0,
+            vw: 0.0,
+        };
+        assert!(rank_one.is_positive_semidefinite(1.0e-10).unwrap());
+    }
+
+    #[test]
+    fn non_realizable_reference_tensor_is_counted_not_silently_corrected() {
+        let mut invalid_reference = tensor(1.0);
+        invalid_reference.uv = 4.0;
+        let predicted = tensor(1.0);
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(predicted); 3],
+            [invalid_reference; 3],
+        ))
+        .unwrap();
+        assert_eq!(report.bands[0].reference_non_psd_points, 3);
+        assert_eq!(report.bands[0].estimate_non_psd_points, 0);
+    }
+
 }
