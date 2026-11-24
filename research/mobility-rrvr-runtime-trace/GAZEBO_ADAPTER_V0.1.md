@@ -192,3 +192,10 @@ The read-only reconcile_reset path never calls ResetSimulation. It re-reads live
 The regression test simulates the difficult cut: the mock applies the reset, then returns a transport error as though the response were lost. A second reset request is blocked; dispatch is also blocked while unresolved; read-only reconciliation observes the exact committed initial state and marks the session verified without a second reset.
 
 The state machine is still in-memory in this contract-only layer. A coordinator crash can erase DispatchStarted/OutcomeUnresolved; the concrete adapter must therefore persist reset intent before the request and reconcile from the #7148 append-only journal after restart.
+
+
+### Dispatch outcome retention and exact observer cut
+
+The process-local duplicate guard stores both the request payload digest and the last observed dispatch outcome. An identical repeated request after an accepted/definitively rejected result is DuplicateSuppressed; an ambiguous prior result remains Unknown; an existing payload conflict remains PayloadConflict. A different payload under the same key is always PayloadConflict. This local cache is not durable and must never replace the injector owner's durable ledger lookup.
+
+For this v0.1 simulator contract, delivery observations are scoped to the exact scheduled simulation iteration, not merely any later step. The simulator remains paused at the cut while independent observations are collected. An observation one or more steps late is a scope mismatch and cannot confirm delivery. Any future asynchronous observation window must be explicitly committed in the campaign plan, not introduced as an adapter-side tolerance.
