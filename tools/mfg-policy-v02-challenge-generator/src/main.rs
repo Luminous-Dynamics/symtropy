@@ -824,7 +824,11 @@ fn make_scenarios(
     }
 }
 
-fn generate_case(family: &FamilySpec, family_index: usize, replication_seed: u64) -> ChallengeCase {
+fn generate_case(
+    family: &FamilySpec,
+    family_index: usize,
+    replication_seed: u64,
+) -> (ChallengeCase, EvaluatorCase) {
     let generator_seed = derive_seed(family_index, replication_seed);
     let mut rng = DeterministicRng::new(generator_seed);
     let case_prefix = format!(
@@ -837,10 +841,10 @@ fn generate_case(family: &FamilySpec, family_index: usize, replication_seed: u64
     let resources = make_resources(&family.scenario_family_id);
     let setup_transitions = make_setup_transitions(&mut rng);
     let inspection_station = make_inspection_station();
-    let scenarios = make_scenarios(&family.scenario_family_id, &case_prefix, &mut rng);
+    let scenario_bundle = make_scenarios(&family.scenario_family_id, &case_prefix, &mut rng);
 
-    ChallengeCase {
-        case_id: case_prefix,
+    let case = ChallengeCase {
+        case_id: case_prefix.clone(),
         scenario_family_id: family.scenario_family_id.clone(),
         split: family.split,
         replication_seed,
@@ -848,14 +852,20 @@ fn generate_case(family: &FamilySpec, family_index: usize, replication_seed: u64
         paired_seed_id: format!("PAIR-SEED-{replication_seed:02}"),
         horizon_epochs: HORIZON_EPOCHS,
         decision_visibility_rule:
-            "At epoch t, a policy receives only observations_by_epoch[0..=t]; future observations and hidden_terminal_quality_outcomes are evaluator-only."
+            "At epoch t, a policy receives only observations_by_epoch[0..=t]. Evaluator-only terminal outcomes are in a separately stored sidecar that must never be mounted in policy execution."
                 .into(),
         jobs,
         resources,
         setup_transitions,
         inspection_station,
-        scenarios,
-    }
+        scenarios: scenario_bundle.policy_scenarios,
+    };
+    let evaluator_case = EvaluatorCase {
+        case_id: case_prefix,
+        scenario_family_id: family.scenario_family_id.clone(),
+        scenario_outcomes: scenario_bundle.evaluator_outcomes,
+    };
+    (case, evaluator_case)
 }
 
 fn generate_corpus() -> Corpus {
