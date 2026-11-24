@@ -121,6 +121,7 @@ struct Operation {
     operation_id: String,
     sequence: usize,
     process_family: String,
+    setup_family: String,
     predecessor_operation_ids: Vec<String>,
     eligible_resource_ids: Vec<String>,
     processing_time_ticks_by_resource: BTreeMap<String, u64>,
@@ -365,6 +366,12 @@ fn make_jobs(
                     Operation {
                         operation_id,
                         sequence: operation_index + 1,
+                        setup_family: match process_family.as_str() {
+                            "CUTTING" => "SETUP-A",
+                            "FORMING" => "SETUP-B",
+                            "FINISHING" => "SETUP-C",
+                            _ => unreachable!("known process family"),
+                        }.to_string(),
                         process_family,
                         predecessor_operation_ids: if operation_index == 0 {
                             Vec::new()
@@ -431,11 +438,21 @@ fn make_resources(family_id: &str) -> Vec<Resource> {
                 })
                 .collect();
 
+            let capacity_units_by_epoch = if family_id == "crossed-bottlenecks" {
+                match resource_id {
+                    "RESOURCE-A" => vec![1, 0, 1, 1],
+                    "RESOURCE-B" => vec![1, 1, 0, 1],
+                    _ => vec![1, 1, 1, 1],
+                }
+            } else {
+                vec![1, 1, 1, 1]
+            };
+
             Resource {
                 resource_id: resource_id.to_string(),
                 capability_families: capabilities.iter().map(|value| (*value).to_string()).collect(),
                 common_cause_domain: common_cause_domain.to_string(),
-                capacity_units_by_epoch: vec![1, 1, 1, 1],
+                capacity_units_by_epoch,
                 initial_setup_family: initial_setup_family.to_string(),
                 initial_qualifications,
             }
@@ -869,6 +886,12 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             for (index, operation) in job.operations.iter().enumerate() {
                 if !operation_ids.insert(operation.operation_id.as_str())
                     || operation.sequence != index + 1
+                    || operation.setup_family != match operation.process_family.as_str() {
+                        "CUTTING" => "SETUP-A",
+                        "FORMING" => "SETUP-B",
+                        "FINISHING" => "SETUP-C",
+                        _ => "",
+                    }
                     || operation.eligible_resource_ids.len() != 2
                     || operation.eligible_resource_ids.iter().any(|id| !resource_ids.contains(id.as_str()))
                     || operation.processing_time_ticks_by_resource.len() != 2
@@ -900,6 +923,12 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
 
         if case.resources.iter().any(|resource| resource.capacity_units_by_epoch.len() != HORIZON_EPOCHS) {
             return Err("resource_capacity_calendar_length_invalid".into());
+        }
+        if case.scenario_family_id == "crossed-bottlenecks"
+            && !(case.resources.iter().any(|resource| resource.resource_id == "RESOURCE-A" && resource.capacity_units_by_epoch == [1, 0, 1, 1])
+                && case.resources.iter().any(|resource| resource.resource_id == "RESOURCE-B" && resource.capacity_units_by_epoch == [1, 1, 0, 1]))
+        {
+            return Err("interacting_bottleneck_capacity_windows_missing".into());
         }
         if case.setup_transitions.is_empty() || case.setup_transitions.iter().any(|transition| transition.duration_ticks == 0) {
             return Err("sequence_dependent_setup_matrix_missing_or_zero".into());
@@ -1031,6 +1060,31 @@ mod tests {
             assert_eq!(case.horizon_epochs, 4);
             assert_eq!(case.jobs.iter().map(|job| job.operations.len()).sum::<usize>(), 6);
             assert!(case.jobs.iter().flat_map(|job| &job.operations).all(|operation| operation.eligible_resource_ids.len() == 2));
+        }
+    }
+
+    #[test]
+    fn crossed_bottleneck_family_has_interacting_time_window_limits() {
+        let corpus = corpus();
+        let case = corpus.cases.iter()
+            .find(|case| case.scenario_family_id == "crossed-bottlenecks")
+            .expect("crossed bottlenecks family exists");
+        let a = case.resources.iter().find(|resource| resource.resource_id == "RESOURCE-A").unwrap();
+        let b = case.resources.iter().find(|resource| resource.resource_id == "RESOURCE-B").unwrap();
+        assert_eq!(a.capacity_units_by_epoch, vec![1, 0, 1, 1]);
+        assert_eq!(b.capacity_units_by_epoch, vec![1, 1, 0, 1]);
+    }
+
+    #[test]
+    fn operations_bind_to_sequence_dependent_setup_families() {
+        let corpus = corpus();
+        for case in &corpus.cases {
+            for operation in case.jobs.iter().flat_map(|job| &job.operations) {
+                assert!(case.setup_transitions.iter().any(|transition|
+                    transition.to_setup_family == operation.setup_family
+                        && transition.resource_id == operation.eligible_resource_ids[0]
+                ));
+            }
         }
     }
 
