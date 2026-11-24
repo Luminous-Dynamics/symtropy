@@ -401,34 +401,123 @@ pub enum ArithmeticProfile {
     Unspecified,
 }
 
-/// Run-wide motion and arithmetic models. One QueryScore represents exactly
-/// one profile; scores may only be pooled when both profiles are explicit and
-/// identical.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+/// Immutable provenance required to reproduce and pool one benchmark run.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunProvenance {
+    algorithm_name: String,
+    algorithm_version: String,
+    algorithm_commit_sha1: String,
+    dataset_manifest_sha256: String,
+    configuration_sha256: String,
+}
+
+impl RunProvenance {
+    pub fn new(
+        algorithm_name: impl Into<String>,
+        algorithm_version: impl Into<String>,
+        algorithm_commit_sha1: impl Into<String>,
+        dataset_manifest_sha256: impl Into<String>,
+        configuration_sha256: impl Into<String>,
+    ) -> Self {
+        Self {
+            algorithm_name: algorithm_name.into(),
+            algorithm_version: algorithm_version.into(),
+            algorithm_commit_sha1: algorithm_commit_sha1.into(),
+            dataset_manifest_sha256: dataset_manifest_sha256.into(),
+            configuration_sha256: configuration_sha256.into(),
+        }
+    }
+
+    #[must_use]
+    pub fn algorithm_name(&self) -> &str {
+        &self.algorithm_name
+    }
+
+    #[must_use]
+    pub fn algorithm_version(&self) -> &str {
+        &self.algorithm_version
+    }
+
+    #[must_use]
+    pub fn algorithm_commit_sha1(&self) -> &str {
+        &self.algorithm_commit_sha1
+    }
+
+    #[must_use]
+    pub fn dataset_manifest_sha256(&self) -> &str {
+        &self.dataset_manifest_sha256
+    }
+
+    #[must_use]
+    pub fn configuration_sha256(&self) -> &str {
+        &self.configuration_sha256
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        !self.algorithm_name.trim().is_empty()
+            && !self.algorithm_version.trim().is_empty()
+            && is_lower_hex(&self.algorithm_commit_sha1, 40)
+            && is_lower_hex(&self.dataset_manifest_sha256, 64)
+            && is_lower_hex(&self.configuration_sha256, 64)
+    }
+}
+
+/// One query scorecard represents exactly one immutable algorithm, dataset,
+/// configuration, motion and arithmetic profile.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RunProfile {
-    pub motion: MotionProfile,
-    pub arithmetic: ArithmeticProfile,
+    provenance: Option<RunProvenance>,
+    motion: MotionProfile,
+    arithmetic: ArithmeticProfile,
 }
 
 impl RunProfile {
     pub const UNSPECIFIED: Self = Self {
+        provenance: None,
         motion: MotionProfile::Unspecified,
         arithmetic: ArithmeticProfile::Unspecified,
     };
 
     #[must_use]
-    pub const fn new(motion: MotionProfile, arithmetic: ArithmeticProfile) -> Self {
-        Self { motion, arithmetic }
+    pub fn new(
+        provenance: RunProvenance,
+        motion: MotionProfile,
+        arithmetic: ArithmeticProfile,
+    ) -> Self {
+        Self {
+            provenance: Some(provenance),
+            motion,
+            arithmetic,
+        }
     }
 
     #[must_use]
-    pub const fn is_explicit(self) -> bool {
-        !matches!(self.motion, MotionProfile::Unspecified)
-            && !matches!(self.arithmetic, ArithmeticProfile::Unspecified)
+    pub fn provenance(&self) -> Option<&RunProvenance> {
+        self.provenance.as_ref()
     }
 
     #[must_use]
-    pub fn can_pool_with(self, other: Self) -> bool {
+    pub fn motion(&self) -> MotionProfile {
+        self.motion
+    }
+
+    #[must_use]
+    pub fn arithmetic(&self) -> ArithmeticProfile {
+        self.arithmetic
+    }
+
+    #[must_use]
+    pub fn is_explicit(&self) -> bool {
+        self.provenance.as_ref().is_some_and(RunProvenance::is_valid)
+            && self.motion != MotionProfile::Unspecified
+            && self.arithmetic != ArithmeticProfile::Unspecified
+    }
+
+    /// Pooling is permitted only for identical algorithm commit, dataset
+    /// manifest, configuration, motion and arithmetic provenance.
+    #[must_use]
+    pub fn can_pool_with(&self, other: &Self) -> bool {
         self.is_explicit() && other.is_explicit() && self == other
     }
 }
@@ -453,7 +542,7 @@ impl QueryScore {
 
     #[must_use]
     pub fn can_pool_with(&self, other: &Self) -> bool {
-        self.profile.can_pool_with(other.profile)
+        self.profile.can_pool_with(&other.profile)
     }
 }
 
