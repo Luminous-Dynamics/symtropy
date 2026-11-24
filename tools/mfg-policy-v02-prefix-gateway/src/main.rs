@@ -75,8 +75,7 @@ fn project_prefix(
     let case_id = required_string(policy_case, "case_id", "policy_case")?;
     let scenario_family_id = required_string(policy_case, "scenario_family_id", "policy_case")?;
     if required_string(stream_case, "case_id", "stream_case")? != case_id
-        || required_string(stream_case, "scenario_family_id", "stream_case")?
-            != scenario_family_id
+        || required_string(stream_case, "scenario_family_id", "stream_case")? != scenario_family_id
     {
         return Err(fail("policy_and_stream_case_identity_mismatch"));
     }
@@ -174,10 +173,10 @@ fn run() -> Result<(), String> {
         );
     }
 
-    let policy_bytes = std::fs::read(&args[1])
-        .map_err(|error| fail(format!("policy_corpus_read:{error}")))?;
-    let streams_bytes = std::fs::read(&args[2])
-        .map_err(|error| fail(format!("scenario_streams_read:{error}")))?;
+    let policy_bytes =
+        std::fs::read(&args[1]).map_err(|error| fail(format!("policy_corpus_read:{error}")))?;
+    let streams_bytes =
+        std::fs::read(&args[2]).map_err(|error| fail(format!("scenario_streams_read:{error}")))?;
     let policy_corpus: Value = serde_json::from_slice(&policy_bytes)
         .map_err(|error| fail(format!("policy_corpus_json:{error}")))?;
     let scenario_streams: Value = serde_json::from_slice(&streams_bytes)
@@ -273,18 +272,18 @@ mod tests {
     fn frame_exposes_only_the_prefix_through_the_requested_epoch() {
         let policy_case = sample_policy_case();
         let stream_case = sample_stream_case();
-        let frame = project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 2, 1)
-            .expect("valid policy prefix");
+        let frame = project_prefix(
+            "MFG-POLICY-V02-CHALLENGE-001",
+            &policy_case,
+            &stream_case,
+            2,
+            1,
+        )
+        .expect("valid policy prefix");
         assert_eq!(frame.decision_epoch, 1);
         assert_eq!(frame.observable_history.len(), 2);
-        assert_eq!(
-            frame.observable_history[0]["epoch"],
-            Value::from(0_u64)
-        );
-        assert_eq!(
-            frame.observable_history[1]["epoch"],
-            Value::from(1_u64)
-        );
+        assert_eq!(frame.observable_history[0]["epoch"], Value::from(0_u64));
+        assert_eq!(frame.observable_history[1]["epoch"], Value::from(1_u64));
         let serialized = serde_json::to_string(&frame).unwrap();
         assert!(!serialized.contains("EVENT-2"));
         assert!(!serialized.contains("EVENT-3"));
@@ -296,10 +295,22 @@ mod tests {
     fn same_observable_prefix_produces_identical_policy_frames() {
         let policy_case = sample_policy_case();
         let stream_case = sample_stream_case();
-        let left = project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 0, 2)
-            .unwrap();
-        let right = project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 1, 2)
-            .unwrap();
+        let left = project_prefix(
+            "MFG-POLICY-V02-CHALLENGE-001",
+            &policy_case,
+            &stream_case,
+            0,
+            2,
+        )
+        .unwrap();
+        let right = project_prefix(
+            "MFG-POLICY-V02-CHALLENGE-001",
+            &policy_case,
+            &stream_case,
+            1,
+            2,
+        )
+        .unwrap();
         assert_eq!(left, right);
     }
 
@@ -316,8 +327,8 @@ mod tests {
         )
         .unwrap();
         let mut mutated_streams = original_streams;
-        mutated_streams["scenarios"][0]["observations_by_epoch"][3]["resource_events"][0]
-            ["source_event_id"] = Value::from("MUTATED-FUTURE-EVENT");
+        mutated_streams["scenarios"][0]["observations_by_epoch"][3]["resource_events"][0]["source_event_id"] =
+            Value::from("MUTATED-FUTURE-EVENT");
         let mutated = project_prefix(
             "MFG-POLICY-V02-CHALLENGE-001",
             &policy_case,
@@ -334,13 +345,25 @@ mod tests {
         let policy_case = sample_policy_case();
         let stream_case = sample_stream_case();
         assert_eq!(
-            project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 0, 4)
-                .unwrap_err(),
+            project_prefix(
+                "MFG-POLICY-V02-CHALLENGE-001",
+                &policy_case,
+                &stream_case,
+                0,
+                4
+            )
+            .unwrap_err(),
             "decision_epoch_out_of_range"
         );
         assert_eq!(
-            project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 4, 1)
-                .unwrap_err(),
+            project_prefix(
+                "MFG-POLICY-V02-CHALLENGE-001",
+                &policy_case,
+                &stream_case,
+                4,
+                1
+            )
+            .unwrap_err(),
             "scenario_slot_out_of_range"
         );
     }
@@ -349,12 +372,26 @@ mod tests {
     fn future_history_and_scenario_identity_are_not_in_the_frame_contract() {
         let policy_case = sample_policy_case();
         let stream_case = sample_stream_case();
-        let frame = project_prefix("MFG-POLICY-V02-CHALLENGE-001", &policy_case, &stream_case, 3, 0)
-            .unwrap();
+        let frame = project_prefix(
+            "MFG-POLICY-V02-CHALLENGE-001",
+            &policy_case,
+            &stream_case,
+            3,
+            0,
+        )
+        .unwrap();
         let value = serde_json::to_value(frame).unwrap();
         assert!(value.get("scenario_id").is_none());
         assert!(value.get("scenario_slot").is_none());
         assert!(value.get("probability_ppm").is_none());
-        assert!(value.get("observable_history").unwrap().as_array().unwrap().len() == 1);
+        assert!(
+            value
+                .get("observable_history")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len()
+                == 1
+        );
     }
 }
