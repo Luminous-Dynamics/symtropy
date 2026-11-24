@@ -235,3 +235,6 @@ The new model/GazeboResetLifecycle.tla is checked with the workflow's pinned TLC
 
 
 Fault-dispatch keys and payload commitments include the verified post-reset world epoch and simulation clock identity. Reusing the same plan/run/fault fields against a different world generation or clock must produce a different key and request fingerprint.
+
+
+Dispatch reconciliation is bound to the registered request payload and updates the local record with the read-only injector-ledger decision. NoDispatchProven, Unknown and PayloadConflict remain non-dispatching for that key; a genuinely new attempt must have a new run/attempt identity.
