@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json",
+  "title": "Incumbent anytime-valid world-set bridge receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "source",
+    "contract",
+    "cutoff",
+    "world_inventory",
+    "qualification",
+    "adapter_disposition",
+    "authority_granted"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-incumbent-world-set-bridge.receipt.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "source-receipt-structure-and-inventory-composition-only"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_issue",
+        "receipt_schema",
+        "claim_ceiling",
+        "source_commit",
+        "source_case_id",
+        "receipt_id",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "owner_issue": {
+          "const": "#6887"
+        },
+        "receipt_schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "guarantee_type",
+        "guarantee_disposition",
+        "optional_stopping_covered",
+        "predictable_selection",
+        "adaptive_selection_covered",
+        "process_id",
+        "look_index",
+        "stopping_state",
+        "alpha_total",
+        "alpha_allocated",
+        "alpha_allocation_id",
+        "alpha_allocation_sha256",
+        "filtration_sha256",
+        "selection_policy_sha256",
+        "conditional_kernel_sha256"
+      ],
+      "properties": {
+        "guarantee_type": {
+          "const": "ANYTIME_VALID_WORLD_EXCLUSION"
+        },
+        "guarantee_disposition": {
+          "enum": [
+            "QUALIFIED",
+            "UNQUALIFIED"
+          ]
+        },
+        "optional_stopping_covered": {
+          "type": "boolean"
+        },
+        "predictable_selection": {
+          "type": "boolean"
+        },
+        "adaptive_selection_covered": {
+          "type": "boolean"
+        },
+        "process_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "look_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stopping_state": {
+          "enum": [
+            "ACTIVE",
+            "STOPPED"
+          ]
+        },
+        "alpha_total": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "alpha_allocated": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "alpha_allocation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alpha_allocation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "filtration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "selection_policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "conditional_kernel_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "cutoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cutoff_id",
+        "event_watermark_sequence",
+        "observed_max_sequence",
+        "history_sha256",
+        "knowledge_time_utc"
+      ],
+      "properties": {
+        "cutoff_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_watermark_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "observed_max_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "history_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "knowledge_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "world_inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_world_ids",
+        "candidate_world_ids_sha256",
+        "surviving_world_ids",
+        "surviving_world_ids_sha256",
+        "excluded_world_ids",
+        "excluded_world_ids_sha256"
+      ],
+      "properties": {
+        "candidate_world_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "candidate_world_ids_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "surviving_world_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "surviving_world_ids_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "excluded_world_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_world_ids_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state",
+        "model_family_state",
+        "channel_dependence_state",
+        "action_realization_state"
+      ],
+      "properties": {
+        "source_state": {
+          "enum": [
+            "CURRENT",
+            "STALE",
+            "REVOKED",
+            "CONTRADICTED",
+            "INDETERMINATE"
+          ]
+        },
+        "model_family_state": {
+          "enum": [
+            "ADEQUATE",
+            "INADEQUATE",
+            "INDETERMINATE"
+          ]
+        },
+        "channel_dependence_state": {
+          "enum": [
+            "ADEQUATE",
+            "UNRESOLVED",
+            "INADEQUATE"
+          ]
+        },
+        "action_realization_state": {
+          "enum": [
+            "VERIFIED",
+            "NOT_REQUIRED_BY_PROFILE",
+            "UNKNOWN",
+            "CONTRADICTED"
+          ]
+        }
+      }
+    },
+    "adapter_disposition": {
+      "enum": [
+        "CONSUMABLE",
+        "ABSTAIN"
+      ]
+    },
+    "authority_granted": {
+      "const": false
+    }
+  }
+}
