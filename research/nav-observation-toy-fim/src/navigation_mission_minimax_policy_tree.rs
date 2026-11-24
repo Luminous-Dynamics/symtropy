@@ -589,10 +589,25 @@ mod tests {
         assert_eq!(plan.first_action_id, Some(1));
         assert_eq!(plan.branches[1].first_outcome, ActionOutcome::ObservedZero);
         assert_eq!(plan.branches[2].first_outcome, ActionOutcome::ObservedOne);
+        assert_eq!(plan.branches[0].policy, BranchPolicy::Stop {
+            terminal_decision: TerminalDecision::DeclareDegraded,
+        });
         assert_eq!(plan.branches[1].policy, BranchPolicy::Acquire {
             second_action_id: 2,
-            terminal_decisions: [TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded, TerminalDecision::DeclareDegraded],
-        }.into_stop_no_obs_placeholder());
+            terminal_decisions: [TerminalDecision::DeclareDegraded, TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded],
+        });
+        assert_eq!(plan.branches[2].policy, BranchPolicy::Acquire {
+            second_action_id: 3,
+            terminal_decisions: [TerminalDecision::DeclareDegraded, TerminalDecision::DeclareSafe, TerminalDecision::DeclareDegraded],
+        });
+        assert_eq!(
+            plan.worst_case_risk_numerator,
+            180_000_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            plan.branchwise_switching_risk_numerator,
+            900_000_000_000_000_000_000_000_000
+        );
         assert!(plan.branchwise_switching_risk_numerator > plan.worst_case_risk_numerator);
         assert_eq!(plan.model_risk_numerators[0], plan.model_risk_numerators[1]);
     }
